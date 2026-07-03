@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import com.example.researchos.calibration.CalibrationRepository
 import com.example.researchos.ui.HomeScreen
 import com.example.researchos.ui.theme.ResearchOSTheme
+import com.example.researchos.ui.ResearchGraphScreen
 
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -17,7 +18,8 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         setContent {
             ResearchOSTheme {
-                HomeScreen()
+                ResearchGraphScreen()
+                //HomeScreen()
             }
         }
     }
