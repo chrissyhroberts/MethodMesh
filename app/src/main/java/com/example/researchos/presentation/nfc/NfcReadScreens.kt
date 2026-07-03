@@ -44,7 +44,7 @@ fun NfcReadDemoScreen(settingsState: SettingsState) {
         enabled = active,
         onStatus = { status = it },
         onSignal = { tagSignal ->
-            val read = As100NfcReadMethod.read(tagSignal)
+            val read = As100NfcReadMethod.readBundle(tagSignal)
             bundle = read
             status = "Tag read: ${read.evidence.values[NfcEvidenceFields.TAG_UID_HEX].orEmpty()}"
             if (readOnce) active = false

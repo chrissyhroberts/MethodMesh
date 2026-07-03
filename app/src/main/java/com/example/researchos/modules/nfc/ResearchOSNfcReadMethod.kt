@@ -17,6 +17,7 @@ import com.example.researchos.core.researchos.runtime.As100Method
 import com.example.researchos.platform.nfc.AndroidNfcDeviceService
 import com.example.researchos.platform.nfc.NfcTagSignal
 import com.example.researchos.settings.SettingsState
+import com.example.researchos.core.Observation
 
 /**
  * Native AS1.00 method for NFC tag reads.
@@ -112,7 +113,7 @@ object As100NfcReadMethod : As100Method {
         )
     }
 
-    fun read(tagSignal: NfcTagSignal): NfcReadEvidenceBundle =
+    fun readBundle(tagSignal: NfcTagSignal): NfcReadEvidenceBundle =
         NfcTagRepository.readTagSignal(
             tagSignal = tagSignal,
             methodId = ID,
@@ -120,4 +121,8 @@ object As100NfcReadMethod : As100Method {
             methodObjectType = "Method",
             methodLabel = "NFC Tag Read"
         )
+
+    fun read(tagSignal: NfcTagSignal): Observation =
+        NfcObservationMapper.fromBundle(readBundle(tagSignal))
+
 }
