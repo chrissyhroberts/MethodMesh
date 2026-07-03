@@ -2,7 +2,7 @@ package com.example.xlsformlab.core
 
 /**
  * Compatibility result used by existing method implementations.
- * Prefer EvidenceArtifact via MethodRuntime for new runtime code.
+ * Prefer Observation via MethodRuntime for new runtime code.
  */
 data class MethodResult(
     val success: Boolean = true,

@@ -72,7 +72,7 @@ class GpsTargetNavigatorMethod : Method {
         version = "0.2.0",
         category = MethodCategory.Mapping,
         status = MethodStatus.Experimental,
-        activities = listOf(
+        capabilities = listOf(
             ResearchActivity(
                 id = "gps_target_navigator.localise",
                 kind = ResearchActivityKind.Localise,

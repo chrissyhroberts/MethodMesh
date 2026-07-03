@@ -15,7 +15,7 @@ data class MethodExecutionRequest(
 
 data class MethodExecutionResult(
     val success: Boolean,
-    val artifact: EvidenceArtifact? = null,
+    val artifact: Observation? = null,
     val errorMessage: String? = null,
     val warnings: List<String> = emptyList()
 )
@@ -27,7 +27,7 @@ object MethodRuntime {
         request: MethodExecutionRequest,
         settingsState: SettingsState? = null
     ): MethodExecutionResult {
-        val missingContext = request.context.missing(method.manifest.requiredContext)
+        val missingContext = request.context.missing(method.manifest.requiredInputs)
         val contextWarnings = missingContext.map { key -> "Missing context: $key" }
 
         val legacyResult = method.execute(
@@ -58,14 +58,14 @@ object MethodRuntime {
         val provenance = Provenance(
             methodId = method.manifest.id,
             methodVersion = method.manifest.version,
-            activityIds = method.manifest.activities.map { it.id },
+            activityIds = method.manifest.capabilities.map { it.id },
             transport = request.transport,
             warnings = contextWarnings + validation.messages
         )
 
         return MethodExecutionResult(
             success = validation.valid,
-            artifact = EvidenceArtifact(
+            artifact = Observation(
                 output = output,
                 schema = method.outputSchema,
                 context = request.context,

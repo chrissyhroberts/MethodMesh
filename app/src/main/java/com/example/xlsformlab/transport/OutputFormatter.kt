@@ -1,15 +1,15 @@
 package com.example.xlsformlab.transport
 
 import com.example.xlsformlab.core.MethodOutput
-import com.example.xlsformlab.core.EvidenceArtifact
+import com.example.xlsformlab.core.Observation
 
 object OutputFormatter {
 
     fun format(output: MethodOutput, returnMode: ReturnMode): String =
         formatFields(output.fields, returnMode)
 
-    fun format(artifact: EvidenceArtifact, returnMode: ReturnMode, includeProvenance: Boolean = true): String =
-        formatFields(artifact.asFlatFields(includeProvenance), returnMode)
+    fun format(artifact: Observation, returnMode: ReturnMode, includeProvenance: Boolean = true): String =
+        formatFields(artifact.toRecord(includeProvenance), returnMode)
 
     private fun formatFields(fields: Map<String, Any?>, returnMode: ReturnMode): String {
         return when (returnMode) {

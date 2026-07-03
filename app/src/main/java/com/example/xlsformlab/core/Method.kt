@@ -5,30 +5,51 @@ import com.example.xlsformlab.settings.MethodSetting
 import com.example.xlsformlab.settings.SettingsState
 
 /**
- * A method is a transport-independent research instrument.
+ * A Method is a repeatable research procedure capable of fulfilling one or more Intents.
  *
- * It may be launched from ODK, demoed inside ResearchOS, or invoked by a future protocol runner.
- * Implementations should declare their manifest, settings, output schema, and a small UI/demo surface.
+ * Methods are transport-independent and may be executed from ODK, demonstrated within
+ * ResearchOS, or invoked by future orchestrators and protocol runners.
+ *
+ * A Method defines *how* work is performed. Execution of a Method may produce one or more
+ * Observation objects together with provenance describing the execution.
  */
 interface Method {
 
+    /**
+     * Static description of the Method and its capabilities.
+     */
     val manifest: MethodManifest
 
+    /**
+     * User-configurable settings exposed by the Method.
+     */
     val settings: List<MethodSetting>
 
+    /**
+     * Schema describing the observations this Method may produce.
+     */
     val outputSchema: MethodOutputSchema
         get() = MethodOutputSchema()
 
+    /**
+     * Interactive demonstration surface.
+     */
     @Composable
     fun Demo(
         settingsState: SettingsState
     )
 
+    /**
+     * Human-readable documentation for the Method.
+     */
     @Composable
     fun Help()
 
     /**
-     * Preview or deterministic output generated from settings. Used by demo and launch builders.
+     * Builds a deterministic preview of the expected output from the current settings.
+     *
+     * This function performs no acquisition or execution and may be used by user interfaces,
+     * protocol builders and validation tools.
      */
     fun buildOutput(
         settingsState: SettingsState
@@ -37,9 +58,11 @@ interface Method {
     }
 
     /**
-     * Legacy direct execution hook. Kept deliberately simple so existing modules continue to work.
-     * Newer integrations should call MethodRuntime.execute so context, validation and provenance
-     * are handled consistently.
+     * Executes the Method.
+     *
+     * The request represents a runtime execution request rather than a ResearchOS Intent.
+     * Higher-level runtime components are responsible for translating Intents into
+     * executable requests.
      */
     fun execute(
         request: MethodRequest

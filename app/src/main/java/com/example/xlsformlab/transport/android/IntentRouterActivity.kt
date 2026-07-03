@@ -72,7 +72,7 @@ class IntentRouterActivity : Activity() {
         val data = Intent().apply {
             putExtra("value", output)
             putExtra("return_mode", returnMode.id)
-            result.artifact.asFlatFields(includeProvenance = true).forEach { (key, value) ->
+            result.artifact.toRecord(includeProvenance = true).forEach { (key, value) ->
                 putExtra(key, value?.toString())
             }
         }

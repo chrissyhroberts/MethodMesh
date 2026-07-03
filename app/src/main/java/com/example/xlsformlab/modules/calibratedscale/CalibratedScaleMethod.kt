@@ -51,7 +51,7 @@ class CalibratedScaleMethod : Method {
         version = "1.0.0",
         category = MethodCategory.Measurement,
         status = MethodStatus.Experimental,
-        activities = listOf(
+        capabilities = listOf(
             ResearchActivity(
                 id = "calibrated_scale.measure",
                 kind = ResearchActivityKind.Measure,

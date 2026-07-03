@@ -33,7 +33,7 @@ class As100LegacyMethodAdapter(
         name = method.manifest.name,
         version = method.manifest.version,
         description = method.manifest.description,
-        inputs = method.manifest.requiredContext,
+        inputs = method.manifest.requiredInputs,
         outputs = method.outputSchema.fields.map { it.id },
         parameters = mapOf(
             "category" to method.manifest.category.name,
@@ -44,7 +44,7 @@ class As100LegacyMethodAdapter(
     override val contract: MethodContract = MethodContract(
         method = ref,
         acceptedSignals = emptyList(),
-        requiredContext = method.manifest.requiredContext,
+        requiredContext = method.manifest.requiredInputs,
         producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
         producedFields = method.outputSchema.fields.map { it.id }
     )

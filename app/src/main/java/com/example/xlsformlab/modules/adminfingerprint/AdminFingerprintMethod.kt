@@ -47,7 +47,7 @@ class AdminFingerprintMethod : Method {
         version = As100VerifyFingerprintMethod.VERSION,
         category = MethodCategory.Attestation,
         status = MethodStatus.Experimental,
-        activities = listOf(
+        capabilities = listOf(
             ResearchActivity(
                 id = "verify_fingerprint.attest",
                 kind = ResearchActivityKind.Attest,

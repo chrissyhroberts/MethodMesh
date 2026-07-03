@@ -2,17 +2,14 @@ package com.example.xlsformlab.core
 
 enum class MethodCategory {
     Measurement,
-    Camera,
-    DCE,
-    NFC,
-    Sensors,
+    Observation,
+    Imaging,
     Mapping,
     Protocol,
     Workflow,
-    BodyMap,
-    Imaging,
     Randomisation,
     Attestation,
+    NFC,
     Utilities
 }
 
@@ -23,6 +20,13 @@ enum class MethodStatus {
     Deprecated
 }
 
+/**
+ * Describes a Method independently of its implementation.
+ *
+ * A MethodManifest is the discovery and registration record used by the
+ * ResearchOS runtime. It declares what a Method is capable of doing,
+ * the inputs it requires and the platform capabilities needed to execute it.
+ */
 data class MethodManifest(
     val id: String,
     val name: String,
@@ -32,28 +36,29 @@ data class MethodManifest(
     val status: MethodStatus = MethodStatus.Experimental,
 
     /**
-     * ResearchOS-facing declaration of what this method does in research terms.
-     * A method may implement one activity or a small bundle of tightly-related activities.
+     * Research capabilities provided by this Method.
+     * These indicate the kinds of research activities or Intents the
+     * Method is capable of fulfilling.
      */
-    val activities: List<ResearchActivity> = emptyList(),
+    val capabilities: List<ResearchActivity> = emptyList(),
 
     /**
-     * Context keys the runtime should try to supply before execution.
-     * Examples: participant_id, study_id, visit_id, protocol_id, form_id.
+     * Named inputs expected before execution.
+     * Examples include participant, visit, household, specimen or location.
      */
-    val requiredContext: List<String> = emptyList(),
+    val requiredInputs: List<String> = emptyList(),
 
     /**
-     * Android permissions or device affordances needed by the method.
-     * These are descriptive at SDK level; Android permission requests remain platform code.
+     * Platform capabilities required by the Method.
+     * Examples include camera, NFC, Bluetooth, GPS or microphone.
      */
     val requiredDeviceFeatures: List<String> = emptyList(),
 
     /**
-     * Short human-readable contract for protocol designers and reviewers.
+     * Short human-readable summary of the Method contract.
      */
     val contractSummary: String? = null
 ) {
-    fun primaryActivityKind(): ResearchActivityKind? =
-        activities.firstOrNull()?.kind
+    fun primaryCapabilityKind(): ResearchActivityKind? =
+        capabilities.firstOrNull()?.kind
 }
