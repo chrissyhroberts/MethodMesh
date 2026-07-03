@@ -140,6 +140,8 @@ class NfcWriteMethod : Method {
                 KeyValueSection("Validation", current.intervention.validation.asMap())
                 KeyValueSection("Artifact", current.postWriteRead.artifact.asMap())
             }
+
+            ResearchSessionPreview()
         }
     }
 

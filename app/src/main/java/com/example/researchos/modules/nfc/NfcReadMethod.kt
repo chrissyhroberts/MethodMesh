@@ -1,6 +1,20 @@
 package com.example.researchos.modules.nfc
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.example.researchos.core.Method
 import com.example.researchos.core.MethodCategory
 import com.example.researchos.core.MethodField
@@ -11,7 +25,6 @@ import com.example.researchos.core.MethodOutputSchema
 import com.example.researchos.core.MethodRequest
 import com.example.researchos.core.MethodResult
 import com.example.researchos.core.MethodStatus
-import com.example.researchos.presentation.nfc.NfcReadDemoScreen
 import com.example.researchos.presentation.nfc.NfcReadHelpScreen
 import com.example.researchos.settings.MethodSetting
 import com.example.researchos.settings.SettingsState
@@ -50,7 +63,54 @@ class NfcReadMethod : Method {
 
     @Composable
     override fun Demo(settingsState: SettingsState) {
-        NfcReadDemoScreen(settingsState)
+        val initialStatus = rememberNfcAvailabilityMessage()
+        var active by remember { mutableStateOf(false) }
+        var status by remember { mutableStateOf(initialStatus) }
+        var bundle by remember { mutableStateOf<NfcReadEvidenceBundle?>(null) }
+
+        NfcDeviceServiceEffect(
+            enabled = active,
+            onStatus = { status = it },
+            onSignal = { tagSignal ->
+                val result = As100NfcReadMethod.readBundle(tagSignal)
+                bundle = result
+                status = "NFC tag read and recorded as a ResearchOS Observation."
+                active = false
+            }
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text("NFC Tag Read", fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text(status)
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = { active = !active }) {
+                Text(if (active) "Cancel scan" else "Scan NFC tag")
+            }
+            Spacer(Modifier.height(16.dp))
+
+            val current = bundle
+            if (current == null) {
+                Text("No NFC tag read yet.")
+            } else {
+                val fieldFilter = parseFieldFilter(settingsState.getString("field_filter"))
+                val displayFields = applyFieldFilter(current.evidence.values, fieldFilter)
+
+                KeyValueSection("NFC evidence", displayFields)
+                KeyValueSection("Research semantics", current.evidence.semanticsMap())
+                KeyValueSection("Provenance", current.evidence.provenance.asMap())
+                KeyValueSection("Capture", current.evidence.captureOutcome.asMap())
+                KeyValueSection("Quality", current.evidence.quality.asMap())
+                KeyValueSection("Validation", current.evidence.validation.asMap())
+                KeyValueSection("Artifact", current.artifact.asMap())
+            }
+
+            ResearchSessionPreview()
+        }
     }
 
     @Composable

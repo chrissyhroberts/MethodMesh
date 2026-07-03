@@ -122,7 +122,7 @@ object As100NfcWriteMethod : As100Method {
         )
     }
 
-    fun writeBundle(tagSignal: NfcTagSignal, request: NfcWriteRequest): NfcWriteEvidenceBundle =
+    private fun writeBundleInternal(tagSignal: NfcTagSignal, request: NfcWriteRequest): NfcWriteEvidenceBundle =
         NfcTagRepository.writeTagSignal(
             tagSignal = tagSignal,
             request = request,
@@ -132,6 +132,27 @@ object As100NfcWriteMethod : As100Method {
             methodLabel = "NFC Tag Write"
         )
 
+    /**
+     * Legacy-compatible write path used by the existing NFC UI.
+     *
+     * It still returns the NFC-specific write evidence bundle, but now also
+     * records a canonical ResearchOS Observation into the live ResearchRuntime
+     * session.
+     */
+    fun writeBundle(tagSignal: NfcTagSignal, request: NfcWriteRequest): NfcWriteEvidenceBundle {
+        val bundle = writeBundleInternal(tagSignal, request)
+        NfcResearchSessionRecorder.recordWriteBundle(bundle)
+        return bundle
+    }
+
+    /**
+     * Canonical ResearchOS write path.
+     *
+     * Returns an Observation without forcing callers to know about the legacy
+     * NFC write evidence bundle.
+     */
     fun write(tagSignal: NfcTagSignal, request: NfcWriteRequest): Observation =
-        NfcObservationMapper.fromWriteBundle(writeBundle(tagSignal, request))
+        NfcResearchSessionRecorder.record(
+            NfcObservationMapper.fromWriteBundle(writeBundleInternal(tagSignal, request))
+        )
 }

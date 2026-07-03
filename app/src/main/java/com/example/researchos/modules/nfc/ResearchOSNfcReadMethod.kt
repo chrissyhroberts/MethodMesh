@@ -113,7 +113,7 @@ object As100NfcReadMethod : As100Method {
         )
     }
 
-    fun readBundle(tagSignal: NfcTagSignal): NfcReadEvidenceBundle =
+    private fun readBundleInternal(tagSignal: NfcTagSignal): NfcReadEvidenceBundle =
         NfcTagRepository.readTagSignal(
             tagSignal = tagSignal,
             methodId = ID,
@@ -122,7 +122,25 @@ object As100NfcReadMethod : As100Method {
             methodLabel = "NFC Tag Read"
         )
 
+    /**
+     * Legacy-compatible read path used by the existing NFC UI.
+     *
+     * It still returns the NFC-specific evidence bundle, but now also records a
+     * canonical ResearchOS Observation into the live ResearchRuntime session.
+     */
+    fun readBundle(tagSignal: NfcTagSignal): NfcReadEvidenceBundle {
+        val bundle = readBundleInternal(tagSignal)
+        NfcResearchSessionRecorder.recordReadBundle(bundle)
+        return bundle
+    }
+
+    /**
+     * Canonical ResearchOS read path.
+     *
+     * Returns an Observation without forcing callers to know about the legacy
+     * NFC evidence bundle.
+     */
     fun read(tagSignal: NfcTagSignal): Observation =
-        NfcObservationMapper.fromBundle(readBundle(tagSignal))
+        NfcResearchSessionRecorder.record(NfcObservationMapper.fromReadBundle(readBundleInternal(tagSignal)))
 
 }
