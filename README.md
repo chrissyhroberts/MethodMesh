@@ -103,6 +103,36 @@ The objective of this phase is to demonstrate that the architecture can support 
 
 ---
 
+# Roadmap
+
+## Phase 1 — Foundation ✅
+
+- Philosophy
+- Conceptual Model
+- Registry Specifications
+- Architecture Standard
+- JSON Object Model
+
+## Phase 2 — Reference Implementation (Current)
+
+- Orchestrator
+- Device Services
+- Native Methods
+- Android Runtime
+- Intent execution
+
+## Phase 3 — Proof of Architecture
+
+Demonstrate that ResearchOS can:
+
+1. Represent a complete research design.
+2. Represent a complete research protocol.
+3. Create, analyse and interpret a study dataset using only the ResearchOS graph.
+
+Successful completion of these milestones will provide the first end-to-end validation of the ResearchOS architecture.
+
+---
+
 # Repository Structure
 
 ## Foundation
