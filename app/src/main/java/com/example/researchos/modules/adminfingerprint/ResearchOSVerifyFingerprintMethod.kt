@@ -150,6 +150,9 @@ object As100VerifyFingerprintMethod : As100Method {
         fields = outputValues(settingsState)
     )
 
+    fun buildObservation(settingsState: SettingsState): com.example.researchos.core.Observation =
+        AdminFingerprintObservationMapper.fromOutput(buildOutput(settingsState))
+
     fun recordAuthenticationResult(
         settingsState: SettingsState,
         authenticationSignal: BiometricAuthenticationSignal,

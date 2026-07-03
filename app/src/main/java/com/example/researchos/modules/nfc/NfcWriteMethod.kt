@@ -99,7 +99,7 @@ class NfcWriteMethod : Method {
                     mimeType = settingsState.getString("mime_type"),
                     languageCode = settingsState.getString("language_code")
                 )
-                val result = As100NfcWriteMethod.write(tagSignal, request)
+                val result = As100NfcWriteMethod.writeBundle(tagSignal, request)
                 bundle = result
                 status = result.writeMessage
                 active = false

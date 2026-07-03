@@ -235,6 +235,9 @@ object As100LocateTargetMethod : As100Method {
         )
     }
 
+    fun buildObservation(settingsState: SettingsState): com.example.researchos.core.Observation =
+        GpsObservationMapper.fromOutput(buildOutput(settingsState))
+
     private fun calculateOutputFields(
         targetName: String,
         targetLatitude: Float,

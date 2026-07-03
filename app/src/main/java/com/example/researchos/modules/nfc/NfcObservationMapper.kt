@@ -20,7 +20,7 @@ object NfcObservationMapper {
         )
     }
 
-    fun fromBundle(
+    fun fromReadBundle(
         bundle: NfcReadEvidenceBundle
     ): Observation {
         return fromFields(
@@ -29,4 +29,21 @@ object NfcObservationMapper {
             methodVersion = As100NfcReadMethod.VERSION
         )
     }
+
+    fun fromWriteBundle(
+        bundle: NfcWriteEvidenceBundle
+    ): Observation {
+        return fromFields(
+            fields = bundle.outputFields(),
+            methodId = As100NfcWriteMethod.ID,
+            methodVersion = As100NfcWriteMethod.VERSION
+        )
+    }
+
+    /**
+     * Backwards-compatible alias retained for the read migration slice.
+     */
+    fun fromBundle(
+        bundle: NfcReadEvidenceBundle
+    ): Observation = fromReadBundle(bundle)
 }

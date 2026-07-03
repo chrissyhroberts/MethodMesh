@@ -8,11 +8,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.researchos.core.DemoResearchGraph
-
+import com.example.researchos.core.ResearchRuntime
 @Composable
 fun ResearchGraphScreen() {
-    val graph = DemoResearchGraph.create()
+    val graph = ResearchRuntime.session.graph()
     Column(modifier = Modifier.padding(16.dp)) {
         Text("ResearchOS demo graph")
         Spacer(modifier = Modifier.height(12.dp))

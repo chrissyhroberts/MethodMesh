@@ -1,5 +1,6 @@
 package com.example.researchos.modules.nfc
 
+import com.example.researchos.core.Observation
 import com.example.researchos.core.researchos.ArchitectureId
 import com.example.researchos.core.researchos.ArchitectureRef
 import com.example.researchos.core.researchos.ExecutionRequest
@@ -121,7 +122,7 @@ object As100NfcWriteMethod : As100Method {
         )
     }
 
-    fun write(tagSignal: NfcTagSignal, request: NfcWriteRequest): NfcWriteEvidenceBundle =
+    fun writeBundle(tagSignal: NfcTagSignal, request: NfcWriteRequest): NfcWriteEvidenceBundle =
         NfcTagRepository.writeTagSignal(
             tagSignal = tagSignal,
             request = request,
@@ -130,4 +131,7 @@ object As100NfcWriteMethod : As100Method {
             methodObjectType = "Method",
             methodLabel = "NFC Tag Write"
         )
+
+    fun write(tagSignal: NfcTagSignal, request: NfcWriteRequest): Observation =
+        NfcObservationMapper.fromWriteBundle(writeBundle(tagSignal, request))
 }

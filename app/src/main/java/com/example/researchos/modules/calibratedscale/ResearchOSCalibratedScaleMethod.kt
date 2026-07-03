@@ -128,6 +128,9 @@ object As100CalibratedScaleMethod : As100Method {
         fields = measurementValues(settingsState)
     )
 
+    fun buildObservation(settingsState: SettingsState): com.example.researchos.core.Observation =
+        CalibratedScaleObservationMapper.fromOutput(buildOutput(settingsState))
+
     fun measurementValues(settingsState: SettingsState): Map<String, Any?> {
         val minimum = settingsState.getFloat("minimum")
         val maximum = settingsState.getFloat("maximum").let { if (it > minimum) it else minimum + 1f }
