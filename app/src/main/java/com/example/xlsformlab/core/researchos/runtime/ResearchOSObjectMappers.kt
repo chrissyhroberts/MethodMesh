@@ -1,9 +1,9 @@
-package com.example.xlsformlab.core.as100.runtime
+package com.example.xlsformlab.core.researchos.runtime
 
-import com.example.xlsformlab.core.as100.ArchitectureRef
-import com.example.xlsformlab.core.as100.KnowledgeObject
-import com.example.xlsformlab.core.as100.Signal
-import com.example.xlsformlab.core.as100.Transformation
+import com.example.xlsformlab.core.researchos.ArchitectureRef
+import com.example.xlsformlab.core.researchos.KnowledgeObject
+import com.example.xlsformlab.core.researchos.Signal
+import com.example.xlsformlab.core.researchos.Transformation
 
 fun Signal.asRef(label: String? = signalType): ArchitectureRef =
     ArchitectureRef(id = id, type = objectType, label = label)

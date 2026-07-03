@@ -1,15 +1,15 @@
-package com.example.xlsformlab.core.as100.runtime
+package com.example.xlsformlab.core.researchos.runtime
 
 import com.example.xlsformlab.core.Method
-import com.example.xlsformlab.core.as100.ArchitectureId
-import com.example.xlsformlab.core.as100.ArchitectureRef
-import com.example.xlsformlab.core.as100.MethodContract
-import com.example.xlsformlab.core.as100.ExecutionRequest
-import com.example.xlsformlab.core.as100.ExecutionResult
-import com.example.xlsformlab.core.as100.KnowledgeObjectType
-import com.example.xlsformlab.core.as100.MethodDescriptor
-import com.example.xlsformlab.core.as100.MethodObjectType
-import com.example.xlsformlab.core.as100.Signal
+import com.example.xlsformlab.core.researchos.ArchitectureId
+import com.example.xlsformlab.core.researchos.ArchitectureRef
+import com.example.xlsformlab.core.researchos.MethodContract
+import com.example.xlsformlab.core.researchos.ExecutionRequest
+import com.example.xlsformlab.core.researchos.ExecutionResult
+import com.example.xlsformlab.core.researchos.KnowledgeObjectType
+import com.example.xlsformlab.core.researchos.MethodDescriptor
+import com.example.xlsformlab.core.researchos.MethodObjectType
+import com.example.xlsformlab.core.researchos.Signal
 import com.example.xlsformlab.settings.SettingsState
 
 /**

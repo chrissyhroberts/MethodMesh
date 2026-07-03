@@ -1,6 +1,6 @@
 package com.example.xlsformlab.core
 
-import com.example.xlsformlab.core.as100.runtime.As100MethodRegistry
+import com.example.xlsformlab.core.researchos.runtime.As100MethodRegistry
 
 /**
  * Legacy compatibility registry.

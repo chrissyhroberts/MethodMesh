@@ -1,33 +1,32 @@
 package com.example.xlsformlab.modules.nfc
 
-import com.example.xlsformlab.core.as100.ArchitectureId
-import com.example.xlsformlab.core.as100.ArchitectureRef
-import com.example.xlsformlab.core.as100.ExecutionRequest
-import com.example.xlsformlab.core.as100.ExecutionResult
-import com.example.xlsformlab.core.as100.KnowledgeObjectType
-import com.example.xlsformlab.core.as100.MethodContract
-import com.example.xlsformlab.core.as100.MethodDescriptor
-import com.example.xlsformlab.core.as100.MethodObjectType
-import com.example.xlsformlab.core.as100.ProvenanceContext
-import com.example.xlsformlab.core.as100.Signal
-import com.example.xlsformlab.core.as100.Transformation
-import com.example.xlsformlab.core.as100.TransformationStatus
-import com.example.xlsformlab.core.as100.runtime.As100ExecutionEngine
-import com.example.xlsformlab.core.as100.runtime.As100Method
+import com.example.xlsformlab.core.researchos.ArchitectureId
+import com.example.xlsformlab.core.researchos.ArchitectureRef
+import com.example.xlsformlab.core.researchos.MethodContract
+import com.example.xlsformlab.core.researchos.ExecutionRequest
+import com.example.xlsformlab.core.researchos.ExecutionResult
+import com.example.xlsformlab.core.researchos.KnowledgeObjectType
+import com.example.xlsformlab.core.researchos.MethodDescriptor
+import com.example.xlsformlab.core.researchos.MethodObjectType
+import com.example.xlsformlab.core.researchos.ProvenanceContext
+import com.example.xlsformlab.core.researchos.Signal
+import com.example.xlsformlab.core.researchos.Transformation
+import com.example.xlsformlab.core.researchos.TransformationStatus
+import com.example.xlsformlab.core.researchos.runtime.As100ExecutionEngine
+import com.example.xlsformlab.core.researchos.runtime.As100Method
 import com.example.xlsformlab.platform.nfc.AndroidNfcDeviceService
 import com.example.xlsformlab.platform.nfc.NfcTagSignal
 import com.example.xlsformlab.settings.SettingsState
 
 /**
- * Native AS1.00 method for NFC tag writes.
+ * Native AS1.00 method for NFC tag reads.
  *
- * NFC Write is an intervention method: it accepts a transient NFC tag-discovery
- * signal from the Android NFC Device Service, performs an NDEF write, and
- * returns intervention plus post-write observation records. The legacy
- * NfcWriteMethod remains only as the current Compose launcher shell.
+ * This is the first method migrated out of the legacy Method abstraction.
+ * The old NfcReadMethod now exists only as a compatibility shell for the
+ * existing launcher; runtime-facing code should use this method directly.
  */
-object As100NfcWriteMethod : As100Method {
-    const val ID = "nfc_tag_write"
+object As100NfcReadMethod : As100Method {
+    const val ID = "nfc_tag_read"
     const val VERSION = "0.3.0"
 
     override val id: String = ID
@@ -35,36 +34,28 @@ object As100NfcWriteMethod : As100Method {
     override val ref: ArchitectureRef = ArchitectureRef(
         id = ArchitectureId(ID),
         type = "Method",
-        label = "NFC Tag Write"
+        label = "NFC Tag Read"
     )
 
     override val descriptor: MethodDescriptor = MethodDescriptor(
         id = ArchitectureId(ID),
-        methodType = MethodObjectType.Method,
-        name = "NFC Tag Write",
+        methodType = MethodObjectType.SignalInterpreter,
+        name = "NFC Tag Read",
         version = VERSION,
-        description = "Write an NDEF record to an NFC tag and emit intervention outcome plus post-write NFC observation evidence.",
+        description = "Interpret an NFC tag-discovery signal as structured observation evidence and an immutable NFC tag artifact.",
         inputs = listOf(AndroidNfcDeviceService.SIGNAL_TYPE_TAG_DISCOVERED),
-        outputs = listOf(
-            NfcWriteFields.WRITE_SUCCESS,
-            NfcWriteFields.WRITE_MESSAGE,
-            NfcWriteFields.WRITE_RECORD_TYPE,
-            NfcWriteFields.WRITE_SIZE_BYTES,
-            NfcWriteFields.INTERVENTION_JSON,
-            NfcWriteFields.POST_WRITE_EVIDENCE_JSON
-        ) + NfcEvidenceFields.tagOutputFields + researchEnvelopeSchema().map { it.id },
+        outputs = NfcEvidenceFields.tagOutputFields + researchEnvelopeSchema().map { it.id },
         parameters = mapOf(
             "category" to "NFC",
             "status" to "Experimental",
-            "device_service" to AndroidNfcDeviceService.SERVICE_ID,
-            "interaction" to "interactive_nfc_write"
+            "device_service" to AndroidNfcDeviceService.SERVICE_ID
         )
     )
 
     override val contract: MethodContract = MethodContract(
         method = ref,
         acceptedSignals = listOf(AndroidNfcDeviceService.SIGNAL_TYPE_TAG_DISCOVERED),
-        requiredContext = listOf("record_type", "value"),
+        requiredContext = emptyList(),
         producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
         producedFields = descriptor.outputs
     )
@@ -93,18 +84,18 @@ object As100NfcWriteMethod : As100Method {
                 request = request,
                 status = TransformationStatus.Unsupported,
                 diagnostics = mapOf(
-                    "reason" to "NFC write requires a live NfcTagSignal from the Android NFC Device Service."
+                    "reason" to "NFC read requires a live NfcTagSignal from the Android NFC Device Service."
                 )
             )
         }
 
         val transformation = Transformation(
-            action = "intervene.nfc.write",
+            action = "interpret.nfc.signal",
             method = ref,
             inputs = listOf(ArchitectureRef(signal.id, signal.objectType, signal.signalType)),
             status = TransformationStatus.Unsupported,
             diagnostics = mapOf(
-                "reason" to "A generic Signal does not contain the Android Tag handle needed for NDEF writing. Use write(tagSignal, request) from the NFC Device Service path."
+                "reason" to "A generic Signal does not contain the Android Tag handle needed for NDEF decoding. Use read(tagSignal) from the NFC Device Service path."
             ),
             temporalContext = signal.temporalContext,
             provenance = ProvenanceContext(
@@ -121,13 +112,12 @@ object As100NfcWriteMethod : As100Method {
         )
     }
 
-    fun write(tagSignal: NfcTagSignal, request: NfcWriteRequest): NfcWriteEvidenceBundle =
-        NfcTagRepository.writeTagSignal(
+    fun read(tagSignal: NfcTagSignal): NfcReadEvidenceBundle =
+        NfcTagRepository.readTagSignal(
             tagSignal = tagSignal,
-            request = request,
             methodId = ID,
             methodVersion = VERSION,
             methodObjectType = "Method",
-            methodLabel = "NFC Tag Write"
+            methodLabel = "NFC Tag Read"
         )
 }

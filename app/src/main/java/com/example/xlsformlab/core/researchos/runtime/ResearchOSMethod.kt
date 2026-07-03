@@ -1,11 +1,11 @@
-package com.example.xlsformlab.core.as100.runtime
+package com.example.xlsformlab.core.researchos.runtime
 
-import com.example.xlsformlab.core.as100.ArchitectureRef
-import com.example.xlsformlab.core.as100.MethodContract
-import com.example.xlsformlab.core.as100.ExecutionRequest
-import com.example.xlsformlab.core.as100.ExecutionResult
-import com.example.xlsformlab.core.as100.MethodDescriptor
-import com.example.xlsformlab.core.as100.Signal
+import com.example.xlsformlab.core.researchos.ArchitectureRef
+import com.example.xlsformlab.core.researchos.MethodContract
+import com.example.xlsformlab.core.researchos.ExecutionRequest
+import com.example.xlsformlab.core.researchos.ExecutionResult
+import com.example.xlsformlab.core.researchos.MethodDescriptor
+import com.example.xlsformlab.core.researchos.Signal
 import com.example.xlsformlab.settings.SettingsState
 
 /**

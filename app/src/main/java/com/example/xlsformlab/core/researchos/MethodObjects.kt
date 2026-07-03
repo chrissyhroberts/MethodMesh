@@ -1,4 +1,4 @@
-package com.example.xlsformlab.core.as100
+package com.example.xlsformlab.core.researchos
 
 enum class MethodObjectType {
     Method,

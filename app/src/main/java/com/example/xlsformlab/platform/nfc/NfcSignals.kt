@@ -1,10 +1,10 @@
 package com.example.xlsformlab.platform.nfc
 
 import android.nfc.Tag
-import com.example.xlsformlab.core.as100.DeviceService
-import com.example.xlsformlab.core.as100.ProvenanceContext
-import com.example.xlsformlab.core.as100.Signal
-import com.example.xlsformlab.core.as100.TemporalContext
+import com.example.xlsformlab.core.researchos.DeviceService
+import com.example.xlsformlab.core.researchos.ProvenanceContext
+import com.example.xlsformlab.core.researchos.Signal
+import com.example.xlsformlab.core.researchos.TemporalContext
 
 /**
  * Platform NFC event captured by the Android NFC device service.

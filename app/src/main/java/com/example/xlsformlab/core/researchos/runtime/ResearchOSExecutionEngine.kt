@@ -1,17 +1,17 @@
-package com.example.xlsformlab.core.as100.runtime
+package com.example.xlsformlab.core.researchos.runtime
 
 import com.example.xlsformlab.core.Method
-import com.example.xlsformlab.core.as100.ArchitectureId
-import com.example.xlsformlab.core.as100.ArchitectureRef
-import com.example.xlsformlab.core.as100.Entity
-import com.example.xlsformlab.core.as100.ExecutionRequest
-import com.example.xlsformlab.core.as100.ExecutionResult
-import com.example.xlsformlab.core.as100.Observation
-import com.example.xlsformlab.core.as100.Signal
-import com.example.xlsformlab.core.as100.State
-import com.example.xlsformlab.core.as100.TemporalContext
-import com.example.xlsformlab.core.as100.Transformation
-import com.example.xlsformlab.core.as100.TransformationStatus
+import com.example.xlsformlab.core.researchos.ArchitectureId
+import com.example.xlsformlab.core.researchos.ArchitectureRef
+import com.example.xlsformlab.core.researchos.Entity
+import com.example.xlsformlab.core.researchos.ExecutionRequest
+import com.example.xlsformlab.core.researchos.ExecutionResult
+import com.example.xlsformlab.core.researchos.Observation
+import com.example.xlsformlab.core.researchos.Signal
+import com.example.xlsformlab.core.researchos.State
+import com.example.xlsformlab.core.researchos.TemporalContext
+import com.example.xlsformlab.core.researchos.Transformation
+import com.example.xlsformlab.core.researchos.TransformationStatus
 import com.example.xlsformlab.settings.SettingsState
 
 /**

@@ -1,4 +1,4 @@
-package com.example.xlsformlab.core.as100
+package com.example.xlsformlab.core.researchos
 
 /**
  * Transient information emitted by a Device Service.

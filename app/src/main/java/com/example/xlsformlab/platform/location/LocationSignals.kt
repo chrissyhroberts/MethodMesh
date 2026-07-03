@@ -1,11 +1,11 @@
 package com.example.xlsformlab.platform.location
 
 import android.location.Location
-import com.example.xlsformlab.core.as100.DeviceService
-import com.example.xlsformlab.core.as100.ProvenanceContext
-import com.example.xlsformlab.core.as100.Signal
-import com.example.xlsformlab.core.as100.SpatialContext
-import com.example.xlsformlab.core.as100.TemporalContext
+import com.example.xlsformlab.core.researchos.DeviceService
+import com.example.xlsformlab.core.researchos.ProvenanceContext
+import com.example.xlsformlab.core.researchos.Signal
+import com.example.xlsformlab.core.researchos.SpatialContext
+import com.example.xlsformlab.core.researchos.TemporalContext
 
 /**
  * AS1.00 Device Service for Android location.

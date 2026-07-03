@@ -1,10 +1,10 @@
-package com.example.xlsformlab.core.as100.runtime
+package com.example.xlsformlab.core.researchos.runtime
 
 import com.example.xlsformlab.core.Method
 import com.example.xlsformlab.core.MethodCategory
 import com.example.xlsformlab.core.MethodManifest
-import com.example.xlsformlab.core.as100.MethodContract
-import com.example.xlsformlab.core.as100.MethodDescriptor
+import com.example.xlsformlab.core.researchos.MethodContract
+import com.example.xlsformlab.core.researchos.MethodDescriptor
 import com.example.xlsformlab.modules.adminfingerprint.AdminFingerprintMethod
 import com.example.xlsformlab.modules.adminfingerprint.As100VerifyFingerprintMethod
 import com.example.xlsformlab.modules.calibratedscale.As100CalibratedScaleMethod

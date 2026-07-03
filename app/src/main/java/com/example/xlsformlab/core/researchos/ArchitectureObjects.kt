@@ -1,4 +1,4 @@
-package com.example.xlsformlab.core.as100
+package com.example.xlsformlab.core.researchos
 
 /**
  * AS1.00 core model package marker.
@@ -11,6 +11,6 @@ package com.example.xlsformlab.core.as100
  * - MethodObjects.kt
  * - ExecutionObjects.kt
  *
- * Existing imports from com.example.xlsformlab.core.as100 remain valid because all
+ * Existing imports from com.example.xlsformlab.core.researchos remain valid because all
  * canonical AS1.00 objects still live in this package.
  */

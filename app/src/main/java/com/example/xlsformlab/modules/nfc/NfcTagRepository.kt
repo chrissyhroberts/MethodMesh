@@ -5,16 +5,16 @@ import android.nfc.NdefRecord
 import android.nfc.Tag
 import android.nfc.tech.Ndef
 import android.nfc.tech.TagTechnology
-import com.example.xlsformlab.core.as100.ArchitectureId
-import com.example.xlsformlab.core.as100.ArchitectureRef
-import com.example.xlsformlab.core.as100.ExecutionResult
-import com.example.xlsformlab.core.as100.Observation
-import com.example.xlsformlab.core.as100.ProvenanceContext
-import com.example.xlsformlab.core.as100.Signal
-import com.example.xlsformlab.core.as100.TemporalContext
-import com.example.xlsformlab.core.as100.Transformation
-import com.example.xlsformlab.core.as100.TransformationStatus
-import com.example.xlsformlab.core.as100.runtime.As100ExecutionEngine
+import com.example.xlsformlab.core.researchos.ArchitectureId
+import com.example.xlsformlab.core.researchos.ArchitectureRef
+import com.example.xlsformlab.core.researchos.ExecutionResult
+import com.example.xlsformlab.core.researchos.Observation
+import com.example.xlsformlab.core.researchos.ProvenanceContext
+import com.example.xlsformlab.core.researchos.Signal
+import com.example.xlsformlab.core.researchos.TemporalContext
+import com.example.xlsformlab.core.researchos.Transformation
+import com.example.xlsformlab.core.researchos.TransformationStatus
+import com.example.xlsformlab.core.researchos.runtime.As100ExecutionEngine
 import com.example.xlsformlab.platform.nfc.AndroidNfcDeviceService
 import com.example.xlsformlab.platform.nfc.NfcTagSignal
 import com.example.xlsformlab.core.research.AggregationSemantics
@@ -43,7 +43,7 @@ data class NfcReadEvidenceBundle(
     val artifact: ArtifactRecord,
     val execution: MethodExecutionRecord,
     val signal: Signal,
-    val as100Observation: Observation,
+    val researchosObservation: Observation,
     val transformation: Transformation,
     val executionResult: ExecutionResult,
     val diagnostics: Map<String, String> = emptyMap()
@@ -222,7 +222,7 @@ object NfcTagRepository {
             artifact = artifact,
             execution = execution,
             signal = signal,
-            as100Observation = observation,
+            researchosObservation = observation,
             transformation = transformation,
             executionResult = executionResult
         )
