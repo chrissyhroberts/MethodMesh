@@ -1,817 +1,431 @@
-# ResearchOS JSON Representation v0.02
+# ResearchOS JSON Object Model
 
-## 1. Introduction
-
-**Status:** Draft
-
-The ResearchOS JSON Representation defines the canonical JSON object model for ResearchOS Execution Requests.
-
-It provides a machine-readable representation of the execution model defined by the ResearchOS Architecture Standard and the semantics defined by the ResearchOS Intent Language (RIL).
-
-This specification defines representation only.
-
-It does not define execution behaviour, runtime architecture or transport protocols.
-
-Those concerns are defined by companion specifications.
-
-## 2. Purpose
-
-The JSON Representation provides a canonical representation suitable for:
-
-- HTTP APIs
-- Android applications
-- Local configuration files
-- Testing
-- Documentation
-- Future transport bindings
-
-Every valid JSON document represents exactly one ResearchOS Execution Request.
-
-Alternative representations may exist without changing the meaning of the request.
-
-### Design Goal
-
-The JSON Representation is designed to be:
-
-- human-readable;
-
-- machine-readable;
-
-- deterministic;
-
-- transport-independent;
-
-- directly mappable to the ResearchOS execution model.
-
-The representation intentionally favours clarity over compactness.
-
-## 3. Relationship to other specifications
-
-The JSON Representation forms one member of the ResearchOS specification family.
-
-| Specification | Responsibility |
-|---------------|----------------|
-| Architecture Standard | Runtime concepts and execution model |
-| ResearchOS Intent Language | Human-readable semantics |
-| ResearchOS JSON Representation | Canonical object representation |
-| Android Intent Representation | Android transport |
-| URL Representation | URL transport |
-| HTTP Representation | HTTP transport |
-
-This specification introduces no new execution semantics.
-
-Every JSON construct maps directly to concepts defined by the Architecture Standard and the ResearchOS Intent Language.
-
-## 4. Design Principles
-
-The JSON Representation follows several guiding principles.
-
-### Object-oriented
-
-Requests are represented as collections of independent Invocation Objects.
-
-### Human-readable
-
-JSON SHOULD remain understandable without specialised tooling.
-
-### Canonical
-
-Equivalent requests SHOULD have a single preferred representation.
-
-### Transport-independent
-
-The representation is independent of HTTP, Android, URLs or any other transport.
-
-### Stable
-
-Minor revisions SHOULD preserve backwards compatibility wherever possible.
-
-### Direct Mapping
-
-Every JSON construct corresponds directly to a ResearchOS concept.
-
-No JSON-specific execution semantics are introduced.
-
-# 5. Object Model
-
-The JSON Representation models a ResearchOS Execution Request as a collection of named Invocation Objects.
-
-Each Invocation Object represents a single requested operation.
-
-An Invocation Object combines:
-
-- the requested Intent;
-- the target Resource;
-- optional execution constraints;
-- optional execution policies;
-- optional return definitions.
-
-The JSON Representation is therefore object-oriented rather than section-oriented.
-
-The human-readable ResearchOS Intent Language (RIL) groups concepts into the sections WHAT, WHEN, WHERE, HOW and RESULT.
-
-The JSON Representation instead groups these concepts by Invocation Object, placing all information relating to a single operation within one object.
-
-This improves readability, reduces cross-referencing and mirrors the internal execution model of the ResearchOS runtime.
+**Version:** 0.01 (Draft)
 
 ---
 
-## 5.1 Execution Request
+# 1. Purpose
 
-Every JSON document SHALL contain exactly one Execution Request.
+The ResearchOS JSON Object Model defines the canonical JSON representation of core ResearchOS objects.
 
-```json
-{
-  "request": {
+It translates the ResearchOS Conceptual Model and Registry specifications into implementation-facing structures that can be exchanged between applications, services, methods and storage systems.
 
-  }
-}
-```
+The Object Model does not redefine conceptual meaning.
 
-The `request` object contains one or more named Invocation Objects.
+Conceptual meaning is defined by the Philosophy, Conceptual Model and Registry specifications.
 
-Each property name is an Invocation Identifier that is unique within the Request.
-
-Example:
-
-```json
-{
-  "request": {
-    "identify": {
-      "intent": "scan",
-      "resource": "nfc"
-    },
-    "photo": {
-      "intent": "capture",
-      "resource": "image"
-    }
-  }
-}
-```
-
-The property names (`identify`, `photo`) identify individual invocations within the Request.
-
-They do not define executable Methods.
-
-They are locally unique identifiers used for referencing relationships between Invocations.
+This specification defines how those concepts are represented in JSON for interoperability.
 
 ---
 
-## 5.2 Invocation Object
+# 2. Scope
 
-An Invocation Object SHALL contain an `intent` and a `resource`.
+This specification defines JSON structures for:
 
-All other properties are optional.
+- Entity
+- Observation
+- Assertion
+- Intent
+- Method reference
+- Provenance reference
+- Policy reference
+- Registry reference
 
-Conceptually, an Invocation Object has the following structure.
+It also defines shared conventions for:
 
-```text
-Invocation
+- identifiers;
+- timestamps;
+- object types;
+- metadata;
+- references;
+- provenance links;
+- extension fields.
 
-├── intent
-├── resource
-├── type
-├── parameters
-├── when
-├── where
-├── how
-└── result
-```
-
-The meaning of each property is defined by the ResearchOS Intent Language.
-
-The JSON Representation specifies only how these properties are represented.
-
----
-
-## 5.3 Relationships
-
-Invocation Objects may reference one another.
-
-Relationships are expressed using Invocation Identifiers.
-
-For example:
-
-```json
-{
-  "request": {
-    "identify": {
-      "intent": "scan",
-      "resource": "nfc"
-    },
-    "photo": {
-      "intent": "capture",
-      "resource": "image",
-      "when": {
-        "after": "identify"
-      }
-    }
-  }
-}
-```
-
-In this example, the `photo` Invocation becomes eligible for execution only after successful completion of the `identify` Invocation.
-
-The relationship is expressed directly within the Invocation Object, avoiding the need for separate execution graphs or cross-reference tables.
+This specification does not define storage technology, API behaviour, database schema or runtime execution.
 
 ---
 
-## 5.4 Independence
+# 3. Design Principles
 
-Invocation Objects are conceptually independent.
+## Conceptual alignment
 
-If no relationships are defined, the runtime MAY execute Invocations in any order or concurrently.
+Every JSON object must correspond to a concept defined in the ResearchOS Conceptual Model or Registry specifications.
 
-Applications SHALL NOT rely upon the order of properties within a JSON object to determine execution behaviour.
+## Interoperability
 
-Execution ordering SHALL be defined explicitly through Invocation relationships.
+Objects should be exchangeable between applications, services and storage systems without loss of conceptual meaning.
 
-# 6. Invocation Properties
+## Minimal core
 
-Every Invocation Object SHALL contain an `intent` and a `resource`.
+Each object should define a small required core with optional extension fields.
 
-All remaining properties are optional.
+## Explicit references
 
-An Invocation Object MAY therefore be represented by the following conceptual structure.
+Relationships between objects should be represented using explicit object references rather than implicit naming conventions.
 
-```text
-Invocation
+## Provenance-ready
 
-├── intent
-├── resource
-├── type
-├── parameters
-├── when
-├── where
-├── how
-└── result
-```
+Objects should support links to provenance without requiring every provenance model detail to be embedded directly.
 
-The properties are described in the following sections.
+## Extensible
 
-## 6.1 intent
+Domain-specific fields should be added through namespaced extensions rather than modification of the core object model.
 
-The `intent` property specifies the operation requested by the Invocation.
+# 4. Shared Object Envelope
 
-The value SHALL be a valid ResearchOS Intent defined by the ResearchOS Intent Language.
+All ResearchOS JSON objects use a common envelope.
 
-Example
+The envelope provides consistent identity, typing, versioning and extension behaviour across all object types.
+
+Individual object specifications define the contents of the `attributes`, `relationships` and `extensions` fields.
 
 ```json
 {
-  "identify": {
-    "intent": "scan",
-    "resource": "nfc"
-  }
+  "id": "ros:entity:participant-001",
+  "object_type": "entity",
+  "schema_version": "0.01",
+  "created_at": "2026-07-03T14:30:00Z",
+  "updated_at": "2026-07-03T14:30:00Z",
+  "attributes": {},
+  "relationships": {},
+  "provenance": [],
+  "extensions": {}
 }
 ```
 
-The JSON Representation assigns no additional meaning to Intent values.
-
-Intent semantics are defined exclusively by the ResearchOS Intent Language.
-
-## 6.2 resource
-
-The `resource` property specifies the primary Resource upon which the Intent operates.
-
-The value SHALL identify a valid ResearchOS Resource.
-
-Example
-
-```json
-{
-  "photo": {
-    "intent": "capture",
-    "resource": "image"
-  }
-}
-```
-
-Resource definitions are maintained by the ResearchOS Resource Registry.
-
-The JSON Representation defines only how Resources are represented.
-
-## 6.3 type
-
-The optional `type` property refines the meaning of the Resource or Intent.
-
-The interpretation of a Type depends upon the associated Intent and Resource.
-
-Example
-
-```json
-{
-  "photo": {
-    "intent": "capture",
-    "resource": "image",
-    "type": "thermal"
-  }
-}
-```
-
-Types are defined by the corresponding Resource specification.
-
-## 6.4 parameters
-
-The optional `parameters` property supplies additional configuration for an Invocation.
-
-Parameters are interpreted by the selected Method.
-
-Example
-
-```json
-{
-  "temperature": {
-    "intent": "measure",
-    "resource": "temperature",
-    "parameters": {
-      "unit": "celsius",
-      "precision": 0.1
-    }
-  }
-}
-```
-
-Parameter names are Method-specific.
-
-The JSON Representation imposes no restrictions upon parameter structure beyond valid JSON.
-
-# 7. Execution Properties
-
-The remaining Invocation properties define how, when and where an Invocation executes, together with the information returned following execution.
-
-These properties influence execution behaviour without changing the meaning of the requested operation.
-
-Execution properties comprise:
-
-- `when`
-- `where`
-- `how`
-- `result`
-
-Conceptually, an Invocation therefore consists of two parts.
-
-```text
-Invocation
-
-├── Definition
-│   ├── intent
-│   ├── resource
-│   ├── type
-│   └── parameters
-│
-└── Execution
-    ├── when
-    ├── where
-    ├── how
-    └── result
-```
-
-Definition properties describe the requested operation.
-
-Execution properties describe the circumstances under which the operation executes and the information returned.
-
-## 7.1 when
-
-The optional `when` property specifies temporal constraints governing Invocation execution.
-
-If omitted, the Invocation becomes immediately eligible for execution.
-
-Example
-
-```json
-{
-  "photo": {
-    "intent": "capture",
-    "resource": "image",
-    "when": {
-      "after": "identify"
-    }
-  }
-}
-```
-
-Temporal relationships are defined by the ResearchOS Intent Language.
-
-The JSON Representation specifies only their representation.
-
-## 7.2 where
-
-The optional `where` property specifies spatial constraints governing Invocation execution.
-
-Example
-
-```json
-{
-  "gps": {
-    "intent": "measure",
-    "resource": "location",
-    "where": {
-      "within": {
-        "resource": "study_site"
-      }
-    }
-  }
-}
-```
-
-Spatial relationships are defined by the ResearchOS Intent Language.
-
-The JSON Representation specifies only their representation.
-
-## 7.3 how
-
-The optional `how` property specifies execution policies.
-
-Execution policies influence how an Invocation executes without changing the requested operation.
-
-Example
-
-```json
-{
-  "capture": {
-    "intent": "capture",
-    "resource": "image",
-    "how": {
-      "authenticate": "fingerprint",
-      "encrypt": true,
-      "provenance": "full"
-    }
-  }
-}
-```
-
-Execution policies are defined by the ResearchOS Core Policy specification.
-
-## 7.4 result
-
-The optional `result` property specifies the information requested following successful execution.
-
-Returned values may be renamed by the caller.
-
-Example
-
-```json
-{
-  "identify": {
-    "intent": "scan",
-    "resource": "nfc",
-    "result": {
-      "participant_id": "participant",
-      "tag_uid": "nfc_uid"
-    }
-  }
-}
-```
-
-If omitted, implementation defaults apply.
-
-The JSON Representation does not prescribe default return values.
-
-# 8. Validation
-
-A valid ResearchOS JSON document SHALL satisfy the following requirements.
-
-## Request
-
-- A document SHALL contain exactly one `request` object.
-- The `request` object SHALL contain one or more Invocation Objects.
-
-## Invocation Identifiers
-
-- Invocation Identifiers SHALL be unique within a Request.
-- Invocation Identifiers SHOULD be meaningful.
-- Invocation Identifiers are case-sensitive.
-
-## Required Properties
-
-Every Invocation SHALL contain:
-
-- `intent`
-- `resource`
-
-## Optional Properties
-
-The following properties are optional:
-
-- `type`
-- `parameters`
-- `when`
-- `where`
-- `how`
-- `result`
-
-## References
-
-Properties referencing another Invocation SHALL reference a valid Invocation Identifier within the same Request.
-
-Unresolved references SHALL invalidate the Request.
-
-## Unknown Properties
-
-Implementations MAY ignore unknown properties unless explicitly prohibited by policy.
-
-Future specifications MAY define additional Invocation properties without invalidating existing Requests.
-
-## Reserved Properties
-
-Property names beginning with `_` are reserved for future ResearchOS specifications.
-
-Implementations SHOULD ignore unknown reserved properties unless otherwise specified.
-
-Reserved properties MAY be used to provide metadata, documentation, user interface hints or editor-specific information.
-
-Example:
-
-```json
-{
-  "identify": {
-    "_label": "Identify participant",
-    "_description": "Read participant NFC tag",
-    "intent": "scan",
-    "resource": "nfc"
-  }
-}
-
-# 9. Canonical Examples
-
-The following examples illustrate the preferred JSON representation of common ResearchOS Execution Requests.
-
-These examples are informative.
-
-They are intended to demonstrate recommended structure and conventions rather than define additional execution semantics.
+### 4.1 Common Object Fields
+
+Every ResearchOS object contains a common set of fields that provide identity, typing and lifecycle information.
+
+| Field | Required | Description |
+|---------|:--------:|-------------|
+| **id** | Yes | Unique identifier for the object. |
+| **object_type** | Yes | Canonical ResearchOS object type. |
+| **schema_version** | Yes | Version of the JSON Object Model used by the object. |
+| **created_at** | Yes | Timestamp when the object was created. |
+| **updated_at** | No | Timestamp when the object was last modified. |
+| **attributes** | Yes | Object-specific descriptive properties. |
+| **relationships** | No | References to other ResearchOS objects. |
+| **provenance** | No | References describing the origin or history of the object. |
+| **extensions** | No | Additional namespaced fields defined outside the core specification. |
+
+The common object fields provide a consistent structure across all ResearchOS object types while allowing each object type to define its own attributes and relationships.
 
 ---
 
-## 9.1 Minimal Request
+### 4.2 Canonical Object Types
 
-The simplest valid Execution Request contains a single Invocation.
+The JSON Object Model defines canonical representations for the core concepts of the ResearchOS conceptual model.
 
-```json
-{
-  "request": {
-    "identify": {
-      "intent": "scan",
-      "resource": "nfc"
-    }
-  }
-}
-```
+The initial object types are:
 
----
+| Object Type | Represents |
+|-------------|------------|
+| **Entity** | A thing that may become the subject of scientific investigation. |
+| **Observation** | Evidence acquired about one or more Entities. |
+| **Assertion** | Scientific understanding describing one or more Entities. |
+| **Intent** | A declarative request for research work to be performed. |
+| **Method** | A repeatable procedure capable of fulfilling an Intent. |
+| **Policy** | Rules or constraints governing execution or behaviour. |
+| **Provenance** | Information describing the origin, lineage or history of an object. |
+| **Registry Entry** | A canonical definition contained within a ResearchOS Registry. |
 
-## 9.2 Sequential Execution
+Additional object types may be introduced in future versions provided they remain consistent with the ResearchOS Conceptual Model and Architecture Standard.
 
-Multiple Invocations may express dependencies using the `when` property.
+# 5. Canonical Object Definitions
 
-```json
-{
-  "request": {
-    "identify": {
-      "intent": "scan",
-      "resource": "nfc"
-    },
-    "photo": {
-      "intent": "capture",
-      "resource": "image",
-      "when": {
-        "after": "identify"
-      }
-    }
-  }
-}
-```
+The following sections define the canonical JSON representation of each ResearchOS object type.
 
-The `photo` Invocation becomes eligible only after successful completion of `identify`.
+The examples are illustrative rather than exhaustive.
+
+Implementations may include additional fields provided they remain consistent with this specification and the ResearchOS Architecture Standard.
 
 ---
 
-## 9.3 Authentication and Encryption
+## 5.1 Entity Object
 
-Execution policies are attached directly to the Invocation.
+The Entity Object represents a single Entity within the ResearchOS knowledge graph.
+
+It provides identity together with the descriptive attributes and relationships required to reference the Entity from other ResearchOS objects.
+
+### Fields
+
+| Field | Required | Type | Description |
+|---------|:--------:|------|-------------|
+| id | Yes | String | Unique identifier. |
+| object_type | Yes | String | Always `"entity"`. |
+| schema_version | Yes | String | JSON Object Model version. |
+| created_at | Yes | Timestamp | Creation timestamp. |
+| updated_at | No | Timestamp | Last modification timestamp. |
+| attributes | Yes | Object | Entity properties. |
+| relationships | No | Object | Links to related objects. |
+| provenance | No | Array | Provenance references. |
+| extensions | No | Object | Additional namespaced fields. |
+
+### Minimal Representation
 
 ```json
 {
-  "request": {
-    "capture": {
-      "intent": "capture",
-      "resource": "image",
-      "how": {
-        "authenticate": "fingerprint",
-        "encrypt": true,
-        "provenance": "full"
-      }
-    }
+  "id": "entity:participant-001",
+  "object_type": "entity",
+  "schema_version": "0.01",
+  "created_at": "2026-07-03T15:30:00Z",
+  "attributes": {
+    "entity_type": "Person"
   }
 }
 ```
+
+### Notes
+
+Scientific knowledge describing an Entity is represented through Assertion objects rather than embedded directly within the Entity itself.
+
+## 5.2 Observation Object
+
+The Observation Object represents evidence acquired, derived or simulated within ResearchOS.
+
+It records observation content together with the Entity being observed, the property or phenomenon of interest, and the Method used to obtain the Observation.
+
+### Fields
+
+| Field | Required | Type | Description |
+|---------|:--------:|------|-------------|
+| id | Yes | String | Unique identifier. |
+| object_type | Yes | String | Always `"observation"`. |
+| schema_version | Yes | String | JSON Object Model version. |
+| created_at | Yes | Timestamp | Creation timestamp. |
+| updated_at | No | Timestamp | Last modification timestamp. |
+| attributes | Yes | Object | Observation-specific fields. |
+| relationships | Yes | Object | Links to related objects. |
+| provenance | No | Array | Provenance references. |
+| extensions | No | Object | Additional namespaced fields. |
+
+### Minimal Representation
+
+```json
+{
+  "id": "observation:height-001",
+  "object_type": "observation",
+  "schema_version": "0.01",
+  "created_at": "2026-07-03T15:35:00Z",
+  "attributes": {
+    "observation_mode": "direct",
+    "property": "height",
+    "content": {
+      "value": 172,
+      "unit": "cm"
+    }
+  },
+  "relationships": {
+    "entity": "entity:participant-001",
+    "method": "method:height-measurement"
+  }
+}
+```
+
+## 5.3 Assertion Object
+
+The Assertion Object represents a timestamped claim describing one or more Entities.
+
+It records the claim being made, the Entity or Entities described by that claim, and any Observations that may support it.
+
+### Fields
+
+| Field | Required | Type | Description |
+|---------|:--------:|------|-------------|
+| id | Yes | String | Unique identifier. |
+| object_type | Yes | String | Always `"assertion"`. |
+| schema_version | Yes | String | JSON Object Model version. |
+| created_at | Yes | Timestamp | Creation timestamp. |
+| updated_at | No | Timestamp | Last modification timestamp. |
+| attributes | Yes | Object | Assertion-specific fields. |
+| relationships | Yes | Object | Links to related objects. |
+| provenance | No | Array | Provenance references. |
+| extensions | No | Object | Additional namespaced fields. |
+
+### Minimal Representation
+
+```json
+{
+  "id": "assertion:height-001",
+  "object_type": "assertion",
+  "schema_version": "0.01",
+  "created_at": "2026-07-03T15:40:00Z",
+  "attributes": {
+    "assertion_type": "has_value",
+    "property": "height",
+    "claim": {
+      "value": 172,
+      "unit": "cm"
+    }
+  },
+  "relationships": {
+    "entity": "entity:participant-001",
+    "supported_by": [
+      "observation:height-001"
+    ]
+  }
+}
+```
+## 5.4 Intent Object
+
+The Intent Object represents a declarative request for research work to be performed.
+
+An Intent expresses *what* is requested rather than *how* it should be carried out. ResearchOS fulfils an Intent by selecting and executing one or more appropriate Methods.
+
+### Fields
+
+| Field | Required | Type | Description |
+|---------|:--------:|------|-------------|
+| id | Yes | String | Unique identifier. |
+| object_type | Yes | String | Always `"intent"`. |
+| schema_version | Yes | String | JSON Object Model version. |
+| created_at | Yes | Timestamp | Creation timestamp. |
+| updated_at | No | Timestamp | Last modification timestamp. |
+| attributes | Yes | Object | Intent-specific fields. |
+| relationships | No | Object | Links to related objects. |
+| provenance | No | Array | Provenance references. |
+| extensions | No | Object | Additional namespaced fields. |
+
+### Minimal Representation
+
+```json
+{
+  "id": "intent:measure-height-001",
+  "object_type": "intent",
+  "schema_version": "0.01",
+  "created_at": "2026-07-03T15:45:00Z",
+  "attributes": {
+    "verb": "measure",
+    "target": "entity:participant-001",
+    "property": "height"
+  }
+}
+```
+
+### Notes
+
+An Intent does not itself perform work.
+
+Execution is performed by one or more Method objects capable of fulfilling the requested action.
+
+The outcome of an Intent may include one or more Observation objects, which in turn may support one or more Assertions.
+
+## 5.5 Method Object
+
+The Method Object represents a repeatable procedure capable of fulfilling one or more Intents.
+
+A Method defines how work may be performed. Method execution may produce one or more Observation objects.
+
+### Fields
+
+| Field | Required | Type | Description |
+|---------|:--------:|------|-------------|
+| id | Yes | String | Unique identifier. |
+| object_type | Yes | String | Always `"method"`. |
+| schema_version | Yes | String | JSON Object Model version. |
+| created_at | Yes | Timestamp | Creation timestamp. |
+| updated_at | No | Timestamp | Last modification timestamp. |
+| attributes | Yes | Object | Method-specific fields. |
+| relationships | No | Object | Links to related objects. |
+| provenance | No | Array | Provenance references. |
+| extensions | No | Object | Additional namespaced fields. |
+
+### Minimal Representation
+
+```json
+{
+  "id": "method:height-measurement",
+  "object_type": "method",
+  "schema_version": "0.01",
+  "created_at": "2026-07-03T15:50:00Z",
+  "attributes": {
+    "method_type": "measurement",
+    "name": "Height measurement"
+  }
+}
+```
+
+# 6. Common Relationship Patterns
+
+ResearchOS objects are connected through explicit object identifiers.
+
+Relationships should be represented using stable field names inside the `relationships` object.
+
+The following relationship names are canonical for the initial JSON Object Model.
+
+| Relationship | Source Object | Target Object | Meaning |
+|---|---|---|---|
+| `entity` | Observation, Assertion, Intent | Entity | The Entity being observed, described or targeted. |
+| `method` | Observation | Method | The Method used to produce the Observation. |
+| `supported_by` | Assertion | Observation | Observations that may support the Assertion. |
+| `requests` | Intent | Method | Method requested or selected to fulfil the Intent. |
+| `produces` | Method | Observation | Observation produced by a Method. |
+| `supersedes` | Assertion, Intent | Assertion, Intent | Earlier object replaced or superseded by this object. |
+| `derived_from` | Observation | Observation | Source Observation used to derive another Observation. |
+
+Relationships should use object identifiers rather than embedded objects.
+
+This keeps objects independently serialisable while allowing the ResearchOS graph to be reconstructed from object references.
+
+## Example
+
+```json
+{
+  "relationships": {
+    "entity": "entity:participant-001",
+    "method": "method:height-measurement"
+  }
+}
+```
+
+# 7. Implementation Considerations
+
+The JSON Object Model defines a canonical representation of ResearchOS objects for interoperability.
+
+It does not prescribe implementation technology, storage architecture or transport protocols.
+
+Implementations may:
+
+- store objects in relational, document, graph or hybrid databases;
+- exchange objects using REST, GraphQL, message queues, files or other protocols;
+- extend objects through the `extensions` field;
+- introduce additional object types consistent with the ResearchOS Conceptual Model.
+
+Implementations should not alter the semantic meaning of canonical object types or relationships defined by this specification.
 
 ---
 
-## 9.4 Spatial Constraint
+# 8. Conformance
 
-Spatial constraints are expressed using the `where` property.
+An implementation conforms to the ResearchOS JSON Object Model if it:
 
-```json
-{
-  "request": {
-    "gps": {
-      "intent": "measure",
-      "resource": "location",
-      "where": {
-        "within": {
-          "resource": "study_site"
-        }
-      }
-    }
-  }
-}
-```
+- represents canonical ResearchOS concepts using the object structures defined in this specification;
+- preserves object identity through stable identifiers;
+- maintains explicit object relationships;
+- preserves compatibility with the ResearchOS Conceptual Model, Registry specifications and Architecture Standard;
+- supports extension without modification of the core object definitions.
+
+Conformance does not require any particular programming language, database, messaging protocol or software framework.
 
 ---
 
-## 9.5 Returned Values
+# 9. Summary
 
-Returned values may be renamed to match the caller's data model.
+The ResearchOS JSON Object Model provides a canonical JSON representation of the core ResearchOS concepts.
 
-```json
-{
-  "request": {
-    "identify": {
-      "intent": "scan",
-      "resource": "nfc",
-      "result": {
-        "participant_id": "participant",
-        "tag_uid": "nfc_uid",
-        "timestamp": "scan_time"
-      }
-    }
-  }
-}
-```
+It bridges the gap between the conceptual architecture and software implementation by defining how ResearchOS objects are serialised for storage, exchange and processing.
 
-The runtime returns values using the requested field names.
+The Object Model preserves the separation between:
 
----
+- **Entities**, representing the things under study;
+- **Observations**, representing scientific evidence;
+- **Assertions**, representing scientific understanding;
+- **Intents**, representing requested work; and
+- **Methods**, representing repeatable procedures.
 
-## 9.6 Parallel Execution
+Together with the Registry specifications and Architecture Standard, the JSON Object Model provides the implementation foundation for interoperable ResearchOS applications and services.
 
-Invocations without explicit dependencies may execute concurrently.
 
-```json
-{
-  "request": {
-    "gps": {
-      "intent": "measure",
-      "resource": "location"
-    },
-    "temperature": {
-      "intent": "measure",
-      "resource": "temperature"
-    },
-    "light": {
-      "intent": "measure",
-      "resource": "illuminance"
-    }
-  }
-}
-```
 
-Because no temporal relationships are defined, the runtime MAY execute these Invocations in parallel.
 
----
-
-## 9.7 Complex Execution Request
-
-A complete Execution Request may combine definition, execution constraints and requested outputs.
-
-```json
-{
-  "request": {
-    "identify": {
-      "intent": "scan",
-      "resource": "nfc",
-      "type": "participant",
-      "result": {
-        "participant_id": "participant",
-        "tag_uid": "nfc_uid"
-      }
-    },
-    "photo": {
-      "intent": "capture",
-      "resource": "image",
-      "type": "thermal",
-      "when": {
-        "after": "identify"
-      },
-      "where": {
-        "within": {
-          "resource": "clinic"
-        }
-      },
-      "how": {
-        "authenticate": "fingerprint",
-        "encrypt": true,
-        "provenance": "full"
-      },
-      "result": {
-        "image": "thermal_image",
-        "timestamp": "capture_time"
-      }
-    }
-  }
-}
-```
-
-This example demonstrates the complete Invocation Object model defined by this specification.
-
-Each Invocation encapsulates:
-
-- its requested operation (`intent`, `resource`, `type`);
-- optional execution constraints (`when`, `where`);
-- optional execution policies (`how`);
-- requested outputs (`result`).
-
-The Execution Request therefore consists of a collection of independent Invocation Objects linked only through explicit relationships.
-
-# 10. Versioning
-
-JSON representations SHOULD declare the specification version.
-
-Example
-
-{
-    "version":"0.02"
-}
-
-Minor versions SHOULD remain backwards compatible.
-
-Major versions MAY introduce incompatible structural changes.
-
-# Appendix A – Mapping to the ResearchOS Intent Language
-
-The ResearchOS JSON Representation is an object-oriented representation of the execution semantics defined by the ResearchOS Intent Language (RIL).
-
-The two specifications describe the same execution model from different perspectives.
-
-RIL organises concepts according to their semantic role within an execution request.
-
-The JSON Representation organises the same concepts around Invocation Objects.
-
-The correspondence is shown below.
-
-| ResearchOS Intent Language | JSON Representation |
-|----------------------------|---------------------|
-| WHAT | Invocation Definition (`intent`, `resource`, `type`, `parameters`) |
-| WHEN | `when` property |
-| WHERE | `where` property |
-| HOW | `how` property |
-| RESULT | `result` property |
-
-The JSON Representation introduces no additional execution semantics.
-
-Every JSON construct corresponds directly to concepts defined by the ResearchOS Intent Language.
-
-Conversely, every valid ResearchOS Intent Language construct can be represented using the JSON Representation.
-
-The JSON Representation therefore serves as the canonical machine-readable representation of the ResearchOS Intent Language.
-
-# Appendix B – Object Model
-
-The conceptual object model defined by this specification is shown below.
-
-```text
-Document
-│
-├── version
-└── request
-    │
-    ├── invocation
-    │   ├── intent
-    │   ├── resource
-    │   ├── type
-    │   ├── parameters
-    │   ├── when
-    │   ├── where
-    │   ├── how
-    │   └── result
-    │
-    ├── invocation
-    │   └── ...
-    │
-    └── ...
-```
-
-Each property within the `request` object represents a single Invocation.
-
-The property name forms the Invocation Identifier.
-
-An Invocation Identifier is unique only within the enclosing Execution Request.
-
-Invocation Identifiers are used to express relationships between Invocations through properties such as `when`.
-
-Execution Requests therefore form directed execution graphs whose nodes are Invocation Objects and whose edges are defined by explicit relationships.
-
-Implementations SHOULD derive execution order exclusively from these relationships rather than from the order of properties within the JSON document.
-
-###End of Specification
