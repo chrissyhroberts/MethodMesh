@@ -20,3 +20,20 @@ app/build
 *.class
 
 /tree.txt
+
+# Android / Gradle build outputs
+
+app/build/
+
+build/
+
+.gradle/
+
+*.apk
+
+*.aab
+
+# Local files
+
+local.properties
+
