@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.xlsformlab"
+    namespace = "com.example.researchos"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.xlsformlab"
+        applicationId = "com.example.researchos"
         minSdk = 27
         targetSdk = 36
         versionCode = 1

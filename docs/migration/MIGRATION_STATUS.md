@@ -18,8 +18,8 @@ This file records the current state of the AS1.00 migration.
 
 ## Compatibility retained intentionally
 
-- Android package name: `com.example.xlsformlab`
-- Android intent package/action strings using `com.example.xlsformlab`
+- [x] Android package name: `com.example.researchos`
+- [x] Android intent package/action strings using `com.example.researchos`
 - Legacy `xlsformlab(...)` appearance parser alias
 
 These remain for compatibility and should not be changed without a dedicated app identity migration.

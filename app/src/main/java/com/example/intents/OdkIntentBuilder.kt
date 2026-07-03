@@ -1,7 +1,7 @@
-package com.example.xlsformlab.intents
+package com.example.researchos.intents
 
-import com.example.xlsformlab.core.Method
-import com.example.xlsformlab.settings.SettingsState
+import com.example.researchos.core.Method
+import com.example.researchos.settings.SettingsState
 import java.net.URLEncoder
 
 object OdkIntentBuilder {
@@ -55,8 +55,8 @@ object OdkIntentBuilder {
 
         return buildString {
             append("intent:#Intent;")
-            append("action=com.example.xlsformlab.RUN_METHOD;")
-            append("package=com.example.xlsformlab;")
+            append("action=com.example.researchos.RUN_METHOD;")
+            append("package=com.example.researchos;")
             append(extras.joinToString(separator = ";"))
             append(";end")
         }
@@ -80,8 +80,8 @@ object OdkIntentBuilder {
         }
 
         return buildString {
-            append("Intent(\"com.example.xlsformlab.RUN_METHOD\")\n")
-            append("    .setPackage(\"com.example.xlsformlab\")\n")
+            append("Intent(\"com.example.researchos.RUN_METHOD\")\n")
+            append("    .setPackage(\"com.example.researchos\")\n")
             append(extras.joinToString("\n") { "    $it" })
         }
     }

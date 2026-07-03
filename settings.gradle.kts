@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "XLSFormLab"
+rootProject.name = "ResearchOS"
 include(":app")

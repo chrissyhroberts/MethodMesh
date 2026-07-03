@@ -39,7 +39,7 @@ The current interactive feature set is now represented as native ResearchOS / AS
 
 ## Compatibility policy
 
-The Android package name and intent package remain `com.example.xlsformlab` for now. This avoids breaking installed app identity, ODK intent examples, shared preferences, backups, signing assumptions and future deep links.
+The Android package name and intent package are `com.example.researchos`.aking installed app identity, ODK intent examples, shared preferences, backups, signing assumptions and future deep links.
 
 ResearchOS appearance strings should use:
 
