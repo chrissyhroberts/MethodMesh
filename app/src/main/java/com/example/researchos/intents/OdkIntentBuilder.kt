@@ -55,7 +55,7 @@ object OdkIntentBuilder {
 
         return buildString {
             append("intent:#Intent;")
-            append("action=com.example.researchos.RUN_METHOD;")
+            append("action=com.example.researchos.EXECUTE_METHOD;")
             append("package=com.example.researchos;")
             append(extras.joinToString(separator = ";"))
             append(";end")
@@ -80,7 +80,7 @@ object OdkIntentBuilder {
         }
 
         return buildString {
-            append("Intent(\"com.example.researchos.RUN_METHOD\")\n")
+            append("Intent(\"com.example.researchos.EXECUTE_METHOD\")\n")
             append("    .setPackage(\"com.example.researchos\")\n")
             append(extras.joinToString("\n") { "    $it" })
         }

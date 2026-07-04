@@ -6,7 +6,7 @@ import com.example.researchos.transport.ReturnMode
 
 object KotlinIntentSnippetBuilder {
 
-    private const val action = "com.example.researchos.RUN_METHOD"
+    private const val action = "com.example.researchos.EXECUTE_METHOD"
     private const val packageName = "com.example.researchos"
 
     fun build(

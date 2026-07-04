@@ -2,6 +2,7 @@ package com.example.researchos.transport
 
 import com.example.researchos.core.MethodExecutionRequest
 import com.example.researchos.core.ResearchContext
+import com.example.researchos.transport.ril.RilRequestParser
 import java.net.URLDecoder
 
 /**
@@ -35,6 +36,9 @@ object LaunchConfigParser {
         val trimmed = text.trim()
 
         return when {
+            RilRequestParser.looksLikeRil(trimmed) ->
+                RilRequestParser.parse(trimmed, source = "ril_text")
+
             (trimmed.startsWith("researchos(") || trimmed.startsWith("xlsformlab(")) && trimmed.endsWith(")") ->
                 parseAppearance(trimmed)
 
@@ -85,6 +89,11 @@ object LaunchConfigParser {
     }
 
     private fun buildConfig(values: Map<String, String>, source: String): ParsedLaunchConfig {
+        val rilText = values["ril"] ?: values["request"] ?: values["researchos_request"]
+        if (RilRequestParser.looksLikeRil(rilText)) {
+            return RilRequestParser.parse(rilText.orEmpty(), source = source)
+        }
+
         val actionText = values["actions"]
             ?: values["chain"]
             ?: values["workflow"]
@@ -114,7 +123,7 @@ object LaunchConfigParser {
         val reserved = setOf(
             "method", "method_id", "module", "module_id",
             "actions", "chain", "workflow", "methods", "method_chain",
-            "return_mode", "return", "mode",
+            "return_mode", "return", "mode", "ril", "request", "researchos_request",
             "returns", "graph_return", "graph_returns", "select", "selector", "selectors"
         )
 

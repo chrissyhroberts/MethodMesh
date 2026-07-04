@@ -6,6 +6,7 @@ import com.example.researchos.transport.GraphSelectorParser
 import com.example.researchos.transport.LaunchConfigParser
 import com.example.researchos.transport.ParsedLaunchConfig
 import com.example.researchos.transport.ReturnMode
+import com.example.researchos.transport.ril.RilRequestParser
 import com.example.researchos.transport.workflow.ExternalWorkflowRequest
 
 object AndroidIntentRequestReader {
@@ -52,6 +53,11 @@ object AndroidIntentRequestReader {
         extras?.keySet()?.forEach { key -> values[key] = extras.get(key)?.toString().orEmpty() }
         intent.action?.let { values.putIfAbsent("action", it) }
 
+        val rilText = values["ril"] ?: values["request"] ?: values["researchos_request"]
+        if (RilRequestParser.looksLikeRil(rilText)) {
+            return RilRequestParser.parse(rilText.orEmpty(), source = "android_extras")
+        }
+
         val actionText = values["actions"]
             ?: values["chain"]
             ?: values["workflow"]
@@ -82,7 +88,7 @@ object AndroidIntentRequestReader {
         val reserved = setOf(
             "method", "method_id", "module", "module_id", "capability", "capability_id",
             "actions", "chain", "workflow", "methods", "method_chain",
-            "return_mode", "return", "mode", "action",
+            "return_mode", "return", "mode", "action", "ril", "request", "researchos_request",
             "returns", "graph_return", "graph_returns", "select", "selector", "selectors"
         )
 
