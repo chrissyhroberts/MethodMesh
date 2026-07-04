@@ -18,7 +18,8 @@ data class ExternalWorkflowRequest(
     val returns: List<GraphSelector>,
     val returnMode: ReturnMode,
     val settings: Map<String, String> = emptyMap(),
-    val source: String = "android_intent"
+    val source: String = "android_intent",
+    val warnings: List<String> = emptyList()
 ) {
     companion object {
         fun from(parsed: ParsedLaunchConfig, invocationContext: InvocationContext): ExternalWorkflowRequest {
@@ -29,7 +30,8 @@ data class ExternalWorkflowRequest(
                 returns = parsed.returnSelectors,
                 returnMode = parsed.returnMode ?: ReturnMode.Json,
                 settings = parsed.settings,
-                source = parsed.source ?: "android_intent"
+                source = parsed.source ?: "android_intent",
+                warnings = parsed.warnings
             )
         }
     }

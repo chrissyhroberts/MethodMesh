@@ -155,6 +155,7 @@ private fun ExternalWorkflowScreen(
     ) {
         Text("ResearchOS external workflow", fontWeight = FontWeight.Bold)
         Text("Subject: ${request.invocationContext.canonicalEntityId}", fontFamily = FontFamily.Monospace)
+        RequestDebugSummary(request)
         Spacer(Modifier.height(8.dp))
 
         if (actions.isEmpty()) {
@@ -193,6 +194,28 @@ private fun ExternalWorkflowScreen(
                 onCancel = onCancel
             )
         }
+    }
+}
+
+
+@Composable
+private fun RequestDebugSummary(request: ExternalWorkflowRequest) {
+    Spacer(Modifier.height(6.dp))
+    Text("Request", fontWeight = FontWeight.Bold)
+    Text("Source: ${request.source}", fontFamily = FontFamily.Monospace)
+    Text(
+        "Actions: ${request.actions.joinToString { it.requestedId }}",
+        fontFamily = FontFamily.Monospace
+    )
+    Text(
+        "Returns: ${request.returns.joinToString { "${it.path} as ${it.alias}" }}",
+        fontFamily = FontFamily.Monospace
+    )
+    Text("Format: ${request.returnMode.id}", fontFamily = FontFamily.Monospace)
+    request.warnings.takeIf { it.isNotEmpty() }?.let { warnings ->
+        Spacer(Modifier.height(4.dp))
+        Text("Warnings", fontWeight = FontWeight.Bold)
+        warnings.forEach { warning -> Text("• $warning") }
     }
 }
 

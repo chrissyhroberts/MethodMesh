@@ -175,35 +175,44 @@ object RilRequestParser {
         selectors: MutableList<GraphSelector>,
         settings: MutableMap<String, String>
     ): ReturnMode? {
-        val mode = parseReturnMode(line)
-        if (mode != null) return mode
+        val directMode = parseReturnMode(line)
+        if (directMode != null) return directMode
+
+        var working = line
+        var inlineMode: ReturnMode? = null
+        Regex("""(?i)\s+(format|shape|return mode|return_mode)\s+([A-Za-z0-9_.-]+)\s*$""")
+            .find(working)
+            ?.let { match ->
+                inlineMode = ReturnMode.fromId(match.groupValues[2])
+                working = working.substring(0, match.range.first).trim()
+            }
 
         when {
-            line.startsWith("return ", ignoreCase = true) -> {
-                val selectorText = line.removePrefixIgnoreCase("return").trim()
+            working.startsWith("return ", ignoreCase = true) -> {
+                val selectorText = working.removePrefixIgnoreCase("return").trim()
                 selectors.addAll(GraphSelectorParser.parse(selectorText))
             }
-            line.startsWith("data ", ignoreCase = true) -> {
-                val selectorText = line.removePrefixIgnoreCase("data").trim()
+            working.startsWith("data ", ignoreCase = true) -> {
+                val selectorText = working.removePrefixIgnoreCase("data").trim()
                 selectors.addAll(GraphSelectorParser.parse(selectorText))
             }
-            line.startsWith("provenance ", ignoreCase = true) -> {
-                settings["provenance"] = line.removePrefixIgnoreCase("provenance").trim()
+            working.startsWith("provenance ", ignoreCase = true) -> {
+                settings["provenance"] = working.removePrefixIgnoreCase("provenance").trim()
             }
-            line.startsWith("metadata ", ignoreCase = true) -> {
-                settings["metadata"] = line.removePrefixIgnoreCase("metadata").trim()
+            working.startsWith("metadata ", ignoreCase = true) -> {
+                settings["metadata"] = working.removePrefixIgnoreCase("metadata").trim()
             }
-            line.startsWith("diagnostics ", ignoreCase = true) -> {
-                settings["diagnostics"] = line.removePrefixIgnoreCase("diagnostics").trim()
+            working.startsWith("diagnostics ", ignoreCase = true) -> {
+                settings["diagnostics"] = working.removePrefixIgnoreCase("diagnostics").trim()
             }
-            GraphSelectorParser.looksLikeSelector(line) -> selectors.addAll(GraphSelectorParser.parse(line))
-            line.contains("=") -> {
-                val key = line.substringBefore("=").trim()
-                val value = line.substringAfter("=").trim().trimQuote()
+            GraphSelectorParser.looksLikeSelector(working) -> selectors.addAll(GraphSelectorParser.parse(working))
+            working.contains("=") -> {
+                val key = working.substringBefore("=").trim()
+                val value = working.substringAfter("=").trim().trimQuote()
                 settings["result_$key"] = value
             }
         }
-        return null
+        return inlineMode
     }
 
     private fun parsePolicyLine(line: String, prefix: String, settings: MutableMap<String, String>) {
