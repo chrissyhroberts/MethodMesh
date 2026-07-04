@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.example.researchos.calibration.CalibrationScreen
 import com.example.researchos.core.MethodCategory
 import com.example.researchos.core.MethodRegistry
+import com.example.researchos.core.researchos.runtime.As100MethodRegistry
 import com.example.researchos.ui.components.MethodCard
 import com.example.researchos.ui.sensors.SensorDashboard
 
@@ -67,17 +68,17 @@ private fun RuntimeSummaryCard() {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Method runtime",
+                text = "ResearchOS runtime",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "ODK remains the canonical form engine. ResearchOS executes specialised research methods and returns validated evidence.",
+                text = "ODK remains the canonical form engine. ResearchOS methods now return AS-native graph results: observations, states, transformations and provenance.",
                 modifier = Modifier.padding(top = 4.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "Installed methods: ${MethodRegistry.all().size}",
+                text = "Installed AS methods: ${As100MethodRegistry.all().size} • legacy UI shells: ${MethodRegistry.all().size}",
                 modifier = Modifier.padding(top = 8.dp),
                 style = MaterialTheme.typography.labelMedium
             )

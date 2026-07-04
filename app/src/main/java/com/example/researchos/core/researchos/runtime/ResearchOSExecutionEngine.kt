@@ -3,10 +3,13 @@ package com.example.researchos.core.researchos.runtime
 import com.example.researchos.core.Method
 import com.example.researchos.core.researchos.ArchitectureId
 import com.example.researchos.core.researchos.ArchitectureRef
+import com.example.researchos.core.researchos.Attribute
+import com.example.researchos.core.researchos.Classification
 import com.example.researchos.core.researchos.Entity
 import com.example.researchos.core.researchos.ExecutionRequest
 import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.Observation
+import com.example.researchos.core.researchos.Relationship
 import com.example.researchos.core.researchos.Signal
 import com.example.researchos.core.researchos.State
 import com.example.researchos.core.researchos.TemporalContext
@@ -80,13 +83,19 @@ object As100ExecutionEngine {
         observations: List<Observation> = emptyList(),
         transformations: List<Transformation> = emptyList(),
         entities: List<Entity> = emptyList(),
+        attributes: List<Attribute> = emptyList(),
+        relationships: List<Relationship> = emptyList(),
+        classifications: List<Classification> = emptyList(),
         states: List<State> = emptyList(),
         diagnostics: Map<String, String> = emptyMap()
     ): ExecutionResult = ExecutionResult(
         request = request,
         status = status,
         entities = entities,
+        attributes = attributes,
         observations = observations,
+        relationships = relationships,
+        classifications = classifications,
         transformations = transformations,
         states = states,
         diagnostics = diagnostics

@@ -22,6 +22,10 @@ import com.example.researchos.core.MethodFieldType
 import com.example.researchos.core.MethodManifest
 import com.example.researchos.core.MethodOutput
 import com.example.researchos.core.MethodOutputSchema
+import com.example.researchos.core.GraphField
+import com.example.researchos.core.GraphOutput
+import com.example.researchos.core.RequiredWhen
+import com.example.researchos.core.researchos.KnowledgeObjectType
 import com.example.researchos.core.MethodRequest
 import com.example.researchos.core.MethodResult
 import com.example.researchos.core.MethodStatus
@@ -58,6 +62,7 @@ class NfcReadMethod : Method {
     )
 
     override val outputSchema = MethodOutputSchema(
+        graphOutputs = nfcReadGraphSchema(),
         fields = evidenceFieldSchema() + researchEnvelopeSchema()
     )
 
@@ -145,27 +150,76 @@ internal fun evidenceFieldSchema(): List<MethodField> =
             id = key,
             label = key,
             type = if (key.endsWith("_json")) MethodFieldType.Json else MethodFieldType.Text,
-            required = key == NfcEvidenceFields.TAG_UID_HEX
+            required = false,
+            requiredWhen = if (key == NfcEvidenceFields.TAG_UID_HEX) RequiredWhen.OnSuccessfulCapture else RequiredWhen.IfAvailable,
+            graphPath = "Observation.values.$key"
         )
     }
 
 internal fun researchEnvelopeSchema(): List<MethodField> = listOf(
-    MethodField(ResearchOutputFields.EVIDENCE_ID, "Evidence ID", MethodFieldType.Text, required = true),
-    MethodField(ResearchOutputFields.EVIDENCE_KIND, "Evidence kind", MethodFieldType.Text, required = true),
-    MethodField(ResearchOutputFields.PHENOMENON, "Phenomenon", MethodFieldType.Text, required = true),
-    MethodField(ResearchOutputFields.METHOD, "Method", MethodFieldType.Text, required = true),
-    MethodField(ResearchOutputFields.TEMPORAL_SEMANTICS, "Temporal semantics", MethodFieldType.Text, required = true),
-    MethodField(ResearchOutputFields.AGGREGATION_SEMANTICS, "Aggregation semantics", MethodFieldType.Text, required = true),
-    MethodField(ResearchOutputFields.LINEAGE, "Lineage", MethodFieldType.Text, required = true),
-    MethodField(ResearchOutputFields.PROVENANCE_JSON, "Provenance JSON", MethodFieldType.Json, required = true),
-    MethodField(ResearchOutputFields.CAPTURE_OUTCOME_JSON, "Capture outcome JSON", MethodFieldType.Json, required = true),
-    MethodField(ResearchOutputFields.QUALITY_JSON, "Quality JSON", MethodFieldType.Json, required = true),
-    MethodField(ResearchOutputFields.VALIDATION_JSON, "Validation JSON", MethodFieldType.Json, required = true),
-    MethodField(ResearchOutputFields.ARTIFACT_JSON, "Artifact JSON", MethodFieldType.Json, required = true),
-    MethodField(ResearchOutputFields.EVIDENCE_JSON, "Evidence JSON", MethodFieldType.Json, required = true),
-    MethodField(ResearchOutputFields.EXECUTION_JSON, "Execution JSON", MethodFieldType.Json, required = true),
-    MethodField(ResearchOutputFields.AS_SIGNAL_TYPE, "AS1.00 signal type", MethodFieldType.Text, required = true),
-    MethodField(ResearchOutputFields.AS_SIGNAL_SOURCE_SERVICE, "AS1.00 signal source service", MethodFieldType.Text, required = true),
-    MethodField(ResearchOutputFields.AS_TRANSFORMATION_ACTION, "AS1.00 transformation action", MethodFieldType.Text, required = true),
-    MethodField(ResearchOutputFields.AS_TRANSFORMATION_STATUS, "AS1.00 transformation status", MethodFieldType.Text, required = true)
+    MethodField(ResearchOutputFields.EVIDENCE_ID, "Evidence ID", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.id"),
+    MethodField(ResearchOutputFields.EVIDENCE_KIND, "Evidence kind", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.knowledgeType"),
+    MethodField(ResearchOutputFields.PHENOMENON, "Phenomenon", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.phenomenon"),
+    MethodField(ResearchOutputFields.METHOD, "Method", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.provenance.methodId"),
+    MethodField(ResearchOutputFields.TEMPORAL_SEMANTICS, "Temporal semantics", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.temporalContext"),
+    MethodField(ResearchOutputFields.AGGREGATION_SEMANTICS, "Aggregation semantics", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.values"),
+    MethodField(ResearchOutputFields.LINEAGE, "Lineage", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Transformation.inputs/outputs"),
+    MethodField(ResearchOutputFields.PROVENANCE_JSON, "Provenance JSON", MethodFieldType.Json, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.provenance"),
+    MethodField(ResearchOutputFields.CAPTURE_OUTCOME_JSON, "Capture outcome JSON", MethodFieldType.Json, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "ExecutionResult.validation/quality"),
+    MethodField(ResearchOutputFields.QUALITY_JSON, "Quality JSON", MethodFieldType.Json, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "ExecutionResult.quality"),
+    MethodField(ResearchOutputFields.VALIDATION_JSON, "Validation JSON", MethodFieldType.Json, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "ExecutionResult.validation"),
+    MethodField(ResearchOutputFields.ARTIFACT_JSON, "Artifact JSON", MethodFieldType.Json, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Entity/Attribute artifact envelope"),
+    MethodField(ResearchOutputFields.EVIDENCE_JSON, "Evidence JSON", MethodFieldType.Json, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation"),
+    MethodField(ResearchOutputFields.EXECUTION_JSON, "Execution JSON", MethodFieldType.Json, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "ExecutionResult"),
+    MethodField(ResearchOutputFields.AS_SIGNAL_TYPE, "AS1.00 signal type", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Signal.signalType"),
+    MethodField(ResearchOutputFields.AS_SIGNAL_SOURCE_SERVICE, "AS1.00 signal source service", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Signal.sourceService"),
+    MethodField(ResearchOutputFields.AS_TRANSFORMATION_ACTION, "AS1.00 transformation action", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Transformation.action"),
+    MethodField(ResearchOutputFields.AS_TRANSFORMATION_STATUS, "AS1.00 transformation status", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Transformation.status")
+)
+
+internal fun nfcReadGraphSchema(): List<GraphOutput> = listOf(
+    GraphOutput(
+        id = "nfc_tag_entity",
+        objectType = KnowledgeObjectType.Entity,
+        entityType = "NfcTag",
+        subjectRole = "observed_artifact",
+        description = "The physical NFC tag encountered by Android's NFC device service.",
+        fields = listOf(
+            GraphField(NfcEvidenceFields.TAG_UID_HEX, "Entity.attributes.tag_uid_hex", MethodFieldType.Text, RequiredWhen.OnSuccessfulCapture),
+            GraphField(NfcEvidenceFields.TECH_LIST, "Entity.attributes.tech_list", MethodFieldType.Text, RequiredWhen.IfAvailable)
+        )
+    ),
+    GraphOutput(
+        id = "nfc_tag_state_observation",
+        objectType = KnowledgeObjectType.Observation,
+        phenomenon = "nfc.tag.state",
+        subjectRole = "observed_artifact",
+        description = "Observed readable state of the NFC tag at capture time.",
+        fields = NfcEvidenceFields.tagOutputFields.map { key ->
+            GraphField(
+                id = key,
+                path = "Observation.values.$key",
+                type = if (key.endsWith("_json")) MethodFieldType.Json else MethodFieldType.Text,
+                requiredWhen = if (key == NfcEvidenceFields.TAG_UID_HEX) RequiredWhen.OnSuccessfulCapture else RequiredWhen.IfAvailable
+            )
+        }
+    )
+)
+
+internal fun nfcWriteGraphSchema(): List<GraphOutput> = nfcReadGraphSchema() + listOf(
+    GraphOutput(
+        id = "nfc_write_transformation",
+        objectType = KnowledgeObjectType.Observation,
+        phenomenon = "nfc.tag.write_outcome",
+        subjectRole = "observed_artifact",
+        description = "Outcome of the requested NDEF write operation, followed by a post-write tag observation.",
+        fields = listOf(
+            GraphField(NfcWriteFields.WRITE_SUCCESS, "Observation.values.write_success", MethodFieldType.Boolean, RequiredWhen.OnSuccessfulCapture),
+            GraphField(NfcWriteFields.WRITE_MESSAGE, "Observation.values.write_message", MethodFieldType.Text, RequiredWhen.OnSuccessfulCapture),
+            GraphField(NfcWriteFields.WRITE_RECORD_TYPE, "Observation.values.write_record_type", MethodFieldType.Text, RequiredWhen.OnSuccessfulCapture),
+            GraphField(NfcWriteFields.WRITE_SIZE_BYTES, "Observation.values.write_size_bytes", MethodFieldType.Integer, RequiredWhen.IfAvailable),
+            GraphField(NfcWriteFields.INTERVENTION_JSON, "Transformation.diagnostics/intervention", MethodFieldType.Json, RequiredWhen.OnSuccessfulCapture),
+            GraphField(NfcWriteFields.POST_WRITE_EVIDENCE_JSON, "Observation[nfc.tag.state]", MethodFieldType.Json, RequiredWhen.OnSuccessfulCapture)
+        )
+    )
 )

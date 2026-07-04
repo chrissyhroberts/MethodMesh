@@ -22,6 +22,10 @@ import com.example.researchos.core.MethodFieldType
 import com.example.researchos.core.MethodManifest
 import com.example.researchos.core.MethodOutput
 import com.example.researchos.core.MethodOutputSchema
+import com.example.researchos.core.GraphField
+import com.example.researchos.core.GraphOutput
+import com.example.researchos.core.RequiredWhen
+import com.example.researchos.core.researchos.KnowledgeObjectType
 import com.example.researchos.core.MethodRequest
 import com.example.researchos.core.MethodResult
 import com.example.researchos.core.MethodStatus
@@ -105,18 +109,39 @@ class AdminFingerprintMethod : Method {
     )
 
     override val outputSchema = MethodOutputSchema(
+        graphOutputs = listOf(
+            GraphOutput(
+                id = "biometric_attestation_observation",
+                objectType = KnowledgeObjectType.Observation,
+                phenomenon = "attestation.biometric_verification",
+                description = "Local Android biometric or device-credential authentication interpreted as an attestation observation. No biometric template or biometric material is retained.",
+                fields = listOf(
+                    GraphField("confirmed", "Observation.values.confirmed", MethodFieldType.Boolean, RequiredWhen.OnSuccessfulCapture),
+                    GraphField("verification_status", "Observation.values.verification_status", MethodFieldType.Text, RequiredWhen.OnSuccessfulCapture),
+                    GraphField("auth_method", "Observation.values.auth_method", MethodFieldType.Text, RequiredWhen.OnSuccessfulCapture),
+                    GraphField("timestamp_ms", "Observation.temporalContext", MethodFieldType.Integer, RequiredWhen.OnSuccessfulCapture),
+                    GraphField("timestamp_iso", "Observation.temporalContext", MethodFieldType.Text, RequiredWhen.OnSuccessfulCapture),
+                    GraphField("reason", "Observation.values.reason", MethodFieldType.Text, RequiredWhen.IfAvailable),
+                    GraphField("message", "Observation.values.message", MethodFieldType.Text, RequiredWhen.IfAvailable),
+                    GraphField("biometric_device_service", "Observation.provenance.provider", MethodFieldType.Text, RequiredWhen.OnSuccessfulCapture),
+                    GraphField("biometric_signal_type", "Observation.sourceSignal.signalType", MethodFieldType.Text, RequiredWhen.OnSuccessfulCapture),
+                    GraphField("biometric_execution_id", "Transformation.id", MethodFieldType.Text, RequiredWhen.IfAvailable),
+                    GraphField("biometric_provenance_json", "Observation.provenance", MethodFieldType.Json, RequiredWhen.IfAvailable)
+                )
+            )
+        ),
         fields = listOf(
-            MethodField("confirmed", "Confirmed", MethodFieldType.Boolean, required = true),
-            MethodField("verification_status", "Verification status", MethodFieldType.Text, required = true),
-            MethodField("auth_method", "Authentication method", MethodFieldType.Text, required = true),
-            MethodField("timestamp_ms", "Timestamp milliseconds", MethodFieldType.Integer, required = true),
-            MethodField("timestamp_iso", "Timestamp ISO", MethodFieldType.Text, required = true),
-            MethodField("reason", "Reason", MethodFieldType.Text, required = false),
-            MethodField("message", "Message", MethodFieldType.Text, required = false),
-            MethodField("biometric_device_service", "Biometric device service", MethodFieldType.Text, required = true),
-            MethodField("biometric_signal_type", "Biometric signal type", MethodFieldType.Text, required = true),
-            MethodField("biometric_execution_id", "Biometric execution ID", MethodFieldType.Text, required = false),
-            MethodField("biometric_provenance_json", "Biometric provenance JSON", MethodFieldType.Json, required = false)
+            MethodField("confirmed", "Confirmed", MethodFieldType.Boolean, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.values.confirmed"),
+            MethodField("verification_status", "Verification status", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.values.verification_status"),
+            MethodField("auth_method", "Authentication method", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.values.auth_method"),
+            MethodField("timestamp_ms", "Timestamp milliseconds", MethodFieldType.Integer, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.temporalContext"),
+            MethodField("timestamp_iso", "Timestamp ISO", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.temporalContext"),
+            MethodField("reason", "Reason", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.reason"),
+            MethodField("message", "Message", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.message"),
+            MethodField("biometric_device_service", "Biometric device service", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.provenance.provider"),
+            MethodField("biometric_signal_type", "Biometric signal type", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.sourceSignal.signalType"),
+            MethodField("biometric_execution_id", "Biometric execution ID", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Transformation.id"),
+            MethodField("biometric_provenance_json", "Biometric provenance JSON", MethodFieldType.Json, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.provenance")
         )
     )
 

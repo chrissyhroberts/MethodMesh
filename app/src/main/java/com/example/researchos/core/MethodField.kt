@@ -13,5 +13,7 @@ data class MethodField(
     val label: String,
     val type: MethodFieldType,
     val required: Boolean = true,
-    val description: String? = null
+    val description: String? = null,
+    val requiredWhen: RequiredWhen = if (required) RequiredWhen.Always else RequiredWhen.IfAvailable,
+    val graphPath: String? = null
 )

@@ -22,6 +22,7 @@ import com.example.researchos.core.MethodFieldType
 import com.example.researchos.core.MethodManifest
 import com.example.researchos.core.MethodOutput
 import com.example.researchos.core.MethodOutputSchema
+import com.example.researchos.core.RequiredWhen
 import com.example.researchos.core.MethodRequest
 import com.example.researchos.core.MethodResult
 import com.example.researchos.core.MethodStatus
@@ -72,13 +73,14 @@ class NfcWriteMethod : Method {
     )
 
     override val outputSchema = MethodOutputSchema(
+        graphOutputs = nfcWriteGraphSchema(),
         fields = listOf(
-            MethodField(NfcWriteFields.WRITE_SUCCESS, "Write success", MethodFieldType.Boolean, required = true),
-            MethodField(NfcWriteFields.WRITE_MESSAGE, "Write message", MethodFieldType.Text, required = true),
-            MethodField(NfcWriteFields.WRITE_RECORD_TYPE, "Write record type", MethodFieldType.Text, required = true),
-            MethodField(NfcWriteFields.WRITE_SIZE_BYTES, "Write size bytes", MethodFieldType.Integer, required = true),
-            MethodField(NfcWriteFields.INTERVENTION_JSON, "Intervention JSON", MethodFieldType.Json, required = true),
-            MethodField(NfcWriteFields.POST_WRITE_EVIDENCE_JSON, "Post-write evidence JSON", MethodFieldType.Json, required = true)
+            MethodField(NfcWriteFields.WRITE_SUCCESS, "Write success", MethodFieldType.Boolean, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.values.write_success"),
+            MethodField(NfcWriteFields.WRITE_MESSAGE, "Write message", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.values.write_message"),
+            MethodField(NfcWriteFields.WRITE_RECORD_TYPE, "Write record type", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.values.write_record_type"),
+            MethodField(NfcWriteFields.WRITE_SIZE_BYTES, "Write size bytes", MethodFieldType.Integer, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.write_size_bytes"),
+            MethodField(NfcWriteFields.INTERVENTION_JSON, "Intervention JSON", MethodFieldType.Json, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Transformation.diagnostics/intervention"),
+            MethodField(NfcWriteFields.POST_WRITE_EVIDENCE_JSON, "Post-write evidence JSON", MethodFieldType.Json, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation[nfc.tag.state]")
         ) + evidenceFieldSchema() + researchEnvelopeSchema()
     )
 

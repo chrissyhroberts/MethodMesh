@@ -1,10 +1,12 @@
 package com.example.researchos.modules.adminfingerprint
 
 import com.example.researchos.core.MethodOutput
+import com.example.researchos.core.ResearchRuntime
 import com.example.researchos.core.researchos.ArchitectureId
 import com.example.researchos.core.researchos.ArchitectureRef
 import com.example.researchos.core.researchos.ExecutionRequest
 import com.example.researchos.core.researchos.ExecutionResult
+import com.example.researchos.core.researchos.InvocationContext
 import com.example.researchos.core.researchos.KnowledgeObjectType
 import com.example.researchos.core.researchos.MethodContract
 import com.example.researchos.core.researchos.MethodDescriptor
@@ -116,6 +118,7 @@ object As100VerifyFingerprintMethod : As100Method {
 
         val observation = Observation(
             phenomenon = "attestation.biometric_verification",
+            subject = InvocationContext.from(request.context)?.subjectRef(),
             values = output,
             sourceSignal = signal?.let { ArchitectureRef(it.id, it.objectType, it.signalType) },
             temporalContext = signal?.temporalContext ?: request.temporalContext,
@@ -185,6 +188,16 @@ object As100VerifyFingerprintMethod : As100Method {
                 timestampMs = timestampMs
             )
         )
+
+        val result = execute(
+            request = request(
+                action = "verify.biometric.authentication_result",
+                context = mapOf("confirmation_reason" to reason),
+                signals = listOf(signal)
+            ),
+            settingsState = null
+        )
+        ResearchRuntime.session.record(result)
     }
 
     fun outputValues(settingsState: SettingsState): Map<String, Any?> {

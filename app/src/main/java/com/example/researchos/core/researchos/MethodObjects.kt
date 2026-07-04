@@ -25,6 +25,7 @@ data class MethodDescriptor(
     override val description: String? = null,
     val inputs: List<String> = emptyList(),
     val outputs: List<String> = emptyList(),
+    val graphOutputs: List<String> = emptyList(),
     val parameters: Map<String, String> = emptyMap()
 ) : MethodObject
 
@@ -33,5 +34,6 @@ data class MethodContract(
     val acceptedSignals: List<String> = emptyList(),
     val requiredContext: List<String> = emptyList(),
     val producedKnowledgeTypes: List<KnowledgeObjectType> = emptyList(),
-    val producedFields: List<String> = emptyList()
+    val producedFields: List<String> = emptyList(),
+    val producedGraphOutputs: List<String> = emptyList()
 )

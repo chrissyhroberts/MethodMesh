@@ -4,6 +4,7 @@ import android.location.Location
 import com.example.researchos.core.MethodOutput
 import com.example.researchos.core.researchos.ArchitectureId
 import com.example.researchos.core.researchos.ArchitectureRef
+import com.example.researchos.core.researchos.Entity
 import com.example.researchos.core.researchos.ExecutionRequest
 import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.KnowledgeObjectType
@@ -13,6 +14,7 @@ import com.example.researchos.core.researchos.MethodObjectType
 import com.example.researchos.core.researchos.Observation
 import com.example.researchos.core.researchos.ProvenanceContext
 import com.example.researchos.core.researchos.Signal
+import com.example.researchos.core.researchos.SpatialContext
 import com.example.researchos.core.researchos.State
 import com.example.researchos.core.researchos.Transformation
 import com.example.researchos.core.researchos.TransformationStatus
@@ -63,6 +65,7 @@ object As100LocateTargetMethod : As100Method {
             "update_count",
             "status"
         ),
+
         parameters = mapOf(
             "category" to "Mapping",
             "status" to "Experimental",
@@ -122,12 +125,40 @@ object As100LocateTargetMethod : As100Method {
             }
         }
 
+        val targetId = output["target_name"].orEmpty().ifBlank {
+            "${output["target_latitude"].orEmpty()},${output["target_longitude"].orEmpty()}"
+        }
+        val targetEntity = Entity(
+            id = ArchitectureId("target:$targetId"),
+            entityType = "SpatialTarget",
+            attributes = mapOf(
+                "target_name" to output["target_name"].orEmpty(),
+                "target_latitude" to output["target_latitude"].orEmpty(),
+                "target_longitude" to output["target_longitude"].orEmpty()
+            ),
+            spatialContext = SpatialContext(
+                referenceSystem = "WGS84",
+                location = mapOf(
+                    "latitude" to output["target_latitude"].orEmpty(),
+                    "longitude" to output["target_longitude"].orEmpty()
+                )
+            )
+        )
+        val observationSpatialContext = signal?.spatialContext ?: SpatialContext(
+            referenceSystem = "WGS84",
+            location = mapOf(
+                "latitude" to output["current_latitude"].orEmpty(),
+                "longitude" to output["current_longitude"].orEmpty(),
+                "accuracy_m" to output["accuracy_m"].orEmpty()
+            )
+        )
         val observation = Observation(
             phenomenon = "location.target_navigation",
+            subject = ArchitectureRef(targetEntity.id, targetEntity.objectType, output["target_name"]),
             values = output,
             sourceSignal = signal?.let { ArchitectureRef(it.id, it.objectType, it.signalType) },
             temporalContext = signal?.temporalContext ?: request.temporalContext,
-            spatialContext = signal?.spatialContext,
+            spatialContext = observationSpatialContext,
             provenance = ProvenanceContext(
                 provider = signal?.provenance?.provider ?: "researchos.location",
                 methodId = ID,
@@ -135,7 +166,7 @@ object As100LocateTargetMethod : As100Method {
             )
         )
 
-        val targetRef = ArchitectureRef(ArchitectureId("target:${output["target_name"].orEmpty()}"), "Entity", output["target_name"].orEmpty())
+        val targetRef = ArchitectureRef(targetEntity.id, targetEntity.objectType, output["target_name"].orEmpty())
         val state = State(
             subject = targetRef,
             stateType = "navigation.arrival_state",
@@ -166,6 +197,7 @@ object As100LocateTargetMethod : As100Method {
         return As100ExecutionEngine.complete(
             request = request,
             status = TransformationStatus.Succeeded,
+            entities = listOf(targetEntity),
             observations = listOf(observation),
             states = listOf(state),
             transformations = listOf(transformation),
@@ -275,7 +307,7 @@ object As100LocateTargetMethod : As100Method {
             "relative_bearing_deg" to relativeBearing,
             "arrived" to (result.distanceMeters <= arrivalRadius && (currentLatitude != 0f || currentLongitude != 0f)),
             "timestamp_ms" to timestampMs,
-            "update_count" to updateCount,
+            "update_count" to updateCount.toInt(),
             "status" to status
         )
     }

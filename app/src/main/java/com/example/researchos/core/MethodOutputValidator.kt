@@ -14,7 +14,7 @@ object MethodOutputValidator {
         val messages = mutableListOf<String>()
 
         schema.fields
-            .filter { it.required }
+            .filter { it.required && (it.requiredWhen == RequiredWhen.Always || it.requiredWhen == RequiredWhen.PreviewOnly) }
             .forEach { field ->
                 if (!output.fields.containsKey(field.id)) {
                     messages.add("Missing required output: ${field.id}")

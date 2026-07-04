@@ -7,6 +7,7 @@ import android.nfc.tech.Ndef
 import android.nfc.tech.TagTechnology
 import com.example.researchos.core.researchos.ArchitectureId
 import com.example.researchos.core.researchos.ArchitectureRef
+import com.example.researchos.core.researchos.Entity
 import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.Observation
 import com.example.researchos.core.researchos.ProvenanceContext
@@ -105,6 +106,15 @@ object NfcTagRepository {
             provider = signal.provenance.provider
         )
         val tagValues = extractTagValues(tag)
+        val tagEntity = Entity(
+            id = ArchitectureId("nfc-tag:${tagValues[NfcEvidenceFields.TAG_UID_HEX].orEmpty()}"),
+            entityType = "NfcTag",
+            attributes = mapOf(
+                "tag_uid_hex" to tagValues[NfcEvidenceFields.TAG_UID_HEX].orEmpty(),
+                "tag_uid_dec" to tagValues[NfcEvidenceFields.TAG_UID_DEC].orEmpty(),
+                "tech_list" to tagValues[NfcEvidenceFields.TECH_LIST].orEmpty()
+            )
+        )
         val ndefSupported = tagValues[NfcEvidenceFields.NDEF_SUPPORTED] == "true"
         val validation = ValidationRecord(
             passed = tagValues[NfcEvidenceFields.TAG_UID_HEX].orEmpty().isNotBlank(),
@@ -171,6 +181,7 @@ object NfcTagRepository {
         val observation = Observation(
             id = ArchitectureId(evidence.id),
             phenomenon = evidence.phenomenon,
+            subject = ArchitectureRef(tagEntity.id, tagEntity.objectType, tagValues[NfcEvidenceFields.TAG_UID_HEX].orEmpty()),
             values = tagValues,
             sourceSignal = signalRef,
             temporalContext = TemporalContext(
@@ -212,6 +223,7 @@ object NfcTagRepository {
         val executionResult = As100ExecutionEngine.complete(
             request = executionRequest,
             status = transformation.status,
+            entities = listOf(tagEntity),
             observations = listOf(observation),
             transformations = listOf(transformation),
             diagnostics = quality.metrics

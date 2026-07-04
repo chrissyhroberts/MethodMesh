@@ -7,11 +7,11 @@ import com.example.researchos.core.RelationshipType
 import com.example.researchos.core.ResearchRuntime
 
 /**
- * Records NFC observations into the live ResearchOS runtime session.
+ * Records NFC results into the live ResearchOS runtime session.
  *
- * This keeps the existing NFC UI and legacy bundle APIs working while ensuring
- * that NFC read/write operations also contribute canonical Observation objects
- * to the active ResearchGraph.
+ * NFC now contributes canonical AS/ResearchOS observations, transformations and
+ * execution results. Legacy observations are retained only to keep current UI
+ * screens and export previews working during migration.
  */
 object NfcResearchSessionRecorder {
 
@@ -55,9 +55,13 @@ object NfcResearchSessionRecorder {
         return observation
     }
 
-    fun recordReadBundle(bundle: NfcReadEvidenceBundle): Observation =
-        record(NfcObservationMapper.fromReadBundle(bundle))
+    fun recordReadBundle(bundle: NfcReadEvidenceBundle): Observation {
+        ResearchRuntime.session.record(bundle.executionResult)
+        return record(NfcObservationMapper.fromReadBundle(bundle))
+    }
 
-    fun recordWriteBundle(bundle: NfcWriteEvidenceBundle): Observation =
-        record(NfcObservationMapper.fromWriteBundle(bundle))
+    fun recordWriteBundle(bundle: NfcWriteEvidenceBundle): Observation {
+        ResearchRuntime.session.record(bundle.postWriteRead.executionResult)
+        return record(NfcObservationMapper.fromWriteBundle(bundle))
+    }
 }

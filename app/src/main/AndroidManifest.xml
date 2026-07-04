@@ -22,6 +22,30 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ResearchOS">
         <activity
+            android:name=".transport.android.ExternalWorkflowActivity"
+            android:exported="false"
+            android:label="ResearchOS Workflow"
+            android:theme="@style/Theme.ResearchOS" />
+
+        <activity
+            android:name=".transport.android.IntentRouterActivity"
+            android:exported="true"
+            android:label="ResearchOS Intent Router"
+            android:theme="@style/Theme.ResearchOS">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="researchos" />
+                <data android:scheme="xlsformlab" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.example.researchos.EXECUTE_METHOD" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"

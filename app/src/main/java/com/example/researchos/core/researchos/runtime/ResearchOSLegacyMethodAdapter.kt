@@ -35,6 +35,15 @@ class As100LegacyMethodAdapter(
         description = method.manifest.description,
         inputs = method.manifest.requiredInputs,
         outputs = method.outputSchema.fields.map { it.id },
+        graphOutputs = method.outputSchema.graphOutputs.map { output ->
+            listOfNotNull(
+                output.objectType.name,
+                output.phenomenon,
+                output.stateType,
+                output.entityType,
+                output.relationshipType
+            ).joinToString(":" )
+        },
         parameters = mapOf(
             "category" to method.manifest.category.name,
             "status" to method.manifest.status.name
@@ -45,8 +54,17 @@ class As100LegacyMethodAdapter(
         method = ref,
         acceptedSignals = emptyList(),
         requiredContext = method.manifest.requiredInputs,
-        producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
-        producedFields = method.outputSchema.fields.map { it.id }
+        producedKnowledgeTypes = method.outputSchema.graphOutputs.map { it.objectType }.distinct().ifEmpty { listOf(KnowledgeObjectType.Observation) },
+        producedFields = method.outputSchema.fields.map { it.id },
+        producedGraphOutputs = method.outputSchema.graphOutputs.map { output ->
+            listOfNotNull(
+                output.objectType.name,
+                output.phenomenon,
+                output.stateType,
+                output.entityType,
+                output.relationshipType
+            ).joinToString(":" )
+        }
     )
 
     override fun request(

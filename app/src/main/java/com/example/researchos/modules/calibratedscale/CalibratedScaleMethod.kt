@@ -38,6 +38,10 @@ import com.example.researchos.core.MethodOutput
 import com.example.researchos.core.MethodField
 import com.example.researchos.core.MethodFieldType
 import com.example.researchos.core.MethodOutputSchema
+import com.example.researchos.core.GraphField
+import com.example.researchos.core.GraphOutput
+import com.example.researchos.core.RequiredWhen
+import com.example.researchos.core.researchos.KnowledgeObjectType
 import com.example.researchos.settings.MethodSetting
 import com.example.researchos.settings.SettingsState
 
@@ -64,40 +68,69 @@ class CalibratedScaleMethod : Method {
 
 
     override val outputSchema = MethodOutputSchema(
+        graphOutputs = listOf(
+            GraphOutput(
+                id = "calibrated_scale_observation",
+                objectType = KnowledgeObjectType.Observation,
+                phenomenon = "measurement.calibrated_scale",
+                description = "A scalar or selected range measured on a calibrated visual scale.",
+                fields = listOf(
+                    GraphField("value", "Observation.values.value", MethodFieldType.Float, RequiredWhen.Always),
+                    GraphField("minimum", "Observation.values.minimum", MethodFieldType.Float, RequiredWhen.Always),
+                    GraphField("maximum", "Observation.values.maximum", MethodFieldType.Float, RequiredWhen.Always),
+                    GraphField("use_range", "Observation.values.use_range", MethodFieldType.Boolean, RequiredWhen.Always),
+                    GraphField("lower_value", "Observation.values.lower_value", MethodFieldType.Float, RequiredWhen.IfAvailable),
+                    GraphField("upper_value", "Observation.values.upper_value", MethodFieldType.Float, RequiredWhen.IfAvailable)
+                )
+            )
+        ),
         fields = listOf(
             MethodField(
                 id = "value",
                 label = "Current value",
                 type = MethodFieldType.Float,
-                required = true
+                required = true,
+                graphPath = "Observation.values.value"
             ),
             MethodField(
                 id = "minimum",
                 label = "Minimum scale value",
                 type = MethodFieldType.Float,
-                required = true
+                required = true,
+                graphPath = "Observation.values.minimum"
             ),
             MethodField(
                 id = "maximum",
                 label = "Maximum scale value",
                 type = MethodFieldType.Float,
-                required = true
+                required = true,
+                graphPath = "Observation.values.maximum"
+            ),
+            MethodField(
+                id = "use_range",
+                label = "Range mode enabled",
+                type = MethodFieldType.Boolean,
+                required = true,
+                graphPath = "Observation.values.use_range"
             ),
             MethodField(
                 id = "lower_value",
                 label = "Lower selected value",
                 type = MethodFieldType.Float,
-                required = false
+                required = false,
+                requiredWhen = RequiredWhen.IfAvailable,
+                graphPath = "Observation.values.lower_value"
             ),
             MethodField(
                 id = "upper_value",
                 label = "Upper selected value",
                 type = MethodFieldType.Float,
-                required = false
+                required = false,
+                requiredWhen = RequiredWhen.IfAvailable,
+                graphPath = "Observation.values.upper_value"
             )
         )
     )
-
     override val settings = listOf(
         MethodSetting.FloatSetting(
             id = "vas_length_mm",

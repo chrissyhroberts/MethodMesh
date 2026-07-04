@@ -1,10 +1,12 @@
 package com.example.researchos.modules.nfc
 
-import com.example.researchos.core.Observation
+import com.example.researchos.core.ResearchRuntime
+import com.example.researchos.core.researchos.Observation
 import com.example.researchos.core.researchos.ArchitectureId
 import com.example.researchos.core.researchos.ArchitectureRef
 import com.example.researchos.core.researchos.ExecutionRequest
 import com.example.researchos.core.researchos.ExecutionResult
+import com.example.researchos.core.researchos.InvocationContext
 import com.example.researchos.core.researchos.KnowledgeObjectType
 import com.example.researchos.core.researchos.MethodContract
 import com.example.researchos.core.researchos.MethodDescriptor
@@ -139,8 +141,12 @@ object As100NfcWriteMethod : As100Method {
      * records a canonical ResearchOS Observation into the live ResearchRuntime
      * session.
      */
-    fun writeBundle(tagSignal: NfcTagSignal, request: NfcWriteRequest): NfcWriteEvidenceBundle {
-        val bundle = writeBundleInternal(tagSignal, request)
+    fun writeBundle(
+        tagSignal: NfcTagSignal,
+        request: NfcWriteRequest,
+        invocationContext: InvocationContext? = null
+    ): NfcWriteEvidenceBundle {
+        val bundle = writeBundleInternal(tagSignal, request).withInvocationContext(invocationContext)
         NfcResearchSessionRecorder.recordWriteBundle(bundle)
         return bundle
     }
@@ -151,8 +157,26 @@ object As100NfcWriteMethod : As100Method {
      * Returns an Observation without forcing callers to know about the legacy
      * NFC write evidence bundle.
      */
-    fun write(tagSignal: NfcTagSignal, request: NfcWriteRequest): Observation =
-        NfcResearchSessionRecorder.record(
-            NfcObservationMapper.fromWriteBundle(writeBundleInternal(tagSignal, request))
+    fun write(
+        tagSignal: NfcTagSignal,
+        request: NfcWriteRequest,
+        invocationContext: InvocationContext? = null
+    ): Observation {
+        val bundle = writeBundleInternal(tagSignal, request).withInvocationContext(invocationContext)
+        ResearchRuntime.session.record(bundle.postWriteRead.executionResult)
+        NfcResearchSessionRecorder.record(NfcObservationMapper.fromWriteBundle(bundle))
+        return bundle.postWriteRead.researchosObservation
+    }
+
+    private fun NfcWriteEvidenceBundle.withInvocationContext(invocationContext: InvocationContext?): NfcWriteEvidenceBundle {
+        if (invocationContext == null) return this
+        val contextMap = invocationContext.asMap() + mapOf("requested_capability" to ID)
+        return copy(
+            postWriteRead = postWriteRead.copy(
+                executionResult = postWriteRead.executionResult.copy(
+                    request = postWriteRead.executionResult.request.copy(context = contextMap)
+                )
+            )
         )
+    }
 }

@@ -24,7 +24,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.researchos.core.GraphOutput
 import com.example.researchos.core.Method
+import com.example.researchos.core.MethodField
+import com.example.researchos.core.MethodFieldType
+import com.example.researchos.core.RequiredWhen
 import com.example.researchos.core.MethodOutputValidator
 import com.example.researchos.settings.MethodSetting
 import com.example.researchos.settings.SettingsRepository
@@ -112,7 +116,17 @@ fun MethodCard(
             }
 
             ExpandableSection(
-                title = "Output"
+                title = "ResearchOS panels",
+                initiallyExpanded = true
+            ) {
+                ResearchOSPanels(
+                    method = method,
+                    settingsState = settingsState
+                )
+            }
+
+            ExpandableSection(
+                title = "Transport/debug output"
             ) {
                 MethodOutputPanel(
                     method = method,
@@ -196,19 +210,19 @@ private fun MethodOutputPanel(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = "Output schema",
+            text = "Current output",
             fontWeight = FontWeight.Bold
         )
 
-        if (method.outputSchema.fields.isEmpty()) {
+        if (output.fields.isEmpty()) {
             Text(
-                text = "No output schema declared.",
+                text = "No output has been generated yet.",
                 modifier = Modifier.padding(top = 4.dp)
             )
         } else {
-            method.outputSchema.fields.forEach { field ->
+            output.fields.forEach { (key, value) ->
                 Text(
-                    text = "${field.id}: ${field.type}${if (field.required) " required" else " optional"}",
+                    text = "$key = $value",
                     modifier = Modifier.padding(top = 2.dp),
                     fontFamily = FontFamily.Monospace
                 )
@@ -224,6 +238,44 @@ private fun MethodOutputPanel(
             modifier = Modifier.padding(top = 8.dp),
             fontWeight = FontWeight.SemiBold
         )
+
+        ExpandableSection(
+            title = "Declared output schema",
+            initiallyExpanded = false
+        ) {
+            if (method.outputSchema.graphOutputs.isEmpty() && method.outputSchema.fields.isEmpty()) {
+                Text(
+                    text = "No output schema declared.",
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            } else {
+                if (method.outputSchema.graphOutputs.isNotEmpty()) {
+                    Text(
+                        text = "ResearchOS graph outputs",
+                        modifier = Modifier.padding(top = 4.dp),
+                        fontWeight = FontWeight.Bold
+                    )
+                    method.outputSchema.graphOutputs.forEach { graphOutput ->
+                        GraphOutputSummary(graphOutput)
+                    }
+                }
+
+                if (method.outputSchema.fields.isNotEmpty()) {
+                    Text(
+                        text = "Returned fields",
+                        modifier = Modifier.padding(top = 8.dp),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "These are the flat values returned to ODK or Android intents. They are mapped back to the graph outputs above.",
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                    method.outputSchema.fields.forEach { field ->
+                        TransportFieldSummary(field)
+                    }
+                }
+            }
+        }
 
         Text(
             text = "Return format",
@@ -485,6 +537,73 @@ private fun applySettingValue(
         }
     }
 }
+
+@Composable
+private fun GraphOutputSummary(graphOutput: GraphOutput) {
+    Text(
+        text = graphOutput.displayTitle(),
+        modifier = Modifier.padding(top = 6.dp),
+        fontWeight = FontWeight.SemiBold
+    )
+
+    graphOutput.description?.takeIf { it.isNotBlank() }?.let { description ->
+        Text(
+            text = description,
+            modifier = Modifier.padding(top = 2.dp)
+        )
+    }
+
+    graphOutput.fields.forEach { field ->
+        val label = field.description?.takeIf { it.isNotBlank() } ?: field.id.readableIdentifier()
+        Text(
+            text = "• $label — ${field.type.displayName()}, ${field.requiredWhen.displayName()}",
+            modifier = Modifier.padding(top = 2.dp)
+        )
+    }
+}
+
+@Composable
+private fun TransportFieldSummary(field: MethodField) {
+    val requirement = field.requiredWhen.displayName()
+    val mapping = field.graphPath?.let { " Maps to ${it.readablePath()}." } ?: ""
+    Text(
+        text = "• ${field.label}: ${field.type.displayName()}, $requirement.$mapping",
+        modifier = Modifier.padding(top = 2.dp)
+    )
+}
+
+private fun GraphOutput.displayTitle(): String {
+    val kind = objectType.name.readableIdentifier()
+    val target = phenomenon ?: stateType ?: relationshipType ?: entityType
+    return if (target.isNullOrBlank()) kind else "$kind: ${target.readableIdentifier()}"
+}
+
+private fun MethodFieldType.displayName(): String = when (this) {
+    MethodFieldType.Text -> "text"
+    MethodFieldType.Integer -> "integer"
+    MethodFieldType.Float -> "number"
+    MethodFieldType.Boolean -> "yes/no"
+    MethodFieldType.Json -> "structured data"
+}
+
+private fun RequiredWhen.displayName(): String = when (this) {
+    RequiredWhen.Always -> "required"
+    RequiredWhen.OnSuccessfulCapture -> "required after capture"
+    RequiredWhen.IfAvailable -> "optional when available"
+    RequiredWhen.PreviewOnly -> "preview only"
+    RequiredWhen.TransportOnly -> "transport only"
+}
+
+private fun String.readableIdentifier(): String =
+    replace('.', ' ')
+        .replace('_', ' ')
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+
+private fun String.readablePath(): String =
+    removePrefix("Observation.values.")
+        .removePrefix("State.values.")
+        .removePrefix("Entity.attributes.")
+        .readableIdentifier()
 
 @Composable
 private fun <T> ModeButton(

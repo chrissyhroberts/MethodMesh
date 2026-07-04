@@ -6,6 +6,7 @@ import com.example.researchos.core.researchos.ArchitectureRef
 import com.example.researchos.core.researchos.MethodContract
 import com.example.researchos.core.researchos.ExecutionRequest
 import com.example.researchos.core.researchos.ExecutionResult
+import com.example.researchos.core.researchos.InvocationContext
 import com.example.researchos.core.researchos.KnowledgeObjectType
 import com.example.researchos.core.researchos.MethodDescriptor
 import com.example.researchos.core.researchos.MethodObjectType
@@ -102,6 +103,7 @@ object As100CalibratedScaleMethod : As100Method {
         )
         val observation = Observation(
             phenomenon = "measurement.calibrated_scale",
+            subject = InvocationContext.from(request.context)?.subjectRef(),
             values = values.mapValues { it.value.toString() },
             temporalContext = request.temporalContext,
             provenance = provenance

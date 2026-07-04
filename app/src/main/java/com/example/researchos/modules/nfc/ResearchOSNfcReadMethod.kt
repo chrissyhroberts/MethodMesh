@@ -5,6 +5,7 @@ import com.example.researchos.core.researchos.ArchitectureRef
 import com.example.researchos.core.researchos.MethodContract
 import com.example.researchos.core.researchos.ExecutionRequest
 import com.example.researchos.core.researchos.ExecutionResult
+import com.example.researchos.core.researchos.InvocationContext
 import com.example.researchos.core.researchos.KnowledgeObjectType
 import com.example.researchos.core.researchos.MethodDescriptor
 import com.example.researchos.core.researchos.MethodObjectType
@@ -17,7 +18,8 @@ import com.example.researchos.core.researchos.runtime.As100Method
 import com.example.researchos.platform.nfc.AndroidNfcDeviceService
 import com.example.researchos.platform.nfc.NfcTagSignal
 import com.example.researchos.settings.SettingsState
-import com.example.researchos.core.Observation
+import com.example.researchos.core.ResearchRuntime
+import com.example.researchos.core.researchos.Observation
 
 /**
  * Native AS1.00 method for NFC tag reads.
@@ -128,8 +130,8 @@ object As100NfcReadMethod : As100Method {
      * It still returns the NFC-specific evidence bundle, but now also records a
      * canonical ResearchOS Observation into the live ResearchRuntime session.
      */
-    fun readBundle(tagSignal: NfcTagSignal): NfcReadEvidenceBundle {
-        val bundle = readBundleInternal(tagSignal)
+    fun readBundle(tagSignal: NfcTagSignal, invocationContext: InvocationContext? = null): NfcReadEvidenceBundle {
+        val bundle = readBundleInternal(tagSignal).withInvocationContext(invocationContext)
         NfcResearchSessionRecorder.recordReadBundle(bundle)
         return bundle
     }
@@ -140,7 +142,21 @@ object As100NfcReadMethod : As100Method {
      * Returns an Observation without forcing callers to know about the legacy
      * NFC evidence bundle.
      */
-    fun read(tagSignal: NfcTagSignal): Observation =
-        NfcResearchSessionRecorder.record(NfcObservationMapper.fromReadBundle(readBundleInternal(tagSignal)))
+    fun read(tagSignal: NfcTagSignal, invocationContext: InvocationContext? = null): Observation {
+        val bundle = readBundleInternal(tagSignal).withInvocationContext(invocationContext)
+        ResearchRuntime.session.record(bundle.executionResult)
+        NfcResearchSessionRecorder.record(NfcObservationMapper.fromReadBundle(bundle))
+        return bundle.researchosObservation
+    }
+
+    private fun NfcReadEvidenceBundle.withInvocationContext(invocationContext: InvocationContext?): NfcReadEvidenceBundle {
+        if (invocationContext == null) return this
+        val contextMap = invocationContext.asMap() + mapOf("requested_capability" to ID)
+        return copy(
+            executionResult = executionResult.copy(
+                request = executionResult.request.copy(context = contextMap)
+            )
+        )
+    }
 
 }

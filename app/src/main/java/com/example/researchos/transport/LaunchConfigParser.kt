@@ -10,9 +10,11 @@ import java.net.URLDecoder
  */
 data class ParsedLaunchConfig(
     val methodId: String?,
+    val actionIds: List<String> = methodId?.let { listOf(it) } ?: emptyList(),
     val returnMode: ReturnMode?,
     val settings: Map<String, String>,
     val context: Map<String, String> = emptyMap(),
+    val returnSelectors: List<GraphSelector> = emptyList(),
     val warnings: List<String> = emptyList(),
     val source: String? = null
 ) {
@@ -39,8 +41,11 @@ object LaunchConfigParser {
             trimmed.startsWith("intent:#Intent") ->
                 parseAndroidIntentUri(trimmed)
 
+            trimmed.startsWith("researchos://") || trimmed.startsWith("xlsformlab://") ->
+                parseQueryLike(trimmed.substringAfter("?", trimmed.substringAfter("://")))
+
             trimmed.contains("=") ->
-                parseQueryLike(trimmed)
+                parseQueryLike(trimmed.substringAfter("?", trimmed))
 
             else ->
                 ParsedLaunchConfig(
@@ -80,34 +85,69 @@ object LaunchConfigParser {
     }
 
     private fun buildConfig(values: Map<String, String>, source: String): ParsedLaunchConfig {
-        val methodId = values["method"]
+        val actionText = values["actions"]
+            ?: values["chain"]
+            ?: values["workflow"]
+            ?: values["methods"]
+            ?: values["method_chain"]
+
+        val actionIds = parseActionIds(actionText)
+        val methodId = actionIds.firstOrNull()
+            ?: values["method"]
             ?: values["method_id"]
             ?: values["module"]
             ?: values["module_id"]
 
+        val returnValue = values["return"]
+        val selectorText = values["returns"]
+            ?: values["graph_return"]
+            ?: values["graph_returns"]
+            ?: values["select"]
+            ?: values["selector"]
+            ?: values["selectors"]
+            ?: returnValue?.takeIf { GraphSelectorParser.looksLikeSelector(it) }
+
         val returnMode = values["return_mode"]
-            ?: values["return"]
+            ?: returnValue?.takeUnless { GraphSelectorParser.looksLikeSelector(it) }
             ?: values["mode"]
 
         val reserved = setOf(
             "method", "method_id", "module", "module_id",
-            "return_mode", "return", "mode"
+            "actions", "chain", "workflow", "methods", "method_chain",
+            "return_mode", "return", "mode",
+            "returns", "graph_return", "graph_returns", "select", "selector", "selectors"
+        )
+
+        val contextKeys = setOf(
+            "caller", "entity_type", "entity_id", "subject_id", "participant_id",
+            "specimen_id", "visit_id", "form_id", "operator_id",
+            "context_entity_type", "context_entity_id"
         )
 
         val context = values
-            .filterKeys { key -> key.startsWith("context_") }
+            .filterKeys { key -> key.startsWith("context_") || key in contextKeys }
             .mapKeys { (key, _) -> key.removePrefix("context_") }
 
         val settings = values
-            .filterKeys { key -> key !in reserved && !key.startsWith("context_") }
+            .filterKeys { key -> key !in reserved && key !in contextKeys && !key.startsWith("context_") }
 
         return ParsedLaunchConfig(
             methodId = methodId,
+            actionIds = actionIds.ifEmpty { methodId?.let { listOf(it) } ?: emptyList() },
             returnMode = returnMode?.let { ReturnMode.fromId(it) },
             settings = settings,
             context = context,
+            returnSelectors = GraphSelectorParser.parse(selectorText),
             source = source
         )
+    }
+
+    private fun parseActionIds(raw: String?): List<String> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return raw
+            .split(',', '>', '|', '\n')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
     }
 
     private fun parseKeyValueParts(parts: List<String>, androidPrefixes: Boolean): Map<String, String> {
