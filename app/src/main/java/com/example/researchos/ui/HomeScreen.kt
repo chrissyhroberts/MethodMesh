@@ -100,6 +100,7 @@ private fun RuntimeSummaryCard(moduleCount: Int, methodCount: Int, legacyCount: 
     }
 }
 
+
 @Composable
 private fun CapabilityRegistryCard(methods: List<As100Method>, modules: List<ResearchOSModule>) {
     var expanded by remember { mutableStateOf(true) }
@@ -127,7 +128,7 @@ private fun CapabilityRegistryCard(methods: List<As100Method>, modules: List<Res
                 Text(methods.size.toString(), style = MaterialTheme.typography.titleMedium)
             }
             Text(
-                text = "This is the single source of truth for dashboard execution: one row per canonical AS method, with any focused capability screen rendered here.",
+                text = "This is the single source of truth for dashboard execution: one row per canonical AS method, including DCE/choice experiment capabilities. Focused screens render in-place here rather than in a separate debug runner.",
                 modifier = Modifier.padding(top = 6.dp),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -135,10 +136,14 @@ private fun CapabilityRegistryCard(methods: List<As100Method>, modules: List<Res
             if (expanded) {
                 Spacer(Modifier.height(12.dp))
                 methods.sortedBy { it.id }.forEach { method ->
+                    val screen = screenMap[method.id]
+                    val isChoiceExperiment = method.id.startsWith("dce.")
                     CapabilityCard(
                         method = method,
                         module = moduleByMethod[method.id],
-                        screen = screenMap[method.id]
+                        screen = screen,
+                        initiallyExpanded = isChoiceExperiment,
+                        initiallyRunnerOpen = isChoiceExperiment && screen != null
                     )
                 }
             }
@@ -150,10 +155,12 @@ private fun CapabilityRegistryCard(methods: List<As100Method>, modules: List<Res
 private fun CapabilityCard(
     method: As100Method,
     module: ResearchOSModule?,
-    screen: CapabilityScreenSpec?
+    screen: CapabilityScreenSpec?,
+    initiallyExpanded: Boolean = false,
+    initiallyRunnerOpen: Boolean = false
 ) {
-    var expanded by remember(method.id) { mutableStateOf(false) }
-    var runnerOpen by remember(method.id) { mutableStateOf(false) }
+    var expanded by remember(method.id) { mutableStateOf(initiallyExpanded) }
+    var runnerOpen by remember(method.id) { mutableStateOf(initiallyRunnerOpen) }
     var lastResult by remember(method.id) { mutableStateOf<ExecutionResult?>(null) }
 
     ElevatedCard(

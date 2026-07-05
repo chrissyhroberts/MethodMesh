@@ -98,10 +98,26 @@ object ResearchOSModuleRegistry {
 
     fun initialise(context: Context) {
         if (discoveredModules != null) return
-        discoveredModules = discoverFromDex(context).ifEmpty { fallbackModules }
+        discoveredModules = mergeWithFallback(discoverFromDex(context))
     }
 
     fun all(): List<ResearchOSModule> = discoveredModules ?: fallbackModules
+
+    /**
+     * Dex discovery is deliberately opportunistic: a module object can fail to
+     * instantiate if Compose/runtime classes are not yet loadable, or if a
+     * shrinker/packager changes object metadata. Discovery must therefore never
+     * replace the known built-in module list with a partial list. In the last
+     * DCE capability-panel patch, Android discovery found the non-DCE modules
+     * and silently dropped ChoiceExperimentModule, so the DCE methods vanished
+     * from the canonical Capabilities panel. Merge discovered modules over the
+     * fallback list instead of treating any non-empty discovery result as
+     * complete.
+     */
+    private fun mergeWithFallback(discovered: List<ResearchOSModule>): List<ResearchOSModule> =
+        (discovered + fallbackModules)
+            .distinctBy { it.moduleId }
+            .sortedBy { it.moduleId }
 
     fun as100Methods(): List<As100Method> = all().flatMap { it.as100Methods() }
     fun legacyMethods(): List<Method> = all().flatMap { it.legacyMethods() }

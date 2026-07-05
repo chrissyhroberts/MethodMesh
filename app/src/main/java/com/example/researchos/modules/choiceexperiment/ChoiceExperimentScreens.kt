@@ -121,23 +121,33 @@ internal object PairwiseChoiceScreen : DceCapabilityScreen(DceMethod.Pairwise) {
         Text("Round ${round.roundNumber} of ${rounds.size}", fontWeight = FontWeight.SemiBold)
         Text("Which option do you prefer?")
         Spacer(Modifier.height(8.dp))
-        round.shown.forEach { option ->
-            Button(
+        round.shown.forEachIndexed { optionIndex, option ->
+            Card(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                onClick = {
-                    val updated = responses + PairwiseResponse(round.roundNumber, round.shown, option)
-                    responses = updated
-                    if (index >= rounds.lastIndex) {
-                        onComplete(
-                            DceJson.pairwise(config, updated),
-                            updated.size,
-                            mapOf("selected" to option)
-                        )
-                    } else {
-                        index += 1
-                    }
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(Modifier.padding(10.dp)) {
+                    Text("Option ${optionIndex + 1}", style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+                    Text(option, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(6.dp))
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            val updated = responses + PairwiseResponse(round.roundNumber, round.shown, option)
+                            responses = updated
+                            if (index >= rounds.lastIndex) {
+                                onComplete(
+                                    DceJson.pairwise(config, updated),
+                                    updated.size,
+                                    mapOf("selected" to option)
+                                )
+                            } else {
+                                index += 1
+                            }
+                        }
+                    ) { Text("Choose this option") }
                 }
-            ) { Text(option) }
+            }
         }
     }
 }
@@ -219,12 +229,16 @@ internal object RankingChoiceScreen : DceCapabilityScreen(DceMethod.Ranking) {
         Text("Move options until they are ranked from most preferred to least preferred.")
         Spacer(Modifier.height(8.dp))
         ranking.forEachIndexed { itemIndex, item ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("${itemIndex + 1}. $item", modifier = Modifier.weight(1f))
-                OutlinedButton(enabled = itemIndex > 0, onClick = { ranking = ranking.swap(itemIndex, itemIndex - 1) }) { Text("↑") }
-                OutlinedButton(enabled = itemIndex < ranking.lastIndex, onClick = { ranking = ranking.swap(itemIndex, itemIndex + 1) }) { Text("↓") }
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("${itemIndex + 1}. $item", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                    OutlinedButton(enabled = itemIndex > 0, onClick = { ranking = ranking.swap(itemIndex, itemIndex - 1) }) { Text("↑") }
+                    OutlinedButton(enabled = itemIndex < ranking.lastIndex, onClick = { ranking = ranking.swap(itemIndex, itemIndex + 1) }) { Text("↓") }
+                }
             }
-            Spacer(Modifier.height(4.dp))
         }
         Button(onClick = {
             val updated = responses + RankingResponse(round.roundNumber, round.shown, ranking)
@@ -267,13 +281,17 @@ internal object PointsChoiceScreen : DceCapabilityScreen(DceMethod.Points) {
         Text("Remaining: $remaining")
         Spacer(Modifier.height(8.dp))
         config.options.forEach { item ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(item, modifier = Modifier.weight(1f))
-                OutlinedButton(enabled = (allocations[item] ?: 0) > 0, onClick = { allocations[item] = (allocations[item] ?: 0) - 1 }) { Text("−") }
-                Text((allocations[item] ?: 0).toString(), fontFamily = FontFamily.Monospace)
-                OutlinedButton(enabled = remaining > 0, onClick = { allocations[item] = (allocations[item] ?: 0) + 1 }) { Text("+") }
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(item, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                    OutlinedButton(enabled = (allocations[item] ?: 0) > 0, onClick = { allocations[item] = (allocations[item] ?: 0) - 1 }) { Text("−") }
+                    Text((allocations[item] ?: 0).toString(), fontFamily = FontFamily.Monospace)
+                    OutlinedButton(enabled = remaining > 0, onClick = { allocations[item] = (allocations[item] ?: 0) + 1 }) { Text("+") }
+                }
             }
-            Spacer(Modifier.height(4.dp))
         }
         Button(enabled = remaining == 0, onClick = {
             val finalAllocations = config.options.associateWith { allocations[it] ?: 0 }
