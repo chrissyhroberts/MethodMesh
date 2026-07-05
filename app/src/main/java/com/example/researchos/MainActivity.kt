@@ -9,6 +9,7 @@ import com.example.researchos.calibration.CalibrationRepository
 import com.example.researchos.core.DemoResearchGraph
 import com.example.researchos.core.ResearchRuntime
 import com.example.researchos.transport.android.IntentRouterActivity
+import com.example.researchos.modules.ResearchOSModuleRegistry
 import com.example.researchos.ui.HomeScreen
 import com.example.researchos.ui.theme.ResearchOSTheme
 
@@ -16,6 +17,8 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        ResearchOSModuleRegistry.initialise(applicationContext)
 
         if (routeExternalResearchOsIntent(intent)) return
 

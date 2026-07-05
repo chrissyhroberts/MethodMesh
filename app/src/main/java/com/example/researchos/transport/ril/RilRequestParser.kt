@@ -4,6 +4,7 @@ import com.example.researchos.transport.GraphSelector
 import com.example.researchos.transport.GraphSelectorParser
 import com.example.researchos.transport.ParsedLaunchConfig
 import com.example.researchos.transport.ReturnMode
+import com.example.researchos.modules.ResearchOSModuleRegistry
 
 /**
  * Minimal implementation binding for the ResearchOS Intent Language (RIL) v0.03.
@@ -229,36 +230,14 @@ object RilRequestParser {
     private fun canonicalAction(raw: String): String? {
         val value = raw.trim().trimQuote()
         if (value.isBlank()) return null
-        val lower = value.lowercase()
 
-        if (lower.startsWith("execute ")) {
+        if (value.startsWith("execute ", ignoreCase = true)) {
             return value.removePrefixIgnoreCase("execute").trim().substringBefore(" ").trim()
         }
 
-        val words = lower.split(Regex("\\s+|\\.|/|:")).filter { it.isNotBlank() }
-        val verb = words.firstOrNull() ?: return null
-        val rest = words.drop(1).toSet()
-
-        return when (verb) {
-            "scan", "read", "capture" -> when {
-                "nfc" in rest || "tag" in rest -> "nfc.read"
-                "fingerprint" in rest || "identity" in rest -> "identity.verify"
-                else -> null
-            }
-            "verify", "identify" -> when {
-                "fingerprint" in rest || "identity" in rest || "participant" in rest || "operator" in rest -> "identity.verify"
-                else -> null
-            }
-            "navigate" -> when {
-                "gps" in rest || "target" in rest || "location" in rest -> "gps.navigate_to_target"
-                else -> "gps.navigate_to_target"
-            }
-            "measure", "observe" -> when {
-                "scale" in rest || "calibrated" in rest -> "scale.capture"
-                else -> null
-            }
-            else -> null
-        }
+        // RIL phrase recognition is owned by modules. This keeps the parser
+        // generic: new capabilities add their own RIL bindings inside modules/<module>/.
+        return ResearchOSModuleRegistry.canonicalAction(value)
     }
 
     private fun parseParameterBlock(raw: String): Map<String, String> {

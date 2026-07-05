@@ -29,7 +29,6 @@ import com.example.researchos.core.researchos.KnowledgeObjectType
 import com.example.researchos.core.MethodRequest
 import com.example.researchos.core.MethodResult
 import com.example.researchos.core.MethodStatus
-import com.example.researchos.presentation.nfc.NfcReadHelpScreen
 import com.example.researchos.settings.MethodSetting
 import com.example.researchos.settings.SettingsState
 

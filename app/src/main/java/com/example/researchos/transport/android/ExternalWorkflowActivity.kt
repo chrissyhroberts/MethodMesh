@@ -24,7 +24,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,30 +31,15 @@ import androidx.fragment.app.FragmentActivity
 import com.example.researchos.core.ResearchRuntime
 import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.TransformationStatus
-import com.example.researchos.core.researchos.runtime.As100LegacyMethodAdapter
-import com.example.researchos.core.researchos.runtime.As100Method
 import com.example.researchos.core.researchos.runtime.As100MethodRegistry
 import com.example.researchos.core.researchos.withInvocationContext
-import com.example.researchos.modules.adminfingerprint.As100VerifyFingerprintMethod
-import com.example.researchos.modules.gpstargetnavigator.As100LocateTargetMethod
-import com.example.researchos.modules.gpstargetnavigator.GpsTargetNavigatorMethod
-import com.example.researchos.modules.nfc.As100NfcReadMethod
-import com.example.researchos.modules.nfc.NfcDeviceServiceEffect
-import com.example.researchos.modules.nfc.NfcEvidenceFields
-import com.example.researchos.modules.nfc.NfcReadEvidenceBundle
-import com.example.researchos.modules.nfc.rememberNfcAvailabilityMessage
-import com.example.researchos.platform.BiometricAuthHelper
-import com.example.researchos.platform.biometric.AndroidBiometricDeviceService
-import com.example.researchos.settings.MethodSetting
-import com.example.researchos.settings.SettingsState
 import com.example.researchos.transport.OutputFormatter
-import com.example.researchos.transport.ReturnMode
 import com.example.researchos.transport.workflow.ConfirmedWorkflowStep
 import com.example.researchos.transport.workflow.ExternalActionRequest
 import com.example.researchos.transport.workflow.ExternalWorkflowRequest
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
-import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
+import com.example.researchos.modules.ResearchOSModuleRegistry
 import com.example.researchos.ui.theme.ResearchOSTheme
 
 /**
@@ -71,6 +55,7 @@ class ExternalWorkflowActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ResearchOSModuleRegistry.initialise(applicationContext)
         request = AndroidIntentRequestReader.workflowRequest(intent)
         ResearchRuntime.session.setInvocationContext(request.invocationContext)
 
@@ -245,60 +230,9 @@ private fun CapabilityStepScreen(
 }
 
 private fun capabilityScreenFor(action: ExternalActionRequest): CapabilityScreenSpec =
-    when (action.canonicalId) {
-        As100NfcReadMethod.ID -> NfcReadCapabilityScreen
-        As100VerifyFingerprintMethod.ID -> FingerprintCapabilityScreen
-        As100LocateTargetMethod.ID -> GpsNavigateCapabilityScreen
-        else -> GenericCapabilityScreen(action.canonicalId)
-    }
+    ResearchOSModuleRegistry.screenFor(action.canonicalId)
+        ?: GenericCapabilityScreen(action.canonicalId)
 
-private object NfcReadCapabilityScreen : CapabilityScreenSpec {
-    override val capabilityId: String = As100NfcReadMethod.ID
-    override val title: String = "NFC tag read"
-    override val description: String = "Capture an NFC tag, review the evidence, then confirm or retry."
-
-    @Composable
-    override fun Render(
-        context: CapabilityScreenContext,
-        onBack: () -> Unit,
-        onConfirmed: (ExecutionResult) -> Unit,
-        onCancel: () -> Unit
-    ) {
-        NfcReadWorkflowStep(context, context.stepNumber > 1, onBack, onConfirmed, onCancel)
-    }
-}
-
-private object FingerprintCapabilityScreen : CapabilityScreenSpec {
-    override val capabilityId: String = As100VerifyFingerprintMethod.ID
-    override val title: String = "Identity verification"
-    override val description: String = "Run device verification, review the outcome, then confirm or retry."
-
-    @Composable
-    override fun Render(
-        context: CapabilityScreenContext,
-        onBack: () -> Unit,
-        onConfirmed: (ExecutionResult) -> Unit,
-        onCancel: () -> Unit
-    ) {
-        FingerprintWorkflowStep(context, context.stepNumber > 1, onBack, onConfirmed, onCancel)
-    }
-}
-
-private object GpsNavigateCapabilityScreen : CapabilityScreenSpec {
-    override val capabilityId: String = As100LocateTargetMethod.ID
-    override val title: String = "GPS target navigation"
-    override val description: String = "Navigate to a configured target and confirm the navigation result."
-
-    @Composable
-    override fun Render(
-        context: CapabilityScreenContext,
-        onBack: () -> Unit,
-        onConfirmed: (ExecutionResult) -> Unit,
-        onCancel: () -> Unit
-    ) {
-        GpsNavigateWorkflowStep(context, context.stepNumber > 1, onBack, onConfirmed, onCancel)
-    }
-}
 
 private class GenericCapabilityScreen(
     override val capabilityId: String
@@ -318,195 +252,6 @@ private class GenericCapabilityScreen(
 }
 
 @Composable
-private fun NfcReadWorkflowStep(
-    screenContext: CapabilityScreenContext,
-    canGoBack: Boolean,
-    onBack: () -> Unit,
-    onConfirmed: (ExecutionResult) -> Unit,
-    onCancel: () -> Unit
-) {
-    val request = screenContext.request
-    val initialStatus = rememberNfcAvailabilityMessage()
-    var active by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf(initialStatus) }
-    var bundle by remember { mutableStateOf<NfcReadEvidenceBundle?>(null) }
-    val execution = bundle?.executionResult?.withInvocationContext(request.invocationContext)
-
-    fun startCapture() {
-        active = true
-        bundle = null
-        status = "Waiting for NFC tag…"
-    }
-
-    NfcDeviceServiceEffect(
-        enabled = active,
-        onStatus = { status = it },
-        onSignal = { tagSignal ->
-            val read = As100NfcReadMethod.readBundle(tagSignal, request.invocationContext)
-            bundle = read
-            active = false
-            status = "Tag captured: ${read.evidence.values[NfcEvidenceFields.TAG_UID_HEX].orEmpty()}"
-        }
-    )
-
-    CapabilityScreenScaffold(
-        title = "NFC tag read",
-        capabilityId = screenContext.action.canonicalId,
-        context = screenContext,
-        canGoBack = canGoBack,
-        capturedResult = execution,
-        resultPreview = execution?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
-        onBack = onBack,
-        onRetry = { startCapture() },
-        onConfirm = { execution?.let(onConfirmed) },
-        onCancel = onCancel
-    ) {
-        Text("Tap an NFC tag to capture its UID and payload evidence.")
-        Text(status)
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { startCapture() }) { Text(if (bundle == null) "Start capture" else "Capture again") }
-            if (active) {
-                OutlinedButton(onClick = { active = false; status = "NFC capture stopped." }) { Text("Stop") }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FingerprintWorkflowStep(
-    screenContext: CapabilityScreenContext,
-    canGoBack: Boolean,
-    onBack: () -> Unit,
-    onConfirmed: (ExecutionResult) -> Unit,
-    onCancel: () -> Unit
-) {
-    val action = screenContext.action
-    val request = screenContext.request
-    val context = LocalContext.current
-    val method = As100MethodRegistry.require(As100VerifyFingerprintMethod.ID)
-    val settings = settingsStateFor(method, action.settings)
-    var result by remember { mutableStateOf<ExecutionResult?>(null) }
-    var status by remember { mutableStateOf("Ready for verification.") }
-    val allowDeviceCredential = settings?.getBoolean("allow_device_credential") ?: true
-    val availability = AndroidBiometricDeviceService.availability(context, allowDeviceCredential)
-
-    fun startVerification() {
-        BiometricAuthHelper.authenticate(
-            context = context,
-            title = settings?.getString("prompt_title") ?: "Confirmation required",
-            subtitle = settings?.getString("prompt_subtitle") ?: "Use fingerprint, face unlock, PIN, pattern, or password to continue",
-            description = settings?.getString("prompt_description") ?: "Confirm that the expected participant or operator is present.",
-            cancelText = settings?.getString("cancel_text") ?: "Cancel",
-            confirmationRequired = settings?.getBoolean("confirmation_required") ?: true,
-            allowDeviceCredential = allowDeviceCredential,
-            onSuccess = { authMethod ->
-                val signal = AndroidBiometricDeviceService.authenticationSignal(
-                    verified = true,
-                    authMethod = authMethod,
-                    message = "Confirmed"
-                )
-                val execution = As100VerifyFingerprintMethod.execute(
-                    request = As100VerifyFingerprintMethod.request(
-                        action = action.canonicalId,
-                        context = request.invocationContext.asMap(action.canonicalId) + action.settings,
-                        signals = listOf(signal.signal)
-                    ),
-                    settingsState = null,
-                    transport = request.source
-                ).withInvocationContext(request.invocationContext)
-                result = execution
-                status = "Verified using $authMethod."
-            },
-            onFailure = { message ->
-                val signal = AndroidBiometricDeviceService.authenticationSignal(
-                    verified = false,
-                    authMethod = "none",
-                    message = message
-                )
-                val execution = As100VerifyFingerprintMethod.execute(
-                    request = As100VerifyFingerprintMethod.request(
-                        action = action.canonicalId,
-                        context = request.invocationContext.asMap(action.canonicalId) + action.settings,
-                        signals = listOf(signal.signal)
-                    ),
-                    settingsState = null,
-                    transport = request.source
-                ).withInvocationContext(request.invocationContext)
-                result = execution
-                status = message
-            }
-        )
-    }
-
-    CapabilityScreenScaffold(
-        title = "Identity verification",
-        capabilityId = action.canonicalId,
-        context = screenContext,
-        canGoBack = canGoBack,
-        capturedResult = result,
-        resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
-        onBack = onBack,
-        onRetry = { if (availability.available) startVerification() },
-        onConfirm = { result?.let(onConfirmed) },
-        onCancel = onCancel
-    ) {
-        Text(availability.message)
-        Text(status)
-        Spacer(Modifier.height(10.dp))
-        Button(enabled = availability.available, onClick = { startVerification() }) {
-            Text(if (result == null) "Start verification" else "Verify again")
-        }
-    }
-}
-
-@Composable
-private fun GpsNavigateWorkflowStep(
-    screenContext: CapabilityScreenContext,
-    canGoBack: Boolean,
-    onBack: () -> Unit,
-    onConfirmed: (ExecutionResult) -> Unit,
-    onCancel: () -> Unit
-) {
-    val action = screenContext.action
-    val request = screenContext.request
-    val method = GpsTargetNavigatorMethod()
-    val settings = remember { SettingsState(method.settings).also { applyParameters(it, method.settings, action.settings) } }
-    var result by remember { mutableStateOf<ExecutionResult?>(null) }
-
-    fun refreshResult() {
-        val execution = As100LocateTargetMethod.execute(
-            request = As100LocateTargetMethod.request(
-                action = action.canonicalId,
-                context = request.invocationContext.asMap(action.canonicalId) + action.settings
-            ),
-            settingsState = settings,
-            transport = request.source
-        ).withInvocationContext(request.invocationContext)
-        result = execution
-    }
-
-    CapabilityScreenScaffold(
-        title = "GPS target navigation",
-        capabilityId = action.canonicalId,
-        context = screenContext,
-        canGoBack = canGoBack,
-        capturedResult = result,
-        resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
-        onBack = onBack,
-        onRetry = { refreshResult() },
-        onConfirm = { result?.let(onConfirmed) },
-        onCancel = onCancel
-    ) {
-        Text("Navigate to the configured target, then review and confirm the saved navigation result.")
-        Spacer(Modifier.height(10.dp))
-        method.Demo(settings)
-        Spacer(Modifier.height(10.dp))
-        Button(onClick = { refreshResult() }) { Text(if (result == null) "Review GPS result" else "Refresh GPS result") }
-    }
-}
-
-@Composable
 private fun GenericMethodWorkflowStep(
     screenContext: CapabilityScreenContext,
     canGoBack: Boolean,
@@ -522,20 +267,19 @@ private fun GenericMethodWorkflowStep(
 
     fun runAction() {
         val runnable = method ?: return
-        val settings = settingsStateFor(runnable, action.settings)
         val execution = runnable.execute(
             request = runnable.request(
                 action = action.canonicalId,
                 context = request.invocationContext.asMap(action.canonicalId) + action.settings
             ),
-            settingsState = settings,
+            settingsState = null,
             transport = request.source
         ).withInvocationContext(request.invocationContext)
         result = execution
         status = "Execution complete: ${execution.status.name}"
     }
 
-    CapabilityScreenScaffold(
+    com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold(
         title = "Capability action",
         capabilityId = action.canonicalId,
         context = screenContext,
@@ -615,31 +359,3 @@ private fun ResultPreview(fields: Map<String, Any?>) {
     }
 }
 
-private fun settingsStateFor(method: As100Method, parameters: Map<String, String>): SettingsState? {
-    val legacySettings = legacySettingsFor(method)
-    return if (legacySettings.isEmpty()) null else SettingsState(legacySettings).also {
-        applyParameters(it, legacySettings, parameters)
-    }
-}
-
-private fun legacySettingsFor(method: As100Method): List<MethodSetting> =
-    (method as? As100LegacyMethodAdapter)?.method?.settings
-        ?: As100MethodRegistry.legacyFind(method.id)?.settings
-        ?: emptyList()
-
-private fun applyParameters(
-    settingsState: SettingsState,
-    settings: List<MethodSetting>,
-    parameters: Map<String, String>
-) {
-    settings.forEach { setting ->
-        val raw = parameters[setting.id] ?: return@forEach
-        when (setting) {
-            is MethodSetting.BooleanSetting -> settingsState.setBoolean(setting.id, raw.toBooleanStrictOrNull() ?: raw == "1")
-            is MethodSetting.IntSetting -> raw.toIntOrNull()?.let { settingsState.setInt(setting.id, it) }
-            is MethodSetting.FloatSetting -> raw.toFloatOrNull()?.let { settingsState.setFloat(setting.id, it) }
-            is MethodSetting.TextSetting -> settingsState.setString(setting.id, raw)
-            is MethodSetting.ChoiceSetting -> settingsState.setString(setting.id, raw)
-        }
-    }
-}

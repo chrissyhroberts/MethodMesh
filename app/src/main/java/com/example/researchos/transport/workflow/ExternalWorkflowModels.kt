@@ -5,6 +5,7 @@ import com.example.researchos.core.researchos.InvocationContext
 import com.example.researchos.transport.GraphSelector
 import com.example.researchos.transport.ParsedLaunchConfig
 import com.example.researchos.transport.ReturnMode
+import com.example.researchos.modules.ResearchOSModuleRegistry
 
 data class ExternalActionRequest(
     val requestedId: String,
@@ -43,21 +44,22 @@ data class ConfirmedWorkflowStep(
 )
 
 object CapabilityAlias {
-    private val aliases = mapOf(
+    private val compatibilityAliases = mapOf(
         "nfc.read" to "nfc_tag_read",
-        "nfc_tag_read" to "nfc_tag_read",
         "nfc.write" to "nfc_tag_write",
-        "nfc_tag_write" to "nfc_tag_write",
         "identity.verify" to "admin_fingerprint_confirmation",
         "fingerprint.verify" to "admin_fingerprint_confirmation",
-        "admin_fingerprint_confirmation" to "admin_fingerprint_confirmation",
         "gps.navigate" to "gps_target_navigator",
         "gps.navigate_to_target" to "gps_target_navigator",
         "gps.target" to "gps_target_navigator",
-        "gps_target_navigator" to "gps_target_navigator",
-        "calibrated_scale" to "calibrated_scale",
         "scale.capture" to "calibrated_scale"
     )
 
-    fun canonical(id: String): String = aliases[id.trim()] ?: id.trim()
+    fun canonical(id: String): String {
+        val trimmed = id.trim()
+        return ResearchOSModuleRegistry.canonicalAction(trimmed)
+            ?.let { compatibilityAliases[it] ?: it }
+            ?: compatibilityAliases[trimmed]
+            ?: trimmed
+    }
 }

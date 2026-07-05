@@ -5,54 +5,30 @@ import com.example.researchos.core.MethodCategory
 import com.example.researchos.core.MethodManifest
 import com.example.researchos.core.researchos.MethodContract
 import com.example.researchos.core.researchos.MethodDescriptor
-import com.example.researchos.modules.adminfingerprint.AdminFingerprintMethod
-import com.example.researchos.modules.adminfingerprint.As100VerifyFingerprintMethod
-import com.example.researchos.modules.calibratedscale.As100CalibratedScaleMethod
-import com.example.researchos.modules.calibratedscale.CalibratedScaleMethod
-import com.example.researchos.modules.gpstargetnavigator.As100LocateTargetMethod
-import com.example.researchos.modules.gpstargetnavigator.GpsTargetNavigatorMethod
-import com.example.researchos.modules.nfc.As100NfcReadMethod
-import com.example.researchos.modules.nfc.As100NfcWriteMethod
-import com.example.researchos.modules.nfc.NfcReadMethod
-import com.example.researchos.modules.nfc.NfcWriteMethod
+import com.example.researchos.modules.ResearchOSModuleRegistry
 
 /**
- * Canonical AS1.00-facing registry of executable methods.
+ * Canonical AS-facing registry of executable methods.
  *
- * During migration, existing Method implementations are owned here and
- * exposed as As100Method instances via a legacy adapter. The old
- * MethodRegistry now delegates to this registry so the conceptual centre of
- * the app is Method, not legacy methods.
+ * The registry is assembled from self-contained modules under modules/. New
+ * capabilities should provide a module object implementing ResearchOSModule;
+ * they should not require edits to this central registry.
  */
 object As100MethodRegistry {
 
-    private val legacyMethods: List<Method> by lazy {
-        listOf(
-            CalibratedScaleMethod(),
-            AdminFingerprintMethod(),
-            GpsTargetNavigatorMethod(),
-            NfcReadMethod(),
-            NfcWriteMethod()
-        )
-    }
+    private val legacyMethods: List<Method>
+        get() = ResearchOSModuleRegistry.legacyMethods()
 
-    private val methods: List<As100Method> by lazy {
-        listOf(
-            As100NfcReadMethod,
-            As100NfcWriteMethod,
-            As100CalibratedScaleMethod,
-            As100LocateTargetMethod,
-            As100VerifyFingerprintMethod
-        ) + legacyMethods
-            .filterNot { method -> method.manifest.id in setOf(
-                As100NfcReadMethod.ID,
-                As100NfcWriteMethod.ID,
-                As100CalibratedScaleMethod.ID,
-                As100LocateTargetMethod.ID,
-                As100VerifyFingerprintMethod.ID
-            ) }
-            .map { method -> As100LegacyMethodAdapter(method) }
-    }
+    private val nativeMethods: List<As100Method>
+        get() = ResearchOSModuleRegistry.as100Methods()
+
+    private val methods: List<As100Method>
+        get() {
+            val nativeIds = nativeMethods.map { it.id }.toSet()
+            return nativeMethods + legacyMethods
+                .filterNot { method -> method.manifest.id in nativeIds }
+                .map { method -> As100LegacyMethodAdapter(method) }
+        }
 
     fun all(): List<As100Method> = methods
 
@@ -60,7 +36,7 @@ object As100MethodRegistry {
         methods.firstOrNull { it.id == id }
 
     fun require(id: String): As100Method =
-        find(id) ?: error("No AS1.00 method registered with id: $id")
+        find(id) ?: error("No AS method registered with id: $id")
 
     fun descriptors(): List<MethodDescriptor> =
         methods.map { it.descriptor }

@@ -3,6 +3,7 @@ package com.example.researchos.transport.android
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import com.example.researchos.modules.ResearchOSModuleRegistry
 
 /**
  * Public Android/ODK entry point for ResearchOS.
@@ -16,6 +17,7 @@ class IntentRouterActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ResearchOSModuleRegistry.initialise(applicationContext)
         startActivityForResult(
             Intent(intent).apply {
                 setClass(this@IntentRouterActivity, ExternalWorkflowActivity::class.java)
