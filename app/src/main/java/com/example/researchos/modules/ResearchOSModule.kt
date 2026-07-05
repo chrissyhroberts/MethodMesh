@@ -4,16 +4,16 @@ import android.content.Context
 import com.example.researchos.core.Method
 import com.example.researchos.core.researchos.runtime.As100Method
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
-import dalvik.system.DexFile
 
 /**
  * Self-contained module contract.
  *
  * A capability module should expose one object implementing this interface from
- * inside its own modules/<module-name>/ folder. The runtime discovers these
- * module objects and uses them to build the method registry, RIL bindings and
- * external workflow screens. Adding a new capability should therefore not
- * require edits to central transport, workflow or registry files.
+ * inside its own modules/<module-name>/ folder. ResearchOSModuleManifest lists
+ * the built-in module objects and the registry uses that manifest to build the
+ * method registry, RIL bindings and external workflow screens. Adding a new
+ * capability should therefore require only module-local files plus one manifest
+ * entry.
  */
 interface ResearchOSModule {
     val moduleId: String
@@ -80,44 +80,15 @@ data class ModuleCapabilitySummary(
     val rilPhrases: List<String> = emptyList()
 )
 
-/** Runtime module discovery with a fallback for non-Android/unit-test contexts. */
+/** Explicit module registry backed by ResearchOSModuleManifest. */
 object ResearchOSModuleRegistry {
-    private const val MODULE_PACKAGE_PREFIX = "com.example.researchos.modules."
-    private val fallbackModules: List<ResearchOSModule> by lazy {
-        listOf(
-            com.example.researchos.modules.nfc.NfcModule,
-            com.example.researchos.modules.adminfingerprint.AdminFingerprintModule,
-            com.example.researchos.modules.gpstargetnavigator.GpsTargetNavigatorModule,
-            com.example.researchos.modules.calibratedscale.CalibratedScaleModule,
-            com.example.researchos.modules.choiceexperiment.ChoiceExperimentModule
-        )
-    }
-
-    @Volatile
-    private var discoveredModules: List<ResearchOSModule>? = null
-
-    fun initialise(context: Context) {
-        if (discoveredModules != null) return
-        discoveredModules = mergeWithFallback(discoverFromDex(context))
-    }
-
-    fun all(): List<ResearchOSModule> = discoveredModules ?: fallbackModules
-
     /**
-     * Dex discovery is deliberately opportunistic: a module object can fail to
-     * instantiate if Compose/runtime classes are not yet loadable, or if a
-     * shrinker/packager changes object metadata. Discovery must therefore never
-     * replace the known built-in module list with a partial list. In the last
-     * DCE capability-panel patch, Android discovery found the non-DCE modules
-     * and silently dropped ChoiceExperimentModule, so the DCE methods vanished
-     * from the canonical Capabilities panel. Merge discovered modules over the
-     * fallback list instead of treating any non-empty discovery result as
-     * complete.
+     * Kept for existing Android entry points. Module loading is now explicit and
+     * deterministic, so there is no context-dependent Dex scan to perform.
      */
-    private fun mergeWithFallback(discovered: List<ResearchOSModule>): List<ResearchOSModule> =
-        (discovered + fallbackModules)
-            .distinctBy { it.moduleId }
-            .sortedBy { it.moduleId }
+    fun initialise(context: Context) = Unit
+
+    fun all(): List<ResearchOSModule> = ResearchOSModuleManifest.modules
 
     fun as100Methods(): List<As100Method> = all().flatMap { it.as100Methods() }
     fun legacyMethods(): List<Method> = all().flatMap { it.legacyMethods() }
@@ -135,26 +106,4 @@ object ResearchOSModuleRegistry {
 
     fun screenFor(actionId: String): CapabilityScreenSpec? =
         capabilityScreens().firstOrNull { it.capabilityId == actionId }
-
-    private fun discoverFromDex(context: Context): List<ResearchOSModule> = runCatching {
-        val dexFile = DexFile(context.packageCodePath)
-        dexFile.entries().asSequence()
-            .filter { className ->
-                className.startsWith(MODULE_PACKAGE_PREFIX) &&
-                    className.endsWith("Module") &&
-                    className != ResearchOSModule::class.java.name &&
-                    className != ResearchOSModuleRegistry::class.java.name
-            }
-            .mapNotNull { className -> instantiateModule(className) }
-            .distinctBy { it.moduleId }
-            .sortedBy { it.moduleId }
-            .toList()
-    }.getOrElse { emptyList() }
-
-    private fun instantiateModule(className: String): ResearchOSModule? = runCatching {
-        val clazz = Class.forName(className)
-        val instance = runCatching { clazz.getField("INSTANCE").get(null) }.getOrNull()
-            ?: runCatching { clazz.getDeclaredConstructor().newInstance() }.getOrNull()
-        instance as? ResearchOSModule
-    }.getOrNull()
 }
