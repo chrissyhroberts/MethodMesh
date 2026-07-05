@@ -1,0 +1,30 @@
+package com.example.researchos.modules.qrcode
+
+import com.example.researchos.modules.ModuleExample
+import com.example.researchos.modules.ResearchOSModule
+import com.example.researchos.modules.RilBinding
+
+object QrCodeModule : ResearchOSModule {
+    override val moduleId: String = "qrcode"
+    override val displayName: String = "QR code"
+    override val summary: String = "Capture QR token evidence for workflows that need token or presence verification."
+
+    override fun as100Methods() = listOf(As100QrScanMethod)
+
+    override fun rilBindings() = listOf(
+        RilBinding("scan qr", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
+        RilBinding("read qr", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
+        RilBinding("capture qr", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
+        RilBinding("scan qr token", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence")
+    )
+
+    override fun capabilityScreens() = listOf(QrScanCapabilityScreen)
+
+    override fun examples() = listOf(
+        ModuleExample(
+            title = "Capture a QR token",
+            ril = "WHAT; scan qr; WHERE; participant/P001; RESULT; return qr_payload_hash, qr_payload; format json",
+            notes = "This is a standalone capability so other modules, including attestation, can depend on QR evidence rather than reimplementing QR behaviour."
+        )
+    )
+}

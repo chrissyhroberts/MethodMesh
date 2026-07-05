@@ -1,6 +1,5 @@
 package com.example.researchos.modules
 
-import android.content.Context
 import com.example.researchos.core.Method
 import com.example.researchos.core.researchos.runtime.As100Method
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
@@ -9,11 +8,10 @@ import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
  * Self-contained module contract.
  *
  * A capability module should expose one object implementing this interface from
- * inside its own modules/<module-name>/ folder. ResearchOSModuleManifest lists
- * the built-in module objects and the registry uses that manifest to build the
- * method registry, RIL bindings and external workflow screens. Adding a new
- * capability should therefore require only module-local files plus one manifest
- * entry.
+ * inside its own modules/<module-name>/ folder. The runtime discovers these
+ * module objects and uses them to build the method registry, RIL bindings and
+ * external workflow screens. Adding a new capability should therefore not
+ * require edits to central transport, workflow or registry files.
  */
 interface ResearchOSModule {
     val moduleId: String
@@ -31,6 +29,13 @@ interface ResearchOSModule {
     fun as100Methods(): List<As100Method> = emptyList()
     fun rilBindings(): List<RilBinding> = emptyList()
     fun capabilityScreens(): List<CapabilityScreenSpec> = emptyList()
+
+    /**
+     * Module-level dependencies. Dependency modules remain independently owned;
+     * callers should consume their public methods/screens rather than copying
+     * implementation details into the dependent module.
+     */
+    fun dependencies(): List<ModuleDependency> = emptyList()
 
     /**
      * Optional examples shown in debug panels. These are module-owned so adding
@@ -64,6 +69,11 @@ data class RilBinding(
     val description: String = ""
 )
 
+data class ModuleDependency(
+    val moduleId: String,
+    val reason: String
+)
+
 data class ModuleExample(
     val title: String,
     val ril: String,
@@ -82,11 +92,9 @@ data class ModuleCapabilitySummary(
 
 /** Explicit module registry backed by ResearchOSModuleManifest. */
 object ResearchOSModuleRegistry {
-    /**
-     * Kept for existing Android entry points. Module loading is now explicit and
-     * deterministic, so there is no context-dependent Dex scan to perform.
-     */
-    fun initialise(context: Context) = Unit
+    fun initialise(context: android.content.Context) {
+        // Kept for MainActivity compatibility; modules are explicit in the manifest.
+    }
 
     fun all(): List<ResearchOSModule> = ResearchOSModuleManifest.modules
 

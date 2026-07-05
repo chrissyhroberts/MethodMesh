@@ -133,6 +133,89 @@ object BiometricAuthHelper {
         prompt.authenticate(promptInfoBuilder.build())
     }
 
+    fun authenticateDeviceCredential(
+        context: Context,
+        title: String,
+        subtitle: String,
+        description: String,
+        confirmationRequired: Boolean,
+        onSuccess: (String) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        authenticateWithAuthenticators(
+            context = context,
+            authenticators = BiometricManager.Authenticators.DEVICE_CREDENTIAL,
+            title = title,
+            subtitle = subtitle,
+            description = description,
+            cancelText = "Cancel",
+            confirmationRequired = confirmationRequired,
+            onSuccess = { onSuccess("device_credential") },
+            onFailure = onFailure
+        )
+    }
+
+    private fun authenticateWithAuthenticators(
+        context: Context,
+        authenticators: Int,
+        title: String,
+        subtitle: String,
+        description: String,
+        cancelText: String,
+        confirmationRequired: Boolean,
+        onSuccess: (String) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        val activity = context.findFragmentActivity()
+
+        if (activity == null) {
+            onFailure("No FragmentActivity available for authentication prompt.")
+            return
+        }
+
+        val code = BiometricManager.from(context).canAuthenticate(authenticators)
+        if (code != BiometricManager.BIOMETRIC_SUCCESS) {
+            onFailure(availabilityMessage(code, allowDeviceCredential = (authenticators and BiometricManager.Authenticators.DEVICE_CREDENTIAL) != 0))
+            return
+        }
+
+        val promptInfoBuilder = BiometricPrompt.PromptInfo.Builder()
+            .setTitle(title.ifBlank { "Authentication required" })
+            .setConfirmationRequired(confirmationRequired)
+            .setAllowedAuthenticators(authenticators)
+
+        if (subtitle.isNotBlank()) promptInfoBuilder.setSubtitle(subtitle)
+        if (description.isNotBlank()) promptInfoBuilder.setDescription(description)
+        if ((authenticators and BiometricManager.Authenticators.DEVICE_CREDENTIAL) == 0) {
+            promptInfoBuilder.setNegativeButtonText(cancelText.ifBlank { "Cancel" })
+        }
+
+        val prompt = BiometricPrompt(
+            activity,
+            ContextCompat.getMainExecutor(context),
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    val method = when (result.authenticationType) {
+                        BiometricPrompt.AUTHENTICATION_RESULT_TYPE_BIOMETRIC -> "biometric"
+                        BiometricPrompt.AUTHENTICATION_RESULT_TYPE_DEVICE_CREDENTIAL -> "device_credential"
+                        else -> "unknown"
+                    }
+                    onSuccess(method)
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    onFailure("$errString ($errorCode)")
+                }
+
+                override fun onAuthenticationFailed() {
+                    onFailure("Authentication failed.")
+                }
+            }
+        )
+
+        prompt.authenticate(promptInfoBuilder.build())
+    }
+
     private fun availabilityMessage(
         code: Int,
         allowDeviceCredential: Boolean

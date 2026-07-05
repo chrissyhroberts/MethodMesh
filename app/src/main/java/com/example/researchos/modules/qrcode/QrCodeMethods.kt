@@ -1,0 +1,97 @@
+package com.example.researchos.modules.qrcode
+
+import com.example.researchos.core.researchos.ArchitectureId
+import com.example.researchos.core.researchos.ArchitectureRef
+import com.example.researchos.core.researchos.ExecutionRequest
+import com.example.researchos.core.researchos.ExecutionResult
+import com.example.researchos.core.researchos.InvocationContext
+import com.example.researchos.core.researchos.KnowledgeObjectType
+import com.example.researchos.core.researchos.MethodContract
+import com.example.researchos.core.researchos.MethodDescriptor
+import com.example.researchos.core.researchos.MethodObjectType
+import com.example.researchos.core.researchos.Observation
+import com.example.researchos.core.researchos.ProvenanceContext
+import com.example.researchos.core.researchos.Signal
+import com.example.researchos.core.researchos.Transformation
+import com.example.researchos.core.researchos.TransformationStatus
+import com.example.researchos.core.researchos.runtime.As100ExecutionEngine
+import com.example.researchos.core.researchos.runtime.As100Method
+import com.example.researchos.modules.attestation.AttestationCrypto
+import com.example.researchos.settings.SettingsState
+import java.time.Instant
+
+object As100QrScanMethod : As100Method {
+    const val ID = "qr.scan"
+    private const val VERSION = "0.1.0"
+
+    override val id: String = ID
+    override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "QR token scan")
+    override val descriptor: MethodDescriptor = MethodDescriptor(
+        id = ArchitectureId(ID),
+        methodType = MethodObjectType.SignalInterpreter,
+        name = "QR token scan",
+        version = VERSION,
+        description = "Capture QR token evidence for ResearchOS workflows. The QR capability is standalone so other modules can depend on it without rewriting scanning behaviour.",
+        outputs = listOf("qr_payload", "qr_payload_hash", "qr_scan_time_iso", "qr_source"),
+        graphOutputs = listOf("qr.token_evidence"),
+        parameters = mapOf("category" to "QR", "status" to "Experimental")
+    )
+    override val contract: MethodContract = MethodContract(
+        method = ref,
+        producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
+        producedFields = descriptor.outputs,
+        producedGraphOutputs = descriptor.graphOutputs
+    )
+
+    override fun request(action: String, context: Map<String, String>, signals: List<Signal>, inputs: List<ArchitectureRef>): ExecutionRequest =
+        As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
+
+    override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult {
+        val c = request.context
+        val payload = c["qr_payload"].orEmpty().ifBlank { c["token"].orEmpty() }
+        val source = c["qr_source"].orEmpty().ifBlank { "manual_or_external_scanner" }
+        if (payload.isBlank()) {
+            return As100ExecutionEngine.complete(
+                request = request,
+                status = TransformationStatus.Unsupported,
+                diagnostics = mapOf("reason" to "QR scan requires qr_payload from the QR capability UI or an external scanner handoff.")
+            )
+        }
+        val scanTime = Instant.ofEpochMilli(System.currentTimeMillis()).toString()
+        val values = linkedMapOf(
+            "qr_payload" to payload,
+            "qr_payload_hash" to AttestationCrypto.sha256Hex(payload),
+            "qr_scan_time_iso" to scanTime,
+            "qr_source" to source
+        )
+        val provenance = ProvenanceContext(
+            provider = "researchos.qrcode",
+            methodId = ID,
+            methodVersion = VERSION,
+            operatorId = c["operator_id"]
+        )
+        val observation = Observation(
+            phenomenon = "qr.token_evidence",
+            subject = InvocationContext.from(c)?.subjectRef(),
+            values = values,
+            temporalContext = request.temporalContext,
+            provenance = provenance
+        )
+        val transformation = Transformation(
+            action = "qr.scan_token",
+            method = ref,
+            outputs = listOf(ArchitectureRef(observation.id, observation.objectType, observation.phenomenon)),
+            status = TransformationStatus.Succeeded,
+            temporalContext = observation.temporalContext,
+            provenance = provenance,
+            diagnostics = mapOf("qr_payload_hash" to values["qr_payload_hash"].orEmpty(), "qr_source" to source)
+        )
+        return As100ExecutionEngine.complete(
+            request = request,
+            status = TransformationStatus.Succeeded,
+            observations = listOf(observation),
+            transformations = listOf(transformation),
+            diagnostics = transformation.diagnostics
+        )
+    }
+}
