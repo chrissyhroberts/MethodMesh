@@ -14,6 +14,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,7 +30,7 @@ import com.example.researchos.modules.nfc.As100NfcReadMethod
 import com.example.researchos.modules.nfc.NfcDeviceServiceEffect
 import com.example.researchos.modules.nfc.NfcEvidenceFields
 import com.example.researchos.modules.nfc.rememberNfcAvailabilityMessage
-import com.example.researchos.modules.qrcode.As100QrScanMethod
+import com.example.researchos.modules.qrcode.rememberQrCapabilityInvocation
 import com.example.researchos.platform.BiometricAuthHelper
 import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
@@ -56,7 +57,14 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
         var eventType by remember { mutableStateOf(context.action.settings["event_type"] ?: "field_event") }
         var eventPayload by remember { mutableStateOf(context.action.settings["event_payload"] ?: "event payload to be hashed") }
         var evidence by remember { mutableStateOf("") }
-        var method by remember { mutableStateOf(AttestationVerificationMethod.Pin) }
+        var method by remember {
+            mutableStateOf(
+                AttestationVerificationMethod.values().firstOrNull {
+                    it.name.equals(context.action.settings["verification_method"], ignoreCase = true) ||
+                        it.label.equals(context.action.settings["verification_method"], ignoreCase = true)
+                } ?: AttestationVerificationMethod.Pin
+            )
+        }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var status by remember { mutableStateOf("Ready to create a signed attestation.") }
         var nfcActive by remember { mutableStateOf(false) }
@@ -86,29 +94,32 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             status = "Attestation signed: ${fields["attestation_hash"]?.toString()?.take(18)}…"
         }
 
-        fun signWithQrDependency() {
-            val qrExecution = As100QrScanMethod.execute(
-                request = As100QrScanMethod.request(
-                    action = As100QrScanMethod.ID,
-                    context = context.request.invocationContext.asMap(As100QrScanMethod.ID) + mapOf(
-                        "operator_id" to operatorId,
-                        "subject_ref" to subjectRef,
-                        "qr_payload" to evidence,
-                        "qr_source" to "attestation_dependency"
-                    )
-                ),
-                settingsState = null,
-                transport = context.request.source
-            )
-            val qrFields = OutputFormatter.fields(qrExecution, includeProvenance = false)
-            val qrHash = qrFields["qr_payload_hash"]?.toString().orEmpty()
-            if (qrHash.isBlank()) {
-                status = qrExecution.diagnostics["reason"] ?: "QR evidence was not captured."
+        val launchQrDependency = rememberQrCapabilityInvocation(
+            context = context,
+            sourceLabel = "attestation_dependency",
+            onResult = { qrExecution ->
+                val qrFields = OutputFormatter.fields(qrExecution, includeProvenance = false)
+                val qrHash = qrFields["qr_payload_hash"]?.toString().orEmpty()
+                if (qrHash.isBlank()) {
+                    status = qrExecution.diagnostics["reason"] ?: "QR evidence was not captured."
+                    result = null
+                } else {
+                    val qrEvidence = listOf(
+                        "dependency=qr.scan",
+                        "qr_payload_hash=$qrHash"
+                    ).joinToString(";")
+                    signAttestation(AttestationVerificationMethod.Qr, qrEvidence)
+                }
+            },
+            onCancel = {
+                status = "QR verification cancelled."
                 result = null
-                return
+            },
+            onError = { message ->
+                status = message
+                result = null
             }
-            signAttestation(AttestationVerificationMethod.Qr, "qr_payload_hash=$qrHash")
-        }
+        )
 
         fun startSigning() {
             nfcActive = false
@@ -139,7 +150,11 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                     )
                 }
 
-                AttestationVerificationMethod.Qr -> signWithQrDependency()
+                AttestationVerificationMethod.Qr -> {
+                    result = null
+                    status = "Opening QR verification capability…"
+                    launchQrDependency()
+                }
 
                 AttestationVerificationMethod.Nfc -> {
                     nfcActive = true
@@ -168,6 +183,8 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                 signAttestation(AttestationVerificationMethod.Nfc, nfcEvidence)
             }
         )
+
+        LaunchedEffect(Unit) { startSigning() }
 
         CapabilityScreenScaffold(
             title = title,
@@ -211,11 +228,11 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                     Text(option.label)
                 }
             }
-            if (method == AttestationVerificationMethod.Qr || method == AttestationVerificationMethod.Password) {
+            if (method == AttestationVerificationMethod.Password) {
                 OutlinedTextField(
                     evidence,
                     { evidence = it },
-                    label = { Text(if (method == AttestationVerificationMethod.Qr) "QR payload / token" else "Study password token") },
+                    label = { Text("Study password token") },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -272,6 +289,8 @@ object AttestationAnchorCapabilityScreen : CapabilityScreenSpec {
             result = execution
             status = "Anchor bundle created. Submit these fields through the nightly ODK form to get the server receipt timestamp."
         }
+
+        LaunchedEffect(Unit) { createBundle() }
 
         CapabilityScreenScaffold(
             title = title,

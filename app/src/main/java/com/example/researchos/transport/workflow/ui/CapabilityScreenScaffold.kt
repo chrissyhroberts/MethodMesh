@@ -1,5 +1,7 @@
 package com.example.researchos.transport.workflow.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,12 +9,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -21,12 +32,6 @@ import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.transport.workflow.ExternalActionRequest
 import com.example.researchos.transport.workflow.ExternalWorkflowRequest
 
-/**
- * Context passed to any focused capability execution screen.
- *
- * The workflow runner owns sequence, graph recording and return transport. The
- * capability screen only owns its own capture/retry/review/confirm interaction.
- */
 data class CapabilityScreenContext(
     val action: ExternalActionRequest,
     val request: ExternalWorkflowRequest,
@@ -35,13 +40,9 @@ data class CapabilityScreenContext(
 ) {
     val isFirstStep: Boolean get() = stepNumber <= 1
     val isLastStep: Boolean get() = stepNumber >= totalSteps
+    val isExternalInvocation: Boolean get() = true
 }
 
-/**
- * Minimal base contract for capability screens. A production capability should
- * expose one focused implementation of this contract, even if it is also shown
- * elsewhere in dashboard/debug mode.
- */
 interface CapabilityScreenSpec {
     val capabilityId: String
     val title: String
@@ -57,12 +58,11 @@ interface CapabilityScreenSpec {
 }
 
 /**
- * Shared frame for all externally invoked capability screens.
+ * Shared execution surface for intent-invoked capabilities.
  *
- * This standardises the operator experience: every action shows the same
- * workflow context, capability body, result preview and Back / Retry / Confirm /
- * Cancel controls. Capability-specific code supplies only the capture body and
- * the current ExecutionResult.
+ * Capability implementations start their work on entry. The shared frame never
+ * presents a second "start" gate; Retry is shown only after an attempt has
+ * completed or when the operator needs to repeat capture.
  */
 @Composable
 fun CapabilityScreenScaffold(
@@ -78,40 +78,107 @@ fun CapabilityScreenScaffold(
     onCancel: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    var showDetails by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Text("Step ${context.stepNumber} of ${context.totalSteps}", fontWeight = FontWeight.SemiBold)
-            Text(title, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(6.dp))
-            Text("Action: ${context.action.requestedId}", fontFamily = FontFamily.Monospace)
-            Text("Capability: $capabilityId", fontFamily = FontFamily.Monospace)
-            Text("Subject: ${context.request.invocationContext.canonicalEntityId}", fontFamily = FontFamily.Monospace)
-            Spacer(Modifier.height(14.dp))
-
-            content()
-
-            Spacer(Modifier.height(14.dp))
-            Text("Result preview", fontWeight = FontWeight.SemiBold)
-            if (capturedResult == null || resultPreview.isEmpty()) {
-                Text("No confirmed capture yet.")
-            } else {
-                resultPreview.entries.take(18).forEach { (key, value) ->
-                    Text("$key = ${value?.toString().orEmpty()}", fontFamily = FontFamily.Monospace)
+        Column(Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.secondaryContainer
+                ) {
+                    Text(
+                        text = "Step ${context.stepNumber} of ${context.totalSteps}",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
                 }
-                if (resultPreview.size > 18) {
-                    Text("… ${resultPreview.size - 18} more fields")
+                Text(
+                    text = if (capturedResult == null) "In progress" else "Ready to return",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (capturedResult == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(
+                text = context.action.requestedId,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(18.dp))
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            ) {
+                Column(Modifier.padding(16.dp)) { content() }
+            }
+
+            if (capturedResult != null && resultPreview.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("Captured result", fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(6.dp))
+                        resultPreview.entries.take(8).forEach { (key, value) ->
+                            Text(
+                                "$key = ${value?.toString().orEmpty()}",
+                                fontFamily = FontFamily.Monospace,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        if (resultPreview.size > 8) Text("… ${resultPreview.size - 8} more fields")
+                    }
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(enabled = canGoBack, onClick = onBack) { Text("Back") }
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = if (showDetails) "Hide technical details" else "Technical details",
+                modifier = Modifier.clickable { showDetails = !showDetails }.padding(vertical = 6.dp),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelLarge
+            )
+            AnimatedVisibility(showDetails) {
+                Column {
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Text("Capability: $capabilityId", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                    Text("Subject: ${context.request.invocationContext.canonicalEntityId}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                    Text("Source: ${context.request.source}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                if (canGoBack) {
+                    OutlinedButton(onClick = onBack) { Text("Back") }
+                    Spacer(Modifier.width(8.dp))
+                }
                 OutlinedButton(onClick = onCancel) { Text("Cancel") }
-                OutlinedButton(onClick = onRetry) { Text(if (capturedResult == null) "Start / Retry" else "Retry") }
-                Button(enabled = capturedResult != null, onClick = onConfirm) { Text("Confirm") }
+                Spacer(Modifier.width(8.dp))
+                if (capturedResult != null) {
+                    OutlinedButton(onClick = onRetry) { Text("Retry") }
+                    Spacer(Modifier.width(8.dp))
+                }
+                Button(enabled = capturedResult != null, onClick = onConfirm) {
+                    Text(if (context.isLastStep) "Use result" else "Continue")
+                }
             }
         }
     }

@@ -22,7 +22,7 @@ import java.time.Instant
 
 object As100QrScanMethod : As100Method {
     const val ID = "qr.scan"
-    private const val VERSION = "0.1.0"
+    private const val VERSION = "0.2.0"
 
     override val id: String = ID
     override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "QR token scan")
@@ -31,7 +31,7 @@ object As100QrScanMethod : As100Method {
         methodType = MethodObjectType.SignalInterpreter,
         name = "QR token scan",
         version = VERSION,
-        description = "Capture QR token evidence for ResearchOS workflows. The QR capability is standalone so other modules can depend on it without rewriting scanning behaviour.",
+        description = "Capture QR token evidence for ResearchOS workflows. The QR capability converts camera-decoded QR payloads into canonical evidence so other modules can depend on it without rewriting scanning behaviour.",
         outputs = listOf("qr_payload", "qr_payload_hash", "qr_scan_time_iso", "qr_source"),
         graphOutputs = listOf("qr.token_evidence"),
         parameters = mapOf("category" to "QR", "status" to "Experimental")
@@ -49,12 +49,12 @@ object As100QrScanMethod : As100Method {
     override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult {
         val c = request.context
         val payload = c["qr_payload"].orEmpty().ifBlank { c["token"].orEmpty() }
-        val source = c["qr_source"].orEmpty().ifBlank { "manual_or_external_scanner" }
+        val source = c["qr_source"].orEmpty().ifBlank { "camera_or_external_scanner" }
         if (payload.isBlank()) {
             return As100ExecutionEngine.complete(
                 request = request,
                 status = TransformationStatus.Unsupported,
-                diagnostics = mapOf("reason" to "QR scan requires qr_payload from the QR capability UI or an external scanner handoff.")
+                diagnostics = mapOf("reason" to "QR decoding did not produce a payload.")
             )
         }
         val scanTime = Instant.ofEpochMilli(System.currentTimeMillis()).toString()

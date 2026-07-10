@@ -1,5 +1,6 @@
 package com.example.researchos
 
+import com.example.researchos.platform.devices.PlatformDeviceBootstrap
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -17,6 +18,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PlatformDeviceBootstrap.initialise()
 
         ResearchOSModuleRegistry.initialise(applicationContext)
 

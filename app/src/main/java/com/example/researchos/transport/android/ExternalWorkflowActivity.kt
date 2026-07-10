@@ -1,5 +1,6 @@
 package com.example.researchos.transport.android
 
+import com.example.researchos.platform.devices.PlatformDeviceBootstrap
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -17,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -55,6 +57,7 @@ class ExternalWorkflowActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PlatformDeviceBootstrap.initialise()
         ResearchOSModuleRegistry.initialise(applicationContext)
         request = AndroidIntentRequestReader.workflowRequest(intent)
         ResearchRuntime.session.setInvocationContext(request.invocationContext)
@@ -138,10 +141,17 @@ private fun ExternalWorkflowScreen(
             .verticalScroll(rememberScrollState())
             .padding(18.dp)
     ) {
-        Text("ResearchOS external workflow", fontWeight = FontWeight.Bold)
-        Text("Subject: ${request.invocationContext.canonicalEntityId}", fontFamily = FontFamily.Monospace)
-        RequestDebugSummary(request)
-        Spacer(Modifier.height(8.dp))
+        Text(
+            "ResearchOS",
+            style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            if (actions.size == 1) "Complete the requested action" else "Complete ${actions.size} requested actions",
+            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(16.dp))
 
         if (actions.isEmpty()) {
             Text("No actions were supplied by the calling app.")
@@ -161,12 +171,17 @@ private fun ExternalWorkflowScreen(
                 onBack = { if (index > 0) index -= 1 },
                 onConfirmed = { result ->
                     val recorded = ResearchRuntime.session.record(result.withInvocationContext(request.invocationContext))
+                    val completedStep = ConfirmedWorkflowStep(action, recorded)
                     if (confirmed.size > index) {
-                        confirmed[index] = ConfirmedWorkflowStep(action, recorded)
+                        confirmed[index] = completedStep
                     } else {
-                        confirmed.add(ConfirmedWorkflowStep(action, recorded))
+                        confirmed.add(completedStep)
                     }
-                    index += 1
+                    if (index == actions.lastIndex) {
+                        onReturn(confirmed.toList())
+                    } else {
+                        index += 1
+                    }
                 },
                 onCancel = onCancel
             )
@@ -278,6 +293,8 @@ private fun GenericMethodWorkflowStep(
         result = execution
         status = "Execution complete: ${execution.status.name}"
     }
+
+    LaunchedEffect(action.canonicalId) { runAction() }
 
     com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold(
         title = "Capability action",

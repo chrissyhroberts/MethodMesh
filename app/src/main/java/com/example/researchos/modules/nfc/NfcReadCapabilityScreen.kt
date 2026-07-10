@@ -8,6 +8,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +47,8 @@ object NfcReadCapabilityScreen : CapabilityScreenSpec {
             status = "Waiting for NFC tag…"
         }
 
+        LaunchedEffect(Unit) { startCapture() }
+
         NfcDeviceServiceEffect(
             enabled = active,
             onStatus = { status = it },
@@ -72,11 +75,8 @@ object NfcReadCapabilityScreen : CapabilityScreenSpec {
             Text("Tap an NFC tag to capture its UID and payload evidence.")
             Text(status)
             Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { startCapture() }) { Text(if (bundle == null) "Start capture" else "Capture again") }
-                if (active) {
-                    OutlinedButton(onClick = { active = false; status = "NFC capture stopped." }) { Text("Stop") }
-                }
+            if (active) {
+                OutlinedButton(onClick = { active = false; status = "NFC capture stopped." }) { Text("Stop scan") }
             }
         }
     }
