@@ -20,7 +20,7 @@ import com.example.researchos.settings.SettingsState
 
 object As100CreateAttestationMethod : As100Method {
     const val ID = "attestation.create"
-    private const val VERSION = "1.1.0"
+    private const val VERSION = "1.0.0"
 
     override val id: String = ID
     override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "Create signed attestation")
@@ -31,7 +31,7 @@ object As100CreateAttestationMethod : As100Method {
         version = VERSION,
         description = "Create a tamper-evident event attestation signed by the phone's non-exportable private key.",
         outputs = listOf(
-            "attestation_schema_version", "attestation_id", "study_id", "event_type",
+            "attestation_schema_version", "attestation_version", "attestation_id", "study_id", "event_type",
             "event_payload_hash", "event_payload_mode", "verification_method", "verification_evidence_payload", "verification_evidence_hash",
             "device_event_time_iso", "device_monotonic_counter", "previous_attestation_hash",
             "attestation_hash", "hash_algorithm", "public_key_id", "public_key_algorithm",
@@ -65,8 +65,8 @@ object As100CreateAttestationMethod : As100Method {
                 operatorId = c["operator_id"].orEmpty().ifBlank { "operator_unknown" },
                 subjectRef = c["subject_ref"].orEmpty().ifBlank { InvocationContext.from(c)?.subjectRef()?.id?.value ?: "subject_unknown" },
                 eventType = c["event_type"].orEmpty().ifBlank { "field_event" },
-                suppliedEventPayloadHash = c["event_payload_hash"]?.trim()?.takeIf { it.isNotEmpty() },
-                eventPayload = c["event_payload"]?.takeIf { it.isNotEmpty() },
+                eventPayloadHash = c["event_payload_hash"],
+                eventPayload = c["event_payload"],
                 verificationMethod = method,
                 verificationEvidence = c["verification_evidence"].orEmpty().ifBlank { method.name },
                 trustedTimestampPolicy = timestampPolicy

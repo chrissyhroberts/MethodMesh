@@ -90,6 +90,9 @@ data class AttestationRecord(
      */
     fun asOutputMap(): Map<String, String> = linkedMapOf<String, String>().apply {
         put("attestation_schema_version", "3")
+        // Compatibility alias for existing ODK forms. The canonical field is
+        // attestation_schema_version; both carry the same specification version.
+        put("attestation_version", "3")
         put("attestation_id", attestationId)
         put("study_id", studyId)
         put("event_type", eventType)
@@ -215,7 +218,7 @@ object AttestationRepository {
         operatorId: String,
         subjectRef: String,
         eventType: String,
-        suppliedEventPayloadHash: String?,
+        eventPayloadHash: String?,
         eventPayload: String?,
         verificationMethod: AttestationVerificationMethod,
         verificationEvidence: String,
@@ -227,17 +230,22 @@ object AttestationRepository {
         val previous = headHash()
         val publicKeyId = AttestationCrypto.publicKeyId()
         val publicKeyBase64 = AttestationCrypto.publicKeyBase64()
-        val normalizedSuppliedHash = suppliedEventPayloadHash?.lowercase()
+        val suppliedHash = eventPayloadHash?.trim().orEmpty()
+        val suppliedPayload = eventPayload?.trim().orEmpty()
         val (payloadHash, payloadMode) = when {
-            normalizedSuppliedHash != null -> {
-                require(SHA256_HEX.matches(normalizedSuppliedHash)) {
-                    "event_payload_hash must be a 64-character hexadecimal SHA-256 digest."
+            suppliedHash.isNotBlank() -> {
+                require(SHA256_HEX.matches(suppliedHash)) {
+                    "event_payload_hash must be a 64-character hexadecimal SHA-256 digest"
                 }
-                normalizedSuppliedHash to "supplied_hash"
+                suppliedHash.lowercase() to "supplied_hash"
             }
-            eventPayload != null -> AttestationCrypto.sha256Hex(eventPayload) to "calculated"
+            // ODK group intents use child question names as extras. Older forms may therefore
+            // still send a precomputed hexadecimal digest under the legacy event_payload key.
+            // Recognise that unambiguously as a supplied digest rather than hashing it again.
+            SHA256_HEX.matches(suppliedPayload) -> suppliedPayload.lowercase() to "supplied_hash"
+            suppliedPayload.isNotBlank() -> AttestationCrypto.sha256Hex(suppliedPayload) to "calculated"
             else -> throw IllegalArgumentException(
-                "attestation.create requires event_payload_hash or event_payload."
+                "attestation.create requires event_payload_hash or event_payload"
             )
         }
         val evidenceHash = AttestationCrypto.sha256Hex(verificationEvidence)

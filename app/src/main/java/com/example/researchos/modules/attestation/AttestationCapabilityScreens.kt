@@ -55,18 +55,46 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
     ) {
         val androidContext = LocalContext.current
         val nfcAvailability = rememberNfcAvailabilityMessage()
-        var studyId by remember { mutableStateOf(context.action.settings["study_id"] ?: "study_demo") }
-        var operatorId by remember { mutableStateOf(context.request.invocationContext.operatorId.orEmpty().ifBlank { "operator_001" }) }
-        var subjectRef by remember { mutableStateOf(context.request.invocationContext.subjectRef().id.value.ifBlank { "participant/P001" }) }
-        var eventType by remember { mutableStateOf(context.action.settings["event_type"] ?: "field_event") }
-        var eventPayload by remember { mutableStateOf(context.action.settings["event_payload"] ?: "event payload to be hashed") }
-        var evidence by remember { mutableStateOf("") }
+        // Merge external invocation values without allowing blank return fields or
+        // generic invocation defaults to erase explicit caller controls. ODK group
+        // intents may include blank child fields with the same names as intent
+        // parameters, so ordinary Map.plus() is not safe here.
+        val supplied = remember(
+            context.action.settings,
+            context.request.settings,
+            context.request.invocationContext
+        ) {
+            buildMap<String, String> {
+                fun mergeNonBlank(values: Map<String, String>) {
+                    values.forEach { (key, value) ->
+                        if (value.isNotBlank() || key !in this) put(key, value)
+                    }
+                }
+                mergeNonBlank(context.action.settings)
+                mergeNonBlank(context.request.settings)
+                mergeNonBlank(context.request.invocationContext.asMap(context.action.canonicalId))
+            }
+        }
+        val external = context.isExternalInvocation
+        var studyId by remember { mutableStateOf(supplied["study_id"].orEmpty().ifBlank { if (external) "" else "study_demo" }) }
+        var operatorId by remember { mutableStateOf(supplied["operator_id"].orEmpty().ifBlank { if (external) "" else "operator_001" }) }
+        var subjectRef by remember {
+            mutableStateOf(
+                (supplied["subject_ref"] ?: supplied["subject_id"] ?: supplied["entity_id"]
+                    ?: context.request.invocationContext.subjectRef().id.value)
+                    .orEmpty().ifBlank { if (external) "" else "participant/P001" }
+            )
+        }
+        var eventType by remember { mutableStateOf(supplied["event_type"].orEmpty().ifBlank { if (external) "" else "field_event" }) }
+        var eventPayloadHash by remember { mutableStateOf(supplied["event_payload_hash"].orEmpty()) }
+        var eventPayload by remember { mutableStateOf(supplied["event_payload"].orEmpty().ifBlank { if (external) "" else "event payload to be hashed" }) }
+        var evidence by remember { mutableStateOf(supplied["verification_evidence"].orEmpty()) }
         var method by remember {
             mutableStateOf(
                 AttestationVerificationMethod.values().firstOrNull {
-                    it.name.equals(context.action.settings["verification_method"], ignoreCase = true) ||
-                        it.label.equals(context.action.settings["verification_method"], ignoreCase = true)
-                } ?: AttestationVerificationMethod.Pin
+                    it.name.equals(supplied["verification_method"], ignoreCase = true) ||
+                        it.label.equals(supplied["verification_method"], ignoreCase = true)
+                } ?: if (external) AttestationVerificationMethod.Fingerprint else AttestationVerificationMethod.Pin
             )
         }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
@@ -74,15 +102,20 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
         var nfcActive by remember { mutableStateOf(false) }
 
         fun contextMapFor(selectedMethod: AttestationVerificationMethod, selectedEvidence: String): Map<String, String> =
-            context.request.invocationContext.asMap(context.action.canonicalId) + context.action.settings + mapOf(
-                "study_id" to studyId,
-                "operator_id" to operatorId,
-                "subject_ref" to subjectRef,
-                "event_type" to eventType,
-                "event_payload" to eventPayload,
-                "verification_method" to selectedMethod.name,
-                "verification_evidence" to selectedEvidence.ifBlank { selectedMethod.name }
-            )
+            supplied + buildMap {
+                put("study_id", studyId)
+                put("operator_id", operatorId)
+                put("subject_ref", subjectRef)
+                put("event_type", eventType)
+                if (eventPayloadHash.isNotBlank()) {
+                    put("event_payload_hash", eventPayloadHash)
+                    remove("event_payload")
+                } else {
+                    put("event_payload", eventPayload)
+                }
+                put("verification_method", selectedMethod.name)
+                put("verification_evidence", selectedEvidence.ifBlank { selectedMethod.name })
+            }
 
         fun signAttestation(selectedMethod: AttestationVerificationMethod, selectedEvidence: String) {
             val execution = As100CreateAttestationMethod.execute(
@@ -107,6 +140,9 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                 "Attestation signed: ${hash.take(18)}…$timestampStatus"
             } else {
                 execution.diagnostics["reason"] ?: "Attestation failed.$timestampStatus"
+            }
+            if (context.isExternalInvocation && execution.status == com.example.researchos.core.researchos.TransformationStatus.Succeeded) {
+                onConfirmed(execution)
             }
         }
 
