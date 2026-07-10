@@ -1,6 +1,8 @@
 package com.example.researchos.modules.attestation
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,7 +22,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -91,7 +95,19 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             ).withInvocationContext(context.request.invocationContext)
             result = execution
             val fields = OutputFormatter.fields(execution, includeProvenance = false)
-            status = "Attestation signed: ${fields["attestation_hash"]?.toString()?.take(18)}…"
+            val timestampStatus = when (fields["trusted_timestamp_status"]?.toString()) {
+                "rfc3161_verified" -> " Trusted RFC 3161 timestamp obtained."
+                "unavailable" -> " Timestamp requested but unavailable; local chain retained."
+                "disabled" -> " Server-side timestamping disabled by the request."
+                "required_failed" -> " Required timestamp unavailable; no attestation created."
+                else -> ""
+            }
+            val hash = fields["attestation_hash"]?.toString().orEmpty()
+            status = if (hash.isNotBlank()) {
+                "Attestation signed: ${hash.take(18)}…$timestampStatus"
+            } else {
+                execution.diagnostics["reason"] ?: "Attestation failed.$timestampStatus"
+            }
         }
 
         val launchQrDependency = rememberQrCapabilityInvocation(
@@ -185,7 +201,9 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             }
         )
 
-        LaunchedEffect(Unit) { startSigning() }
+        LaunchedEffect(context.isExternalInvocation) {
+            if (context.isExternalInvocation) startSigning()
+        }
 
         CapabilityScreenScaffold(
             title = title,
@@ -322,8 +340,11 @@ object AttestationAnchorCapabilityScreen : CapabilityScreenSpec {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AttestationKeySummary() {
+    val clipboard = LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
     ElevatedCard(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Column(Modifier.padding(10.dp)) {
             val publicKeyId = runCatching { AttestationCrypto.publicKeyId() }.getOrElse { "not generated" }
@@ -331,7 +352,19 @@ private fun AttestationKeySummary() {
             Text("Device attestation key", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
             Text("Public key ID: $publicKeyId", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
             if (publicKey.isNotBlank()) {
-                Text("Public key export: ${publicKey.take(64)}…", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
+                Text(
+                    text = if (copied) "Public key copied" else "Public key export: ${publicKey.take(64)}… (hold to copy)",
+                    modifier = Modifier.combinedClickable(
+                        onClick = { },
+                        onLongClick = {
+                            clipboard.setText(AnnotatedString(publicKey))
+                            copied = true
+                        }
+                    ),
+                    fontFamily = FontFamily.Monospace,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (copied) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     }

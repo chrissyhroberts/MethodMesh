@@ -3,6 +3,30 @@ package com.example.researchos.modules.attestation
 import java.time.Instant
 import java.util.UUID
 
+enum class TrustedTimestampPolicy(val wireValue: String) {
+    Disabled("disabled"),
+    Preferred("preferred"),
+    Required("required");
+
+    companion object {
+        fun fromContext(context: Map<String, String>): TrustedTimestampPolicy {
+            val raw = sequenceOf(
+                context["trusted_timestamp"],
+                context["trusted_timestamp_policy"],
+                context["server_side_verification"],
+                context["server-side-verification"]
+            ).firstOrNull { !it.isNullOrBlank() }?.trim()?.lowercase()
+
+            return when (raw) {
+                "on", "true", "yes", "1", "preferred", "attempt", "optional" -> Preferred
+                "required", "require", "mandatory" -> Required
+                "off", "false", "no", "0", "disabled", "none", null, "" -> Disabled
+                else -> Disabled
+            }
+        }
+    }
+}
+
 enum class AttestationVerificationMethod(val label: String) {
     Fingerprint("fingerprint / biometric"),
     Pin("phone PIN / pattern / password"),
@@ -18,6 +42,7 @@ data class AttestationRecord(
     val subjectRef: String,
     val eventType: String,
     val eventPayloadHash: String,
+    val eventPayloadMode: String,
     val verificationMethod: AttestationVerificationMethod,
     val verificationEvidencePayload: String,
     val verificationEvidenceHash: String,
@@ -26,8 +51,13 @@ data class AttestationRecord(
     val deviceMonotonicCounter: Long,
     val previousAttestationHash: String,
     val publicKeyId: String,
+    val publicKeyAlgorithm: String,
+    val publicKeyFormat: String,
+    val publicKeyBase64: String,
     val keyAlias: String,
-    val signature: String
+    val signature: String,
+    val trustedTimestampPolicy: TrustedTimestampPolicy = TrustedTimestampPolicy.Disabled,
+    val trustedTimestamp: TrustedTimestampService.Evidence? = null
 ) {
     val canonicalPayload: String
         get() = canonicalPayload(
@@ -37,6 +67,7 @@ data class AttestationRecord(
             subjectRef = subjectRef,
             eventType = eventType,
             eventPayloadHash = eventPayloadHash,
+            eventPayloadMode = eventPayloadMode,
             verificationMethod = verificationMethod.name,
             verificationEvidenceHash = verificationEvidenceHash,
             deviceEventTimeIso = deviceEventTimeIso,
@@ -50,30 +81,48 @@ data class AttestationRecord(
     val attestationHash: String
         get() = AttestationCrypto.sha256Hex(canonicalPayload + "\nsignature=" + signature)
 
+    /**
+     * Minimal caller-facing attestation record.
+     *
+     * Every field here is either required to interpret/verify the attestation or
+     * is the requested trusted-timestamp evidence. Internal identifiers and
+     * derivable aliases remain in the ResearchOS graph and detailed selectors.
+     */
     fun asOutputMap(): Map<String, String> = linkedMapOf<String, String>().apply {
+        put("attestation_schema_version", "3")
         put("attestation_id", attestationId)
         put("study_id", studyId)
-        put("operator_id", operatorId)
-        put("subject_ref", subjectRef)
         put("event_type", eventType)
         put("event_payload_hash", eventPayloadHash)
+        put("event_payload_mode", eventPayloadMode)
         put("verification_method", verificationMethod.name)
         put("verification_evidence_payload", verificationEvidencePayload)
         put("verification_evidence_hash", verificationEvidenceHash)
-        if (verificationMethod == AttestationVerificationMethod.Qr) {
-            put("qr_payload", verificationEvidencePayload)
-            put("qr_payload_hash", verificationEvidenceHash)
-        }
         put("device_event_time_iso", deviceEventTimeIso)
-        put("device_event_time_epoch_ms", deviceEventTimeEpochMs.toString())
         put("device_monotonic_counter", deviceMonotonicCounter.toString())
         put("previous_attestation_hash", previousAttestationHash)
         put("attestation_hash", attestationHash)
+        put("hash_algorithm", "SHA-256")
         put("public_key_id", publicKeyId)
-        put("key_alias", keyAlias)
+        put("public_key_algorithm", publicKeyAlgorithm)
+        put("public_key_format", publicKeyFormat)
+        put("public_key_base64", publicKeyBase64)
         put("signature", signature)
         put("signature_algorithm", "SHA256withECDSA")
-        put("evidence_integrity_rule", "sha256(verification_evidence_payload)=verification_evidence_hash")
+        put("trusted_timestamp_policy", trustedTimestampPolicy.wireValue)
+        put("trusted_timestamp_status", when {
+            trustedTimestamp != null -> "rfc3161_verified"
+            trustedTimestampPolicy == TrustedTimestampPolicy.Disabled -> "disabled"
+            else -> "unavailable"
+        })
+        trustedTimestamp?.let { timestamp ->
+            put("trusted_timestamp_authority", timestamp.authorityUrl)
+            put("trusted_timestamp_time_iso", timestamp.generationTimeIso)
+            put("trusted_timestamp_serial", timestamp.serialNumber)
+            put("trusted_timestamp_attested_hash", timestamp.attestedHash)
+            put("trusted_timestamp_token_sha256", timestamp.tokenSha256)
+            put("trusted_timestamp_token_base64", timestamp.tokenBase64)
+        }
     }
 
 
@@ -85,6 +134,7 @@ data class AttestationRecord(
             subjectRef: String,
             eventType: String,
             eventPayloadHash: String,
+            eventPayloadMode: String,
             verificationMethod: String,
             verificationEvidenceHash: String,
             deviceEventTimeIso: String,
@@ -94,20 +144,22 @@ data class AttestationRecord(
             publicKeyId: String,
             keyAlias: String
         ): String = listOf(
+            "attestation_schema_version=3",
             "attestation_id=$attestationId",
             "study_id=$studyId",
             "operator_id=$operatorId",
-            "subject_ref=$subjectRef",
+            "subject_id=$subjectRef",
             "event_type=$eventType",
             "event_payload_hash=$eventPayloadHash",
+            "event_payload_mode=$eventPayloadMode",
             "verification_method=$verificationMethod",
             "verification_evidence_hash=$verificationEvidenceHash",
             "device_event_time_iso=$deviceEventTimeIso",
-            "device_event_time_epoch_ms=$deviceEventTimeEpochMs",
             "device_monotonic_counter=$deviceMonotonicCounter",
             "previous_attestation_hash=$previousAttestationHash",
             "public_key_id=$publicKeyId",
-            "key_alias=$keyAlias"
+            "hash_algorithm=SHA-256",
+            "signature_algorithm=SHA256withECDSA"
         ).joinToString("\n")
     }
 }
@@ -147,6 +199,7 @@ data class AttestationAnchorBundle(
 
 object AttestationRepository {
     private const val GENESIS_HASH = "GENESIS"
+    private val SHA256_HEX = Regex("^[0-9a-fA-F]{64}$")
     private val records = mutableListOf<AttestationRecord>()
     private var lastAnchoredHash: String = GENESIS_HASH
 
@@ -162,16 +215,31 @@ object AttestationRepository {
         operatorId: String,
         subjectRef: String,
         eventType: String,
-        eventPayload: String,
+        suppliedEventPayloadHash: String?,
+        eventPayload: String?,
         verificationMethod: AttestationVerificationMethod,
-        verificationEvidence: String
+        verificationEvidence: String,
+        trustedTimestampPolicy: TrustedTimestampPolicy = TrustedTimestampPolicy.Disabled
     ): AttestationRecord {
         AttestationCrypto.ensureKeyPair()
         val now = System.currentTimeMillis()
         val counter = records.size + 1L
         val previous = headHash()
         val publicKeyId = AttestationCrypto.publicKeyId()
-        val payloadHash = AttestationCrypto.sha256Hex(eventPayload)
+        val publicKeyBase64 = AttestationCrypto.publicKeyBase64()
+        val normalizedSuppliedHash = suppliedEventPayloadHash?.lowercase()
+        val (payloadHash, payloadMode) = when {
+            normalizedSuppliedHash != null -> {
+                require(SHA256_HEX.matches(normalizedSuppliedHash)) {
+                    "event_payload_hash must be a 64-character hexadecimal SHA-256 digest."
+                }
+                normalizedSuppliedHash to "supplied_hash"
+            }
+            eventPayload != null -> AttestationCrypto.sha256Hex(eventPayload) to "calculated"
+            else -> throw IllegalArgumentException(
+                "attestation.create requires event_payload_hash or event_payload."
+            )
+        }
         val evidenceHash = AttestationCrypto.sha256Hex(verificationEvidence)
         val attestationId = "att_${UUID.randomUUID()}"
         val canonical = AttestationRecord.canonicalPayload(
@@ -181,6 +249,7 @@ object AttestationRepository {
             subjectRef = subjectRef,
             eventType = eventType,
             eventPayloadHash = payloadHash,
+            eventPayloadMode = payloadMode,
             verificationMethod = verificationMethod.name,
             verificationEvidenceHash = evidenceHash,
             deviceEventTimeIso = Instant.ofEpochMilli(now).toString(),
@@ -197,6 +266,7 @@ object AttestationRepository {
             subjectRef = subjectRef,
             eventType = eventType,
             eventPayloadHash = payloadHash,
+            eventPayloadMode = payloadMode,
             verificationMethod = verificationMethod,
             verificationEvidencePayload = verificationEvidence,
             verificationEvidenceHash = evidenceHash,
@@ -205,11 +275,30 @@ object AttestationRepository {
             deviceMonotonicCounter = counter,
             previousAttestationHash = previous,
             publicKeyId = publicKeyId,
+            publicKeyAlgorithm = "EC",
+            publicKeyFormat = "X.509",
+            publicKeyBase64 = publicKeyBase64,
             keyAlias = AttestationCrypto.keyAlias(),
-            signature = AttestationCrypto.signCanonical(canonical)
+            signature = AttestationCrypto.signCanonical(canonical),
+            trustedTimestampPolicy = trustedTimestampPolicy
         )
-        records += record
-        return record
+        val timestamped = when (trustedTimestampPolicy) {
+            TrustedTimestampPolicy.Disabled -> record
+            TrustedTimestampPolicy.Preferred, TrustedTimestampPolicy.Required -> {
+                val evidence = TrustedTimestampService.requestIfAvailable(
+                    attestationHashHex = record.attestationHash,
+                    authorityUrl = TrustedTimestampService.DEFAULT_TSA_URL
+                )
+                if (trustedTimestampPolicy == TrustedTimestampPolicy.Required && evidence == null) {
+                    throw TrustedTimestampRequiredException(
+                        "A trusted RFC 3161 timestamp was required but could not be obtained."
+                    )
+                }
+                record.copy(trustedTimestamp = evidence)
+            }
+        }
+        records += timestamped
+        return timestamped
     }
 
     fun createAnchorBundle(studyId: String, operatorId: String): AttestationAnchorBundle {
@@ -248,3 +337,5 @@ object AttestationRepository {
         return bundle
     }
 }
+
+class TrustedTimestampRequiredException(message: String) : IllegalStateException(message)

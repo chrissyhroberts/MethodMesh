@@ -41,7 +41,7 @@ data class CapabilityScreenContext(
 ) {
     val isFirstStep: Boolean get() = stepNumber <= 1
     val isLastStep: Boolean get() = stepNumber >= totalSteps
-    val isExternalInvocation: Boolean get() = true
+    val isExternalInvocation: Boolean get() = !request.source.equals("dashboard", ignoreCase = true)
 }
 
 interface CapabilityScreenSpec {

@@ -20,7 +20,7 @@ import com.example.researchos.settings.SettingsState
 
 object As100CreateAttestationMethod : As100Method {
     const val ID = "attestation.create"
-    private const val VERSION = "1.0.0"
+    private const val VERSION = "1.1.0"
 
     override val id: String = ID
     override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "Create signed attestation")
@@ -31,11 +31,14 @@ object As100CreateAttestationMethod : As100Method {
         version = VERSION,
         description = "Create a tamper-evident event attestation signed by the phone's non-exportable private key.",
         outputs = listOf(
-            "attestation_id", "study_id", "operator_id", "subject_ref", "event_type",
-            "event_payload_hash", "verification_method", "verification_evidence_payload", "verification_evidence_hash",
-            "qr_payload", "qr_payload_hash",
+            "attestation_schema_version", "attestation_id", "study_id", "event_type",
+            "event_payload_hash", "event_payload_mode", "verification_method", "verification_evidence_payload", "verification_evidence_hash",
             "device_event_time_iso", "device_monotonic_counter", "previous_attestation_hash",
-            "attestation_hash", "public_key_id", "signature", "signature_algorithm"
+            "attestation_hash", "hash_algorithm", "public_key_id", "public_key_algorithm",
+            "public_key_format", "public_key_base64", "signature", "signature_algorithm",
+            "trusted_timestamp_policy", "trusted_timestamp_status", "trusted_timestamp_authority", "trusted_timestamp_time_iso",
+            "trusted_timestamp_serial", "trusted_timestamp_attested_hash", "trusted_timestamp_token_sha256",
+            "trusted_timestamp_token_base64"
         ),
         graphOutputs = listOf("attestation.signed_event"),
         parameters = mapOf("category" to "Attestation", "status" to "Experimental")
@@ -55,15 +58,39 @@ object As100CreateAttestationMethod : As100Method {
         val method = c["verification_method"]?.let { raw ->
             AttestationVerificationMethod.values().firstOrNull { it.name.equals(raw, ignoreCase = true) }
         } ?: AttestationVerificationMethod.Pin
-        val record = AttestationRepository.createRecord(
-            studyId = c["study_id"].orEmpty().ifBlank { "study_demo" },
-            operatorId = c["operator_id"].orEmpty().ifBlank { "operator_unknown" },
-            subjectRef = c["subject_ref"].orEmpty().ifBlank { InvocationContext.from(c)?.subjectRef()?.id?.value ?: "subject_unknown" },
-            eventType = c["event_type"].orEmpty().ifBlank { "field_event" },
-            eventPayload = c["event_payload"].orEmpty().ifBlank { c.toSortedMap().entries.joinToString(";") { "${it.key}=${it.value}" } },
-            verificationMethod = method,
-            verificationEvidence = c["verification_evidence"].orEmpty().ifBlank { method.name }
-        )
+        val timestampPolicy = TrustedTimestampPolicy.fromContext(c)
+        val record = try {
+            AttestationRepository.createRecord(
+                studyId = c["study_id"].orEmpty().ifBlank { "study_demo" },
+                operatorId = c["operator_id"].orEmpty().ifBlank { "operator_unknown" },
+                subjectRef = c["subject_ref"].orEmpty().ifBlank { InvocationContext.from(c)?.subjectRef()?.id?.value ?: "subject_unknown" },
+                eventType = c["event_type"].orEmpty().ifBlank { "field_event" },
+                suppliedEventPayloadHash = c["event_payload_hash"]?.trim()?.takeIf { it.isNotEmpty() },
+                eventPayload = c["event_payload"]?.takeIf { it.isNotEmpty() },
+                verificationMethod = method,
+                verificationEvidence = c["verification_evidence"].orEmpty().ifBlank { method.name },
+                trustedTimestampPolicy = timestampPolicy
+            )
+        } catch (error: TrustedTimestampRequiredException) {
+            return As100ExecutionEngine.complete(
+                request = request,
+                status = TransformationStatus.Failed,
+                diagnostics = mapOf(
+                    "reason" to (error.message ?: "Trusted timestamp required but unavailable"),
+                    "trusted_timestamp_policy" to timestampPolicy.wireValue,
+                    "trusted_timestamp_status" to "required_failed"
+                )
+            )
+        } catch (error: IllegalArgumentException) {
+            return As100ExecutionEngine.complete(
+                request = request,
+                status = TransformationStatus.Failed,
+                diagnostics = mapOf(
+                    "reason" to (error.message ?: "Invalid attestation payload input"),
+                    "trusted_timestamp_policy" to timestampPolicy.wireValue
+                )
+            )
+        }
         val provenance = ProvenanceContext(
             provider = "researchos.attestation",
             methodId = ID,
