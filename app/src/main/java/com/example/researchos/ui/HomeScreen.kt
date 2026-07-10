@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -103,7 +104,7 @@ private fun RuntimeSummaryCard(moduleCount: Int, methodCount: Int, legacyCount: 
 
 @Composable
 private fun CapabilityRegistryCard(methods: List<As100Method>, modules: List<ResearchOSModule>) {
-    var expanded by remember { mutableStateOf(true) }
+    var expanded by remember { mutableStateOf(false) }
     val screenMap = ResearchOSModuleRegistry.capabilityScreens().associateBy { it.capabilityId }
     val moduleByMethod = modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
 
@@ -137,13 +138,12 @@ private fun CapabilityRegistryCard(methods: List<As100Method>, modules: List<Res
                 Spacer(Modifier.height(12.dp))
                 methods.sortedBy { it.id }.forEach { method ->
                     val screen = screenMap[method.id]
-                    val isChoiceExperiment = method.id.startsWith("dce.")
                     CapabilityCard(
                         method = method,
                         module = moduleByMethod[method.id],
                         screen = screen,
-                        initiallyExpanded = isChoiceExperiment,
-                        initiallyRunnerOpen = isChoiceExperiment && screen != null
+                        initiallyExpanded = false,
+                        initiallyRunnerOpen = false
                     )
                 }
             }
@@ -323,12 +323,25 @@ private fun GenericDashboardRunner(
 @Composable
 private fun ResultPreview(result: ExecutionResult) {
     val fields = OutputFormatter.fields(result, includeProvenance = false)
+    var expanded by remember(result) { mutableStateOf(false) }
     Spacer(Modifier.height(8.dp))
     Text("Last confirmed result: ${result.status.name}", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
-    fields.entries.take(10).forEach { (key, value) ->
-        Text("$key = ${value?.toString().orEmpty()}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
+    val visibleFields = if (expanded) fields.entries else fields.entries.take(10)
+    SelectionContainer {
+        Column {
+            visibleFields.forEach { (key, value) ->
+                Text("$key = ${value?.toString().orEmpty()}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
+            }
+        }
     }
-    if (fields.size > 10) Text("… ${fields.size - 10} more fields", style = MaterialTheme.typography.labelSmall)
+    if (fields.size > 10) {
+        Text(
+            text = if (expanded) "▲ Show fewer fields" else "▼ ${fields.size - 10} more fields",
+            modifier = Modifier.clickable { expanded = !expanded }.padding(top = 4.dp),
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.labelSmall
+        )
+    }
 }
 
 @Composable

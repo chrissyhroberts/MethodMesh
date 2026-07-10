@@ -4,6 +4,7 @@ import com.example.researchos.platform.devices.PlatformDeviceBootstrap
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +15,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -363,15 +366,27 @@ private fun ReturnSummaryScreen(
 
 @Composable
 private fun ResultPreview(fields: Map<String, Any?>) {
+    var expanded by remember(fields) { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth()) {
         Text("Data preview", fontWeight = FontWeight.SemiBold)
         if (fields.isEmpty()) {
             Text("No values available.")
         } else {
-            fields.entries.take(24).forEach { (key, value) ->
-                Text("$key = ${value?.toString().orEmpty()}", fontFamily = FontFamily.Monospace)
+            val visibleFields = if (expanded) fields.entries else fields.entries.take(24)
+            SelectionContainer {
+                Column {
+                    visibleFields.forEach { (key, value) ->
+                        Text("$key = ${value?.toString().orEmpty()}", fontFamily = FontFamily.Monospace)
+                    }
+                }
             }
-            if (fields.size > 24) Text("… ${fields.size - 24} more fields")
+            if (fields.size > 24) {
+                Text(
+                    text = if (expanded) "▲ Show fewer fields" else "▼ ${fields.size - 24} more fields",
+                    modifier = Modifier.clickable { expanded = !expanded }.padding(top = 6.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }

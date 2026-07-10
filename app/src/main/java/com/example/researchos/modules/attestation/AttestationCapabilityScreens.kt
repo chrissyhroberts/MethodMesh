@@ -99,16 +99,17 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             sourceLabel = "attestation_dependency",
             onResult = { qrExecution ->
                 val qrFields = OutputFormatter.fields(qrExecution, includeProvenance = false)
+                val qrPayload = qrFields["qr_payload"]?.toString().orEmpty()
                 val qrHash = qrFields["qr_payload_hash"]?.toString().orEmpty()
-                if (qrHash.isBlank()) {
+                val calculatedHash = AttestationCrypto.sha256Hex(qrPayload)
+                if (qrPayload.isBlank() || qrHash.isBlank()) {
                     status = qrExecution.diagnostics["reason"] ?: "QR evidence was not captured."
                     result = null
+                } else if (!calculatedHash.equals(qrHash, ignoreCase = true)) {
+                    status = "QR evidence failed integrity validation and was not attested."
+                    result = null
                 } else {
-                    val qrEvidence = listOf(
-                        "dependency=qr.scan",
-                        "qr_payload_hash=$qrHash"
-                    ).joinToString(";")
-                    signAttestation(AttestationVerificationMethod.Qr, qrEvidence)
+                    signAttestation(AttestationVerificationMethod.Qr, qrPayload)
                 }
             },
             onCancel = {

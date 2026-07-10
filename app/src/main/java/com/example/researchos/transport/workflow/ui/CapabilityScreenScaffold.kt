@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -79,6 +80,7 @@ fun CapabilityScreenScaffold(
     content: @Composable () -> Unit
 ) {
     var showDetails by remember { mutableStateOf(false) }
+    var showAllResultFields by remember(capturedResult) { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -136,14 +138,28 @@ fun CapabilityScreenScaffold(
                     Column(Modifier.padding(16.dp)) {
                         Text("Captured result", fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(6.dp))
-                        resultPreview.entries.take(8).forEach { (key, value) ->
+                        val visibleFields = if (showAllResultFields) resultPreview.entries else resultPreview.entries.take(8)
+                        SelectionContainer {
+                            Column {
+                                visibleFields.forEach { (key, value) ->
+                                    Text(
+                                        "$key = ${value?.toString().orEmpty()}",
+                                        fontFamily = FontFamily.Monospace,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
+                        if (resultPreview.size > 8) {
                             Text(
-                                "$key = ${value?.toString().orEmpty()}",
-                                fontFamily = FontFamily.Monospace,
-                                style = MaterialTheme.typography.bodySmall
+                                text = if (showAllResultFields) "▲ Show fewer fields" else "▼ ${resultPreview.size - 8} more fields",
+                                modifier = Modifier
+                                    .clickable { showAllResultFields = !showAllResultFields }
+                                    .padding(top = 8.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelLarge
                             )
                         }
-                        if (resultPreview.size > 8) Text("… ${resultPreview.size - 8} more fields")
                     }
                 }
             }

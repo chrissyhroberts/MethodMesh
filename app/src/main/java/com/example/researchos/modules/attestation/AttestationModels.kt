@@ -19,6 +19,7 @@ data class AttestationRecord(
     val eventType: String,
     val eventPayloadHash: String,
     val verificationMethod: AttestationVerificationMethod,
+    val verificationEvidencePayload: String,
     val verificationEvidenceHash: String,
     val deviceEventTimeIso: String,
     val deviceEventTimeEpochMs: Long,
@@ -49,25 +50,32 @@ data class AttestationRecord(
     val attestationHash: String
         get() = AttestationCrypto.sha256Hex(canonicalPayload + "\nsignature=" + signature)
 
-    fun asOutputMap(): Map<String, String> = linkedMapOf(
-        "attestation_id" to attestationId,
-        "study_id" to studyId,
-        "operator_id" to operatorId,
-        "subject_ref" to subjectRef,
-        "event_type" to eventType,
-        "event_payload_hash" to eventPayloadHash,
-        "verification_method" to verificationMethod.name,
-        "verification_evidence_hash" to verificationEvidenceHash,
-        "device_event_time_iso" to deviceEventTimeIso,
-        "device_event_time_epoch_ms" to deviceEventTimeEpochMs.toString(),
-        "device_monotonic_counter" to deviceMonotonicCounter.toString(),
-        "previous_attestation_hash" to previousAttestationHash,
-        "attestation_hash" to attestationHash,
-        "public_key_id" to publicKeyId,
-        "key_alias" to keyAlias,
-        "signature" to signature,
-        "signature_algorithm" to "SHA256withECDSA"
-    )
+    fun asOutputMap(): Map<String, String> = linkedMapOf<String, String>().apply {
+        put("attestation_id", attestationId)
+        put("study_id", studyId)
+        put("operator_id", operatorId)
+        put("subject_ref", subjectRef)
+        put("event_type", eventType)
+        put("event_payload_hash", eventPayloadHash)
+        put("verification_method", verificationMethod.name)
+        put("verification_evidence_payload", verificationEvidencePayload)
+        put("verification_evidence_hash", verificationEvidenceHash)
+        if (verificationMethod == AttestationVerificationMethod.Qr) {
+            put("qr_payload", verificationEvidencePayload)
+            put("qr_payload_hash", verificationEvidenceHash)
+        }
+        put("device_event_time_iso", deviceEventTimeIso)
+        put("device_event_time_epoch_ms", deviceEventTimeEpochMs.toString())
+        put("device_monotonic_counter", deviceMonotonicCounter.toString())
+        put("previous_attestation_hash", previousAttestationHash)
+        put("attestation_hash", attestationHash)
+        put("public_key_id", publicKeyId)
+        put("key_alias", keyAlias)
+        put("signature", signature)
+        put("signature_algorithm", "SHA256withECDSA")
+        put("evidence_integrity_rule", "sha256(verification_evidence_payload)=verification_evidence_hash")
+    }
+
 
     companion object {
         fun canonicalPayload(
@@ -190,6 +198,7 @@ object AttestationRepository {
             eventType = eventType,
             eventPayloadHash = payloadHash,
             verificationMethod = verificationMethod,
+            verificationEvidencePayload = verificationEvidence,
             verificationEvidenceHash = evidenceHash,
             deviceEventTimeIso = Instant.ofEpochMilli(now).toString(),
             deviceEventTimeEpochMs = now,

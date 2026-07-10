@@ -32,7 +32,8 @@ object As100CreateAttestationMethod : As100Method {
         description = "Create a tamper-evident event attestation signed by the phone's non-exportable private key.",
         outputs = listOf(
             "attestation_id", "study_id", "operator_id", "subject_ref", "event_type",
-            "event_payload_hash", "verification_method", "verification_evidence_hash",
+            "event_payload_hash", "verification_method", "verification_evidence_payload", "verification_evidence_hash",
+            "qr_payload", "qr_payload_hash",
             "device_event_time_iso", "device_monotonic_counter", "previous_attestation_hash",
             "attestation_hash", "public_key_id", "signature", "signature_algorithm"
         ),

@@ -93,7 +93,7 @@ fun MethodCard(
 
             ExpandableSection(
                 title = "Demo",
-                initiallyExpanded = true
+                initiallyExpanded = false
             ) {
                 method.Demo(
                     settingsState = settingsState
@@ -117,7 +117,7 @@ fun MethodCard(
 
             ExpandableSection(
                 title = "ResearchOS panels",
-                initiallyExpanded = true
+                initiallyExpanded = false
             ) {
                 ResearchOSPanels(
                     method = method,
