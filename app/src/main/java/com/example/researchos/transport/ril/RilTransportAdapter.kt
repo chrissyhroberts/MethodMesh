@@ -2,7 +2,6 @@ package com.example.researchos.transport.ril
 
 import com.example.researchos.transport.GraphSelectorParser
 import com.example.researchos.transport.ParsedLaunchConfig
-import com.example.researchos.transport.ReturnMode
 
 /**
  * Transport adapter that makes RIL the canonical internal request path.
@@ -22,11 +21,11 @@ object RilTransportAdapter {
             return RilRequestParser.parse(requestText.orEmpty(), source = source)
         }
 
-        val rilText = compileLegacyValuesToRil(values)
+        val rilText = compileTransportValuesToRil(values)
         val parsed = RilRequestParser.parse(rilText, source = source)
-        val context = parsed.context + legacyContext(values)
-        val settings = parsed.settings + legacySettings(values)
-        val warnings = parsed.warnings + listOf("Legacy transport parameters were normalised through the RIL adapter.")
+        val context = parsed.context + transportContext(values)
+        val settings = parsed.settings + transportSettings(values)
+        val warnings = parsed.warnings + listOf("Transport parameters were normalised through the RIL adapter.")
 
         return parsed.copy(
             context = context,
@@ -35,7 +34,7 @@ object RilTransportAdapter {
         )
     }
 
-    fun compileLegacyValuesToRil(values: Map<String, String>): String {
+    fun compileTransportValuesToRil(values: Map<String, String>): String {
         val actions = actionIds(values)
         val subject = subject(values)
         val selectors = selectorLines(values)
@@ -111,11 +110,11 @@ object RilTransportAdapter {
             ?: values["mode"]
     }
 
-    private fun legacyContext(values: Map<String, String>): Map<String, String> = values
+    private fun transportContext(values: Map<String, String>): Map<String, String> = values
         .filterKeys { key -> key.startsWith("context_") || key in contextKeys }
         .mapKeys { (key, _) -> key.removePrefix("context_") }
 
-    private fun legacySettings(values: Map<String, String>): Map<String, String> = values
+    private fun transportSettings(values: Map<String, String>): Map<String, String> = values
         .filterKeys { key -> key !in reservedKeys && key !in contextKeys && !key.startsWith("context_") }
 
     private val contextKeys = setOf(

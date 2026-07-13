@@ -21,7 +21,7 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         PlatformDeviceBootstrap.initialise()
 
-        ResearchOSModuleRegistry.initialise(applicationContext)
+        ResearchOSModuleRegistry.initialise()
 
         if (routeExternalResearchOsIntent(intent)) return
 

@@ -7,7 +7,6 @@ object CalibratedScaleModule : ResearchOSModule {
     override val moduleId: String = "calibratedscale"
     override val displayName: String = "Calibrated scale"
 
-    override fun legacyMethods() = listOf(CalibratedScaleMethod())
 
     override fun as100Methods() = listOf(As100CalibratedScaleMethod)
 

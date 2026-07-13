@@ -39,7 +39,6 @@ data class CapabilityScreenContext(
     val stepNumber: Int,
     val totalSteps: Int
 ) {
-    val isFirstStep: Boolean get() = stepNumber <= 1
     val isLastStep: Boolean get() = stepNumber >= totalSteps
     val isExternalInvocation: Boolean get() = !request.source.equals("dashboard", ignoreCase = true)
 }
@@ -128,6 +127,23 @@ fun CapabilityScreenScaffold(
                 Column(Modifier.padding(16.dp)) { content() }
             }
 
+            Spacer(Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                if (canGoBack) {
+                    OutlinedButton(onClick = onBack) { Text("Back") }
+                    Spacer(Modifier.width(8.dp))
+                }
+                OutlinedButton(onClick = onCancel) { Text("Cancel") }
+                Spacer(Modifier.width(8.dp))
+                if (capturedResult != null) {
+                    OutlinedButton(onClick = onRetry) { Text("Retry") }
+                    Spacer(Modifier.width(8.dp))
+                }
+                Button(enabled = capturedResult != null, onClick = onConfirm) {
+                    Text(if (context.isLastStep) "Use result" else "Continue")
+                }
+            }
+
             if (capturedResult != null && resultPreview.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
                 Surface(
@@ -177,23 +193,6 @@ fun CapabilityScreenScaffold(
                     Text("Capability: $capabilityId", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                     Text("Subject: ${context.request.invocationContext.canonicalEntityId}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                     Text("Source: ${context.request.source}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                }
-            }
-
-            Spacer(Modifier.height(18.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                if (canGoBack) {
-                    OutlinedButton(onClick = onBack) { Text("Back") }
-                    Spacer(Modifier.width(8.dp))
-                }
-                OutlinedButton(onClick = onCancel) { Text("Cancel") }
-                Spacer(Modifier.width(8.dp))
-                if (capturedResult != null) {
-                    OutlinedButton(onClick = onRetry) { Text("Retry") }
-                    Spacer(Modifier.width(8.dp))
-                }
-                Button(enabled = capturedResult != null, onClick = onConfirm) {
-                    Text(if (context.isLastStep) "Use result" else "Continue")
                 }
             }
         }

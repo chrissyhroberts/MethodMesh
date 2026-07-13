@@ -97,7 +97,9 @@ object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
             )
         }
 
-        LaunchedEffect(Unit) { if (availability.available) startVerification() }
+        LaunchedEffect(context.isExternalInvocation) {
+            if (context.isExternalInvocation && availability.available) startVerification()
+        }
 
         CapabilityScreenScaffold(
             title = title,
@@ -124,7 +126,7 @@ object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
         settings.forEach { setting ->
             val raw = parameters[setting.id] ?: return@forEach
             when (setting) {
-                is MethodSetting.BooleanSetting -> settingsState.setBoolean(setting.id, raw.toBooleanStrictOrNull() ?: raw == "1")
+                is MethodSetting.BooleanSetting -> settingsState.setBoolean(setting.id, raw.toBooleanStrictOrNull() ?: (raw == "1"))
                 is MethodSetting.IntSetting -> raw.toIntOrNull()?.let { settingsState.setInt(setting.id, it) }
                 is MethodSetting.FloatSetting -> raw.toFloatOrNull()?.let { settingsState.setFloat(setting.id, it) }
                 is MethodSetting.TextSetting -> settingsState.setString(setting.id, raw)

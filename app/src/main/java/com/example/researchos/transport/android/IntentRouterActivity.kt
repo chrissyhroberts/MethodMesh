@@ -17,7 +17,7 @@ class IntentRouterActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ResearchOSModuleRegistry.initialise(applicationContext)
+        ResearchOSModuleRegistry.initialise()
         startActivityForResult(
             Intent(intent).apply {
                 setClass(this@IntentRouterActivity, ExternalWorkflowActivity::class.java)

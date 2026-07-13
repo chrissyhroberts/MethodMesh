@@ -1,6 +1,5 @@
 package com.example.researchos.modules
 
-import com.example.researchos.core.Method
 import com.example.researchos.core.researchos.runtime.As100Method
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
 
@@ -25,7 +24,6 @@ interface ResearchOSModule {
     val summary: String
         get() = "Self-contained ResearchOS module."
 
-    fun legacyMethods(): List<Method> = emptyList()
     fun as100Methods(): List<As100Method> = emptyList()
     fun rilBindings(): List<RilBinding> = emptyList()
     fun capabilityScreens(): List<CapabilityScreenSpec> = emptyList()
@@ -49,18 +47,6 @@ interface ResearchOSModule {
         )
     }
 
-    /** Module-owned capability descriptions for debug/help screens. */
-    fun debugCapabilities(): List<ModuleCapabilitySummary> = as100Methods().map { method ->
-        ModuleCapabilitySummary(
-            id = method.id,
-            title = method.descriptor.name,
-            description = method.descriptor.description ?: "",
-            graphOutputs = method.descriptor.graphOutputs,
-            outputFields = method.descriptor.outputs,
-            screenAvailable = capabilityScreens().any { it.capabilityId == method.id },
-            rilPhrases = rilBindings().filter { it.actionId == method.id }.map { it.phrase }
-        )
-    }
 }
 
 data class RilBinding(
@@ -92,14 +78,13 @@ data class ModuleCapabilitySummary(
 
 /** Explicit module registry backed by ResearchOSModuleManifest. */
 object ResearchOSModuleRegistry {
-    fun initialise(context: android.content.Context) {
-        // Kept for MainActivity compatibility; modules are explicit in the manifest.
+    fun initialise() {
+        // Kept for call-site compatibility; modules are explicit in the manifest.
     }
 
     fun all(): List<ResearchOSModule> = ResearchOSModuleManifest.modules
 
     fun as100Methods(): List<As100Method> = all().flatMap { it.as100Methods() }
-    fun legacyMethods(): List<Method> = all().flatMap { it.legacyMethods() }
     fun rilBindings(): List<RilBinding> = all().flatMap { it.rilBindings() }
     fun capabilityScreens(): List<CapabilityScreenSpec> = all().flatMap { it.capabilityScreens() }
 

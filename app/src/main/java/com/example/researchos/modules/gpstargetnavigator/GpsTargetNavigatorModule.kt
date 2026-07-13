@@ -7,7 +7,6 @@ object GpsTargetNavigatorModule : ResearchOSModule {
     override val moduleId: String = "gpstargetnavigator"
     override val displayName: String = "GPS target navigator"
 
-    override fun legacyMethods() = listOf(GpsTargetNavigatorMethod())
 
     override fun as100Methods() = listOf(As100LocateTargetMethod)
 

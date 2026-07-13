@@ -7,7 +7,6 @@ object AdminFingerprintModule : ResearchOSModule {
     override val moduleId: String = "adminfingerprint"
     override val displayName: String = "Admin fingerprint"
 
-    override fun legacyMethods() = listOf(AdminFingerprintMethod())
 
     override fun as100Methods() = listOf(As100VerifyFingerprintMethod)
 

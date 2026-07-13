@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
@@ -30,13 +29,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.researchos.calibration.CalibrationScreen
-import com.example.researchos.core.Method
-import com.example.researchos.core.MethodCategory
-import com.example.researchos.core.MethodRegistry
 import com.example.researchos.core.ResearchRuntime
 import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.InvocationContext
-import com.example.researchos.core.researchos.TransformationStatus
 import com.example.researchos.core.researchos.runtime.As100Method
 import com.example.researchos.core.researchos.runtime.As100MethodRegistry
 import com.example.researchos.core.researchos.withInvocationContext
@@ -50,7 +45,6 @@ import com.example.researchos.transport.workflow.ExternalWorkflowRequest
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
-import com.example.researchos.ui.components.MethodCard
 import com.example.researchos.ui.sensors.SensorDashboard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +52,6 @@ import com.example.researchos.ui.sensors.SensorDashboard
 fun HomeScreen() {
     val modules = ResearchOSModuleRegistry.all()
     val methods = As100MethodRegistry.all().distinctBy { it.id }
-    val legacyMethods = MethodRegistry.all().distinctBy { it.manifest.id }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("ResearchOS Runtime") }) }
@@ -68,17 +61,16 @@ fun HomeScreen() {
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            item { RuntimeSummaryCard(modules.size, methods.size, legacyMethods.size) }
+            item { RuntimeSummaryCard(modules.size, methods.size) }
             item { CapabilityRegistryCard(methods, modules) }
             item { RuntimeStateCard() }
             item { DeviceServicesCard() }
-            item { LegacyCompatibilityCard(legacyMethods) }
         }
     }
 }
 
 @Composable
-private fun RuntimeSummaryCard(moduleCount: Int, methodCount: Int, legacyCount: Int) {
+private fun RuntimeSummaryCard(moduleCount: Int, methodCount: Int) {
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -88,12 +80,12 @@ private fun RuntimeSummaryCard(moduleCount: Int, methodCount: Int, legacyCount: 
         Column(modifier = Modifier.padding(16.dp)) {
             Text("ResearchOS runtime", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
-                text = "The dashboard now follows the canonical capability registry. Modules register methods, focused screens, RIL bindings and examples once; legacy cards are kept only as a collapsed compatibility surface.",
+                text = "The dashboard now follows the canonical capability registry. Modules register methods, focused screens, RIL bindings and examples once.",
                 modifier = Modifier.padding(top = 4.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "Modules: $moduleCount • canonical methods: $methodCount • legacy UI shells: $legacyCount",
+                text = "Modules: $moduleCount • canonical methods: $methodCount",
                 modifier = Modifier.padding(top = 8.dp),
                 style = MaterialTheme.typography.labelMedium
             )
@@ -141,9 +133,7 @@ private fun CapabilityRegistryCard(methods: List<As100Method>, modules: List<Res
                     CapabilityCard(
                         method = method,
                         module = moduleByMethod[method.id],
-                        screen = screen,
-                        initiallyExpanded = false,
-                        initiallyRunnerOpen = false
+                        screen = screen
                     )
                 }
             }
@@ -155,12 +145,10 @@ private fun CapabilityRegistryCard(methods: List<As100Method>, modules: List<Res
 private fun CapabilityCard(
     method: As100Method,
     module: ResearchOSModule?,
-    screen: CapabilityScreenSpec?,
-    initiallyExpanded: Boolean = false,
-    initiallyRunnerOpen: Boolean = false
+    screen: CapabilityScreenSpec?
 ) {
-    var expanded by remember(method.id) { mutableStateOf(initiallyExpanded) }
-    var runnerOpen by remember(method.id) { mutableStateOf(initiallyRunnerOpen) }
+    var expanded by remember(method.id) { mutableStateOf(false) }
+    var runnerOpen by remember(method.id) { mutableStateOf(false) }
     var lastResult by remember(method.id) { mutableStateOf<ExecutionResult?>(null) }
 
     ElevatedCard(
@@ -198,7 +186,7 @@ private fun CapabilityCard(
                         Text(if (runnerOpen) "Hide runner" else "Open runner")
                     }
                     Spacer(Modifier.padding(4.dp))
-                    lastResult?.let { result ->
+                    if (lastResult != null) {
                         OutlinedButton(onClick = { lastResult = null }) { Text("Clear result") }
                     }
                 }
@@ -429,64 +417,3 @@ private fun DeviceServicesCard() {
     }
 }
 
-@Composable
-private fun LegacyCompatibilityCard(legacyMethods: List<Method>) {
-    var expanded by remember { mutableStateOf(false) }
-    val byCategory = legacyMethods.groupBy { it.manifest.category }
-    ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        elevation = CardDefaults.elevatedCardElevation(2.dp)
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-            ) {
-                Text(
-                    text = if (expanded) "▼ Legacy UI shells" else "▶ Legacy UI shells",
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(legacyMethods.size.toString(), style = MaterialTheme.typography.titleMedium)
-            }
-            Text(
-                "Collapsed by default to prevent duplicate presentation of the same capability. Use only while migrating old demos/settings panels.",
-                modifier = Modifier.padding(top = 6.dp),
-                style = MaterialTheme.typography.bodySmall
-            )
-            if (expanded) {
-                byCategory.entries.sortedBy { it.key.name }.forEach { (category, methods) ->
-                    LegacyCategory(category, methods)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LegacyCategory(category: MethodCategory, methods: List<Method>) {
-    var expanded by remember(category) { mutableStateOf(false) }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 10.dp)
-            .clickable { expanded = !expanded }
-    ) {
-        Text(if (expanded) "▼ ${category.name}" else "▶ ${category.name}", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
-        Text(methods.size.toString())
-    }
-    if (expanded) {
-        itemsForLegacy(methods)
-    }
-}
-
-@Composable
-private fun itemsForLegacy(methods: List<Method>) {
-    methods.sortedBy { it.manifest.id }.forEach { method ->
-        MethodCard(method = method, modifier = Modifier.padding(top = 12.dp))
-    }
-}

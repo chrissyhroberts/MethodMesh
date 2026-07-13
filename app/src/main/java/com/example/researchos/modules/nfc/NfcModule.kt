@@ -7,7 +7,6 @@ object NfcModule : ResearchOSModule {
     override val moduleId: String = "nfc"
     override val displayName: String = "NFC"
 
-    override fun legacyMethods() = listOf(NfcReadMethod(), NfcWriteMethod())
 
     override fun as100Methods() = listOf(As100NfcReadMethod, As100NfcWriteMethod)
 
