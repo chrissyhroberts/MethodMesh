@@ -1,5 +1,19 @@
 # Android Developer Guide
 
+> ⚠️ **PARTIALLY STALE — last reviewed against an older package layout.**
+> 
+> Several code paths, package names and file references in this guide no longer
+> match the current implementation. Specifically:
+> - Package references use `xyz/researchos/` — the current package is `com/example/researchos/`
+> - `TransportRouter.kt` and `OdkMethodAdapter.kt` do not exist in the current codebase
+> - The "Adding a New Capability" section's file paths and registration steps are outdated
+> 
+> **For current implementation state** see [`docs/implementation-notes.md`](implementation-notes.md).  
+> **For recent refactor context** see the `*.md` notes in the project root and `app/src/main/`.  
+> This guide is useful for conceptual orientation only; do not use it as a code-map.
+
+---
+
 Welcome to ResearchOS Android development. This guide will help you understand the architecture and get started contributing.
 
 ## Quick Start

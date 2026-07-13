@@ -188,7 +188,7 @@ object GraphSelectorResolver {
     }
 
     private fun resolveLegacyField(path: String, result: ExecutionResult): Any? {
-        val flattened = OutputFormatter.fields(result, includeProvenance = true)
+        val flattened = OutputFormatter.detailedFields(result, includeProvenance = true)
         return flattened[path] ?: flattened[path.replace('.', '_')]
     }
 

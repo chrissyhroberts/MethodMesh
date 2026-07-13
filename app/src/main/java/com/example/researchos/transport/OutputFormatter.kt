@@ -4,7 +4,16 @@ import com.example.researchos.core.MethodOutput
 import com.example.researchos.core.Observation
 import com.example.researchos.core.ResearchGraph
 import com.example.researchos.core.researchos.ExecutionResult
+import com.example.researchos.core.researchos.TransformationStatus
 
+/**
+ * Formats ResearchOS results for caller-facing transport.
+ *
+ * The default contract is deliberately compact: one canonical key per value.
+ * The complete graph remains in ResearchOS and can be queried explicitly with
+ * return selectors. [detailedFields] exists only for selector compatibility and
+ * diagnostics; it must not be used as the default ODK payload.
+ */
 object OutputFormatter {
 
     fun format(output: MethodOutput, returnMode: ReturnMode): String =
@@ -13,18 +22,37 @@ object OutputFormatter {
     fun format(artifact: Observation, returnMode: ReturnMode, includeProvenance: Boolean = true): String =
         formatFields(artifact.toRecord(includeProvenance), returnMode)
 
+    /** Compact, caller-facing fields. */
     fun fields(result: ExecutionResult, includeProvenance: Boolean = true): Map<String, Any?> {
+        val fields = linkedMapOf<String, Any?>()
+        fields["researchos_execution_id"] = result.request.id.value
+        fields["researchos_method_id"] = result.request.method.id.value
+        fields["researchos_status"] = result.status.name
+
+        copyContext(result, fields)
+        appendObservationsCompact(result, fields, includeProvenance)
+        appendStatesCompact(result, fields)
+        appendEntitiesCompact(result, fields)
+
+        // Diagnostics are useful on failure, but should not inflate every normal ODK return.
+        if (result.status != TransformationStatus.Succeeded) {
+            result.diagnostics.forEach { (key, value) -> fields["diagnostic_$key"] = value }
+        }
+        return fields
+    }
+
+    /**
+     * Complete flattened view retained for explicit graph selectors and debugging.
+     * This preserves historical aliases without sending them by default.
+     */
+    fun detailedFields(result: ExecutionResult, includeProvenance: Boolean = true): Map<String, Any?> {
         val fields = linkedMapOf<String, Any?>()
         fields["researchos_execution_id"] = result.request.id.value
         fields["researchos_method_id"] = result.request.method.id.value
         fields["researchos_action"] = result.request.action
         fields["researchos_status"] = result.status.name
 
-        result.request.context["context_entity_id"]?.let { fields["context_entity_id"] = it }
-        result.request.context["subject_id"]?.let { fields["subject_id"] = it }
-        result.request.context["visit_id"]?.let { fields["visit_id"] = it }
-        result.request.context["form_id"]?.let { fields["form_id"] = it }
-        result.request.context["operator_id"]?.let { fields["operator_id"] = it }
+        copyContext(result, fields)
 
         result.observations.forEachIndexed { index, observation ->
             val prefix = if (result.observations.size == 1) "observation" else "observation_${index + 1}"
@@ -32,7 +60,7 @@ object OutputFormatter {
             fields["${prefix}_type"] = observation.phenomenon
             observation.subject?.id?.value?.let { fields["${prefix}_subject_id"] = it }
             observation.values.forEach { (key, value) ->
-                fields[key] = value
+                fields.putIfAbsent(key, value)
                 fields["${prefix}_${key}"] = value
             }
             if (includeProvenance) {
@@ -46,9 +74,7 @@ object OutputFormatter {
             fields["${prefix}_id"] = state.id.value
             fields["${prefix}_type"] = state.stateType
             fields["${prefix}_subject_id"] = state.subject.id.value
-            state.values.forEach { (key, value) ->
-                fields["${prefix}_${key}"] = value
-            }
+            state.values.forEach { (key, value) -> fields["${prefix}_${key}"] = value }
         }
 
         result.entities.forEachIndexed { index, entity ->
@@ -57,9 +83,7 @@ object OutputFormatter {
             fields["${prefix}_type"] = entity.entityType
         }
 
-        result.diagnostics.forEach { (key, value) ->
-            fields["diagnostic_$key"] = value
-        }
+        result.diagnostics.forEach { (key, value) -> fields["diagnostic_$key"] = value }
         return fields
     }
 
@@ -83,50 +107,101 @@ object OutputFormatter {
         includeProvenance: Boolean = true,
         selectors: List<GraphSelector> = emptyList(),
         graph: ResearchGraph? = null
-    ): String =
-        formatFields(selectedFields(result, selectors, graph, includeProvenance), returnMode)
+    ): String = formatFields(selectedFields(result, selectors, graph, includeProvenance), returnMode)
 
-    private fun formatFields(fields: Map<String, Any?>, returnMode: ReturnMode): String {
-        return when (returnMode) {
-            ReturnMode.Single -> fields.values.firstOrNull()?.toString() ?: ""
-
-            ReturnMode.Fields -> fields.entries.joinToString("\n") { (key, value) ->
-                "$key=$value"
-            }
-
-            ReturnMode.Json -> fields.entries.joinToString(
-                prefix = "{\n",
-                separator = ",\n",
-                postfix = "\n}"
-            ) { (key, value) ->
-                "  ${quote(key)}: ${formatJsonValue(value)}"
-            }
-
-            ReturnMode.Datapoints -> fields.entries.mapIndexed { index, entry ->
-                "${index + 1},${escapeCsv(entry.key)},${escapeCsv(entry.value?.toString() ?: "") }"
-            }.joinToString("\n")
+    private fun copyContext(result: ExecutionResult, fields: LinkedHashMap<String, Any?>) {
+        val subjectId = result.request.context["subject_id"]
+        val contextEntityId = result.request.context["context_entity_id"]
+        subjectId?.let { fields["subject_id"] = it }
+        if (contextEntityId != null && contextEntityId != subjectId) {
+            fields["context_entity_id"] = contextEntityId
+        }
+        listOf("visit_id", "form_id", "operator_id").forEach { key ->
+            result.request.context[key]?.let { fields[key] = it }
         }
     }
 
-    private fun formatJsonValue(value: Any?): String {
-        return when (value) {
-            null -> "null"
-            is Number -> value.toString()
-            is Boolean -> value.toString()
-            is Map<*, *> -> value.entries.joinToString(
-                prefix = "{",
-                separator = ",",
-                postfix = "}"
-            ) { (key, nestedValue) ->
-                "${quote(key.toString())}:${formatJsonValue(nestedValue)}"
-            }
-            is Iterable<*> -> value.joinToString(
-                prefix = "[",
-                separator = ",",
-                postfix = "]"
-            ) { item -> formatJsonValue(item) }
-            else -> quote(value.toString())
+    private fun appendObservationsCompact(
+        result: ExecutionResult,
+        fields: LinkedHashMap<String, Any?>,
+        includeProvenance: Boolean
+    ) {
+        if (result.observations.size == 1) {
+            val observation = result.observations.first()
+            observation.subject?.id?.value?.let { fields.putIfAbsent("subject_id", it) }
+            observation.values.forEach { (key, value) -> fields[key] = value }
+            return
         }
+
+        // Multiple observations must remain distinguishable, but transport metadata
+        // is kept to the minimum needed to interpret them. Stable graph identifiers,
+        // provenance and other implementation details remain available through
+        // explicit selectors / detailedFields().
+        if (result.observations.isNotEmpty()) {
+            fields["observation_count"] = result.observations.size
+        }
+        result.observations.forEachIndexed { index, observation ->
+            val prefix = "observation_${index + 1}"
+            fields["${prefix}_type"] = observation.phenomenon
+            observation.subject?.id?.value
+                ?.takeIf { it != fields["subject_id"]?.toString() }
+                ?.let { fields["${prefix}_subject_id"] = it }
+            observation.values.forEach { (key, value) -> fields["${prefix}_${key}"] = value }
+        }
+    }
+
+    private fun appendStatesCompact(result: ExecutionResult, fields: LinkedHashMap<String, Any?>) {
+        if (result.states.isEmpty()) return
+        val unprefixed = result.states.size == 1 && result.observations.isEmpty()
+        if (!unprefixed) fields["state_count"] = result.states.size
+        result.states.forEachIndexed { index, state ->
+            val prefix = if (unprefixed) "state" else "state_${index + 1}"
+            if (!unprefixed) fields["${prefix}_type"] = state.stateType
+            state.subject.id.value
+                .takeIf { it != fields["subject_id"]?.toString() }
+                ?.let { fields["${prefix}_subject_id"] = it }
+            state.values.forEach { (key, value) ->
+                fields[if (unprefixed) key else "${prefix}_${key}"] = value
+            }
+        }
+    }
+
+    private fun appendEntitiesCompact(result: ExecutionResult, fields: LinkedHashMap<String, Any?>) {
+        if (result.entities.isEmpty()) return
+        val representedIds = buildSet {
+            fields["context_entity_id"]?.toString()?.let(::add)
+            fields["subject_id"]?.toString()?.let(::add)
+            result.observations.mapNotNullTo(this) { it.subject?.id?.value }
+            result.states.mapTo(this) { it.subject.id.value }
+        }
+        val novel = result.entities.filterNot { it.id.value in representedIds }
+        novel.forEachIndexed { index, entity ->
+            val prefix = if (novel.size == 1) "entity" else "entity_${index + 1}"
+            fields["${prefix}_id"] = entity.id.value
+            fields["${prefix}_type"] = entity.entityType
+        }
+    }
+
+    private fun formatFields(fields: Map<String, Any?>, returnMode: ReturnMode): String = when (returnMode) {
+        ReturnMode.Single -> fields.values.firstOrNull()?.toString() ?: ""
+        ReturnMode.Fields -> fields.entries.joinToString("\n") { (key, value) -> "$key=$value" }
+        ReturnMode.Json -> fields.entries.joinToString(
+            prefix = "{\n", separator = ",\n", postfix = "\n}"
+        ) { (key, value) -> "  ${quote(key)}: ${formatJsonValue(value)}" }
+        ReturnMode.Datapoints -> fields.entries.mapIndexed { index, entry ->
+            "${index + 1},${escapeCsv(entry.key)},${escapeCsv(entry.value?.toString() ?: "") }"
+        }.joinToString("\n")
+    }
+
+    private fun formatJsonValue(value: Any?): String = when (value) {
+        null -> "null"
+        is Number -> value.toString()
+        is Boolean -> value.toString()
+        is Map<*, *> -> value.entries.joinToString(prefix = "{", separator = ",", postfix = "}") { (key, nestedValue) ->
+            "${quote(key.toString())}:${formatJsonValue(nestedValue)}"
+        }
+        is Iterable<*> -> value.joinToString(prefix = "[", separator = ",", postfix = "]") { formatJsonValue(it) }
+        else -> quote(value.toString())
     }
 
     private fun quote(value: String): String =

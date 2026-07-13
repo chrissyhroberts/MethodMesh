@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.enableEdgeToEdge
+import com.example.researchos.BuildConfig
 import com.example.researchos.calibration.CalibrationRepository
 import com.example.researchos.core.DemoResearchGraph
 import com.example.researchos.core.ResearchRuntime
@@ -27,7 +28,9 @@ class MainActivity : FragmentActivity() {
         CalibrationRepository.initialise(applicationContext)
 
         val session = ResearchRuntime.session
-        if (session.entities.isEmpty()) {
+        // Seed demo data only in debug builds. Release builds start with a clean
+        // session so production workflows use real captured observations.
+        if (BuildConfig.DEBUG && session.entities.isEmpty()) {
             val demoGraph = DemoResearchGraph.create()
             demoGraph.entities.values.forEach { session.add(it) }
             demoGraph.observations.values.forEach { session.add(it) }
