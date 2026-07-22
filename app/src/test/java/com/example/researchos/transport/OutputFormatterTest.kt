@@ -9,6 +9,7 @@ import com.example.researchos.core.researchos.Observation
 import com.example.researchos.core.researchos.ProvenanceContext
 import com.example.researchos.core.researchos.State
 import com.example.researchos.core.researchos.TransformationStatus
+import com.example.researchos.modules.nfc.As100NfcReadMethod
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -43,10 +44,10 @@ class OutputFormatterTest {
 
     @Test
     fun `fields always includes execution id, method id and status`() {
-        val result = makeResult(methodId = "nfc.read", status = TransformationStatus.Succeeded)
+        val result = makeResult(methodId = As100NfcReadMethod.ID, status = TransformationStatus.Succeeded)
         val fields = OutputFormatter.fields(result)
         assertTrue("execution id present", fields.containsKey("researchos_execution_id"))
-        assertEquals("nfc.read", fields["researchos_method_id"])
+        assertEquals(As100NfcReadMethod.ID, fields["researchos_method_id"])
         assertEquals("Succeeded", fields["researchos_status"])
     }
 
@@ -114,7 +115,7 @@ class OutputFormatterTest {
 
     @Test
     fun `Json format wraps values in braces and quotes keys`() {
-        val result = makeResult(methodId = "nfc.read")
+        val result = makeResult(methodId = As100NfcReadMethod.ID)
         val json = OutputFormatter.format(result, ReturnMode.Json, includeProvenance = false)
         assertTrue("starts with {", json.startsWith("{"))
         assertTrue("ends with }", json.trimEnd().endsWith("}"))
@@ -123,7 +124,7 @@ class OutputFormatterTest {
 
     @Test
     fun `Fields format produces key=value lines`() {
-        val result = makeResult(methodId = "nfc.read")
+        val result = makeResult(methodId = As100NfcReadMethod.ID)
         val output = OutputFormatter.format(result, ReturnMode.Fields, includeProvenance = false)
         assertTrue("each line has =", output.lines().filter { it.isNotBlank() }.all { "=" in it })
     }
@@ -139,7 +140,7 @@ class OutputFormatterTest {
 
     @Test
     fun `Datapoints format produces numbered CSV lines`() {
-        val result = makeResult(methodId = "nfc.read")
+        val result = makeResult(methodId = As100NfcReadMethod.ID)
         val output = OutputFormatter.format(result, ReturnMode.Datapoints, includeProvenance = false)
         val lines = output.lines().filter { it.isNotBlank() }
         assertTrue("first line starts with 1,", lines.first().startsWith("1,"))
@@ -150,7 +151,7 @@ class OutputFormatterTest {
 
     @Test
     fun `selectedFields with execution id selector returns execution id`() {
-        val result = makeResult(methodId = "nfc.read")
+        val result = makeResult(methodId = As100NfcReadMethod.ID)
         val selectors = GraphSelectorParser.parse("execution.id as exec_id")
         val fields = OutputFormatter.selectedFields(result, selectors, includeProvenance = false)
         assertEquals(result.request.id.value, fields["exec_id"])
@@ -230,4 +231,3 @@ class OutputFormatterTest {
         subject = subject
     )
 }
-

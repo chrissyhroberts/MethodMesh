@@ -1,7 +1,7 @@
 package com.example.researchos.modules.gpstargetnavigator
 
 import android.location.Location
-import com.example.researchos.core.MethodOutput
+import com.example.researchos.core.ResearchRuntime
 import com.example.researchos.core.researchos.ArchitectureId
 import com.example.researchos.core.researchos.ArchitectureRef
 import com.example.researchos.core.researchos.Entity
@@ -26,7 +26,7 @@ import com.example.researchos.settings.SettingsState
 /**
  * Native AS1.00 method for locating/navigating relative to a configured target.
  *
- * The legacy GPS screen still owns permission prompts and live Compose display.
+ * The GPS interaction screen owns permission prompts and live Compose display.
  * This method owns the research operation: location signal + target context ->
  * navigation observation/state/transformation and transport output fields.
  */
@@ -101,7 +101,7 @@ object As100LocateTargetMethod : As100Method {
     ): ExecutionResult {
         val signal = request.signals.firstOrNull()
         val output = if (settingsState != null) {
-            buildOutput(settingsState).fields.mapValues { it.value.toString() }
+            outputValues(settingsState).mapValues { it.value.toString() }
         } else {
             val currentLatitude = signal?.payload?.get("latitude")?.toDoubleOrNull()
             val currentLongitude = signal?.payload?.get("longitude")?.toDoubleOrNull()
@@ -231,7 +231,7 @@ object As100LocateTargetMethod : As100Method {
         settingsState.setString("status", "updated")
     }
 
-    fun buildOutput(settingsState: SettingsState): MethodOutput {
+    fun outputValues(settingsState: SettingsState): Map<String, Any?> {
         val targetLatitude = settingsState.getFloat("target_latitude")
         val targetLongitude = settingsState.getFloat("target_longitude")
         val currentLatitude = settingsState.getFloat("current_latitude")
@@ -250,8 +250,7 @@ object As100LocateTargetMethod : As100Method {
             )
         }
 
-        return MethodOutput(
-            fields = calculateOutputFields(
+        return calculateOutputFields(
                 targetName = settingsState.getString("target_name"),
                 targetLatitude = targetLatitude,
                 targetLongitude = targetLongitude,
@@ -264,11 +263,36 @@ object As100LocateTargetMethod : As100Method {
                 timestampMs = settingsState.getString("timestamp_ms"),
                 status = settingsState.getString("status")
             )
-        )
     }
 
-    fun buildObservation(settingsState: SettingsState): com.example.researchos.core.Observation =
-        GpsObservationMapper.fromOutput(buildOutput(settingsState))
+    fun recordNavigationOutcome(fields: Map<String, Any?>): ExecutionResult {
+        val request = request(action = ID, context = emptyMap())
+        val provenance = ProvenanceContext(
+            provider = "researchos.presentation.gps_target_navigator",
+            methodId = ID,
+            methodVersion = VERSION
+        )
+        val observation = Observation(
+            phenomenon = "location.navigation_outcome",
+            values = fields.mapValues { it.value?.toString().orEmpty() },
+            temporalContext = request.temporalContext,
+            provenance = provenance
+        )
+        val transformation = Transformation(
+            action = "record.navigation.outcome",
+            method = ref,
+            outputs = listOf(ArchitectureRef(observation.id, observation.objectType, observation.phenomenon)),
+            status = TransformationStatus.Succeeded,
+            temporalContext = request.temporalContext,
+            provenance = provenance
+        )
+        return As100ExecutionEngine.complete(
+            request = request,
+            status = TransformationStatus.Succeeded,
+            observations = listOf(observation),
+            transformations = listOf(transformation)
+        ).also { ResearchRuntime.session.record(it) }
+    }
 
     private fun calculateOutputFields(
         targetName: String,

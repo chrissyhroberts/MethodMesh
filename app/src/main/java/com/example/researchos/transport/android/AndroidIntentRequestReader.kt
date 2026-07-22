@@ -114,10 +114,10 @@ object AndroidIntentRequestReader {
         fromUri: ParsedLaunchConfig
     ): ParsedLaunchConfig {
         fun mergeNonBlank(
-            fallback: Map<String, String>,
+            lowerPrecedence: Map<String, String>,
             authoritative: Map<String, String>
         ): Map<String, String> = buildMap {
-            fallback.forEach { (key, value) -> if (value.isNotBlank()) put(key, value) }
+            lowerPrecedence.forEach { (key, value) -> if (value.isNotBlank()) put(key, value) }
             authoritative.forEach { (key, value) ->
                 if (value.isNotBlank() || key !in this) put(key, value)
             }
@@ -146,17 +146,15 @@ object AndroidIntentRequestReader {
     fun invocationContextFrom(parsed: ParsedLaunchConfig): InvocationContext {
         val merged = parsed.settings + parsed.context
         val entityType = merged["entity_type"]
-            ?: merged["context_entity_type"]
             ?: when {
                 merged["specimen_id"] != null -> "specimen"
-                else -> "participant"
+                merged["participant_id"] != null -> "participant"
+                else -> ""
             }
         val entityId = merged["entity_id"]
-            ?: merged["context_entity_id"]
-            ?: merged["subject_id"]
             ?: merged["participant_id"]
             ?: merged["specimen_id"]
-            ?: "P001"
+            ?: ""
 
         return InvocationContext(
             caller = merged["caller"] ?: parsed.source ?: "external_app",
@@ -171,7 +169,7 @@ object AndroidIntentRequestReader {
     private fun parseExtras(intent: Intent): ParsedLaunchConfig {
         val values = mutableMapOf<String, String>()
         val extras = intent.extras
-        extras?.keySet()?.forEach { key -> values[key] = extras.get(key)?.toString().orEmpty() }
+        extras?.keySet()?.forEach { key -> values[key] = intent.getStringExtra(key).orEmpty() }
         intent.action?.let { values.putIfAbsent("action", it) }
 
         return RilTransportAdapter.parse(values, source = "android_extras")

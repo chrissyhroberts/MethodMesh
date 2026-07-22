@@ -1,7 +1,5 @@
 package com.example.researchos.transport
 
-import com.example.researchos.core.MethodOutput
-import com.example.researchos.core.Observation
 import com.example.researchos.core.ResearchGraph
 import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.TransformationStatus
@@ -11,16 +9,9 @@ import com.example.researchos.core.researchos.TransformationStatus
  *
  * The default contract is deliberately compact: one canonical key per value.
  * The complete graph remains in ResearchOS and can be queried explicitly with
- * return selectors. [detailedFields] exists only for selector compatibility and
- * diagnostics; it must not be used as the default ODK payload.
+ * return selectors.
  */
 object OutputFormatter {
-
-    fun format(output: MethodOutput, returnMode: ReturnMode): String =
-        formatFields(output.fields, returnMode)
-
-    fun format(artifact: Observation, returnMode: ReturnMode, includeProvenance: Boolean = true): String =
-        formatFields(artifact.toRecord(includeProvenance), returnMode)
 
     /** Compact, caller-facing fields. */
     fun fields(result: ExecutionResult, includeProvenance: Boolean = true): Map<String, Any?> {
@@ -38,52 +29,6 @@ object OutputFormatter {
         if (result.status != TransformationStatus.Succeeded) {
             result.diagnostics.forEach { (key, value) -> fields["diagnostic_$key"] = value }
         }
-        return fields
-    }
-
-    /**
-     * Complete flattened view retained for explicit graph selectors and debugging.
-     * This preserves historical aliases without sending them by default.
-     */
-    fun detailedFields(result: ExecutionResult, includeProvenance: Boolean = true): Map<String, Any?> {
-        val fields = linkedMapOf<String, Any?>()
-        fields["researchos_execution_id"] = result.request.id.value
-        fields["researchos_method_id"] = result.request.method.id.value
-        fields["researchos_action"] = result.request.action
-        fields["researchos_status"] = result.status.name
-
-        copyContext(result, fields)
-
-        result.observations.forEachIndexed { index, observation ->
-            val prefix = if (result.observations.size == 1) "observation" else "observation_${index + 1}"
-            fields["${prefix}_id"] = observation.id.value
-            fields["${prefix}_type"] = observation.phenomenon
-            observation.subject?.id?.value?.let { fields["${prefix}_subject_id"] = it }
-            observation.values.forEach { (key, value) ->
-                fields.putIfAbsent(key, value)
-                fields["${prefix}_${key}"] = value
-            }
-            if (includeProvenance) {
-                fields["${prefix}_provider"] = observation.provenance.provider
-                observation.provenance.methodId?.let { fields["${prefix}_method_id"] = it }
-            }
-        }
-
-        result.states.forEachIndexed { index, state ->
-            val prefix = if (result.states.size == 1) "state" else "state_${index + 1}"
-            fields["${prefix}_id"] = state.id.value
-            fields["${prefix}_type"] = state.stateType
-            fields["${prefix}_subject_id"] = state.subject.id.value
-            state.values.forEach { (key, value) -> fields["${prefix}_${key}"] = value }
-        }
-
-        result.entities.forEachIndexed { index, entity ->
-            val prefix = if (result.entities.size == 1) "entity" else "entity_${index + 1}"
-            fields["${prefix}_id"] = entity.id.value
-            fields["${prefix}_type"] = entity.entityType
-        }
-
-        result.diagnostics.forEach { (key, value) -> fields["diagnostic_$key"] = value }
         return fields
     }
 
@@ -136,7 +81,7 @@ object OutputFormatter {
         // Multiple observations must remain distinguishable, but transport metadata
         // is kept to the minimum needed to interpret them. Stable graph identifiers,
         // provenance and other implementation details remain available through
-        // explicit selectors / detailedFields().
+        // explicit graph selectors.
         if (result.observations.isNotEmpty()) {
             fields["observation_count"] = result.observations.size
         }

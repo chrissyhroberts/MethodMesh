@@ -16,35 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 
-class NfcReaderSession(
-    private val activity: Activity,
-    private val onTag: (Tag) -> Unit
-) : NfcAdapter.ReaderCallback {
-
-    private val adapter: NfcAdapter? = NfcAdapter.getDefaultAdapter(activity)
-
-    fun start(): String {
-        val nfcAdapter = adapter ?: return "This device does not expose an NFC adapter."
-        if (!nfcAdapter.isEnabled) return "NFC is available but switched off."
-        val flags = NfcAdapter.FLAG_READER_NFC_A or
-            NfcAdapter.FLAG_READER_NFC_B or
-            NfcAdapter.FLAG_READER_NFC_F or
-            NfcAdapter.FLAG_READER_NFC_V or
-            NfcAdapter.FLAG_READER_NFC_BARCODE
-        nfcAdapter.enableReaderMode(activity, this, flags, null)
-        return "NFC reader mode active. Tap a tag."
-    }
-
-    fun stop() {
-        adapter?.disableReaderMode(activity)
-    }
-
-    override fun onTagDiscovered(tag: Tag) {
-        onTag(tag)
-    }
-}
-
-
 class NfcDeviceServiceSession(
     private val activity: Activity,
     private val onSignal: (NfcTagSignal) -> Unit
@@ -69,7 +40,13 @@ class NfcDeviceServiceSession(
     }
 
     override fun onTagDiscovered(tag: Tag) {
-        onSignal(AndroidNfcDeviceService.tagSignalFromTag(tag))
+        // onTagDiscovered fires on a dedicated NFC reader thread.
+        // Post the signal callback back to the main thread so callers can
+        // safely mutate Compose mutableStateOf without triggering
+        // "State can only be modified from the main thread" errors.
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            onSignal(AndroidNfcDeviceService.tagSignalFromTag(tag))
+        }
     }
 }
 
@@ -83,34 +60,6 @@ fun rememberNfcAvailabilityMessage(): String {
         else -> "NFC adapter ready."
     }
 }
-
-@Composable
-fun NfcSessionEffect(
-    enabled: Boolean,
-    onStatus: (String) -> Unit,
-    onTag: (Tag) -> Unit
-) {
-    val context = LocalContext.current
-    val activity = remember(context) { context.findActivity() }
-    var session by remember { mutableStateOf<NfcReaderSession?>(null) }
-
-    LaunchedEffect(enabled, activity) {
-        if (enabled && activity == null) onStatus("NFC session requires an Activity context.")
-    }
-
-    DisposableEffect(enabled, activity) {
-        if (enabled && activity != null) {
-            val created = NfcReaderSession(activity, onTag)
-            session = created
-            onStatus(created.start())
-        }
-        onDispose {
-            session?.stop()
-            session = null
-        }
-    }
-}
-
 
 @Composable
 fun NfcDeviceServiceEffect(

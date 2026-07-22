@@ -11,10 +11,10 @@ object GpsTargetNavigatorModule : ResearchOSModule {
     override fun as100Methods() = listOf(As100LocateTargetMethod)
 
     override fun rilBindings() = listOf(
-        RilBinding("navigate gps", "gps.navigate_to_target", "Navigate to a configured GPS target"),
-        RilBinding("navigate target", "gps.navigate_to_target", "Navigate to a configured GPS target"),
-        RilBinding("navigate location", "gps.navigate_to_target", "Navigate to a configured GPS target"),
-        RilBinding("gps navigate", "gps.navigate_to_target", "Navigate to a configured GPS target")
+        RilBinding("navigate gps", As100LocateTargetMethod.ID, "Navigate to a configured GPS target"),
+        RilBinding("navigate target", As100LocateTargetMethod.ID, "Navigate to a configured GPS target"),
+        RilBinding("navigate location", As100LocateTargetMethod.ID, "Navigate to a configured GPS target"),
+        RilBinding("gps navigate", As100LocateTargetMethod.ID, "Navigate to a configured GPS target")
     )
 
     override fun capabilityScreens() = listOf(GpsTargetNavigatorCapabilityScreen)

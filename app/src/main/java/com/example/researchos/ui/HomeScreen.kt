@@ -358,10 +358,9 @@ private fun RuntimeStateCard() {
             }
             if (expanded) {
                 Spacer(Modifier.height(8.dp))
-                Text("Entities: ${graph.entities.size}")
+                Text("Entities: ${graph.asEntities.size}")
                 Text("AS observations: ${graph.asObservations.size}")
                 Text("Transformations: ${graph.transformations.size}")
-                Text("Legacy observations: ${graph.observations.size}")
                 Spacer(Modifier.height(8.dp))
                 graph.asObservations.values.take(10).forEach { observation ->
                     Text("${observation.phenomenon}: ${observation.id.value}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
@@ -416,4 +415,3 @@ private fun DeviceServicesCard() {
         }
     }
 }
-

@@ -47,7 +47,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="researchos" />
-                <data android:scheme="xlsformlab" />
             </intent-filter>
             <intent-filter>
                 <action android:name="com.example.researchos.EXECUTE_METHOD" />

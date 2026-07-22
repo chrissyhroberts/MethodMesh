@@ -1,9 +1,9 @@
 package com.example.researchos.transport.android
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import com.example.researchos.modules.ResearchOSModuleRegistry
+import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 
 /**
  * Public Android/ODK entry point for ResearchOS.
@@ -13,29 +13,21 @@ import com.example.researchos.modules.ResearchOSModuleRegistry
  * generic action-chain execution, capability-specific capture screens,
  * retry/confirm flow and final return summary.
  */
-class IntentRouterActivity : Activity() {
+class IntentRouterActivity : ComponentActivity() {
+
+    private val workflowLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        setResult(result.resultCode, result.data)
+        finish()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ResearchOSModuleRegistry.initialise()
-        startActivityForResult(
+        workflowLauncher.launch(
             Intent(intent).apply {
                 setClass(this@IntentRouterActivity, ExternalWorkflowActivity::class.java)
-            },
-            REQUEST_EXTERNAL_WORKFLOW
+            }
         )
-    }
-
-    @Deprecated("Deprecated in Android API, but sufficient for this transport bridge.")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_EXTERNAL_WORKFLOW) {
-            setResult(resultCode, data)
-            finish()
-        }
-    }
-
-    companion object {
-        private const val REQUEST_EXTERNAL_WORKFLOW = 4101
     }
 }

@@ -1,7 +1,11 @@
 package com.example.researchos.transport.ril
 
+import com.example.researchos.modules.adminfingerprint.As100VerifyFingerprintMethod
+import com.example.researchos.modules.ResearchOSModuleRegistry
+import com.example.researchos.modules.nfc.As100NfcReadMethod
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -28,7 +32,7 @@ class RilParserTest {
     fun `semicolon-separated sections parse single action`() {
         val ril = "WHAT; scan nfc; WHERE; participant/P001; RESULT; return observation.nfc.uid as tag_uid; format json"
         val parsed = RilRequestParser.parse(ril)
-        assertEquals(listOf("nfc.read"), parsed.actionIds)
+        assertEquals(listOf(As100NfcReadMethod.ID), parsed.actionIds)
         assertEquals("participant/P001", parsed.context["subject"])
         assertEquals("participant", parsed.context["entity_type"])
         assertEquals("P001", parsed.context["entity_id"])
@@ -42,7 +46,7 @@ class RilParserTest {
     fun `semicolon-separated sections parse multiple actions`() {
         val ril = "WHAT; scan nfc; verify identity fingerprint; WHERE; participant/P001; RESULT; return observation.nfc.uid as tag_uid; return observation.identity.verified as verified; format json"
         val parsed = RilRequestParser.parse(ril)
-        assertEquals(listOf("nfc.read", "identity.verify"), parsed.actionIds)
+        assertEquals(listOf(As100NfcReadMethod.ID, As100VerifyFingerprintMethod.ID), parsed.actionIds)
         assertEquals(2, parsed.returnSelectors.size)
         assertEquals("tag_uid", parsed.returnSelectors[0].alias)
         assertEquals("verified", parsed.returnSelectors[1].alias)
@@ -54,7 +58,7 @@ class RilParserTest {
     fun `compact one-line syntax resolves action and subject`() {
         val ril = "WHAT scan nfc WHERE participant/P001 RESULT return observation.nfc.uid as tag_uid format json"
         val parsed = RilRequestParser.parse(ril)
-        assertEquals(listOf("nfc.read"), parsed.actionIds)
+        assertEquals(listOf(As100NfcReadMethod.ID), parsed.actionIds)
         assertEquals("participant/P001", parsed.context["subject"])
         assertEquals("json", parsed.returnMode?.id)
     }
@@ -89,7 +93,7 @@ class RilParserTest {
 
     @Test
     fun `looksLikeRil false for plain key-value pair`() {
-        val result = RilRequestParser.looksLikeRil("method_id=nfc.read")
+        val result = RilRequestParser.looksLikeRil("method_id=${As100NfcReadMethod.ID}")
         // Key-value pairs do not look like RIL.
         assertEquals(false, result)
     }
@@ -107,10 +111,30 @@ class RilParserTest {
 
     @Test
     fun `execute for shorthand resolves action and subject`() {
-        val ril = "execute nfc.read for participant/P001"
+        val ril = "execute ${As100NfcReadMethod.ID} for participant/P001"
         val parsed = RilRequestParser.parse(ril, source = "ril_text")
-        assertEquals("nfc.read", parsed.actionIds.firstOrNull())
+        assertEquals(As100NfcReadMethod.ID, parsed.actionIds.firstOrNull())
         assertEquals("participant/P001", parsed.context["subject"])
     }
-}
 
+    @Test
+    fun `removed method aliases do not resolve`() {
+        assertNull(ResearchOSModuleRegistry.canonicalAction("nfc.read"))
+        assertNull(ResearchOSModuleRegistry.canonicalAction("identity.verify"))
+        assertNull(ResearchOSModuleRegistry.canonicalAction("org.lshtm.choice.pairwise"))
+    }
+
+    @Test
+    fun `removed transport selector keys are ignored`() {
+        val parsed = RilTransportAdapter.parse(
+            values = mapOf(
+                "method" to As100NfcReadMethod.ID,
+                "actions" to As100NfcReadMethod.ID,
+                "subject" to "participant/P001"
+            ),
+            source = "unit_test"
+        )
+        assertTrue(parsed.actionIds.isEmpty())
+        assertTrue(parsed.context.isEmpty())
+    }
+}

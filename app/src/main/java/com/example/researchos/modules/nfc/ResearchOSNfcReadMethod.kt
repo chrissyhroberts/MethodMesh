@@ -19,14 +19,11 @@ import com.example.researchos.platform.nfc.AndroidNfcDeviceService
 import com.example.researchos.platform.nfc.NfcTagSignal
 import com.example.researchos.settings.SettingsState
 import com.example.researchos.core.ResearchRuntime
-import com.example.researchos.core.researchos.Observation
 
 /**
  * Native AS1.00 method for NFC tag reads.
  *
- * This is the first method migrated out of the legacy Method abstraction.
- * The old NfcReadMethod now exists only as a compatibility shell for the
- * existing launcher; runtime-facing code should use this method directly.
+ * NFC tag reads are interpreted directly into canonical AS1.00 results.
  */
 object As100NfcReadMethod : As100Method {
     const val ID = "nfc_tag_read"
@@ -47,7 +44,15 @@ object As100NfcReadMethod : As100Method {
         version = VERSION,
         description = "Interpret an NFC tag-discovery signal as structured observation evidence and an immutable NFC tag artifact.",
         inputs = listOf(AndroidNfcDeviceService.SIGNAL_TYPE_TAG_DISCOVERED),
-        outputs = NfcEvidenceFields.tagOutputFields + researchEnvelopeSchema().map { it.id },
+        outputs = NfcEvidenceFields.tagOutputFields + listOf(
+            ResearchOutputFields.PROVENANCE_JSON,
+            ResearchOutputFields.CAPTURE_OUTCOME_JSON,
+            ResearchOutputFields.QUALITY_JSON,
+            ResearchOutputFields.VALIDATION_JSON,
+            ResearchOutputFields.ARTIFACT_JSON,
+            ResearchOutputFields.EVIDENCE_JSON,
+            ResearchOutputFields.EXECUTION_JSON
+        ),
         parameters = mapOf(
             "category" to "NFC",
             "status" to "Experimental",
@@ -124,29 +129,10 @@ object As100NfcReadMethod : As100Method {
             methodLabel = "NFC Tag Read"
         )
 
-    /**
-     * Legacy-compatible read path used by the existing NFC UI.
-     *
-     * It still returns the NFC-specific evidence bundle, but now also records a
-     * canonical ResearchOS Observation into the live ResearchRuntime session.
-     */
     fun readBundle(tagSignal: NfcTagSignal, invocationContext: InvocationContext? = null): NfcReadEvidenceBundle {
         val bundle = readBundleInternal(tagSignal).withInvocationContext(invocationContext)
-        NfcResearchSessionRecorder.recordReadBundle(bundle)
-        return bundle
-    }
-
-    /**
-     * Canonical ResearchOS read path.
-     *
-     * Returns an Observation without forcing callers to know about the legacy
-     * NFC evidence bundle.
-     */
-    fun read(tagSignal: NfcTagSignal, invocationContext: InvocationContext? = null): Observation {
-        val bundle = readBundleInternal(tagSignal).withInvocationContext(invocationContext)
         ResearchRuntime.session.record(bundle.executionResult)
-        NfcResearchSessionRecorder.record(NfcObservationMapper.fromReadBundle(bundle))
-        return bundle.researchosObservation
+        return bundle
     }
 
     private fun NfcReadEvidenceBundle.withInvocationContext(invocationContext: InvocationContext?): NfcReadEvidenceBundle {

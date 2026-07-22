@@ -9,20 +9,18 @@ package com.example.researchos.core.researchos
  * entity that ODK already knows about.
  */
 data class InvocationContext(
-    val caller: String = "odk",
-    val entityType: String = "participant",
-    val entityId: String = "P001",
+    val caller: String = "external_app",
+    val entityType: String = "",
+    val entityId: String = "",
     val visitId: String = "",
     val formId: String = "",
     val operatorId: String = ""
 ) {
     val canonicalEntityId: String
-        get() = entityId.trim().ifBlank { "P001" }.let { id ->
+        get() = entityId.trim().let { id ->
+            if (id.isBlank()) return@let ""
             if ('/' in id) id else "${entityType.trim().ifBlank { "entity" }}/$id"
         }
-
-    @Deprecated("Use canonicalEntityId", ReplaceWith("canonicalEntityId"))
-    val normalisedEntityId: String get() = canonicalEntityId
 
     val subjectRef: ArchitectureRef
         get() = ArchitectureRef(
@@ -33,13 +31,13 @@ data class InvocationContext(
 
     fun subjectRef(): ArchitectureRef = subjectRef
 
-    fun toMap(requestedCapability: String? = null): Map<String, String> = asMap(requestedCapability)
-
     fun asMap(requestedCapability: String? = null): Map<String, String> = buildMap {
         put("caller", caller)
-        put("context_entity_type", entityType.trim().ifBlank { "entity" })
-        put("context_entity_id", canonicalEntityId)
-        put("subject_id", canonicalEntityId)
+        if (canonicalEntityId.isNotBlank()) {
+            put("context_entity_type", entityType.trim().ifBlank { "entity" })
+            put("context_entity_id", canonicalEntityId)
+            put("subject_id", canonicalEntityId)
+        }
         if (visitId.isNotBlank()) put("visit_id", visitId)
         if (formId.isNotBlank()) put("form_id", formId)
         if (operatorId.isNotBlank()) put("operator_id", operatorId)
@@ -60,8 +58,6 @@ data class InvocationContext(
         temporalContext = temporalContext
     )
 
-    fun entity(): Entity = subjectEntity()
-
     companion object {
         fun from(context: Map<String, String>): InvocationContext? {
             val id = context["context_entity_id"] ?: context["subject_id"] ?: return null
@@ -78,7 +74,7 @@ data class InvocationContext(
 }
 
 fun ExecutionResult.withInvocationContext(context: InvocationContext?): ExecutionResult {
-    if (context == null) return this
+    if (context == null || context.canonicalEntityId.isBlank()) return this
 
     val contextEntity = context.subjectEntity(request.temporalContext)
     val contextRef = context.subjectRef

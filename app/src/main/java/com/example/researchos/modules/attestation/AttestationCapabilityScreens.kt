@@ -1,5 +1,7 @@
 package com.example.researchos.modules.attestation
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -22,9 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,6 +40,8 @@ import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
+import com.example.researchos.transport.workflow.ui.IntentExample
+import com.example.researchos.transport.workflow.ui.IntentExampleDropdown
 
 object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId: String = As100CreateAttestationMethod.ID
@@ -87,7 +89,6 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
         }
         var eventType by remember { mutableStateOf(supplied["event_type"].orEmpty().ifBlank { if (external) "" else "field_event" }) }
         var eventPayloadHash by remember { mutableStateOf(supplied["event_payload_hash"].orEmpty()) }
-        var eventPayload by remember { mutableStateOf(supplied["event_payload"].orEmpty().ifBlank { if (external) "" else "event payload to be hashed" }) }
         var evidence by remember { mutableStateOf(supplied["verification_evidence"].orEmpty()) }
         var method by remember {
             mutableStateOf(
@@ -107,12 +108,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                 put("operator_id", operatorId)
                 put("subject_ref", subjectRef)
                 put("event_type", eventType)
-                if (eventPayloadHash.isNotBlank()) {
-                    put("event_payload_hash", eventPayloadHash)
-                    remove("event_payload")
-                } else {
-                    put("event_payload", eventPayload)
-                }
+                put("event_payload_hash", eventPayloadHash)
                 put("verification_method", selectedMethod.name)
                 put("verification_evidence", selectedEvidence.ifBlank { selectedMethod.name })
             }
@@ -259,7 +255,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             OutlinedTextField(operatorId, { operatorId = it }, label = { Text("Operator ID") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(subjectRef, { subjectRef = it }, label = { Text("Subject / event reference") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(eventType, { eventType = it }, label = { Text("Event type") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(eventPayload, { eventPayload = it }, label = { Text("Event payload or external record ID") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(eventPayloadHash, { eventPayloadHash = it }, label = { Text("Event payload SHA-256 (hex)") }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
             Text("Verification method", fontWeight = FontWeight.SemiBold)
             AttestationVerificationMethod.values().forEach { option ->
@@ -308,6 +304,28 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             Spacer(Modifier.height(10.dp))
             Text("Dependency rule: attestation consumes NFC and QR capability evidence; it does not reimplement those capabilities.", style = MaterialTheme.typography.bodySmall)
             AttestationKeySummary()
+
+            Spacer(Modifier.height(16.dp))
+            IntentExampleDropdown(
+                capabilityId = As100CreateAttestationMethod.ID,
+                examples = listOf(
+                    IntentExample(
+                        label = "Basic attestation",
+                        description = "Sign an event with fingerprint verification",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',verification_method='Fingerprint',trusted_timestamp='preferred',return_mode='flat')"
+                    ),
+                    IntentExample(
+                        label = "With event context",
+                        description = "Include study, operator, and event information",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',study_id='study_01',operator_id='op_001',event_type='form_submission',verification_method='Fingerprint',trusted_timestamp='preferred',return_mode='flat')"
+                    ),
+                    IntentExample(
+                        label = "With NFC verification",
+                        description = "Use NFC tag reading for verification",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',verification_method='Nfc',trusted_timestamp='preferred',return_mode='flat')"
+                    )
+                )
+            )
         }
     }
 }
@@ -345,7 +363,9 @@ object AttestationAnchorCapabilityScreen : CapabilityScreenSpec {
             status = "Anchor bundle created. Submit these fields through the nightly ODK form to get the server receipt timestamp."
         }
 
-        LaunchedEffect(Unit) { createBundle() }
+        LaunchedEffect(context.isExternalInvocation) {
+            if (context.isExternalInvocation) createBundle()
+        }
 
         CapabilityScreenScaffold(
             title = title,
@@ -372,6 +392,23 @@ object AttestationAnchorCapabilityScreen : CapabilityScreenSpec {
             Button(onClick = { createBundle() }) { Text(if (result == null) "Create ODK anchor bundle" else "Create new bundle") }
             Spacer(Modifier.height(10.dp))
             AttestationKeySummary()
+
+            Spacer(Modifier.height(16.dp))
+            IntentExampleDropdown(
+                capabilityId = As100CreateAttestationAnchorMethod.ID,
+                examples = listOf(
+                    IntentExample(
+                        label = "Create nightly anchor",
+                        description = "Create ODK payload anchoring the attestation chain",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationAnchorMethod.ID}')"
+                    ),
+                    IntentExample(
+                        label = "With study context",
+                        description = "Include study and operator information",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationAnchorMethod.ID}',study_id='study_01',operator_id='op_001')"
+                    )
+                )
+            )
         }
     }
 }
@@ -379,7 +416,8 @@ object AttestationAnchorCapabilityScreen : CapabilityScreenSpec {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AttestationKeySummary() {
-    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    val clipboard = remember(context) { context.getSystemService(ClipboardManager::class.java) }
     var copied by remember { mutableStateOf(false) }
     ElevatedCard(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Column(Modifier.padding(10.dp)) {
@@ -393,7 +431,7 @@ private fun AttestationKeySummary() {
                     modifier = Modifier.combinedClickable(
                         onClick = { },
                         onLongClick = {
-                            clipboard.setText(AnnotatedString(publicKey))
+                            clipboard.setPrimaryClip(ClipData.newPlainText("ResearchOS public attestation key", publicKey))
                             copied = true
                         }
                     ),

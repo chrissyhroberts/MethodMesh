@@ -22,24 +22,20 @@ object ChoiceExperimentModule : ResearchOSModule {
         RilBinding("run pairwise", DceMethod.Pairwise.id, "Run a pairwise comparison task"),
         RilBinding("pairwise choice", DceMethod.Pairwise.id, "Run a pairwise comparison task"),
         RilBinding("pairwise comparison", DceMethod.Pairwise.id, "Run a pairwise comparison task"),
-        RilBinding("org.lshtm.choice.PAIRWISE", DceMethod.Pairwise.id, "Compatibility alias for the original DCE Choice Lab pairwise action"),
         RilBinding("run maxdiff", DceMethod.MaxDiff.id, "Run a MaxDiff / best-worst task"),
         RilBinding("maxdiff", DceMethod.MaxDiff.id, "Run a MaxDiff / best-worst task"),
         RilBinding("best worst", DceMethod.MaxDiff.id, "Run a best-worst scaling task"),
         RilBinding("best worst scaling", DceMethod.MaxDiff.id, "Run a best-worst scaling task"),
-        RilBinding("org.lshtm.choice.MAXDIFF", DceMethod.MaxDiff.id, "Compatibility alias for the original DCE Choice Lab MaxDiff action"),
         RilBinding("run ranking", DceMethod.Ranking.id, "Run a ranking task"),
         RilBinding("rank options", DceMethod.Ranking.id, "Run a ranking task"),
         RilBinding("ranking", DceMethod.Ranking.id, "Run a ranking task"),
-        RilBinding("org.lshtm.choice.RANKING", DceMethod.Ranking.id, "Compatibility alias for the original DCE Choice Lab ranking action"),
         RilBinding("allocate points", DceMethod.Points.id, "Run a points-allocation task"),
         RilBinding("points allocation", DceMethod.Points.id, "Run a points-allocation task"),
         RilBinding("run points", DceMethod.Points.id, "Run a points-allocation task"),
-        RilBinding("org.lshtm.choice.POINTS", DceMethod.Points.id, "Compatibility alias for the original DCE Choice Lab points action"),
         RilBinding("run conjoint", DceMethod.Conjoint.id, "Run a conjoint selection task"),
         RilBinding("conjoint", DceMethod.Conjoint.id, "Run a conjoint selection task"),
         RilBinding("conjoint selection", DceMethod.Conjoint.id, "Run a conjoint selection task"),
-        RilBinding("org.lshtm.choice.CONJOINT", DceMethod.Conjoint.id, "Compatibility alias for the original DCE Choice Lab conjoint action")
+        RilBinding("conjoint selection", DceMethod.Conjoint.id, "Run a conjoint selection task")
     )
 
     override fun examples(): List<ModuleExample> = listOf(

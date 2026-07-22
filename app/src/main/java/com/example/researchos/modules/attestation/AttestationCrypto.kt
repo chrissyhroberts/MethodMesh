@@ -22,8 +22,6 @@ object AttestationCrypto {
     private const val KEY_ALIAS = "researchos_attestation_signing_key_v1"
     private const val SIGNATURE_ALGORITHM = "SHA256withECDSA"
 
-    fun keyAlias(): String = KEY_ALIAS
-
     fun ensureKeyPair(): KeyPair {
         existingKeyPair()?.let { return it }
         val generator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, KEYSTORE)

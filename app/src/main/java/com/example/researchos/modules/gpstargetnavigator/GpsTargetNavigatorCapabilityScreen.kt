@@ -20,6 +20,8 @@ import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
+import com.example.researchos.transport.workflow.ui.IntentExample
+import com.example.researchos.transport.workflow.ui.IntentExampleDropdown
 
 object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId: String = As100LocateTargetMethod.ID
@@ -35,9 +37,9 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
     ) {
         val action = context.action
         val request = context.request
-        val method = remember { GpsTargetNavigatorMethod() }
+        val interaction = remember { GpsTargetNavigatorInteraction() }
         val settings = remember(action.settings) {
-            SettingsState(method.settings).also { applyParameters(it, method.settings, action.settings) }
+            SettingsState(interaction.settings).also { applyParameters(it, interaction.settings, action.settings) }
         }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
@@ -53,7 +55,9 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
             result = execution
         }
 
-        LaunchedEffect(Unit) { refreshResult() }
+        LaunchedEffect(context.isExternalInvocation) {
+            if (context.isExternalInvocation) refreshResult()
+        }
 
         CapabilityScreenScaffold(
             title = title,
@@ -69,9 +73,31 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
         ) {
             Text("Navigate to the configured target, then review and confirm the saved navigation result.")
             Spacer(Modifier.height(10.dp))
-            method.Demo(settings)
+            interaction.Render(settings)
             Spacer(Modifier.height(10.dp))
             Button(onClick = { refreshResult() }) { Text(if (result == null) "Review GPS result" else "Refresh GPS result") }
+
+            Spacer(Modifier.height(16.dp))
+            IntentExampleDropdown(
+                capabilityId = As100LocateTargetMethod.ID,
+                examples = listOf(
+                    IntentExample(
+                        label = "Basic GPS navigation",
+                        description = "Navigate to default target",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}')"
+                    ),
+                    IntentExample(
+                        label = "With target coordinates",
+                        description = "Specify target latitude and longitude",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}',target_latitude='-1.28',target_longitude='36.81')"
+                    ),
+                    IntentExample(
+                        label = "With arrival radius",
+                        description = "Specify distance threshold for arrival detection",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}',target_latitude='-1.28',target_longitude='36.81',arrival_radius='50')"
+                    )
+                )
+            )
         }
     }
 
