@@ -41,23 +41,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.researchos.core.Method
-import com.example.researchos.core.MethodCategory
-import com.example.researchos.core.MethodField
-import com.example.researchos.core.MethodFieldType
-import com.example.researchos.core.RequiredWhen
-import com.example.researchos.core.GraphOutput
-import com.example.researchos.core.GraphField
-import com.example.researchos.core.MethodManifest
-import com.example.researchos.core.MethodOutput
-import com.example.researchos.core.MethodOutputSchema
-import com.example.researchos.core.MethodRequest
-import com.example.researchos.core.MethodResult
-import com.example.researchos.core.MethodStatus
-import com.example.researchos.core.ResearchActivity
-import com.example.researchos.core.ResearchActivityKind
 import com.example.researchos.core.ResearchRuntime
-import com.example.researchos.core.researchos.KnowledgeObjectType
 import com.example.researchos.settings.MethodSetting
 import com.example.researchos.settings.SettingsState
 import com.example.researchos.platform.sensors.PhoneSensorRepository
@@ -69,28 +53,9 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import kotlin.math.roundToInt
 
-class GpsTargetNavigatorMethod : Method {
+class GpsTargetNavigatorInteraction {
 
-    override val manifest = MethodManifest(
-        id = "gps_target_navigator",
-        name = "GPS Target Navigator",
-        description = "Guide the user towards a target GPS coordinate and return distance, bearing and arrival status.",
-        version = "0.2.0",
-        category = MethodCategory.Mapping,
-        status = MethodStatus.Experimental,
-        capabilities = listOf(
-            ResearchActivity(
-                id = "gps_target_navigator.localise",
-                kind = ResearchActivityKind.Localise,
-                label = "Localise relative to a target coordinate",
-                producesEvidence = listOf("distance_m", "bearing_degrees", "arrived")
-            )
-        ),
-        requiredDeviceFeatures = listOf("fine_location", "coarse_location", "compass"),
-        contractSummary = "Guides fieldworkers to a known coordinate and returns distance, bearing and arrival evidence."
-    )
-
-    override val settings = listOf(
+    val settings = listOf(
         MethodSetting.TextSetting(
             id = "target_name",
             label = "Target name",
@@ -148,101 +113,8 @@ class GpsTargetNavigatorMethod : Method {
         )
     )
 
-    override val outputSchema = MethodOutputSchema(
-        graphOutputs = listOf(
-            GraphOutput(
-                id = "target_entity",
-                objectType = KnowledgeObjectType.Entity,
-                entityType = "SpatialTarget",
-                subjectRole = "target",
-                description = "The configured destination or point to be reached.",
-                fields = listOf(
-                    GraphField("target_name", "Entity.attributes.target_name", MethodFieldType.Text, RequiredWhen.Always),
-                    GraphField("target_latitude", "Entity.spatialContext.location.latitude", MethodFieldType.Float, RequiredWhen.Always),
-                    GraphField("target_longitude", "Entity.spatialContext.location.longitude", MethodFieldType.Float, RequiredWhen.Always)
-                )
-            ),
-            GraphOutput(
-                id = "target_navigation_observation",
-                objectType = KnowledgeObjectType.Observation,
-                phenomenon = "location.target_navigation",
-                subjectRole = "target",
-                description = "A location fix interpreted against the target coordinate.",
-                fields = listOf(
-                    GraphField("current_latitude", "Observation.spatialContext.location.latitude", MethodFieldType.Float, RequiredWhen.OnSuccessfulCapture),
-                    GraphField("current_longitude", "Observation.spatialContext.location.longitude", MethodFieldType.Float, RequiredWhen.OnSuccessfulCapture),
-                    GraphField("accuracy_m", "Observation.spatialContext.location.accuracy_m", MethodFieldType.Float, RequiredWhen.IfAvailable),
-                    GraphField("distance_m", "Observation.values.distance_m", MethodFieldType.Float, RequiredWhen.OnSuccessfulCapture),
-                    GraphField("bearing_deg", "Observation.values.bearing_deg", MethodFieldType.Float, RequiredWhen.OnSuccessfulCapture),
-                    GraphField("heading_deg", "Observation.values.heading_deg", MethodFieldType.Float, RequiredWhen.IfAvailable),
-                    GraphField("relative_bearing_deg", "Observation.values.relative_bearing_deg", MethodFieldType.Float, RequiredWhen.IfAvailable),
-                    GraphField("timestamp_ms", "Observation.temporalContext", MethodFieldType.Text, RequiredWhen.OnSuccessfulCapture),
-                    GraphField("update_count", "Observation.values.update_count", MethodFieldType.Integer, RequiredWhen.IfAvailable)
-                )
-            ),
-            GraphOutput(
-                id = "arrival_state",
-                objectType = KnowledgeObjectType.State,
-                stateType = "navigation.arrival_state",
-                subjectRole = "target",
-                fields = listOf(
-                    GraphField("arrived", "State.values.arrived", MethodFieldType.Boolean, RequiredWhen.OnSuccessfulCapture),
-                    GraphField("status", "State.values.status", MethodFieldType.Text, RequiredWhen.IfAvailable)
-                )
-            ),
-            GraphOutput(
-                id = "navigation_outcome",
-                objectType = KnowledgeObjectType.Observation,
-                phenomenon = "location.navigation_outcome",
-                subjectRole = "target",
-                description = "Summary observation recorded when a navigation session is saved or aborted.",
-                fields = listOf(
-                    GraphField("navigation_completed", "Observation.values.navigation_completed", MethodFieldType.Boolean, RequiredWhen.OnSuccessfulCapture),
-                    GraphField("duration_seconds", "Observation.values.duration_seconds", MethodFieldType.Float, RequiredWhen.IfAvailable),
-                    GraphField("sample_count", "Observation.values.sample_count", MethodFieldType.Integer, RequiredWhen.IfAvailable),
-                    GraphField("min_distance_m", "Observation.values.min_distance_m", MethodFieldType.Float, RequiredWhen.IfAvailable),
-                    GraphField("mean_accuracy_m", "Observation.values.mean_accuracy_m", MethodFieldType.Float, RequiredWhen.IfAvailable),
-                    GraphField("max_accuracy_m", "Observation.values.max_accuracy_m", MethodFieldType.Float, RequiredWhen.IfAvailable)
-                )
-            )
-        ),
-        fields = listOf(
-            MethodField("target_name", "Target name", MethodFieldType.Text, required = true, graphPath = "Entity.attributes.target_name"),
-            MethodField("target_latitude", "Target latitude", MethodFieldType.Float, required = true, graphPath = "Entity.spatialContext.location.latitude"),
-            MethodField("target_longitude", "Target longitude", MethodFieldType.Float, required = true, graphPath = "Entity.spatialContext.location.longitude"),
-            MethodField("current_latitude", "Current latitude", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.spatialContext.location.latitude"),
-            MethodField("current_longitude", "Current longitude", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.spatialContext.location.longitude"),
-            MethodField("accuracy_m", "Accuracy metres", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.spatialContext.location.accuracy_m"),
-            MethodField("distance_m", "Distance metres", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.values.distance_m"),
-            MethodField("bearing_deg", "Bearing degrees", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.values.bearing_deg"),
-            MethodField("heading_deg", "Heading degrees", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.heading_deg"),
-            MethodField("relative_bearing_deg", "Relative bearing degrees", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.relative_bearing_deg"),
-            MethodField("arrived", "Arrived", MethodFieldType.Boolean, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "State.values.arrived"),
-            MethodField("timestamp_ms", "Timestamp milliseconds", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.temporalContext"),
-            MethodField("update_count", "Update count", MethodFieldType.Integer, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.update_count"),
-            MethodField("status", "Status", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "State.values.status"),
-            MethodField("event_type", "Event type", MethodFieldType.Text, required = false, requiredWhen = RequiredWhen.TransportOnly, graphPath = "Observation.phenomenon"),
-            MethodField("navigation_completed", "Navigation completed", MethodFieldType.Boolean, required = false, requiredWhen = RequiredWhen.OnSuccessfulCapture, graphPath = "Observation.values.navigation_completed"),
-            MethodField("arrival_radius_m", "Arrival radius metres", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "State.values.arrival_radius_m"),
-            MethodField("arrival_latitude", "Arrival latitude", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.arrival_latitude"),
-            MethodField("arrival_longitude", "Arrival longitude", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.arrival_longitude"),
-            MethodField("arrival_accuracy_m", "Arrival accuracy metres", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.arrival_accuracy_m"),
-            MethodField("final_distance_m", "Final distance metres", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.final_distance_m"),
-            MethodField("started_at_ms", "Started at milliseconds", MethodFieldType.Integer, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.temporalContext.interval_start"),
-            MethodField("ended_at_ms", "Ended at milliseconds", MethodFieldType.Integer, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.temporalContext.interval_end"),
-            MethodField("duration_seconds", "Duration seconds", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.duration_seconds"),
-            MethodField("sample_count", "Sample count", MethodFieldType.Integer, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.sample_count"),
-            MethodField("first_fix_latitude", "First fix latitude", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.first_fix_latitude"),
-            MethodField("first_fix_longitude", "First fix longitude", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.first_fix_longitude"),
-            MethodField("last_fix_latitude", "Last fix latitude", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.last_fix_latitude"),
-            MethodField("last_fix_longitude", "Last fix longitude", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.last_fix_longitude"),
-            MethodField("min_distance_m", "Minimum distance metres", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.min_distance_m"),
-            MethodField("mean_accuracy_m", "Mean accuracy metres", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.mean_accuracy_m"),
-            MethodField("max_accuracy_m", "Maximum accuracy metres", MethodFieldType.Float, required = false, requiredWhen = RequiredWhen.IfAvailable, graphPath = "Observation.values.max_accuracy_m")
-        )
-    )
     @Composable
-    override fun Demo(settingsState: SettingsState) {
+    fun Render(settingsState: SettingsState) {
         val context = LocalContext.current
         var hasLocationPermission by remember {
             mutableStateOf(hasLocationPermission(context))
@@ -421,7 +293,7 @@ class GpsTargetNavigatorMethod : Method {
                             endedAtMs = now
                             lifecycleState = NavigationLifecycle.Aborted
                             settingsState.setString("status", "aborted")
-                            GpsResearchSessionRecorder.recordNavigationOutcome(
+                            As100LocateTargetMethod.recordNavigationOutcome(
                                 buildNavigationOutcomeFields(
                                     settingsState = settingsState,
                                     status = "aborted",
@@ -445,7 +317,7 @@ class GpsTargetNavigatorMethod : Method {
                                 endedAtMs = now
                                 lifecycleState = NavigationLifecycle.Completed
                                 settingsState.setString("status", "arrived")
-                                GpsResearchSessionRecorder.recordNavigationOutcome(
+                                As100LocateTargetMethod.recordNavigationOutcome(
                                     buildNavigationOutcomeFields(
                                         settingsState = settingsState,
                                         status = "arrived",
@@ -482,7 +354,7 @@ class GpsTargetNavigatorMethod : Method {
                             endedAtMs = now
                             lifecycleState = NavigationLifecycle.Aborted
                             settingsState.setString("status", "aborted_after_arrival")
-                            GpsResearchSessionRecorder.recordNavigationOutcome(
+                            As100LocateTargetMethod.recordNavigationOutcome(
                                 buildNavigationOutcomeFields(
                                     settingsState = settingsState,
                                     status = "aborted_after_arrival",
@@ -643,25 +515,6 @@ class GpsTargetNavigatorMethod : Method {
         }
     }
 
-    override fun buildOutput(
-        settingsState: SettingsState
-    ): MethodOutput = As100LocateTargetMethod.buildOutput(settingsState)
-
-    @Composable
-    override fun Help() {
-        Text(
-            "GPS Target Navigator guides the user towards a configured latitude and longitude. " +
-                "It uses high-accuracy fused location updates while the method is visible. " +
-                "Compass heading, AR overlay and map view can be added in later patches."
-        )
-    }
-
-    override fun execute(
-        request: MethodRequest
-    ): MethodResult {
-        return MethodResult(success = true)
-    }
-
     private fun updateNavigationState(
         settingsState: SettingsState,
         currentLatitude: Double,
@@ -773,7 +626,7 @@ class GpsTargetNavigatorMethod : Method {
 
     @Composable
     private fun GpsResearchSessionPreview() {
-        val observations = ResearchRuntime.session.observations
+        val observations = ResearchRuntime.session.asObservations
             .filter { it.provenance.methodId == As100LocateTargetMethod.ID }
 
         val latest = observations.lastOrNull()
@@ -812,7 +665,7 @@ class GpsTargetNavigatorMethod : Method {
                 )
 
                 preferredKeys.forEach { key ->
-                    val value = latest.output.fields[key]
+                    val value = latest.values[key]
                     if (value != null) {
                         Text("$key: $value", fontFamily = FontFamily.Monospace)
                     }

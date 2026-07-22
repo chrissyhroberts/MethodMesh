@@ -120,7 +120,7 @@ class GraphSelectorTest {
 
     @Test
     fun `plain method id does not look like a selector`() {
-        assertFalse(GraphSelectorParser.looksLikeSelector("nfc.read"))
+        assertFalse(GraphSelectorParser.looksLikeSelector("not_a_graph_selector"))
     }
 
     @Test
@@ -134,6 +134,5 @@ class GraphSelectorTest {
         assertFalse(GraphSelectorParser.looksLikeSelector("   "))
     }
 }
-
 
 

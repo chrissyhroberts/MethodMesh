@@ -61,7 +61,6 @@ class ExternalWorkflowActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         PlatformDeviceBootstrap.initialise()
-        ResearchOSModuleRegistry.initialise()
         request = AndroidIntentRequestReader.workflowRequest(intent)
         ResearchRuntime.session.setInvocationContext(request.invocationContext)
 
@@ -390,4 +389,3 @@ private fun ResultPreview(fields: Map<String, Any?>) {
         }
     }
 }
-

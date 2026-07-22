@@ -11,9 +11,7 @@ import com.example.researchos.settings.SettingsState
 /**
  * AS1.00 executable method.
  *
- * This is now the runtime-facing abstraction. Legacy Method classes may
- * still exist behind adapters during migration, but callers should depend on
- * As100Method rather than Method.
+ * This is the sole runtime-facing executable method abstraction.
  */
 interface As100Method {
     val id: String

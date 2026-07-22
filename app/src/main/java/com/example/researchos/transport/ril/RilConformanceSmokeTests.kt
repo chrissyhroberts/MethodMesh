@@ -1,5 +1,8 @@
 package com.example.researchos.transport.ril
 
+import com.example.researchos.modules.adminfingerprint.As100VerifyFingerprintMethod
+import com.example.researchos.modules.nfc.As100NfcReadMethod
+
 /**
  * Lightweight parser conformance checks for environments where the Android
  * module is being edited without a full unit-test source set.
@@ -28,21 +31,21 @@ object RilConformanceSmokeTests {
         Case(
             name = "single NFC scan",
             ril = "WHAT; scan nfc; WHERE; participant/P001; RESULT; return observation.nfc.uid as tag_uid; format json",
-            expectedActions = listOf("nfc.read"),
+            expectedActions = listOf(As100NfcReadMethod.ID),
             expectedSubject = "participant/P001",
             expectedReturns = listOf("tag_uid")
         ),
         Case(
             name = "NFC plus identity verification",
             ril = "WHAT; scan nfc; verify identity fingerprint; WHERE; participant/P001; RESULT; return observation.nfc.uid as tag_uid; return observation.identity.verified as verified; format json",
-            expectedActions = listOf("nfc.read", "identity.verify"),
+            expectedActions = listOf(As100NfcReadMethod.ID, As100VerifyFingerprintMethod.ID),
             expectedSubject = "participant/P001",
             expectedReturns = listOf("tag_uid", "verified")
         ),
         Case(
             name = "one-line section syntax",
             ril = "WHAT scan nfc WHERE participant/P001 RESULT return observation.nfc.uid as tag_uid format json",
-            expectedActions = listOf("nfc.read"),
+            expectedActions = listOf(As100NfcReadMethod.ID),
             expectedSubject = "participant/P001",
             expectedReturns = listOf("tag_uid")
         )

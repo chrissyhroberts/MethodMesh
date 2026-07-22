@@ -10,18 +10,15 @@ enum class TrustedTimestampPolicy(val wireValue: String) {
 
     companion object {
         fun fromContext(context: Map<String, String>): TrustedTimestampPolicy {
-            val raw = sequenceOf(
-                context["trusted_timestamp"],
-                context["trusted_timestamp_policy"],
-                context["server_side_verification"],
-                context["server-side-verification"]
-            ).firstOrNull { !it.isNullOrBlank() }?.trim()?.lowercase()
+            val raw = context["trusted_timestamp"]?.trim()?.lowercase()
 
             return when (raw) {
-                "on", "true", "yes", "1", "preferred", "attempt", "optional" -> Preferred
-                "required", "require", "mandatory" -> Required
-                "off", "false", "no", "0", "disabled", "none", null, "" -> Disabled
-                else -> Disabled
+                "preferred" -> Preferred
+                "required" -> Required
+                null, "", "disabled" -> Disabled
+                else -> throw IllegalArgumentException(
+                    "trusted_timestamp must be disabled, preferred, or required"
+                )
             }
         }
     }
@@ -54,7 +51,6 @@ data class AttestationRecord(
     val publicKeyAlgorithm: String,
     val publicKeyFormat: String,
     val publicKeyBase64: String,
-    val keyAlias: String,
     val signature: String,
     val trustedTimestampPolicy: TrustedTimestampPolicy = TrustedTimestampPolicy.Disabled,
     val trustedTimestamp: TrustedTimestampService.Evidence? = null
@@ -71,11 +67,9 @@ data class AttestationRecord(
             verificationMethod = verificationMethod.name,
             verificationEvidenceHash = verificationEvidenceHash,
             deviceEventTimeIso = deviceEventTimeIso,
-            deviceEventTimeEpochMs = deviceEventTimeEpochMs,
             deviceMonotonicCounter = deviceMonotonicCounter,
             previousAttestationHash = previousAttestationHash,
-            publicKeyId = publicKeyId,
-            keyAlias = keyAlias
+            publicKeyId = publicKeyId
         )
 
     val attestationHash: String
@@ -90,9 +84,6 @@ data class AttestationRecord(
      */
     fun asOutputMap(): Map<String, String> = linkedMapOf<String, String>().apply {
         put("attestation_schema_version", "3")
-        // Compatibility alias for existing ODK forms. The canonical field is
-        // attestation_schema_version; both carry the same specification version.
-        put("attestation_version", "3")
         put("attestation_id", attestationId)
         put("study_id", studyId)
         put("event_type", eventType)
@@ -141,11 +132,9 @@ data class AttestationRecord(
             verificationMethod: String,
             verificationEvidenceHash: String,
             deviceEventTimeIso: String,
-            deviceEventTimeEpochMs: Long,
             deviceMonotonicCounter: Long,
             previousAttestationHash: String,
-            publicKeyId: String,
-            keyAlias: String
+            publicKeyId: String
         ): String = listOf(
             "attestation_schema_version=3",
             "attestation_id=$attestationId",
@@ -219,7 +208,6 @@ object AttestationRepository {
         subjectRef: String,
         eventType: String,
         eventPayloadHash: String?,
-        eventPayload: String?,
         verificationMethod: AttestationVerificationMethod,
         verificationEvidence: String,
         trustedTimestampPolicy: TrustedTimestampPolicy = TrustedTimestampPolicy.Disabled
@@ -231,23 +219,11 @@ object AttestationRepository {
         val publicKeyId = AttestationCrypto.publicKeyId()
         val publicKeyBase64 = AttestationCrypto.publicKeyBase64()
         val suppliedHash = eventPayloadHash?.trim().orEmpty()
-        val suppliedPayload = eventPayload?.trim().orEmpty()
-        val (payloadHash, payloadMode) = when {
-            suppliedHash.isNotBlank() -> {
-                require(SHA256_HEX.matches(suppliedHash)) {
-                    "event_payload_hash must be a 64-character hexadecimal SHA-256 digest"
-                }
-                suppliedHash.lowercase() to "supplied_hash"
-            }
-            // ODK group intents use child question names as extras. Older forms may therefore
-            // still send a precomputed hexadecimal digest under the legacy event_payload key.
-            // Recognise that unambiguously as a supplied digest rather than hashing it again.
-            SHA256_HEX.matches(suppliedPayload) -> suppliedPayload.lowercase() to "supplied_hash"
-            suppliedPayload.isNotBlank() -> AttestationCrypto.sha256Hex(suppliedPayload) to "calculated"
-            else -> throw IllegalArgumentException(
-                "attestation.create requires event_payload_hash or event_payload"
-            )
+        require(SHA256_HEX.matches(suppliedHash)) {
+            "attestation.create requires event_payload_hash as a 64-character hexadecimal SHA-256 digest"
         }
+        val payloadHash = suppliedHash.lowercase()
+        val payloadMode = "supplied_hash"
         val evidenceHash = AttestationCrypto.sha256Hex(verificationEvidence)
         val attestationId = "att_${UUID.randomUUID()}"
         val canonical = AttestationRecord.canonicalPayload(
@@ -261,11 +237,9 @@ object AttestationRepository {
             verificationMethod = verificationMethod.name,
             verificationEvidenceHash = evidenceHash,
             deviceEventTimeIso = Instant.ofEpochMilli(now).toString(),
-            deviceEventTimeEpochMs = now,
             deviceMonotonicCounter = counter,
             previousAttestationHash = previous,
-            publicKeyId = publicKeyId,
-            keyAlias = AttestationCrypto.keyAlias()
+            publicKeyId = publicKeyId
         )
         val record = AttestationRecord(
             attestationId = attestationId,
@@ -286,7 +260,6 @@ object AttestationRepository {
             publicKeyAlgorithm = "EC",
             publicKeyFormat = "X.509",
             publicKeyBase64 = publicKeyBase64,
-            keyAlias = AttestationCrypto.keyAlias(),
             signature = AttestationCrypto.signCanonical(canonical),
             trustedTimestampPolicy = trustedTimestampPolicy
         )

@@ -29,6 +29,8 @@ import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
+import com.example.researchos.transport.workflow.ui.IntentExample
+import com.example.researchos.transport.workflow.ui.IntentExampleDropdown
 
 internal abstract class DceCapabilityScreen(
     private val method: DceMethod
@@ -90,6 +92,12 @@ internal abstract class DceCapabilityScreen(
                 isComplete = result != null,
                 onComplete = ::complete
             )
+
+            Spacer(Modifier.height(16.dp))
+            IntentExampleDropdown(
+                capabilityId = method.id,
+                examples = getMethodExamples(method)
+            )
         }
     }
 
@@ -100,6 +108,69 @@ internal abstract class DceCapabilityScreen(
         isComplete: Boolean,
         onComplete: (String, Int, Map<String, String>) -> Unit
     )
+
+    private fun getMethodExamples(method: DceMethod): List<IntentExample> = when (method) {
+        DceMethod.Pairwise -> listOf(
+            IntentExample(
+                label = "Pairwise comparison (3 rounds)",
+                description = "Compare 3 options in pairwise rounds",
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.pairwise',options='Option A|Option B|Option C',rounds='3')"
+            ),
+            IntentExample(
+                label = "With seed",
+                description = "Reproducible design using a seed",
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.pairwise',options='Speed|Cost|Safety',rounds='4',seed='study_001')"
+            )
+        )
+        DceMethod.MaxDiff -> listOf(
+            IntentExample(
+                label = "Best-worst scaling (4 rounds)",
+                description = "Select best and worst from attribute sets",
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.maxdiff',options='Speed|Cost|Safety|Comfort',rounds='4')"
+            ),
+            IntentExample(
+                label = "4 items per round",
+                description = "Show 4 items in each round",
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.maxdiff',options='Quality|Price|Service|Selection',rounds='5',items_per_round='4')"
+            )
+        )
+        DceMethod.Ranking -> listOf(
+            IntentExample(
+                label = "Full ranking",
+                description = "Rank all options from best to worst",
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.ranking',options='First|Second|Third|Fourth')"
+            ),
+            IntentExample(
+                label = "Top-k ranking",
+                description = "Rank only top 3 options",
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.ranking',options='Option1|Option2|Option3|Option4|Option5',top_k='3')"
+            )
+        )
+        DceMethod.Points -> listOf(
+            IntentExample(
+                label = "100-point allocation",
+                description = "Distribute 100 points across options",
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.points',options='Feature A|Feature B|Feature C|Feature D')"
+            ),
+            IntentExample(
+                label = "Custom points budget",
+                description = "Allocate custom number of points",
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.points',options='Attr1|Attr2|Attr3',points='50')"
+            )
+        )
+        DceMethod.Conjoint -> listOf(
+            IntentExample(
+                label = "Conjoint analysis (3 profiles)",
+                description = "Choose preferred product profiles",
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.conjoint',rounds='3',profiles_per_round='2')"
+            ),
+            IntentExample(
+                label = "With predefined attributes",
+                description = "Conjoint with specific attributes",
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.conjoint',rounds='5',profiles_per_round='2',seed='study_001')"
+            )
+        )
+    }
 }
 
 internal object PairwiseChoiceScreen : DceCapabilityScreen(DceMethod.Pairwise) {

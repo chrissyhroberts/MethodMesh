@@ -23,11 +23,23 @@ import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
+import com.example.researchos.transport.workflow.ui.IntentExample
+import com.example.researchos.transport.workflow.ui.IntentExampleDropdown
 
 object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId: String = As100VerifyFingerprintMethod.ID
     override val title: String = "Identity verification"
     override val description: String = "Run device verification, review the outcome, then confirm or retry."
+
+    private val settingsSpec = listOf(
+        MethodSetting.TextSetting("prompt_title", "Prompt title", group = "Prompt", defaultValue = "Confirmation required"),
+        MethodSetting.TextSetting("prompt_subtitle", "Prompt subtitle", group = "Prompt", defaultValue = "Use fingerprint or device credential to continue"),
+        MethodSetting.TextSetting("prompt_description", "Prompt description", group = "Prompt", defaultValue = "Confirm that the expected participant or operator is present."),
+        MethodSetting.TextSetting("cancel_text", "Cancel text", group = "Prompt", defaultValue = "Cancel"),
+        MethodSetting.TextSetting("confirmation_reason", "Confirmation reason", group = "Output", defaultValue = "verify_fingerprint"),
+        MethodSetting.BooleanSetting("confirmation_required", "Require explicit confirmation", group = "Security", defaultValue = true),
+        MethodSetting.BooleanSetting("allow_device_credential", "Allow device credential", group = "Security", defaultValue = false)
+    )
 
     @Composable
     override fun Render(
@@ -40,8 +52,8 @@ object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
         val request = context.request
         val androidContext = LocalContext.current
         val settings = remember(action.settings) {
-            SettingsState(AdminFingerprintMethod().settings).also { state ->
-                applyParameters(state, AdminFingerprintMethod().settings, action.settings)
+            SettingsState(settingsSpec).also { state ->
+                applyParameters(state, settingsSpec, action.settings)
             }
         }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
@@ -119,6 +131,28 @@ object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
             Button(enabled = availability.available, onClick = { startVerification() }) {
                 Text(if (result == null) "Start verification" else "Verify again")
             }
+
+            Spacer(Modifier.height(16.dp))
+            IntentExampleDropdown(
+                capabilityId = As100VerifyFingerprintMethod.ID,
+                examples = listOf(
+                    IntentExample(
+                        label = "Basic fingerprint verification",
+                        description = "Simple intent to verify device fingerprint",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}')"
+                    ),
+                    IntentExample(
+                        label = "Allow device credential",
+                        description = "Allow PIN/pattern as fallback",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',allow_device_credential='true')"
+                    ),
+                    IntentExample(
+                        label = "With study context",
+                        description = "Include study and operator information",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',study_id='study_01',operator_id='op_001')"
+                    )
+                )
+            )
         }
     }
 

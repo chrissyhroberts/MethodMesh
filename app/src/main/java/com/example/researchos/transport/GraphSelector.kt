@@ -99,7 +99,7 @@ object GraphSelectorResolver {
             "state" -> resolveState(tokens.drop(1), result.states, graph)
             "entity" -> resolveEntity(tokens.drop(1), result, graph)
             "diagnostic", "diagnostics" -> result.diagnostics[tokens.drop(1).joinToString("_")]
-            else -> resolveLegacyField(normalised, result)
+            else -> null
         }
     }
 
@@ -185,11 +185,6 @@ object GraphSelectorResolver {
             "type", "entity_type" -> entity.entityType
             else -> entity.attributes[key] ?: entity.attributes[key.replace('.', '_')]
         }
-    }
-
-    private fun resolveLegacyField(path: String, result: ExecutionResult): Any? {
-        val flattened = OutputFormatter.detailedFields(result, includeProvenance = true)
-        return flattened[path] ?: flattened[path.replace('.', '_')]
     }
 
     private inline fun <T> List<T>.filterByTypeTokens(

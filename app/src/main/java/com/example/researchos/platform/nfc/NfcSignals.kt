@@ -10,9 +10,8 @@ import com.example.researchos.core.researchos.TemporalContext
  * Platform NFC event captured by the Android NFC device service.
  *
  * The AS1.00 Signal is the architectural object consumed by the runtime. The
- * Android Tag remains available inside this platform wrapper only so the current
- * repository can continue to decode NDEF without changing UI behaviour in this
- * slice. Later slices should move NDEF decoding behind a signal interpreter.
+ * Android Tag remains available inside this platform wrapper so the NFC method
+ * can perform NDEF I/O without leaking platform handles into transport code.
  */
 data class NfcTagSignal(
     val signal: Signal,
@@ -65,21 +64,6 @@ object AndroidNfcDeviceService : DeviceService {
 
     const val SERVICE_ID = "device.nfc.android"
     const val SIGNAL_TYPE_TAG_DISCOVERED = "nfc.tag.discovered"
-}
-
-/**
- * Compatibility facade for earlier slices. New code should use
- * AndroidNfcDeviceService directly.
- */
-@Deprecated(
-    message = "Use AndroidNfcDeviceService. Device services are the AS1.00 signal boundary.",
-    replaceWith = ReplaceWith("AndroidNfcDeviceService")
-)
-object AndroidNfcSignalAdapter {
-    const val SERVICE_ID = AndroidNfcDeviceService.SERVICE_ID
-    const val SIGNAL_TYPE_TAG_DISCOVERED = AndroidNfcDeviceService.SIGNAL_TYPE_TAG_DISCOVERED
-
-    fun fromTag(tag: Tag): Signal = AndroidNfcDeviceService.signalFromTag(tag)
 }
 
 private fun ByteArray?.toHexString(): String =

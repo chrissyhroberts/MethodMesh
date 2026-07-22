@@ -1,6 +1,5 @@
 package com.example.researchos.modules.adminfingerprint
 
-import com.example.researchos.core.MethodOutput
 import com.example.researchos.core.ResearchRuntime
 import com.example.researchos.core.researchos.ArchitectureId
 import com.example.researchos.core.researchos.ArchitectureRef
@@ -66,8 +65,7 @@ object As100VerifyFingerprintMethod : As100Method {
         parameters = mapOf(
             "category" to "Attestation",
             "status" to "Experimental",
-            "device_service" to AndroidBiometricDeviceService.SERVICE_ID,
-            "intent_alias" to "verify_fingerprint"
+            "device_service" to AndroidBiometricDeviceService.SERVICE_ID
         )
     )
 
@@ -148,13 +146,6 @@ object As100VerifyFingerprintMethod : As100Method {
             )
         )
     }
-
-    fun buildOutput(settingsState: SettingsState): MethodOutput = MethodOutput(
-        fields = outputValues(settingsState)
-    )
-
-    fun buildObservation(settingsState: SettingsState): com.example.researchos.core.Observation =
-        AdminFingerprintObservationMapper.fromOutput(buildOutput(settingsState))
 
     fun recordAuthenticationResult(
         settingsState: SettingsState,

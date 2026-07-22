@@ -11,9 +11,11 @@ object CalibratedScaleModule : ResearchOSModule {
     override fun as100Methods() = listOf(As100CalibratedScaleMethod)
 
     override fun rilBindings() = listOf(
-        RilBinding("measure scale", "scale.capture", "Capture a calibrated scale value"),
-        RilBinding("observe scale", "scale.capture", "Capture a calibrated scale value"),
-        RilBinding("capture scale", "scale.capture", "Capture a calibrated scale value"),
-        RilBinding("measure calibrated scale", "scale.capture", "Capture a calibrated scale value")
+        RilBinding("measure scale", As100CalibratedScaleMethod.ID, "Capture a calibrated scale value"),
+        RilBinding("observe scale", As100CalibratedScaleMethod.ID, "Capture a calibrated scale value"),
+        RilBinding("capture scale", As100CalibratedScaleMethod.ID, "Capture a calibrated scale value"),
+        RilBinding("measure calibrated scale", As100CalibratedScaleMethod.ID, "Capture a calibrated scale value")
     )
+
+    override fun capabilityScreens() = listOf(CalibratedScaleCapabilityScreen)
 }

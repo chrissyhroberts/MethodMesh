@@ -6,11 +6,11 @@ import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
 /**
  * Self-contained module contract.
  *
- * A capability module should expose one object implementing this interface from
- * inside its own modules/<module-name>/ folder. The runtime discovers these
- * module objects and uses them to build the method registry, RIL bindings and
- * external workflow screens. Adding a new capability should therefore not
- * require edits to central transport, workflow or registry files.
+ * A capability module exposes one object implementing this interface from
+ * inside its own modules/<module-name>/ folder. The explicit module manifest
+ * uses these objects to build the method registry, RIL bindings and external
+ * workflow screens. New modules are added to the manifest deliberately so the
+ * installed capability set remains deterministic and auditable.
  */
 interface ResearchOSModule {
     val moduleId: String
@@ -78,10 +78,6 @@ data class ModuleCapabilitySummary(
 
 /** Explicit module registry backed by ResearchOSModuleManifest. */
 object ResearchOSModuleRegistry {
-    fun initialise() {
-        // Kept for call-site compatibility; modules are explicit in the manifest.
-    }
-
     fun all(): List<ResearchOSModule> = ResearchOSModuleManifest.modules
 
     fun as100Methods(): List<As100Method> = all().flatMap { it.as100Methods() }

@@ -13,13 +13,6 @@ class ResearchSession {
 
     fun invocationContextMap(): Map<String, String> = invocationContext.asMap()
 
-    // Legacy compatibility collections. Prefer AS collections for new code.
-    val entities: Collection<Entity>
-        get() = graph.entities.values
-
-    val observations: Collection<Observation>
-        get() = graph.observations.values
-
     val asEntities: Collection<com.example.researchos.core.researchos.Entity>
         get() = graph.asEntities.values
 
@@ -36,14 +29,6 @@ class ResearchSession {
         get() = graph.executionResults.values
 
     fun graph(): ResearchGraph = graph
-
-    fun add(entity: Entity) {
-        graph.add(entity)
-    }
-
-    fun add(observation: Observation) {
-        graph.add(observation)
-    }
 
     fun add(entity: com.example.researchos.core.researchos.Entity) {
         graph.add(entity)
@@ -65,17 +50,6 @@ class ResearchSession {
         }
         return graph.record(enriched)
     }
-
-    fun relate(
-        source: ObjectRef,
-        type: RelationshipType,
-        target: ObjectRef
-    ) {
-        graph.connect(source, type, target)
-    }
-
-    fun observationsFor(entity: Entity): List<Observation> =
-        graph.observationsForEntity(entity.id)
 
     fun clear() {
         graph.clear()

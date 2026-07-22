@@ -1,13 +1,11 @@
 package com.example.researchos.transport
 
-import com.example.researchos.core.MethodExecutionRequest
-import com.example.researchos.core.ResearchContext
 import com.example.researchos.transport.ril.RilRequestParser
 import com.example.researchos.transport.ril.RilTransportAdapter
 import java.net.URLDecoder
 
 /**
- * Parses ODK appearance strings, Android intent URIs, and simple query strings into a
+ * Parses canonical ResearchOS deep links and Android intent URIs into a
  * transport-neutral launch request.
  */
 data class ParsedLaunchConfig(
@@ -19,17 +17,7 @@ data class ParsedLaunchConfig(
     val returnSelectors: List<GraphSelector> = emptyList(),
     val warnings: List<String> = emptyList(),
     val source: String? = null
-) {
-    fun toExecutionRequest(): MethodExecutionRequest? =
-        methodId?.let { id ->
-            MethodExecutionRequest(
-                methodId = id,
-                context = ResearchContext(context),
-                parameters = settings,
-                transport = source
-            )
-        }
-}
+)
 
 object LaunchConfigParser {
 
@@ -40,13 +28,10 @@ object LaunchConfigParser {
             RilRequestParser.looksLikeRil(trimmed) ->
                 RilRequestParser.parse(trimmed, source = "ril_text")
 
-            (trimmed.startsWith("researchos(") || trimmed.startsWith("xlsformlab(")) && trimmed.endsWith(")") ->
-                parseAppearance(trimmed)
-
             trimmed.startsWith("intent:#Intent") ->
                 parseAndroidIntentUri(trimmed)
 
-            trimmed.startsWith("researchos://") || trimmed.startsWith("xlsformlab://") ->
+            trimmed.startsWith("researchos://") ->
                 parseQueryLike(trimmed.substringAfter("?", trimmed.substringAfter("://")))
 
             trimmed.contains("=") ->
@@ -60,18 +45,6 @@ object LaunchConfigParser {
                     warnings = listOf("Input was not recognised as a ResearchOS appearance, query string, or Android intent URI.")
                 )
         }
-    }
-
-    private fun parseAppearance(text: String): ParsedLaunchConfig {
-        val inside = text
-            .removePrefix("researchos(")
-            .removePrefix("xlsformlab(")
-            .removeSuffix(")")
-
-        return buildConfig(
-            values = parseKeyValueParts(inside.split(";"), androidPrefixes = false),
-            source = "odk_appearance"
-        )
     }
 
     private fun parseAndroidIntentUri(text: String): ParsedLaunchConfig {
@@ -91,14 +64,6 @@ object LaunchConfigParser {
 
     private fun buildConfig(values: Map<String, String>, source: String): ParsedLaunchConfig =
         RilTransportAdapter.parse(values, source)
-
-    private fun parseActionIds(raw: String?): List<String> {
-        if (raw.isNullOrBlank()) return emptyList()
-        return raw
-            .split(',', '>', '|', '\n')
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-    }
 
     private fun parseKeyValueParts(parts: List<String>, androidPrefixes: Boolean): Map<String, String> {
         val values = mutableMapOf<String, String>()

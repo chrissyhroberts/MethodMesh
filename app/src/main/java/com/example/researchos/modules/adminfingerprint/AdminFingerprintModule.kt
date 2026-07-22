@@ -11,11 +11,11 @@ object AdminFingerprintModule : ResearchOSModule {
     override fun as100Methods() = listOf(As100VerifyFingerprintMethod)
 
     override fun rilBindings() = listOf(
-        RilBinding("verify identity fingerprint", "identity.verify", "Verify identity using the device biometric/credential prompt"),
-        RilBinding("verify identity", "identity.verify", "Verify identity using the device biometric/credential prompt"),
-        RilBinding("verify fingerprint", "identity.verify", "Verify identity using the device biometric/credential prompt"),
-        RilBinding("identify fingerprint", "identity.verify", "Verify identity using the device biometric/credential prompt"),
-        RilBinding("verify admin fingerprint", "identity.verify", "Verify identity using the device biometric/credential prompt")
+        RilBinding("verify identity fingerprint", As100VerifyFingerprintMethod.ID, "Verify identity using the device biometric/credential prompt"),
+        RilBinding("verify identity", As100VerifyFingerprintMethod.ID, "Verify identity using the device biometric/credential prompt"),
+        RilBinding("verify fingerprint", As100VerifyFingerprintMethod.ID, "Verify identity using the device biometric/credential prompt"),
+        RilBinding("identify fingerprint", As100VerifyFingerprintMethod.ID, "Verify identity using the device biometric/credential prompt"),
+        RilBinding("verify admin fingerprint", As100VerifyFingerprintMethod.ID, "Verify identity using the device biometric/credential prompt")
     )
 
     override fun capabilityScreens() = listOf(AdminFingerprintCapabilityScreen)

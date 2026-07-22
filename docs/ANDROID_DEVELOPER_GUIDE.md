@@ -1,275 +1,136 @@
-# Android Developer Guide
+# ResearchOS Android Developer Guide
 
-> ⚠️ **PARTIALLY STALE — last reviewed against an older package layout.**
-> 
-> Several code paths, package names and file references in this guide no longer
-> match the current implementation. Specifically:
-> - Package references use `xyz/researchos/` — the current package is `com/example/researchos/`
-> - `TransportRouter.kt` and `OdkMethodAdapter.kt` do not exist in the current codebase
-> - The "Adding a New Capability" section's file paths and registration steps are outdated
-> 
-> **For current implementation state** see [`docs/implementation-notes.md`](implementation-notes.md).  
-> **For recent refactor context** see the `*.md` notes in the project root and `app/src/main/`.  
-> This guide is useful for conceptual orientation only; do not use it as a code-map.
+This guide describes the current canonical Android implementation. The specification documents remain authoritative when this guide and a specification disagree.
 
----
+## Project structure
 
-Welcome to ResearchOS Android development. This guide will help you understand the architecture and get started contributing.
+The Android application lives under `app/src/main/java/com/example/researchos/`.
 
-## Quick Start
+- `core/researchos/` contains canonical architecture objects such as `Entity`, `Observation`, `Signal`, `Transformation`, `Relationship`, `ExecutionRequest`, and `ExecutionResult`.
+- `core/researchos/runtime/` contains the canonical method contract and execution engine.
+- `modules/` contains self-contained capability modules.
+- `platform/` contains Android and device-service boundaries.
+- `transport/` contains RIL parsing, Android intent routing, graph selection, and return formatting.
+- `ui/` contains the Compose dashboard and shared presentation components.
 
-1. **Understand the vision**: Read `../specifications/ResearchOS_Philosophy_0.01.md` (5 min)
-2. **Learn the model**: Read `../specifications/design/ResearchOS_Conceptual_Model_v0.03.md` (10 min)
-3. **See how it runs**: Read "Android Implementation" section below (10 min)
-4. **Start coding**: Pick an issue or follow "Adding a New Capability" tutorial
+There is one execution model. The former flat `Method`, `MethodRequest`, `MethodResult`, and adapter runtime no longer exist.
 
-## Core Concepts (10-minute overview)
+## Capability modules
 
-ResearchOS has a layered architecture:
+Each capability implements `ResearchOSModule` and may expose:
 
-```
-Intent Layer      ← Research wants to accomplish X (RIL)
-Method Layer      ← How to accomplish X (procedural steps)
-Capability Layer  ← Concrete Android actions (NFC, GPS, Biometric, etc.)
-Platform Layer    ← Android OS abstractions (permissions, sensors, intents)
-```
+- canonical `As100Method` implementations;
+- RIL phrase bindings;
+- focused capability screens;
+- declared module dependencies;
+- module-owned examples.
 
-### The Knowledge Model
+Modules are registered explicitly in `ResearchOSModuleManifest`. Explicit registration makes the installed capability set deterministic and auditable.
 
-Everything in ResearchOS flows through this pipeline:
+Capabilities may invoke other capabilities through their public invocation boundary. They must consume canonical results and must not copy a dependency's implementation. For example, QR-backed attestation invokes `qr.scan` and consumes its returned evidence.
 
-1. **Entity**: A thing being studied (person, location, sample, device)
-2. **Assertion**: A claim about an entity
-3. **Observation**: Evidence collected to validate an assertion (measurement, reading, photo)
-4. **Method**: The procedure used to collect an observation
+## Canonical execution
 
-### Example: Checking Blood Pressure
+A method receives an `ExecutionRequest` and returns an `ExecutionResult`. Results contain canonical graph objects and provenance. Successful results are recorded through `ResearchRuntime`.
 
-- **Entity**: Patient ID 12345
-- **Assertion**: "Patient has elevated blood pressure"
-- **Method**: "Use calibrated scale to measure blood pressure"
-- **Observation**: Reading of 150/95 mmHg from calibrated scale
+The external execution sequence is:
 
-In ResearchOS this becomes:
-```kotlin
-val method = ExecutionRequest(
-    intent = Intent("measure", mapOf("on" to "blood_pressure")),
-    where = Location("clinic_123"),
-    when = Timestamp.now()
-)
-// Returns: Observation with reading, quality, attestation
+```text
+Android intent or RIL request
+  -> canonical method ID resolution
+  -> focused capability screen
+  -> required device-service or dependency interaction
+  -> ExecutionResult
+  -> compact selected return
+  -> calling application
 ```
 
-## Android Implementation Structure
+An external invocation starts immediately. A capability may pause only for required permission, authentication, capture, consent, or method input. Dashboard launches remain manual and may expose configuration controls.
 
-### Core Kernel (`app/src/main/java/xyz/researchos/core/`)
-**Responsibility**: Knowledge model objects
+## Android intent contract
 
-- `Entity.kt`: Things being studied
-- `Observation.kt`: Evidence collected
-- `Assertion.kt`: Claims about entities
-- `Relationship.kt`: How entities relate
-- `ResearchGraph.kt`: In-memory graph of knowledge
+The exported action is:
 
-**Quality Bar**: Fully tested, immutable, no Android dependencies
-
-### Modules (`app/src/main/java/xyz/researchos/modules/`)
-**Responsibility**: Specific capabilities
-
-Each module is semi-independent:
-- `nfc/`: NFC tag reading with verification
-- `gps/`: Location and navigation
-- `biometric/`: Fingerprint, face, iris
-- `scale/`: Weight and calibration
-- `qr/`: QR code scanning
-- `attestation/`: Proof of evidence integrity
-- `workflow/`: Sequential method execution
-
-### Transport & Adapters (`app/src/main/java/xyz/researchos/transport/`)
-**Responsibility**: Multiple protocol support
-
-- `ril/`: ResearchOS Intent Language interpreter
-- `android/`: Android Intent routing
-- `odk/`: ODK Collect integration
-- `methods/`: Method registry and execution engine
-
-### UI (`app/src/main/java/xyz/researchos/ui/`)
-**Responsibility**: User-facing Compose components
-
-Modern Jetpack Compose with:
-- `HomeScreen`: Navigation hub
-- `MethodCard`: Display available research methods
-- `CalibratedScale`: Specialized weight capture
-- `NFC`, `QR`, `GPS` screens: Capability-specific UIs
-
-## Adding a New Capability
-
-Follow this tutorial to add a capability (e.g., new sensor, new workflow).
-
-### Step 1: Define the Intent
-What is the research trying to accomplish?
-
-In `specifications/registries/intents/ResearchOS Intent_Registry_v0.02.md`, add:
-```
-- Intent Name: "measure_temperature"
-- Parameters: {"sensor_type": "thermal|infrared", "location": "required"}
-- Expected Result: Observation with temperature, uncertainty, timestamp
+```text
+com.example.researchos.EXECUTE_METHOD
 ```
 
-### Step 2: Create the Module
+The method selector is:
+
+```text
+method_id='<canonical method ID>'
+```
+
+ODK multi-field calls use the action in the `body::intent` cell and `field-list` in the group appearance. Function-style parameters are parsed from the action, while group fields are delivered as string extras. Blank return fields never override non-blank explicit parameters.
+
+Example:
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',event_payload_hash=${event_payload_hash},verification_method='Fingerprint',trusted_timestamp='preferred',return_mode='flat')
+```
+
+Old method aliases and old transport keys are not accepted. Callers must use canonical IDs and the current parameter names.
+
+## RIL transport
+
+RIL is the canonical internal request representation. Direct transport uses:
+
+- `ril` for a complete RIL request; or
+- `method_id` plus method-specific settings;
+- `returns` for graph selectors;
+- `return_mode` for the requested shape.
+
+RIL phrases are owned by modules. Phrase resolution returns the module's canonical method ID. Unknown actions remain unresolved and must not be silently redirected.
+
+## Returns
+
+The default caller return is intentionally compact:
+
+- execution ID, method ID, and status;
+- relevant invocation identifiers when supplied;
+- the scientific or operational result;
+- the minimum provenance required to interpret or verify it;
+- failure diagnostics only when execution fails.
+
+Canonical graph objects and full provenance remain in the ResearchOS graph. Explicit graph selectors may request particular canonical fields. The return formatter does not reproduce deleted flat-model aliases.
+
+## Attestation contract
+
+`attestation.create` requires:
+
+- `event_payload_hash`: exactly 64 hexadecimal SHA-256 characters;
+- `verification_method`: one of `Fingerprint`, `Pin`, `Qr`, `Nfc`, or `Password`.
+
+`trusted_timestamp` is optional and accepts only:
+
+- `disabled`;
+- `preferred`;
+- `required`.
+
+ResearchOS signs the supplied form hash directly. Raw `event_payload` input and automatic double-hash detection are not supported.
+
+Attestation schema version 3 returns the public key, signature, chain link, verification evidence, and optional full RFC 3161 evidence. Fingerprint, QR, and NFC verification use their respective capability or device-service boundaries.
+
+## Adding a capability
+
+1. Create a folder under `modules/<capability>/`.
+2. Implement one or more canonical `As100Method` objects.
+3. Define method descriptors and contracts, including required context and produced graph outputs.
+4. Create a focused `CapabilityScreenSpec` when interaction is required.
+5. Expose the methods, screens, RIL bindings, and dependencies from a `ResearchOSModule` object.
+6. Add that module object to `ResearchOSModuleManifest`.
+7. Add unit tests for method output, RIL resolution, return formatting, and invalid requests.
+8. Verify dashboard and external invocation modes separately.
+
+Do not add an adapter, alias, second result model, direct hardware call from a method, or module-specific transport parser.
+
+## Verification
+
+Run:
+
 ```bash
-mkdir -p app/src/main/java/xyz/researchos/modules/temperature/{ui,logic}
+./gradlew testDebugUnitTest
+./gradlew assembleDebug
 ```
 
-Create `TemperatureModule.kt`:
-```kotlin
-class TemperatureModule(context: Context) {
-    fun startMeasurement(params: Map<String, Any>): Observable<Observation> {
-        // 1. Initialize hardware
-        // 2. Collect readings
-        // 3. Validate quality
-        // 4. Return Observation with attestation
-    }
-}
-```
-
-### Step 3: Add Capability to Registry
-Register in `TransportRouter.kt`:
-```kotlin
-"measure_temperature" -> TemperatureModule(context).startMeasurement(params)
-```
-
-### Step 4: Create UI Component
-In `app/src/main/java/xyz/researchos/ui/temperature/`:
-```kotlin
-@Composable
-fun TemperatureCapture(
-    onResult: (Observation) -> Unit
-) {
-    // Compose UI that calls TemperatureModule
-    // Returns Observation
-}
-```
-
-### Step 5: Add to Method Card
-Register in `MethodCard.kt` so users can discover it.
-
-### Step 6: Test
-Add integration test in `app/src/test/java/xyz/researchos/modules/temperature/`:
-```kotlin
-@Test
-fun testTemperatureMeasurement() {
-    val module = TemperatureModule(context)
-    val observation = module.startMeasurement(
-        mapOf("sensor_type" to "thermal")
-    ).blockingFirst()
-    
-    assert(observation.value != null)
-    assert(observation.attestation != null)
-}
-```
-
-## Architecture Decision Log
-
-Key design decisions are documented in `../../docs/implementation-notes.md`:
-- July 10: Refactored method runtime bridge (backwards compatibility layer)
-- June 22: Switched to Jetpack Compose for UI
-- Earlier: Registry-driven architecture to avoid vendor lock-in
-
-## Understanding the RIL Pipeline
-
-ResearchOS Intent Language (RIL) is how research is declared:
-
-1. **User/Research Protocol**: "Measure blood pressure using calibrated scale"
-2. **RIL Declaration**: 
-   ```json
-   {
-     "intent": "measure",
-     "on": "blood_pressure",
-     "where": "clinic_123",
-     "when": "2026-07-13T09:43:00Z",
-     "how": "calibrated_scale",
-     "result": {"value": "mmHg", "attestation": "required"}
-   }
-   ```
-3. **Router**: `TransportRouter.kt` routes to correct module
-4. **Module Execution**: `TemperatureModule.startMeasurement()` (or similar)
-5. **Observation**: Returns typed Observation with metadata
-
-See `specifications/ril/RIL_ResearchOS_Intent_Language_v0.03.md` for full spec.
-
-## Common Tasks
-
-### Running the App
-```bash
-# Build and run on emulator
-./gradlew installDebug
-adb shell am start -n xyz.researchos/.ui.MainActivity
-```
-
-### Running Tests
-```bash
-# Unit tests
-./gradlew test
-
-# Integration tests
-./gradlew connectedAndroidTest
-```
-
-### Adding a New Observation Type
-Edit `core/Observation.kt` and `registries/observations/` spec.
-
-### Integrating with ODK
-See `transport/odk/OdkMethodAdapter.kt` for how legacy methods map to RIL.
-
-## File Organization Rules
-
-```
-app/src/main/java/xyz/researchos/
-├── core/              ← Knowledge model (no Android deps)
-│   ├── Entity.kt
-│   ├── Observation.kt
-│   ├── Assertion.kt
-│   └── ResearchGraph.kt
-├── modules/           ← Capabilities (Android deps OK)
-│   ├── nfc/
-│   ├── gps/
-│   ├── biometric/
-│   └── [new_capability]/
-├── transport/         ← Protocol routing
-│   ├── ril/
-│   ├── android/
-│   └── odk/
-└── ui/               ← Compose screens
-    ├── HomeScreen.kt
-    ├── MethodCard.kt
-    └── [capability_ui]/
-```
-
-## Code Style
-
-- Kotlin idioms (no Java boilerplate)
-- Compose for UI (no XML layouts)
-- Minimal inline comments (code should be self-documenting)
-- Descriptive variable/function names
-- Immutable data classes where possible
-- Observable streams for async operations
-
-## Resources
-
-- **Philosophy**: `specifications/ResearchOS_Philosophy_0.01.md`
-- **Conceptual Model**: `specifications/design/ResearchOS_Conceptual_Model_v0.03.md`
-- **Architecture Standard**: `specifications/architecture-standard/Architecture_Standard_v1.02.md`
-- **RIL Spec**: `specifications/ril/RIL_ResearchOS_Intent_Language_v0.03.md`
-- **All Registries**: `specifications/registries/`
-
-## Getting Help
-
-1. Check `docs/implementation-notes.md` for recent decisions
-2. Read the relevant specification (see SPEC_STATUS.md for which is current)
-3. Look at similar capabilities in `modules/`
-4. Check git log for how similar features were added
-
----
-
-**Last updated**: July 13, 2026
+Device-dependent behavior such as camera, NFC, biometric prompts, location, and ODK round trips must also be tested on an Android device.

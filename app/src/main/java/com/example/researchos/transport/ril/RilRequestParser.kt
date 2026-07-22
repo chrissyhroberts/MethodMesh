@@ -33,7 +33,7 @@ import com.example.researchos.modules.ResearchOSModuleRegistry
  *
  * Shorthand is also accepted for transport convenience:
  *
- *   execute nfc.read for participant/P001
+ *   execute nfc_tag_read for participant/P001
  *   return observation.nfc.uid as tag_uid
  */
 object RilRequestParser {

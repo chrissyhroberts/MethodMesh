@@ -1,6 +1,5 @@
 package com.example.researchos.modules.calibratedscale
 
-import com.example.researchos.core.MethodOutput
 import com.example.researchos.core.researchos.ArchitectureId
 import com.example.researchos.core.researchos.ArchitectureRef
 import com.example.researchos.core.researchos.MethodContract
@@ -22,10 +21,8 @@ import com.example.researchos.settings.SettingsState
 /**
  * Native AS1.00 method for calibrated scalar / range measurement.
  *
- * The existing Compose interaction is intentionally preserved in
- * CalibratedScaleMethod during this migration slice. This object owns the
- * method contract and result construction so the calibrated scale no longer has
- * to be represented as a wrapped legacy Method at the AS1.00 runtime layer.
+ * The Compose interaction owns presentation; this object owns the canonical
+ * method contract and result construction.
  */
 object As100CalibratedScaleMethod : As100Method {
     const val ID = "calibrated_scale"
@@ -125,13 +122,6 @@ object As100CalibratedScaleMethod : As100Method {
             transformations = listOf(transformation)
         )
     }
-
-    fun buildOutput(settingsState: SettingsState): MethodOutput = MethodOutput(
-        fields = measurementValues(settingsState)
-    )
-
-    fun buildObservation(settingsState: SettingsState): com.example.researchos.core.Observation =
-        CalibratedScaleObservationMapper.fromOutput(buildOutput(settingsState))
 
     fun measurementValues(settingsState: SettingsState): Map<String, Any?> {
         val minimum = settingsState.getFloat("minimum")

@@ -26,6 +26,8 @@ import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
+import com.example.researchos.transport.workflow.ui.IntentExample
+import com.example.researchos.transport.workflow.ui.IntentExampleDropdown
 
 /**
  * Reusable invocation boundary for the QR capability.
@@ -122,8 +124,8 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
             onError = { status = it }
         )
 
-        LaunchedEffect(Unit) {
-            if (!launched) {
+        LaunchedEffect(context.isExternalInvocation) {
+            if (context.isExternalInvocation && !launched) {
                 launched = true
                 status = "Point the camera at a QR code."
                 launchScanner()
@@ -143,6 +145,23 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
                 status = "Point the camera at a QR code."
                 launchScanner()
             }) { Text("Open scanner") }
+
+            Spacer(Modifier.height(24.dp))
+            IntentExampleDropdown(
+                capabilityId = As100QrScanMethod.ID,
+                examples = listOf(
+                    IntentExample(
+                        label = "Basic QR scan",
+                        description = "Simple intent to capture a QR code",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}')"
+                    ),
+                    IntentExample(
+                        label = "With study context",
+                        description = "Include study and operator information",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}',study_id='study_01',operator_id='operator_001')"
+                    )
+                )
+            )
         }
     }
 }

@@ -6,17 +6,14 @@ import com.example.researchos.transport.ParsedLaunchConfig
 /**
  * Transport adapter that makes RIL the canonical internal request path.
  *
- * Android extras, ODK appearance strings, query strings and intent URIs may still
- * provide legacy parameters such as `actions`, `returns` and `entity_id`, but
- * those parameters are first compiled into a small RIL request and then parsed
- * through [RilRequestParser]. This prevents the app from maintaining two
- * independent execution request models.
+ * Android extras and function-style ODK calls are compiled into RIL before
+ * execution. The canonical transport keys are intentionally small and strict.
  */
 object RilTransportAdapter {
-    private val requestKeys = listOf("ril", "request", "researchos_request")
+    private const val REQUEST_KEY = "ril"
 
     fun parse(values: Map<String, String>, source: String): ParsedLaunchConfig {
-        val requestText = requestKeys.firstNotNullOfOrNull { key -> values[key]?.takeIf { it.isNotBlank() } }
+        val requestText = values[REQUEST_KEY]?.takeIf { it.isNotBlank() }
         if (RilRequestParser.looksLikeRil(requestText)) {
             return RilRequestParser.parse(requestText.orEmpty(), source = source)
         }
@@ -25,12 +22,9 @@ object RilTransportAdapter {
         val parsed = RilRequestParser.parse(rilText, source = source)
         val context = parsed.context + transportContext(values)
         val settings = parsed.settings + transportSettings(values)
-        val warnings = parsed.warnings + listOf("Transport parameters were normalised through the RIL adapter.")
-
         return parsed.copy(
             context = context,
-            settings = settings,
-            warnings = warnings
+            settings = settings
         )
     }
 
@@ -52,49 +46,20 @@ object RilTransportAdapter {
     }
 
     private fun actionIds(values: Map<String, String>): List<String> {
-        val raw = values["actions"]
-            ?: values["chain"]
-            ?: values["workflow"]
-            ?: values["methods"]
-            ?: values["method_chain"]
-
-        val fromChain = raw
-            ?.split(',', '>', '|', '\n')
-            ?.map { it.trim() }
-            ?.filter { it.isNotBlank() }
-            .orEmpty()
-
-        if (fromChain.isNotEmpty()) return fromChain
-
-        return listOfNotNull(
-            values["method"]
-                ?: values["method_id"]
-                ?: values["module"]
-                ?: values["module_id"]
-                ?: values["capability"]
-                ?: values["capability_id"]
-        )
+        return listOfNotNull(values["method_id"]?.takeIf { it.isNotBlank() })
     }
 
     private fun subject(values: Map<String, String>): String? {
-        values["subject"]?.takeIf { it.isNotBlank() }?.let { return it }
         values["participant_id"]?.takeIf { it.isNotBlank() }?.let { return "participant/$it" }
         values["specimen_id"]?.takeIf { it.isNotBlank() }?.let { return "specimen/$it" }
 
-        val type = values["entity_type"] ?: values["context_entity_type"]
-        val id = values["entity_id"] ?: values["context_entity_id"] ?: values["subject_id"]
+        val type = values["entity_type"]
+        val id = values["entity_id"]
         return if (!type.isNullOrBlank() && !id.isNullOrBlank()) "$type/$id" else null
     }
 
     private fun selectorLines(values: Map<String, String>): List<String> {
-        val returnValue = values["return"]
         val selectorText = values["returns"]
-            ?: values["graph_return"]
-            ?: values["graph_returns"]
-            ?: values["select"]
-            ?: values["selector"]
-            ?: values["selectors"]
-            ?: returnValue?.takeIf { GraphSelectorParser.looksLikeSelector(it) }
 
         return selectorText
             ?.split(',', ';', '\n')
@@ -104,28 +69,21 @@ object RilTransportAdapter {
     }
 
     private fun returnMode(values: Map<String, String>): String? {
-        val returnValue = values["return"]
         return values["return_mode"]
-            ?: returnValue?.takeUnless { GraphSelectorParser.looksLikeSelector(it) }
-            ?: values["mode"]
     }
 
     private fun transportContext(values: Map<String, String>): Map<String, String> = values
-        .filterKeys { key -> key.startsWith("context_") || key in contextKeys }
-        .mapKeys { (key, _) -> key.removePrefix("context_") }
+        .filterKeys { key -> key in contextKeys }
 
     private fun transportSettings(values: Map<String, String>): Map<String, String> = values
-        .filterKeys { key -> key !in reservedKeys && key !in contextKeys && !key.startsWith("context_") }
+        .filterKeys { key -> key !in reservedKeys && key !in contextKeys }
 
     private val contextKeys = setOf(
-        "caller", "entity_type", "entity_id", "subject", "subject_id", "participant_id",
-        "specimen_id", "visit_id", "form_id", "operator_id", "context_entity_type", "context_entity_id"
+        "caller", "entity_type", "entity_id", "participant_id", "specimen_id",
+        "visit_id", "form_id", "operator_id"
     )
 
     private val reservedKeys = setOf(
-        "method", "method_id", "module", "module_id", "capability", "capability_id",
-        "actions", "chain", "workflow", "methods", "method_chain",
-        "return_mode", "return", "mode", "action", "ril", "request", "researchos_request",
-        "returns", "graph_return", "graph_returns", "select", "selector", "selectors"
+        "method_id", "return_mode", "action", "ril", "returns"
     )
 }

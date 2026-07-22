@@ -21,13 +21,17 @@ import com.example.researchos.platform.nfc.AndroidNfcDeviceService
 import com.example.researchos.platform.nfc.NfcTagSignal
 import com.example.researchos.settings.SettingsState
 
+data class NfcWriteOutcome(
+    val evidence: NfcWriteEvidenceBundle,
+    val executionResult: ExecutionResult
+)
+
 /**
  * Native AS1.00 method for NFC tag writes.
  *
  * NFC Write is an intervention method: it accepts a transient NFC tag-discovery
  * signal from the Android NFC Device Service, performs an NDEF write, and
- * returns intervention plus post-write observation records. The legacy
- * NfcWriteMethod remains only as the current Compose launcher shell.
+ * returns intervention plus post-write observation records.
  */
 object As100NfcWriteMethod : As100Method {
     const val ID = "nfc_tag_write"
@@ -55,7 +59,7 @@ object As100NfcWriteMethod : As100Method {
             NfcWriteFields.WRITE_SIZE_BYTES,
             NfcWriteFields.INTERVENTION_JSON,
             NfcWriteFields.POST_WRITE_EVIDENCE_JSON
-        ) + NfcEvidenceFields.tagOutputFields + researchEnvelopeSchema().map { it.id },
+        ) + NfcEvidenceFields.tagOutputFields,
         parameters = mapOf(
             "category" to "NFC",
             "status" to "Experimental",
@@ -134,49 +138,61 @@ object As100NfcWriteMethod : As100Method {
             methodLabel = "NFC Tag Write"
         )
 
-    /**
-     * Legacy-compatible write path used by the existing NFC UI.
-     *
-     * It still returns the NFC-specific write evidence bundle, but now also
-     * records a canonical ResearchOS Observation into the live ResearchRuntime
-     * session.
-     */
-    fun writeBundle(
-        tagSignal: NfcTagSignal,
-        request: NfcWriteRequest,
-        invocationContext: InvocationContext? = null
-    ): NfcWriteEvidenceBundle {
-        val bundle = writeBundleInternal(tagSignal, request).withInvocationContext(invocationContext)
-        NfcResearchSessionRecorder.recordWriteBundle(bundle)
-        return bundle
-    }
-
-    /**
-     * Canonical ResearchOS write path.
-     *
-     * Returns an Observation without forcing callers to know about the legacy
-     * NFC write evidence bundle.
-     */
     fun write(
         tagSignal: NfcTagSignal,
-        request: NfcWriteRequest,
+        writeRequest: NfcWriteRequest,
         invocationContext: InvocationContext? = null
-    ): Observation {
-        val bundle = writeBundleInternal(tagSignal, request).withInvocationContext(invocationContext)
-        ResearchRuntime.session.record(bundle.postWriteRead.executionResult)
-        NfcResearchSessionRecorder.record(NfcObservationMapper.fromWriteBundle(bundle))
-        return bundle.postWriteRead.researchosObservation
-    }
-
-    private fun NfcWriteEvidenceBundle.withInvocationContext(invocationContext: InvocationContext?): NfcWriteEvidenceBundle {
-        if (invocationContext == null) return this
-        val contextMap = invocationContext.asMap() + mapOf("requested_capability" to ID)
-        return copy(
-            postWriteRead = postWriteRead.copy(
-                executionResult = postWriteRead.executionResult.copy(
-                    request = postWriteRead.executionResult.request.copy(context = contextMap)
-                )
-            )
+    ): NfcWriteOutcome {
+        val evidence = writeBundleInternal(tagSignal, writeRequest)
+        val context = invocationContext?.asMap(ID).orEmpty() + mapOf(
+            "record_type" to writeRequest.recordType,
+            "value" to writeRequest.value,
+            "mime_type" to writeRequest.mimeType,
+            "language_code" to writeRequest.languageCode
+        )
+        val executionRequest = request(
+            action = ID,
+            context = context,
+            signals = listOf(tagSignal.signal)
+        )
+        val provenance = ProvenanceContext(
+            provider = tagSignal.signal.provenance.provider,
+            methodId = ID,
+            methodVersion = VERSION
+        )
+        val observation = Observation(
+            phenomenon = "nfc.tag.write",
+            subject = invocationContext?.subjectRef(),
+            values = evidence.outputFields(),
+            sourceSignal = ArchitectureRef(tagSignal.signal.id, tagSignal.signal.objectType, tagSignal.signal.signalType),
+            temporalContext = tagSignal.signal.temporalContext,
+            provenance = provenance
+        )
+        val status = if (evidence.writeSuccess) TransformationStatus.Succeeded else TransformationStatus.Failed
+        val transformation = Transformation(
+            action = "intervene.nfc.write",
+            method = ref,
+            inputs = listOf(ArchitectureRef(tagSignal.signal.id, tagSignal.signal.objectType, tagSignal.signal.signalType)),
+            outputs = listOf(ArchitectureRef(observation.id, observation.objectType, observation.phenomenon)),
+            status = status,
+            diagnostics = mapOf(
+                NfcWriteFields.WRITE_SUCCESS to evidence.writeSuccess.toString(),
+                NfcWriteFields.WRITE_MESSAGE to evidence.writeMessage
+            ),
+            temporalContext = tagSignal.signal.temporalContext,
+            provenance = provenance
+        )
+        val result = As100ExecutionEngine.complete(
+            request = executionRequest,
+            status = status,
+            observations = listOf(observation),
+            transformations = listOf(transformation),
+            diagnostics = transformation.diagnostics
+        )
+        ResearchRuntime.session.record(result)
+        return NfcWriteOutcome(
+            evidence = evidence,
+            executionResult = result
         )
     }
 }

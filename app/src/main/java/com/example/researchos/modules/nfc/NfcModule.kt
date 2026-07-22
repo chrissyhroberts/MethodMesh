@@ -11,14 +11,14 @@ object NfcModule : ResearchOSModule {
     override fun as100Methods() = listOf(As100NfcReadMethod, As100NfcWriteMethod)
 
     override fun rilBindings() = listOf(
-        RilBinding("scan nfc", "nfc.read", "Read an NFC tag"),
-        RilBinding("read nfc", "nfc.read", "Read an NFC tag"),
-        RilBinding("capture nfc", "nfc.read", "Read an NFC tag"),
-        RilBinding("scan tag", "nfc.read", "Read an NFC tag"),
-        RilBinding("read tag", "nfc.read", "Read an NFC tag"),
-        RilBinding("write nfc", "nfc.write", "Write an NFC tag"),
-        RilBinding("write tag", "nfc.write", "Write an NFC tag")
+        RilBinding("scan nfc", As100NfcReadMethod.ID, "Read an NFC tag"),
+        RilBinding("read nfc", As100NfcReadMethod.ID, "Read an NFC tag"),
+        RilBinding("capture nfc", As100NfcReadMethod.ID, "Read an NFC tag"),
+        RilBinding("scan tag", As100NfcReadMethod.ID, "Read an NFC tag"),
+        RilBinding("read tag", As100NfcReadMethod.ID, "Read an NFC tag"),
+        RilBinding("write nfc", As100NfcWriteMethod.ID, "Write an NFC tag"),
+        RilBinding("write tag", As100NfcWriteMethod.ID, "Write an NFC tag")
     )
 
-    override fun capabilityScreens() = listOf(NfcReadCapabilityScreen)
+    override fun capabilityScreens() = listOf(NfcReadCapabilityScreen, NfcWriteCapabilityScreen)
 }
