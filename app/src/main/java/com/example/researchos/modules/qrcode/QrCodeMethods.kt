@@ -16,7 +16,7 @@ import com.example.researchos.core.researchos.Transformation
 import com.example.researchos.core.researchos.TransformationStatus
 import com.example.researchos.core.researchos.runtime.As100ExecutionEngine
 import com.example.researchos.core.researchos.runtime.As100Method
-import com.example.researchos.modules.attestation.AttestationCrypto
+import com.example.researchos.core.crypto.Digests
 import com.example.researchos.settings.SettingsState
 import java.time.Instant
 
@@ -60,7 +60,7 @@ object As100QrScanMethod : As100Method {
         val scanTime = Instant.ofEpochMilli(System.currentTimeMillis()).toString()
         val values = linkedMapOf(
             "qr_payload" to payload,
-            "qr_payload_hash" to AttestationCrypto.sha256Hex(payload),
+            "qr_payload_hash" to Digests.sha256Hex(payload),
             "qr_scan_time_iso" to scanTime,
             "qr_source" to source
         )

@@ -14,6 +14,8 @@ import com.example.researchos.core.researchos.State
 import com.example.researchos.core.researchos.TemporalContext
 import com.example.researchos.core.researchos.Transformation
 import com.example.researchos.core.researchos.TransformationStatus
+import com.example.researchos.core.researchos.ValidationFinding
+import com.example.researchos.core.researchos.QualityAssessment
 import com.example.researchos.settings.SettingsState
 
 /**
@@ -53,6 +55,8 @@ object As100ExecutionEngine {
         relationships: List<Relationship> = emptyList(),
         classifications: List<Classification> = emptyList(),
         states: List<State> = emptyList(),
+        validation: List<ValidationFinding> = emptyList(),
+        quality: QualityAssessment? = null,
         diagnostics: Map<String, String> = emptyMap()
     ): ExecutionResult = ExecutionResult(
         request = request,
@@ -64,6 +68,8 @@ object As100ExecutionEngine {
         classifications = classifications,
         transformations = transformations,
         states = states,
+        validation = validation,
+        quality = quality,
         diagnostics = diagnostics
     )
 

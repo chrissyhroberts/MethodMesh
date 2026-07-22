@@ -53,12 +53,11 @@ object NfcReadCapabilityScreen : CapabilityScreenSpec {
         val initialStatus = rememberNfcAvailabilityMessage()
         var active by remember { mutableStateOf(false) }
         var status by remember { mutableStateOf(initialStatus) }
-        var bundle by remember { mutableStateOf<NfcReadEvidenceBundle?>(null) }
-        val execution = bundle?.executionResult?.withInvocationContext(request.invocationContext)
+        var execution by remember { mutableStateOf<ExecutionResult?>(null) }
 
         fun startCapture() {
             active = true
-            bundle = null
+            execution = null
             status = "Waiting for NFC tag…"
         }
 
@@ -74,9 +73,9 @@ object NfcReadCapabilityScreen : CapabilityScreenSpec {
                     try {
                         status = "Reading tag…"
                         val read = withContext(Dispatchers.IO) {
-                            As100NfcReadMethod.readBundle(tagSignal, request.invocationContext)
+                            As100NfcReadMethod.read(tagSignal, request.invocationContext)
                         }
-                        bundle = read
+                        execution = read.withInvocationContext(request.invocationContext)
                         active = false
                         status = "Tag captured."
                     } catch (e: Exception) {
@@ -99,7 +98,7 @@ object NfcReadCapabilityScreen : CapabilityScreenSpec {
             onConfirm = { execution?.let(onConfirmed) },
             onCancel = onCancel
         ) {
-            if (bundle == null) {
+            if (execution == null) {
                 Text(status)
                 Spacer(Modifier.height(10.dp))
                 if (!active) {
@@ -115,7 +114,7 @@ object NfcReadCapabilityScreen : CapabilityScreenSpec {
                     }
                 }
             } else {
-                val v = bundle!!.evidence.values
+                val v = As100NfcReadMethod.observationValues(execution!!)
                 Text("Tag captured", fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(10.dp))
 

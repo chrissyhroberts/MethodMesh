@@ -1,16 +1,15 @@
 package com.example.researchos.modules
 
 import com.example.researchos.core.researchos.runtime.As100Method
+import com.example.researchos.core.researchos.runtime.As100MethodRegistry
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
 
 /**
  * Self-contained module contract.
  *
  * A capability module exposes one object implementing this interface from
- * inside its own modules/<module-name>/ folder. The explicit module manifest
- * uses these objects to build the method registry, RIL bindings and external
- * workflow screens. New modules are added to the manifest deliberately so the
- * installed capability set remains deterministic and auditable.
+ * inside its own modules/<module-name>/ folder. Modules are discovered at
+ * application startup, so adding a capability requires no central registration.
  */
 interface ResearchOSModule {
     val moduleId: String
@@ -76,9 +75,22 @@ data class ModuleCapabilitySummary(
     val rilPhrases: List<String> = emptyList()
 )
 
-/** Explicit module registry backed by ResearchOSModuleManifest. */
 object ResearchOSModuleRegistry {
-    fun all(): List<ResearchOSModule> = ResearchOSModuleManifest.modules
+    @Volatile private var installed: List<ResearchOSModule>? = null
+
+    fun install(modules: List<ResearchOSModule>) {
+        require(modules.isNotEmpty()) { "ResearchOS discovered no capability modules." }
+        require(modules.map { it.moduleId }.distinct().size == modules.size) { "ResearchOS module IDs must be unique." }
+        val methods = modules.flatMap { it.as100Methods() }
+        require(methods.map { it.id }.distinct().size == methods.size) { "ResearchOS method IDs must be unique." }
+        val screens = modules.flatMap { it.capabilityScreens() }
+        require(screens.map { it.capabilityId }.distinct().size == screens.size) { "ResearchOS capability screen IDs must be unique." }
+        installed = modules.sortedBy { it.moduleId }
+        As100MethodRegistry.install(methods)
+    }
+
+    fun all(): List<ResearchOSModule> = installed
+        ?: error("ResearchOS modules have not been discovered. ResearchOSApplication must initialise the registry.")
 
     fun as100Methods(): List<As100Method> = all().flatMap { it.as100Methods() }
     fun rilBindings(): List<RilBinding> = all().flatMap { it.rilBindings() }

@@ -19,3 +19,6 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Capability modules are discovered by their module object class name.
+-keep public class com.example.researchos.modules.**Module { public static ** INSTANCE; }

@@ -1,23 +1,19 @@
 package com.example.researchos.core.researchos.runtime
 
-import com.example.researchos.core.researchos.MethodContract
-import com.example.researchos.core.researchos.MethodDescriptor
-import com.example.researchos.modules.ResearchOSModuleRegistry
-
 /**
  * Canonical AS-facing registry of executable methods.
  *
- * The registry is assembled from self-contained modules under modules/. New
- * capabilities should provide a module object implementing ResearchOSModule;
- * they should not require edits to this central registry.
+ * The core stores method contracts but knows nothing about capability modules.
+ * The application extension layer installs discovered methods at startup.
  */
 object As100MethodRegistry {
 
-    private val nativeMethods: List<As100Method>
-        get() = ResearchOSModuleRegistry.as100Methods()
+    @Volatile private var methods: List<As100Method> = emptyList()
 
-    private val methods: List<As100Method>
-        get() = nativeMethods
+    fun install(discovered: List<As100Method>) {
+        require(discovered.map { it.id }.distinct().size == discovered.size) { "AS method IDs must be unique." }
+        methods = discovered.toList()
+    }
 
     fun all(): List<As100Method> = methods
 

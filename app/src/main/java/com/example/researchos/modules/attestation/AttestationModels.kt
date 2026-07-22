@@ -80,7 +80,7 @@ data class AttestationRecord(
      *
      * Every field here is either required to interpret/verify the attestation or
      * is the requested trusted-timestamp evidence. Internal identifiers and
-     * derivable aliases remain in the ResearchOS graph and detailed selectors.
+     * derivable internal metadata remains in the ResearchOS graph and detailed selectors.
      */
     fun asOutputMap(): Map<String, String> = linkedMapOf<String, String>().apply {
         put("attestation_schema_version", "3")

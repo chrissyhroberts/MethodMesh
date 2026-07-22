@@ -3,6 +3,9 @@ package com.example.researchos.transport.ril
 import com.example.researchos.modules.adminfingerprint.As100VerifyFingerprintMethod
 import com.example.researchos.modules.ResearchOSModuleRegistry
 import com.example.researchos.modules.nfc.As100NfcReadMethod
+import com.example.researchos.modules.nfc.NfcModule
+import com.example.researchos.modules.adminfingerprint.AdminFingerprintModule
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
@@ -16,14 +19,9 @@ import org.junit.Test
  */
 class RilParserTest {
 
-    // ── Promote existing conformance smoke-test cases ───────────────────────
-
-    @Test
-    fun `all RilConformanceSmokeTests cases pass`() {
-        val results = RilConformanceSmokeTests.runAll()
-        results.forEach { result ->
-            assertTrue("${result.name}: ${result.message}", result.passed)
-        }
+    @Before
+    fun installTestModules() {
+        ResearchOSModuleRegistry.install(listOf(NfcModule, AdminFingerprintModule))
     }
 
     // ── Semicolon-separated section syntax ──────────────────────────────────

@@ -10,9 +10,14 @@ import com.example.researchos.core.researchos.KnowledgeObjectType
 import com.example.researchos.core.researchos.MethodDescriptor
 import com.example.researchos.core.researchos.MethodObjectType
 import com.example.researchos.core.researchos.ProvenanceContext
+import com.example.researchos.core.researchos.Entity
+import com.example.researchos.core.researchos.Observation
+import com.example.researchos.core.researchos.QualityAssessment
 import com.example.researchos.core.researchos.Signal
 import com.example.researchos.core.researchos.Transformation
 import com.example.researchos.core.researchos.TransformationStatus
+import com.example.researchos.core.researchos.ValidationFinding
+import com.example.researchos.core.researchos.withInvocationContext
 import com.example.researchos.core.researchos.runtime.As100ExecutionEngine
 import com.example.researchos.core.researchos.runtime.As100Method
 import com.example.researchos.platform.nfc.AndroidNfcDeviceService
@@ -44,15 +49,7 @@ object As100NfcReadMethod : As100Method {
         version = VERSION,
         description = "Interpret an NFC tag-discovery signal as structured observation evidence and an immutable NFC tag artifact.",
         inputs = listOf(AndroidNfcDeviceService.SIGNAL_TYPE_TAG_DISCOVERED),
-        outputs = NfcEvidenceFields.tagOutputFields + listOf(
-            ResearchOutputFields.PROVENANCE_JSON,
-            ResearchOutputFields.CAPTURE_OUTCOME_JSON,
-            ResearchOutputFields.QUALITY_JSON,
-            ResearchOutputFields.VALIDATION_JSON,
-            ResearchOutputFields.ARTIFACT_JSON,
-            ResearchOutputFields.EVIDENCE_JSON,
-            ResearchOutputFields.EXECUTION_JSON
-        ),
+        outputs = NfcEvidenceFields.tagOutputFields,
         parameters = mapOf(
             "category" to "NFC",
             "status" to "Experimental",
@@ -120,29 +117,81 @@ object As100NfcReadMethod : As100Method {
         )
     }
 
-    private fun readBundleInternal(tagSignal: NfcTagSignal): NfcReadEvidenceBundle =
-        NfcTagRepository.readTagSignal(
-            tagSignal = tagSignal,
+    fun read(tagSignal: NfcTagSignal, invocationContext: InvocationContext? = null): ExecutionResult {
+        val values = NfcTagRepository.readTag(tagSignal.androidTag)
+        val uid = values[NfcEvidenceFields.TAG_UID_HEX].orEmpty()
+        val valid = uid.isNotBlank()
+        val context = invocationContext?.asMap(ID).orEmpty()
+        val request = request(
+            action = ID,
+            context = context,
+            signals = listOf(tagSignal.signal)
+        )
+        val provenance = ProvenanceContext(
+            provider = tagSignal.signal.provenance.provider,
             methodId = ID,
             methodVersion = VERSION,
-            methodObjectType = "Method",
-            methodLabel = "NFC Tag Read"
+            operatorId = invocationContext?.operatorId
         )
-
-    fun readBundle(tagSignal: NfcTagSignal, invocationContext: InvocationContext? = null): NfcReadEvidenceBundle {
-        val bundle = readBundleInternal(tagSignal).withInvocationContext(invocationContext)
-        ResearchRuntime.session.record(bundle.executionResult)
-        return bundle
+        val tagEntity = Entity(
+            id = ArchitectureId("nfc-tag:$uid"),
+            entityType = "NfcTag",
+            attributes = mapOf(
+                NfcEvidenceFields.TAG_UID_HEX to uid,
+                NfcEvidenceFields.TAG_UID_DEC to values[NfcEvidenceFields.TAG_UID_DEC].orEmpty(),
+                NfcEvidenceFields.TECH_LIST to values[NfcEvidenceFields.TECH_LIST].orEmpty()
+            ),
+            temporalContext = tagSignal.signal.temporalContext
+        )
+        val observation = Observation(
+            phenomenon = "nfc.tag.state",
+            subject = ArchitectureRef(tagEntity.id, tagEntity.objectType, uid),
+            values = values,
+            sourceSignal = ArchitectureRef(
+                tagSignal.signal.id,
+                tagSignal.signal.objectType,
+                tagSignal.signal.signalType
+            ),
+            temporalContext = tagSignal.signal.temporalContext,
+            provenance = provenance
+        )
+        val status = if (valid) TransformationStatus.Succeeded else TransformationStatus.Failed
+        val transformation = Transformation(
+            action = "interpret.nfc.signal",
+            method = ref,
+            inputs = listOf(ArchitectureRef(tagSignal.signal.id, tagSignal.signal.objectType, tagSignal.signal.signalType)),
+            outputs = listOf(ArchitectureRef(observation.id, observation.objectType, observation.phenomenon)),
+            status = status,
+            diagnostics = mapOf(
+                "ndef_supported" to values[NfcEvidenceFields.NDEF_SUPPORTED].orEmpty(),
+                "record_count" to values[NfcEvidenceFields.NDEF_RECORD_COUNT].orEmpty()
+            ),
+            temporalContext = observation.temporalContext,
+            provenance = provenance
+        )
+        val result = As100ExecutionEngine.complete(
+            request = request,
+            status = status,
+            entities = listOf(tagEntity),
+            observations = listOf(observation),
+            transformations = listOf(transformation),
+            validation = listOf(
+                ValidationFinding(
+                    passed = valid,
+                    message = if (valid) "Android exposed the NFC tag UID." else "Android did not expose the NFC tag UID.",
+                    field = NfcEvidenceFields.TAG_UID_HEX,
+                    code = if (valid) "nfc_uid_present" else "nfc_uid_missing"
+                )
+            ),
+            quality = QualityAssessment(
+                usable = valid,
+                metrics = transformation.diagnostics
+            ),
+            diagnostics = transformation.diagnostics
+        ).withInvocationContext(invocationContext)
+        return ResearchRuntime.session.record(result)
     }
 
-    private fun NfcReadEvidenceBundle.withInvocationContext(invocationContext: InvocationContext?): NfcReadEvidenceBundle {
-        if (invocationContext == null) return this
-        val contextMap = invocationContext.asMap() + mapOf("requested_capability" to ID)
-        return copy(
-            executionResult = executionResult.copy(
-                request = executionResult.request.copy(context = contextMap)
-            )
-        )
-    }
-
+    fun observationValues(result: ExecutionResult): Map<String, String> =
+        result.observations.lastOrNull { it.phenomenon == "nfc.tag.state" }?.values.orEmpty()
 }

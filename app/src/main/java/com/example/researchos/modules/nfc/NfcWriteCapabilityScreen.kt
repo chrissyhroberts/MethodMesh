@@ -83,7 +83,7 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
                             mimeType = recordType
                         )
 
-                        val outcome = withContext(Dispatchers.IO) {
+                        val execution = withContext(Dispatchers.IO) {
                             As100NfcWriteMethod.write(
                                 tagSignal = tagSignal,
                                 writeRequest = writeRequest,
@@ -91,13 +91,13 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
                             )
                         }
 
-                        val writeBundle = outcome.evidence
-                        result = outcome.executionResult
+                        val values = execution.observations.lastOrNull { it.phenomenon == "nfc.tag.write" }?.values.orEmpty()
+                        result = execution
                         active = false
-                        status = if (writeBundle.writeSuccess) {
-                            "Write successful. Wrote ${writeBundle.writeSizeBytes} bytes to tag (${writeBundle.writeMessage})."
+                        status = if (values[NfcWriteFields.WRITE_SUCCESS] == "true") {
+                            "Write successful. Wrote ${values[NfcWriteFields.WRITE_SIZE_BYTES]} bytes to tag (${values[NfcWriteFields.WRITE_MESSAGE]})."
                         } else {
-                            "Write failed: ${writeBundle.writeMessage}"
+                            "Write failed: ${values[NfcWriteFields.WRITE_MESSAGE]}"
                         }
                     } catch (e: Exception) {
                         result = null

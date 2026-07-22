@@ -38,12 +38,7 @@ object AndroidIntentRequestReader {
      * ODK multi-field intents place the complete function-style invocation in
      * Intent.action, for example:
      *
-     * com.example.researchos.EXECUTE_METHOD(
-     *   method_id='attestation.create',
-     *   study_id='study_01',
-     *   event_type='form_submission',
-     *   trusted_timestamp='required'
-     * )
+     * com.example.researchos.EXECUTE_METHOD(method_id='module.method',policy='required')
      *
      * Android extras contain the group child fields, but parameters that live
      * only in body::intent are otherwise lost. Parse this action form and make

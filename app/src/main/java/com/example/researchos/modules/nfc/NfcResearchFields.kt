@@ -49,28 +49,4 @@ object NfcWriteFields {
     const val WRITE_MESSAGE = "write_message"
     const val WRITE_RECORD_TYPE = "write_record_type"
     const val WRITE_SIZE_BYTES = "write_size_bytes"
-    const val INTERVENTION_JSON = "intervention_json"
-    const val POST_WRITE_EVIDENCE_JSON = "post_write_evidence_json"
 }
-
-object ResearchOutputFields {
-    const val EVIDENCE_ID = "evidence_id"
-    const val EVIDENCE_KIND = "evidence_kind"
-    const val PHENOMENON = "phenomenon"
-    const val METHOD = "method"
-    const val TEMPORAL_SEMANTICS = "temporal_semantics"
-    const val AGGREGATION_SEMANTICS = "aggregation_semantics"
-    const val LINEAGE = "lineage"
-    const val PROVENANCE_JSON = "provenance_json"
-    const val CAPTURE_OUTCOME_JSON = "capture_outcome_json"
-    const val QUALITY_JSON = "quality_json"
-    const val VALIDATION_JSON = "validation_json"
-    const val ARTIFACT_JSON = "artifact_json"
-    const val EVIDENCE_JSON = "evidence_json"
-    const val EXECUTION_JSON = "execution_json"
-    const val AS_SIGNAL_TYPE = "as_signal_type"
-    const val AS_SIGNAL_SOURCE_SERVICE = "as_signal_source_service"
-    const val AS_TRANSFORMATION_ACTION = "as_transformation_action"
-    const val AS_TRANSFORMATION_STATUS = "as_transformation_status"
-}
-

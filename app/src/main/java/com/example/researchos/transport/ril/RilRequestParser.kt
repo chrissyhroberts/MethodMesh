@@ -22,19 +22,19 @@ import com.example.researchos.modules.ResearchOSModuleRegistry
  * Supported examples:
  *
  *   WHAT
- *   scan nfc
- *   verify identity fingerprint
+ *   capture identifier
+ *   verify operator
  *   WHERE
  *   participant/P001
  *   RESULT
- *   return observation.nfc.uid as tag_uid
+ *   return observation.identifier.value as identifier
  *   return execution.id as execution_id
  *   format json
  *
  * Shorthand is also accepted for transport convenience:
  *
- *   execute nfc_tag_read for participant/P001
- *   return observation.nfc.uid as tag_uid
+ *   execute module.method for participant/P001
+ *   return observation.result.value as value
  */
 object RilRequestParser {
 

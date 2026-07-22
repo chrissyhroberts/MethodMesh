@@ -30,16 +30,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.withInvocationContext
-import com.example.researchos.modules.nfc.As100NfcReadMethod
-import com.example.researchos.modules.nfc.NfcDeviceServiceEffect
-import com.example.researchos.modules.nfc.NfcEvidenceFields
-import com.example.researchos.modules.nfc.rememberNfcAvailabilityMessage
-import com.example.researchos.modules.qrcode.rememberQrCapabilityInvocation
 import com.example.researchos.platform.BiometricAuthHelper
 import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
+import com.example.researchos.transport.workflow.ui.CapabilityDependencyScreen
 import com.example.researchos.transport.workflow.ui.IntentExample
 import com.example.researchos.transport.workflow.ui.IntentExampleDropdown
 
@@ -56,7 +52,6 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
         onCancel: () -> Unit
     ) {
         val androidContext = LocalContext.current
-        val nfcAvailability = rememberNfcAvailabilityMessage()
         // Merge external invocation values without allowing blank return fields or
         // generic invocation defaults to erase explicit caller controls. ODK group
         // intents may include blank child fields with the same names as intent
@@ -100,7 +95,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
         }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var status by remember { mutableStateOf("Ready to create a signed attestation.") }
-        var nfcActive by remember { mutableStateOf(false) }
+        var activeDependency by remember { mutableStateOf<String?>(null) }
 
         fun contextMapFor(selectedMethod: AttestationVerificationMethod, selectedEvidence: String): Map<String, String> =
             supplied + buildMap {
@@ -142,36 +137,8 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
-        val launchQrDependency = rememberQrCapabilityInvocation(
-            context = context,
-            sourceLabel = "attestation_dependency",
-            onResult = { qrExecution ->
-                val qrFields = OutputFormatter.fields(qrExecution, includeProvenance = false)
-                val qrPayload = qrFields["qr_payload"]?.toString().orEmpty()
-                val qrHash = qrFields["qr_payload_hash"]?.toString().orEmpty()
-                val calculatedHash = AttestationCrypto.sha256Hex(qrPayload)
-                if (qrPayload.isBlank() || qrHash.isBlank()) {
-                    status = qrExecution.diagnostics["reason"] ?: "QR evidence was not captured."
-                    result = null
-                } else if (!calculatedHash.equals(qrHash, ignoreCase = true)) {
-                    status = "QR evidence failed integrity validation and was not attested."
-                    result = null
-                } else {
-                    signAttestation(AttestationVerificationMethod.Qr, qrPayload)
-                }
-            },
-            onCancel = {
-                status = "QR verification cancelled."
-                result = null
-            },
-            onError = { message ->
-                status = message
-                result = null
-            }
-        )
-
         fun startSigning() {
-            nfcActive = false
+            activeDependency = null
             when (method) {
                 AttestationVerificationMethod.Fingerprint -> {
                     BiometricAuthHelper.authenticate(
@@ -202,11 +169,11 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                 AttestationVerificationMethod.Qr -> {
                     result = null
                     status = "Opening QR verification capability…"
-                    launchQrDependency()
+                    activeDependency = "qr.scan"
                 }
 
                 AttestationVerificationMethod.Nfc -> {
-                    nfcActive = true
+                    activeDependency = "nfc_tag_read"
                     result = null
                     status = "Waiting for NFC tag via the existing NFC capability…"
                 }
@@ -215,26 +182,38 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
-        NfcDeviceServiceEffect(
-            enabled = nfcActive,
-            onStatus = { status = it },
-            onSignal = { tagSignal ->
-                val read = As100NfcReadMethod.readBundle(tagSignal, context.request.invocationContext)
-                nfcActive = false
-                val tagUid = read.evidence.values[NfcEvidenceFields.TAG_UID_HEX].orEmpty()
-                val nfcPayload = read.evidence.values[NfcEvidenceFields.NDEF_FIRST_PAYLOAD_UTF8].orEmpty()
-                    .ifBlank { read.evidence.values[NfcEvidenceFields.NDEF_FIRST_PAYLOAD_HEX].orEmpty() }
-                val nfcPayloadHash = AttestationCrypto.sha256Hex(nfcPayload.ifBlank { tagUid })
-                val nfcEvidence = listOf(
-                    "nfc_uid=$tagUid",
-                    "nfc_payload_hash=$nfcPayloadHash"
-                ).joinToString(";")
-                signAttestation(AttestationVerificationMethod.Nfc, nfcEvidence)
-            }
-        )
-
         LaunchedEffect(context.isExternalInvocation) {
             if (context.isExternalInvocation) startSigning()
+        }
+
+        activeDependency?.let { dependencyId ->
+            CapabilityDependencyScreen(
+                capabilityId = dependencyId,
+                parentContext = context,
+                settings = supplied,
+                onResult = { dependencyResult ->
+                    activeDependency = null
+                    val fields = OutputFormatter.fields(dependencyResult, includeProvenance = false)
+                    if (dependencyId == "qr.scan") {
+                        val payload = fields["qr_payload"]?.toString().orEmpty()
+                        val hash = fields["qr_payload_hash"]?.toString().orEmpty()
+                        if (payload.isBlank() || hash != AttestationCrypto.sha256Hex(payload)) {
+                            status = "QR evidence failed integrity validation."
+                        } else signAttestation(AttestationVerificationMethod.Qr, payload)
+                    } else {
+                        val uid = fields["tag_uid_hex"]?.toString().orEmpty()
+                        val payload = fields["ndef_first_payload_utf8"]?.toString().orEmpty()
+                            .ifBlank { fields["ndef_first_payload_hex"]?.toString().orEmpty() }
+                        val evidenceValue = payload.ifBlank { uid }
+                        signAttestation(
+                            AttestationVerificationMethod.Nfc,
+                            "nfc_uid=$uid;nfc_payload_hash=${AttestationCrypto.sha256Hex(evidenceValue)}"
+                        )
+                    }
+                },
+                onCancel = { activeDependency = null; status = "Verification cancelled." }
+            )
+            return
         }
 
         CapabilityScreenScaffold(
@@ -265,9 +244,9 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                         .padding(top = 4.dp)
                         .clickable {
                             method = option
-                            nfcActive = false
+                            activeDependency = null
                             status = when (option) {
-                                AttestationVerificationMethod.Nfc -> nfcAvailability
+                                AttestationVerificationMethod.Nfc -> "NFC evidence will be captured through the NFC capability dependency."
                                 AttestationVerificationMethod.Qr -> "QR evidence will be captured through the QR capability dependency."
                                 AttestationVerificationMethod.Pin -> "Phone PIN, pattern or password will be requested through Android device credential."
                                 AttestationVerificationMethod.Fingerprint -> "Fingerprint/biometric will be requested through Android biometric prompt."
@@ -295,8 +274,8 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             Row(modifier = Modifier.padding(top = 8.dp)) {
                 Button(onClick = { startSigning() }) { Text(if (result == null) "Sign attestation" else "Sign another") }
                 Spacer(Modifier.padding(4.dp))
-                if (nfcActive) {
-                    OutlinedButton(onClick = { nfcActive = false; status = "NFC capture stopped." }) { Text("Stop NFC") }
+                if (activeDependency != null) {
+                    OutlinedButton(onClick = { activeDependency = null; status = "Dependency capture stopped." }) { Text("Stop capture") }
                 } else {
                     OutlinedButton(onClick = { result = null; status = "Ready to create a signed attestation." }) { Text("Clear") }
                 }
