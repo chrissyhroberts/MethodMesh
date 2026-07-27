@@ -1,13 +1,20 @@
 package com.example.researchos.modules.nfc
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -19,6 +26,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.researchos.core.researchos.ExecutionResult
@@ -48,17 +58,32 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
         val action = context.action
         val scope = rememberCoroutineScope()
         val initialStatus = rememberNfcAvailabilityMessage()
-        val requestedOverwritePolicy = action.settings["overwrite_policy"]
+        val supplied = remember(action.settings, request.settings) {
+            request.settings.filterValues(String::isNotBlank) +
+                action.settings.filterValues(String::isNotBlank)
+        }
+        val requestedOverwritePolicy = supplied["overwrite_policy"]
 
-        var recordType by remember { mutableStateOf(action.settings["record_type"] ?: "text/plain") }
-        var dataToWrite by remember { mutableStateOf(action.settings["value"] ?: "") }
+        var recordType by remember {
+            mutableStateOf(
+                supplied["record_type"]
+                    ?: if (context.startsImmediately) "text/plain" else "application/x-participantid"
+            )
+        }
+        var dataToWrite by remember {
+            mutableStateOf(
+                supplied["value"]
+                    ?: if (context.startsImmediately) "" else "participant_P001"
+            )
+        }
         var overwritePolicy by remember {
             mutableStateOf(NfcOverwritePolicy.parse(requestedOverwritePolicy) ?: NfcOverwritePolicy.EmptyOnly)
         }
-        var expectedCurrentHash by remember { mutableStateOf(action.settings["expected_current_hash"].orEmpty()) }
+        var expectedCurrentHash by remember { mutableStateOf(supplied["expected_current_hash"].orEmpty()) }
         var active by remember { mutableStateOf(false) }
         var status by remember { mutableStateOf(initialStatus) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        var writtenMessageHash by remember { mutableStateOf("") }
         var recordTypeExpanded by remember { mutableStateOf(false) }
         var overwritePolicyExpanded by remember { mutableStateOf(false) }
 
@@ -73,6 +98,7 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
             }
             active = true
             result = null
+            writtenMessageHash = ""
             status = "Ready to write. Tap an NFC tag to begin..."
         }
 
@@ -104,6 +130,7 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
                         }
 
                         val values = execution.observations.lastOrNull { it.phenomenon == "nfc.tag.write" }?.values.orEmpty()
+                        writtenMessageHash = values[NfcWriteFields.WRITTEN_MESSAGE_HASH].orEmpty()
                         result = execution
                         active = false
                         status = if (values[NfcWriteFields.WRITE_SUCCESS] == "true") {
@@ -128,15 +155,26 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
             capturedResult = result,
             resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
             onBack = onBack,
-            onRetry = { result = null; status = "Ready to write. Tap an NFC tag to begin..." },
+            onRetry = {
+                startWrite()
+            },
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
-            Text("Configure the data to write, then tap an NFC tag.")
-            Spacer(Modifier.height(12.dp))
+            if (context.startsImmediately) {
+                Text(
+                    if (dataToWrite.isBlank()) {
+                        "The calling app did not supply data to write."
+                    } else {
+                        "Ready to write the ${dataToWrite.length}-character payload supplied by the calling app."
+                    }
+                )
+            } else {
+                Text("Configure the data to write, then tap an NFC tag.")
+                Spacer(Modifier.height(12.dp))
 
-            // Record type dropdown
-            Column {
+                // Record type dropdown
+                Column {
                 Text("Record Type", modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(4.dp))
                 OutlinedButton(
@@ -170,11 +208,11 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
                         )
                     }
                 }
-            }
+                }
 
-            Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
 
-            Column {
+                Column {
                 Text("Existing tag content", modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(4.dp))
                 OutlinedButton(
@@ -204,9 +242,9 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
                         )
                     }
                 }
-            }
+                }
 
-            if (overwritePolicy == NfcOverwritePolicy.CompareAndReplace) {
+                if (overwritePolicy == NfcOverwritePolicy.CompareAndReplace) {
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = expectedCurrentHash,
@@ -215,21 +253,21 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-            }
+                }
 
-            Text(
+                Text(
                 when (overwritePolicy) {
                     NfcOverwritePolicy.EmptyOnly -> "Safe default: writing stops if the tag already contains data."
                     NfcOverwritePolicy.Replace -> "Existing NDEF content will be replaced. Its previous hash is recorded."
                     NfcOverwritePolicy.CompareAndReplace -> "Content is replaced only when its current hash matches."
                 },
                 style = androidx.compose.material3.MaterialTheme.typography.labelSmall
-            )
+                )
 
-            Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
 
-            // Data to write
-            OutlinedTextField(
+                // Data to write
+                OutlinedTextField(
                 value = dataToWrite,
                 onValueChange = { dataToWrite = it },
                 label = { Text("Data to write to tag") },
@@ -237,18 +275,22 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
                 "Characters: ${dataToWrite.length}",
                 style = androidx.compose.material3.MaterialTheme.typography.labelSmall
-            )
+                )
+            }
 
             Spacer(Modifier.height(12.dp))
             Text(status)
+            if (!context.startsImmediately && writtenMessageHash.isNotBlank()) {
+                NfcWriteHashSummary(writtenMessageHash)
+            }
             Spacer(Modifier.height(10.dp))
 
-            Row(modifier = Modifier.fillMaxWidth()) {
+            if (!context.startsImmediately) Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = { startWrite() },
                     enabled = !active,
@@ -292,6 +334,59 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
                         intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',input_value='Hello NFC tag',input_record_type='text/plain',input_overwrite_policy='empty_only')"
                     )
                 )
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun NfcWriteHashSummary(writtenMessageHash: String) {
+    val context = LocalContext.current
+    val clipboard = remember(context) {
+        context.getSystemService(ClipboardManager::class.java)
+    }
+    var copied by remember(writtenMessageHash) { mutableStateOf(false) }
+
+    Spacer(Modifier.height(10.dp))
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = { },
+                    onLongClick = {
+                        clipboard.setPrimaryClip(
+                            ClipData.newPlainText(
+                                "ResearchOS written NDEF message SHA-256",
+                                writtenMessageHash
+                            )
+                        )
+                        copied = true
+                    }
+                )
+                .padding(12.dp)
+        ) {
+            Text(
+                text = if (copied) {
+                    "Written NDEF hash copied"
+                } else {
+                    "Written NDEF message SHA-256 — hold to copy"
+                },
+                modifier = Modifier.fillMaxWidth(),
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (copied) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+            )
+            Text(
+                text = writtenMessageHash,
+                modifier = Modifier.fillMaxWidth(),
+                fontFamily = FontFamily.Monospace,
+                style = MaterialTheme.typography.bodySmall
             )
         }
     }
