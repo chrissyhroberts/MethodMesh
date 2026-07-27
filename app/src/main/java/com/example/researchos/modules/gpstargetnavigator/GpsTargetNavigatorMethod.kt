@@ -8,13 +8,17 @@ import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.location.Location
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,17 +35,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.researchos.core.ResearchRuntime
+import com.example.researchos.platform.camera.LiveCameraPreview
 import com.example.researchos.settings.MethodSetting
 import com.example.researchos.settings.SettingsState
 import com.example.researchos.platform.sensors.PhoneSensorRepository
@@ -110,14 +117,31 @@ class GpsTargetNavigatorInteraction {
             label = "Show distance",
             group = "Display",
             defaultValue = true
+        ),
+        MethodSetting.BooleanSetting(
+            id = "show_ar_camera",
+            label = "Show AR camera",
+            description = "Overlay target direction and distance on the live rear camera.",
+            group = "Display",
+            defaultValue = true
         )
     )
 
     @Composable
-    fun Render(settingsState: SettingsState) {
+    fun Render(
+        settingsState: SettingsState,
+        startsImmediately: Boolean = false,
+        onNavigationSaved: () -> Unit = {}
+    ) {
         val context = LocalContext.current
         var hasLocationPermission by remember {
             mutableStateOf(hasLocationPermission(context))
+        }
+        var hasCameraPermission by remember {
+            mutableStateOf(hasCameraPermission(context))
+        }
+        var cameraStatus by remember {
+            mutableStateOf("")
         }
         var statusText by remember {
             mutableStateOf("Ready to navigate")
@@ -140,10 +164,21 @@ class GpsTargetNavigatorInteraction {
 
         val lifecycleOwner = LocalLifecycleOwner.current
 
+        fun startNavigation() {
+            trace.clear()
+            updateCount = 0
+            startedAtMs = System.currentTimeMillis()
+            endedAtMs = null
+            lifecycleState = NavigationLifecycle.Navigating
+            settingsState.setString("status", "navigating")
+            statusText = "Navigation started."
+        }
+
         DisposableEffect(lifecycleOwner, context) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
                     hasLocationPermission = hasLocationPermission(context)
+                    hasCameraPermission = hasCameraPermission(context)
                     if (hasLocationPermission && lifecycleState == NavigationLifecycle.Idle) {
                         statusText = "Location permission granted. Press Start navigation."
                     }
@@ -168,8 +203,23 @@ class GpsTargetNavigatorInteraction {
         val targetLongitude = settingsState.getFloat("target_longitude").toDouble()
         val arrivalRadius = settingsState.getFloat("arrival_radius_m")
 
+        LaunchedEffect(startsImmediately, hasLocationPermission) {
+            if (shouldAutoStartNavigation(
+                    startsImmediately = startsImmediately,
+                    hasLocationPermission = hasLocationPermission,
+                    isIdle = lifecycleState == NavigationLifecycle.Idle
+                )
+            ) {
+                startNavigation()
+            }
+        }
+
         FusedLocationUpdates(
-            enabled = hasLocationPermission && lifecycleState == NavigationLifecycle.Navigating,
+            enabled = shouldCollectLocationUpdates(
+                hasLocationPermission = hasLocationPermission,
+                isNavigating = lifecycleState == NavigationLifecycle.Navigating,
+                isAwaitingSave = lifecycleState == NavigationLifecycle.ArrivedPendingSave
+            ),
             settingsState = settingsState,
             targetLatitude = targetLatitude,
             targetLongitude = targetLongitude,
@@ -190,10 +240,13 @@ class GpsTargetNavigatorInteraction {
                 )
 
                 if (settingsState.getBoolean("arrived")) {
-                    lifecycleState = NavigationLifecycle.ArrivedPendingSave
-                    endedAtMs = System.currentTimeMillis()
-                    settingsState.setString("status", "arrived_pending_save")
-                    statusText = "Arrived at target. Save navigation result or continue tracking."
+                    if (lifecycleState == NavigationLifecycle.Navigating) {
+                        lifecycleState = NavigationLifecycle.ArrivedPendingSave
+                        settingsState.setString("status", "arrived_pending_save")
+                    }
+                    statusText = "Within arrival range. Refining position until you save."
+                } else if (lifecycleState == NavigationLifecycle.ArrivedPendingSave) {
+                    statusText = "Arrival detected. Refining position; current estimate is outside the arrival range."
                 } else {
                     statusText = "Live location update #$count"
                 }
@@ -272,15 +325,7 @@ class GpsTargetNavigatorInteraction {
                 NavigationLifecycle.Aborted -> {
                     Button(
                         enabled = hasLocationPermission,
-                        onClick = {
-                            trace.clear()
-                            updateCount = 0
-                            startedAtMs = System.currentTimeMillis()
-                            endedAtMs = null
-                            lifecycleState = NavigationLifecycle.Navigating
-                            settingsState.setString("status", "navigating")
-                            statusText = "Navigation started."
-                        }
+                        onClick = ::startNavigation
                     ) {
                         Text("Start navigation")
                     }
@@ -310,40 +355,26 @@ class GpsTargetNavigatorInteraction {
                 }
 
                 NavigationLifecycle.ArrivedPendingSave -> {
-                    Row {
-                        Button(
-                            onClick = {
-                                val now = endedAtMs ?: System.currentTimeMillis()
-                                endedAtMs = now
-                                lifecycleState = NavigationLifecycle.Completed
-                                settingsState.setString("status", "arrived")
-                                As100LocateTargetMethod.recordNavigationOutcome(
-                                    buildNavigationOutcomeFields(
-                                        settingsState = settingsState,
-                                        status = "arrived",
-                                        startedAtMs = startedAtMs,
-                                        endedAtMs = now,
-                                        trace = trace
-                                    )
+                    Button(
+                        onClick = {
+                            val now = System.currentTimeMillis()
+                            endedAtMs = now
+                            lifecycleState = NavigationLifecycle.Completed
+                            settingsState.setString("status", "arrived")
+                            As100LocateTargetMethod.recordNavigationOutcome(
+                                buildNavigationOutcomeFields(
+                                    settingsState = settingsState,
+                                    status = "arrived",
+                                    startedAtMs = startedAtMs,
+                                    endedAtMs = now,
+                                    trace = trace
                                 )
-                                statusText = "Navigation result saved."
-                            }
-                        ) {
-                            Text("Save navigation result")
+                            )
+                            statusText = "Navigation result saved."
+                            onNavigationSaved()
                         }
-
-                        Spacer(modifier = Modifier.size(8.dp))
-
-                        Button(
-                            onClick = {
-                                lifecycleState = NavigationLifecycle.Navigating
-                                endedAtMs = null
-                                settingsState.setString("status", "navigating")
-                                statusText = "Continuing navigation."
-                            }
-                        ) {
-                            Text("Continue tracking")
-                        }
+                    ) {
+                        Text("Save navigation result")
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -373,12 +404,57 @@ class GpsTargetNavigatorInteraction {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            CompassPreview(
-                bearingDegrees = bearing,
-                headingDegrees = heading,
-                relativeBearingDegrees = relativeBearing,
-                arrived = arrived
-            )
+            val showArCamera = settingsState.getBoolean("show_ar_camera")
+            if (showArCamera && hasCameraPermission) {
+                ArNavigationPreview(
+                    relativeBearingDegrees = relativeBearing,
+                    distanceMeters = distance,
+                    accuracyMeters = accuracy,
+                    arrived = arrived,
+                    onCameraError = { cameraStatus = it }
+                )
+                if (cameraStatus.isNotBlank()) {
+                    Text(cameraStatus)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { settingsState.setBoolean("show_ar_camera", false) }
+                ) {
+                    Text("Use compass view")
+                }
+            } else {
+                CompassPreview(
+                    bearingDegrees = bearing,
+                    headingDegrees = heading,
+                    relativeBearingDegrees = relativeBearing,
+                    arrived = arrived
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        if (hasCameraPermission) {
+                            settingsState.setBoolean("show_ar_camera", true)
+                        } else {
+                            val activity = context.findActivity()
+                            if (activity != null) {
+                                ActivityCompat.requestPermissions(
+                                    activity,
+                                    arrayOf(Manifest.permission.CAMERA),
+                                    CAMERA_PERMISSION_REQUEST_CODE
+                                )
+                                cameraStatus = "Camera permission requested."
+                            } else {
+                                cameraStatus = "Could not request camera permission."
+                            }
+                        }
+                    }
+                ) {
+                    Text(if (hasCameraPermission) "Use AR camera" else "Enable AR camera")
+                }
+                if (cameraStatus.isNotBlank()) {
+                    Text(cameraStatus)
+                }
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -557,6 +633,93 @@ class GpsTargetNavigatorInteraction {
         )
     }
 
+    @Composable
+    private fun ArNavigationPreview(
+        relativeBearingDegrees: Float,
+        distanceMeters: Float,
+        accuracyMeters: Float,
+        arrived: Boolean,
+        onCameraError: (String) -> Unit
+    ) {
+        val markerColor = if (arrived) Color(0xFF00E676) else Color.White
+        val clampedTurn = relativeBearingDegrees.coerceIn(-60f, 60f)
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(360.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color.Black)
+        ) {
+            LiveCameraPreview(
+                modifier = Modifier.fillMaxWidth().height(360.dp),
+                onError = onCameraError
+            )
+
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val centreX = size.width / 2f
+                val targetX = centreX + (clampedTurn / 60f) * (size.width * 0.42f)
+                val targetY = size.height * 0.34f
+                val origin = Offset(centreX, size.height * 0.78f)
+                val target = Offset(targetX, targetY)
+
+                drawLine(
+                    color = markerColor.copy(alpha = 0.8f),
+                    start = origin,
+                    end = target,
+                    strokeWidth = 8.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+                drawCircle(
+                    color = markerColor.copy(alpha = 0.28f),
+                    radius = 34.dp.toPx(),
+                    center = target
+                )
+                drawCircle(
+                    color = markerColor,
+                    radius = 34.dp.toPx(),
+                    center = target,
+                    style = Stroke(width = 5.dp.toPx())
+                )
+                drawLine(
+                    color = markerColor,
+                    start = Offset(targetX - 45.dp.toPx(), targetY),
+                    end = Offset(targetX + 45.dp.toPx(), targetY),
+                    strokeWidth = 3.dp.toPx()
+                )
+                drawLine(
+                    color = markerColor,
+                    start = Offset(targetX, targetY - 45.dp.toPx()),
+                    end = Offset(targetX, targetY + 45.dp.toPx()),
+                    strokeWidth = 3.dp.toPx()
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.62f))
+                    .padding(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = if (distanceMeters > 0f) {
+                        "${formatDistance(distanceMeters)} • accuracy ±${accuracyMeters.roundToInt()} m"
+                    } else {
+                        "Waiting for GPS"
+                    },
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = arTurnInstruction(relativeBearingDegrees, arrived),
+                    color = markerColor
+                )
+            }
+        }
+    }
+
     private fun hasLocationPermission(context: Context): Boolean {
         return ContextCompat.checkSelfPermission(
             context,
@@ -567,6 +730,12 @@ class GpsTargetNavigatorInteraction {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
     }
+
+    private fun hasCameraPermission(context: Context): Boolean =
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
 
     @Composable
     private fun CompassPreview(
@@ -790,5 +959,30 @@ class GpsTargetNavigatorInteraction {
 
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
+        private const val CAMERA_PERMISSION_REQUEST_CODE = 1002
+    }
+}
+
+internal fun shouldAutoStartNavigation(
+    startsImmediately: Boolean,
+    hasLocationPermission: Boolean,
+    isIdle: Boolean
+): Boolean = startsImmediately && hasLocationPermission && isIdle
+
+internal fun shouldCollectLocationUpdates(
+    hasLocationPermission: Boolean,
+    isNavigating: Boolean,
+    isAwaitingSave: Boolean
+): Boolean = hasLocationPermission && (isNavigating || isAwaitingSave)
+
+internal fun arTurnInstruction(
+    relativeBearingDegrees: Float,
+    arrived: Boolean
+): String {
+    if (arrived) return "Target is within the arrival range"
+    return when {
+        relativeBearingDegrees < -12f -> "Turn left ${kotlin.math.abs(relativeBearingDegrees).roundToInt()}°"
+        relativeBearingDegrees > 12f -> "Turn right ${relativeBearingDegrees.roundToInt()}°"
+        else -> "Target is ahead"
     }
 }

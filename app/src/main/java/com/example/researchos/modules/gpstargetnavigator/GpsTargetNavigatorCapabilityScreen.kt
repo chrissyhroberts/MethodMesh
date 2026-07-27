@@ -12,7 +12,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,7 +63,7 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
         }
         var targetStatus by remember { mutableStateOf("") }
 
-        fun refreshResult() {
+        fun captureResult(): ExecutionResult {
             val execution = As100LocateTargetMethod.execute(
                 request = As100LocateTargetMethod.request(
                     action = action.canonicalId,
@@ -73,11 +72,12 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
                 settingsState = settings,
                 transport = request.source
             ).withInvocationContext(request.invocationContext)
-            result = execution
-        }
-
-        LaunchedEffect(context.startsImmediately) {
-            if (context.startsImmediately) refreshResult()
+            if (context.startsImmediately) {
+                onConfirmed(execution)
+            } else {
+                result = execution
+            }
+            return execution
         }
 
         CapabilityScreenScaffold(
@@ -88,85 +88,106 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
             capturedResult = result,
             resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
             onBack = onBack,
-            onRetry = { refreshResult() },
+            onRetry = { result = null },
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
-            Text("Navigate to the configured target, then review and confirm the saved navigation result.")
-            Spacer(Modifier.height(10.dp))
-            OutlinedTextField(
-                value = targetLatitudeText,
-                onValueChange = { value ->
-                    targetLatitudeText = value
-                    value.toFloatOrNull()?.takeIf { it in -90f..90f }
-                        ?.let { settings.setFloat("target_latitude", it) }
-                },
-                label = { Text("Target latitude") },
-                supportingText = { Text("−90 to 90") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = targetLongitudeText,
-                onValueChange = { value ->
-                    targetLongitudeText = value
-                    value.toFloatOrNull()?.takeIf { it in -180f..180f }
-                        ?.let { settings.setFloat("target_longitude", it) }
-                },
-                label = { Text("Target longitude") },
-                supportingText = { Text("−180 to 180") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-            Spacer(Modifier.height(8.dp))
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    targetStatus = "Getting current position…"
-                    useCurrentPosition(
-                        context = androidContext,
-                        onLocation = { latitude, longitude ->
-                            targetLatitudeText = latitude.toString()
-                            targetLongitudeText = longitude.toString()
-                            settings.setFloat("target_latitude", latitude.toFloat())
-                            settings.setFloat("target_longitude", longitude.toFloat())
-                            settings.setString("target_name", "Current position")
-                            targetStatus = "Current position set as target."
-                        },
-                        onError = { targetStatus = it }
-                    )
+            Text(
+                if (context.startsImmediately) {
+                    "Navigation starts as soon as location permission is available. Save the result after reaching the target."
+                } else {
+                    "Navigate to the configured target, then review and confirm the saved navigation result."
                 }
-            ) { Text("Quick target: use current position") }
-            if (targetStatus.isNotBlank()) Text(targetStatus)
+            )
             Spacer(Modifier.height(10.dp))
-            interaction.Render(settings)
-            Spacer(Modifier.height(10.dp))
-            Button(onClick = { refreshResult() }) { Text(if (result == null) "Review GPS result" else "Refresh GPS result") }
 
-            Spacer(Modifier.height(16.dp))
-            IntentExampleDropdown(
-                capabilityId = As100LocateTargetMethod.ID,
-                examples = listOf(
-                    IntentExample(
-                        label = "Basic GPS navigation",
-                        description = "Navigate to default target",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}')"
-                    ),
-                    IntentExample(
-                        label = "With target coordinates",
-                        description = "Specify target latitude and longitude",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}',input_target_latitude='-1.28',input_target_longitude='36.81')"
-                    ),
-                    IntentExample(
-                        label = "With arrival radius",
-                        description = "Specify distance threshold for arrival detection",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}',input_target_latitude='-1.28',input_target_longitude='36.81',input_arrival_radius='50')"
+            if (!context.startsImmediately) {
+                OutlinedTextField(
+                    value = targetLatitudeText,
+                    onValueChange = { value ->
+                        targetLatitudeText = value
+                        value.toFloatOrNull()?.takeIf { it in -90f..90f }
+                            ?.let { settings.setFloat("target_latitude", it) }
+                    },
+                    label = { Text("Target latitude") },
+                    supportingText = { Text("−90 to 90") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = targetLongitudeText,
+                    onValueChange = { value ->
+                        targetLongitudeText = value
+                        value.toFloatOrNull()?.takeIf { it in -180f..180f }
+                            ?.let { settings.setFloat("target_longitude", it) }
+                    },
+                    label = { Text("Target longitude") },
+                    supportingText = { Text("−180 to 180") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        targetStatus = "Getting current position…"
+                        useCurrentPosition(
+                            context = androidContext,
+                            onLocation = { latitude, longitude ->
+                                targetLatitudeText = latitude.toString()
+                                targetLongitudeText = longitude.toString()
+                                settings.setFloat("target_latitude", latitude.toFloat())
+                                settings.setFloat("target_longitude", longitude.toFloat())
+                                settings.setString("target_name", "Current position")
+                                targetStatus = "Current position set as target."
+                            },
+                            onError = { targetStatus = it }
+                        )
+                    }
+                ) { Text("Quick target: use current position") }
+                if (targetStatus.isNotBlank()) Text(targetStatus)
+                Spacer(Modifier.height(10.dp))
+            }
+
+            interaction.Render(
+                settingsState = settings,
+                startsImmediately = context.startsImmediately,
+                onNavigationSaved = { captureResult() }
+            )
+
+            if (!context.startsImmediately) {
+                Spacer(Modifier.height(10.dp))
+                if (result != null) {
+                    Text("Saved navigation result is ready. Use result to confirm it.")
+                }
+            }
+
+            if (!context.startsImmediately) {
+                Spacer(Modifier.height(16.dp))
+                IntentExampleDropdown(
+                    capabilityId = As100LocateTargetMethod.ID,
+                    examples = listOf(
+                        IntentExample(
+                            label = "Basic GPS navigation",
+                            description = "Navigate to default target",
+                            intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}')"
+                        ),
+                        IntentExample(
+                            label = "With target coordinates",
+                            description = "Specify target latitude and longitude",
+                            intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}',input_target_latitude='-1.28',input_target_longitude='36.81')"
+                        ),
+                        IntentExample(
+                            label = "With arrival radius",
+                            description = "Specify distance threshold for arrival detection",
+                            intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}',input_target_latitude='-1.28',input_target_longitude='36.81',input_arrival_radius='50')"
+                        )
                     )
                 )
-            )
+            }
         }
     }
 
