@@ -158,12 +158,12 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "With target coordinates",
                         description = "Specify target latitude and longitude",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}',target_latitude='-1.28',target_longitude='36.81')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}',input_target_latitude='-1.28',input_target_longitude='36.81')"
                     ),
                     IntentExample(
                         label = "With arrival radius",
                         description = "Specify distance threshold for arrival detection",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}',target_latitude='-1.28',target_longitude='36.81',arrival_radius='50')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100LocateTargetMethod.ID}',input_target_latitude='-1.28',input_target_longitude='36.81',input_arrival_radius='50')"
                     )
                 )
             )

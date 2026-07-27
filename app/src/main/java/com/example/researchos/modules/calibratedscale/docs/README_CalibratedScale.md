@@ -23,19 +23,13 @@ Horizontal lines retain their calibrated size and scroll when wider than the dis
 ## Android intent
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',return_mode='flat')
+com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',return_mode='flat')
 ```
 
-The ODK example uses a multi-field intent group. The fixed method route above
-is placed in `body::intent`; `prompt`, `vas_length_mm`, and the return fields
-are children of the same `field-list` group. ODK sends the child values as
-Android extras. No dynamic XPath is embedded in `body::intent`.
-
-Capability configuration also travels through ordinary child fields. In
-particular, the range example sends `use_range=true` and the vertical example
-sends `vertical_mode=true` as visible Yes/No fields. Do not place these flags
-inside `body::intent`: some ODK group-intent paths retain the method route but
-discard additional configuration parameters.
+The ODK examples keep static configuration in `body::intent` under the
+`input_*` namespace. Unprefixed group children are return fields only. The
+participant therefore sees the requested scale interaction rather than
+configuration fields such as orientation, physical length, or range mode.
 
 ## Inputs
 
@@ -45,21 +39,27 @@ discard additional configuration parameters.
 | `vertical_mode` | No | `true` for vertical display; otherwise horizontal. |
 | `minimum`, `maximum` | No | Numeric measurement range. |
 | `use_range` | No | Display linked lower and upper scales. |
-| `prompt`, `lower_label`, `upper_label` | No | User-facing labels. |
+| `prompt`, `hint`, `lower_label`, `upper_label` | No | User-facing question, explanatory hint, and scale labels. |
 | `show_endpoint_labels`, `show_current_score` | No | Display controls. |
 
 ## Outputs
 
-`value`, `minimum`, `maximum`, `lower_value`, `upper_value`, `use_range`, `scale_length_mm`, `scale_length_dp`, `dp_per_mm`, and `vertical_mode`.
+Scalar mode returns `value`; range mode returns `lower_value` and `upper_value`.
+The unused alternative is omitted rather than populated with a default.
+Both modes return `minimum`, `maximum`, `use_range`, `scale_length_mm`,
+`scale_length_dp`, `dp_per_mm`, and `vertical_mode`.
+
+The live current-value label always shows decimal precision (`5.0`, `5.4`, or
+`0.25` for a 0–1 scale) so the interaction is visibly continuous.
 
 ## ODK examples
 
 Each workbook is independently importable:
 
-- [`example_odk_CalibratedScale.xlsx`](example_odk_CalibratedScale.xlsx) — calibrated 50 mm, 0–100 horizontal scale.
-- [`example_odk_CalibratedScaleRange.xlsx`](example_odk_CalibratedScaleRange.xlsx) — linked lower and upper scales with editable labels.
-- [`example_odk_CalibratedScaleMinMax.xlsx`](example_odk_CalibratedScaleMinMax.xlsx) — editable custom minimum and maximum, initially 0–10.
-- [`example_odk_CalibratedScaleVertical.xlsx`](example_odk_CalibratedScaleVertical.xlsx) — calibrated 50 mm vertical scale.
+- [`example_odk_calibrated_scale.xlsx`](example_odk_calibrated_scale.xlsx) — calibrated 50 mm, 0–100 horizontal scale.
+- [`example_odk_calibrated_scale_Range.xlsx`](example_odk_calibrated_scale_Range.xlsx) — linked lower and upper scales.
+- [`example_odk_calibrated_scale_MinMax.xlsx`](example_odk_calibrated_scale_MinMax.xlsx) — fixed 0–10 bounds.
+- [`example_odk_calibrated_scale_Vertical.xlsx`](example_odk_calibrated_scale_Vertical.xlsx) — calibrated 50 mm vertical scale.
 
-All four send an editable `prompt`, wait for substantive marker movement, and
-return the selected measurement plus physical calibration evidence.
+All four send a caller-defined prompt, wait for substantive marker movement,
+and return the selected measurement plus physical calibration evidence.

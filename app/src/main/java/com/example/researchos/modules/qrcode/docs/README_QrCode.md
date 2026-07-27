@@ -21,7 +21,7 @@ com.example.researchos.EXECUTE_METHOD(method_id='qr.scan')
 Restricted formats:
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='qr.scan',barcode_formats='DATA_MATRIX|CODE_128')
+com.example.researchos.EXECUTE_METHOD(method_id='qr.scan',input_barcode_formats='DATA_MATRIX|CODE_128')
 ```
 
 ## Inputs
@@ -39,4 +39,4 @@ The payload remains read-only inside ResearchOS; its SHA-256 hash provides an in
 
 ## ODK example
 
-[`example_odk_QrCode.xlsx`](example_odk_QrCode.xlsx) launches automatic scanning and stores the decoded payload, hash, detected format, capture time, and source.
+[`example_odk_qr.scan.xlsx`](example_odk_qr.scan.xlsx) launches automatic scanning and stores the decoded payload, hash, detected format, capture time, and source.

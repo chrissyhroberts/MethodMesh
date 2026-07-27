@@ -211,7 +211,7 @@ object NfcReadCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "With study context",
                         description = "Include study and operator information",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcReadMethod.ID}',study_id='study_01',operator_id='operator_001')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcReadMethod.ID}',input_study_id='study_01',operator_id='operator_001')"
                     )
                 )
             )

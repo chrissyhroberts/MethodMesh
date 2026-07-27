@@ -226,12 +226,12 @@ object NfcProvisionCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "Provision a blank credential",
                         description = "Write and verify a ResearchOS external-type credential record.",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcProvisionMethod.ID}',credential_id='credential_001',value='replace-with-random-secret',record_type='external',mime_type='researchos:credential',overwrite_policy='empty_only')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcProvisionMethod.ID}',input_credential_id='credential_001',input_value='replace-with-random-secret',input_record_type='external',input_mime_type='researchos:credential',input_overwrite_policy='empty_only')"
                     ),
                     IntentExample(
                         label = "Controlled replacement",
                         description = "Replace only the NDEF message whose current hash is supplied.",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcProvisionMethod.ID}',credential_id='credential_001',value='replacement-secret',record_type='external',mime_type='researchos:credential',overwrite_policy='compare_and_replace',expected_current_hash='<64-character SHA-256>')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcProvisionMethod.ID}',input_credential_id='credential_001',input_value='replacement-secret',input_record_type='external',input_mime_type='researchos:credential',input_overwrite_policy='compare_and_replace',input_expected_current_hash='<64-character SHA-256>')"
                     )
                 )
             )

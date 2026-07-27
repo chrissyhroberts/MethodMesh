@@ -10,6 +10,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.nio.charset.StandardCharsets
+import java.util.Base64
 
 /**
  * JVM unit tests for RilRequestParser.
@@ -137,14 +139,14 @@ class RilParserTest {
     }
 
     @Test
-    fun `ODK group extras preserve multiline item lists without parsing punctuation`() {
+    fun `ODK namespaced inputs preserve multiline item lists without parsing punctuation`() {
         val items = "Clinic A\nClinic B\nClinic C"
         val parsed = RilTransportAdapter.parse(
             values = mapOf(
                 "method_id" to "dce.ranking",
-                "rounds" to "3",
-                "items" to items,
-                "seed" to "participant_001"
+                "input_rounds" to "3",
+                "input_items" to items,
+                "input_seed" to "participant_001"
             ),
             source = "android_extras"
         )
@@ -155,16 +157,93 @@ class RilParserTest {
     }
 
     @Test
-    fun `ODK group extras preserve conjoint class syntax as data`() {
+    fun `ODK namespaced inputs preserve conjoint class syntax as data`() {
         val classes = "BRAND: Panasonic, Sony\nFEATURE: Basic, Premium\nPRICE: 100, 200"
         val parsed = RilTransportAdapter.parse(
             values = mapOf(
                 "method_id" to "dce.conjoint",
-                "classes" to classes
+                "input_classes" to classes
             ),
             source = "android_extras"
         )
 
         assertEquals(classes, parsed.settings["classes"])
+    }
+
+    @Test
+    fun `unprefixed return placeholders never become capability settings`() {
+        val parsed = RilTransportAdapter.parse(
+            values = mapOf(
+                "method_id" to "calibrated_scale",
+                "input_use_range" to "true",
+                "use_range" to "",
+                "value" to "0"
+            ),
+            source = "android_extras"
+        )
+
+        assertEquals("true", parsed.settings["use_range"])
+        assertNull(parsed.settings["value"])
+    }
+
+    @Test
+    fun `legacy unprefixed capability inputs are rejected`() {
+        val parsed = RilTransportAdapter.parse(
+            values = mapOf(
+                "method_id" to "calibrated_scale",
+                "vas_length_mm" to "50",
+                "vertical_mode" to "true"
+            ),
+            source = "android_extras"
+        )
+
+        assertTrue(parsed.settings.isEmpty())
+    }
+
+    @Test
+    fun `URL safe Base64 inputs decode structured values`() {
+        val classes = "BRAND: Panasonic, Sony\nFEATURE: Basic, Premium"
+        val encoded = Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString(classes.toByteArray(StandardCharsets.UTF_8))
+        val parsed = RilTransportAdapter.parse(
+            values = mapOf(
+                "method_id" to "dce.conjoint",
+                "input64_classes" to encoded
+            ),
+            source = "android_action"
+        )
+
+        assertEquals(classes, parsed.settings["classes"])
+    }
+
+    @Test
+    fun `encoded input deterministically overrides duplicate plain input`() {
+        val encoded = Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString("encoded value".toByteArray(StandardCharsets.UTF_8))
+        val parsed = RilTransportAdapter.parse(
+            values = mapOf(
+                "method_id" to "dce.ranking",
+                "input_items" to "plain value",
+                "input64_items" to encoded
+            ),
+            source = "android_action"
+        )
+
+        assertEquals("encoded value", parsed.settings["items"])
+    }
+
+    @Test
+    fun `malformed Base64 input is ignored`() {
+        val parsed = RilTransportAdapter.parse(
+            values = mapOf(
+                "method_id" to "dce.conjoint",
+                "input64_classes" to "not valid base64!"
+            ),
+            source = "android_action"
+        )
+
+        assertNull(parsed.settings["classes"])
     }
 }

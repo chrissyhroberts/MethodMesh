@@ -16,21 +16,19 @@ never complete until the participant has answered every required round.
 
 ## Android intent
 
-For ODK multi-field intents, place the fixed method route in the
-`body::intent` cell:
+For ODK multi-field intents, place the method and its static task definition in
+the `body::intent` cell. For example:
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='dce.pairwise',return_mode='flat')
+com.example.researchos.EXECUTE_METHOD(method_id='dce.pairwise',input_rounds='5',input64_items='UGFuYXNvbmljClNvbnkKTmludGVuZG8KU2Ftc3VuZw',return_mode='flat')
 ```
 
-Replace `dce.pairwise` with the required capability ID. Put only the
-configuration inputs and return fields inside the same `field-list` group.
-ResearchOS receives those child fields as Android extras. Do not rely on a
-calculated `method_id` child field: ODK does not pass it as the routing action.
+`input64_items` is URL-safe Base64 without padding. ResearchOS decodes it to the
+UTF-8 item list before invoking the module. This keeps study-design settings
+out of the participant interface and submission dataset.
 
-Do not interpolate a list field into the intent expression. For example, avoid
-`items='${items}'` or `classes='${classes}'`: ODK then has to parse substituted
-list punctuation as part of the expression.
+When a study genuinely collects a configuration value from the user, pass it
+as an `input_*` child field. Unprefixed child fields are outputs.
 
 ## Inputs
 
@@ -53,8 +51,8 @@ FEATURE: Basic, Premium
 PRICE: Low, Medium, High
 ```
 
-These strings are ordinary form data sent as intent extras. Colons, commas,
-newlines, and pipes never appear in the fixed `body::intent` expression.
+Static lists are encoded with `input64_`, so colons, commas, newlines, and pipes
+never appear as XLSForm intent syntax.
 
 ## Outputs
 
@@ -64,8 +62,8 @@ All methods return `method`, `module`, `result_json`, `session_id`, `seed`, `rou
 
 The module includes one independently importable example for each method:
 
-- [`example_odk_ChoicePairwise.xlsx`](example_odk_ChoicePairwise.xlsx)
-- [`example_odk_ChoiceMaxDiff.xlsx`](example_odk_ChoiceMaxDiff.xlsx)
-- [`example_odk_ChoiceRanking.xlsx`](example_odk_ChoiceRanking.xlsx)
-- [`example_odk_ChoicePoints.xlsx`](example_odk_ChoicePoints.xlsx)
-- [`example_odk_ChoiceConjoint.xlsx`](example_odk_ChoiceConjoint.xlsx)
+- [`example_odk_dce.pairwise.xlsx`](example_odk_dce.pairwise.xlsx)
+- [`example_odk_dce.maxdiff.xlsx`](example_odk_dce.maxdiff.xlsx)
+- [`example_odk_dce.ranking.xlsx`](example_odk_dce.ranking.xlsx)
+- [`example_odk_dce.points.xlsx`](example_odk_dce.points.xlsx)
+- [`example_odk_dce.conjoint.xlsx`](example_odk_dce.conjoint.xlsx)

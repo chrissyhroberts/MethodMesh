@@ -195,12 +195,12 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
                         IntentExample(
                             label = "Restricted formats",
                             description = "Accept only Data Matrix and Code 128",
-                            intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}',barcode_formats='DATA_MATRIX|CODE_128')"
+                            intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}',input_barcode_formats='DATA_MATRIX|CODE_128')"
                         ),
                         IntentExample(
                             label = "With study context",
                             description = "Include study and operator information",
-                            intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}',study_id='study_01',operator_id='operator_001')"
+                            intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}',input_study_id='study_01',operator_id='operator_001')"
                         )
                     )
                 )

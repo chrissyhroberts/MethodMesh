@@ -274,22 +274,22 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "Write study ID",
                         description = "Write a study identifier to a tag",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',value='study_01',record_type='application/x-studyid',overwrite_policy='empty_only')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',input_value='study_01',input_record_type='application/x-studyid',input_overwrite_policy='empty_only')"
                     ),
                     IntentExample(
                         label = "Write participant ID",
                         description = "Write participant information to a tag",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',value='participant_P001',record_type='application/x-participantid',overwrite_policy='replace')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',input_value='participant_P001',input_record_type='application/x-participantid',input_overwrite_policy='replace')"
                     ),
                     IntentExample(
                         label = "Write JSON data",
                         description = "Write structured JSON to a tag",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',value='{\"study\":\"study_01\",\"event\":\"enrollment\"}',record_type='application/json',overwrite_policy='replace')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',input_value='{\"study\":\"study_01\",\"event\":\"enrollment\"}',input_record_type='application/json',input_overwrite_policy='replace')"
                     ),
                     IntentExample(
                         label = "Write plain text",
                         description = "Write simple text data to a tag",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',value='Hello NFC tag',record_type='text/plain',overwrite_policy='empty_only')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',input_value='Hello NFC tag',input_record_type='text/plain',input_overwrite_policy='empty_only')"
                     )
                 )
             )

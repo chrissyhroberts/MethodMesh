@@ -11,7 +11,7 @@ Uses the Android location device service and compass sensors to calculate distan
 ## Android intent
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='gps_target_navigator',target_name='Clinic',target_latitude='-1.28',target_longitude='36.81',arrival_radius_m='50')
+com.example.researchos.EXECUTE_METHOD(method_id='gps_target_navigator',input_target_name='Clinic',input_target_latitude='-1.28',input_target_longitude='36.81',input_arrival_radius_m='50')
 ```
 
 ## Inputs
@@ -32,4 +32,4 @@ Location permission is requested through Android when necessary.
 
 ## ODK example
 
-[`example_odk_GpsTargetNavigator.xlsx`](example_odk_GpsTargetNavigator.xlsx) accepts target coordinates and an arrival radius, launches navigation, and receives the resulting location fields.
+[`example_odk_gps_target_navigator.xlsx`](example_odk_gps_target_navigator.xlsx) accepts target coordinates and an arrival radius, launches navigation, and receives the resulting location fields.

@@ -141,17 +141,21 @@ object As100CalibratedScaleMethod : As100Method {
         val lengthMm = settingsState.getFloat("vas_length_mm").coerceIn(40f, 200f)
         val calibration = CalibrationRepository.current()
 
-        return linkedMapOf(
-            "value" to value,
+        return linkedMapOf<String, Any?>(
             "minimum" to minimum,
             "maximum" to maximum,
-            "lower_value" to normalisedLower,
-            "upper_value" to normalisedUpper,
             "use_range" to useRange,
             "scale_length_mm" to lengthMm,
             "scale_length_dp" to scaleLengthDp(lengthMm, calibration.dpPerMm),
             "dp_per_mm" to calibration.dpPerMm,
             "vertical_mode" to settingsState.getBoolean("vertical_mode")
-        )
+        ).apply {
+            if (useRange) {
+                put("lower_value", normalisedLower)
+                put("upper_value", normalisedUpper)
+            } else {
+                put("value", value)
+            }
+        }
     }
 }

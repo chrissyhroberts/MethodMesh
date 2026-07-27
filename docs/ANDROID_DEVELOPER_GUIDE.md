@@ -61,22 +61,32 @@ The method selector is:
 method_id='<canonical method ID>'
 ```
 
-ODK multi-field calls use the action in the `body::intent` cell and `field-list` in the group appearance. Function-style parameters are parsed from the action, while group fields are delivered as string extras. Blank return fields never override non-blank explicit parameters.
+ODK multi-field calls use the action in the `body::intent` cell and `field-list`
+in the group appearance. Capability inputs use the generic `input_` namespace;
+ResearchOS removes that prefix before presenting the settings to the module.
+Unprefixed child fields are outputs and are never interpreted as capability
+configuration.
 
 Example:
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',event_payload_hash=${event_payload_hash},verification_method='Fingerprint',trusted_timestamp='preferred',return_mode='flat')
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',input_event_payload_hash=${form_payload_hash},input_verification_method='Fingerprint',input_trusted_timestamp='preferred',return_mode='flat')
 ```
 
-Old method aliases and old transport keys are not accepted. Callers must use canonical IDs and the current parameter names.
+Static structured strings that are unsafe or unwieldy in XLSForm intent syntax
+may use `input64_<name>`, containing URL-safe Base64 without padding. ResearchOS
+decodes the UTF-8 value and exposes it to the module as `<name>`.
+
+Transport keys such as `method_id`, `return_mode`, `returns`, and core invocation
+context remain unprefixed. Old method aliases, unprefixed capability settings,
+and old transport keys are not accepted.
 
 ## RIL transport
 
 RIL is the canonical internal request representation. Direct transport uses:
 
 - `ril` for a complete RIL request; or
-- `method_id` plus method-specific settings;
+- `method_id` plus `input_`-prefixed method settings;
 - `returns` for graph selectors;
 - `return_mode` for the requested shape.
 

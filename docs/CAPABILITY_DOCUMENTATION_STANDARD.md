@@ -44,12 +44,24 @@ XLSForm workbook containing sheets named:
 - `choices`;
 - `settings`.
 
+The canonical capability ID is the naming authority. A workbook is named
+`example_odk_<method-id>.xlsx`, and its `settings.form_title` is exactly
+`<method-id>`. A workbook demonstrating a verification or presentation variant
+uses the same suffix in both places, for example
+`example_odk_attestation.create_Fingerprint.xlsx` with
+`form_title=attestation.create_Fingerprint`.
+
 Each workbook should exercise one public capability. Intent-driven examples must:
 
 - use `com.example.researchos.EXECUTE_METHOD`;
 - identify the requested method explicitly;
 - place the action on a `begin_group` with `appearance` set to `field-list` when several values are returned;
 - include child fields whose names match returned intent extras;
+- prefix every capability input with `input_`; unprefixed fields are outputs;
+- place static configuration directly in `body::intent` so it does not appear
+  as a question or stored field in the study dataset;
+- use `input64_` with URL-safe Base64 without padding for static structured
+  values whose punctuation is unsafe in XLSForm intent syntax;
 - follow a known-working ODK pattern for those return fields, including read-only
   display fields where the deployed Collect version supports them;
 - demonstrate the smallest useful input contract while retaining any safety-critical policy.

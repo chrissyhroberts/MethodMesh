@@ -114,6 +114,54 @@ class CapabilityDocumentationTest {
         )
     }
 
+    @Test
+    fun `capability ODK filenames and form titles use canonical capability names`() {
+        val failures = discoverModuleFolders().flatMap { module ->
+            capabilityOdkExamples(File(module, "docs")).mapNotNull { workbook ->
+                val canonicalName = workbook.name
+                    .removePrefix("example_odk_")
+                    .removeSuffix(".xlsx")
+                val xmlText = workbookXml(workbook)
+                    .getOrElse { return@mapNotNull "${module.name}/${workbook.name}: ${it.message}" }
+                if (">$canonicalName<" !in xmlText) {
+                    "${module.name}/${workbook.name}: settings form_title must be '$canonicalName'"
+                } else {
+                    null
+                }
+            }
+        }
+        assertTrue(
+            "Capability XLSForm naming violations:\n${failures.joinToString("\n")}",
+            failures.isEmpty()
+        )
+    }
+
+    @Test
+    fun `flat capability inputs use the explicit input namespace`() {
+        val allowedUnprefixed = setOf(
+            "method_id", "return_mode", "returns",
+            "caller", "entity_type", "entity_id", "subject_id",
+            "participant_id", "specimen_id", "visit_id", "form_id", "operator_id"
+        )
+        val failures = discoverModuleFolders().flatMap { module ->
+            capabilityOdkExamples(File(module, "docs")).flatMap { workbook ->
+                val xmlText = workbookXml(workbook)
+                    .getOrElse { return@flatMap listOf("${module.name}/${workbook.name}: ${it.message}") }
+                Regex("""(?:\(|,)\s*([A-Za-z][A-Za-z0-9_]*)\s*=""")
+                    .findAll(xmlText)
+                    .map { it.groupValues[1] }
+                    .filterNot { it in allowedUnprefixed || it.startsWith("input_") || it.startsWith("input64_") }
+                    .distinct()
+                    .map { "${module.name}/${workbook.name}: unnamespaced capability input '$it'" }
+                    .toList()
+            }
+        }
+        assertTrue(
+            "Capability XLSForm input-namespace violations:\n${failures.joinToString("\n")}",
+            failures.isEmpty()
+        )
+    }
+
     private fun discoverModuleFolders(): List<File> = moduleRoot.listFiles().orEmpty()
         .filter(File::isDirectory)
         .filter { module -> module.listFiles().orEmpty().any { it.name.endsWith("Module.kt") } }
@@ -126,4 +174,14 @@ class CapabilityDocumentationTest {
     private fun capabilityOdkExamples(docs: File): List<File> = docs.listFiles().orEmpty()
         .filter { it.isFile && it.name.startsWith("example_odk_") && it.extension == "xlsx" }
         .sortedBy(File::getName)
+
+    private fun workbookXml(workbook: File): Result<String> = runCatching {
+        ZipFile(workbook).use { zip ->
+            zip.entries().asSequence()
+                .filter { !it.isDirectory && it.name.endsWith(".xml") }
+                .joinToString("\n") { entry ->
+                    zip.getInputStream(entry).bufferedReader().readText()
+                }
+        }
+    }
 }

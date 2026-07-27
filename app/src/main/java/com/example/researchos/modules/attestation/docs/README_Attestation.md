@@ -18,17 +18,17 @@ Every signed-event call needs the method, the caller-computed SHA-256 hash, a
 verification method, and a timestamp policy. The compact fingerprint form is:
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',event_payload_hash=${form_payload_hash},verification_method='Fingerprint',trusted_timestamp='preferred',return_mode='flat')
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',input_event_payload_hash=${form_payload_hash},input_verification_method='Fingerprint',input_trusted_timestamp='preferred',return_mode='flat')
 ```
 
 Use the same call with one of these verification controls:
 
 ```text
-verification_method='Fingerprint'
-verification_method='Pin'
-verification_method='Qr'
-verification_method='Nfc'
-verification_method='Password',verification_evidence=${study_evidence_token}
+input_verification_method='Fingerprint'
+input_verification_method='Pin'
+input_verification_method='Qr'
+input_verification_method='Nfc'
+input_verification_method='Password',input_verification_evidence=${study_evidence_token}
 ```
 
 `Pin` delegates to Android device credential, which may be a PIN, pattern, or
@@ -45,7 +45,7 @@ Timestamp policy accepts:
 Create a chain anchor with:
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='attestation.anchor_bundle',study_id='my_study',operator_id='operator_001',return_mode='flat')
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.anchor_bundle',input_study_id='my_study',operator_id='operator_001',return_mode='flat')
 ```
 
 ## Inputs
@@ -100,31 +100,26 @@ The signed-event examples are based on the field-tested fingerprint form. Each
 uses the same ODK-side SHA-256 calculation and complete return contract, with a
 different verification dependency:
 
-- [`example_odk_AttestationFingerprint.xlsx`](example_odk_AttestationFingerprint.xlsx)
-- [`example_odk_AttestationPin.xlsx`](example_odk_AttestationPin.xlsx) — Android PIN, pattern, or password
-- [`example_odk_AttestationQr.xlsx`](example_odk_AttestationQr.xlsx)
-- [`example_odk_AttestationNfc.xlsx`](example_odk_AttestationNfc.xlsx)
-- [`example_odk_AttestationPassword.xlsx`](example_odk_AttestationPassword.xlsx) — caller-supplied study evidence token
+- [`example_odk_attestation.create_Fingerprint.xlsx`](example_odk_attestation.create_Fingerprint.xlsx)
+- [`example_odk_attestation.create_Pin.xlsx`](example_odk_attestation.create_Pin.xlsx) — Android PIN, pattern, or password
+- [`example_odk_attestation.create_Qr.xlsx`](example_odk_attestation.create_Qr.xlsx)
+- [`example_odk_attestation.create_Nfc.xlsx`](example_odk_attestation.create_Nfc.xlsx)
+- [`example_odk_attestation.create_Password.xlsx`](example_odk_attestation.create_Password.xlsx) — caller-supplied study evidence token
 
 Each form lets the tester choose `disabled`, `preferred`, or `required`
-timestamping. [`example_odk_AttestationAnchor.xlsx`](example_odk_AttestationAnchor.xlsx)
+timestamping. [`example_odk_attestation.anchor_bundle.xlsx`](example_odk_attestation.anchor_bundle.xlsx)
 creates and returns an anchor bundle for the current device chain.
 
 ### Important group-intent rule
 
-ODK Collect sends the text and numeric fields inside a `field-list` intent group
-as input extras as well as using them as return targets. If a child field has the
-same name as a parameter in `body::intent`, Collect overrides the explicit
-parameter with the child field's current value. A blank return placeholder can
-therefore erase a valid request value before ResearchOS is launched.
-
-The examples deliberately keep these request-only names out of the return group:
+Capability inputs use the `input_*` namespace. Unprefixed group children are
+outputs and ResearchOS never treats them as settings, so blank return
+placeholders cannot erase request configuration. For example:
 
 ```text
-study_id
-event_type
-event_payload_hash
-verification_method
+input_event_payload_hash
+input_verification_method
+input_trusted_timestamp
 ```
 
 The ODK-calculated hash remains stored outside the return group as

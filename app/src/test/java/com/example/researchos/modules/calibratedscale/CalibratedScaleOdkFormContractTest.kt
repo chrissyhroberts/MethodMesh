@@ -14,14 +14,10 @@ class CalibratedScaleOdkFormContractTest {
             File("app/src/main/java/com/example/researchos/modules/calibratedscale/docs")
         ).firstOrNull(File::isDirectory) ?: error("Cannot locate calibrated-scale docs")
         val requiredIntentByWorkbook = mapOf(
-            "example_odk_CalibratedScale.xlsx" to
-                "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',return_mode='flat')",
-            "example_odk_CalibratedScaleRange.xlsx" to
-                "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',return_mode='flat')",
-            "example_odk_CalibratedScaleMinMax.xlsx" to
-                "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',return_mode='flat')",
-            "example_odk_CalibratedScaleVertical.xlsx" to
-                "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',return_mode='flat')"
+            "example_odk_calibrated_scale.xlsx" to "input_vas_length_mm='50'",
+            "example_odk_calibrated_scale_Range.xlsx" to "input_use_range='true'",
+            "example_odk_calibrated_scale_MinMax.xlsx" to "input_minimum='0',input_maximum='10'",
+            "example_odk_calibrated_scale_Vertical.xlsx" to "input_vertical_mode='true'"
         )
 
         requiredIntentByWorkbook.forEach { (fileName, requiredIntent) ->
@@ -36,20 +32,25 @@ class CalibratedScaleOdkFormContractTest {
             }
 
             assertTrue(
-                "$fileName must route directly to calibrated_scale",
+                "$fileName must include its namespaced configuration",
                 requiredIntent in xml
             )
+            assertTrue("$fileName must route directly to calibrated_scale", "method_id='calibrated_scale'" in xml)
             assertFalse(
                 "$fileName must not depend on an interpolated method ID",
                 "\${method_id}" in xml
             )
             assertTrue(
-                "$fileName must send a caller-editable prompt",
-                "Question shown above the scale" in xml && "Rate your pain" in xml
+                "$fileName must send the prompt without exposing a configuration field",
+                "input_prompt='Rate your pain'" in xml
+            )
+            assertTrue(
+                "$fileName must send a participant hint",
+                "input_hint='0 means no pain; 100 means the worst pain you can imagine'" in xml
             )
             assertTrue(
                 "$fileName must use the current example version",
-                "2026072706" in xml
+                "2026072709" in xml
             )
         }
 
@@ -62,28 +63,26 @@ class CalibratedScaleOdkFormContractTest {
                     }
             }
 
-        val rangeXml = workbookXml("example_odk_CalibratedScaleRange.xlsx")
-        assertTrue("Range example must supply labels", "lower_label" in rangeXml && "upper_label" in rangeXml)
+        val rangeXml = workbookXml("example_odk_calibrated_scale_Range.xlsx")
+        assertTrue("Range example must supply labels", "input_lower_label" in rangeXml && "input_upper_label" in rangeXml)
         assertTrue(
-            "Range example must send use_range as an ordinary group field",
-            "Use two scales" in rangeXml && "select_one boolean_value" in rangeXml
+            "Range configuration must live in the intent rather than participant fields",
+            "input_use_range='true'" in rangeXml
         )
-        assertFalse(
-            "Range configuration must not depend on a body-intent parameter",
-            "use_range='true'" in rangeXml
-        )
+        assertFalse("Range example must not create a scalar value column", ">value<" in rangeXml)
+        assertTrue("Range example must return the lower value", ">lower_value<" in rangeXml)
+        assertTrue("Range example must return the upper value", ">upper_value<" in rangeXml)
 
-        val minMaxXml = workbookXml("example_odk_CalibratedScaleMinMax.xlsx")
-        assertTrue("Min/max example must supply both bounds", "Minimum value" in minMaxXml && "Maximum value" in minMaxXml)
+        val minMaxXml = workbookXml("example_odk_calibrated_scale_MinMax.xlsx")
+        assertTrue("Min/max example must supply both bounds", "input_minimum='0'" in minMaxXml && "input_maximum='10'" in minMaxXml)
+        assertTrue("Scalar examples must return value", ">value<" in minMaxXml)
+        assertFalse("Scalar examples must not create lower-value columns", ">lower_value<" in minMaxXml)
+        assertFalse("Scalar examples must not create upper-value columns", ">upper_value<" in minMaxXml)
 
-        val verticalXml = workbookXml("example_odk_CalibratedScaleVertical.xlsx")
+        val verticalXml = workbookXml("example_odk_calibrated_scale_Vertical.xlsx")
         assertTrue(
-            "Vertical example must send vertical_mode as an ordinary group field",
-            "Vertical orientation" in verticalXml && "select_one boolean_value" in verticalXml
-        )
-        assertFalse(
-            "Vertical configuration must not depend on a body-intent parameter",
-            "vertical_mode='true'" in verticalXml
+            "Vertical configuration must live in the intent rather than participant fields",
+            "input_vertical_mode='true'" in verticalXml
         )
     }
 }

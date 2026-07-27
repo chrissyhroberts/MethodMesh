@@ -98,8 +98,7 @@ class AttestationOdkIntentContractTest {
     private fun signedAttestationExamples(): List<File> = docsDirectory.listFiles().orEmpty()
         .filter {
             it.isFile &&
-                it.name.startsWith("example_odk_Attestation") &&
-                it.name != "example_odk_AttestationAnchor.xlsx" &&
+                it.name.startsWith("example_odk_attestation.create_") &&
                 it.extension == "xlsx"
         }
         .sortedBy(File::getName)

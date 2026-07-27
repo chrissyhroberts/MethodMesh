@@ -128,6 +128,14 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
             Spacer(Modifier.height(8.dp))
 
             OutlinedTextField(
+                value = settings.getString("hint"),
+                onValueChange = { settings.setString("hint", it) },
+                label = { Text("Participant hint") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
+
+            OutlinedTextField(
                 value = settings.getFloat("vas_length_mm").toString(),
                 onValueChange = { value ->
                     value.toFloatOrNull()
@@ -278,27 +286,27 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "Basic scale measurement",
                         description = "Capture a simple 0-100 scale value",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine')"
                     ),
                     IntentExample(
                         label = "Custom range (0-10)",
                         description = "Measure on a custom range",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',minimum='0',maximum='10')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_minimum='0',input_maximum='10')"
                     ),
                     IntentExample(
                         label = "Dual range measurement",
                         description = "Capture both lower and upper values",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',use_range='true',lower_label='Minimum pain',upper_label='Maximum pain')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_use_range='true',input_lower_label='Minimum pain',input_upper_label='Maximum pain')"
                     ),
                     IntentExample(
                         label = "Calibrated 5 cm horizontal scale",
                         description = "Display a physically calibrated 50 mm line",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',vas_length_mm='50',vertical_mode='false')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_vas_length_mm='50',input_vertical_mode='false')"
                     ),
                     IntentExample(
                         label = "Calibrated 5 cm vertical scale",
                         description = "Display the same physical length vertically",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',vas_length_mm='50',vertical_mode='true')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_vas_length_mm='50',input_vertical_mode='true')"
                     )
                 )
             )

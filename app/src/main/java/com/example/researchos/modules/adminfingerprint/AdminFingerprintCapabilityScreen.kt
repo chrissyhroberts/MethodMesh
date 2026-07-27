@@ -219,17 +219,17 @@ object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "Biometric access",
                         description = "Require an enrolled Android biometric",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',authentication_method='biometric')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',input_authentication_method='biometric')"
                     ),
                     IntentExample(
                         label = "PIN, pattern or password",
                         description = "Require the configured Android device credential",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',authentication_method='device_credential')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',input_authentication_method='device_credential')"
                     ),
                     IntentExample(
                         label = "Either local method",
                         description = "Allow biometric or device credential",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',authentication_method='biometric_or_device_credential')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',input_authentication_method='biometric_or_device_credential')"
                     )
                 )
             )

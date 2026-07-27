@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import com.example.researchos.calibration.CalibrationRepository
 import com.example.researchos.settings.MethodSetting
 import com.example.researchos.settings.SettingsState
+import java.util.Locale
+import kotlin.math.abs
 
 class CalibratedScaleInteraction {
 
@@ -56,6 +58,12 @@ class CalibratedScaleInteraction {
             label = "Prompt",
             group = "Scale",
             defaultValue = "Rate your pain"
+        ),
+        MethodSetting.TextSetting(
+            id = "hint",
+            label = "Hint",
+            group = "Scale",
+            defaultValue = ""
         ),
         MethodSetting.FloatSetting(
             id = "minimum",
@@ -160,6 +168,13 @@ class CalibratedScaleInteraction {
 
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(settingsState.getString("prompt"))
+            settingsState.getString("hint").takeIf(String::isNotBlank)?.let { hint ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = hint,
+                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -371,7 +386,7 @@ class CalibratedScaleInteraction {
 
                     if (showCurrentValue) {
                         Text(
-                            text = current.toInt().toString(),
+                            text = formatScaleCurrentValue(current, scaleMinimum, scaleMaximum),
                             textAlign = TextAlign.Center,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -546,6 +561,15 @@ class CalibratedScaleInteraction {
     }
 
 
+}
+
+internal fun formatScaleCurrentValue(
+    value: Float,
+    minimum: Float,
+    maximum: Float
+): String {
+    val decimals = if (abs(maximum - minimum) <= 1f) 2 else 1
+    return String.format(Locale.ROOT, "%.${decimals}f", value)
 }
 
 internal fun scaleLengthDp(lengthMm: Float, dpPerMm: Float): Float =

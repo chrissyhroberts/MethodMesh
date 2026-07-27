@@ -134,60 +134,60 @@ internal abstract class DceCapabilityScreen(
             IntentExample(
                 label = "Pairwise comparison (3 rounds)",
                 description = "Compare 3 options in pairwise rounds",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.pairwise',items='Option A|Option B|Option C',rounds='3')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.pairwise',input64_items='T3B0aW9uIEF8T3B0aW9uIEJ8T3B0aW9uIEM',input_rounds='3')"
             ),
             IntentExample(
                 label = "With seed",
                 description = "Reproducible design using a seed",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.pairwise',options='Speed|Cost|Safety',rounds='4',seed='study_001')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.pairwise',input64_options='U3BlZWR8Q29zdHxTYWZldHk',input_rounds='4',input_seed='study_001')"
             )
         )
         DceMethod.MaxDiff -> listOf(
             IntentExample(
                 label = "Best-worst scaling (4 rounds)",
                 description = "Select best and worst from attribute sets",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.maxdiff',items='Speed|Cost|Safety|Comfort',rounds='4')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.maxdiff',input64_items='U3BlZWR8Q29zdHxTYWZldHl8Q29tZm9ydA',input_rounds='4')"
             ),
             IntentExample(
                 label = "4 items per round",
                 description = "Show 4 items in each round",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.maxdiff',options='Quality|Price|Service|Selection',rounds='5',items_per_round='4')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.maxdiff',input64_options='UXVhbGl0eXxQcmljZXxTZXJ2aWNlfFNlbGVjdGlvbg',input_rounds='5',input_items_per_round='4')"
             )
         )
         DceMethod.Ranking -> listOf(
             IntentExample(
                 label = "Full ranking",
                 description = "Rank all options from best to worst",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.ranking',items='First|Second|Third|Fourth',rounds='3')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.ranking',input64_items='Rmlyc3R8U2Vjb25kfFRoaXJkfEZvdXJ0aA',input_rounds='3')"
             ),
             IntentExample(
                 label = "Top-k ranking",
                 description = "Rank only top 3 options",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.ranking',options='Option1|Option2|Option3|Option4|Option5',top_k='3')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.ranking',input64_options='T3B0aW9uMXxPcHRpb24yfE9wdGlvbjN8T3B0aW9uNHxPcHRpb241',input_top_k='3')"
             )
         )
         DceMethod.Points -> listOf(
             IntentExample(
                 label = "100-point allocation",
                 description = "Distribute 100 points across options",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.points',items='Feature A|Feature B|Feature C|Feature D',points='100')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.points',input64_items='RmVhdHVyZSBBfEZlYXR1cmUgQnxGZWF0dXJlIEN8RmVhdHVyZSBE',input_points='100')"
             ),
             IntentExample(
                 label = "Custom points budget",
                 description = "Allocate custom number of points",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.points',options='Attr1|Attr2|Attr3',points='50')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.points',input64_options='QXR0cjF8QXR0cjJ8QXR0cjM',input_points='50')"
             )
         )
         DceMethod.Conjoint -> listOf(
             IntentExample(
                 label = "Conjoint analysis (3 profiles)",
                 description = "Choose preferred product profiles",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.conjoint',rounds='3',classes='BRAND:Panasonic,Sony,Nintendo|FEATURE:Basic,Premium|PRICE:Low,Medium,High',profiles_per_round='2')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.conjoint',input_rounds='3',input64_classes='QlJBTkQ6UGFuYXNvbmljLFNvbnksTmludGVuZG98RkVBVFVSRTpCYXNpYyxQcmVtaXVtfFBSSUNFOkxvdyxNZWRpdW0sSGlnaA',input_profiles_per_round='2')"
             ),
             IntentExample(
                 label = "With predefined attributes",
                 description = "Conjoint with specific attributes",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.conjoint',rounds='5',classes='BRAND:Panasonic,Sony|FEATURE:Basic,Premium|PRICE:100,150,200',profiles_per_round='2',seed='study_001')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.conjoint',input_rounds='5',input64_classes='QlJBTkQ6UGFuYXNvbmljLFNvbnl8RkVBVFVSRTpCYXNpYyxQcmVtaXVtfFBSSUNFOjEwMCwxNTAsMjAw',input_profiles_per_round='2',input_seed='study_001')"
             )
         )
     }

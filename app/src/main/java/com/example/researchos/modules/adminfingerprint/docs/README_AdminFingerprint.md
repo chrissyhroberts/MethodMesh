@@ -17,7 +17,7 @@ Android reports PIN, pattern, and password collectively as `device_credential`.
 ## Android intent
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',authentication_method='device_credential')
+com.example.researchos.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',input_authentication_method='device_credential')
 ```
 
 External calls open the requested Android prompt immediately and return automatically. Manual/debug execution requires **Use result**.
@@ -41,4 +41,4 @@ External calls open the requested Android prompt immediately and return automati
 
 ## ODK example
 
-[`example_odk_AdminFingerprint.xlsx`](example_odk_AdminFingerprint.xlsx) demonstrates biometric-only, device-credential-only, and either-method access calls.
+[`example_odk_admin_fingerprint_confirmation.xlsx`](example_odk_admin_fingerprint_confirmation.xlsx) demonstrates biometric-only, device-credential-only, and either-method access calls.

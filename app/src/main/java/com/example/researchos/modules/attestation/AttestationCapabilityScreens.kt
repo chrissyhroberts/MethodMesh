@@ -300,17 +300,17 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "Basic attestation",
                         description = "Sign an event with fingerprint verification",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',verification_method='Fingerprint',trusted_timestamp='preferred',return_mode='flat')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',input_event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',input_verification_method='Fingerprint',input_trusted_timestamp='preferred',return_mode='flat')"
                     ),
                     IntentExample(
                         label = "With event context",
                         description = "Include study, operator, and event information",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',study_id='study_01',operator_id='op_001',event_type='form_submission',verification_method='Fingerprint',trusted_timestamp='preferred',return_mode='flat')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',input_event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',input_study_id='study_01',operator_id='op_001',input_event_type='form_submission',input_verification_method='Fingerprint',input_trusted_timestamp='preferred',return_mode='flat')"
                     ),
                     IntentExample(
                         label = "With NFC verification",
                         description = "Use NFC tag reading for verification",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',verification_method='Nfc',trusted_timestamp='preferred',return_mode='flat')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',input_event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',input_verification_method='Nfc',input_trusted_timestamp='preferred',return_mode='flat')"
                     )
                 )
             )
@@ -404,7 +404,7 @@ object AttestationAnchorCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "With study context",
                         description = "Include study and operator information",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationAnchorMethod.ID}',study_id='study_01',operator_id='op_001')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationAnchorMethod.ID}',input_study_id='study_01',operator_id='op_001')"
                     )
                 )
             )

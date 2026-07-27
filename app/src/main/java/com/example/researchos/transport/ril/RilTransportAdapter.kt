@@ -2,6 +2,8 @@ package com.example.researchos.transport.ril
 
 import com.example.researchos.transport.GraphSelectorParser
 import com.example.researchos.transport.ParsedLaunchConfig
+import java.nio.charset.StandardCharsets
+import java.util.Base64
 
 /**
  * Transport adapter that makes RIL the canonical internal request path.
@@ -75,15 +77,46 @@ object RilTransportAdapter {
     private fun transportContext(values: Map<String, String>): Map<String, String> = values
         .filterKeys { key -> key in contextKeys }
 
-    private fun transportSettings(values: Map<String, String>): Map<String, String> = values
-        .filterKeys { key -> key !in reservedKeys && key !in contextKeys }
+    /**
+     * Flat Android/ODK transport has a deliberately explicit input namespace.
+     *
+     * `input_<name>` is exposed to the capability as `<name>`. Unprefixed
+     * unknown keys are caller return placeholders and are ignored. This keeps
+     * output fields from accidentally overriding capability configuration.
+     *
+     * `input64_<name>` is the same contract with a URL-safe Base64 encoded
+     * UTF-8 value. It is useful for static structured inputs whose punctuation
+     * is awkward in XLSForm intent syntax.
+     */
+    private fun transportSettings(values: Map<String, String>): Map<String, String> = buildMap {
+        values.filterKeys { it.startsWith(INPUT_PREFIX) }.forEach { (key, value) ->
+            val setting = key.removePrefix(INPUT_PREFIX)
+            if (setting.isNotBlank() && value.isNotBlank()) put(setting, value)
+        }
+        values.filterKeys { it.startsWith(INPUT64_PREFIX) }.forEach { (key, value) ->
+            val setting = key.removePrefix(INPUT64_PREFIX)
+            decodeUrlSafeBase64(value)?.let { decoded ->
+                if (setting.isNotBlank()) put(setting, decoded)
+            }
+        }
+    }
+
+    private fun decodeUrlSafeBase64(value: String): String? {
+        if (value.isBlank()) return null
+        val padding = "=".repeat((4 - value.length % 4) % 4)
+        return runCatching {
+            String(
+                Base64.getUrlDecoder().decode(value + padding),
+                StandardCharsets.UTF_8
+            )
+        }.getOrNull()
+    }
 
     private val contextKeys = setOf(
         "caller", "entity_type", "entity_id", "participant_id", "specimen_id",
         "visit_id", "form_id", "operator_id"
     )
 
-    private val reservedKeys = setOf(
-        "method_id", "return_mode", "action", "ril", "returns"
-    )
+    private const val INPUT_PREFIX = "input_"
+    private const val INPUT64_PREFIX = "input64_"
 }

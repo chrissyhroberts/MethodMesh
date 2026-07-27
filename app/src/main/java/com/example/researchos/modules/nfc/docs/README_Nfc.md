@@ -40,11 +40,11 @@ com.example.researchos.EXECUTE_METHOD(method_id='nfc_tag_read')
 ```
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='nfc_tag_write',value='participant_P001',record_type='text/plain',overwrite_policy='replace')
+com.example.researchos.EXECUTE_METHOD(method_id='nfc_tag_write',input_value='participant_P001',input_record_type='text/plain',input_overwrite_policy='replace')
 ```
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='nfc.provision',credential_id='credential_001',value='random-secret-token',record_type='external',mime_type='researchos:credential',overwrite_policy='empty_only')
+com.example.researchos.EXECUTE_METHOD(method_id='nfc.provision',input_credential_id='credential_001',input_value='random-secret-token',input_record_type='external',input_mime_type='researchos:credential',input_overwrite_policy='empty_only')
 ```
 
 ## Inputs
@@ -105,10 +105,10 @@ complete NFC read-back fields. A credential registry should retain at least
 
 ## ODK example
 
-[`example_odk_NfcRead.xlsx`](example_odk_NfcRead.xlsx) demonstrates canonical tag capture.
+[`example_odk_nfc_tag_read.xlsx`](example_odk_nfc_tag_read.xlsx) demonstrates canonical tag capture.
 
-[`example_odk_NfcWrite.xlsx`](example_odk_NfcWrite.xlsx) demonstrates policy-controlled writing with read-back verification.
+[`example_odk_nfc_tag_write.xlsx`](example_odk_nfc_tag_write.xlsx) demonstrates policy-controlled writing with read-back verification.
 
-[`example_odk_NfcProvision.xlsx`](example_odk_NfcProvision.xlsx) demonstrates
+[`example_odk_nfc.provision.xlsx`](example_odk_nfc.provision.xlsx) demonstrates
 credential registration, safe writing, read-back verification, and capture of
 the fields required to reproduce later NFC-attestation evidence.
