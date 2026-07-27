@@ -51,8 +51,8 @@ object ChoiceExperimentModule : ResearchOSModule {
         ),
         ModuleExample(
             title = "Conjoint selection",
-            ril = "WHAT; conjoint(rounds=3,profiles_per_round=2,seed=test001); WHERE; participant/P001; RESULT; return observation.dce.result_json as dce_json; format json",
-            notes = "Generates profile alternatives from default attribute levels and records selected profiles."
+            ril = "WHAT; conjoint(rounds=3,classes=BRAND:Panasonic,Sony,Nintendo|FEATURE:Basic,Premium|PRICE:Low,Medium,High,profiles_per_round=2,seed=test001); WHERE; participant/P001; RESULT; return observation.dce.result_json as dce_json; format json",
+            notes = "Generates profile alternatives from caller-defined classes and levels and records selected profiles."
         )
     )
 

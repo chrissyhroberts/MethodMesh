@@ -2,9 +2,10 @@ package com.example.researchos.modules.calibratedscale
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -138,14 +140,18 @@ class CalibratedScaleInteraction {
     )
 
 @Composable
-    fun Render(settingsState: SettingsState) {
+    fun Render(
+        settingsState: SettingsState,
+        onValueChanged: (String) -> Unit
+    ) {
         val minimum = settingsState.getFloat("minimum")
         val maximum = settingsState.getFloat("maximum").let {
             if (it > minimum) it else minimum + 1f
         }
         val useRange = settingsState.getBoolean("use_range")
         val vasLengthMm = settingsState.getFloat("vas_length_mm").coerceIn(40f, 200f)
-        val desiredLength = vasLengthMm.dp * CalibrationRepository.current().dpPerMm
+        val calibration by CalibrationRepository.calibration
+        val desiredLength = scaleLengthDp(vasLengthMm, calibration.dpPerMm).dp
         val showEndpointLabels = settingsState.getBoolean("show_endpoint_labels")
         val showCurrentValue = settingsState.getBoolean("show_current_score")
         val verticalMode = settingsState.getBoolean("vertical_mode")
@@ -179,6 +185,7 @@ class CalibratedScaleInteraction {
                             onValueChange = { proposed ->
                                 val upper = settingsState.getFloat("upper_value")
                                 settingsState.setFloat("lower_value", proposed.coerceIn(minimum, upper))
+                                onValueChanged("lower_value")
                             }
                         )
 
@@ -195,6 +202,7 @@ class CalibratedScaleInteraction {
                             onValueChange = { proposed ->
                                 val lower = settingsState.getFloat("lower_value")
                                 settingsState.setFloat("upper_value", proposed.coerceIn(lower, maximum))
+                                onValueChanged("upper_value")
                             }
                         )
                     }
@@ -213,6 +221,7 @@ class CalibratedScaleInteraction {
                             onValueChange = { proposed ->
                                 val upper = settingsState.getFloat("upper_value")
                                 settingsState.setFloat("lower_value", proposed.coerceIn(minimum, upper))
+                                onValueChanged("lower_value")
                             }
                         )
 
@@ -229,6 +238,7 @@ class CalibratedScaleInteraction {
                             onValueChange = { proposed ->
                                 val lower = settingsState.getFloat("lower_value")
                                 settingsState.setFloat("upper_value", proposed.coerceIn(lower, maximum))
+                                onValueChanged("upper_value")
                             }
                         )
                     }
@@ -246,6 +256,7 @@ class CalibratedScaleInteraction {
                     vertical = verticalMode,
                     onValueChange = { proposed ->
                         settingsState.setFloat("value", proposed.coerceIn(minimum, maximum))
+                        onValueChanged("value")
                     }
                 )
             }
@@ -284,32 +295,67 @@ class CalibratedScaleInteraction {
     ) {
         val current = settingsState.getFloat(valueId).coerceIn(scaleMinimum, scaleMaximum)
 
-        BoxWithConstraints(
-            modifier = if (vertical) {
-                Modifier
+        if (vertical) {
+            Box(
+                modifier = Modifier
                     .width(150.dp)
                     .height(desiredLength + 170.dp)
                     .padding(8.dp)
-            } else {
-                Modifier
+            ) {
+                ScaleContent(
+                    label = label,
+                    current = current,
+                    scaleMinimum = scaleMinimum,
+                    scaleMaximum = scaleMaximum,
+                    desiredLength = desiredLength,
+                    showEndpointLabels = showEndpointLabels,
+                    showCurrentValue = showCurrentValue,
+                    vertical = true,
+                    onValueChange = onValueChange
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier
                     .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
                     .padding(vertical = 8.dp)
+            ) {
+                ScaleContent(
+                    label = label,
+                    current = current,
+                    scaleMinimum = scaleMinimum,
+                    scaleMaximum = scaleMaximum,
+                    desiredLength = desiredLength,
+                    showEndpointLabels = showEndpointLabels,
+                    showCurrentValue = showCurrentValue,
+                    vertical = false,
+                    onValueChange = onValueChange
+                )
+            }
+        }
+    }
+
+    @Composable
+    private fun ScaleContent(
+        label: String,
+        current: Float,
+        scaleMinimum: Float,
+        scaleMaximum: Float,
+        desiredLength: Dp,
+        showEndpointLabels: Boolean,
+        showCurrentValue: Boolean,
+        vertical: Boolean,
+        onValueChange: (Float) -> Unit
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = if (vertical) {
+                Modifier.width(150.dp)
+            } else {
+                Modifier.width(desiredLength)
             }
         ) {
-            val availableLength = if (vertical) {
-                desiredLength
-            } else {
-                minOf(desiredLength, maxWidth - 16.dp)
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = if (vertical) {
-                    Modifier.width(150.dp)
-                } else {
-                    Modifier.fillMaxWidth()
-                }
-            ) {
                 Column(
                     modifier = Modifier
                         .height(84.dp)
@@ -340,7 +386,7 @@ class CalibratedScaleInteraction {
                         if (showEndpointLabels) {
                             Column(
                                 modifier = Modifier
-                                    .height(availableLength)
+                                    .height(desiredLength)
                                     .width(36.dp),
                                 verticalArrangement = Arrangement.SpaceBetween,
                                 horizontalAlignment = Alignment.End
@@ -356,7 +402,7 @@ class CalibratedScaleInteraction {
                             value = current,
                             minimum = scaleMinimum,
                             maximum = scaleMaximum,
-                            length = availableLength,
+                            length = desiredLength,
                             vertical = true,
                             onValueChange = onValueChange
                         )
@@ -366,7 +412,7 @@ class CalibratedScaleInteraction {
                         value = current,
                         minimum = scaleMinimum,
                         maximum = scaleMaximum,
-                        length = availableLength,
+                        length = desiredLength,
                         vertical = false,
                         onValueChange = onValueChange
                     )
@@ -374,7 +420,7 @@ class CalibratedScaleInteraction {
                     if (showEndpointLabels) {
                         Row(
                             modifier = Modifier
-                                .width(availableLength)
+                                .width(desiredLength)
                                 .height(24.dp)
                         ) {
                             Text(scaleMinimum.toInt().toString())
@@ -383,7 +429,6 @@ class CalibratedScaleInteraction {
                         }
                     }
                 }
-            }
         }
     }
 
@@ -502,3 +547,6 @@ class CalibratedScaleInteraction {
 
 
 }
+
+internal fun scaleLengthDp(lengthMm: Float, dpPerMm: Float): Float =
+    lengthMm.coerceAtLeast(0f) * dpPerMm.coerceAtLeast(0f)

@@ -165,6 +165,10 @@ Successful completion of these milestones will provide the first end-to-end vali
 - Device Services
 - Native Methods
 
+## Capability modules
+
+Each standalone module under `app/src/main/java/com/example/researchos/modules/` owns both its implementation and its integration documentation. Its `docs` folder contains a module-named implementation guide and a working example ODK XLSForm. See [Capability documentation standard](docs/CAPABILITY_DOCUMENTATION_STANDARD.md).
+
 ---
 
 # Design Principles
@@ -184,4 +188,3 @@ ResearchOS is:
 # Licence
 
 ResearchOS is an open project intended to support reusable scientific infrastructure across disciplines, organisations and platforms.
-

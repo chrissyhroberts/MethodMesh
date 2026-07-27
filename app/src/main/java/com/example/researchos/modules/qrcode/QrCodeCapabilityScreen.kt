@@ -24,6 +24,8 @@ import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.withInvocationContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
+import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
+import com.example.researchos.transport.OutputFormatter
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import com.example.researchos.transport.workflow.ui.IntentExample
@@ -62,7 +64,8 @@ fun rememberQrCapabilityInvocation(
                         context = invocationContext.asMap(As100QrScanMethod.ID) +
                             currentContext.action.settings + mapOf(
                                 "qr_payload" to payload,
-                                "qr_source" to currentSourceLabel
+                                "qr_source" to currentSourceLabel,
+                                "barcode_format" to scan.formatName.orEmpty().ifBlank { "UNKNOWN" }
                             )
                     ),
                     settingsState = null,
@@ -79,8 +82,15 @@ fun rememberQrCapabilityInvocation(
     return {
         launcher.launch(
             ScanOptions().apply {
-                setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-                setPrompt("Point the camera at a QR code")
+                val requestedFormats = barcodeFormats(currentContext.action.settings["barcode_formats"])
+                // ZXing represents "all supported formats" by leaving the
+                // desired-formats extra unset. ScanOptions.ALL_CODE_TYPES is
+                // itself null in 4.3.0, so it must not pass through a Kotlin
+                // non-null return boundary.
+                if (requestedFormats != null) {
+                    setDesiredBarcodeFormats(requestedFormats)
+                }
+                setPrompt("Point the camera at a QR, Data Matrix, or barcode")
                 setBeepEnabled(false)
                 setOrientationLocked(false)
                 setBarcodeImageEnabled(false)
@@ -88,6 +98,13 @@ fun rememberQrCapabilityInvocation(
         )
     }
 }
+
+internal fun barcodeFormats(raw: String?): Collection<String>? = raw
+    ?.split('|', ',', ';')
+    ?.map { it.trim().uppercase() }
+    ?.filter(String::isNotBlank)
+    ?.distinct()
+    ?.takeIf(List<String>::isNotEmpty)
 
 /**
  * Operational QR capability.
@@ -97,8 +114,8 @@ fun rememberQrCapabilityInvocation(
  */
 object QrScanCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId: String = As100QrScanMethod.ID
-    override val title: String = "Scan QR code"
-    override val description: String = "Scan and return QR evidence."
+    override val title: String = "Scan code"
+    override val description: String = "Automatically detect QR, Data Matrix, and common 1D barcode formats."
 
     @Composable
     override fun Render(
@@ -109,59 +126,85 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
     ) {
         var launched by remember(context.action.canonicalId) { mutableStateOf(false) }
         var status by remember { mutableStateOf("Opening camera…") }
+        var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
         val launchScanner = rememberQrCapabilityInvocation(
             context = context,
             sourceLabel = "camera_zxing",
             onResult = {
-                status = "QR code captured."
-                onConfirmed(it)
+                status = "Code captured."
+                result = it
             },
             onCancel = {
                 status = "Scan cancelled."
-                onCancel()
+                if (context.startsImmediately) onCancel()
             },
             onError = { status = it }
         )
 
-        LaunchedEffect(context.isExternalInvocation) {
-            if (context.isExternalInvocation && !launched) {
+        LaunchedEffect(context.startsImmediately) {
+            if (context.startsImmediately && !launched) {
                 launched = true
-                status = "Point the camera at a QR code."
+                status = "Point the camera at a QR, Data Matrix, or barcode."
                 launchScanner()
             }
         }
 
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(16.dp))
-            Text(status, style = MaterialTheme.typography.bodyLarge)
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = {
-                status = "Point the camera at a QR code."
+        CapabilityScreenScaffold(
+            title = title,
+            capabilityId = context.action.canonicalId,
+            context = context,
+            canGoBack = context.stepNumber > 1,
+            capturedResult = result,
+            resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
+            onBack = onBack,
+            onRetry = {
+                result = null
+                status = "Point the camera at a QR, Data Matrix, or barcode."
                 launchScanner()
-            }) { Text("Open scanner") }
+            },
+            onConfirm = { result?.let(onConfirmed) },
+            onCancel = onCancel
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (result == null && context.startsImmediately) {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(16.dp))
+                }
+                Text(status, style = MaterialTheme.typography.bodyLarge)
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = {
+                    result = null
+                    status = "Point the camera at a QR, Data Matrix, or barcode."
+                    launchScanner()
+                }) { Text(if (result == null) "Open scanner" else "Scan again") }
 
-            Spacer(Modifier.height(24.dp))
-            IntentExampleDropdown(
-                capabilityId = As100QrScanMethod.ID,
-                examples = listOf(
-                    IntentExample(
-                        label = "Basic QR scan",
-                        description = "Simple intent to capture a QR code",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}')"
-                    ),
-                    IntentExample(
-                        label = "With study context",
-                        description = "Include study and operator information",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}',study_id='study_01',operator_id='operator_001')"
+                Spacer(Modifier.height(24.dp))
+                IntentExampleDropdown(
+                    capabilityId = As100QrScanMethod.ID,
+                    examples = listOf(
+                        IntentExample(
+                            label = "Automatic code detection",
+                            description = "Detect QR, Data Matrix, and common 1D barcodes",
+                            intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}')"
+                        ),
+                        IntentExample(
+                            label = "Restricted formats",
+                            description = "Accept only Data Matrix and Code 128",
+                            intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}',barcode_formats='DATA_MATRIX|CODE_128')"
+                        ),
+                        IntentExample(
+                            label = "With study context",
+                            description = "Include study and operator information",
+                            intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}',study_id='study_01',operator_id='operator_001')"
+                        )
                     )
                 )
-            )
+            }
         }
     }
 }

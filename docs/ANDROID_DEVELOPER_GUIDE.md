@@ -109,7 +109,11 @@ Canonical graph objects and full provenance remain in the ResearchOS graph. Expl
 
 ResearchOS signs the supplied form hash directly. Raw `event_payload` input and automatic double-hash detection are not supported.
 
-Attestation schema version 3 returns the public key, signature, chain link, verification evidence, and optional full RFC 3161 evidence. Fingerprint, QR, and NFC verification use their respective capability or device-service boundaries.
+Attestation schema version 4 returns the public key, signature, chain link,
+hash-only verification evidence, and optional full RFC 3161 evidence.
+Fingerprint, QR, and NFC verification use their respective capability or
+device-service boundaries. Raw QR, NFC, and study-token credentials are consumed
+transiently and are not placed in the attestation record or caller return.
 
 ## Adding a capability
 

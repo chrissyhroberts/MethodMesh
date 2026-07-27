@@ -48,15 +48,25 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
         val action = context.action
         val scope = rememberCoroutineScope()
         val initialStatus = rememberNfcAvailabilityMessage()
+        val requestedOverwritePolicy = action.settings["overwrite_policy"]
 
         var recordType by remember { mutableStateOf(action.settings["record_type"] ?: "text/plain") }
         var dataToWrite by remember { mutableStateOf(action.settings["value"] ?: "") }
+        var overwritePolicy by remember {
+            mutableStateOf(NfcOverwritePolicy.parse(requestedOverwritePolicy) ?: NfcOverwritePolicy.EmptyOnly)
+        }
+        var expectedCurrentHash by remember { mutableStateOf(action.settings["expected_current_hash"].orEmpty()) }
         var active by remember { mutableStateOf(false) }
         var status by remember { mutableStateOf(initialStatus) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var recordTypeExpanded by remember { mutableStateOf(false) }
+        var overwritePolicyExpanded by remember { mutableStateOf(false) }
 
         fun startWrite() {
+            if (requestedOverwritePolicy != null && NfcOverwritePolicy.parse(requestedOverwritePolicy) == null) {
+                status = "Error: Unknown overwrite_policy '$requestedOverwritePolicy'. Use empty_only, replace, or compare_and_replace."
+                return
+            }
             if (dataToWrite.isBlank()) {
                 status = "Error: No data to write. Please enter data."
                 return
@@ -66,8 +76,8 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
             status = "Ready to write. Tap an NFC tag to begin..."
         }
 
-        LaunchedEffect(context.isExternalInvocation, dataToWrite) {
-            if (context.isExternalInvocation && dataToWrite.isNotBlank()) startWrite()
+        LaunchedEffect(context.startsImmediately, dataToWrite) {
+            if (context.startsImmediately && dataToWrite.isNotBlank()) startWrite()
         }
 
         NfcDeviceServiceEffect(
@@ -80,7 +90,9 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
                         val writeRequest = NfcWriteRequest(
                             recordType = recordType,
                             value = dataToWrite,
-                            mimeType = recordType
+                            mimeType = recordType,
+                            overwritePolicy = overwritePolicy,
+                            expectedCurrentHash = expectedCurrentHash.takeIf(String::isNotBlank)
                         )
 
                         val execution = withContext(Dispatchers.IO) {
@@ -162,6 +174,60 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
 
             Spacer(Modifier.height(12.dp))
 
+            Column {
+                Text("Existing tag content", modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(4.dp))
+                OutlinedButton(
+                    onClick = { overwritePolicyExpanded = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(overwritePolicy.label, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
+                    Text("▼")
+                }
+                DropdownMenu(
+                    expanded = overwritePolicyExpanded,
+                    onDismissRequest = { overwritePolicyExpanded = false },
+                    modifier = Modifier.fillMaxWidth(0.9f)
+                ) {
+                    NfcOverwritePolicy.entries.forEach { policy ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(policy.label)
+                                    Text(policy.wireValue, style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
+                                }
+                            },
+                            onClick = {
+                                overwritePolicy = policy
+                                overwritePolicyExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            if (overwritePolicy == NfcOverwritePolicy.CompareAndReplace) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = expectedCurrentHash,
+                    onValueChange = { expectedCurrentHash = it },
+                    label = { Text("Expected current NDEF SHA-256") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+
+            Text(
+                when (overwritePolicy) {
+                    NfcOverwritePolicy.EmptyOnly -> "Safe default: writing stops if the tag already contains data."
+                    NfcOverwritePolicy.Replace -> "Existing NDEF content will be replaced. Its previous hash is recorded."
+                    NfcOverwritePolicy.CompareAndReplace -> "Content is replaced only when its current hash matches."
+                },
+                style = androidx.compose.material3.MaterialTheme.typography.labelSmall
+            )
+
+            Spacer(Modifier.height(12.dp))
+
             // Data to write
             OutlinedTextField(
                 value = dataToWrite,
@@ -208,22 +274,22 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "Write study ID",
                         description = "Write a study identifier to a tag",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',value='study_01',record_type='application/x-studyid')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',value='study_01',record_type='application/x-studyid',overwrite_policy='empty_only')"
                     ),
                     IntentExample(
                         label = "Write participant ID",
                         description = "Write participant information to a tag",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',value='participant_P001',record_type='application/x-participantid')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',value='participant_P001',record_type='application/x-participantid',overwrite_policy='replace')"
                     ),
                     IntentExample(
                         label = "Write JSON data",
                         description = "Write structured JSON to a tag",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',value='{\"study\":\"study_01\",\"event\":\"enrollment\"}',record_type='application/json')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',value='{\"study\":\"study_01\",\"event\":\"enrollment\"}',record_type='application/json',overwrite_policy='replace')"
                     ),
                     IntentExample(
                         label = "Write plain text",
                         description = "Write simple text data to a tag",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',value='Hello NFC tag',record_type='text/plain')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',value='Hello NFC tag',record_type='text/plain',overwrite_policy='empty_only')"
                     )
                 )
             )

@@ -161,10 +161,13 @@ object AndroidIntentRequestReader {
         )
     }
 
+    @Suppress("DEPRECATION")
     private fun parseExtras(intent: Intent): ParsedLaunchConfig {
         val values = mutableMapOf<String, String>()
         val extras = intent.extras
-        extras?.keySet()?.forEach { key -> values[key] = intent.getStringExtra(key).orEmpty() }
+        extras?.keySet()?.forEach { key ->
+            values[key] = androidExtraValue(extras.get(key))
+        }
         intent.action?.let { values.putIfAbsent("action", it) }
 
         return RilTransportAdapter.parse(values, source = "android_extras")
@@ -174,4 +177,22 @@ object AndroidIntentRequestReader {
         if (raw.isNullOrBlank()) return emptyList()
         return raw.split(',', '>', '|', '\n').map { it.trim() }.filter { it.isNotBlank() }
     }
+}
+
+/**
+ * ODK preserves XLSForm field types when it constructs a multi-field Android
+ * intent. Numeric and boolean values therefore arrive as boxed Android extras,
+ * not Strings. Normalise every supported scalar at the transport boundary so
+ * capability modules receive the caller's value instead of silently falling
+ * back to their defaults.
+ */
+internal fun androidExtraValue(value: Any?): String = when (value) {
+    null -> ""
+    is Array<*> -> value.joinToString("\n") { it?.toString().orEmpty() }
+    is IntArray -> value.joinToString("\n")
+    is LongArray -> value.joinToString("\n")
+    is FloatArray -> value.joinToString("\n")
+    is DoubleArray -> value.joinToString("\n")
+    is BooleanArray -> value.joinToString("\n")
+    else -> value.toString()
 }

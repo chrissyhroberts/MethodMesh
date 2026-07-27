@@ -5,15 +5,29 @@ import android.nfc.NdefRecord
 import android.nfc.Tag
 import android.nfc.tech.Ndef
 import android.nfc.tech.TagTechnology
+import com.example.researchos.core.crypto.Digests
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.IOException
 import java.util.Locale
 
 data class NfcWriteResult(
     val success: Boolean,
     val message: String,
     val sizeBytes: Int,
-    val tagValues: Map<String, String>
+    val tagValues: Map<String, String>,
+    val overwritePolicy: String,
+    val previousMessageHash: String,
+    val writtenMessageHash: String,
+    val verified: Boolean
+)
+
+private data class NdefWriteAttempt(
+    val success: Boolean,
+    val message: String,
+    val previousMessageHash: String = "",
+    val writtenMessageHash: String = "",
+    val verified: Boolean = false
 )
 
 /**
@@ -59,12 +73,16 @@ object NfcTagRepository {
     fun writeTag(tag: Tag, request: NfcWriteRequest): NfcWriteResult {
         val message = NdefMessage(arrayOf(buildRecord(request)))
         val sizeBytes = message.toByteArray().size
-        val write = writeNdefMessage(tag, message, sizeBytes)
+        val write = writeNdefMessage(tag, message, sizeBytes, request)
         return NfcWriteResult(
-            success = write.first,
-            message = write.second,
+            success = write.success,
+            message = write.message,
             sizeBytes = sizeBytes,
-            tagValues = readTag(tag)
+            tagValues = readTag(tag),
+            overwritePolicy = request.overwritePolicy.wireValue,
+            previousMessageHash = write.previousMessageHash,
+            writtenMessageHash = write.writtenMessageHash,
+            verified = write.verified
         )
     }
 
@@ -81,21 +99,66 @@ object NfcTagRepository {
         }
     }
 
-    private fun writeNdefMessage(tag: Tag, message: NdefMessage, sizeBytes: Int): Pair<Boolean, String> {
+    private fun writeNdefMessage(
+        tag: Tag,
+        message: NdefMessage,
+        sizeBytes: Int,
+        request: NfcWriteRequest
+    ): NdefWriteAttempt {
         val ndef = Ndef.get(tag)
-            ?: return false to "Tag does not expose NDEF technology."
+            ?: return NdefWriteAttempt(false, "Tag does not expose NDEF technology.")
         return try {
             ndef.connect()
+            val existingMessage = ndef.ndefMessage ?: ndef.cachedNdefMessage
+            val existingBytes = existingMessage?.toByteArray()
+            val existingHash = existingBytes?.let(Digests::sha256Hex)
+            val hasExistingContent = existingMessage?.records?.any { record ->
+                record.tnf != NdefRecord.TNF_EMPTY ||
+                    record.type.isNotEmpty() || record.id.isNotEmpty() || record.payload.isNotEmpty()
+            } == true
+            val overwrite = evaluateOverwritePolicy(
+                policy = request.overwritePolicy,
+                hasExistingContent = hasExistingContent,
+                existingMessageHash = existingHash,
+                expectedCurrentHash = request.expectedCurrentHash
+            )
             when {
-                !ndef.isWritable -> false to "Tag is NDEF but not writable."
-                ndef.maxSize < sizeBytes -> false to "Tag too small. Need $sizeBytes bytes; tag maximum is ${ndef.maxSize} bytes."
+                !overwrite.allowed -> NdefWriteAttempt(
+                    false, overwrite.reason, previousMessageHash = existingHash.orEmpty()
+                )
+                !ndef.isWritable -> NdefWriteAttempt(
+                    false, "Tag is NDEF but not writable.", previousMessageHash = existingHash.orEmpty()
+                )
+                ndef.maxSize < sizeBytes -> NdefWriteAttempt(
+                    false,
+                    "Tag too small. Need $sizeBytes bytes; tag maximum is ${ndef.maxSize} bytes.",
+                    previousMessageHash = existingHash.orEmpty()
+                )
                 else -> {
                     ndef.writeNdefMessage(message)
-                    true to "NDEF ${sizeBytes}-byte message written."
+                    val requestedHash = Digests.sha256Hex(message.toByteArray())
+                    val readBackHash = ndef.ndefMessage?.toByteArray()?.let(Digests::sha256Hex)
+                    val verified = requestedHash == readBackHash
+                    NdefWriteAttempt(
+                        success = verified,
+                        message = if (verified) {
+                            "NDEF ${sizeBytes}-byte message written and verified."
+                        } else {
+                            "NDEF write completed, but read-back verification failed."
+                        },
+                        previousMessageHash = existingHash.orEmpty(),
+                        writtenMessageHash = readBackHash.orEmpty(),
+                        verified = verified
+                    )
                 }
             }
+        } catch (error: IOException) {
+            NdefWriteAttempt(
+                false,
+                "NDEF write lost communication with the tag. Keep it against the device until verification completes: ${error.message ?: "I/O error"}"
+            )
         } catch (error: Exception) {
-            false to "NDEF write failed: ${error.message ?: error::class.java.simpleName}"
+            NdefWriteAttempt(false, "NDEF write failed: ${error.message ?: error::class.java.simpleName}")
         } finally {
             closeQuietly(ndef)
         }

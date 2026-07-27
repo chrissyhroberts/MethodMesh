@@ -35,7 +35,10 @@ internal object DceResultFactory {
             description = "Interactive discrete choice experiment capability: ${method.title}.",
             outputs = outputFields(),
             graphOutputs = listOf(method.phenomenon),
-            parameters = mapOf("category" to "Discrete choice experiment")
+            parameters = mapOf(
+                "category" to "Discrete choice experiment",
+                "configuration" to configurationParameters(method)
+            )
         )
         override val contract: MethodContract = MethodContract(
             method = ref,
@@ -136,4 +139,12 @@ internal object DceResultFactory {
         "round_count",
         "response_count"
     )
+
+    private fun configurationParameters(method: DceMethod): String = when (method) {
+        DceMethod.Pairwise -> "rounds,items,seed"
+        DceMethod.MaxDiff -> "rounds,items,items_per_round,seed"
+        DceMethod.Ranking -> "rounds,items,seed"
+        DceMethod.Points -> "points,items,seed"
+        DceMethod.Conjoint -> "rounds,classes,profiles_per_round,seed"
+    }
 }

@@ -41,7 +41,9 @@ object As100NfcWriteMethod : As100Method {
         inputs = listOf(AndroidNfcDeviceService.SIGNAL_TYPE_TAG_DISCOVERED),
         outputs = listOf(
             NfcWriteFields.WRITE_SUCCESS, NfcWriteFields.WRITE_MESSAGE,
-            NfcWriteFields.WRITE_RECORD_TYPE, NfcWriteFields.WRITE_SIZE_BYTES
+            NfcWriteFields.WRITE_RECORD_TYPE, NfcWriteFields.WRITE_SIZE_BYTES,
+            NfcWriteFields.OVERWRITE_POLICY, NfcWriteFields.PREVIOUS_MESSAGE_HASH,
+            NfcWriteFields.WRITTEN_MESSAGE_HASH, NfcWriteFields.WRITE_VERIFIED
         ) + NfcEvidenceFields.tagOutputFields,
         parameters = mapOf("category" to "NFC", "status" to "Experimental", "device_service" to AndroidNfcDeviceService.SERVICE_ID)
     )
@@ -80,7 +82,9 @@ object As100NfcWriteMethod : As100Method {
             ID,
             invocationContext?.asMap(ID).orEmpty() + mapOf(
                 "record_type" to writeRequest.recordType, "value" to writeRequest.value,
-                "mime_type" to writeRequest.mimeType, "language_code" to writeRequest.languageCode
+                "mime_type" to writeRequest.mimeType, "language_code" to writeRequest.languageCode,
+                "overwrite_policy" to writeRequest.overwritePolicy.wireValue,
+                "expected_current_hash" to writeRequest.expectedCurrentHash.orEmpty()
             ),
             listOf(tagSignal.signal)
         )
@@ -97,8 +101,14 @@ object As100NfcWriteMethod : As100Method {
             NfcWriteFields.WRITE_SUCCESS to write.success.toString(),
             NfcWriteFields.WRITE_MESSAGE to write.message,
             NfcWriteFields.WRITE_RECORD_TYPE to writeRequest.recordType,
-            NfcWriteFields.WRITE_SIZE_BYTES to write.sizeBytes.toString()
-        ) + write.tagValues
+            NfcWriteFields.WRITE_SIZE_BYTES to write.sizeBytes.toString(),
+            NfcWriteFields.OVERWRITE_POLICY to write.overwritePolicy,
+            NfcWriteFields.PREVIOUS_MESSAGE_HASH to write.previousMessageHash,
+            NfcWriteFields.WRITTEN_MESSAGE_HASH to write.writtenMessageHash,
+            NfcWriteFields.WRITE_VERIFIED to write.verified.toString()
+        ) + write.tagValues + runCatching {
+            NfcCredentialEvidence.fields(write.tagValues)
+        }.getOrDefault(emptyMap())
         val observation = Observation(
             phenomenon = "nfc.tag.write", subject = ArchitectureRef(entity.id, entity.objectType, uid),
             values = values, sourceSignal = ArchitectureRef(tagSignal.signal.id, tagSignal.signal.objectType, tagSignal.signal.signalType),

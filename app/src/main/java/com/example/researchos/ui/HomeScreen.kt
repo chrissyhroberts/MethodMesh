@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -96,7 +97,7 @@ private fun RuntimeSummaryCard(moduleCount: Int, methodCount: Int) {
 
 @Composable
 private fun CapabilityRegistryCard(methods: List<As100Method>, modules: List<ResearchOSModule>) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     val screenMap = ResearchOSModuleRegistry.capabilityScreens().associateBy { it.capabilityId }
     val moduleByMethod = modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
 
@@ -147,8 +148,8 @@ private fun CapabilityCard(
     module: ResearchOSModule?,
     screen: CapabilityScreenSpec?
 ) {
-    var expanded by remember(method.id) { mutableStateOf(false) }
-    var runnerOpen by remember(method.id) { mutableStateOf(false) }
+    var expanded by rememberSaveable(method.id) { mutableStateOf(false) }
+    var runnerOpen by rememberSaveable(method.id) { mutableStateOf(false) }
     var lastResult by remember(method.id) { mutableStateOf<ExecutionResult?>(null) }
 
     ElevatedCard(
@@ -311,7 +312,7 @@ private fun GenericDashboardRunner(
 @Composable
 private fun ResultPreview(result: ExecutionResult) {
     val fields = OutputFormatter.fields(result, includeProvenance = false)
-    var expanded by remember(result) { mutableStateOf(false) }
+    var expanded by rememberSaveable(result.request.id.value) { mutableStateOf(false) }
     Spacer(Modifier.height(8.dp))
     Text("Last confirmed result: ${result.status.name}", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
     val visibleFields = if (expanded) fields.entries else fields.entries.take(10)
@@ -334,7 +335,7 @@ private fun ResultPreview(result: ExecutionResult) {
 
 @Composable
 private fun RuntimeStateCard() {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     val graph = ResearchRuntime.session.graph()
     ElevatedCard(
         modifier = Modifier
@@ -372,8 +373,8 @@ private fun RuntimeStateCard() {
 
 @Composable
 private fun DeviceServicesCard() {
-    var calibrationExpanded by remember { mutableStateOf(false) }
-    var signalsExpanded by remember { mutableStateOf(false) }
+    var calibrationExpanded by rememberSaveable { mutableStateOf(false) }
+    var signalsExpanded by rememberSaveable { mutableStateOf(false) }
 
     ElevatedCard(
         modifier = Modifier

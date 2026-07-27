@@ -20,21 +20,39 @@ import com.example.researchos.core.crypto.Digests
 import com.example.researchos.settings.SettingsState
 import java.time.Instant
 
+object QrEvidenceFields {
+    const val FORMAT = "qr_payload_utf8_sha256_v1"
+    const val FORMAT_FIELD = "verification_evidence_format"
+    const val HASH_FIELD = "verification_evidence_hash"
+}
+
 object As100QrScanMethod : As100Method {
     const val ID = "qr.scan"
-    private const val VERSION = "0.2.0"
+    private const val VERSION = "0.3.0"
 
     override val id: String = ID
     override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "QR token scan")
     override val descriptor: MethodDescriptor = MethodDescriptor(
         id = ArchitectureId(ID),
         methodType = MethodObjectType.SignalInterpreter,
-        name = "QR token scan",
+        name = "Automatic code scan",
         version = VERSION,
-        description = "Capture QR token evidence for ResearchOS workflows. The QR capability converts camera-decoded QR payloads into canonical evidence so other modules can depend on it without rewriting scanning behaviour.",
-        outputs = listOf("qr_payload", "qr_payload_hash", "qr_scan_time_iso", "qr_source"),
+        description = "Automatically decode QR, Data Matrix, and common 1D barcode formats and convert the payload into canonical evidence.",
+        outputs = listOf(
+            "qr_payload",
+            "qr_payload_hash",
+            QrEvidenceFields.FORMAT_FIELD,
+            QrEvidenceFields.HASH_FIELD,
+            "barcode_format",
+            "qr_scan_time_iso",
+            "qr_source"
+        ),
         graphOutputs = listOf("qr.token_evidence"),
-        parameters = mapOf("category" to "QR", "status" to "Experimental")
+        parameters = mapOf(
+            "category" to "Code scanning",
+            "status" to "Experimental",
+            "barcode_formats" to "optional pipe-delimited ZXing format names; all supported formats by default"
+        )
     )
     override val contract: MethodContract = MethodContract(
         method = ref,
@@ -50,6 +68,7 @@ object As100QrScanMethod : As100Method {
         val c = request.context
         val payload = c["qr_payload"].orEmpty().ifBlank { c["token"].orEmpty() }
         val source = c["qr_source"].orEmpty().ifBlank { "camera_or_external_scanner" }
+        val format = c["barcode_format"].orEmpty().ifBlank { "UNKNOWN" }
         if (payload.isBlank()) {
             return As100ExecutionEngine.complete(
                 request = request,
@@ -58,9 +77,13 @@ object As100QrScanMethod : As100Method {
             )
         }
         val scanTime = Instant.ofEpochMilli(System.currentTimeMillis()).toString()
+        val payloadHash = Digests.sha256Hex(payload)
         val values = linkedMapOf(
             "qr_payload" to payload,
-            "qr_payload_hash" to Digests.sha256Hex(payload),
+            "qr_payload_hash" to payloadHash,
+            QrEvidenceFields.FORMAT_FIELD to QrEvidenceFields.FORMAT,
+            QrEvidenceFields.HASH_FIELD to payloadHash,
+            "barcode_format" to format,
             "qr_scan_time_iso" to scanTime,
             "qr_source" to source
         )
@@ -84,7 +107,11 @@ object As100QrScanMethod : As100Method {
             status = TransformationStatus.Succeeded,
             temporalContext = observation.temporalContext,
             provenance = provenance,
-            diagnostics = mapOf("qr_payload_hash" to values["qr_payload_hash"].orEmpty(), "qr_source" to source)
+            diagnostics = mapOf(
+                "qr_payload_hash" to values["qr_payload_hash"].orEmpty(),
+                "barcode_format" to format,
+                "qr_source" to source
+            )
         )
         return As100ExecutionEngine.complete(
             request = request,

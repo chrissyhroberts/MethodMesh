@@ -118,7 +118,10 @@ object As100NfcReadMethod : As100Method {
     }
 
     fun read(tagSignal: NfcTagSignal, invocationContext: InvocationContext? = null): ExecutionResult {
-        val values = NfcTagRepository.readTag(tagSignal.androidTag)
+        val tagValues = NfcTagRepository.readTag(tagSignal.androidTag)
+        val values = tagValues + runCatching {
+            NfcCredentialEvidence.fields(tagValues)
+        }.getOrDefault(emptyMap())
         val uid = values[NfcEvidenceFields.TAG_UID_HEX].orEmpty()
         val valid = uid.isNotBlank()
         val context = invocationContext?.asMap(ID).orEmpty()

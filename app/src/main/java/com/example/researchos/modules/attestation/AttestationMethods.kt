@@ -32,7 +32,7 @@ object As100CreateAttestationMethod : As100Method {
         description = "Create a tamper-evident event attestation signed by the phone's non-exportable private key.",
         outputs = listOf(
             "attestation_schema_version", "attestation_id", "study_id", "event_type",
-            "event_payload_hash", "event_payload_mode", "verification_method", "verification_evidence_payload", "verification_evidence_hash",
+            "event_payload_hash", "event_payload_mode", "verification_method", "verification_evidence_format", "verification_evidence_hash",
             "device_event_time_iso", "device_monotonic_counter", "previous_attestation_hash",
             "attestation_hash", "hash_algorithm", "public_key_id", "public_key_algorithm",
             "public_key_format", "public_key_base64", "signature", "signature_algorithm",
@@ -45,7 +45,12 @@ object As100CreateAttestationMethod : As100Method {
     )
     override val contract: MethodContract = MethodContract(
         method = ref,
-        requiredContext = listOf("event_payload_hash", "verification_method"),
+        requiredContext = listOf(
+            "event_payload_hash",
+            "verification_method",
+            "verification_evidence_format",
+            "verification_evidence_hash"
+        ),
         producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
         producedFields = descriptor.outputs,
         producedGraphOutputs = descriptor.graphOutputs
@@ -72,6 +77,18 @@ object As100CreateAttestationMethod : As100Method {
                 diagnostics = mapOf("reason" to (error.message ?: "Invalid trusted timestamp policy"))
             )
         }
+        val verificationEvidence = try {
+            AttestationEvidence(
+                format = c["verification_evidence_format"].orEmpty(),
+                hash = c["verification_evidence_hash"].orEmpty().lowercase()
+            )
+        } catch (error: IllegalArgumentException) {
+            return As100ExecutionEngine.complete(
+                request = request,
+                status = TransformationStatus.Failed,
+                diagnostics = mapOf("reason" to (error.message ?: "Invalid verification evidence"))
+            )
+        }
         val record = try {
             AttestationRepository.createRecord(
                 studyId = c["study_id"].orEmpty(),
@@ -80,7 +97,7 @@ object As100CreateAttestationMethod : As100Method {
                 eventType = c["event_type"].orEmpty(),
                 eventPayloadHash = c["event_payload_hash"],
                 verificationMethod = method,
-                verificationEvidence = c["verification_evidence"].orEmpty().ifBlank { method.name },
+                verificationEvidence = verificationEvidence,
                 trustedTimestampPolicy = timestampPolicy
             )
         } catch (error: TrustedTimestampRequiredException) {

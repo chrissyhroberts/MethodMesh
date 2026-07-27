@@ -34,21 +34,23 @@ internal object DceConfigParser {
         val seed = settings.value("seed") ?: System.currentTimeMillis().toString()
         val sessionId = settings.value("session_id") ?: settings.value("instance_id") ?: seed
         val rawOptions = settings.value("options") ?: settings.value("items") ?: "A|B|C|D"
-        val options = rawOptions.split('|', ',', ';')
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-            .distinct()
-            .ifEmpty { listOf("A", "B", "C", "D") }
-        val rounds = settings.value("rounds")?.toIntOrNull()?.coerceAtLeast(1) ?: defaultRounds(method)
+        val options = parseItemList(rawOptions).ifEmpty { listOf("A", "B", "C", "D") }
+        val rounds = settings.value("rounds")?.toIntOrNull()?.coerceIn(1, 100) ?: defaultRounds(method)
         val optionsPerRound = settings.value("options_per_round")?.toIntOrNull()
-            ?.coerceIn(2, options.size.coerceAtLeast(2)) ?: 2
+            ?.coerceIn(2, options.size.coerceAtLeast(2))
+            ?: if (method == DceMethod.Ranking) options.size else 2
         val itemsPerRound = settings.value("items_per_round")?.toIntOrNull()
             ?.coerceIn(2, options.size.coerceAtLeast(2)) ?: 4.coerceAtMost(options.size.coerceAtLeast(2))
         val profilesPerRound = settings.value("profiles_per_round")?.toIntOrNull()?.coerceIn(2, 6) ?: 2
         val totalPoints = settings.value("points")?.toIntOrNull()
             ?: settings.value("total_points")?.toIntOrNull()
             ?: 10
-        val attributes = parseAttributes(settings.value("attributes") ?: settings.value("profiles") ?: settings.value("conjoint_profiles"))
+        val attributes = parseAttributes(
+            settings.value("classes")
+                ?: settings.value("attributes")
+                ?: settings.value("profiles")
+                ?: settings.value("conjoint_profiles")
+        )
         return DceConfig(
             method = method,
             options = options,
@@ -73,12 +75,19 @@ internal object DceConfigParser {
         DceMethod.Conjoint -> 5
     }
 
-    private fun parseAttributes(raw: String?): Map<String, List<String>> {
+    internal fun parseItemList(raw: String?): List<String> = raw.orEmpty()
+        .split('|', ',', ';', '\n')
+        .map(String::trim)
+        .filter(String::isNotBlank)
+        .distinct()
+
+    internal fun parseAttributes(raw: String?): Map<String, List<String>> {
         if (raw.isNullOrBlank()) return emptyMap()
-        return raw.split('|')
+        return raw.split('|', '\n')
             .mapNotNull { part ->
-                val name = part.substringBefore(':', "").trim()
-                val values = part.substringAfter(':', "")
+                val separator = if (':' in part) ':' else '='
+                val name = part.substringBefore(separator, "").trim()
+                val values = part.substringAfter(separator, "")
                     .split(',')
                     .map { it.trim() }
                     .filter { it.isNotBlank() }

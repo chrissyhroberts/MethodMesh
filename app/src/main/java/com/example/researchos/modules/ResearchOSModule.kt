@@ -10,6 +10,15 @@ import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
  * A capability module exposes one object implementing this interface from
  * inside its own modules/<module-name>/ folder. Modules are discovered at
  * application startup, so adding a capability requires no central registration.
+ *
+ * Each module also owns its implementation documentation:
+ * - docs/README_<CapabilityModule>.md describes its capabilities, Android
+ *   intents, inputs, outputs, and ODK usage.
+ * - docs/example_odk_<Capability>.xlsx contains importable XLSForms exercising
+ *   every public capability exposed by the module.
+ *
+ * Architecture tests enforce this convention without teaching the runtime
+ * anything about individual capability modules.
  */
 interface ResearchOSModule {
     val moduleId: String

@@ -21,9 +21,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -37,10 +38,20 @@ data class CapabilityScreenContext(
     val action: ExternalActionRequest,
     val request: ExternalWorkflowRequest,
     val stepNumber: Int,
-    val totalSteps: Int
+    val totalSteps: Int,
+    val completionMode: CapabilityCompletionMode = if (request.source.equals("dashboard", ignoreCase = true)) {
+        CapabilityCompletionMode.ManualConfirmation
+    } else {
+        CapabilityCompletionMode.AutomaticReturn
+    }
 ) {
     val isLastStep: Boolean get() = stepNumber >= totalSteps
-    val isExternalInvocation: Boolean get() = !request.source.equals("dashboard", ignoreCase = true)
+    val startsImmediately: Boolean get() = completionMode == CapabilityCompletionMode.AutomaticReturn
+}
+
+enum class CapabilityCompletionMode {
+    ManualConfirmation,
+    AutomaticReturn
 }
 
 interface CapabilityScreenSpec {
@@ -78,8 +89,18 @@ fun CapabilityScreenScaffold(
     onCancel: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    var showDetails by remember { mutableStateOf(false) }
-    var showAllResultFields by remember(capturedResult) { mutableStateOf(false) }
+    var showDetails by rememberSaveable { mutableStateOf(false) }
+    var showAllResultFields by rememberSaveable(capturedResult?.request?.id?.value) { mutableStateOf(false) }
+
+    // One completion rule for every capability: dashboard/debug captures wait
+    // for an explicit Use result; external and dependency captures return as
+    // soon as a result exists. The execution ID keys this effect so a result is
+    // never delivered twice during recomposition.
+    LaunchedEffect(context.completionMode, capturedResult?.request?.id?.value) {
+        if (capturedResult != null && context.completionMode == CapabilityCompletionMode.AutomaticReturn) {
+            onConfirm()
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),

@@ -1,14 +1,18 @@
 package com.example.researchos.modules.calibratedscale
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -16,7 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Row
+import com.example.researchos.calibration.CalibrationRepository
 import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.withInvocationContext
 import com.example.researchos.settings.MethodSetting
@@ -43,6 +47,7 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
         val action = context.action
         val request = context.request
         val interaction = remember { CalibratedScaleInteraction() }
+        val calibration by CalibrationRepository.calibration
         val settings = remember(action.settings) {
             SettingsState(interaction.settings).also { state ->
                 applyParameters(state, interaction.settings, action.settings)
@@ -50,8 +55,9 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
         }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var status by remember { mutableStateOf("Ready to measure.") }
+        var touchedValues by remember { mutableStateOf(emptySet<String>()) }
 
-        fun captureValue() {
+        fun captureValue(): ExecutionResult {
             val execution = As100CalibratedScaleMethod.execute(
                 request = As100CalibratedScaleMethod.request(
                     action = action.canonicalId,
@@ -61,7 +67,9 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
                         "maximum" to settings.getFloat("maximum").toString(),
                         "use_range" to settings.getBoolean("use_range").toString(),
                         "lower_value" to settings.getFloat("lower_value").toString(),
-                        "upper_value" to settings.getFloat("upper_value").toString()
+                        "upper_value" to settings.getFloat("upper_value").toString(),
+                        "vas_length_mm" to settings.getFloat("vas_length_mm").toString(),
+                        "vertical_mode" to settings.getBoolean("vertical_mode").toString()
                     )
                 ),
                 settingsState = settings,
@@ -69,10 +77,23 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
             ).withInvocationContext(request.invocationContext)
             result = execution
             status = "Measurement captured."
+            return execution
         }
 
-        LaunchedEffect(context.isExternalInvocation) {
-            if (context.isExternalInvocation) captureValue()
+        if (context.startsImmediately) {
+            FocusedCalibratedScaleCapture(
+                interaction = interaction,
+                settings = settings,
+                touchedValues = touchedValues,
+                onValueChanged = { valueId ->
+                    touchedValues = touchedValues + valueId
+                },
+                onUseMeasurement = {
+                    onConfirmed(captureValue())
+                },
+                onCancel = onCancel
+            )
+            return
         }
 
         CapabilityScreenScaffold(
@@ -83,7 +104,11 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
             capturedResult = result,
             resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
             onBack = onBack,
-            onRetry = { result = null; status = "Ready to measure." },
+            onRetry = {
+                result = null
+                touchedValues = emptySet()
+                status = "Ready to measure."
+            },
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
@@ -99,6 +124,30 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
                 onValueChange = { settings.setString("prompt", it) },
                 label = { Text("Prompt") },
                 modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = settings.getFloat("vas_length_mm").toString(),
+                onValueChange = { value ->
+                    value.toFloatOrNull()
+                        ?.takeIf { it in 40f..200f }
+                        ?.let { settings.setFloat("vas_length_mm", it) }
+                },
+                label = { Text("Scale line length (mm)") },
+                supportingText = {
+                    val lengthMm = settings.getFloat("vas_length_mm")
+                    val dpPerMm = calibration.dpPerMm
+                    Text(
+                        "%.1f cm × %.2f dp/mm = %.1f dp".format(
+                            lengthMm / 10f,
+                            dpPerMm,
+                            scaleLengthDp(lengthMm, dpPerMm)
+                        )
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
             Spacer(Modifier.height(8.dp))
 
@@ -198,10 +247,28 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
 
             Text("Scale Preview", modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            interaction.Render(settings)
+            interaction.Render(settings) { valueId ->
+                touchedValues = touchedValues + valueId
+                result = null
+                status = "Selection changed. Capture when ready."
+            }
             Spacer(Modifier.height(10.dp))
-            Button(onClick = { captureValue() }) {
+            val requiredSelections = requiredScaleSelections(settings.getBoolean("use_range"))
+            Button(
+                onClick = { captureValue() },
+                enabled = touchedValues.containsAll(requiredSelections)
+            ) {
                 Text(if (result == null) "Capture measurement" else "Measure again")
+            }
+            if (!touchedValues.containsAll(requiredSelections)) {
+                Text(
+                    if (requiredSelections.size == 1) {
+                        "Move the scale marker before capturing."
+                    } else {
+                        "Set both range markers before capturing."
+                    },
+                    style = androidx.compose.material3.MaterialTheme.typography.labelSmall
+                )
             }
 
             Spacer(Modifier.height(16.dp))
@@ -224,9 +291,14 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
                         intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',use_range='true',lower_label='Minimum pain',upper_label='Maximum pain')"
                     ),
                     IntentExample(
-                        label = "Vertical mode",
-                        description = "Display scale vertically",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',vertical_mode='true')"
+                        label = "Calibrated 5 cm horizontal scale",
+                        description = "Display a physically calibrated 50 mm line",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',vas_length_mm='50',vertical_mode='false')"
+                    ),
+                    IntentExample(
+                        label = "Calibrated 5 cm vertical scale",
+                        description = "Display the same physical length vertically",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',vas_length_mm='50',vertical_mode='true')"
                     )
                 )
             )
@@ -246,3 +318,50 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
         }
     }
 }
+
+@Composable
+private fun FocusedCalibratedScaleCapture(
+    interaction: CalibratedScaleInteraction,
+    settings: SettingsState,
+    touchedValues: Set<String>,
+    onValueChanged: (String) -> Unit,
+    onUseMeasurement: () -> Unit,
+    onCancel: () -> Unit
+) {
+    val requiredSelections = requiredScaleSelections(settings.getBoolean("use_range"))
+    val ready = touchedValues.containsAll(requiredSelections)
+
+    Column(Modifier.fillMaxWidth()) {
+        interaction.Render(settings, onValueChanged)
+        Spacer(Modifier.height(14.dp))
+        Text(
+            text = if (ready) {
+                "Selection ready."
+            } else if (requiredSelections.size == 1) {
+                "Move the scale marker to record an answer."
+            } else {
+                "Move both scale markers to record an answer."
+            },
+            style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+        )
+        Spacer(Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            OutlinedButton(onClick = onCancel) {
+                Text("Cancel")
+            }
+            Spacer(Modifier.width(8.dp))
+            Button(
+                onClick = onUseMeasurement,
+                enabled = ready
+            ) {
+                Text("Use this measurement")
+            }
+        }
+    }
+}
+
+internal fun requiredScaleSelections(useRange: Boolean): Set<String> =
+    if (useRange) setOf("lower_value", "upper_value") else setOf("value")

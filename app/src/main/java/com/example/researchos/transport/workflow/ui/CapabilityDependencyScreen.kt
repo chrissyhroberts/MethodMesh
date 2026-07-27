@@ -24,7 +24,8 @@ fun CapabilityDependencyScreen(
         context = parentContext.copy(
             action = ExternalActionRequest(capabilityId, capabilityId, settings),
             stepNumber = 1,
-            totalSteps = 1
+            totalSteps = 1,
+            completionMode = CapabilityCompletionMode.AutomaticReturn
         ),
         onBack = onCancel,
         onConfirmed = onResult,

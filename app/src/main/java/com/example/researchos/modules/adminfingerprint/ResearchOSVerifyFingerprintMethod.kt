@@ -23,8 +23,8 @@ import com.example.researchos.settings.SettingsState
 import java.time.Instant
 
 /**
- * Native AS1.00 method for local participant/operator verification using
- * Android biometric or device-credential authentication.
+ * Native AS1.00 method for local access authorisation using Android biometric
+ * or device-credential authentication. It makes no person-identity claim.
  *
  * Android BiometricPrompt remains in the device-service/presentation boundary.
  * This method owns the research operation: authentication-result signal ->
@@ -32,27 +32,30 @@ import java.time.Instant
  */
 object As100VerifyFingerprintMethod : As100Method {
     const val ID = "admin_fingerprint_confirmation"
-    const val VERSION = "1.0.0"
+    const val VERSION = "1.1.0"
 
     override val id: String = ID
 
     override val ref: ArchitectureRef = ArchitectureRef(
         id = ArchitectureId(ID),
         type = "Method",
-        label = "Verify Fingerprint / Device Credential"
+        label = "Local Device Authentication"
     )
 
     override val descriptor: MethodDescriptor = MethodDescriptor(
         id = ArchitectureId(ID),
         methodType = MethodObjectType.SignalInterpreter,
-        name = "Verify Fingerprint / Device Credential",
+        name = "Local Device Authentication",
         version = VERSION,
-        description = "Interpret an Android biometric/device-credential authentication-result signal as an attestation observation.",
+        description = "Interpret an Android biometric/device-credential result as local access authorisation without claiming which enrolled person authenticated.",
         inputs = listOf(AndroidBiometricDeviceService.SIGNAL_TYPE_AUTHENTICATION_RESULT),
         outputs = listOf(
             "confirmed",
             "verification_status",
             "auth_method",
+            "authentication_policy",
+            "assurance_scope",
+            "identity_claimed",
             "timestamp_ms",
             "timestamp_iso",
             "reason",
@@ -63,9 +66,10 @@ object As100VerifyFingerprintMethod : As100Method {
             "biometric_provenance_json"
         ),
         parameters = mapOf(
-            "category" to "Attestation",
+            "category" to "Access control",
             "status" to "Experimental",
-            "device_service" to AndroidBiometricDeviceService.SERVICE_ID
+            "device_service" to AndroidBiometricDeviceService.SERVICE_ID,
+            "authentication_method" to "biometric|device_credential|biometric_or_device_credential"
         )
     )
 
@@ -101,8 +105,10 @@ object As100VerifyFingerprintMethod : As100Method {
         } else if (signal != null) {
             outputValues(
                 signal = signal,
-                reason = request.context["confirmation_reason"].orEmpty().ifBlank { "verify_fingerprint" },
-                executionId = request.id.value
+                reason = request.context["confirmation_reason"].orEmpty().ifBlank { "local_access_authorisation" },
+                executionId = request.id.value,
+                authenticationPolicy = request.context["authentication_method"].orEmpty()
+                    .ifBlank { LocalAuthenticationMode.Biometric.wireValue }
             )
         } else {
             emptyMap()
@@ -115,7 +121,7 @@ object As100VerifyFingerprintMethod : As100Method {
         )
 
         val observation = Observation(
-            phenomenon = "attestation.biometric_verification",
+            phenomenon = "authorization.local_device_authentication",
             subject = InvocationContext.from(request.context)?.subjectRef(),
             values = output,
             sourceSignal = signal?.let { ArchitectureRef(it.id, it.objectType, it.signalType) },
@@ -124,7 +130,7 @@ object As100VerifyFingerprintMethod : As100Method {
         )
 
         val transformation = Transformation(
-            action = "interpret.biometric.authentication_result",
+            action = "authorize.local_access",
             method = ref,
             inputs = signal?.let { listOf(ArchitectureRef(it.id, it.objectType, it.signalType)) } ?: emptyList(),
             outputs = listOf(ArchitectureRef(observation.id, observation.objectType, observation.phenomenon)),
@@ -204,6 +210,10 @@ object As100VerifyFingerprintMethod : As100Method {
             "confirmed" to confirmed,
             "verification_status" to verificationStatus,
             "auth_method" to settingsState.getString("auth_method").ifBlank { "none" },
+            "authentication_policy" to settingsState.getString("authentication_method")
+                .ifBlank { LocalAuthenticationMode.Biometric.wireValue },
+            "assurance_scope" to "local_device_access",
+            "identity_claimed" to false,
             "timestamp_ms" to timestampMs,
             "timestamp_iso" to timestampIso,
             "reason" to settingsState.getString("reason").ifBlank { settingsState.getString("confirmation_reason") },
@@ -218,7 +228,8 @@ object As100VerifyFingerprintMethod : As100Method {
     private fun outputValues(
         signal: Signal,
         reason: String,
-        executionId: String
+        executionId: String,
+        authenticationPolicy: String
     ): Map<String, Any?> {
         val verified = signal.payload["verified"]?.toBooleanStrictOrNull() ?: false
         val timestampMs = signal.payload["timestamp_ms"]?.toLongOrNull()
@@ -229,6 +240,9 @@ object As100VerifyFingerprintMethod : As100Method {
             "confirmed" to verified,
             "verification_status" to if (verified) "verified" else "not_verified",
             "auth_method" to authMethod,
+            "authentication_policy" to authenticationPolicy,
+            "assurance_scope" to "local_device_access",
+            "identity_claimed" to false,
             "timestamp_ms" to timestampMs,
             "timestamp_iso" to Instant.ofEpochMilli(timestampMs).toString(),
             "reason" to reason,

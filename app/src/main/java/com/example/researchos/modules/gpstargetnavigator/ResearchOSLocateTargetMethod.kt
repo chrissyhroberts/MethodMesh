@@ -69,7 +69,8 @@ object As100LocateTargetMethod : As100Method {
         parameters = mapOf(
             "category" to "Mapping",
             "status" to "Experimental",
-            "device_service" to AndroidLocationDeviceService.SERVICE_ID
+            "device_service" to AndroidLocationDeviceService.SERVICE_ID,
+            "target" to "target_latitude,target_longitude,arrival_radius_m"
         )
     )
 

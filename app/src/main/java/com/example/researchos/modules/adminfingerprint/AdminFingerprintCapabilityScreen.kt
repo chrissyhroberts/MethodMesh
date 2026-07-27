@@ -1,7 +1,11 @@
 package com.example.researchos.modules.adminfingerprint
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.withInvocationContext
@@ -26,19 +31,46 @@ import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
 import com.example.researchos.transport.workflow.ui.IntentExample
 import com.example.researchos.transport.workflow.ui.IntentExampleDropdown
 
+internal enum class LocalAuthenticationMode(
+    val wireValue: String,
+    val label: String,
+    val explanation: String
+) {
+    Biometric(
+        "biometric",
+        "Biometric",
+        "Require an enrolled fingerprint, face, or other Android biometric."
+    ),
+    DeviceCredential(
+        "device_credential",
+        "PIN, pattern or password",
+        "Require the device credential configured in Android settings."
+    ),
+    BiometricOrDeviceCredential(
+        "biometric_or_device_credential",
+        "Biometric or device credential",
+        "Allow either local authentication route and report which Android accepted."
+    );
+
+    companion object {
+        fun parse(raw: String?): LocalAuthenticationMode? = entries.firstOrNull {
+            it.wireValue.equals(raw?.trim(), ignoreCase = true)
+        }
+    }
+}
+
 object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId: String = As100VerifyFingerprintMethod.ID
-    override val title: String = "Identity verification"
-    override val description: String = "Run device verification, review the outcome, then confirm or retry."
+    override val title: String = "Local device authentication"
+    override val description: String = "Authorise local access using an enrolled biometric or device credential."
 
     private val settingsSpec = listOf(
-        MethodSetting.TextSetting("prompt_title", "Prompt title", group = "Prompt", defaultValue = "Confirmation required"),
-        MethodSetting.TextSetting("prompt_subtitle", "Prompt subtitle", group = "Prompt", defaultValue = "Use fingerprint or device credential to continue"),
-        MethodSetting.TextSetting("prompt_description", "Prompt description", group = "Prompt", defaultValue = "Confirm that the expected participant or operator is present."),
+        MethodSetting.TextSetting("prompt_title", "Prompt title", group = "Prompt", defaultValue = "Access authorisation required"),
+        MethodSetting.TextSetting("prompt_subtitle", "Prompt subtitle", group = "Prompt", defaultValue = "Authenticate on this device to continue"),
+        MethodSetting.TextSetting("prompt_description", "Prompt description", group = "Prompt", defaultValue = "This confirms local device access; it does not identify which enrolled person authenticated."),
         MethodSetting.TextSetting("cancel_text", "Cancel text", group = "Prompt", defaultValue = "Cancel"),
-        MethodSetting.TextSetting("confirmation_reason", "Confirmation reason", group = "Output", defaultValue = "verify_fingerprint"),
-        MethodSetting.BooleanSetting("confirmation_required", "Require explicit confirmation", group = "Security", defaultValue = true),
-        MethodSetting.BooleanSetting("allow_device_credential", "Allow device credential", group = "Security", defaultValue = false)
+        MethodSetting.TextSetting("confirmation_reason", "Confirmation reason", group = "Output", defaultValue = "local_access_authorisation"),
+        MethodSetting.BooleanSetting("confirmation_required", "Require explicit confirmation", group = "Security", defaultValue = true)
     )
 
     @Composable
@@ -56,61 +88,91 @@ object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
                 applyParameters(state, settingsSpec, action.settings)
             }
         }
+        val requestedMode = action.settings["authentication_method"]
+        var mode by remember(action.settings) {
+            mutableStateOf(LocalAuthenticationMode.parse(requestedMode) ?: LocalAuthenticationMode.Biometric)
+        }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
-        var status by remember { mutableStateOf("Ready for verification.") }
-        val allowDeviceCredential = settings.getBoolean("allow_device_credential")
-        val availability = AndroidBiometricDeviceService.availability(androidContext, allowDeviceCredential)
-
-        fun startVerification() {
-            BiometricAuthHelper.authenticate(
-                context = androidContext,
-                title = settings.getString("prompt_title"),
-                subtitle = settings.getString("prompt_subtitle"),
-                description = settings.getString("prompt_description"),
-                cancelText = settings.getString("cancel_text"),
-                confirmationRequired = settings.getBoolean("confirmation_required"),
-                allowDeviceCredential = allowDeviceCredential,
-                onSuccess = { authMethod ->
-                    val signal = AndroidBiometricDeviceService.authenticationSignal(
-                        verified = true,
-                        authMethod = authMethod,
-                        message = "Confirmed"
-                    )
-                    val execution = As100VerifyFingerprintMethod.execute(
-                        request = As100VerifyFingerprintMethod.request(
-                            action = action.canonicalId,
-                            context = request.invocationContext.asMap(action.canonicalId) + action.settings,
-                            signals = listOf(signal.signal)
-                        ),
-                        settingsState = null,
-                        transport = request.source
-                    ).withInvocationContext(request.invocationContext)
-                    result = execution
-                    status = "Verified using $authMethod."
-                },
-                onFailure = { message ->
-                    val signal = AndroidBiometricDeviceService.authenticationSignal(
-                        verified = false,
-                        authMethod = "none",
-                        message = message
-                    )
-                    val execution = As100VerifyFingerprintMethod.execute(
-                        request = As100VerifyFingerprintMethod.request(
-                            action = action.canonicalId,
-                            context = request.invocationContext.asMap(action.canonicalId) + action.settings,
-                            signals = listOf(signal.signal)
-                        ),
-                        settingsState = null,
-                        transport = request.source
-                    ).withInvocationContext(request.invocationContext)
-                    result = execution
-                    status = message
-                }
-            )
+        var status by remember { mutableStateOf("Ready for local authentication.") }
+        val modeIsValid = requestedMode == null || LocalAuthenticationMode.parse(requestedMode) != null
+        val availability = when (mode) {
+            LocalAuthenticationMode.Biometric -> BiometricAuthHelper.biometricAvailability(androidContext)
+            LocalAuthenticationMode.DeviceCredential -> BiometricAuthHelper.deviceCredentialAvailability(androidContext)
+            LocalAuthenticationMode.BiometricOrDeviceCredential ->
+                BiometricAuthHelper.biometricOrCredentialAvailability(androidContext)
         }
 
-        LaunchedEffect(context.isExternalInvocation) {
-            if (context.isExternalInvocation && availability.available) startVerification()
+        fun recordOutcome(verified: Boolean, authMethod: String, message: String) {
+            val signal = AndroidBiometricDeviceService.authenticationSignal(
+                verified = verified,
+                authMethod = authMethod,
+                message = message
+            )
+            result = As100VerifyFingerprintMethod.execute(
+                request = As100VerifyFingerprintMethod.request(
+                    action = action.canonicalId,
+                    context = request.invocationContext.asMap(action.canonicalId) +
+                        action.settings + mapOf(
+                            "authentication_method" to mode.wireValue,
+                            "confirmation_reason" to settings.getString("confirmation_reason")
+                        ),
+                    signals = listOf(signal.signal)
+                ),
+                settingsState = null,
+                transport = request.source
+            ).withInvocationContext(request.invocationContext)
+            status = if (verified) "Authorised using $authMethod." else message
+        }
+
+        fun startVerification() {
+            if (!modeIsValid) {
+                status = "Unknown authentication_method '$requestedMode'."
+                return
+            }
+            val success: (String) -> Unit = { authMethod ->
+                recordOutcome(true, authMethod, "Local access authorised")
+            }
+            val failure: (String) -> Unit = { message ->
+                recordOutcome(false, "none", message)
+            }
+            when (mode) {
+                LocalAuthenticationMode.Biometric -> BiometricAuthHelper.authenticate(
+                    context = androidContext,
+                    title = settings.getString("prompt_title"),
+                    subtitle = settings.getString("prompt_subtitle"),
+                    description = settings.getString("prompt_description"),
+                    cancelText = settings.getString("cancel_text"),
+                    confirmationRequired = settings.getBoolean("confirmation_required"),
+                    allowDeviceCredential = false,
+                    onSuccess = success,
+                    onFailure = failure
+                )
+                LocalAuthenticationMode.DeviceCredential ->
+                    BiometricAuthHelper.authenticateDeviceCredential(
+                        context = androidContext,
+                        title = settings.getString("prompt_title"),
+                        subtitle = settings.getString("prompt_subtitle"),
+                        description = settings.getString("prompt_description"),
+                        confirmationRequired = settings.getBoolean("confirmation_required"),
+                        onSuccess = success,
+                        onFailure = failure
+                    )
+                LocalAuthenticationMode.BiometricOrDeviceCredential -> BiometricAuthHelper.authenticate(
+                    context = androidContext,
+                    title = settings.getString("prompt_title"),
+                    subtitle = settings.getString("prompt_subtitle"),
+                    description = settings.getString("prompt_description"),
+                    cancelText = settings.getString("cancel_text"),
+                    confirmationRequired = settings.getBoolean("confirmation_required"),
+                    allowDeviceCredential = true,
+                    onSuccess = success,
+                    onFailure = failure
+                )
+            }
+        }
+
+        LaunchedEffect(context.startsImmediately) {
+            if (context.startsImmediately && availability.available) startVerification()
         }
 
         CapabilityScreenScaffold(
@@ -128,8 +190,26 @@ object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
             Text(availability.message)
             Text(status)
             Spacer(Modifier.height(10.dp))
+            Text("Authentication method", fontWeight = FontWeight.SemiBold)
+            LocalAuthenticationMode.entries.forEach { option ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            mode = option
+                            result = null
+                            status = option.explanation
+                        }
+                        .padding(vertical = 6.dp)
+                ) {
+                    Text(if (mode == option) "●" else "○", modifier = Modifier.padding(end = 8.dp))
+                    Text(option.label)
+                }
+            }
+            Text(mode.explanation)
+            Spacer(Modifier.height(10.dp))
             Button(enabled = availability.available, onClick = { startVerification() }) {
-                Text(if (result == null) "Start verification" else "Verify again")
+                Text(if (result == null) "Authorise access" else "Authorise again")
             }
 
             Spacer(Modifier.height(16.dp))
@@ -137,19 +217,19 @@ object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
                 capabilityId = As100VerifyFingerprintMethod.ID,
                 examples = listOf(
                     IntentExample(
-                        label = "Basic fingerprint verification",
-                        description = "Simple intent to verify device fingerprint",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}')"
+                        label = "Biometric access",
+                        description = "Require an enrolled Android biometric",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',authentication_method='biometric')"
                     ),
                     IntentExample(
-                        label = "Allow device credential",
-                        description = "Allow PIN/pattern as fallback",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',allow_device_credential='true')"
+                        label = "PIN, pattern or password",
+                        description = "Require the configured Android device credential",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',authentication_method='device_credential')"
                     ),
                     IntentExample(
-                        label = "With study context",
-                        description = "Include study and operator information",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',study_id='study_01',operator_id='op_001')"
+                        label = "Either local method",
+                        description = "Allow biometric or device credential",
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100VerifyFingerprintMethod.ID}',authentication_method='biometric_or_device_credential')"
                     )
                 )
             )

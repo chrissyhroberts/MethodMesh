@@ -6,8 +6,8 @@ import com.example.researchos.modules.RilBinding
 
 object QrCodeModule : ResearchOSModule {
     override val moduleId: String = "qrcode"
-    override val displayName: String = "QR code"
-    override val summary: String = "Capture QR token evidence for workflows that need token or presence verification."
+    override val displayName: String = "Code scanner"
+    override val summary: String = "Automatically capture QR, Data Matrix, and common 1D barcode evidence."
 
     override fun as100Methods() = listOf(As100QrScanMethod)
 
@@ -15,7 +15,9 @@ object QrCodeModule : ResearchOSModule {
         RilBinding("scan qr", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
         RilBinding("read qr", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
         RilBinding("capture qr", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
-        RilBinding("scan qr token", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence")
+        RilBinding("scan qr token", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
+        RilBinding("scan barcode", As100QrScanMethod.ID, "Automatically capture a supported 1D or 2D code"),
+        RilBinding("scan data matrix", As100QrScanMethod.ID, "Capture a Data Matrix code")
     )
 
     override fun capabilityScreens() = listOf(QrScanCapabilityScreen)

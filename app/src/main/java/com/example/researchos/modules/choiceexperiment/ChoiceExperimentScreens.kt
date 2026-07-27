@@ -11,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,8 +19,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,10 +50,14 @@ internal abstract class DceCapabilityScreen(
         onConfirmed: (ExecutionResult) -> Unit,
         onCancel: () -> Unit
     ) {
-        val config = remember(context.action.settings) { DceConfigParser.from(context.action.settings, method) }
+        val initialConfig = remember(context.action.settings) { DceConfigParser.from(context.action.settings, method) }
+        var config by remember(context.action.settings) { mutableStateOf(initialConfig) }
+        var taskStarted by rememberSaveable(context.action.canonicalId) {
+            mutableStateOf(context.startsImmediately)
+        }
         var resetCounter by remember { mutableIntStateOf(0) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
-        var status by remember { mutableStateOf("Ready.") }
+        var status by remember { mutableStateOf(if (context.startsImmediately) "Ready." else "Configure the task.") }
 
         fun complete(resultJson: String, responseCount: Int, extra: Map<String, String> = emptyMap()) {
             val execution = DceResultFactory.complete(
@@ -65,7 +73,7 @@ internal abstract class DceCapabilityScreen(
                 extraValues = extra
             ).withInvocationContext(context.request.invocationContext)
             result = execution
-            status = "Task complete. Review the result and press Confirm."
+            status = "Task complete."
         }
 
         CapabilityScreenScaffold(
@@ -86,12 +94,24 @@ internal abstract class DceCapabilityScreen(
         ) {
             Text(status)
             Spacer(Modifier.height(10.dp))
-            TaskBody(
-                config = config,
-                resetCounter = resetCounter,
-                isComplete = result != null,
-                onComplete = ::complete
-            )
+            if (!taskStarted) {
+                DceConfigurationEditor(
+                    method = method,
+                    initialConfig = initialConfig,
+                    onStart = { configured ->
+                        config = configured
+                        taskStarted = true
+                        status = "Task started."
+                    }
+                )
+            } else {
+                TaskBody(
+                    config = config,
+                    resetCounter = resetCounter,
+                    isComplete = result != null,
+                    onComplete = ::complete
+                )
+            }
 
             Spacer(Modifier.height(16.dp))
             IntentExampleDropdown(
@@ -114,7 +134,7 @@ internal abstract class DceCapabilityScreen(
             IntentExample(
                 label = "Pairwise comparison (3 rounds)",
                 description = "Compare 3 options in pairwise rounds",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.pairwise',options='Option A|Option B|Option C',rounds='3')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.pairwise',items='Option A|Option B|Option C',rounds='3')"
             ),
             IntentExample(
                 label = "With seed",
@@ -126,7 +146,7 @@ internal abstract class DceCapabilityScreen(
             IntentExample(
                 label = "Best-worst scaling (4 rounds)",
                 description = "Select best and worst from attribute sets",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.maxdiff',options='Speed|Cost|Safety|Comfort',rounds='4')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.maxdiff',items='Speed|Cost|Safety|Comfort',rounds='4')"
             ),
             IntentExample(
                 label = "4 items per round",
@@ -138,7 +158,7 @@ internal abstract class DceCapabilityScreen(
             IntentExample(
                 label = "Full ranking",
                 description = "Rank all options from best to worst",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.ranking',options='First|Second|Third|Fourth')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.ranking',items='First|Second|Third|Fourth',rounds='3')"
             ),
             IntentExample(
                 label = "Top-k ranking",
@@ -150,7 +170,7 @@ internal abstract class DceCapabilityScreen(
             IntentExample(
                 label = "100-point allocation",
                 description = "Distribute 100 points across options",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.points',options='Feature A|Feature B|Feature C|Feature D')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.points',items='Feature A|Feature B|Feature C|Feature D',points='100')"
             ),
             IntentExample(
                 label = "Custom points budget",
@@ -162,15 +182,131 @@ internal abstract class DceCapabilityScreen(
             IntentExample(
                 label = "Conjoint analysis (3 profiles)",
                 description = "Choose preferred product profiles",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.conjoint',rounds='3',profiles_per_round='2')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.conjoint',rounds='3',classes='BRAND:Panasonic,Sony,Nintendo|FEATURE:Basic,Premium|PRICE:Low,Medium,High',profiles_per_round='2')"
             ),
             IntentExample(
                 label = "With predefined attributes",
                 description = "Conjoint with specific attributes",
-                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.conjoint',rounds='5',profiles_per_round='2',seed='study_001')"
+                intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='dce.conjoint',rounds='5',classes='BRAND:Panasonic,Sony|FEATURE:Basic,Premium|PRICE:100,150,200',profiles_per_round='2',seed='study_001')"
             )
         )
     }
+}
+
+@Composable
+private fun DceConfigurationEditor(
+    method: DceMethod,
+    initialConfig: DceConfig,
+    onStart: (DceConfig) -> Unit
+) {
+    var roundsText by rememberSaveable(method.id) { mutableStateOf(initialConfig.rounds.toString()) }
+    var pointsText by rememberSaveable(method.id) { mutableStateOf(initialConfig.totalPoints.toString()) }
+    var itemsText by rememberSaveable(method.id) { mutableStateOf(initialConfig.options.joinToString("\n")) }
+    var classesText by rememberSaveable(method.id) {
+        mutableStateOf(initialConfig.attributes.entries.joinToString("\n") { (name, levels) ->
+            "$name: ${levels.joinToString(", ")}"
+        })
+    }
+
+    val rounds = roundsText.toIntOrNull()
+    val points = pointsText.toIntOrNull()
+    val items = DceConfigParser.parseItemList(itemsText)
+    val classes = DceConfigParser.parseAttributes(classesText)
+    val minimumItems = when (method) {
+        DceMethod.Points -> 1
+        DceMethod.Conjoint -> 0
+        else -> 2
+    }
+    val roundRange = if (method == DceMethod.Conjoint) 3..10 else 1..50
+    val roundsValid = method == DceMethod.Points || rounds in roundRange
+    val itemsValid = method == DceMethod.Conjoint || items.size >= minimumItems
+    val classesValid = method != DceMethod.Conjoint ||
+        (classes.isNotEmpty() && classes.values.all { it.size >= 2 })
+    val pointsValid = method != DceMethod.Points || (points != null && points > 0)
+    val canStart = roundsValid && itemsValid && classesValid && pointsValid
+
+    Text("Task setup", fontWeight = FontWeight.SemiBold)
+    Spacer(Modifier.height(8.dp))
+
+    if (method != DceMethod.Points) {
+        OutlinedTextField(
+            value = roundsText,
+            onValueChange = { roundsText = it.filter(Char::isDigit) },
+            label = { Text(if (method == DceMethod.Conjoint) "Number of rounds (3–10)" else "Number of rounds") },
+            supportingText = {
+                if (!roundsValid) Text("Enter ${roundRange.first}–${roundRange.last} rounds.")
+                else Text("Most studies use 3–10 rounds.")
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        Spacer(Modifier.height(8.dp))
+    }
+
+    if (method == DceMethod.Points) {
+        OutlinedTextField(
+            value = pointsText,
+            onValueChange = { pointsText = it.filter(Char::isDigit) },
+            label = { Text("Number of points") },
+            supportingText = { if (!pointsValid) Text("Enter a positive points budget.") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        Spacer(Modifier.height(8.dp))
+    }
+
+    if (method == DceMethod.Conjoint) {
+        OutlinedTextField(
+            value = classesText,
+            onValueChange = { classesText = it },
+            label = { Text("Classes and options") },
+            placeholder = { Text("BRAND: Panasonic, Sony, Nintendo\nFEATURE: Basic, Premium\nPRICE: Low, Medium, High") },
+            supportingText = {
+                if (!classesValid) Text("Add at least one class with two or more options.")
+                else Text("One class per line: CLASS: option, option")
+            },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 4,
+            maxLines = 8
+        )
+    } else {
+        OutlinedTextField(
+            value = itemsText,
+            onValueChange = { itemsText = it },
+            label = { Text("Item list") },
+            placeholder = { Text("One item per line") },
+            supportingText = {
+                if (!itemsValid) Text("Add at least $minimumItems item${if (minimumItems == 1) "" else "s"}.")
+                else Text("${items.size} distinct item${if (items.size == 1) "" else "s"}")
+            },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 4,
+            maxLines = 8
+        )
+    }
+
+    Spacer(Modifier.height(12.dp))
+    Button(
+        enabled = canStart,
+        modifier = Modifier.fillMaxWidth(),
+        onClick = {
+            val configuredOptions = if (method == DceMethod.Conjoint) initialConfig.options else items
+            onStart(initialConfig.copy(
+                options = configuredOptions,
+                rounds = if (method == DceMethod.Points) 1 else rounds!!,
+                optionsPerRound = when (method) {
+                    DceMethod.Pairwise -> 2
+                    DceMethod.Ranking -> configuredOptions.size
+                    else -> initialConfig.optionsPerRound.coerceAtMost(configuredOptions.size.coerceAtLeast(2))
+                },
+                itemsPerRound = initialConfig.itemsPerRound.coerceAtMost(configuredOptions.size.coerceAtLeast(2)),
+                totalPoints = if (method == DceMethod.Points) points!! else initialConfig.totalPoints,
+                attributes = if (method == DceMethod.Conjoint) classes else initialConfig.attributes
+            ))
+        }
+    ) { Text("Start task") }
 }
 
 internal object PairwiseChoiceScreen : DceCapabilityScreen(DceMethod.Pairwise) {

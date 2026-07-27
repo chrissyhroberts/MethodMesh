@@ -15,6 +15,30 @@ data class BiometricAvailability(
 )
 
 object BiometricAuthHelper {
+    fun biometricAvailability(context: Context): BiometricAvailability =
+        availabilityFor(
+            context = context,
+            authenticators = BiometricManager.Authenticators.BIOMETRIC_WEAK,
+            successMessage = "Biometric authentication is available.",
+            noneEnrolledMessage = "No biometric credential is enrolled. Add a fingerprint or face unlock in Android settings."
+        )
+
+    fun deviceCredentialAvailability(context: Context): BiometricAvailability =
+        availabilityFor(
+            context = context,
+            authenticators = BiometricManager.Authenticators.DEVICE_CREDENTIAL,
+            successMessage = "PIN, pattern or password authentication is available.",
+            noneEnrolledMessage = "No PIN, pattern or password is configured in Android settings."
+        )
+
+    fun biometricOrCredentialAvailability(context: Context): BiometricAvailability =
+        availabilityFor(
+            context = context,
+            authenticators = BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                BiometricManager.Authenticators.DEVICE_CREDENTIAL,
+            successMessage = "Biometric or device credential authentication is available.",
+            noneEnrolledMessage = "No biometric, PIN, pattern or password is enrolled in Android settings."
+        )
 
     fun authenticators(
         allowDeviceCredential: Boolean
@@ -31,15 +55,33 @@ object BiometricAuthHelper {
         context: Context,
         allowDeviceCredential: Boolean
     ): BiometricAvailability {
-        val authenticators = authenticators(allowDeviceCredential)
-        val code = BiometricManager
-            .from(context)
-            .canAuthenticate(authenticators)
+        return if (allowDeviceCredential) {
+            biometricOrCredentialAvailability(context)
+        } else {
+            biometricAvailability(context)
+        }
+    }
 
+    private fun availabilityFor(
+        context: Context,
+        authenticators: Int,
+        successMessage: String,
+        noneEnrolledMessage: String
+    ): BiometricAvailability {
+        val code = BiometricManager.from(context).canAuthenticate(authenticators)
+        val message = when (code) {
+            BiometricManager.BIOMETRIC_SUCCESS -> successMessage
+            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> noneEnrolledMessage
+            else -> availabilityMessage(
+                code,
+                allowDeviceCredential =
+                    (authenticators and BiometricManager.Authenticators.DEVICE_CREDENTIAL) != 0
+            )
+        }
         return BiometricAvailability(
             available = code == BiometricManager.BIOMETRIC_SUCCESS,
             code = code,
-            message = availabilityMessage(code, allowDeviceCredential),
+            message = message,
             authenticators = authenticators
         )
     }

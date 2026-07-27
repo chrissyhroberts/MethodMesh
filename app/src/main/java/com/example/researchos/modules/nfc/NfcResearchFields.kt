@@ -40,7 +40,9 @@ object NfcEvidenceFields {
         NDEF_FIRST_PAYLOAD_HEX,
         NDEF_FIRST_PAYLOAD_UTF8,
         NDEF_RECORDS_JSON,
-        TAG_SUMMARY
+        TAG_SUMMARY,
+        NfcCredentialEvidence.FORMAT_FIELD,
+        NfcCredentialEvidence.HASH_FIELD
     )
 }
 
@@ -49,4 +51,28 @@ object NfcWriteFields {
     const val WRITE_MESSAGE = "write_message"
     const val WRITE_RECORD_TYPE = "write_record_type"
     const val WRITE_SIZE_BYTES = "write_size_bytes"
+    const val OVERWRITE_POLICY = "overwrite_policy"
+    const val PREVIOUS_MESSAGE_HASH = "previous_message_hash"
+    const val WRITTEN_MESSAGE_HASH = "written_message_hash"
+    const val WRITE_VERIFIED = "write_verified"
+}
+
+object NfcProvisionFields {
+    const val CREDENTIAL_ID = "credential_id"
+    const val PROVISION_SUCCESS = "provision_success"
+    const val PROVISION_MESSAGE = "provision_message"
+    const val PROVISIONED_TIME_ISO = "provisioned_time_iso"
+
+    val outputFields: List<String> = listOf(
+        CREDENTIAL_ID,
+        PROVISION_SUCCESS,
+        PROVISION_MESSAGE,
+        PROVISIONED_TIME_ISO,
+        NfcWriteFields.WRITE_RECORD_TYPE,
+        NfcWriteFields.WRITE_SIZE_BYTES,
+        NfcWriteFields.OVERWRITE_POLICY,
+        NfcWriteFields.PREVIOUS_MESSAGE_HASH,
+        NfcWriteFields.WRITTEN_MESSAGE_HASH,
+        NfcWriteFields.WRITE_VERIFIED
+    ) + NfcEvidenceFields.tagOutputFields
 }

@@ -61,8 +61,8 @@ object NfcReadCapabilityScreen : CapabilityScreenSpec {
             status = "Waiting for NFC tag…"
         }
 
-        LaunchedEffect(context.isExternalInvocation) {
-            if (context.isExternalInvocation) startCapture()
+        LaunchedEffect(context.startsImmediately) {
+            if (context.startsImmediately) startCapture()
         }
 
         NfcDeviceServiceEffect(

@@ -5,17 +5,16 @@ import com.example.researchos.modules.RilBinding
 
 object AdminFingerprintModule : ResearchOSModule {
     override val moduleId: String = "adminfingerprint"
-    override val displayName: String = "Admin fingerprint"
+    override val displayName: String = "Local device authentication"
 
 
     override fun as100Methods() = listOf(As100VerifyFingerprintMethod)
 
     override fun rilBindings() = listOf(
-        RilBinding("verify identity fingerprint", As100VerifyFingerprintMethod.ID, "Verify identity using the device biometric/credential prompt"),
-        RilBinding("verify identity", As100VerifyFingerprintMethod.ID, "Verify identity using the device biometric/credential prompt"),
-        RilBinding("verify fingerprint", As100VerifyFingerprintMethod.ID, "Verify identity using the device biometric/credential prompt"),
-        RilBinding("identify fingerprint", As100VerifyFingerprintMethod.ID, "Verify identity using the device biometric/credential prompt"),
-        RilBinding("verify admin fingerprint", As100VerifyFingerprintMethod.ID, "Verify identity using the device biometric/credential prompt")
+        RilBinding("authorize local access", As100VerifyFingerprintMethod.ID, "Authorise access using a device biometric or credential"),
+        RilBinding("authenticate on device", As100VerifyFingerprintMethod.ID, "Authenticate locally without making a person-identity claim"),
+        RilBinding("require biometric", As100VerifyFingerprintMethod.ID, "Require an enrolled Android biometric"),
+        RilBinding("require device credential", As100VerifyFingerprintMethod.ID, "Require the configured PIN, pattern or password")
     )
 
     override fun capabilityScreens() = listOf(AdminFingerprintCapabilityScreen)

@@ -41,7 +41,7 @@ data class AttestationRecord(
     val eventPayloadHash: String,
     val eventPayloadMode: String,
     val verificationMethod: AttestationVerificationMethod,
-    val verificationEvidencePayload: String,
+    val verificationEvidenceFormat: String,
     val verificationEvidenceHash: String,
     val deviceEventTimeIso: String,
     val deviceEventTimeEpochMs: Long,
@@ -65,6 +65,7 @@ data class AttestationRecord(
             eventPayloadHash = eventPayloadHash,
             eventPayloadMode = eventPayloadMode,
             verificationMethod = verificationMethod.name,
+            verificationEvidenceFormat = verificationEvidenceFormat,
             verificationEvidenceHash = verificationEvidenceHash,
             deviceEventTimeIso = deviceEventTimeIso,
             deviceMonotonicCounter = deviceMonotonicCounter,
@@ -83,14 +84,14 @@ data class AttestationRecord(
      * derivable internal metadata remains in the ResearchOS graph and detailed selectors.
      */
     fun asOutputMap(): Map<String, String> = linkedMapOf<String, String>().apply {
-        put("attestation_schema_version", "3")
+        put("attestation_schema_version", "4")
         put("attestation_id", attestationId)
         put("study_id", studyId)
         put("event_type", eventType)
         put("event_payload_hash", eventPayloadHash)
         put("event_payload_mode", eventPayloadMode)
         put("verification_method", verificationMethod.name)
-        put("verification_evidence_payload", verificationEvidencePayload)
+        put("verification_evidence_format", verificationEvidenceFormat)
         put("verification_evidence_hash", verificationEvidenceHash)
         put("device_event_time_iso", deviceEventTimeIso)
         put("device_monotonic_counter", deviceMonotonicCounter.toString())
@@ -130,13 +131,14 @@ data class AttestationRecord(
             eventPayloadHash: String,
             eventPayloadMode: String,
             verificationMethod: String,
+            verificationEvidenceFormat: String,
             verificationEvidenceHash: String,
             deviceEventTimeIso: String,
             deviceMonotonicCounter: Long,
             previousAttestationHash: String,
             publicKeyId: String
         ): String = listOf(
-            "attestation_schema_version=3",
+            "attestation_schema_version=4",
             "attestation_id=$attestationId",
             "study_id=$studyId",
             "operator_id=$operatorId",
@@ -145,6 +147,7 @@ data class AttestationRecord(
             "event_payload_hash=$eventPayloadHash",
             "event_payload_mode=$eventPayloadMode",
             "verification_method=$verificationMethod",
+            "verification_evidence_format=$verificationEvidenceFormat",
             "verification_evidence_hash=$verificationEvidenceHash",
             "device_event_time_iso=$deviceEventTimeIso",
             "device_monotonic_counter=$deviceMonotonicCounter",
@@ -209,7 +212,7 @@ object AttestationRepository {
         eventType: String,
         eventPayloadHash: String?,
         verificationMethod: AttestationVerificationMethod,
-        verificationEvidence: String,
+        verificationEvidence: AttestationEvidence,
         trustedTimestampPolicy: TrustedTimestampPolicy = TrustedTimestampPolicy.Disabled
     ): AttestationRecord {
         AttestationCrypto.ensureKeyPair()
@@ -224,7 +227,6 @@ object AttestationRepository {
         }
         val payloadHash = suppliedHash.lowercase()
         val payloadMode = "supplied_hash"
-        val evidenceHash = AttestationCrypto.sha256Hex(verificationEvidence)
         val attestationId = "att_${UUID.randomUUID()}"
         val canonical = AttestationRecord.canonicalPayload(
             attestationId = attestationId,
@@ -235,7 +237,8 @@ object AttestationRepository {
             eventPayloadHash = payloadHash,
             eventPayloadMode = payloadMode,
             verificationMethod = verificationMethod.name,
-            verificationEvidenceHash = evidenceHash,
+            verificationEvidenceFormat = verificationEvidence.format,
+            verificationEvidenceHash = verificationEvidence.hash,
             deviceEventTimeIso = Instant.ofEpochMilli(now).toString(),
             deviceMonotonicCounter = counter,
             previousAttestationHash = previous,
@@ -250,8 +253,8 @@ object AttestationRepository {
             eventPayloadHash = payloadHash,
             eventPayloadMode = payloadMode,
             verificationMethod = verificationMethod,
-            verificationEvidencePayload = verificationEvidence,
-            verificationEvidenceHash = evidenceHash,
+            verificationEvidenceFormat = verificationEvidence.format,
+            verificationEvidenceHash = verificationEvidence.hash,
             deviceEventTimeIso = Instant.ofEpochMilli(now).toString(),
             deviceEventTimeEpochMs = now,
             deviceMonotonicCounter = counter,

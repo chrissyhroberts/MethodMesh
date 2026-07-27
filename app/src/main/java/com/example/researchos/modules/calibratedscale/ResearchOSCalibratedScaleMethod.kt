@@ -17,6 +17,7 @@ import com.example.researchos.core.researchos.TransformationStatus
 import com.example.researchos.core.researchos.runtime.As100ExecutionEngine
 import com.example.researchos.core.researchos.runtime.As100Method
 import com.example.researchos.settings.SettingsState
+import com.example.researchos.calibration.CalibrationRepository
 
 /**
  * Native AS1.00 method for calibrated scalar / range measurement.
@@ -26,7 +27,7 @@ import com.example.researchos.settings.SettingsState
  */
 object As100CalibratedScaleMethod : As100Method {
     const val ID = "calibrated_scale"
-    const val VERSION = "1.0.0"
+    const val VERSION = "1.1.0"
 
     override val id: String = ID
 
@@ -49,12 +50,17 @@ object As100CalibratedScaleMethod : As100Method {
             "maximum",
             "lower_value",
             "upper_value",
-            "use_range"
+            "use_range",
+            "scale_length_mm",
+            "scale_length_dp",
+            "dp_per_mm",
+            "vertical_mode"
         ),
         parameters = mapOf(
             "category" to "Measurement",
             "status" to "Experimental",
-            "interaction" to "manual_calibrated_visual_scale"
+            "interaction" to "manual_calibrated_visual_scale",
+            "physical_length" to "vas_length_mm × calibrated device dp_per_mm"
         )
     )
 
@@ -132,6 +138,8 @@ object As100CalibratedScaleMethod : As100Method {
         val upper = settingsState.getFloat("upper_value").coerceIn(minimum, maximum)
         val normalisedLower = minOf(lower, upper)
         val normalisedUpper = maxOf(lower, upper)
+        val lengthMm = settingsState.getFloat("vas_length_mm").coerceIn(40f, 200f)
+        val calibration = CalibrationRepository.current()
 
         return linkedMapOf(
             "value" to value,
@@ -139,7 +147,11 @@ object As100CalibratedScaleMethod : As100Method {
             "maximum" to maximum,
             "lower_value" to normalisedLower,
             "upper_value" to normalisedUpper,
-            "use_range" to useRange
+            "use_range" to useRange,
+            "scale_length_mm" to lengthMm,
+            "scale_length_dp" to scaleLengthDp(lengthMm, calibration.dpPerMm),
+            "dp_per_mm" to calibration.dpPerMm,
+            "vertical_mode" to settingsState.getBoolean("vertical_mode")
         )
     }
 }

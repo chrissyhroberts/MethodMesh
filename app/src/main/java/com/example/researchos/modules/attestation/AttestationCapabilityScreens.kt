@@ -72,7 +72,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                 mergeNonBlank(context.request.invocationContext.asMap(context.action.canonicalId))
             }
         }
-        val external = context.isExternalInvocation
+        val external = context.startsImmediately
         var studyId by remember { mutableStateOf(supplied["study_id"].orEmpty().ifBlank { if (external) "" else "study_demo" }) }
         var operatorId by remember { mutableStateOf(supplied["operator_id"].orEmpty().ifBlank { if (external) "" else "operator_001" }) }
         var subjectRef by remember {
@@ -83,7 +83,9 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             )
         }
         var eventType by remember { mutableStateOf(supplied["event_type"].orEmpty().ifBlank { if (external) "" else "field_event" }) }
-        var eventPayloadHash by remember { mutableStateOf(supplied["event_payload_hash"].orEmpty()) }
+        var eventPayloadHash by remember {
+            mutableStateOf(initialAttestationPayloadHash(supplied["event_payload_hash"], external))
+        }
         var evidence by remember { mutableStateOf(supplied["verification_evidence"].orEmpty()) }
         var method by remember {
             mutableStateOf(
@@ -97,18 +99,19 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
         var status by remember { mutableStateOf("Ready to create a signed attestation.") }
         var activeDependency by remember { mutableStateOf<String?>(null) }
 
-        fun contextMapFor(selectedMethod: AttestationVerificationMethod, selectedEvidence: String): Map<String, String> =
-            supplied + buildMap {
+        fun contextMapFor(selectedMethod: AttestationVerificationMethod, selectedEvidence: AttestationEvidence): Map<String, String> =
+            supplied.filterKeys { it != "verification_evidence" } + buildMap {
                 put("study_id", studyId)
                 put("operator_id", operatorId)
                 put("subject_ref", subjectRef)
                 put("event_type", eventType)
                 put("event_payload_hash", eventPayloadHash)
                 put("verification_method", selectedMethod.name)
-                put("verification_evidence", selectedEvidence.ifBlank { selectedMethod.name })
+                put("verification_evidence_format", selectedEvidence.format)
+                put("verification_evidence_hash", selectedEvidence.hash)
             }
 
-        fun signAttestation(selectedMethod: AttestationVerificationMethod, selectedEvidence: String) {
+        fun signAttestation(selectedMethod: AttestationVerificationMethod, selectedEvidence: AttestationEvidence) {
             val execution = As100CreateAttestationMethod.execute(
                 request = As100CreateAttestationMethod.request(
                     action = context.action.canonicalId,
@@ -132,9 +135,6 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             } else {
                 execution.diagnostics["reason"] ?: "Attestation failed.$timestampStatus"
             }
-            if (context.isExternalInvocation && execution.status == com.example.researchos.core.researchos.TransformationStatus.Succeeded) {
-                onConfirmed(execution)
-            }
         }
 
         fun startSigning() {
@@ -149,7 +149,9 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                         cancelText = "Cancel",
                         confirmationRequired = true,
                         allowDeviceCredential = false,
-                        onSuccess = { authMethod -> signAttestation(method, authMethod) },
+                        onSuccess = { authMethod ->
+                            signAttestation(method, AttestationEvidenceFactory.biometric(authMethod))
+                        },
                         onFailure = { message -> status = message; result = null }
                     )
                 }
@@ -161,7 +163,9 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                         subtitle = "Use the phone PIN, pattern or password",
                         description = "ResearchOS does not store the credential. It records only that Android accepted the device credential before signing.",
                         confirmationRequired = true,
-                        onSuccess = { authMethod -> signAttestation(method, authMethod) },
+                        onSuccess = { authMethod ->
+                            signAttestation(method, AttestationEvidenceFactory.deviceCredential(authMethod))
+                        },
                         onFailure = { message -> status = message; result = null }
                     )
                 }
@@ -178,12 +182,16 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                     status = "Waiting for NFC tag via the existing NFC capability…"
                 }
 
-                AttestationVerificationMethod.Password -> signAttestation(method, evidence)
+                AttestationVerificationMethod.Password -> {
+                    runCatching { AttestationEvidenceFactory.studyToken(evidence) }
+                        .onSuccess { signAttestation(method, it) }
+                        .onFailure { status = it.message ?: "Invalid study token"; result = null }
+                }
             }
         }
 
-        LaunchedEffect(context.isExternalInvocation) {
-            if (context.isExternalInvocation) startSigning()
+        LaunchedEffect(context.startsImmediately) {
+            if (context.startsImmediately) startSigning()
         }
 
         activeDependency?.let { dependencyId ->
@@ -194,21 +202,16 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                 onResult = { dependencyResult ->
                     activeDependency = null
                     val fields = OutputFormatter.fields(dependencyResult, includeProvenance = false)
-                    if (dependencyId == "qr.scan") {
-                        val payload = fields["qr_payload"]?.toString().orEmpty()
-                        val hash = fields["qr_payload_hash"]?.toString().orEmpty()
-                        if (payload.isBlank() || hash != AttestationCrypto.sha256Hex(payload)) {
-                            status = "QR evidence failed integrity validation."
-                        } else signAttestation(AttestationVerificationMethod.Qr, payload)
-                    } else {
-                        val uid = fields["tag_uid_hex"]?.toString().orEmpty()
-                        val payload = fields["ndef_first_payload_utf8"]?.toString().orEmpty()
-                            .ifBlank { fields["ndef_first_payload_hex"]?.toString().orEmpty() }
-                        val evidenceValue = payload.ifBlank { uid }
-                        signAttestation(
-                            AttestationVerificationMethod.Nfc,
-                            "nfc_uid=$uid;nfc_payload_hash=${AttestationCrypto.sha256Hex(evidenceValue)}"
+                    runCatching {
+                        AttestationEvidence(
+                            format = fields["verification_evidence_format"]?.toString().orEmpty(),
+                            hash = fields["verification_evidence_hash"]?.toString().orEmpty().lowercase()
                         )
+                    }.onSuccess { dependencyEvidence ->
+                        signAttestation(method, dependencyEvidence)
+                    }.onFailure {
+                        status = "Verification dependency returned no valid canonical evidence."
+                        result = null
                     }
                 },
                 onCancel = { activeDependency = null; status = "Verification cancelled." }
@@ -235,6 +238,12 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             OutlinedTextField(subjectRef, { subjectRef = it }, label = { Text("Subject / event reference") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(eventType, { eventType = it }, label = { Text("Event type") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(eventPayloadHash, { eventPayloadHash = it }, label = { Text("Event payload SHA-256 (hex)") }, modifier = Modifier.fillMaxWidth())
+            if (!external && eventPayloadHash == MANUAL_DEBUG_EVENT_PAYLOAD_HASH) {
+                Text(
+                    "Manual test placeholder: SHA-256 of “researchos-manual-debug-event-v1”. Replace it when testing a specific payload.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
             Spacer(Modifier.height(8.dp))
             Text("Verification method", fontWeight = FontWeight.SemiBold)
             AttestationVerificationMethod.values().forEach { option ->
@@ -309,6 +318,17 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
     }
 }
 
+private const val MANUAL_DEBUG_EVENT_PAYLOAD = "researchos-manual-debug-event-v1"
+internal val MANUAL_DEBUG_EVENT_PAYLOAD_HASH: String =
+    AttestationCrypto.sha256Hex(MANUAL_DEBUG_EVENT_PAYLOAD)
+
+internal fun initialAttestationPayloadHash(
+    suppliedHash: String?,
+    startsImmediately: Boolean
+): String = suppliedHash.orEmpty().ifBlank {
+    if (startsImmediately) "" else MANUAL_DEBUG_EVENT_PAYLOAD_HASH
+}
+
 object AttestationAnchorCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId: String = As100CreateAttestationAnchorMethod.ID
     override val title: String = "Nightly ODK chain anchor"
@@ -342,8 +362,8 @@ object AttestationAnchorCapabilityScreen : CapabilityScreenSpec {
             status = "Anchor bundle created. Submit these fields through the nightly ODK form to get the server receipt timestamp."
         }
 
-        LaunchedEffect(context.isExternalInvocation) {
-            if (context.isExternalInvocation) createBundle()
+        LaunchedEffect(context.startsImmediately) {
+            if (context.startsImmediately) createBundle()
         }
 
         CapabilityScreenScaffold(

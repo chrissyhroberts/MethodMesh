@@ -42,12 +42,12 @@ class RilParserTest {
 
     @Test
     fun `semicolon-separated sections parse multiple actions`() {
-        val ril = "WHAT; scan nfc; verify identity fingerprint; WHERE; participant/P001; RESULT; return observation.nfc.uid as tag_uid; return observation.identity.verified as verified; format json"
+        val ril = "WHAT; scan nfc; authorize local access; WHERE; participant/P001; RESULT; return observation.nfc.uid as tag_uid; return observation.authorization.confirmed as confirmed; format json"
         val parsed = RilRequestParser.parse(ril)
         assertEquals(listOf(As100NfcReadMethod.ID, As100VerifyFingerprintMethod.ID), parsed.actionIds)
         assertEquals(2, parsed.returnSelectors.size)
         assertEquals("tag_uid", parsed.returnSelectors[0].alias)
-        assertEquals("verified", parsed.returnSelectors[1].alias)
+        assertEquals("confirmed", parsed.returnSelectors[1].alias)
     }
 
     // ── Compact one-line syntax ──────────────────────────────────────────────
@@ -134,5 +134,37 @@ class RilParserTest {
         )
         assertTrue(parsed.actionIds.isEmpty())
         assertTrue(parsed.context.isEmpty())
+    }
+
+    @Test
+    fun `ODK group extras preserve multiline item lists without parsing punctuation`() {
+        val items = "Clinic A\nClinic B\nClinic C"
+        val parsed = RilTransportAdapter.parse(
+            values = mapOf(
+                "method_id" to "dce.ranking",
+                "rounds" to "3",
+                "items" to items,
+                "seed" to "participant_001"
+            ),
+            source = "android_extras"
+        )
+
+        assertEquals("dce.ranking", parsed.methodId)
+        assertEquals(items, parsed.settings["items"])
+        assertEquals("3", parsed.settings["rounds"])
+    }
+
+    @Test
+    fun `ODK group extras preserve conjoint class syntax as data`() {
+        val classes = "BRAND: Panasonic, Sony\nFEATURE: Basic, Premium\nPRICE: 100, 200"
+        val parsed = RilTransportAdapter.parse(
+            values = mapOf(
+                "method_id" to "dce.conjoint",
+                "classes" to classes
+            ),
+            source = "android_extras"
+        )
+
+        assertEquals(classes, parsed.settings["classes"])
     }
 }
