@@ -68,7 +68,7 @@ object OdkFormLauncherCapabilityScreen : CapabilityScreenSpec {
             mutableStateOf(supplied["project_id"] ?: supplied["input_project_id"] ?: "")
         }
         var projectName by remember { mutableStateOf("") }
-        var projectPackage by remember { mutableStateOf("") }
+        var projectPackage by remember { mutableStateOf(supplied["input_project_package"] ?: supplied["odk_project_package"] ?: "") }
         var savedProjects by remember { mutableStateOf(OdkProjectRegistry.load(appContext)) }
         var availableForms by remember { mutableStateOf(emptyList<OdkFormDescriptor>()) }
         var selectedFormId by remember { mutableStateOf("") }

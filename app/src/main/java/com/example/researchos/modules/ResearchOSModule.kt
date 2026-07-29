@@ -3,6 +3,14 @@ package com.example.researchos.modules
 import com.example.researchos.core.researchos.runtime.As100Method
 import com.example.researchos.core.researchos.runtime.As100MethodRegistry
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
+import com.example.researchos.core.scheduling.As100SchedulerExportMethod
+import com.example.researchos.core.scheduling.As100SchedulerImportMethod
+import com.example.researchos.core.scheduling.As100SchedulerMethod
+import com.example.researchos.core.scheduling.SchedulerExportCapabilityScreen
+import com.example.researchos.core.scheduling.SchedulerTransferCapabilityScreen
+import com.example.researchos.core.scheduling.SchedulerCapabilityScreen
+import com.example.researchos.core.researchos.runtime.CapabilityConfigurationRegistry
+import com.example.researchos.settings.MethodSetting
 
 /**
  * Self-contained module contract.
@@ -35,6 +43,7 @@ interface ResearchOSModule {
     fun as100Methods(): List<As100Method> = emptyList()
     fun rilBindings(): List<RilBinding> = emptyList()
     fun capabilityScreens(): List<CapabilityScreenSpec> = emptyList()
+    fun capabilitySettings(): Map<String, List<MethodSetting>> = emptyMap()
 
     /**
      * Module-level dependencies. Dependency modules remain independently owned;
@@ -90,20 +99,29 @@ object ResearchOSModuleRegistry {
     fun install(modules: List<ResearchOSModule>) {
         require(modules.isNotEmpty()) { "ResearchOS discovered no capability modules." }
         require(modules.map { it.moduleId }.distinct().size == modules.size) { "ResearchOS module IDs must be unique." }
-        val methods = modules.flatMap { it.as100Methods() }
+        val methods = modules.flatMap { it.as100Methods() } + coreMethods()
         require(methods.map { it.id }.distinct().size == methods.size) { "ResearchOS method IDs must be unique." }
-        val screens = modules.flatMap { it.capabilityScreens() }
+        val screens = modules.flatMap { it.capabilityScreens() } + coreScreens()
         require(screens.map { it.capabilityId }.distinct().size == screens.size) { "ResearchOS capability screen IDs must be unique." }
         installed = modules.sortedBy { it.moduleId }
         As100MethodRegistry.install(methods)
+        CapabilityConfigurationRegistry.install(modules.flatMap { it.capabilitySettings().entries }.associate { it.key to it.value })
     }
 
     fun all(): List<ResearchOSModule> = installed
         ?: error("ResearchOS modules have not been discovered. ResearchOSApplication must initialise the registry.")
 
-    fun as100Methods(): List<As100Method> = all().flatMap { it.as100Methods() }
-    fun rilBindings(): List<RilBinding> = all().flatMap { it.rilBindings() }
-    fun capabilityScreens(): List<CapabilityScreenSpec> = all().flatMap { it.capabilityScreens() }
+    fun as100Methods(): List<As100Method> = all().flatMap { it.as100Methods() } + coreMethods()
+    fun rilBindings(): List<RilBinding> = all().flatMap { it.rilBindings() } + coreBindings()
+    fun capabilityScreens(): List<CapabilityScreenSpec> = all().flatMap { it.capabilityScreens() } + coreScreens()
+
+    private fun coreMethods() = listOf(As100SchedulerMethod, As100SchedulerExportMethod, As100SchedulerImportMethod)
+    private fun coreScreens() = listOf(SchedulerCapabilityScreen, SchedulerExportCapabilityScreen, SchedulerTransferCapabilityScreen)
+    private fun coreBindings() = listOf(
+        RilBinding("create schedule", As100SchedulerMethod.ID, "Create a local ResearchOS schedule"),
+        RilBinding("export schedules", As100SchedulerExportMethod.id, "Export schedules as a portable bundle"),
+        RilBinding("import schedules", As100SchedulerImportMethod.id, "Import schedules directly or through QR/NFC")
+    )
 
     fun canonicalAction(raw: String): String? {
         val value = raw.trim()

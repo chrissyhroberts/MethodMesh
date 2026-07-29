@@ -18,4 +18,6 @@ object GpsTargetNavigatorModule : ResearchOSModule {
     )
 
     override fun capabilityScreens() = listOf(GpsTargetNavigatorCapabilityScreen)
+
+    override fun capabilitySettings() = mapOf(As100LocateTargetMethod.ID to GpsTargetNavigatorInteraction().settings)
 }

@@ -18,4 +18,6 @@ object CalibratedScaleModule : ResearchOSModule {
     )
 
     override fun capabilityScreens() = listOf(CalibratedScaleCapabilityScreen)
+
+    override fun capabilitySettings() = mapOf(As100CalibratedScaleMethod.ID to CalibratedScaleInteraction().settings)
 }

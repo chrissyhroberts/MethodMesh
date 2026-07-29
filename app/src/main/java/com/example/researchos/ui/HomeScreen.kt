@@ -26,10 +26,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.researchos.calibration.CalibrationScreen
+import com.example.researchos.core.scheduling.ResearchSchedule
+import com.example.researchos.core.scheduling.SchedulerCenterCard
+import com.example.researchos.core.scheduling.SchedulerEditorHost
+import com.example.researchos.core.scheduling.SchedulerRepository
+import com.example.researchos.core.scheduling.SchedulerExportCapabilityScreen
+import com.example.researchos.core.scheduling.SchedulerTransferCapabilityScreen
 import com.example.researchos.core.ResearchRuntime
 import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.InvocationContext
@@ -52,7 +63,20 @@ import com.example.researchos.ui.sensors.SensorDashboard
 @Composable
 fun HomeScreen() {
     val modules = ResearchOSModuleRegistry.all()
-    val methods = As100MethodRegistry.all().distinctBy { it.id }
+    val methods = As100MethodRegistry.all().filterNot { it.id.startsWith("scheduler.") }.distinctBy { it.id }
+    val appContext = LocalContext.current
+    var schedules by remember { mutableStateOf(SchedulerRepository.all(appContext)) }
+    var editingSchedule by remember { mutableStateOf<ResearchSchedule?>(null) }
+    var schedulerEditorOpen by remember { mutableStateOf(false) }
+    var schedulerTransferMode by remember { mutableStateOf<String?>(null) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, appContext) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) schedules = SchedulerRepository.all(appContext)
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("ResearchOS Runtime") }) }
@@ -63,6 +87,40 @@ fun HomeScreen() {
                 .fillMaxSize()
         ) {
             item { RuntimeSummaryCard(modules.size, methods.size) }
+            item {
+                SchedulerCenterCard(
+                    schedules = schedules,
+                    onCreate = { editingSchedule = null; schedulerEditorOpen = true },
+                    onEdit = { editingSchedule = it; schedulerEditorOpen = true },
+                    onChanged = { schedules = SchedulerRepository.all(appContext) },
+                    onExportSchedule = { schedule ->
+                        val payload = com.example.researchos.core.scheduling.SchedulerBundle.export(appContext, schedule.id)
+                        appContext.getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("ResearchOS schedule", payload))
+                    },
+                    onAdvancedExport = { schedulerTransferMode = "export" },
+                    onAdvancedImport = { schedulerTransferMode = "import" }
+                )
+            }
+            if (schedulerEditorOpen) {
+                item {
+                    SchedulerEditorHost(
+                        schedule = editingSchedule,
+                        onDone = { schedules = SchedulerRepository.all(appContext); schedulerEditorOpen = false },
+                        onCancel = { schedulerEditorOpen = false }
+                    )
+                }
+            }
+            schedulerTransferMode?.let { mode ->
+                item {
+                    val action = ExternalActionRequest(
+                        requestedId = if (mode == "export") "scheduler.export" else "scheduler.import",
+                        canonicalId = if (mode == "export") "scheduler.export" else "scheduler.import"
+                    )
+                    val request = ExternalWorkflowRequest(listOf(action), InvocationContext(caller = "dashboard"), emptyList(), ReturnMode.Json, source = "dashboard")
+                    val screen = if (mode == "export") SchedulerExportCapabilityScreen else SchedulerTransferCapabilityScreen
+                    screen.Render(CapabilityScreenContext(action, request, 1, 1), onBack = { schedulerTransferMode = null }, onConfirmed = { schedulerTransferMode = null; schedules = SchedulerRepository.all(appContext) }, onCancel = { schedulerTransferMode = null })
+                }
+            }
             item { CapabilityRegistryCard(methods, modules) }
             item { RuntimeStateCard() }
             item { DeviceServicesCard() }
