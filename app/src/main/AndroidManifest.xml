@@ -22,6 +22,13 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- Android 11+ package visibility: ResearchOS reads ODK Collect's
+         exported forms provider before launching a selected form. -->
+    <queries>
+        <provider android:authorities="org.odk.collect.android.provider.odk.forms" />
+        <provider android:authorities="org.koboc.collect.android.provider.odk.forms" />
+    </queries>
+
     <application
         android:name=".ResearchOSApplication"
         android:allowBackup="true"
