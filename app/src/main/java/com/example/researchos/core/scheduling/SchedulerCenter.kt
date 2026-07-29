@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -23,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -38,6 +40,7 @@ import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 @Composable
 fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit, onEdit: (ResearchSchedule) -> Unit, onChanged: () -> Unit, onExportSchedule: (ResearchSchedule) -> Unit = {}, onAdvancedExport: () -> Unit = {}, onAdvancedImport: () -> Unit = {}) {
     val context = LocalContext.current
+    var expanded by rememberSaveable { mutableStateOf(false) }
     var transferStatus by remember { mutableStateOf("") }
     var importedText by remember { mutableStateOf("") }
     val fileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
@@ -45,8 +48,11 @@ fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit,
     }
     ElevatedCard(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), elevation = CardDefaults.elevatedCardElevation(2.dp)) {
         Column(Modifier.padding(16.dp)) {
-            Text("Schedules", style = MaterialTheme.typography.titleMedium)
-            Text("Recurring form and web-form tasks on this device.", style = MaterialTheme.typography.bodySmall)
+            Column(Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
+                Text(if (expanded) "▼ Schedules" else "▶ Schedules", style = MaterialTheme.typography.titleMedium)
+                Text("Recurring form and web-form tasks on this device.", style = MaterialTheme.typography.bodySmall)
+            }
+            if (expanded) {
             Spacer(Modifier.height(8.dp))
             if (schedules.isEmpty()) Text("No schedules stored.", style = MaterialTheme.typography.bodyMedium)
             val scheduleGroups = schedules.sortedWith(compareBy<ResearchSchedule> { it.chainId.ifBlank { it.id } }.thenBy { it.chainOrder })
@@ -130,6 +136,7 @@ fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit,
                 OutlinedButton(onClick = onAdvancedImport) { Text("QR / NFC import") }
             }
             if (transferStatus.isNotBlank()) Text(transferStatus, style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }

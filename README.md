@@ -96,6 +96,7 @@ Immediate priorities are:
 - ResearchOS Orchestrator
 - Device Services
 - Native Methods
+- Android interoperability discovery and reusable integration definitions
 - Android reference implementation
 - ResearchOS Intent Language (RIL)
 
@@ -168,6 +169,14 @@ Successful completion of these milestones will provide the first end-to-end vali
 ## Capability modules
 
 Each standalone module under `app/src/main/java/com/example/researchos/modules/` owns both its implementation and its integration documentation. Its `docs` folder contains a module-named implementation guide and a working example ODK XLSForm. See [Capability documentation standard](docs/CAPABILITY_DOCUMENTATION_STANDARD.md).
+
+The Android app inspector is a deliberately conservative interoperability tool. It lists installed launchable applications, inspects exported components, probes common public intent filters, targets exported activities explicitly, captures returned data, and can save a tested package/component/action/URI/extras combination as a local integration definition. It does not bypass non-exported components, permissions, authentication, or undocumented application internals. An app may expose more useful behavior than Android can discover generically; in that case the inspector is a test harness for combinations found in the app's documentation, source, or other authoritative references.
+
+Build and test the Android reference implementation with:
+
+```text
+./gradlew testDebugUnitTest assembleDebug
+```
 
 ---
 

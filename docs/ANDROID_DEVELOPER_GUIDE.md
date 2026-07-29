@@ -25,7 +25,7 @@ Each capability implements `ResearchOSModule` and may expose:
 - declared module dependencies;
 - module-owned examples.
 
-Modules are registered explicitly in `ResearchOSModuleManifest`. Explicit registration makes the installed capability set deterministic and auditable.
+Modules are discovered from standalone `*Module` objects under the modules package. The runtime does not maintain a capability-specific central registry: adding a module, its screen, or its documentation should not require edits to core infrastructure.
 
 Capabilities may invoke other capabilities through their public invocation boundary. They must consume canonical results and must not copy a dependency's implementation. For example, QR-backed attestation invokes `qr.scan` and consumes its returned evidence.
 
@@ -92,6 +92,20 @@ RIL is the canonical internal request representation. Direct transport uses:
 
 RIL phrases are owned by modules. Phrase resolution returns the module's canonical method ID. Unknown actions remain unresolved and must not be silently redirected.
 
+## Android app interoperability
+
+The `android_app_inspector` module provides a safe discovery and test harness for public Android integration points. It can:
+
+- list installed launchable applications;
+- inspect exported activities, services, receivers, and providers;
+- probe common public actions, categories, and URI schemes;
+- target an exported activity explicitly;
+- send an action, optional URI, and simple string extras;
+- capture result code, returned URI, and returned extras;
+- save a tested package/component/action/URI/extras combination locally as an integration definition.
+
+The Android public package APIs do not expose every raw manifest intent-filter or undocumented extra. The inspector therefore reports safe resolution probes and supports explicit testing of component/action combinations discovered from application documentation, source, or other authorised references. It does not bypass non-exported components, permissions, authentication, or private implementation details.
+
 ## Returns
 
 The default caller return is intentionally compact:
@@ -132,9 +146,8 @@ transiently and are not placed in the attestation record or caller return.
 3. Define method descriptors and contracts, including required context and produced graph outputs.
 4. Create a focused `CapabilityScreenSpec` when interaction is required.
 5. Expose the methods, screens, RIL bindings, and dependencies from a `ResearchOSModule` object.
-6. Add that module object to `ResearchOSModuleManifest`.
-7. Add unit tests for method output, RIL resolution, return formatting, and invalid requests.
-8. Verify dashboard and external invocation modes separately.
+6. Add unit tests for method output, RIL resolution, return formatting, and invalid requests.
+7. Verify dashboard and external invocation modes separately.
 
 Do not add an adapter, alias, second result model, direct hardware call from a method, or module-specific transport parser.
 

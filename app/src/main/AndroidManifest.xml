@@ -27,6 +27,10 @@
     <!-- Android 11+ package visibility: ResearchOS reads ODK Collect's
          exported forms provider before launching a selected form. -->
     <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
         <provider android:authorities="org.odk.collect.android.provider.odk.forms" />
         <provider android:authorities="org.koboc.collect.android.provider.odk.forms" />
     </queries>
