@@ -2,6 +2,7 @@ package com.example.researchos.modules.adminfingerprint
 
 import com.example.researchos.modules.ResearchOSModule
 import com.example.researchos.modules.RilBinding
+import com.example.researchos.settings.MethodSetting
 
 object AdminFingerprintModule : ResearchOSModule {
     override val moduleId: String = "adminfingerprint"
@@ -18,4 +19,9 @@ object AdminFingerprintModule : ResearchOSModule {
     )
 
     override fun capabilityScreens() = listOf(AdminFingerprintCapabilityScreen)
+
+    override fun capabilitySettings() = mapOf(As100VerifyFingerprintMethod.ID to listOf(
+        MethodSetting.ChoiceSetting("authentication_method", "Authentication method", defaultValue = "biometric_or_device_credential", choices = listOf("biometric", "device_credential", "biometric_or_device_credential")),
+        MethodSetting.TextSetting("confirmation_reason", "Confirmation reason", defaultValue = "local_access_authorisation")
+    ))
 }

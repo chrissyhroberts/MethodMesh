@@ -2,6 +2,7 @@ package com.example.researchos.modules.nfc
 
 import com.example.researchos.modules.ResearchOSModule
 import com.example.researchos.modules.RilBinding
+import com.example.researchos.settings.MethodSetting
 
 object NfcModule : ResearchOSModule {
     override val moduleId: String = "nfc"
@@ -44,5 +45,21 @@ object NfcModule : ResearchOSModule {
         NfcWipeCapabilityScreen,
         NfcCredentialProvisioningCapabilityScreen,
         NfcCredentialVerificationCapabilityScreen
+    )
+
+    override fun capabilitySettings() = mapOf(
+        As100NfcWriteMethod.ID to listOf(
+            MethodSetting.TextSetting("value", "Value to write", defaultValue = ""),
+            MethodSetting.TextSetting("record_type", "Record type", defaultValue = "text/plain"),
+            MethodSetting.ChoiceSetting("overwrite_policy", "Overwrite policy", defaultValue = "replace", choices = listOf("replace", "empty_only"))
+        ),
+        As100NfcCredentialProvisioningMethod.ID to listOf(
+            MethodSetting.TextSetting("credential_subject_id", "Credential subject", defaultValue = ""),
+            MethodSetting.IntSetting("pin_length", "PIN length", defaultValue = 6, minimum = 4, maximum = 6),
+            MethodSetting.ChoiceSetting("overwrite_policy", "Overwrite policy", defaultValue = "empty_only", choices = listOf("empty_only", "replace"))
+        ),
+        As100NfcCredentialVerificationMethod.ID to listOf(
+            MethodSetting.TextSetting("trusted_issuer_key_ids", "Trusted issuer key IDs", "Comma-separated; leave blank to report issuer trust as not checked.", defaultValue = "")
+        )
     )
 }

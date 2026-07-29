@@ -4,6 +4,7 @@ import com.example.researchos.modules.ModuleExample
 import com.example.researchos.modules.ResearchOSModule
 import com.example.researchos.modules.RilBinding
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
+import com.example.researchos.settings.MethodSetting
 
 object ChoiceExperimentModule : ResearchOSModule {
     override val moduleId: String = "choiceexperiment"
@@ -63,4 +64,24 @@ object ChoiceExperimentModule : ResearchOSModule {
         PointsChoiceScreen,
         ConjointChoiceScreen
     )
+
+    override fun capabilitySettings() = mapOf(
+        DceMethod.Pairwise.id to dceSettings("rounds", "items", "seed"),
+        DceMethod.MaxDiff.id to dceSettings("rounds", "items", "items_per_round", "seed"),
+        DceMethod.Ranking.id to dceSettings("rounds", "items", "seed"),
+        DceMethod.Points.id to dceSettings("points", "items", "seed"),
+        DceMethod.Conjoint.id to dceSettings("rounds", "classes", "profiles_per_round", "seed")
+    )
+
+    private fun dceSettings(vararg ids: String): List<MethodSetting> = ids.map { id ->
+        when (id) {
+            "rounds" -> MethodSetting.IntSetting(id, "Rounds", defaultValue = 3, minimum = 1, maximum = 100)
+            "items_per_round" -> MethodSetting.IntSetting(id, "Items per round", defaultValue = 4, minimum = 2, maximum = 20)
+            "profiles_per_round" -> MethodSetting.IntSetting(id, "Profiles per round", defaultValue = 2, minimum = 2, maximum = 6)
+            "points" -> MethodSetting.IntSetting(id, "Points", defaultValue = 100, minimum = 1, maximum = 10000)
+            "items" -> MethodSetting.TextSetting(id, "Items (one per line or separated by |)", defaultValue = "A|B|C|D")
+            "classes" -> MethodSetting.TextSetting(id, "Classes and options", "Use CLASS:Option1,Option2|CLASS2:OptionA,OptionB.", defaultValue = "BRAND:Panasonic,Sony|FEATURE:Basic,Premium")
+            else -> MethodSetting.TextSetting(id, "Seed", defaultValue = "")
+        }
+    }
 }

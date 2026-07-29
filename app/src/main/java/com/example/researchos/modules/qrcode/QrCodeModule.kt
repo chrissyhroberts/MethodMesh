@@ -3,6 +3,7 @@ package com.example.researchos.modules.qrcode
 import com.example.researchos.modules.ModuleExample
 import com.example.researchos.modules.ResearchOSModule
 import com.example.researchos.modules.RilBinding
+import com.example.researchos.settings.MethodSetting
 
 object QrCodeModule : ResearchOSModule {
     override val moduleId: String = "qrcode"
@@ -21,6 +22,10 @@ object QrCodeModule : ResearchOSModule {
     )
 
     override fun capabilityScreens() = listOf(QrScanCapabilityScreen)
+
+    override fun capabilitySettings() = mapOf(As100QrScanMethod.ID to listOf(
+        MethodSetting.TextSetting("barcode_formats", "Barcode formats", "Optional comma-separated formats; leave blank for automatic detection.", "Scanner", "")
+    ))
 
     override fun examples() = listOf(
         ModuleExample(

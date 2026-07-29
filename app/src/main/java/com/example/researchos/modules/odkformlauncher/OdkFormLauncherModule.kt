@@ -2,6 +2,7 @@ package com.example.researchos.modules.odkformlauncher
 
 import com.example.researchos.modules.ResearchOSModule
 import com.example.researchos.modules.RilBinding
+import com.example.researchos.settings.MethodSetting
 
 object OdkFormLauncherModule : ResearchOSModule {
     override val moduleId = "odkformlauncher"
@@ -16,4 +17,9 @@ object OdkFormLauncherModule : ResearchOSModule {
     )
 
     override fun capabilityScreens() = listOf(OdkFormLauncherCapabilityScreen)
+
+    override fun capabilitySettings() = mapOf(As100OdkFormLauncherMethod.ID to listOf(
+        MethodSetting.TextSetting("project_id", "Project ID", defaultValue = ""),
+        MethodSetting.TextSetting("form_selector", "Form ID or display name", defaultValue = "")
+    ))
 }

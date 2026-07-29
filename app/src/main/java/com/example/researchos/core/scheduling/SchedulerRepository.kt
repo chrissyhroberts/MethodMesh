@@ -26,7 +26,12 @@ object SchedulerRepository {
     }
 
     fun rescheduleAll(context: Context) {
-        all(context).filter { it.enabled && isAlarmOwner(it) }.forEach { SchedulerAlarm.schedule(context, it) }
+        // Re-arm only chain owners, and cancel stale alarms left by earlier
+        // scheduler versions that registered every chain member separately.
+        all(context).forEach { schedule ->
+            if (schedule.enabled && isAlarmOwner(schedule)) SchedulerAlarm.schedule(context, schedule)
+            else cancel(context, schedule.id)
+        }
     }
 
     private fun isAlarmOwner(schedule: ResearchSchedule): Boolean = schedule.chainId.isBlank() || schedule.chainOrder <= 0
@@ -42,7 +47,12 @@ object SchedulerRepository {
         val array = JSONArray().apply { values.forEach { put(encode(it)) } }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, array.toString()).apply()
         if (schedule.enabled && isAlarmOwner(schedule)) SchedulerAlarm.schedule(context, schedule)
-        else if (!isAlarmOwner(schedule)) cancel(context, schedule.id)
+        else cancel(context, schedule.id)
+    }
+
+    fun setChainEnabled(context: Context, schedule: ResearchSchedule, enabled: Boolean) {
+        val members = if (schedule.chainId.isBlank()) listOf(schedule) else all(context).filter { it.chainId == schedule.chainId }
+        members.forEach { save(context, it.copy(enabled = enabled)) }
     }
 
     fun remove(context: Context, id: String) {
@@ -84,7 +94,9 @@ object SchedulerRepository {
     fun markCompleted(context: Context, schedule: ResearchSchedule) {
         cancel(context, schedule.id)
         recordEvent(context, schedule.id, "completed")
-        SchedulerAlarm.schedule(context, schedule)
+        // Only the first member owns the recurring alarm. A later chain step
+        // must not create a second recurring notification for itself.
+        if (isAlarmOwner(schedule)) SchedulerAlarm.schedule(context, schedule)
     }
 
     internal fun requestCode(id: String, kind: String): Int = ("$id:$kind").hashCode()
@@ -120,7 +132,13 @@ object SchedulerAlarm {
             .putExtra("schedule_id", schedule.id).putExtra("kind", "primary")
         val alarms = context.getSystemService(AlarmManager::class.java)
         val pending = PendingIntent.getBroadcast(context, SchedulerRepository.requestCode(schedule.id, "primary"), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        runCatching { alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, whenMillis, pending) }
-            .onFailure { alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, whenMillis, pending) }
+        // Allow the receiver to run while the app process is stopped or the
+        // device is idle. Notification priority/channel policy still controls
+        // whether the user is disturbed by DND settings.
+        runCatching {
+            alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, whenMillis, pending)
+        }.onFailure {
+            alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, whenMillis, pending)
+        }
     }
 }

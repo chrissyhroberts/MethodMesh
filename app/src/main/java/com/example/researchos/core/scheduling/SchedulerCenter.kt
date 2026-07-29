@@ -17,6 +17,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.researchos.core.ResearchRuntime
@@ -51,9 +53,32 @@ fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit,
                 .groupBy { it.chainId.ifBlank { it.id } }.values
             scheduleGroups.forEach { group ->
                 val schedule = group.first()
-                ElevatedCard(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                val running = schedule.enabled
+                ElevatedCard(
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = if (running) {
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                        }
+                    )
+                ) {
                     Column(Modifier.padding(10.dp)) {
-                        Text(if (group.size > 1) schedule.name.removeSuffix(" 1") else schedule.name, style = MaterialTheme.typography.titleSmall)
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(if (group.size > 1) schedule.name.removeSuffix(" 1") else schedule.name, style = MaterialTheme.typography.titleSmall)
+                                Text(if (running) "Running" else "Paused", style = MaterialTheme.typography.labelMedium,
+                                    color = if (running) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(
+                                checked = running,
+                                onCheckedChange = {
+                                    SchedulerRepository.setChainEnabled(context, schedule, it)
+                                    onChanged()
+                                }
+                            )
+                        }
                         val timing = schedule.cronExpression.takeIf { it.isNotBlank() }?.let { "cron: $it" }
                             ?: "${schedule.frequency} • ${"%02d:%02d".format(schedule.hour, schedule.minute)}"
                         Text("$timing • ${if (group.size > 1) "${group.size}-step chain" else schedule.target}", style = MaterialTheme.typography.bodySmall)
@@ -70,6 +95,7 @@ fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit,
                             Spacer(Modifier.padding(4.dp))
                             OutlinedButton(onClick = {
                                 context.startActivity(Intent(context, SchedulerDispatchActivity::class.java)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                     .putExtra("schedule_id", schedule.id)
                                     .putExtra("test_chain", true))
                             }) { Text("Test") }

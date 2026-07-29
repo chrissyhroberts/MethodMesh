@@ -12,6 +12,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runBlocking
 
 private val Context.calibrationDataStore by preferencesDataStore(
     name = "device_calibration"
@@ -35,17 +36,22 @@ object CalibrationRepository {
         appContext = context.applicationContext
 
         scope.launch {
-            val loadedCalibration = withContext(Dispatchers.IO) {
-                val preferences = context.calibrationDataStore.data.first()
-
-                DeviceCalibration(
-                    dpPerMm = preferences[dpPerMmKey] ?: DeviceCalibration().dpPerMm,
-                    calibrated = preferences[calibratedKey] ?: false
-                )
-            }
-
-            calibration.value = loadedCalibration
+            calibration.value = load(context)
         }
+    }
+
+    /** Load before an externally launched capability is shown. */
+    fun initialiseBlocking(context: Context) {
+        appContext = context.applicationContext
+        calibration.value = runBlocking(Dispatchers.IO) { load(context) }
+    }
+
+    private suspend fun load(context: Context): DeviceCalibration {
+        val preferences = context.calibrationDataStore.data.first()
+        return DeviceCalibration(
+            dpPerMm = preferences[dpPerMmKey] ?: DeviceCalibration().dpPerMm,
+            calibrated = preferences[calibratedKey] ?: false
+        )
     }
 
     fun current(): DeviceCalibration {

@@ -4,6 +4,7 @@ import com.example.researchos.modules.ModuleDependency
 import com.example.researchos.modules.ModuleExample
 import com.example.researchos.modules.ResearchOSModule
 import com.example.researchos.modules.RilBinding
+import com.example.researchos.settings.MethodSetting
 
 object AttestationModule : ResearchOSModule {
     override val moduleId: String = "attestation"
@@ -27,6 +28,20 @@ object AttestationModule : ResearchOSModule {
     override fun capabilityScreens() = listOf(
         AttestationCreateCapabilityScreen,
         AttestationAnchorCapabilityScreen
+    )
+
+    override fun capabilitySettings() = mapOf(
+        As100CreateAttestationMethod.ID to listOf(
+            MethodSetting.TextSetting("event_payload_hash", "Event payload hash", defaultValue = ""),
+            MethodSetting.ChoiceSetting("verification_method", "Verification method", defaultValue = "Fingerprint", choices = listOf("Fingerprint", "Pin", "Qr", "Nfc", "Password")),
+            MethodSetting.ChoiceSetting("trusted_timestamp", "Trusted timestamp", defaultValue = "preferred", choices = listOf("disabled", "preferred", "required")),
+            MethodSetting.TextSetting("study_id", "Study ID", defaultValue = ""),
+            MethodSetting.TextSetting("event_type", "Event type", defaultValue = "field_event")
+        ),
+        As100CreateAttestationAnchorMethod.ID to listOf(
+            MethodSetting.TextSetting("study_id", "Study ID", defaultValue = ""),
+            MethodSetting.TextSetting("operator_id", "Operator ID", defaultValue = "")
+        )
     )
 
     override fun dependencies() = listOf(

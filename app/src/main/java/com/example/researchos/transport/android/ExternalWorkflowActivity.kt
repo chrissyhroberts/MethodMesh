@@ -38,6 +38,7 @@ import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.TransformationStatus
 import com.example.researchos.core.researchos.runtime.As100MethodRegistry
 import com.example.researchos.core.researchos.withInvocationContext
+import com.example.researchos.calibration.CalibrationRepository
 import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.workflow.ConfirmedWorkflowStep
 import com.example.researchos.transport.workflow.ExternalActionRequest
@@ -57,10 +58,15 @@ import com.example.researchos.ui.theme.ResearchOSTheme
  */
 class ExternalWorkflowActivity : FragmentActivity() {
     private lateinit var request: ExternalWorkflowRequest
+    private var resultReturned = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         PlatformDeviceBootstrap.initialise()
+        // External and scheduled launches can start the app process without
+        // MainActivity ever being created. Initialise device calibration here
+        // as well so calibrated-scale settings use the saved dp/mm value.
+        CalibrationRepository.initialiseBlocking(applicationContext)
         request = AndroidIntentRequestReader.workflowRequest(intent)
         ResearchRuntime.session.setInvocationContext(request.invocationContext)
 
@@ -76,6 +82,8 @@ class ExternalWorkflowActivity : FragmentActivity() {
     }
 
     private fun finishWithResult(confirmed: List<ConfirmedWorkflowStep>) {
+        if (resultReturned) return
+        resultReturned = true
         val combined = combineResults(confirmed.map { it.result })
         val fields = OutputFormatter.selectedFields(
             result = combined,
@@ -122,6 +130,8 @@ class ExternalWorkflowActivity : FragmentActivity() {
     }
 
     private fun finishWithCancel(message: String) {
+        if (resultReturned) return
+        resultReturned = true
         setResult(RESULT_CANCELED, Intent().apply { putExtra("error", message) })
         finish()
     }

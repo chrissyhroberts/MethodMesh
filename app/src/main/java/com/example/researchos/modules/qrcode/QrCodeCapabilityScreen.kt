@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -124,7 +125,11 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
         onConfirmed: (ExecutionResult) -> Unit,
         onCancel: () -> Unit
     ) {
-        var launched by remember(context.action.canonicalId) { mutableStateOf(false) }
+        // Activity-result transitions can briefly recreate the Compose surface.
+        // Persist the launch/finish guard so returning from ZXing cannot open a
+        // second scanner before the result has been delivered upstream.
+        var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var scanFinished by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var status by remember { mutableStateOf("Opening camera…") }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
@@ -132,10 +137,14 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
             context = context,
             sourceLabel = "camera_zxing",
             onResult = {
+                scanFinished = true
+                launched = true
                 status = "Code captured."
                 result = it
             },
             onCancel = {
+                scanFinished = true
+                launched = true
                 status = "Scan cancelled."
                 if (context.startsImmediately) onCancel()
             },
@@ -143,7 +152,7 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
         )
 
         LaunchedEffect(context.startsImmediately) {
-            if (context.startsImmediately && !launched) {
+            if (context.startsImmediately && !launched && !scanFinished) {
                 launched = true
                 status = "Point the camera at a QR, Data Matrix, or barcode."
                 launchScanner()
@@ -159,6 +168,8 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
             resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
             onBack = onBack,
             onRetry = {
+                launched = true
+                scanFinished = false
                 result = null
                 status = "Point the camera at a QR, Data Matrix, or barcode."
                 launchScanner()
@@ -178,6 +189,8 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
                 Text(status, style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = {
+                    launched = true
+                    scanFinished = false
                     result = null
                     status = "Point the camera at a QR, Data Matrix, or barcode."
                     launchScanner()
