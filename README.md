@@ -97,6 +97,7 @@ Immediate priorities are:
 - Device Services
 - Native Methods
 - Android interoperability discovery and reusable integration definitions
+- Bluetooth device discovery and endpoint assay
 - Android reference implementation
 - ResearchOS Intent Language (RIL)
 
@@ -171,6 +172,30 @@ Successful completion of these milestones will provide the first end-to-end vali
 Each standalone module under `app/src/main/java/com/example/researchos/modules/` owns both its implementation and its integration documentation. Its `docs` folder contains a module-named implementation guide and a working example ODK XLSForm. See [Capability documentation standard](docs/CAPABILITY_DOCUMENTATION_STANDARD.md).
 
 The Android app inspector is a deliberately conservative interoperability tool. It lists installed launchable applications, inspects exported components, probes common public intent filters, targets exported activities explicitly, captures returned data, and can save a tested package/component/action/URI/extras combination as a local integration definition. It does not bypass non-exported components, permissions, authentication, or undocumented application internals. An app may expose more useful behavior than Android can discover generically; in that case the inspector is a test harness for combinations found in the app's documentation, source, or other authoritative references.
+
+The Bluetooth device inspector applies the same pattern to nearby hardware: it scans BLE devices, connects to a selected device, enumerates GATT services and characteristics, reads endpoints or listens for notifications on request, identifies paired classic-Bluetooth serial candidates, and saves discovered profiles into the device registry. It is limited to normal Android Bluetooth permissions and explicit user-selected interactions.
+
+## Current XLSForm capabilities
+
+The Android reference implementation currently exposes the following standalone capabilities to ODK Collect, KoboToolbox-compatible callers, scheduled workflows, and other RIL clients. Each is invoked through the common `com.example.researchos.EXECUTE_METHOD(...)` intent boundary; the module owns its settings, UI, outputs, and example form.
+
+- **Calibrated scale** (`calibrated_scale`) — presents a physically calibrated horizontal or vertical continuum, including single-value, minimum/maximum, and range modes. It returns selected values with the configured prompt, hint, labels, and measurement metadata.
+- **Discrete choice experiments** — provides five reusable study tasks: pairwise comparison (`dce.pairwise`), MaxDiff/best-worst (`dce.maxdiff`), ranking (`dce.ranking`), points allocation (`dce.points`), and conjoint selection (`dce.conjoint`). Rounds, items, classes, profiles, points, and seeds can be supplied by the form or caller.
+- **GPS target navigation** (`gps_target_navigator`) — guides a participant or operator toward a latitude/longitude target, reporting location, bearing, distance, arrival status, and optional camera-based AR guidance.
+- **NFC tag read** (`nfc_tag_read`) — reads arbitrary NDEF records and tag metadata, including UID, technology, capacity, writability, text/URI records, and raw record JSON.
+- **NFC tag write** (`nfc_tag_write`) — writes caller-supplied text, URI, JSON, or other NDEF content with explicit replace or blank-only policy and read-back verification.
+- **NFC tag wipe** (`nfc_tag_wipe`) — removes user NDEF content from a tag and reports the resulting tag state.
+- **NFC credential provisioning** (`nfc_credential_provisioning`) — creates a portable PIN-protected field-team credential, writes it to NFC, and verifies the write on a confirmation tap without returning the secret.
+- **NFC credential verification** (`nfc_credential_verification`) — reads a portable NFC credential, requests its PIN, verifies the issuer signature and credential integrity, and returns a compact verification result.
+- **Code scanner** (`qr.scan`) — captures QR, Data Matrix, and supported one-dimensional barcodes with automatic format detection, returning the decoded payload, format, and evidence hash.
+- **Traceable attestation** (`attestation.create`) — creates a device-signed, hash-chained event attestation. It can invoke fingerprint/device credential, QR, NFC, or study-password verification and can optionally obtain an RFC 3161 trusted timestamp.
+- **Attestation chain anchor** (`attestation.anchor_bundle`) — exports the current chain head and signed public evidence for an independent ODK/server receipt or nightly study anchor.
+- **Local device authentication** (`admin_fingerprint_confirmation`) — performs standalone biometric, PIN, pattern, password, or combined device-credential authentication for access control; unlike formal attestation, it does not claim to prove a research event.
+- **ODK form launcher** (`odk_form_launcher`) — discovers stored ODK/Kobo projects and forms, lets the operator select the correct project/form, and opens the selected form in the appropriate collection app.
+- **Android app inspector** (`android_app_inspector`) — lists installed applications and exported public components, tests documented or user-supplied intent actions, captures returned data, and saves tested integration definitions. It does not bypass permissions or private components.
+- **Bluetooth device inspector** (`bluetooth_device_inspector`) — scans nearby BLE devices, discovers and groups GATT services, reads endpoints, samples readable characteristics, subscribes to notification streams through CCCD, decodes printable values, and saves profiles to the device registry.
+
+For implementation details, intent examples, input settings, output fields, and an example XLSForm, open the capability-specific guide in each module's `docs` folder. The naming and packaging rules are defined in [Capability documentation standard](docs/CAPABILITY_DOCUMENTATION_STANDARD.md).
 
 Build and test the Android reference implementation with:
 

@@ -16,7 +16,9 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -34,6 +36,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.example.researchos.calibration.CalibrationScreen
 import com.example.researchos.core.scheduling.ResearchSchedule
 import com.example.researchos.core.scheduling.SchedulerCenterCard
@@ -58,6 +61,9 @@ import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
 import com.example.researchos.ui.sensors.SensorDashboard
+import com.example.researchos.platform.devices.DeviceRegistry
+import com.example.researchos.platform.devices.DeviceTransport
+import com.example.researchos.platform.devices.RegisteredDevice
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,6 +107,7 @@ fun HomeScreen() {
                     onAdvancedImport = { schedulerTransferMode = "import" }
                 )
             }
+            item { DeviceRegistryCard() }
             if (schedulerEditorOpen) {
                 item {
                     SchedulerEditorHost(
@@ -470,6 +477,79 @@ private fun DeviceServicesCard() {
             if (signalsExpanded) {
                 Spacer(Modifier.height(8.dp))
                 SensorDashboard()
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeviceRegistryCard() {
+    val context = LocalContext.current
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var devices by remember { mutableStateOf(DeviceRegistry.all(context)) }
+    var editorOpen by remember { mutableStateOf(false) }
+    var editingId by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var transport by remember { mutableStateOf(DeviceTransport.BLE.name) }
+    var address by remember { mutableStateOf("") }
+    var profile by remember { mutableStateOf("") }
+    var credentialsRef by remember { mutableStateOf("") }
+
+    fun refresh() { devices = DeviceRegistry.all(context) }
+    fun openEditor(device: RegisteredDevice?) {
+        editingId = device?.id.orEmpty(); name = device?.name.orEmpty(); transport = device?.transport?.name ?: DeviceTransport.BLE.name
+        address = device?.address.orEmpty(); profile = device?.profile.orEmpty(); credentialsRef = device?.credentialsRef.orEmpty(); editorOpen = true
+    }
+
+    ElevatedCard(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), elevation = CardDefaults.elevatedCardElevation(2.dp)) {
+        Column(Modifier.padding(16.dp)) {
+            Column(Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
+                Text(if (expanded) "▼ Device registry" else "▶ Device registry", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Saved Bluetooth, Wi-Fi, USB, and other device profiles.", style = MaterialTheme.typography.bodySmall)
+            }
+            if (expanded) {
+                Spacer(Modifier.height(8.dp))
+                if (devices.isEmpty()) Text("No registered devices.", style = MaterialTheme.typography.bodyMedium)
+                devices.forEach { device ->
+                    ElevatedCard(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Column(Modifier.padding(10.dp)) {
+                            Text(device.name.ifBlank { "Unnamed device" }, style = MaterialTheme.typography.titleSmall)
+                            Text("${device.transport} · ${device.address.ifBlank { "address not set" }}", style = MaterialTheme.typography.bodySmall)
+                            Text(if (!device.enabled) "Disabled" else if (device.paused) "Paused" else "Enabled", style = MaterialTheme.typography.labelMedium)
+                            if (device.lastError.isNotBlank()) Text("Last error: ${device.lastError}", style = MaterialTheme.typography.bodySmall)
+                            Row(Modifier.fillMaxWidth()) {
+                                OutlinedButton(onClick = { DeviceRegistry.setPaused(context, device.id, !device.paused); refresh() }) { Text(if (device.paused) "Resume" else "Pause") }
+                                Spacer(Modifier.padding(3.dp))
+                                OutlinedButton(onClick = { openEditor(device) }) { Text("Edit") }
+                                Spacer(Modifier.padding(3.dp))
+                                OutlinedButton(onClick = { DeviceRegistry.remove(context, device.id); refresh() }) { Text("Delete") }
+                            }
+                        }
+                    }
+                }
+                Button(onClick = { openEditor(null) }, Modifier.fillMaxWidth()) { Text("Add device profile") }
+            }
+        }
+    }
+
+    if (editorOpen) Dialog(onDismissRequest = { editorOpen = false }) {
+        Surface(shape = MaterialTheme.shapes.large, tonalElevation = 6.dp) {
+            Column(Modifier.padding(20.dp)) {
+                Text(if (editingId.isBlank()) "Add device profile" else "Edit device profile", style = MaterialTheme.typography.titleMedium)
+                OutlinedTextField(name, { name = it }, label = { Text("Device name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(transport, { transport = it.uppercase() }, label = { Text("Transport (BLE, WIFI, USB, etc.)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(address, { address = it }, label = { Text("Address or identifier") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(profile, { profile = it }, label = { Text("Profile or service mapping") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(credentialsRef, { credentialsRef = it }, label = { Text("Credential reference (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                Row(Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { editorOpen = false }) { Text("Cancel") }
+                    Spacer(Modifier.padding(4.dp))
+                    Button(onClick = {
+                        val parsed = runCatching { DeviceTransport.valueOf(transport.trim().uppercase()) }.getOrDefault(DeviceTransport.WIFI)
+                        DeviceRegistry.save(context, RegisteredDevice(id = editingId.ifBlank { java.util.UUID.randomUUID().toString() }, name = name.trim(), transport = parsed, address = address.trim(), profile = profile.trim(), credentialsRef = credentialsRef.trim()))
+                        refresh(); editorOpen = false
+                    }) { Text("Save") }
+                }
             }
         }
     }

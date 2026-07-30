@@ -106,6 +106,8 @@ The `android_app_inspector` module provides a safe discovery and test harness fo
 
 The Android public package APIs do not expose every raw manifest intent-filter or undocumented extra. The inspector therefore reports safe resolution probes and supports explicit testing of component/action combinations discovered from application documentation, source, or other authorised references. It does not bypass non-exported components, permissions, authentication, or private implementation details.
 
+The `bluetooth_device_inspector` module provides the corresponding hardware discovery path. It scans nearby BLE devices, connects to a selected device, enumerates GATT endpoints, reads readable characteristics, listens for notifications where supported, reports paired classic-Bluetooth serial candidates, and can save a profile to the central device registry. Transport-specific details remain behind the device-service boundary so later capabilities consume normalized device signals rather than owning Bluetooth code.
+
 ## Returns
 
 The default caller return is intentionally compact:
