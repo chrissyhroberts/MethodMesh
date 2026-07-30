@@ -226,3 +226,10 @@ ResearchOS is:
 # Licence
 
 ResearchOS is an open project intended to support reusable scientific infrastructure across disciplines, organisations and platforms.
+### Using the scheduler
+
+Open **Scheduler** on the ResearchOS home screen and choose **Create schedule**. Give the schedule a name, then configure each action in order: an XLSForm, web form, direct ResearchOS capability, or reusable output such as clipboard. XLSForm actions use the discovered project/form list; web-form actions use a URL; capability actions expose the selected capability's normal settings. Add further actions to create a chain; they run in displayed order after the preceding action succeeds.
+
+Schedules use five cron fields: minute, hour, day of month, month, weekday. Examples are `0 9 * * *` (daily at 09:00), `0 * * * *` (hourly), `*/5 * * * *` (every five minutes), and `0 9 * * 1` (every Monday at 09:00). Configure notification text, retries, retry interval, and retry window before saving. Use **Test** to run immediately, or pause/resume the schedule from its central card.
+
+Scheduled notifications launch the configured action directly; ODK/Kobo forms return to the scheduled workflow and chained actions continue automatically. Schedules can be edited, removed, or exported individually. Export supports copying, saving, sharing, and QR; import accepts pasted text or QR/NFC data and adds schedules without replacing unrelated schedules.
