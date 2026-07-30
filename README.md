@@ -197,6 +197,10 @@ The Android reference implementation currently exposes the following standalone 
 
 For implementation details, intent examples, input settings, output fields, and an example XLSForm, open the capability-specific guide in each module's `docs` folder. The naming and packaging rules are defined in [Capability documentation standard](docs/CAPABILITY_DOCUMENTATION_STANDARD.md).
 
+## Scheduler and task orchestration
+
+ResearchOS also includes a core scheduler for organising recurring field tasks. Schedules use five-field cron expressions and can run hourly, daily, weekly, monthly, or on any other supported cron pattern. A scheduled item may launch an XLSForm in ODK Collect or Kobo Collect, open a web form, invoke a ResearchOS capability directly, or publish capability output to a reusable destination such as the clipboard. Tasks can be chained so several actions run as one workflow, with configurable ordering, retries, retry windows, custom notifications, pause/resume controls, and completion tracking. The scheduler is part of the runtime workflow layer rather than a study-specific capability: future action types can be added without changing the scheduling model. Schedule chains can also be exported and imported as integrity-checked bundles through text, files, QR, or NFC.
+
 Build and test the Android reference implementation with:
 
 ```text
