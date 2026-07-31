@@ -1,6 +1,6 @@
-# ResearchOS 2.1.2
+# ResearchOS 2.1.3
 
-ResearchOS 2.1.2 adds public Android-app inspection, Bluetooth endpoint inspection, richer scheduling and direct capability execution, protocol-aware NFC support, native image/SVG selection tools, and portable direct-run output export.
+ResearchOS 2.1.3 adds public Android-app inspection, Bluetooth endpoint inspection, richer scheduling and direct capability execution, protocol-aware NFC support, native image/SVG selection tools, and portable direct-run output export.
 
 ## Android app inspector
 
