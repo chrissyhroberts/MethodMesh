@@ -40,6 +40,34 @@ private data class NdefWriteAttempt(
 object NfcTagRepository {
     fun tagUidHex(tag: Tag): String = tag.id.toHexString()
 
+    /** Returns the current NDEF records so specialised NFC formats can coexist. */
+    fun readNdefRecords(tag: Tag): List<NdefRecord> =
+        readNdefMessage(Ndef.get(tag))?.records?.asList().orEmpty()
+
+    /** Replace one application record while preserving unrelated NDEF records. */
+    fun writeOrReplaceRecord(
+        tag: Tag,
+        request: NfcWriteRequest,
+        matches: (NdefRecord) -> Boolean
+    ): NfcWriteResult {
+        val existing = readNdefRecords(tag)
+        val replacement = buildRecord(request)
+        val records = existing.filterNot(matches) + replacement
+        val message = NdefMessage(records.toTypedArray())
+        val sizeBytes = message.toByteArray().size
+        val write = writeNdefMessage(tag, message, sizeBytes, request.copy(overwritePolicy = NfcOverwritePolicy.Replace))
+        return NfcWriteResult(
+            success = write.success,
+            message = write.message,
+            sizeBytes = sizeBytes,
+            tagValues = readTag(tag),
+            overwritePolicy = request.overwritePolicy.wireValue,
+            previousMessageHash = write.previousMessageHash,
+            writtenMessageHash = write.writtenMessageHash,
+            verified = write.verified
+        )
+    }
+
     fun hasMeaningfulNdefContent(tag: Tag): Boolean {
         val message = readNdefMessage(Ndef.get(tag))
         return message?.records?.any(::hasMeaningfulContent) == true

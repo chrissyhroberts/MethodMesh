@@ -180,6 +180,8 @@ The Bluetooth device inspector applies the same pattern to nearby hardware: it s
 The Android reference implementation currently exposes the following standalone capabilities to ODK Collect, KoboToolbox-compatible callers, scheduled workflows, and other RIL clients. Each is invoked through the common `com.example.researchos.EXECUTE_METHOD(...)` intent boundary; the module owns its settings, UI, outputs, and example form.
 
 - **Calibrated scale** (`calibrated_scale`) — presents a physically calibrated horizontal or vertical continuum, including single-value, minimum/maximum, and range modes. It returns selected values with the configured prompt, hint, labels, and measurement metadata.
+- **SVG polygon selector** (`svg.select`) — loads a named SVG from app storage and supports single selection, multi-selection, or strict ordered polygon selection with timestamped audit events and backstep-only removal.
+- **Scaled photo selector** (`scaled_photo.capture`) — captures a ruler-calibrated original photograph, optionally applies a configurable grid for region selection, and returns the original image, annotated image, and separate grid-selection data.
 - **Discrete choice experiments** — provides five reusable study tasks: pairwise comparison (`dce.pairwise`), MaxDiff/best-worst (`dce.maxdiff`), ranking (`dce.ranking`), points allocation (`dce.points`), and conjoint selection (`dce.conjoint`). Rounds, items, classes, profiles, points, and seeds can be supplied by the form or caller.
 - **GPS target navigation** (`gps_target_navigator`) — guides a participant or operator toward a latitude/longitude target, reporting location, bearing, distance, arrival status, and optional camera-based AR guidance.
 - **NFC tag read** (`nfc_tag_read`) — reads arbitrary NDEF records and tag metadata, including UID, technology, capacity, writability, text/URI records, and raw record JSON.
@@ -187,6 +189,7 @@ The Android reference implementation currently exposes the following standalone 
 - **NFC tag wipe** (`nfc_tag_wipe`) — removes user NDEF content from a tag and reports the resulting tag state.
 - **NFC credential provisioning** (`nfc_credential_provisioning`) — creates a portable PIN-protected field-team credential, writes it to NFC, and verifies the write on a confirmation tap without returning the secret.
 - **NFC credential verification** (`nfc_credential_verification`) — reads a portable NFC credential, requests its PIN, verifies the issuer signature and credential integrity, and returns a compact verification result.
+- **Protocol NFC check and completion** (`protocol_nfc_check`, `protocol_nfc_complete`) — keeps a compact, offline protocol-progress receipt on a participant card. A form can check whether its step is allowed before starting, then mark that step complete after successful submission; unrelated NDEF records, including credentials, are preserved.
 - **Code scanner** (`qr.scan`) — captures QR, Data Matrix, and supported one-dimensional barcodes with automatic format detection, returning the decoded payload, format, and evidence hash.
 - **Traceable attestation** (`attestation.create`) — creates a device-signed, hash-chained event attestation. It can invoke fingerprint/device credential, QR, NFC, or study-password verification and can optionally obtain an RFC 3161 trusted timestamp.
 - **Attestation chain anchor** (`attestation.anchor_bundle`) — exports the current chain head and signed public evidence for an independent ODK/server receipt or nightly study anchor.
@@ -196,6 +199,8 @@ The Android reference implementation currently exposes the following standalone 
 - **Bluetooth device inspector** (`bluetooth_device_inspector`) — scans nearby BLE devices, discovers and groups GATT services, reads endpoints, samples readable characteristics, subscribes to notification streams through CCCD, decodes printable values, and saves profiles to the device registry.
 
 For implementation details, intent examples, input settings, output fields, and an example XLSForm, open the capability-specific guide in each module's `docs` folder. The naming and packaging rules are defined in [Capability documentation standard](docs/CAPABILITY_DOCUMENTATION_STANDARD.md).
+
+When a capability is run directly from the ResearchOS dashboard, the shared result panel also provides **Export**. It writes a timestamped JSON record plus any returned attachments into `Documents/ResearchOS/outputs` by default, or into a folder selected under the global Output storage panel. Attachment filenames share the JSON record's base name so they remain linked when copied or archived.
 
 ## Scheduler and task orchestration
 

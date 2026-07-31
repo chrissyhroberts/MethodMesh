@@ -1,5 +1,8 @@
 package com.example.researchos.ui
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
@@ -54,6 +58,7 @@ import com.example.researchos.modules.ModuleExample
 import com.example.researchos.modules.ResearchOSModule
 import com.example.researchos.modules.ResearchOSModuleRegistry
 import com.example.researchos.transport.OutputFormatter
+import com.example.researchos.transport.OutputExportRepository
 import com.example.researchos.transport.ReturnMode
 import com.example.researchos.transport.workflow.ExternalActionRequest
 import com.example.researchos.transport.workflow.ExternalWorkflowRequest
@@ -93,6 +98,7 @@ fun HomeScreen() {
                 .fillMaxSize()
         ) {
             item { RuntimeSummaryCard(modules.size, methods.size) }
+            item { OutputFolderCard() }
             item {
                 SchedulerCenterCard(
                     schedules = schedules,
@@ -136,6 +142,43 @@ fun HomeScreen() {
 }
 
 @Composable
+private fun OutputFolderCard() {
+    val context = LocalContext.current
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var configured by remember { mutableStateOf(OutputExportRepository.configuredFolder(context)) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+            OutputExportRepository.setConfiguredFolder(context, uri)
+            configured = uri.toString()
+        }
+    }
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+        elevation = CardDefaults.elevatedCardElevation(2.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
+                Text(if (expanded) "▼ Output storage" else "▶ Output storage", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            if (expanded) {
+                Spacer(Modifier.height(8.dp))
+                Text("Direct-run exports include a timestamped JSON file and any returned attachments.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(6.dp))
+                Text(if (configured.isBlank()) "Using default app Documents/ResearchOS/outputs folder" else "Selected folder: $configured", style = MaterialTheme.typography.labelSmall)
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Button(onClick = { picker.launch(null) }) { Text("Choose folder") }
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedButton(onClick = { OutputExportRepository.setConfiguredFolder(context, null); configured = "" }) { Text("Use default") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun RuntimeSummaryCard(moduleCount: Int, methodCount: Int) {
     ElevatedCard(
         modifier = Modifier
@@ -163,8 +206,14 @@ private fun RuntimeSummaryCard(moduleCount: Int, methodCount: Int) {
 @Composable
 private fun CapabilityRegistryCard(methods: List<As100Method>, modules: List<ResearchOSModule>) {
     var expanded by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
     val screenMap = ResearchOSModuleRegistry.capabilityScreens().associateBy { it.capabilityId }
     val moduleByMethod = modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
+    val filteredMethods = methods.filter { method ->
+        val moduleName = moduleByMethod[method.id]?.displayName.orEmpty()
+        query.isBlank() || listOf(method.id, method.descriptor.name, method.descriptor.description.orEmpty(), moduleName)
+            .any { it.contains(query.trim(), ignoreCase = true) }
+    }
 
     ElevatedCard(
         modifier = Modifier
@@ -194,13 +243,39 @@ private fun CapabilityRegistryCard(methods: List<As100Method>, modules: List<Res
 
             if (expanded) {
                 Spacer(Modifier.height(12.dp))
-                methods.sortedBy { it.id }.forEach { method ->
-                    val screen = screenMap[method.id]
-                    CapabilityCard(
-                        method = method,
-                        module = moduleByMethod[method.id],
-                        screen = screen
-                    )
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Find a capability") },
+                    placeholder = { Text("Search by name, method ID, or module") }
+                )
+                Text(
+                    "Showing ${filteredMethods.size} of ${methods.size}",
+                    modifier = Modifier.padding(top = 6.dp),
+                    style = MaterialTheme.typography.labelSmall
+                )
+                filteredMethods.sortedBy { it.id }
+                    .groupBy { moduleByMethod[it.id]?.displayName ?: "Other methods" }
+                    .toSortedMap()
+                    .forEach { (moduleName, moduleMethods) ->
+                        Text(
+                            moduleName,
+                            modifier = Modifier.padding(top = 12.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        moduleMethods.forEach { method ->
+                            CapabilityCard(
+                                method = method,
+                                module = moduleByMethod[method.id],
+                                screen = screenMap[method.id]
+                            )
+                        }
+                    }
+                if (filteredMethods.isEmpty()) {
+                    Text("No capabilities match this search.", modifier = Modifier.padding(top = 12.dp))
                 }
             }
         }

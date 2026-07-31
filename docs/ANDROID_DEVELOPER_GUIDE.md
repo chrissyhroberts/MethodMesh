@@ -108,6 +108,10 @@ The Android public package APIs do not expose every raw manifest intent-filter o
 
 The `bluetooth_device_inspector` module provides the corresponding hardware discovery path. It scans nearby BLE devices, connects to a selected device, enumerates GATT endpoints, reads readable characteristics, listens for notifications where supported, reports paired classic-Bluetooth serial candidates, and can save a profile to the central device registry. Transport-specific details remain behind the device-service boundary so later capabilities consume normalized device signals rather than owning Bluetooth code.
 
+## Direct-run output export
+
+When a capability is run from the ResearchOS dashboard, the shared result scaffold provides an **Export** action. Export writes one timestamped JSON record containing the selected return fields and a manifest of any linked attachments. Image, SVG, and other files are copied alongside the JSON using a common base name, so an exported record can be moved as a self-contained bundle. The default location is the app's public `Documents/ResearchOS/outputs` folder; the global Output storage panel can select a different Storage Access Framework folder. Callers such as ODK/Kobo continue to receive attachments through the normal return contract rather than relying on dashboard exports.
+
 ## Returns
 
 The default caller return is intentionally compact:
@@ -119,6 +123,10 @@ The default caller return is intentionally compact:
 - failure diagnostics only when execution fails.
 
 Canonical graph objects and full provenance remain in the ResearchOS graph. Explicit graph selectors may request particular canonical fields. The return formatter does not reproduce deleted flat-model aliases.
+
+## Dashboard organization
+
+The capability dashboard is a manual test and inspection surface, not a second capability registry. Capabilities remain standalone modules, but the dashboard groups them by owning module and provides a search filter so a large installed set can be navigated without scrolling through every method. This presentation layer does not add dependencies between modules or change external intent behavior.
 
 ## Attestation contract
 

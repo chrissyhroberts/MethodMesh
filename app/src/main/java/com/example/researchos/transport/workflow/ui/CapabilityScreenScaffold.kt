@@ -26,11 +26,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.researchos.core.researchos.ExecutionResult
+import com.example.researchos.transport.OutputExportRepository
 import com.example.researchos.transport.workflow.ExternalActionRequest
 import com.example.researchos.transport.workflow.ExternalWorkflowRequest
 
@@ -89,6 +91,8 @@ fun CapabilityScreenScaffold(
     onCancel: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val appContext = LocalContext.current
+    var exportStatus by rememberSaveable(capturedResult?.request?.id?.value) { mutableStateOf<String?>(null) }
     var showDetails by rememberSaveable { mutableStateOf(false) }
     var showAllResultFields by rememberSaveable(capturedResult?.request?.id?.value) { mutableStateOf(false) }
 
@@ -159,6 +163,8 @@ fun CapabilityScreenScaffold(
                 if (capturedResult != null) {
                     OutlinedButton(onClick = onRetry) { Text("Retry") }
                     Spacer(Modifier.width(8.dp))
+                    OutlinedButton(onClick = { exportStatus = runCatching { OutputExportRepository.export(appContext, capturedResult) }.fold({ "Exported to $it" }, { "Export failed: ${it.message ?: "storage error"}" }) }) { Text("Export") }
+                    Spacer(Modifier.width(8.dp))
                 }
                 Button(enabled = capturedResult != null, onClick = onConfirm) {
                     Text(if (context.isLastStep) "Use result" else "Continue")
@@ -200,6 +206,7 @@ fun CapabilityScreenScaffold(
                     }
                 }
             }
+            exportStatus?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
 
             Spacer(Modifier.height(12.dp))
             Text(

@@ -1,7 +1,9 @@
 package com.example.researchos.transport.android
 
 import com.example.researchos.platform.devices.PlatformDeviceBootstrap
+import android.content.ClipData
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
@@ -105,6 +107,15 @@ class ExternalWorkflowActivity : FragmentActivity() {
             putExtra("researchos_status", combined.status.name)
             putExtra("context_entity_id", request.invocationContext.canonicalEntityId)
             fields.forEach { (key, value) -> putExtra(key, value?.toString()) }
+        }
+        val binaryUris = fields.filter { (key, value) ->
+            key.endsWith("_uri") && value?.toString()?.startsWith("content://") == true
+        }.mapNotNull { (key, value) -> value?.toString()?.let { key to Uri.parse(it) } }
+        if (binaryUris.isNotEmpty()) {
+            val clip = ClipData.newUri(contentResolver, binaryUris.first().first, binaryUris.first().second)
+            binaryUris.drop(1).forEach { (key, uri) -> clip.addItem(ClipData.Item(uri)) }
+            data.clipData = clip
+            data.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         setResult(RESULT_OK, data)
         finish()

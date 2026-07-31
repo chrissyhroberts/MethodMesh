@@ -75,6 +75,69 @@ com.example.researchos.EXECUTE_METHOD(method_id='nfc_tag_write',input_value='par
 com.example.researchos.EXECUTE_METHOD(method_id='nfc_tag_wipe',return_mode='flat')
 ```
 
+## Protocol NFC tracking
+
+Protocol NFC tracking is an offline progress receipt for participant study
+cards. It is separate from the scheduler: the card carries a compact protocol
+state so ResearchOS can decide whether a form is currently allowed without a
+network connection. ODK Collect, KoboCollect, or another study system remains
+the canonical repository for form data. The operator's NFC/PIN/fingerprint
+attestation remains the formal end-of-form attribution step; this capability
+does not duplicate it.
+
+Before a form, call `protocol_nfc_check`. After successful submission, call
+`protocol_nfc_complete`. Completion checks the expected state, sets the step's
+completion bit, preserves unrelated NDEF records (including credentials), and
+verifies the write by reading the card back. A failed check or write does not
+advance the card.
+
+## Protocol NFC Android intents
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='protocol_nfc_check',input_protocol_id='study_x',input_protocol_version='1',input_step_id='baseline',input_required_bits='00',input_required_value='00',input_completion_bits='01',return_mode='flat')
+```
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='protocol_nfc_complete',input_protocol_id='study_x',input_protocol_version='1',input_step_id='baseline',input_required_bits='00',input_required_value='00',input_completion_bits='01',return_mode='flat')
+```
+
+The protocol receipt is split into two configurable regions:
+
+```text
+[ active flag bits ][ completed-step bits ]
+```
+
+Set `input_flag_bit_count` and `input_completion_bit_count` once for a
+protocol version. The card stores the widths and remains self-describing.
+Nothing is hard-coded as “contraindication” or “form 2”: the study definition
+assigns any names, labels, severities, or step meanings to the bit positions.
+The debug settings accept compact definitions such as
+`input_flag_definitions='0=contraindication;2=failed_attempt'` and
+`input_step_definitions='0=consent;1=form_2;2=form_3'`. These names are labels
+for the returned evidence; the card still stores only bits.
+
+For a later step requiring bit `01` and setting bit `02`, use
+`input_required_bits='01',input_required_value='01',input_completion_bits='02'`.
+For Boolean requirements, use expressions such as
+`input_required_expression='ALL(0001,0002)'`,
+`input_required_expression='ANY(0002,0004)'`, or
+`input_required_expression='NONE(0004)'`.
+
+Protocol outputs include `protocol_allowed`, `protocol_reason`,
+`active_flag_bits`, `completion_bits_state`, `protocol_state_bits`,
+`protocol_state_version`, `protocol_state_hash`,
+`protocol_updated_time_iso`, `protocol_write_verified`, `protocol_operation`,
+`tag_uid_hex`, and `ndef_message_sha256`. A normal NFC tag is not itself a
+trusted issuer, so this receipt is not a signed credential. Bind it to the
+formal end-of-form attestation when a stronger audit record is required.
+
+## ODK example
+
+`example_odk_protocol_nfc_check.xlsx` demonstrates a pre-form eligibility
+check. `example_odk_protocol_nfc_complete.xlsx` demonstrates the post-submission
+progress update. Replace the example protocol ID, step IDs, and bit masks with
+the study's protocol map.
+
 ## Inputs
 
 Provisioning inputs:
