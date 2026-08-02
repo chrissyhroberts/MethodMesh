@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
@@ -260,18 +261,29 @@ private fun CapabilityRegistryCard(methods: List<As100Method>, modules: List<Res
                     .groupBy { moduleByMethod[it.id]?.displayName ?: "Other methods" }
                     .toSortedMap()
                     .forEach { (moduleName, moduleMethods) ->
-                        Text(
-                            moduleName,
-                            modifier = Modifier.padding(top = 12.dp),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        moduleMethods.forEach { method ->
-                            CapabilityCard(
-                                method = method,
-                                module = moduleByMethod[method.id],
-                                screen = screenMap[method.id]
-                            )
+                        // Keep the dashboard compact on entry; expand a module when its
+                        // capabilities are needed rather than opening every subtree.
+                        var moduleExpanded by rememberSaveable(moduleName) { mutableStateOf(false) }
+                        Column(Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable { moduleExpanded = !moduleExpanded },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    if (moduleExpanded) "▼ $moduleName" else "▶ $moduleName",
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(moduleMethods.size.toString(), style = MaterialTheme.typography.labelMedium)
+                            }
+                            if (moduleExpanded) moduleMethods.forEach { method ->
+                                CapabilityCard(
+                                    method = method,
+                                    module = moduleByMethod[method.id],
+                                    screen = screenMap[method.id]
+                                )
+                            }
                         }
                     }
                 if (filteredMethods.isEmpty()) {

@@ -14,11 +14,20 @@ The Bluetooth device inspector is a user-directed discovery and assay tool for n
 - Probe an individual readable characteristic once or sample it for ten one-second intervals.
 - Subscribe to notification/indication streams by writing the standard Client Characteristic Configuration Descriptor (CCCD) where supported.
 - Show paired classic-Bluetooth devices as serial-profile candidates.
-- Save a tested BLE profile into the central device registry.
+- Select and assay devices that are already paired, without requiring a fresh scan.
+- Save a tested BLE profile or paired classic-Bluetooth profile into the central device registry.
 
 The prototype does not perform packet interception, password guessing, hidden-service access, or unauthorised writes.
 
 Endpoint probing is deliberately read-only. **Read** performs one GATT read; **Sample** performs ten reads at one-second intervals; **Subscribe** enables notifications or indications through the endpoint's CCCD and records pushed values. Values are shown as hexadecimal bytes and, when safely printable, an accompanying UTF-8 interpretation. Write probing is not enabled in the inspector.
+
+Paired classic-Bluetooth devices are handled differently from BLE devices. Android
+can expose their bonded identity and advertised UUIDs (including the Serial Port
+Profile/RFCOMM candidate) without a GATT connection. The inspector records those
+transport hints and saves them as `BLUETOOTH_CLASSIC` registry profiles. This is
+the useful first step for devices such as paired mini label printers; a later
+printer capability can use the saved address/profile to open an authorised
+RFCOMM connection and send a device-specific print payload.
 
 ## Android intent
 
@@ -30,7 +39,11 @@ The standalone screen requests the Android Bluetooth permissions required for sc
 
 ## Inputs
 
-The first version is interactive and has no required input fields. The user selects a discovered device, connects, and explicitly requests endpoint reads or notification listening.
+The first version is interactive and has no required input fields. The user can
+select either a nearby scanned device or an already-paired device. BLE devices
+can then be connected and explicitly read/sampled/subscribed. Paired classic
+devices expose their bonded UUIDs and serial-profile candidacy for later
+transport-specific capabilities.
 
 ## Outputs
 

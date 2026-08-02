@@ -40,6 +40,32 @@ android {
     }
 }
 
+// Generate the standalone module index from module-owned source files. This
+// keeps discovery automatic without runtime dex reflection or a central list
+// of capability implementations.
+val generateResearchOSModuleIndex = tasks.register("generateResearchOSModuleIndex") {
+    val sourceRoot = file("src/main/java/com/example/researchos/modules")
+    val outputFile = layout.buildDirectory.file("generated/res/researchosModuleIndex/raw/researchos_module_index.txt")
+    inputs.files(fileTree(sourceRoot) { include("**/*Module.kt") })
+    outputs.file(outputFile)
+    doLast {
+        val modules = sourceRoot.walkTopDown()
+            .filter { it.isFile && it.name.endsWith("Module.kt") }
+            .mapNotNull { file ->
+                val packageName = Regex("(?m)^package\\s+([A-Za-z0-9_.]+)").find(file.readText())?.groupValues?.get(1)
+                val objectName = Regex("(?m)^object\\s+([A-Za-z0-9_]+Module)\\s*:").find(file.readText())?.groupValues?.get(1)
+                if (packageName != null && objectName != null) "$packageName.$objectName" else null
+            }
+            .sorted()
+            .toList()
+        val target = outputFile.get().asFile
+        target.parentFile.mkdirs()
+        target.writeText(modules.joinToString("\n") + "\n")
+    }
+}
+android.sourceSets["main"].res.srcDir(file("$buildDir/generated/res/researchosModuleIndex"))
+tasks.named("preBuild").configure { dependsOn(generateResearchOSModuleIndex) }
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

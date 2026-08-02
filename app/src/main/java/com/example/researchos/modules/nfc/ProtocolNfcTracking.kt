@@ -2,6 +2,7 @@ package com.example.researchos.modules.nfc
 
 import android.nfc.NdefRecord
 import com.example.researchos.core.crypto.Digests
+import org.json.JSONObject
 import java.time.Instant
 import java.math.BigInteger
 import java.util.Base64
@@ -49,12 +50,86 @@ data class ProtocolNfcDefinition(
     val steps: List<ProtocolNfcStepDefinition> = emptyList()
 )
 
+object ProtocolNfcDefinitionCodec {
+    fun decode(value: String): ProtocolNfcDefinition? = runCatching {
+        val json = JSONObject(value)
+        val flags = json.optJSONArray("flags")?.let { array ->
+            (0 until array.length()).mapNotNull { index ->
+                val item = array.optJSONObject(index) ?: return@mapNotNull null
+                val bit = item.optInt("bit", -1)
+                if (bit < 0) return@mapNotNull null
+                val code = item.optString("code").ifBlank { "bit_$bit" }
+                ProtocolNfcFlagDefinition(
+                    bitIndex = bit,
+                    code = code,
+                    label = item.optString("label").ifBlank { code },
+                    severity = item.optString("severity").ifBlank { "WARNING" }
+                )
+            }
+        }.orEmpty()
+        val steps = json.optJSONArray("steps")?.let { array ->
+            (0 until array.length()).mapNotNull { index ->
+                val item = array.optJSONObject(index) ?: return@mapNotNull null
+                val stepId = item.optString("id").trim()
+                val bits = item.optString("bits").trim()
+                if (stepId.isBlank() || bits.isBlank()) return@mapNotNull null
+                ProtocolNfcStepDefinition(
+                    stepId = stepId,
+                    bitMaskHex = bits,
+                    label = item.optString("label").ifBlank { stepId },
+                    requiredExpression = item.optString("required_expression")
+                )
+            }
+        }.orEmpty()
+        ProtocolNfcDefinition(
+            protocolId = json.getString("protocol_id"),
+            protocolVersion = json.optString("protocol_version", "1"),
+            flagBitCount = json.optInt("flag_bit_count", 8),
+            completionBitCount = json.optInt("completion_bit_count", 8),
+            flags = flags,
+            steps = steps
+        )
+    }.getOrNull()
+
+    fun flagDefinitions(definition: ProtocolNfcDefinition): String = definition.flags.joinToString(";") { "${it.bitIndex}=${it.label}" }
+    fun stepDefinitions(definition: ProtocolNfcDefinition): String = definition.steps.joinToString(";") { "${it.bitMaskHex}=${it.label}" }
+}
+
 object ProtocolNfcStateCodec {
     const val RECORD_TYPE = "application/researchos.protocol-state"
     private const val PREFIX = "ROSP2"
 
     fun empty(protocolId: String, protocolVersion: String, flagBitCount: Int = 8, completionBitCount: Int = 8): ProtocolNfcState =
         ProtocolNfcState(protocolId, protocolVersion, zeroHex(flagBitCount), zeroHex(completionBitCount), flagBitCount, completionBitCount, 0L, "GENESIS", "")
+
+    fun provision(
+        protocolId: String,
+        protocolVersion: String,
+        flagBitCount: Int,
+        completionBitCount: Int,
+        initialFlagBitsHex: String = "",
+        initialCompletionBitsHex: String = "",
+        lastEventHash: String = "GENESIS"
+    ): ProtocolNfcState {
+        require(protocolId.isNotBlank()) { "protocol_id is required." }
+        require(protocolVersion.isNotBlank()) { "protocol_version is required." }
+        require(flagBitCount in 1..65535 && completionBitCount in 1..65535) { "Bit counts must be between 1 and 65535." }
+        val flags = initialFlagBitsHex.ifBlank { zeroHex(flagBitCount) }
+        val completion = initialCompletionBitsHex.ifBlank { zeroHex(completionBitCount) }
+        require(validWidth(flagBitCount, normaliseHex(flags) ?: "")) { "Initial active flag bits do not match flag_bit_count." }
+        require(validWidth(completionBitCount, normaliseHex(completion) ?: "")) { "Initial completion bits do not match completion_bit_count." }
+        return ProtocolNfcState(
+            protocolId = protocolId.trim(),
+            protocolVersion = protocolVersion.trim(),
+            flagBitsHex = normaliseHex(flags)!!,
+            completionBitsHex = normaliseHex(completion)!!,
+            flagBitCount = flagBitCount,
+            completionBitCount = completionBitCount,
+            stateVersion = 0L,
+            lastEventHash = lastEventHash.ifBlank { "GENESIS" },
+            updatedAtIso = Instant.now().toString()
+        )
+    }
 
     fun encode(state: ProtocolNfcState): String = listOf(
         PREFIX, b64(state.protocolId), b64(state.protocolVersion),
@@ -88,6 +163,8 @@ object ProtocolNfcStateCodec {
         NfcTagRepository.readNdefRecords(tag).firstOrNull { isProtocolRecord(it) }
             ?.payload?.toString(Charsets.UTF_8)?.let(::decode)
 
+    fun stateHash(state: ProtocolNfcState): String = Digests.sha256Hex(encode(state))
+
     fun isProtocolRecord(record: NdefRecord): Boolean =
         record.tnf == NdefRecord.TNF_MIME_MEDIA && String(record.type, Charsets.US_ASCII).equals(RECORD_TYPE, ignoreCase = true)
 
@@ -117,6 +194,31 @@ object ProtocolNfcStateCodec {
         return state.copy(
             flagBitsHex = nextFlags,
             completionBitsHex = nextCompletion,
+            stateVersion = state.stateVersion + 1,
+            lastEventHash = eventHash.ifBlank { Digests.sha256Hex(encode(state)) },
+            updatedAtIso = Instant.now().toString()
+        )
+    }
+
+    fun override(
+        state: ProtocolNfcState,
+        setCompletionBitsHex: String = "",
+        clearCompletionBitsHex: String = "",
+        setFlagsHex: String = "",
+        clearFlagsHex: String = "",
+        eventHash: String = ""
+    ): ProtocolNfcState {
+        val completionSet = orHex(state.completionBitsHex, setCompletionBitsHex.ifBlank { zeroHex(state.completionBitCount) })
+            ?: error("Invalid completion bits.")
+        val completion = andNotHex(completionSet, clearCompletionBitsHex.ifBlank { zeroHex(state.completionBitCount) })
+            ?: error("Invalid completion bits.")
+        val flagsSet = orHex(state.flagBitsHex, setFlagsHex.ifBlank { zeroHex(state.flagBitCount) })
+            ?: error("Invalid active flag bits.")
+        val flags = andNotHex(flagsSet, clearFlagsHex.ifBlank { zeroHex(state.flagBitCount) })
+            ?: error("Invalid active flag bits.")
+        return state.copy(
+            flagBitsHex = flags,
+            completionBitsHex = completion,
             stateVersion = state.stateVersion + 1,
             lastEventHash = eventHash.ifBlank { Digests.sha256Hex(encode(state)) },
             updatedAtIso = Instant.now().toString()
@@ -175,5 +277,10 @@ object ProtocolNfcTrackingFields {
     const val PROTOCOL_ALLOWED = "protocol_allowed"; const val PROTOCOL_REASON = "protocol_reason"; const val PROTOCOL_STATE_BITS = "protocol_state_bits"
     const val PROTOCOL_STATE_VERSION = "protocol_state_version"; const val PROTOCOL_STATE_HASH = "protocol_state_hash"; const val PROTOCOL_UPDATED_TIME_ISO = "protocol_updated_time_iso"
     const val PROTOCOL_WRITE_VERIFIED = "protocol_write_verified"; const val PROTOCOL_OPERATION = "protocol_operation"
-    val outputFields = listOf(PROTOCOL_ID, PROTOCOL_VERSION, STEP_ID, FLAG_BIT_COUNT, COMPLETION_BIT_COUNT, FLAG_BITS, COMPLETION_BITS_STATE, FLAG_DEFINITIONS, STEP_DEFINITIONS, ACTIVE_FLAG_LABELS, COMPLETED_STEP_LABELS, REQUIRED_BITS, REQUIRED_VALUE, REQUIRED_EXPRESSION, COMPLETION_BITS, PROTOCOL_ALLOWED, PROTOCOL_REASON, PROTOCOL_STATE_BITS, PROTOCOL_STATE_VERSION, PROTOCOL_STATE_HASH, PROTOCOL_UPDATED_TIME_ISO, PROTOCOL_WRITE_VERIFIED, PROTOCOL_OPERATION, NfcEvidenceFields.TAG_UID_HEX, NfcEvidenceFields.NDEF_MESSAGE_SHA256)
+    const val PROTOCOL_PROVISIONED = "protocol_provisioned"; const val PROTOCOL_STATE_PAYLOAD = "protocol_state_payload"
+    const val PROTOCOL_STATE_PAYLOAD_HASH = "protocol_state_payload_hash"; const val PROTOCOL_STATE_SOURCE = "protocol_state_source"
+    const val OVERRIDE_JUSTIFICATION = "override_justification"; const val OVERRIDE_ACTOR = "override_actor"
+    const val RECONSTRUCTION_REASON = "reconstruction_reason"; const val PROTOCOL_DEVIATION = "protocol_deviation"
+    const val PROTOCOL_DEFINITION_JSON = "protocol_definition_json"; const val PROTOCOL_DEFINITION_HASH = "protocol_definition_hash"
+    val outputFields = listOf(PROTOCOL_ID, PROTOCOL_VERSION, STEP_ID, FLAG_BIT_COUNT, COMPLETION_BIT_COUNT, FLAG_BITS, COMPLETION_BITS_STATE, FLAG_DEFINITIONS, STEP_DEFINITIONS, ACTIVE_FLAG_LABELS, COMPLETED_STEP_LABELS, REQUIRED_BITS, REQUIRED_VALUE, REQUIRED_EXPRESSION, COMPLETION_BITS, PROTOCOL_ALLOWED, PROTOCOL_REASON, PROTOCOL_STATE_BITS, PROTOCOL_STATE_VERSION, PROTOCOL_STATE_HASH, PROTOCOL_UPDATED_TIME_ISO, PROTOCOL_WRITE_VERIFIED, PROTOCOL_OPERATION, PROTOCOL_PROVISIONED, PROTOCOL_STATE_PAYLOAD, PROTOCOL_STATE_PAYLOAD_HASH, PROTOCOL_STATE_SOURCE, PROTOCOL_DEFINITION_HASH, OVERRIDE_JUSTIFICATION, OVERRIDE_ACTOR, RECONSTRUCTION_REASON, PROTOCOL_DEVIATION, NfcEvidenceFields.TAG_UID_HEX, NfcEvidenceFields.NDEF_MESSAGE_SHA256)
 }

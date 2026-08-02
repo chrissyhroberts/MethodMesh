@@ -63,13 +63,14 @@ abstract class ProtocolNfcMethod(
         val tagValues = NfcTagRepository.readTag(tagSignal.androidTag)
         val current = ProtocolNfcStateCodec.stateFrom(tagSignal.androidTag)
         val state = current ?: ProtocolNfcStateCodec.empty(protocolId, protocolVersion, flagBitCount, completionBitCount)
-        val configValid = protocolId.isNotBlank() && state.flagBitCount == flagBitCount && state.completionBitCount == completionBitCount &&
+        val configValid = current != null && protocolId.isNotBlank() && state.flagBitCount == flagBitCount && state.completionBitCount == completionBitCount &&
             ProtocolNfcStateCodec.normaliseHex(requiredBits) != null && ProtocolNfcStateCodec.normaliseHex(requiredValue) != null &&
             ProtocolNfcStateCodec.normaliseHex(completionBits) != null && (setFlags.isBlank() || ProtocolNfcStateCodec.normaliseHex(setFlags) != null) &&
             (clearFlags.isBlank() || ProtocolNfcStateCodec.normaliseHex(clearFlags) != null)
         val sameProtocol = state.protocolId.isBlank() || (state.protocolId == protocolId && state.protocolVersion == protocolVersion)
         val allowed = configValid && sameProtocol && ProtocolNfcStateCodec.expressionMatches(state, requiredExpression, requiredBits, requiredValue)
         val reason = when {
+            current == null -> "This card has not been provisioned for a protocol. Run protocol_nfc_provision first."
             !configValid -> "protocol_id and valid hexadecimal bit masks are required."
             !sameProtocol -> "The card belongs to protocol ${state.protocolId} version ${state.protocolVersion}."
             allowed -> "Required protocol progress is present."
@@ -82,7 +83,7 @@ abstract class ProtocolNfcMethod(
             if (!allowed) {
                 status = TransformationStatus.Failed
             } else {
-                val eventHash = tagValues[NfcEvidenceFields.NDEF_MESSAGE_SHA256].orEmpty()
+                val eventHash = context["event_payload_hash"].orEmpty().ifBlank { tagValues[NfcEvidenceFields.NDEF_MESSAGE_SHA256].orEmpty() }
                 finalState = ProtocolNfcStateCodec.complete(state, completionBits, eventHash, setFlags, clearFlags)
                 val write = NfcTagRepository.writeOrReplaceRecord(
                     tagSignal.androidTag,
@@ -123,6 +124,11 @@ abstract class ProtocolNfcMethod(
             put(ProtocolNfcTrackingFields.PROTOCOL_UPDATED_TIME_ISO, finalState.updatedAtIso)
             put(ProtocolNfcTrackingFields.PROTOCOL_WRITE_VERIFIED, writeVerified.toString())
             put(ProtocolNfcTrackingFields.PROTOCOL_OPERATION, operation)
+            put(ProtocolNfcTrackingFields.PROTOCOL_PROVISIONED, (current != null).toString())
+            put(ProtocolNfcTrackingFields.PROTOCOL_STATE_PAYLOAD, ProtocolNfcStateCodec.encode(finalState))
+            put(ProtocolNfcTrackingFields.PROTOCOL_STATE_PAYLOAD_HASH, ProtocolNfcStateCodec.stateHash(finalState))
+            put(ProtocolNfcTrackingFields.PROTOCOL_STATE_SOURCE, "card")
+            put(ProtocolNfcTrackingFields.PROTOCOL_DEVIATION, (!allowed).toString())
             put(NfcEvidenceFields.TAG_UID_HEX, uid)
             put(NfcEvidenceFields.NDEF_MESSAGE_SHA256, tagValues[NfcEvidenceFields.NDEF_MESSAGE_SHA256].orEmpty())
         }

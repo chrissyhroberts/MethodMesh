@@ -1,12 +1,18 @@
 # NFC capabilities
 
-The NFC module provides four independent capabilities:
+The NFC module provides generic tag operations, portable credentials, and an
+offline protocol-card workflow:
 
 - `nfc_tag_read` — read any supported NFC/NDEF payload;
 - `nfc_tag_write` — write any supported NFC/NDEF payload;
 - `nfc_tag_wipe` — replace NDEF user content with a verified empty record;
 - `nfc_credential_provisioning` — create a portable, PIN-protected credential;
-- `nfc_credential_verification` — verify that credential and its PIN.
+- `nfc_credential_verification` — verify that credential and its PIN;
+- `protocol_nfc_provision` — establish the initial protocol receipt during recruitment;
+- `protocol_nfc_check` — decide whether a form step is currently eligible;
+- `protocol_nfc_complete` — mark a completed step and verify the write;
+- `protocol_nfc_reconstruct` — restore a lost/replacement card from an exported state payload;
+- `protocol_nfc_override` — apply a justified manual flag or completion-bit change.
 
 The credential capabilities do not replace generic read/write. They add a
 defined cryptographic format and a guided human workflow.
@@ -91,6 +97,43 @@ completion bit, preserves unrelated NDEF records (including credentials), and
 verifies the write by reading the card back. A failed check or write does not
 advance the card.
 
+An unprovisioned card is never treated as an empty eligible protocol. The
+recruitment workflow should first call `protocol_nfc_provision`, which writes
+the initial receipt and reads it back. If a card is lost, export the last
+trusted `protocol_state_payload` and its SHA-256 from a prior check/complete
+result, then call `protocol_nfc_reconstruct` on the replacement card with a
+human-readable `reconstruction_reason`. This preserves unrelated NDEF records
+and requires verified read-back. `protocol_nfc_override` is the manual
+exception path: it can set or clear active flags and completion bits, but
+requires `override_justification` and returns `protocol_deviation=true`.
+
+### Defining a protocol
+
+Provisioning accepts either individual bit-count/initial-state settings or a
+portable `protocol_definition_json` document. The standalone screen can load
+that document from a file in device-accessible storage, or build it with
+readable rows:
+
+```text
+Active flags:  bit | code | label | severity
+0 | contraindication | Contraindication | BLOCKING
+1 | failed_attempt   | Failed attempt   | WARNING
+
+Protocol steps:  id | bits | label | required expression
+consent | 01 | Consent |
+form_2  | 02 | Form 2  | ALL(01)
+```
+
+The equivalent file is JSON:
+
+```json
+{"protocol_id":"study_x","protocol_version":"1","flag_bit_count":8,"completion_bit_count":8,"flags":[{"bit":0,"code":"contraindication","label":"Contraindication","severity":"BLOCKING"}],"steps":[{"id":"consent","bits":"01","label":"Consent","required_expression":""}]}
+```
+
+The definition is not written into the tag. The tag stores only the compact
+state receipt; `protocol_definition_hash` identifies the exact definition used
+for provisioning, so retain the original file with the study configuration.
+
 ## Protocol NFC Android intents
 
 ```text
@@ -99,6 +142,24 @@ com.example.researchos.EXECUTE_METHOD(method_id='protocol_nfc_check',input_proto
 
 ```text
 com.example.researchos.EXECUTE_METHOD(method_id='protocol_nfc_complete',input_protocol_id='study_x',input_protocol_version='1',input_step_id='baseline',input_required_bits='00',input_required_value='00',input_completion_bits='01',return_mode='flat')
+```
+
+Provisioning:
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='protocol_nfc_provision',input_protocol_id='study_x',input_protocol_version='1',input_flag_bit_count='8',input_completion_bit_count='8',input_initial_flag_bits='00',input_initial_completion_bits='00',input_overwrite_policy='empty_only',return_mode='flat')
+```
+
+Replacement-card reconstruction:
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='protocol_nfc_reconstruct',input_protocol_state_payload=${saved_state_payload},input_protocol_state_payload_hash=${saved_state_hash},input_reconstruction_reason='Card lost; replacement issued at visit 3',return_mode='flat')
+```
+
+Justified manual override:
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='protocol_nfc_override',input_protocol_id='study_x',input_set_flag_bits='04',input_clear_completion_bits='0002',input_override_justification='Contraindication confirmed by investigator',return_mode='flat')
 ```
 
 The protocol receipt is split into two configurable regions:
@@ -127,7 +188,10 @@ Protocol outputs include `protocol_allowed`, `protocol_reason`,
 `active_flag_bits`, `completion_bits_state`, `protocol_state_bits`,
 `protocol_state_version`, `protocol_state_hash`,
 `protocol_updated_time_iso`, `protocol_write_verified`, `protocol_operation`,
-`tag_uid_hex`, and `ndef_message_sha256`. A normal NFC tag is not itself a
+`protocol_provisioned`, `protocol_state_payload`, `protocol_state_payload_hash`,
+`protocol_state_source`, `protocol_definition_hash`, `reconstruction_reason`,
+`override_justification`, `protocol_deviation`, `tag_uid_hex`, and
+`ndef_message_sha256`. A normal NFC tag is not itself a
 trusted issuer, so this receipt is not a signed credential. Bind it to the
 formal end-of-form attestation when a stronger audit record is required.
 
@@ -135,8 +199,11 @@ formal end-of-form attestation when a stronger audit record is required.
 
 `example_odk_protocol_nfc_check.xlsx` demonstrates a pre-form eligibility
 check. `example_odk_protocol_nfc_complete.xlsx` demonstrates the post-submission
-progress update. Replace the example protocol ID, step IDs, and bit masks with
-the study's protocol map.
+progress update. The same intent pattern can be used for provisioning,
+reconstruction, and override; those administrative operations are primarily
+intended to be run from the ResearchOS builder/file workflow because they carry
+larger protocol configuration and audit justification. Replace the example
+protocol ID, step IDs, and bit masks with the study's protocol map.
 
 ## Inputs
 

@@ -19,7 +19,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 fun LiveCameraPreview(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    onError: (String) -> Unit = {}
+    onError: (String) -> Unit = {},
+    restartKey: Any = Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -29,7 +30,7 @@ fun LiveCameraPreview(
         }
     }
 
-    DisposableEffect(controller, lifecycleOwner, enabled) {
+    DisposableEffect(controller, lifecycleOwner, enabled, restartKey) {
         if (enabled) {
             runCatching {
                 controller.bindToLifecycle(lifecycleOwner)

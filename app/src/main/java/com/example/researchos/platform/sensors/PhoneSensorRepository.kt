@@ -25,6 +25,14 @@ object PhoneSensorRepository : SensorEventListener {
     var headingDegrees by mutableStateOf<Float?>(null)
         private set
 
+    /** Phone tilt relative to the horizon, derived from the rotation vector. */
+    var pitchDegrees by mutableStateOf<Float?>(null)
+        private set
+
+    /** Roll angle, useful for detecting a tilted measurement posture. */
+    var rollDegrees by mutableStateOf<Float?>(null)
+        private set
+
     var status by mutableStateOf("Stopped")
         private set
 
@@ -51,6 +59,8 @@ object PhoneSensorRepository : SensorEventListener {
         sensorManager?.unregisterListener(this)
         started = false
         status = "Stopped"
+        pitchDegrees = null
+        rollDegrees = null
     }
 
     private fun registerSensor(
@@ -170,6 +180,8 @@ object PhoneSensorRepository : SensorEventListener {
             val orientation = FloatArray(3)
             SensorManager.getOrientation(rotationMatrix, orientation)
             headingDegrees = normaliseDegrees(Math.toDegrees(orientation[0].toDouble()).toFloat())
+            pitchDegrees = normaliseSignedDegrees(Math.toDegrees(orientation[1].toDouble()).toFloat())
+            rollDegrees = normaliseSignedDegrees(Math.toDegrees(orientation[2].toDouble()).toFloat())
         }
     }
 
@@ -178,12 +190,16 @@ object PhoneSensorRepository : SensorEventListener {
         SensorManager.getRotationMatrixFromVector(rotationMatrix, values)
         val orientation = FloatArray(3)
         SensorManager.getOrientation(rotationMatrix, orientation)
+        pitchDegrees = normaliseSignedDegrees(Math.toDegrees(orientation[1].toDouble()).toFloat())
+        rollDegrees = normaliseSignedDegrees(Math.toDegrees(orientation[2].toDouble()).toFloat())
         return normaliseDegrees(Math.toDegrees(orientation[0].toDouble()).toFloat())
     }
 
     private fun normaliseDegrees(value: Float): Float {
         return ((value % 360f) + 360f) % 360f
     }
+
+    private fun normaliseSignedDegrees(value: Float): Float = ((value + 180f) % 360f + 360f) % 360f - 180f
 
     fun formattedHeading(): String {
         val heading = headingDegrees ?: return "waiting"

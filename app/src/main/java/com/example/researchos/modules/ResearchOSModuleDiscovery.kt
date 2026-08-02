@@ -1,7 +1,7 @@
 package com.example.researchos.modules
 
 import android.content.Context
-import dalvik.system.DexFile
+import android.util.Log
 
 /** Discovers self-contained Kotlin module objects without a central capability list. */
 object ResearchOSModuleDiscovery {
@@ -9,16 +9,11 @@ object ResearchOSModuleDiscovery {
 
     @Suppress("DEPRECATION")
     fun discover(context: Context): List<ResearchOSModule> {
-        val paths = listOfNotNull(context.applicationInfo.sourceDir) + context.applicationInfo.splitSourceDirs.orEmpty()
-        val classNames = mutableListOf<String>()
-        paths.forEach { path ->
-            val dex = DexFile(path)
-            try {
-                val entries = dex.entries()
-                while (entries.hasMoreElements()) classNames += entries.nextElement()
-            } finally {
-                dex.close()
-            }
+        val resourceId = context.resources.getIdentifier("researchos_module_index", "raw", context.packageName)
+        val classNames = if (resourceId != 0) {
+            context.resources.openRawResource(resourceId).bufferedReader().useLines { it.filter(String::isNotBlank).toList() }
+        } else {
+            emptyList()
         }
         return classNames.asSequence()
             .filter { name -> name.startsWith(MODULE_PACKAGE) && name.endsWith("Module") && !name.contains('$') }
@@ -32,5 +27,11 @@ object ResearchOSModuleDiscovery {
         val type = Class.forName(className)
         if (!ResearchOSModule::class.java.isAssignableFrom(type)) return@runCatching null
         type.getField("INSTANCE").get(null) as ResearchOSModule
+    }.onFailure { error ->
+        // A class can be in the module package without being a module object;
+        // only report failures for classes that look like module candidates.
+        if (className.endsWith("Module")) {
+            Log.w("ResearchOSModules", "Unable to load module candidate $className", error)
+        }
     }.getOrNull()
 }

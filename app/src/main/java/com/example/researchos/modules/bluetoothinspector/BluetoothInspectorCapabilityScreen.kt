@@ -59,7 +59,7 @@ import java.util.UUID
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private data class NearbyBluetoothDevice(val device: BluetoothDevice, val name: String, val address: String, val rssi: Int)
+private data class NearbyBluetoothDevice(val device: BluetoothDevice, val name: String, val address: String, val rssi: Int, val paired: Boolean = false)
 
 private data class GattCharacteristicInfo(
     val serviceUuid: String,
@@ -106,6 +106,7 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
         val manager = androidContext.getSystemService(BluetoothManager::class.java)
         val adapter = manager?.adapter
         val devices = remember { mutableStateListOf<NearbyBluetoothDevice>() }
+        val pairedDevices = remember { mutableStateListOf<NearbyBluetoothDevice>() }
         var scanning by rememberSaveable { mutableStateOf(false) }
         var pendingScan by remember { mutableStateOf(false) }
         var selectedAddress by rememberSaveable { mutableStateOf("") }
@@ -119,6 +120,8 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
         var expandedServices by remember { mutableStateOf(emptySet<String>()) }
         var probeRunning by rememberSaveable { mutableStateOf(false) }
         var probeStatus by rememberSaveable { mutableStateOf("") }
+        var dedupeReads by rememberSaveable { mutableStateOf(false) }
+        val readSeen = remember { mutableSetOf<String>() }
         var readRequestToken by remember { mutableStateOf(0) }
         val readQueue = remember { ArrayDeque<BluetoothGattCharacteristic>() }
         val notificationQueue = remember { ArrayDeque<Pair<BluetoothGattCharacteristic, BluetoothGattDescriptor>>() }
@@ -128,12 +131,20 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
         fun permissions(): Array<String> = if (Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT) else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
         fun permissionsGranted() = permissions().all { ContextCompat.checkSelfPermission(androidContext, it) == PackageManager.PERMISSION_GRANTED }
         fun produceResult() {
-            val selected = devices.firstOrNull { it.address == selectedAddress }
+            val selected = (pairedDevices + devices).firstOrNull { it.address == selectedAddress }
             val scanText = devices.joinToString("\n") { "${it.name} | ${it.address} | rssi=${it.rssi}" }
-            val serial = adapter?.bondedDevices.orEmpty().joinToString("\n") { device -> "${device.name.orEmpty()} | ${device.address} | paired_classic_spp_candidate=true" }
+            val serial = pairedDevices.joinToString("\n") { device -> pairedEndpointSummary(device.device) }
             val request = As100BluetoothInspectorMethod.request(As100BluetoothInspectorMethod.ID, emptyMap(), emptyList(), emptyList())
             val outcome = BluetoothInspectionOutcome(scanText, selected?.let { "${it.name}|${it.address}" }.orEmpty(), connectionStatus, endpoints, captured, serial, endpoints)
             result = As100BluetoothInspectorMethod.result(request, outcome, context.request.invocationContext)
+        }
+
+        fun refreshPaired() {
+            if (adapter == null || !permissionsGranted()) return
+            pairedDevices.clear()
+            pairedDevices.addAll(adapter.bondedDevices.orEmpty().map { device ->
+                NearbyBluetoothDevice(device, device.name.orEmpty().ifBlank { "Paired Bluetooth device" }, device.address, -999, paired = true)
+            }.sortedBy { it.name.lowercase() })
         }
 
         val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { if (permissionsGranted()) pendingScan = true }
@@ -142,7 +153,7 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
                 override fun onScanResult(type: Int, scanResult: ScanResult) {
                     val device = scanResult.device
                     mainHandler.post {
-                        val item = NearbyBluetoothDevice(device, scanResult.scanRecord?.deviceName ?: device.name.orEmpty().ifBlank { "Unnamed BLE device" }, device.address, scanResult.rssi)
+                        val item = NearbyBluetoothDevice(device, scanResult.scanRecord?.deviceName ?: device.name.orEmpty().ifBlank { "Unnamed BLE device" }, device.address, scanResult.rssi, paired = device.bondState == BluetoothDevice.BOND_BONDED)
                         devices.removeAll { it.address == item.address }
                         devices.add(item)
                     }
@@ -154,16 +165,23 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
         fun beginScan() {
             if (adapter == null) { connectionStatus = "Bluetooth is unavailable."; return }
             if (!permissionsGranted()) { permissionLauncher.launch(permissions()); return }
+            refreshPaired()
             devices.clear(); scanning = true; connectionStatus = "Scanning…"
             runCatching { adapter.bluetoothLeScanner?.startScan(callback) }.onFailure { scanning = false; connectionStatus = "Scan failed: ${it.message.orEmpty()}" }
             mainHandler.postDelayed({ runCatching { adapter.bluetoothLeScanner?.stopScan(callback) }; scanning = false; if (connectionStatus == "Scanning…") connectionStatus = "Scan complete" }, 10_000L)
         }
 
         LaunchedEffect(pendingScan) { if (pendingScan) { pendingScan = false; beginScan() } }
+        LaunchedEffect(adapter) { if (adapter != null && permissionsGranted()) refreshPaired() }
 
         fun connectSelected() {
-            val device = devices.firstOrNull { it.address == selectedAddress }?.device ?: return
+            val device = (pairedDevices + devices).firstOrNull { it.address == selectedAddress }?.device ?: return
             if (!permissionsGranted()) { permissionLauncher.launch(permissions()); return }
+            if (device.type == BluetoothDevice.DEVICE_TYPE_CLASSIC) {
+                endpoints = pairedEndpointSummary(device)
+                connectionStatus = "Paired classic Bluetooth device selected; RFCOMM endpoints listed."
+                return
+            }
             gatt?.close(); connectionStatus = "Connecting…"
             gatt = device.connectGatt(androidContext, false, object : BluetoothGattCallback() {
                 override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
@@ -196,7 +214,8 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
                         readRequestToken += 1
                         val outcome = if (status == BluetoothGatt.GATT_SUCCESS) "ok" else "failed (GATT status $status)"
                         val value = characteristic.value.toDisplayValue()
-                        captured = "$captured\n${bluetoothLabel(characteristic.uuid)} (${characteristic.uuid}) status=$status $outcome value=$value".trim()
+                        val key = "${characteristic.uuid}:$status:$value"
+                        if (!dedupeReads || readSeen.add(key)) captured = "$captured\n${bluetoothLabel(characteristic.uuid)} (${characteristic.uuid}) status=$status $outcome value=$value".trim()
                         readQueue.removeFirstOrNull()?.let { g.readCharacteristic(it) }
                     }
                 }
@@ -204,7 +223,9 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
                     mainHandler.post {
                         readRequestToken += 1
                         val outcome = if (status == BluetoothGatt.GATT_SUCCESS) "ok" else "failed (GATT status $status)"
-                        captured = "$captured\n${bluetoothLabel(characteristic.uuid)} (${characteristic.uuid}) status=$status $outcome value=${value.toDisplayValue()}".trim()
+                        val display = value.toDisplayValue()
+                        val key = "${characteristic.uuid}:$status:$display"
+                        if (!dedupeReads || readSeen.add(key)) captured = "$captured\n${bluetoothLabel(characteristic.uuid)} (${characteristic.uuid}) status=$status $outcome value=$display".trim()
                         readQueue.removeFirstOrNull()?.let { g.readCharacteristic(it) }
                     }
                 }
@@ -227,6 +248,7 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
         fun readReadable() {
             val connection = gatt ?: return
             readQueue.clear()
+            readSeen.clear(); dedupeReads = true; captured = ""
             connection.services.flatMap { it.characteristics }.filter { it.properties and BluetoothGattCharacteristic.PROPERTY_READ != 0 }.forEach { readQueue.add(it) }
             readQueue.removeFirstOrNull()?.let { connection.readCharacteristic(it) }
         }
@@ -235,6 +257,7 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
             val connection = gatt ?: return
             if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_READ == 0) return
             readQueue.clear()
+            readSeen.clear(); dedupeReads = true; captured = ""
             readQueue.add(characteristic)
             probeStatus = "Reading ${bluetoothLabel(characteristic.uuid)}…"
             val token = ++readRequestToken
@@ -257,6 +280,7 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
             if (probeRunning || characteristic.properties and BluetoothGattCharacteristic.PROPERTY_READ == 0) return
             val connection = gatt ?: return
             probeRunning = true
+            dedupeReads = false
             probeStatus = "Sampling ${bluetoothLabel(characteristic.uuid)} every 1 second (10 samples)…"
             probeScope.launch {
                 repeat(10) {
@@ -292,7 +316,19 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
             Text("Only nearby Bluetooth devices and public BLE services are inspected. Reads and notifications are user initiated.", style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(8.dp))
             Button(onClick = ::beginScan, Modifier.fillMaxWidth()) { Text(if (scanning) "Scanning…" else "Scan nearby Bluetooth") }
+            OutlinedButton(onClick = {
+                if (!permissionsGranted()) permissionLauncher.launch(permissions()) else { refreshPaired(); connectionStatus = "Paired devices refreshed" }
+            }, Modifier.fillMaxWidth()) { Text("Refresh paired devices") }
             Text("Status: $connectionStatus", style = MaterialTheme.typography.bodySmall)
+            if (pairedDevices.isNotEmpty()) {
+                Text("Paired devices", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+                pairedDevices.forEach { device ->
+                    OutlinedButton(onClick = { selectedAddress = device.address }, Modifier.fillMaxWidth()) {
+                        Text(if (selectedAddress == device.address) "✓ ${device.name} (${device.address})" else "${device.name} (${device.address})")
+                    }
+                }
+            }
+            if (devices.isNotEmpty()) Text("Nearby devices", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
             devices.forEach { device ->
                 OutlinedButton(onClick = { selectedAddress = device.address }, Modifier.fillMaxWidth()) {
                     Text(if (selectedAddress == device.address) "✓ ${device.name} (${device.address}) · ${device.rssi} dBm" else "${device.name} (${device.address}) · ${device.rssi} dBm")
@@ -306,8 +342,8 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
                     OutlinedButton(onClick = ::listenToNotifications) { Text("Listen to streams") }
                 }
                 OutlinedButton(onClick = {
-                    val selected = devices.firstOrNull { it.address == selectedAddress } ?: return@OutlinedButton
-                    DeviceRegistry.save(androidContext, RegisteredDevice(name = selected.name, transport = DeviceTransport.BLE, address = selected.address, profile = endpoints))
+                    val selected = (pairedDevices + devices).firstOrNull { it.address == selectedAddress } ?: return@OutlinedButton
+                    DeviceRegistry.save(androidContext, RegisteredDevice(name = selected.name, transport = if (selected.device.type == BluetoothDevice.DEVICE_TYPE_CLASSIC) DeviceTransport.BLUETOOTH_CLASSIC else DeviceTransport.BLE, address = selected.address, profile = endpoints))
                     savedStatus = "Saved to device registry."
                 }, Modifier.fillMaxWidth()) { Text("Save device profile") }
             }
@@ -361,6 +397,13 @@ object BluetoothInspectorCapabilityScreen : CapabilityScreenSpec {
 }
 
 private fun ByteArray?.toHex(): String = this?.joinToString("") { "%02x".format(it) }.orEmpty()
+
+@SuppressLint("MissingPermission")
+private fun pairedEndpointSummary(device: BluetoothDevice): String {
+    val uuids = device.uuids.orEmpty().joinToString(",") { it.uuid.toString() }
+    val spp = device.uuids.orEmpty().any { it.uuid.toString().equals("00001101-0000-1000-8000-00805f9b34fb", true) }
+    return "${device.name.orEmpty().ifBlank { "Paired Bluetooth device" }} | ${device.address} | type=${device.type} | bonded=true | classic_spp_candidate=$spp | uuids=$uuids"
+}
 
 private fun ByteArray?.toDisplayValue(): String {
     if (this == null || this.isEmpty()) return "<empty>"
