@@ -1,40 +1,66 @@
+# =========================
+# Android / Gradle
+# =========================
+
 *.iml
-.gradle
+.gradle/
 .kotlin/
-/local.properties
+
+local.properties
+
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
-.DS_Store
-~$*.xlsx
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-app/build
+
+/build/
+app/build/
+
+captures/
+
+.externalNativeBuild/
+.cxx/
+
 *.apk
 *.aab
 *.dex
 *.class
 
+
+# =========================
+# Generated / temporary files
+# =========================
+
+.DS_Store
+~$*.xlsx
+
 /tree.txt
 
-# Android / Gradle build outputs
 
-app/build/
+# =========================
+# Quarto
+# =========================
 
-build/
+.quarto/
 
-.gradle/
+# Temporary Quarto output (if created accidentally)
+_site/
 
-*.apk
 
-*.aab
+# =========================
+# R
+# =========================
 
-# Local files
+.Rproj.user/
+.Rhistory
+.RData
 
-local.properties
+
+# =========================
+# Keep documentation
+# =========================
+
+# website/  <-- DO NOT IGNORE
+# docs/     <-- DO NOT IGNORE
