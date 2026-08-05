@@ -1,0 +1,194 @@
+---
+title: "Capabilities"
+toc: true
+---
+
+## Overview
+
+ResearchOS capabilities are modular methods that expose specialist Android functionality to an XLSForm workflow.
+
+A capability should have:
+
+- a canonical ID;
+- declared inputs and outputs;
+- structured status and errors;
+- provenance metadata;
+- a dashboard tester;
+- a complete XLSForm example;
+- offline and compatibility documentation.
+
+## Capability families
+
+### Sense
+
+Acquire observations from onboard or connected sensors.
+
+Examples include:
+
+- environmental sensors;
+- Bluetooth Low Energy devices;
+- ESP32-based instruments;
+- phone sensors.
+
+### Identify
+
+Identify people, objects, devices or records.
+
+Examples include:
+
+- QR codes;
+- barcodes;
+- NFC tags;
+- RFID readers;
+- device registration.
+
+### Measure
+
+Produce quantitative measurements or derived values.
+
+Examples include:
+
+- spatial geometry;
+- sensor measurements;
+- computer-vision measurements;
+- instrument readings.
+
+### Verify
+
+Provide evidence about identity, integrity or execution.
+
+Examples include:
+
+- device attestation;
+- biometric or device-authenticated confirmation;
+- digital signatures;
+- OpenPGP verification.
+
+### Communicate
+
+Exchange messages or trigger communication workflows.
+
+Examples include:
+
+- SMS;
+- email integration;
+- notifications;
+- peer-to-peer transfer.
+
+### Invoke
+
+Call another Android application, service or provider.
+
+Examples include:
+
+- navigation applications;
+- external scanners;
+- approved third-party application interfaces;
+- provider command adapters.
+
+### Compute
+
+Run a local analytical or machine-learning method.
+
+Examples include:
+
+- image classification;
+- translation;
+- speech transcription;
+- approved Termux-backed methods.
+
+### Navigate
+
+Open or monitor a navigation workflow.
+
+Examples include:
+
+- navigate to coordinates;
+- navigate along a GPX route;
+- add map markers;
+- inspect route progress.
+
+### Output
+
+Send information to an external device or presentation layer.
+
+Examples include:
+
+- label printing;
+- device displays;
+- local file export.
+
+### Schedule
+
+Launch an EDC workflow at a defined time or recurrence.
+
+The scheduler starts the form. The form can then invoke ResearchOS capabilities as part of the normal workflow.
+
+## Current modules
+
+The exact set of modules depends on the ResearchOS build.
+
+The current project includes or is developing modules for:
+
+- NFC;
+- QR codes and barcodes;
+- SMS;
+- sensors and connected devices;
+- document scanning;
+- speech transcription;
+- on-device translation;
+- computer vision;
+- provider commands;
+- attestation;
+- scheduling.
+
+## Capability documentation
+
+Each capability page should state:
+
+- purpose;
+- capability ID;
+- setup requirements;
+- provider requirements;
+- permissions;
+- inputs;
+- outputs;
+- status and errors;
+- offline behaviour;
+- example XLSForm;
+- limitations;
+- tested versions.
+
+## Provider adapters
+
+A canonical capability may be supplied by more than one provider.
+
+For example:
+
+``` text
+scanner.capture
+    ├── researchos_internal
+    ├── zxing_compatible
+    ├── datawedge
+    └── proglove
+```
+
+The canonical interface should remain stable even when the provider changes.
+
+## Choosing a capability
+
+Choose a capability based on the operation the workflow needs, not the application that happens to implement it.
+
+Prefer:
+
+``` text
+navigate.to
+```
+
+over a direct dependency on a particular Android activity.
+
+## Next steps
+
+- [Connect a capability to an XLSForm](xlsform-integration.qmd)
+- [Use scheduled workflows](scheduling.qmd)
+- [Resolve capability problems](troubleshooting.qmd)

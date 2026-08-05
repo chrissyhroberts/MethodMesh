@@ -1,0 +1,55 @@
+---
+title: "Scaled photo selector"
+---
+
+::: {.status-box .status-complete}
+**Status: Documented and demonstrated**
+
+This status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.
+:::
+
+## Purpose
+
+Capture or select a photograph with scale and measurement context. Select gridspaces to highlight features and return both annotated and unannotated versions.
+
+## Capability IDs
+
+- `scaled_photo.capture`
+
+## Requirements
+
+- Camera or image-selection access.
+
+## Screenshot
+
+::: screenshot-placeholder
+**Screenshot placeholder**
+
+Add a current capability dashboard or execution screenshot at:
+
+`assets/screenshots/scaled-photo.png`
+:::
+
+```{=html}
+<!-- Replace the placeholder above with:
+![](../assets/screenshots/scaled-photo.png){fig-alt="Scaled photo selector screen in ResearchOS"}
+-->
+```
+
+## Supported XLSForm calls
+
+**From `example_odk_scaled_photo.capture.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='scaled_photo.capture',input_ruler_length_mm='50',input_hud_scale_ratio='1',input_capture_orientation='portrait',input_grid_rows='10',input_grid_columns='10',input_show_grid='true',return_mode='flat')
+```
+
+## Inputs observed in supplied examples
+
+*None documented in the supplied material.*
+
+## Expected returned fields
+
+Return fields are documented from the specific XLSForm execution group only.
+
+The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.

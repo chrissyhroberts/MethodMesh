@@ -1,0 +1,54 @@
+---
+title: "ESP32 sensor firmware installer"
+---
+
+::: {.status-box .status-partial}
+**Status: Current scope limited to ESP32-C3**
+
+This status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.
+:::
+
+
+## Purpose
+
+Install bundled ResearchOS sensor firmware onto a supported ESP32-C3 device over USB.
+
+## Capability IDs
+
+- `sensor_firmware_installer`
+
+## Requirements
+
+- Supported ESP32-C3 board.
+- USB host connection and permission.
+
+## Screenshot
+
+::: {.screenshot-placeholder}
+**Screenshot placeholder**
+
+Add a current capability dashboard or execution screenshot at:
+
+`assets/screenshots/sensor-firmware-installer.png`
+:::
+
+<!-- Replace the placeholder above with:
+![](../assets/screenshots/sensor-firmware-installer.png){fig-alt="ESP32 sensor firmware installer screen in ResearchOS"}
+-->
+
+## Supported XLSForm calls
+
+_No XLSForm call was available in the supplied examples. Use the intent examples in the detailed reference below until a complete workbook is added._
+
+
+## Inputs observed in supplied examples
+
+_None documented in the supplied material._
+
+
+## Expected returned fields
+
+Return fields are documented from the specific XLSForm execution group only.
+
+The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.
+

@@ -1,0 +1,55 @@
+---
+title: "Bluetooth printer"
+---
+
+::: {.status-box .status-complete}
+**Status: Incomplete & non-functional**
+
+This status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.
+:::
+
+## Purpose
+
+Send supported print content to a configured Bluetooth printer.
+
+## Capability IDs
+
+- `bluetooth_print`
+
+## Requirements
+
+- Compatible paired Bluetooth printer.
+
+## Screenshot
+
+::: screenshot-placeholder
+**Screenshot placeholder**
+
+Add a current capability dashboard or execution screenshot at:
+
+`assets/screenshots/bluetooth-printer.png`
+:::
+
+```{=html}
+<!-- Replace the placeholder above with:
+![](../assets/screenshots/bluetooth-printer.png){fig-alt="Bluetooth printer screen in ResearchOS"}
+-->
+```
+
+## Supported XLSForm calls
+
+**From `example_odk_bluetooth_print.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='bluetooth_print')
+```
+
+## Inputs observed in supplied examples
+
+*None documented in the supplied material.*
+
+## Expected returned fields
+
+Return fields are documented from the specific XLSForm execution group only.
+
+The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.

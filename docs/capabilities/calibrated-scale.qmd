@@ -1,0 +1,65 @@
+---
+title: "Calibrated scale measurement"
+---
+
+::: {.status-box .status-complete}
+**Status: Documented and demonstrated**
+
+This status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.
+:::
+
+## Purpose
+
+Collect a calibrated visual analogue or numeric range measurement using a physical line length. The calibration allows onscreen display to be an exact representation of real world size. For instance, after calibration a 50mm scale will appear as exactly 50mm on the screen.
+
+## Capability IDs
+
+- `calibrated_scale`
+
+## Requirements
+
+- Screen dimensions and display suitable for the requested physical scale. Global calibration of screen pixel:mm resolution.
+
+## Screenshot
+
+
+![](../assets/screenshots/calibrated_scale1.png){width=250} ![](../assets/screenshots/calibrated_scale2.png){width=250} ![](../assets/screenshots/calibrated_scale3.png){width=250}
+
+
+## Supported XLSForm calls
+
+**From `example_odk_calibrated_scale.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',return_mode='flat')
+```
+
+**From `example_odk_calibrated_scale_MinMax.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_minimum='0',input_maximum='10',return_mode='flat')
+```
+
+**From `example_odk_calibrated_scale_Range.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_use_range='true',input_lower_label='Least pain',input_upper_label='Worst pain',return_mode='flat')
+```
+
+**From `example_odk_calibrated_scale_Vertical.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_vertical_mode='true',return_mode='flat')
+```
+
+## Inputs observed in supplied examples
+
+| Field | Label | XLSForm type |
+|-------|-------|--------------|
+| start |       | start        |
+
+## Expected returned fields
+
+Return fields are documented from the specific XLSForm execution group only.
+
+The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.

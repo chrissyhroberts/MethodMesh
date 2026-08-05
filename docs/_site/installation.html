@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Installation – ResearchOS User Guide</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./concepts.html" rel="next">
+<link href="./getting-started.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-4d80fbb67350bf0285aa9751096d180d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-sidebar docked quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./installation.html">Installation</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">ResearchOS User Guide</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ResearchOS User Guide</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./getting-started.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting started</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./installation.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Installation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./concepts.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Concepts and architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./xlsform-integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">XLSForm integration</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./scheduling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Scheduling workflows</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Capabilities</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Capability catalogue</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/admin-fingerprint.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Local device authentication</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/app-inspector.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Android app inspector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/attestation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Signed event attestation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/bluetooth-inspector.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Bluetooth device inspector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/bluetooth-printer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Bluetooth printer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/calibrated-scale.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Calibrated scale measurement</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/choice-experiments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Choice experiments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/document-scanner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Document scanner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/gps-target-navigator.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GPS target navigation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/mlkit-translate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ML Kit translation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/mlkit-vision.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ML Kit vision</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/nfc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NFC capabilities</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/odk-form-launcher.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ODK form launcher</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/provider-command.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">External command library</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/qr-code.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Automatic code scanner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/scaled-photo.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Scaled photo selector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/scheduler-capability.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Scheduler</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/sensor-firmware-installer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ESP32 sensor firmware installer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/sensor-provisioner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">BLE sensor-node provisioner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/sensor-read.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Read sensor</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/sms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Send SMS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/spatial-geometry.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Spatial geometry</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/speech-transcription.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Speech transcription</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/svg-selector.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SVG polygon selector</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Example XLSForms</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./troubleshooting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Troubleshooting</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Technical reference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./reference/architecture.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./reference/ril.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ResearchOS Intent Language</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./reference/capability-documentation-standard.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Capability documentation standard</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./reference/specification-status.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Specification status</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./reference/release-notes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Release notes</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#install-researchos" id="toc-install-researchos" class="nav-link active" data-scroll-target="#install-researchos">Install ResearchOS</a></li>
+  <li><a href="#build-the-apk" id="toc-build-the-apk" class="nav-link" data-scroll-target="#build-the-apk">Build the APK</a>
+  <ul class="collapse">
+  <li><a href="#requirements" id="toc-requirements" class="nav-link" data-scroll-target="#requirements">Requirements</a></li>
+  <li><a href="#open-the-project" id="toc-open-the-project" class="nav-link" data-scroll-target="#open-the-project">Open the project</a></li>
+  <li><a href="#build-a-debug-apk-in-android-studio" id="toc-build-a-debug-apk-in-android-studio" class="nav-link" data-scroll-target="#build-a-debug-apk-in-android-studio">Build a debug APK in Android Studio</a></li>
+  <li><a href="#build-a-debug-apk-from-the-terminal" id="toc-build-a-debug-apk-from-the-terminal" class="nav-link" data-scroll-target="#build-a-debug-apk-from-the-terminal">Build a debug APK from the terminal</a></li>
+  </ul></li>
+  <li><a href="#install-the-apk-using-android-studio" id="toc-install-the-apk-using-android-studio" class="nav-link" data-scroll-target="#install-the-apk-using-android-studio">Install the APK using Android Studio</a>
+  <ul class="collapse">
+  <li><a href="#enable-developer-options" id="toc-enable-developer-options" class="nav-link" data-scroll-target="#enable-developer-options">Enable developer options</a></li>
+  <li><a href="#enable-usb-debugging" id="toc-enable-usb-debugging" class="nav-link" data-scroll-target="#enable-usb-debugging">Enable USB debugging</a></li>
+  <li><a href="#run-researchos" id="toc-run-researchos" class="nav-link" data-scroll-target="#run-researchos">Run ResearchOS</a></li>
+  </ul></li>
+  <li><a href="#sideload-the-apk-manually" id="toc-sideload-the-apk-manually" class="nav-link" data-scroll-target="#sideload-the-apk-manually">Sideload the APK manually</a>
+  <ul class="collapse">
+  <li><a href="#transfer-the-apk" id="toc-transfer-the-apk" class="nav-link" data-scroll-target="#transfer-the-apk">Transfer the APK</a></li>
+  <li><a href="#permit-installation-from-the-selected-source" id="toc-permit-installation-from-the-selected-source" class="nav-link" data-scroll-target="#permit-installation-from-the-selected-source">Permit installation from the selected source</a></li>
+  </ul></li>
+  <li><a href="#install-using-adb" id="toc-install-using-adb" class="nav-link" data-scroll-target="#install-using-adb">Install using ADB</a></li>
+  <li><a href="#android-security-warnings" id="toc-android-security-warnings" class="nav-link" data-scroll-target="#android-security-warnings">Android security warnings</a></li>
+  <li><a href="#updating-researchos" id="toc-updating-researchos" class="nav-link" data-scroll-target="#updating-researchos">Updating ResearchOS</a></li>
+  <li><a href="#confirm-the-installation" id="toc-confirm-the-installation" class="nav-link" data-scroll-target="#confirm-the-installation">Confirm the installation</a></li>
+  <li><a href="#common-installation-problems" id="toc-common-installation-problems" class="nav-link" data-scroll-target="#common-installation-problems">Common installation problems</a>
+  <ul class="collapse">
+  <li><a href="#the-apk-will-not-install" id="toc-the-apk-will-not-install" class="nav-link" data-scroll-target="#the-apk-will-not-install">The APK will not install</a></li>
+  <li><a href="#android-reports-an-incompatible-package" id="toc-android-reports-an-incompatible-package" class="nav-link" data-scroll-target="#android-reports-an-incompatible-package">Android reports an incompatible package</a></li>
+  <li><a href="#the-device-does-not-appear-in-android-studio" id="toc-the-device-does-not-appear-in-android-studio" class="nav-link" data-scroll-target="#the-device-does-not-appear-in-android-studio">The device does not appear in Android Studio</a></li>
+  <li><a href="#the-update-fails" id="toc-the-update-fails" class="nav-link" data-scroll-target="#the-update-fails">The update fails</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/installation.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Installation</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="install-researchos" class="level2">
+<h2 class="anchored" data-anchor-id="install-researchos">Install ResearchOS</h2>
+<p>ResearchOS is not yet distributed through the Google Play Store. You will therefore need to build the APK from the source code and sideload it onto the Android device.</p>
+<p>Only install APK files that you have built yourself or obtained from a trusted ResearchOS project source.</p>
+</section>
+<section id="build-the-apk" class="level2">
+<h2 class="anchored" data-anchor-id="build-the-apk">Build the APK</h2>
+<section id="requirements" class="level3">
+<h3 class="anchored" data-anchor-id="requirements">Requirements</h3>
+<p>You will need:</p>
+<ul>
+<li>Android Studio;</li>
+<li>a local copy of the ResearchOS repository;</li>
+<li>the Android SDK required by the project;</li>
+<li>a Java Development Kit compatible with the project;</li>
+<li>sufficient disk space for Gradle dependencies and Android build tools.</li>
+</ul>
+</section>
+<section id="open-the-project" class="level3">
+<h3 class="anchored" data-anchor-id="open-the-project">Open the project</h3>
+<p>Clone the repository:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone git@github.com:chrissyhroberts/ResearchOS.git</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ResearchOS</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Alternatively, download the repository from GitHub and extract it locally.</p>
+<p>Open the <code>ResearchOS</code> directory in Android Studio.</p>
+<p>Allow Android Studio to complete:</p>
+<ul>
+<li>Gradle synchronisation;</li>
+<li>Android SDK installation;</li>
+<li>dependency download;</li>
+<li>project indexing.</li>
+</ul>
+<p>Resolve any SDK or Java version warnings before building.</p>
+</section>
+<section id="build-a-debug-apk-in-android-studio" class="level3">
+<h3 class="anchored" data-anchor-id="build-a-debug-apk-in-android-studio">Build a debug APK in Android Studio</h3>
+<p>In Android Studio, select:</p>
+<pre class="text"><code>Build
+→ Build Bundle(s) / APK(s)
+→ Build APK(s)</code></pre>
+<p>When the build completes, Android Studio will display a notification with a link to the generated APK.</p>
+<p>The debug APK will usually be created at:</p>
+<pre class="text"><code>app/build/outputs/apk/debug/app-debug.apk</code></pre>
+</section>
+<section id="build-a-debug-apk-from-the-terminal" class="level3">
+<h3 class="anchored" data-anchor-id="build-a-debug-apk-from-the-terminal">Build a debug APK from the terminal</h3>
+<p>From the project root, run:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./gradlew</span> assembleDebug</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>On macOS or Linux, the Gradle wrapper may first need execute permission:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">chmod</span> +x gradlew</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./gradlew</span> assembleDebug</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The generated APK will normally be located at:</p>
+<pre class="text"><code>app/build/outputs/apk/debug/app-debug.apk</code></pre>
+<p>A debug APK is suitable for development, testing and local installation. It should not normally be used as a formally distributed production release.</p>
+</section>
+</section>
+<section id="install-the-apk-using-android-studio" class="level2">
+<h2 class="anchored" data-anchor-id="install-the-apk-using-android-studio">Install the APK using Android Studio</h2>
+<p>The simplest development installation method is to connect the Android device directly to Android Studio.</p>
+<section id="enable-developer-options" class="level3">
+<h3 class="anchored" data-anchor-id="enable-developer-options">Enable developer options</h3>
+<p>On the Android device:</p>
+<ol type="1">
+<li>Open <strong>Settings</strong>.</li>
+<li>Open <strong>About phone</strong>.</li>
+<li>Find <strong>Build number</strong>.</li>
+<li>Tap <strong>Build number</strong> seven times.</li>
+<li>Enter the device PIN when prompted.</li>
+</ol>
+<p>A message should confirm that developer options are enabled.</p>
+</section>
+<section id="enable-usb-debugging" class="level3">
+<h3 class="anchored" data-anchor-id="enable-usb-debugging">Enable USB debugging</h3>
+<p>Open:</p>
+<pre class="text"><code>Settings
+→ System
+→ Developer options</code></pre>
+<p>The exact location varies between manufacturers.</p>
+<p>Enable:</p>
+<pre class="text"><code>USB debugging</code></pre>
+<p>Connect the device to the computer using a USB cable.</p>
+<p>When Android displays the USB debugging authorisation prompt, approve the computer. Only approve computers you trust.</p>
+</section>
+<section id="run-researchos" class="level3">
+<h3 class="anchored" data-anchor-id="run-researchos">Run ResearchOS</h3>
+<p>In Android Studio:</p>
+<ol type="1">
+<li>Select the connected device from the device menu.</li>
+<li>Select the <code>app</code> run configuration.</li>
+<li>Press <strong>Run</strong>.</li>
+</ol>
+<p>Android Studio will build, install and launch ResearchOS.</p>
+</section>
+</section>
+<section id="sideload-the-apk-manually" class="level2">
+<h2 class="anchored" data-anchor-id="sideload-the-apk-manually">Sideload the APK manually</h2>
+<p>You can also copy the APK to the Android device and install it without Android Studio.</p>
+<section id="transfer-the-apk" class="level3">
+<h3 class="anchored" data-anchor-id="transfer-the-apk">Transfer the APK</h3>
+<p>Transfer:</p>
+<pre class="text"><code>app-debug.apk</code></pre>
+<p>to the Android device using one of the following:</p>
+<ul>
+<li>USB file transfer;</li>
+<li>a trusted file-sharing service;</li>
+<li>secure messaging;</li>
+<li>a local network transfer;</li>
+<li>an SD card;</li>
+<li>another approved project distribution route.</li>
+</ul>
+<p>Avoid public or untrusted APK distribution sites.</p>
+</section>
+<section id="permit-installation-from-the-selected-source" class="level3">
+<h3 class="anchored" data-anchor-id="permit-installation-from-the-selected-source">Permit installation from the selected source</h3>
+<p>Open the APK on the Android device.</p>
+<p>Android may display a message stating that the selected application is not allowed to install unknown applications.</p>
+<p>Open the settings prompt and enable:</p>
+<pre class="text"><code>Allow from this source</code></pre>
+<p>This permission applies to the application opening the APK, such as:</p>
+<ul>
+<li>Files;</li>
+<li>Chrome;</li>
+<li>Google Drive;</li>
+<li>a file manager;</li>
+<li>a device-management application.</li>
+</ul>
+<p>Return to the APK and continue the installation.</p>
+<p>For security, disable <strong>Allow from this source</strong> again after installation unless it is needed for an approved update process.</p>
+</section>
+</section>
+<section id="install-using-adb" class="level2">
+<h2 class="anchored" data-anchor-id="install-using-adb">Install using ADB</h2>
+<p>Users with Android platform tools installed can sideload the APK from the terminal.</p>
+<p>Connect the device with USB debugging enabled, then check that it is visible:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> devices</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The device should appear with the status:</p>
+<pre class="text"><code>device</code></pre>
+<p>Install the APK:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> install app/build/outputs/apk/debug/app-debug.apk</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>To replace an existing installation while preserving its application data:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> install <span class="at">-r</span> app/build/outputs/apk/debug/app-debug.apk</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>If the installed application was signed with a different key, Android may refuse the update. In that case, uninstall the existing application first:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> uninstall com.example.researchos</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Then install the APK again.</p>
+<p>Uninstalling the application removes its locally stored application data.</p>
+</section>
+<section id="android-security-warnings" class="level2">
+<h2 class="anchored" data-anchor-id="android-security-warnings">Android security warnings</h2>
+<p>Android may display warnings because the application was installed outside the Play Store.</p>
+<p>Confirm that:</p>
+<ul>
+<li>the APK came from the official ResearchOS repository or another approved source;</li>
+<li>the package name is the expected ResearchOS package;</li>
+<li>the APK has not been modified after building;</li>
+<li>the requested permissions are appropriate for the capabilities being used.</li>
+</ul>
+<p>Do not bypass device-management restrictions on managed research devices. Ask the project administrator to approve or deploy the application.</p>
+</section>
+<section id="updating-researchos" class="level2">
+<h2 class="anchored" data-anchor-id="updating-researchos">Updating ResearchOS</h2>
+<p>To install a newer build:</p>
+<ol type="1">
+<li>Pull or download the latest approved source.</li>
+<li>Build a new APK.</li>
+<li>Install it over the existing application.</li>
+</ol>
+<p>Using ADB:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> install <span class="at">-r</span> app/build/outputs/apk/debug/app-debug.apk</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>An update will only install over the existing application when both APKs use the same package name and signing key.</p>
+</section>
+<section id="confirm-the-installation" class="level2">
+<h2 class="anchored" data-anchor-id="confirm-the-installation">Confirm the installation</h2>
+<p>After installation:</p>
+<ol type="1">
+<li>Open ResearchOS.</li>
+<li>Confirm that the main dashboard loads.</li>
+<li>Open the capability list.</li>
+<li>Grant only the permissions required for the capabilities being tested.</li>
+<li>Run a built-in capability test where available.</li>
+<li>Test a complete XLSForm-to-ResearchOS round trip.</li>
+<li>Repeat the test in airplane mode where offline operation is expected.</li>
+</ol>
+</section>
+<section id="common-installation-problems" class="level2">
+<h2 class="anchored" data-anchor-id="common-installation-problems">Common installation problems</h2>
+<section id="the-apk-will-not-install" class="level3">
+<h3 class="anchored" data-anchor-id="the-apk-will-not-install">The APK will not install</h3>
+<p>Possible causes include:</p>
+<ul>
+<li>installation from unknown sources is not permitted;</li>
+<li>the APK is incomplete or corrupted;</li>
+<li>the Android version is unsupported;</li>
+<li>an existing version was signed with a different key;</li>
+<li>the device has insufficient storage;</li>
+<li>device-management policy blocks sideloading.</li>
+</ul>
+</section>
+<section id="android-reports-an-incompatible-package" class="level3">
+<h3 class="anchored" data-anchor-id="android-reports-an-incompatible-package">Android reports an incompatible package</h3>
+<p>Confirm that:</p>
+<ul>
+<li>the APK was built successfully;</li>
+<li>the correct build variant was used;</li>
+<li>the device meets the minimum Android version;</li>
+<li>the APK architecture is compatible with the device;</li>
+<li>the package is not a partial file copied before the build completed.</li>
+</ul>
+</section>
+<section id="the-device-does-not-appear-in-android-studio" class="level3">
+<h3 class="anchored" data-anchor-id="the-device-does-not-appear-in-android-studio">The device does not appear in Android Studio</h3>
+<p>Check:</p>
+<ul>
+<li>USB debugging is enabled;</li>
+<li>the USB cable supports data transfer;</li>
+<li>the device is set to file transfer rather than charging only;</li>
+<li>the computer has been authorised on the device;</li>
+<li><code>adb devices</code> lists the device;</li>
+<li>any manufacturer-specific USB driver is installed where required.</li>
+</ul>
+</section>
+<section id="the-update-fails" class="level3">
+<h3 class="anchored" data-anchor-id="the-update-fails">The update fails</h3>
+<p>The previous installation may have been signed using a different key.</p>
+<p>Either rebuild using the same signing configuration or uninstall the existing application before installing the new one.</p>
+<p>Be aware that uninstalling removes locally stored ResearchOS configuration and data.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+            // target, if specified
+            link.setAttribute("target", "_blank");
+            if (link.getAttribute("rel") === null) {
+              link.setAttribute("rel", "noopener");
+            }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./getting-started.html" class="pagination-link" aria-label="Getting started">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Getting started</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./concepts.html" class="pagination-link" aria-label="Concepts and architecture">
+        <span class="nav-page-text">Concepts and architecture</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/installation.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

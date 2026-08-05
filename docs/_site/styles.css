@@ -1,0 +1,30 @@
+
+.hero-banner {
+  padding: 3.5rem 2rem;
+  margin-bottom: 2rem;
+  border-radius: 0.8rem;
+  background: linear-gradient(135deg, rgba(36, 78, 120, 0.11), rgba(35, 132, 107, 0.11));
+}
+.hero-banner h1 { font-size: 3.4rem; margin-bottom: .4rem; }
+.hero-banner h2 { font-weight: 400; max-width: 900px; }
+.status-box {
+  border-left: 0.4rem solid #6c757d;
+  padding: 0.8rem 1rem;
+  margin: 1rem 0 1.5rem 0;
+  background: rgba(108,117,125,.07);
+}
+.status-complete { border-left-color: #198754; background: rgba(25,135,84,.08); }
+.status-partial { border-left-color: #fd7e14; background: rgba(253,126,20,.09); }
+.status-experimental { border-left-color: #6f42c1; background: rgba(111,66,193,.08); }
+.screenshot-placeholder {
+  border: 2px dashed #9aa0a6;
+  border-radius: .5rem;
+  min-height: 180px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: #5f6368;
+  background: rgba(0,0,0,.02);
+  margin: 1rem 0 2rem 0;
+}
+.capability-summary td:first-child { font-weight: 600; width: 28%; }
+.callout-note code, .callout-warning code { white-space: pre-wrap; }

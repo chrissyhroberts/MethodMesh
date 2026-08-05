@@ -1,0 +1,60 @@
+---
+title: "Concepts and architecture"
+---
+
+## ResearchOS as a capability layer
+
+ResearchOS sits between a research workflow and specialist Android execution.
+
+```text
+EDC workflow
+    → canonical ResearchOS capability
+    → module or provider adapter
+    → Android service, hardware, local model or application
+    → structured ResearchOS result
+    → EDC workflow
+```
+
+## Methods and providers
+
+A **method** describes what should happen. A **provider** describes which implementation performs it.
+
+For example:
+
+```text
+navigate.to
+    ├── provider: osmand
+    └── provider: another compatible navigation app
+```
+
+An XLSForm should normally depend on the canonical method, not a package name or exported activity.
+
+## Results
+
+ResearchOS results are expected to distinguish:
+
+- status;
+- returned data;
+- provenance;
+- metadata;
+- diagnostics.
+
+A result should make cancellation, permission denial, missing providers, invalid inputs and technical failures distinguishable from success.
+
+## Local data handling
+
+ResearchOS may temporarily hold:
+
+- an image selected for analysis;
+- a sensor reading while it is normalized;
+- a file passed to a provider;
+- a cryptographic payload;
+- an execution record.
+
+Participant-level results should return to the EDC rather than becoming a second longitudinal record in ResearchOS.
+
+## RIL
+
+The ResearchOS Intent Language provides a platform-independent expression of execution intent. Android intent calls are one transport and execution boundary, not the language itself.
+
+See the [RIL reference](reference/ril.qmd).

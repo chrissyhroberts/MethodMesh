@@ -1,0 +1,59 @@
+---
+title: "ODK form launcher"
+---
+
+::: {.status-box .status-complete}
+**Status: Documented and demonstrated**
+
+This status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.
+:::
+
+
+## Purpose
+
+Open a selected ODK Collect form and return the matched form, project, instance and launch status.
+
+## Capability IDs
+
+- `odk_form_launcher`
+
+## Requirements
+
+- ODK Collect installed.
+- Target project and form present on the device.
+
+## Screenshot
+
+::: {.screenshot-placeholder}
+**Screenshot placeholder**
+
+Add a current capability dashboard or execution screenshot at:
+
+`assets/screenshots/odk-form-launcher.png`
+:::
+
+<!-- Replace the placeholder above with:
+![](../assets/screenshots/odk-form-launcher.png){fig-alt="ODK form launcher screen in ResearchOS"}
+-->
+
+## Supported XLSForm calls
+
+
+**From `example_odk_odk_form_launcher.xlsx`:**
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='odk_form_launcher',input_form_selector=${input_form_selector},return_mode='flat')
+```
+
+
+## Inputs observed in supplied examples
+
+_None documented in the supplied material._
+
+
+## Expected returned fields
+
+Return fields are documented from the specific XLSForm execution group only.
+
+The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.
+

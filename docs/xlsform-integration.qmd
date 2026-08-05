@@ -1,0 +1,78 @@
+---
+title: "XLSForm integration"
+---
+
+## Standard execution boundary
+
+The example workbooks use the ResearchOS execution action:
+
+```text
+com.example.researchos.EXECUTE_METHOD
+```
+
+A method is selected with `method_id`, and arguments are supplied through named `input_*` values.
+
+Example:
+
+```text
+com.example.researchos.EXECUTE_METHOD(
+  method_id='sensor.read',
+  input_device_id=${config_device_id},
+  input_sensor_read_mode=${config_read_mode},
+  return_mode='flat'
+)
+```
+
+## Recommended group pattern
+
+Use a `begin_group` row with `body::intent` for the execution call. Put read-only output questions inside that group so ResearchOS can return named values directly.
+
+```text
+begin_group   researchos_result   Run ResearchOS   body::intent=<call>
+text          result_status       Status           read_only=yes
+text          result_value        Result           read_only=yes
+end_group
+```
+
+## Input naming
+
+Capability inputs use the `input_*` namespace. Keep input names explicit and stable.
+
+Examples:
+
+```text
+input_device_id
+input_sensor_read_mode
+input_target_latitude
+input_verification_method
+```
+
+## Return modes
+
+Many examples request:
+
+```text
+return_mode='flat'
+```
+
+Flat output is convenient for XLSForm fields. Where a result is complex, retain a JSON field as well as the most useful flattened values.
+
+## Status handling
+
+Do not infer success merely because Android returned to ODK Collect. Test the explicit status field.
+
+A form should normally handle:
+
+- succeeded or completed;
+- cancelled;
+- failed;
+- invalid input;
+- provider unavailable;
+- permission denied;
+- timeout.
+
+The exact values are capability-specific and are documented on the relevant page.
+
+## Complete examples
+
+The supplied workbooks are copied into the [example catalogue](examples/index.qmd). Each capability page links to the examples that correspond to it.

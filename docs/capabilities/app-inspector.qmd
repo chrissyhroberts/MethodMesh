@@ -1,0 +1,43 @@
+---
+title: "Android app inspector"
+---
+
+::: {.status-box .status-experimental}
+**Status: Experimental interoperability tool**
+
+This status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.
+:::
+
+## Purpose
+
+Inspect installed Android packages and test intent-based integration contracts.
+
+## Capability IDs
+
+- `android_app_inspector`
+
+## Requirements
+
+- Target application installed when testing a provider interface.
+
+## Screenshots
+
+![](../assets/screenshots/android_app_inspector1.png){width="250"}
+
+## Supported XLSForm calls
+
+**From `example_odk_android_app_inspector.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='android_app_inspector')
+```
+
+## Inputs observed in supplied examples
+
+*None documented in the supplied material.*
+
+## Expected returned fields
+
+Return fields are documented from the specific XLSForm execution group only.
+
+The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.

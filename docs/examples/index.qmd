@@ -1,0 +1,379 @@
+---
+title: "Example XLSForms"
+---
+
+The files below are the supplied, independently importable XLSForm examples. They are copied into this website unchanged.
+
+::: {.callout-warning}
+An example demonstrates the current call shape; it is not automatically a validated production instrument. Review labels, identifiers, permissions, error handling and data-management requirements before study use.
+:::
+
+### [example_odk_admin_fingerprint_confirmation.xlsx](example_odk_admin_fingerprint_confirmation.xlsx)
+
+**example_odk_admin_fingerprint_confirmation**
+
+`admin_fingerprint_confirmation`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',input_authentication_method=${authentication_method})
+```
+
+### [example_odk_android_app_inspector.xlsx](example_odk_android_app_inspector.xlsx)
+
+**example_odk_android_app_inspector**
+
+`android_app_inspector`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='android_app_inspector')
+```
+
+### [example_odk_attestation.anchor_bundle.xlsx](example_odk_attestation.anchor_bundle.xlsx)
+
+**example_odk_attestation.anchor_bundle**
+
+`attestation.anchor_bundle`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.anchor_bundle',input_study_id=${study_id_input},operator_id=${operator_id_input},return_mode='flat')
+```
+
+### [example_odk_attestation.create_Fingerprint.xlsx](example_odk_attestation.create_Fingerprint.xlsx)
+
+**example_odk_attestation.create_Fingerprint**
+
+`attestation.create`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Fingerprint',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+```
+
+### [example_odk_attestation.create_Nfc.xlsx](example_odk_attestation.create_Nfc.xlsx)
+
+**example_odk_attestation.create_Nfc**
+
+`attestation.create`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Nfc',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+```
+
+### [example_odk_attestation.create_Password.xlsx](example_odk_attestation.create_Password.xlsx)
+
+**example_odk_attestation.create_Password**
+
+`attestation.create`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Password',input_verification_evidence=${verification_evidence_input},input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+```
+
+### [example_odk_attestation.create_Pin.xlsx](example_odk_attestation.create_Pin.xlsx)
+
+**example_odk_attestation.create_Pin**
+
+`attestation.create`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Pin',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+```
+
+### [example_odk_attestation.create_Qr.xlsx](example_odk_attestation.create_Qr.xlsx)
+
+**example_odk_attestation.create_Qr**
+
+`attestation.create`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Qr',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+```
+
+### [example_odk_bluetooth_device_inspector.xlsx](example_odk_bluetooth_device_inspector.xlsx)
+
+**example_odk_bluetooth_device_inspector**
+
+`bluetooth_device_inspector`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='bluetooth_device_inspector')
+```
+
+### [example_odk_bluetooth_print.xlsx](example_odk_bluetooth_print.xlsx)
+
+**example_odk_bluetooth_print**
+
+`bluetooth_print`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='bluetooth_print')
+```
+
+### [example_odk_calibrated_scale.xlsx](example_odk_calibrated_scale.xlsx)
+
+**example_odk_calibrated_scale**
+
+`calibrated_scale`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',return_mode='flat')
+```
+
+### [example_odk_calibrated_scale_MinMax.xlsx](example_odk_calibrated_scale_MinMax.xlsx)
+
+**example_odk_calibrated_scale_MinMax**
+
+`calibrated_scale`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_minimum='0',input_maximum='10',return_mode='flat')
+```
+
+### [example_odk_calibrated_scale_Range.xlsx](example_odk_calibrated_scale_Range.xlsx)
+
+**example_odk_calibrated_scale_Range**
+
+`calibrated_scale`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_use_range='true',input_lower_label='Least pain',input_upper_label='Worst pain',return_mode='flat')
+```
+
+### [example_odk_calibrated_scale_Vertical.xlsx](example_odk_calibrated_scale_Vertical.xlsx)
+
+**example_odk_calibrated_scale_Vertical**
+
+`calibrated_scale`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_vertical_mode='true',return_mode='flat')
+```
+
+### [example_odk_dce.conjoint.xlsx](example_odk_dce.conjoint.xlsx)
+
+**example_odk_dce.conjoint**
+
+`dce.conjoint`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='dce.conjoint',input_rounds='6',input_profiles_per_round='2',input64_classes='QlJBTkQ6IFBhbmFzb25pYywgU29ueSwgTmludGVuZG8KRkVBVFVSRTogQmFzaWMsIFNtYXJ0LCBQcmVtaXVtClBSSUNFOiAxMDAsIDIwMCwgMzAw',input_seed='participant_001',return_mode='flat')
+```
+
+### [example_odk_dce.maxdiff.xlsx](example_odk_dce.maxdiff.xlsx)
+
+**example_odk_dce.maxdiff**
+
+`dce.maxdiff`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='dce.maxdiff',input_rounds='6',input_items_per_round='4',input64_items='UmVsaWFibGUKQWZmb3JkYWJsZQpGYXN0CkZhbWlsaWFyClBvcnRhYmxlCkR1cmFibGU',input_seed='participant_001',return_mode='flat')
+```
+
+### [example_odk_dce.pairwise.xlsx](example_odk_dce.pairwise.xlsx)
+
+**example_odk_dce.pairwise**
+
+`dce.pairwise`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='dce.pairwise',input_rounds='5',input64_items='UGFuYXNvbmljClNvbnkKTmludGVuZG8KU2Ftc3VuZw',input_seed='participant_001',return_mode='flat')
+```
+
+### [example_odk_dce.points.xlsx](example_odk_dce.points.xlsx)
+
+**example_odk_dce.points**
+
+`dce.points`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='dce.points',input_points='100',input64_items='UHJldmVudGlvbgpUcmVhdG1lbnQKVHJhaW5pbmcKVHJhbnNwb3J0',input_seed='participant_001',return_mode='flat')
+```
+
+### [example_odk_dce.ranking.xlsx](example_odk_dce.ranking.xlsx)
+
+**example_odk_dce.ranking**
+
+`dce.ranking`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='dce.ranking',input_rounds='3',input64_items='Q2xpbmljIEEKQ2xpbmljIEIKQ2xpbmljIEMKQ2xpbmljIEQ',input_seed='participant_001',return_mode='flat')
+```
+
+### [example_odk_gps_target_navigator.xlsx](example_odk_gps_target_navigator.xlsx)
+
+**example_odk_gps_target_navigator**
+
+`gps_target_navigator`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='gps_target_navigator',input_target_latitude=${target_latitude_input},input_target_longitude=${target_longitude_input},input_arrival_radius_m=${arrival_radius_input})
+```
+
+### [example_odk_nfc_credential_provisioning.xlsx](example_odk_nfc_credential_provisioning.xlsx)
+
+**Provision a portable NFC credential**
+
+`nfc_credential_provisioning`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='nfc_credential_provisioning',input_credential_subject_id=${credential_subject_id_input},input_pin_length=${pin_length_input},input_overwrite_policy=${overwrite_policy_input},return_mode='flat')
+```
+
+### [example_odk_nfc_credential_verification.xlsx](example_odk_nfc_credential_verification.xlsx)
+
+**Verify a portable NFC credential**
+
+`nfc_credential_verification`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='nfc_credential_verification',return_mode='flat')
+```
+
+### [example_odk_nfc_tag_read.xlsx](example_odk_nfc_tag_read.xlsx)
+
+**example_odk_nfc_tag_read**
+
+`nfc_tag_read`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='nfc_tag_read',return_mode='flat')
+```
+
+### [example_odk_nfc_tag_wipe.xlsx](example_odk_nfc_tag_wipe.xlsx)
+
+**example_odk_nfc_tag_wipe**
+
+`nfc_tag_wipe`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='nfc_tag_wipe',return_mode='flat')
+```
+
+### [example_odk_nfc_tag_write.xlsx](example_odk_nfc_tag_write.xlsx)
+
+**example_odk_nfc_tag_write**
+
+`nfc_tag_write`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='nfc_tag_write',input_value=${write_value},input_record_type='text/plain',input_overwrite_policy=${overwrite_policy_input},input_expected_current_hash=${expected_current_hash_input},return_mode='flat')
+```
+
+### [example_odk_odk_form_launcher.xlsx](example_odk_odk_form_launcher.xlsx)
+
+**example_odk_odk_form_launcher**
+
+`odk_form_launcher`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='odk_form_launcher',input_form_selector=${input_form_selector},return_mode='flat')
+```
+
+### [example_odk_protocol_nfc_check.xlsx](example_odk_protocol_nfc_check.xlsx)
+
+**example_odk_protocol_nfc_check**
+
+`protocol_nfc_check`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='protocol_nfc_check',input_protocol_id='study_protocol_example',input_protocol_version='1',input_step_id='baseline',input_required_bits='00',input_required_value='00',input_completion_bits='01',return_mode='flat')
+```
+
+### [example_odk_protocol_nfc_complete.xlsx](example_odk_protocol_nfc_complete.xlsx)
+
+**example_odk_protocol_nfc_complete**
+
+`protocol_nfc_complete`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='protocol_nfc_complete',input_protocol_id='study_protocol_example',input_protocol_version='1',input_step_id='baseline',input_required_bits='00',input_required_value='00',input_completion_bits='01',return_mode='flat')
+```
+
+### [example_odk_qr.scan.xlsx](example_odk_qr.scan.xlsx)
+
+**example_odk_qr.scan**
+
+`qr.scan`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='qr.scan')
+```
+
+### [example_odk_scaled_photo.capture.xlsx](example_odk_scaled_photo.capture.xlsx)
+
+**example_odk_scaled_photo.capture**
+
+`scaled_photo.capture`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='scaled_photo.capture',input_ruler_length_mm='50',input_hud_scale_ratio='1',input_capture_orientation='portrait',input_grid_rows='10',input_grid_columns='10',input_show_grid='true',return_mode='flat')
+```
+
+### [example_odk_scheduler.xlsx](example_odk_scheduler.xlsx)
+
+**example_odk_scheduler**
+
+`scheduler.create`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='scheduler.create',input_schedule_name=${schedule_name},return_mode='flat')
+```
+
+### [example_odk_sensorread.xlsx](example_odk_sensorread.xlsx)
+
+**ResearchOS sensor-read example**
+
+`sensor.read`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='sensor.read',input_device_id=${config_device_id},input_sensor_id=${config_sensor_id},input_sensor_profile=${config_sensor_profile},input_sensor_read_mode=${config_read_mode},input_duration_seconds=${config_duration_seconds},input_sample_interval_seconds=${config_interval_seconds},input_device_match_policy=${config_match_policy},return_mode='flat')
+```
+
+### [example_odk_sms.send.xlsx](example_odk_sms.send.xlsx)
+
+**example_odk_sms.send**
+
+`sms.send`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='sms.send',input_sms_phone=${phone_number},input_sms_message=${sms_message_calc},return_mode='flat')
+```
+
+### [example_odk_spatialgeometry.xlsx](example_odk_spatialgeometry.xlsx)
+
+**example_odk_spatialgeometry**
+
+`tree_height_measurement`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='tree_height_measurement',input_horizontal_distance_m=${input_horizontal_distance_m},input_observer_height_m=${input_observer_height_m},input_base_angle_deg=${input_base_angle_deg},input_top_angle_deg=${input_top_angle_deg},return_mode='flat')
+```
+
+### [example_odk_svg.select.xlsx](example_odk_svg.select.xlsx)
+
+**example_odk_svg.select**
+
+`svg.select`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='svg.select',input_svg_name='bodymap_black.svg',input_selection_mode='sequence',return_mode='flat')
+```
+
+### [fingerprint_attestation.xlsx](fingerprint_attestation.xlsx)
+
+**fingerprint_attestation**
+
+`attestation.create`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},study_id='researchos_attestation_test',event_type='form_submission',event_payload=${event_payload},verification_method='Fingerprint',trusted_timestamp=${timestamp_policy},return_mode='flat')
+```
+
+### [researchos_fingerprint_attestation_test.xlsx](researchos_fingerprint_attestation_test.xlsx)
+
+**researchos_fingerprint_attestation_test**
+
+`attestation.create`
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',event_payload_hash=${event_payload},verification_method='Fingerprint',trusted_timestamp=${timestamp_policy},return_mode='flat')
+```

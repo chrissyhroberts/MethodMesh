@@ -1,0 +1,257 @@
+---
+title: "Capability catalogue"
+toc: false
+---
+
+## Status vocabulary
+
+- **Documented and demonstrated:** source documentation and at least one corresponding XLSForm are present.
+- **Implemented; XLSForm example pending:** the supplied source documentation describes the capability, but no complete workbook was supplied.
+- **Partial or constrained:** the documentation identifies an important limitation, restricted scope or incomplete result path.
+- **Experimental:** useful for investigation, but not yet a stable study-facing interface.
+
+## Consistent page structure
+
+Every capability page includes purpose, canonical IDs, requirements, screenshot placeholder, observed XLSForm calls, inputs, expected outputs, downloadable examples, implementation status, limitations and the detailed source reference.
+
+::::::::::::::::::::::::::: grid
+::: {.g-col-12 .g-col-md-6}
+### [Local device authentication](admin-fingerprint.qmd)
+
+`admin_fingerprint_confirmation`
+
+**Documented and demonstrated**
+
+Request Android biometric or device-credential authentication and return a transient local-access decision.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Android app inspector](app-inspector.qmd)
+
+`android_app_inspector`
+
+**Experimental interoperability tool**
+
+Inspect installed Android packages and test intent-based integration contracts.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Signed event attestation](attestation.qmd)
+
+`attestation.create, attestation.anchor_bundle`
+
+**Documented and demonstrated**
+
+Create signed evidence that an event payload was attested using a selected local verification dependency, and anchor bundles of attestations.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Bluetooth device inspector](bluetooth-inspector.qmd)
+
+`bluetooth_device_inspector`
+
+**Documented and demonstrated**
+
+Discover Bluetooth devices and inspect GATT services, characteristics and values.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Bluetooth printer](bluetooth-printer.qmd)
+
+`bluetooth_print`
+
+**Non-functional at present**
+
+Send supported print content to a configured Bluetooth printer.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Calibrated scale measurement](calibrated-scale.qmd)
+
+`calibrated_scale`
+
+**Documented and demonstrated**
+
+Collect a calibrated visual analogue or numeric range measurement using a physical line length.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Choice experiments](choice-experiments.qmd)
+
+`dce.pairwise, dce.maxdiff, dce.ranking, dce.points, dce.conjoint`
+
+**Documented and demonstrated with some outstanding issues**
+
+Run interactive pairwise, MaxDiff, ranking, points-allocation and conjoint choice tasks.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Document scanner](document-scanner.qmd)
+
+`document.scan`
+
+**Implemented; XLSForm example pending**
+
+Capture document pages and return PDF and/or image outputs.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [GPS target navigation](gps-target-navigator.qmd)
+
+`gps_target_navigator`
+
+**Documented and demonstrated**
+
+Guide a user toward target coordinates using distance, bearing and an optional augmented-reality camera overlay.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [ML Kit language translation](mlkit-translate.qmd)
+
+`mlkit.translate`
+
+**Implemented; XLSForm example pending**
+
+Translate text locally with ML Kit and manage downloaded language models.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [ML Kit vision](mlkit-vision.qmd)
+
+`mlkit.vision.analyze`
+
+**Implemented; XLSForm example pending**
+
+Run supported ML Kit vision analyses on a selected image.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [NFC capabilities](nfc.qmd)
+
+`nfc_credential_provisioning, nfc_credential_verification, nfc_tag_read, nfc_tag_write, nfc_tag_wipe, protocol_nfc_check, protocol_nfc_complete`
+
+**Documented and demonstrated**
+
+Read, write and wipe NFC tags; provision and verify credentials; and track protocol-step eligibility and completion.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [ODK form launcher](odk-form-launcher.qmd)
+
+`odk_form_launcher`
+
+**Documented and demonstrated**
+
+Open a selected ODK Collect form and return the matched form, project, instance and launch status.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [External command library](provider-command.qmd)
+
+`provider.command.run`
+
+**Partial return support**
+
+Run a saved, typed Android intent command against an installed provider application.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Automatic code scanner](qr-code.qmd)
+
+`qr.scan`
+
+**Documented and demonstrated**
+
+Scan QR codes and supported barcode formats and return the decoded payload and detected format.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Scaled photo selector](scaled-photo.qmd)
+
+`scaled_photo.capture`
+
+**Documented and demonstrated**
+
+Capture or select a photograph with scale and measurement context.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Scheduler](scheduler-capability.qmd)
+
+`scheduler`
+
+**Implemented with evolving target support**
+
+Create and transfer local recurring schedules for forms, web targets and future ResearchOS process targets.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [ESP32 sensor firmware installer](sensor-firmware-installer.qmd)
+
+`sensor_firmware_installer`
+
+**Current scope limited to ESP32-C3**
+
+Install bundled ResearchOS sensor firmware onto a supported ESP32-C3 device over USB.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [BLE sensor-node provisioner](sensor-provisioner.qmd)
+
+`sensor_node_provisioner`
+
+**Implemented; XLSForm example pending**
+
+Write identity and sampling configuration to a compatible ResearchOS BLE sensor node and register it locally.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Read sensor](sensor-read.qmd)
+
+`sensor.read`
+
+**Documented and demonstrated**
+
+Read, trace, average or discover registered ResearchOS BLE sensor nodes.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Send SMS](sms.qmd)
+
+`sms.send`
+
+**Send accepted; delivery confirmation pending**
+
+Send an SMS directly from ResearchOS and return the local send-request status.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Spatial geometry](spatial-geometry.qmd)
+
+`spatial_geometry`
+
+**Implemented with measurement constraints**
+
+Support tree-height, slope and distance-estimation workflows using device measurements and supplied distances.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Speech transcription](speech-transcription.qmd)
+
+`speech.transcribe`
+
+**Implemented; XLSForm example pending**
+
+Capture speech and return a transcription with provider metadata.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [SVG polygon selector](svg-selector.qmd)
+
+`svg.select`
+
+**Documented and demonstrated**
+
+Display an SVG and return selected polygon or region identifiers.
+:::
+:::::::::::::::::::::::::::

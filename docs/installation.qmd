@@ -1,0 +1,301 @@
+---
+title: "Installation"
+toc: true
+---
+
+## Install ResearchOS
+
+ResearchOS is not yet distributed through the Google Play Store. You will therefore need to build the APK from the source code and sideload it onto the Android device.
+
+Only install APK files that you have built yourself or obtained from a trusted ResearchOS project source.
+
+## Build the APK
+
+### Requirements
+
+You will need:
+
+- Android Studio;
+- a local copy of the ResearchOS repository;
+- the Android SDK required by the project;
+- a Java Development Kit compatible with the project;
+- sufficient disk space for Gradle dependencies and Android build tools.
+
+### Open the project
+
+Clone the repository:
+
+``` bash
+git clone git@github.com:chrissyhroberts/ResearchOS.git
+cd ResearchOS
+```
+
+Alternatively, download the repository from GitHub and extract it locally.
+
+Open the `ResearchOS` directory in Android Studio.
+
+Allow Android Studio to complete:
+
+- Gradle synchronisation;
+- Android SDK installation;
+- dependency download;
+- project indexing.
+
+Resolve any SDK or Java version warnings before building.
+
+### Build a debug APK in Android Studio
+
+In Android Studio, select:
+
+``` text
+Build
+→ Build Bundle(s) / APK(s)
+→ Build APK(s)
+```
+
+When the build completes, Android Studio will display a notification with a link to the generated APK.
+
+The debug APK will usually be created at:
+
+``` text
+app/build/outputs/apk/debug/app-debug.apk
+```
+
+### Build a debug APK from the terminal
+
+From the project root, run:
+
+``` bash
+./gradlew assembleDebug
+```
+
+On macOS or Linux, the Gradle wrapper may first need execute permission:
+
+``` bash
+chmod +x gradlew
+./gradlew assembleDebug
+```
+
+The generated APK will normally be located at:
+
+``` text
+app/build/outputs/apk/debug/app-debug.apk
+```
+
+A debug APK is suitable for development, testing and local installation. It should not normally be used as a formally distributed production release.
+
+## Install the APK using Android Studio
+
+The simplest development installation method is to connect the Android device directly to Android Studio.
+
+### Enable developer options
+
+On the Android device:
+
+1.  Open **Settings**.
+2.  Open **About phone**.
+3.  Find **Build number**.
+4.  Tap **Build number** seven times.
+5.  Enter the device PIN when prompted.
+
+A message should confirm that developer options are enabled.
+
+### Enable USB debugging
+
+Open:
+
+``` text
+Settings
+→ System
+→ Developer options
+```
+
+The exact location varies between manufacturers.
+
+Enable:
+
+``` text
+USB debugging
+```
+
+Connect the device to the computer using a USB cable.
+
+When Android displays the USB debugging authorisation prompt, approve the computer. Only approve computers you trust.
+
+### Run ResearchOS
+
+In Android Studio:
+
+1.  Select the connected device from the device menu.
+2.  Select the `app` run configuration.
+3.  Press **Run**.
+
+Android Studio will build, install and launch ResearchOS.
+
+## Sideload the APK manually
+
+You can also copy the APK to the Android device and install it without Android Studio.
+
+### Transfer the APK
+
+Transfer:
+
+``` text
+app-debug.apk
+```
+
+to the Android device using one of the following:
+
+- USB file transfer;
+- a trusted file-sharing service;
+- secure messaging;
+- a local network transfer;
+- an SD card;
+- another approved project distribution route.
+
+Avoid public or untrusted APK distribution sites.
+
+### Permit installation from the selected source
+
+Open the APK on the Android device.
+
+Android may display a message stating that the selected application is not allowed to install unknown applications.
+
+Open the settings prompt and enable:
+
+``` text
+Allow from this source
+```
+
+This permission applies to the application opening the APK, such as:
+
+- Files;
+- Chrome;
+- Google Drive;
+- a file manager;
+- a device-management application.
+
+Return to the APK and continue the installation.
+
+For security, disable **Allow from this source** again after installation unless it is needed for an approved update process.
+
+## Install using ADB
+
+Users with Android platform tools installed can sideload the APK from the terminal.
+
+Connect the device with USB debugging enabled, then check that it is visible:
+
+``` bash
+adb devices
+```
+
+The device should appear with the status:
+
+``` text
+device
+```
+
+Install the APK:
+
+``` bash
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
+
+To replace an existing installation while preserving its application data:
+
+``` bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+If the installed application was signed with a different key, Android may refuse the update. In that case, uninstall the existing application first:
+
+``` bash
+adb uninstall com.example.researchos
+```
+
+Then install the APK again.
+
+Uninstalling the application removes its locally stored application data.
+
+## Android security warnings
+
+Android may display warnings because the application was installed outside the Play Store.
+
+Confirm that:
+
+- the APK came from the official ResearchOS repository or another approved source;
+- the package name is the expected ResearchOS package;
+- the APK has not been modified after building;
+- the requested permissions are appropriate for the capabilities being used.
+
+Do not bypass device-management restrictions on managed research devices. Ask the project administrator to approve or deploy the application.
+
+## Updating ResearchOS
+
+To install a newer build:
+
+1.  Pull or download the latest approved source.
+2.  Build a new APK.
+3.  Install it over the existing application.
+
+Using ADB:
+
+``` bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+An update will only install over the existing application when both APKs use the same package name and signing key.
+
+## Confirm the installation
+
+After installation:
+
+1.  Open ResearchOS.
+2.  Confirm that the main dashboard loads.
+3.  Open the capability list.
+4.  Grant only the permissions required for the capabilities being tested.
+5.  Run a built-in capability test where available.
+6.  Test a complete XLSForm-to-ResearchOS round trip.
+7.  Repeat the test in airplane mode where offline operation is expected.
+
+## Common installation problems
+
+### The APK will not install
+
+Possible causes include:
+
+- installation from unknown sources is not permitted;
+- the APK is incomplete or corrupted;
+- the Android version is unsupported;
+- an existing version was signed with a different key;
+- the device has insufficient storage;
+- device-management policy blocks sideloading.
+
+### Android reports an incompatible package
+
+Confirm that:
+
+- the APK was built successfully;
+- the correct build variant was used;
+- the device meets the minimum Android version;
+- the APK architecture is compatible with the device;
+- the package is not a partial file copied before the build completed.
+
+### The device does not appear in Android Studio
+
+Check:
+
+- USB debugging is enabled;
+- the USB cable supports data transfer;
+- the device is set to file transfer rather than charging only;
+- the computer has been authorised on the device;
+- `adb devices` lists the device;
+- any manufacturer-specific USB driver is installed where required.
+
+### The update fails
+
+The previous installation may have been signed using a different key.
+
+Either rebuild using the same signing configuration or uninstall the existing application before installing the new one.
+
+Be aware that uninstalling removes locally stored ResearchOS configuration and data.

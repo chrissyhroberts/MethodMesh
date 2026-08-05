@@ -1,0 +1,110 @@
+---
+title: "Signed event attestation"
+---
+
+::: {.status-box .status-complete}
+**Status: Documented and demonstrated**
+
+This status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.
+
+Biometric/Pin/Pattern attestation are fully implemented
+
+NFC credential provisioning and verification are handled in the NFC capabilities
+
+Password, QR and anchor bundle are not fully implemented
+:::
+
+## Purpose
+
+Create signed evidence that an event payload was attested using a selected local verification dependency, and anchor bundles of attestations.
+
+## Capability IDs
+
+- `attestation.create`
+- `attestation.anchor_bundle`
+
+## Requirements
+
+- Configured ResearchOS device key.
+- Verification dependency required by the selected method.
+
+## Screenshot
+
+::: screenshot-placeholder
+**Screenshot placeholder**
+
+Add a current capability dashboard or execution screenshot at:
+
+`assets/screenshots/attestation.png`
+:::
+
+```{=html}
+<!-- Replace the placeholder above with:
+![](../assets/screenshots/attestation.png){fig-alt="Signed event attestation screen in ResearchOS"}
+-->
+```
+
+## Supported XLSForm calls
+
+**From `example_odk_attestation.create_Fingerprint.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Fingerprint',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+```
+
+**From `example_odk_attestation.create_Pin.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Pin',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+```
+
+**From `example_odk_attestation.create_Password.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Password',input_verification_evidence=${verification_evidence_input},input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+```
+
+**From `example_odk_attestation.create_Qr.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Qr',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+```
+
+**From `example_odk_attestation.create_Nfc.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Nfc',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+```
+
+**From `example_odk_attestation.anchor_bundle.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.anchor_bundle',input_study_id=${study_id_input},operator_id=${operator_id_input},return_mode='flat')
+```
+
+**From `researchos_fingerprint_attestation_test.xlsx`:**
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',event_payload_hash=${event_payload},verification_method='Fingerprint',trusted_timestamp=${timestamp_policy},return_mode='flat')
+```
+
+## Inputs observed in supplied examples
+
+| Field | Label | XLSForm type |
+|------------------------|------------------------|------------------------|
+| start |  | start |
+| end |  | end |
+| odk_device_id |  | deviceid |
+| odk_username |  | username |
+| participant_id | Participant ID | text |
+| operator_id_input | Operator ID | text |
+| timestamp_policy | Trusted timestamp policy | select_one timestamp_policy |
+| event_description | Data or event being attested | text |
+| verification_evidence_input | Study verification token (returned as attestation evidence) | text |
+| study_id_input | Study ID | text |
+
+## Expected returned fields
+
+Return fields are documented from the specific XLSForm execution group only.
+
+The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.

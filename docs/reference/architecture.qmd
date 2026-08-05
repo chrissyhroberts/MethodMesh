@@ -1,0 +1,762 @@
+---
+title: "Architecture"
+---
+
+This page reproduces the current supplied architecture, conceptual-model and philosophy documents.
+
+## Source: `Architecture_Standard_v1.02.md`
+
+**Version:** 1.02 (Draft)
+
+---
+
+# 1. Purpose
+
+The ResearchOS Architecture Standard defines the engineering principles governing the implementation of ResearchOS.
+
+It complements, but does not replace, the ResearchOS Philosophy, Conceptual Model and Registry specifications.
+
+Where those documents define *what* ResearchOS represents, the Architecture Standard defines *how* those concepts should be implemented.
+
+This standard establishes architectural consistency across applications, services and libraries forming part of the ResearchOS ecosystem.
+
+---
+
+# 2. Relationship to Other Standards
+
+The ResearchOS documentation is organised into complementary layers.
+
+```text
+ResearchOS Philosophy
+        │
+ResearchOS Conceptual Model
+        │
+Registry Specifications
+(Entity, Observation, Assertion, Intent, ...)
+        │
+Architecture Standard
+        │
+JSON Object Model
+        │
+Software Implementations
+```
+
+Each layer depends upon the layers above it.
+
+Architectural decisions shall remain consistent with the Conceptual Model and Registry specifications.
+
+Implementation details shall not redefine conceptual meaning.
+
+---
+
+# 3. Scope
+
+This standard defines:
+
+- architectural principles;
+- service boundaries;
+- implementation patterns;
+- interoperability requirements;
+- extension mechanisms;
+- engineering conventions.
+
+This standard does not redefine scientific concepts already specified elsewhere.
+
+# 4. Architectural Principles
+
+All ResearchOS implementations shall conform to the following architectural principles.
+
+## Knowledge-first
+
+ResearchOS is fundamentally a knowledge system.
+
+Applications, user interfaces, workflows and services exist to create, transform, query and communicate scientific knowledge.
+
+The core knowledge model consists of:
+
+- Entities
+- Observations
+- Assertions
+
+These concepts are defined by their respective Registry specifications and shall not be redefined by implementations.
+
+---
+
+## Separation of Concerns
+
+ResearchOS separates conceptual knowledge from orchestration and implementation.
+
+```text
+Knowledge Layer
+---------------
+Entity
+Observation
+Assertion
+
+Orchestration Layer
+-------------------
+Intent
+RIL
+Method Selection
+
+Implementation Layer
+--------------------
+Services
+Applications
+Storage
+Transport
+User Interfaces
+```
+
+Each layer communicates through well-defined interfaces.
+
+Responsibilities shall not leak between layers.
+
+---
+
+## Registry-driven
+
+Canonical behaviour shall be defined by Registry specifications rather than embedded within application code.
+
+Implementations should consume Registry definitions rather than duplicate conceptual knowledge.
+
+---
+
+## Service-oriented
+
+ResearchOS capabilities shall be implemented as independent services wherever practical.
+
+Services communicate through canonical ResearchOS objects rather than direct application-specific interfaces.
+
+Services should remain independently deployable and reusable across projects.
+
+---
+
+## Technology-independent
+
+The conceptual architecture shall remain independent of programming language, database technology, cloud provider or deployment model.
+
+Alternative implementations should remain interoperable provided they conform to the Registry specifications and Architecture Standard.
+
+---
+
+## Extensible
+
+ResearchOS shall support extension through new Registry entries, Methods, Services and Applications without modification of the core conceptual architecture.
+
+Extensions should compose with the existing architecture rather than replace it.
+
+# 5. Architectural Components
+
+ResearchOS implementations are constructed from a small number of architectural component types.
+
+Each component has a clearly defined responsibility and communicates through canonical ResearchOS objects.
+
+## Applications
+
+Applications provide user-facing functionality.
+
+Applications may create Intents, display knowledge, visualise data and coordinate user interaction.
+
+Applications should not embed scientific knowledge or implementation-specific business logic that belongs elsewhere.
+
+---
+
+## Services
+
+Services implement discrete capabilities.
+
+A Service accepts one or more canonical ResearchOS objects as input and produces one or more canonical ResearchOS objects as output.
+
+Services should remain independently deployable and reusable.
+
+---
+
+## Methods
+
+Methods define repeatable scientific or operational procedures.
+
+Methods fulfil Intents by performing work that may produce one or more Observations.
+
+Methods are implementation-independent and may be realised by software, hardware, people or combinations thereof.
+
+---
+
+## Registries
+
+Registries define the canonical vocabulary used throughout ResearchOS.
+
+Applications and Services should consume Registry definitions rather than duplicate them.
+
+Registries form the authoritative source of conceptual meaning.
+
+---
+
+## Knowledge Store
+
+The Knowledge Store preserves ResearchOS objects and their relationships.
+
+Implementations may use relational, document, graph or hybrid storage technologies provided the conceptual model is preserved.
+
+The storage technology is an implementation decision rather than an architectural requirement.
+
+---
+
+## Interfaces
+
+Interfaces provide communication between architectural components.
+
+Interfaces should exchange canonical ResearchOS objects rather than application-specific data structures.
+
+Implementations may expose APIs, message queues, files or other transport mechanisms without changing the underlying conceptual architecture.
+
+
+# 6. Interoperability
+
+ResearchOS is designed as an interoperable ecosystem rather than a single application.
+
+Independent applications, services and organisations should be able to exchange knowledge and capabilities without requiring shared implementation technologies.
+
+## Canonical Objects
+
+All communication between architectural components should use canonical ResearchOS objects.
+
+Canonical objects preserve conceptual meaning independently of implementation.
+
+---
+
+## Stable Interfaces
+
+Public interfaces should remain stable across implementation revisions wherever practical.
+
+Evolution should occur through extension rather than breaking existing interfaces.
+
+---
+
+## Loose Coupling
+
+Applications should communicate through canonical interfaces rather than direct implementation dependencies.
+
+No application should require knowledge of another application's internal architecture.
+
+---
+
+## Capability Discovery
+
+Services should expose their capabilities through declarative metadata.
+
+Applications should discover available capabilities dynamically rather than relying on hard-coded integrations.
+
+---
+
+## Registry Conformance
+
+Applications and services shall interpret canonical concepts consistently with the relevant Registry specifications.
+
+Registries remain the authoritative source of conceptual meaning.
+
+---
+
+## Extensible Ecosystem
+
+Third-party applications, methods and services should be able to participate within the ResearchOS ecosystem without modification of the core architecture.
+
+Compliance with the Architecture Standard and Registry specifications is sufficient for interoperability.
+
+# 7. Extension Model
+
+ResearchOS is designed to evolve through extension rather than modification of its core architecture.
+
+Extensions shall conform to the Conceptual Model, Registry specifications and Architecture Standard.
+
+Extensions may include:
+
+- new Applications;
+- new Services;
+- new Methods;
+- new Registry entries;
+- new Entity types;
+- new Observation types;
+- new Assertion types;
+- new RIL verbs and domain vocabularies where appropriate.
+
+Extensions shall not alter the conceptual meaning of existing canonical concepts.
+
+Backward compatibility should be maintained wherever practical.
+
+---
+
+# 8. Conformance
+
+An implementation conforms to the ResearchOS Architecture Standard if it:
+
+- preserves the ResearchOS Conceptual Model;
+- interprets Registry specifications consistently;
+- exchanges canonical ResearchOS objects;
+- maintains separation between knowledge, orchestration and implementation;
+- supports interoperability through stable interfaces;
+- remains extensible without modification of the core architecture.
+
+Conformance does not require any particular programming language, database technology, operating system or deployment model.
+
+Alternative implementations are encouraged provided they preserve the architectural principles defined by this standard.
+
+---
+
+# 9. Summary
+
+The ResearchOS Architecture Standard defines the engineering principles governing the implementation of ResearchOS.
+
+Conceptual meaning is defined by the Philosophy, Conceptual Model and Registry specifications.
+
+The Architecture Standard defines how those concepts should be realised as interoperable software systems.
+
+ResearchOS separates:
+
+- conceptual knowledge;
+- orchestration;
+- implementation.
+
+This separation enables independent evolution of scientific concepts, engineering infrastructure and software implementations while preserving interoperability across the ResearchOS ecosystem.
+
+---
+
+## Source: `ResearchOS_Conceptual_Model_v0.03.md`
+
+**Version:** 0.03 (Draft)
+
+---
+
+# 1. Purpose
+
+The ResearchOS Conceptual Model defines the fundamental concepts used to represent scientific research independently of implementation, programming language or storage technology.
+
+ResearchOS is not primarily a workflow engine or data collection platform.
+
+It is a conceptual framework for representing scientific understanding.
+
+The model distinguishes between:
+
+- the world being studied;
+- the claims made about that world;
+- the evidence supporting those claims.
+
+All higher-level components of ResearchOS derive from these concepts.
+
+---
+
+# 2. The Scientific Model
+
+Scientific research begins with things that exist in the world.
+
+Researchers make claims about those things.
+
+Those claims are supported by observations obtained using scientific methods.
+
+ResearchOS represents this process directly.
+
+```text
+                    ENTITY
+                  (the thing)
+
+                       │
+             described by
+
+                       ▼
+
+                  ASSERTION
+                 (the claim)
+
+                       ▲
+            supported by
+
+                       │
+
+                 OBSERVATION
+                 (the evidence)
+```
+
+The scientific process extends this model by obtaining observations through repeatable methods.
+
+```text
+                 OBSERVATION
+
+                       ▲
+
+               produced by
+
+                       │
+
+                    METHOD
+```
+
+ResearchOS therefore distinguishes four fundamental concepts:
+
+- **Entities** represent the things being studied.
+- **Assertions** represent what is currently believed about those things.
+- **Observations** provide evidence supporting those beliefs.
+- **Methods** obtain observations.
+
+Scientific knowledge emerges through the accumulation of evidence-supported assertions.
+
+---
+
+# 3. Conceptual Layers
+
+The ResearchOS conceptual model is organised into five layers.
+
+## Layer 1 – Reality
+
+Reality consists of the entities that become the subjects of research.
+
+ResearchOS does not create these entities.
+
+It represents them.
+
+## Layer 2 – Knowledge
+
+Knowledge consists of assertions concerning entities.
+
+Assertions describe current scientific understanding.
+
+Observations provide the evidence supporting those assertions.
+
+Knowledge evolves through the continual refinement of assertions as additional evidence becomes available.
+
+## Layer 3 – Acquisition
+
+Methods obtain observations.
+
+Methods do not create knowledge directly.
+
+They create evidence from which knowledge is derived.
+
+## Layer 4 – Orchestration
+
+Research activities are coordinated through operational concepts including:
+
+- Intent
+- Policy
+- Signals
+
+These concepts govern execution rather than scientific understanding.
+
+## Layer 5 – Trust
+
+Provenance explains the origin, history and justification of observations and assertions.
+
+It provides transparency, traceability and reproducibility throughout the research lifecycle.
+
+---
+
+# 4. Core Concepts
+
+## Entity
+
+An Entity is defined as:
+
+> **A distinct object that may become the subject of observation, description, measurement or reasoning within a research context.**
+
+Entities possess identity.
+
+Entities may exist in one of three Modes:
+
+- Physical
+- Digital
+- Conceptual
+
+Entities may participate in assertions.
+
+---
+
+## Assertion
+
+An Assertion is defined as:
+
+> **A timestamped claim describing a characteristic, state or relationship concerning one or more Research Entities.**
+
+Assertions represent scientific understanding rather than immutable truth.
+
+Assertions may be supported, strengthened, revised, superseded or withdrawn as new observations become available.
+
+---
+
+## Observation
+
+An Observation is defined as:
+
+> **Evidence obtained through the application of a Method.**
+
+Observations support assertions.
+
+Observations should retain sufficient provenance to permit independent interpretation and verification.
+
+---
+
+## Method
+
+A Method is defined as:
+
+> **A repeatable procedure used to obtain observations.**
+
+Methods may involve:
+
+- human activity;
+- laboratory procedures;
+- computational analysis;
+- simulation;
+- data transformation.
+
+Methods create observations.
+
+Observations support assertions.
+
+Assertions describe entities.
+
+---
+
+# 5. Supporting Concepts
+
+The following concepts support the core scientific model.
+
+| Concept | Purpose |
+|----------|---------|
+| Intent | Requests one or more Methods |
+| Policy | Constrains the execution of Methods |
+| Provenance | Explains the origin and history of Observations and Assertions |
+| Signal | Communicates changes to other components |
+
+These concepts support the generation, governance and communication of scientific knowledge but are not themselves part of the core knowledge model.
+
+---
+
+# 6. Concept Relationships
+
+The central ResearchOS model is summarised below.
+
+```text
+                    Entity
+                       ▲
+               described by
+                       │
+                  Assertion
+                       ▲
+               supported by
+                       │
+                 Observation
+                       ▲
+                produced by
+                       │
+                    Method
+```
+
+Supporting concepts interact with this model as follows.
+
+```text
+Intent ─────────────► Method
+
+Policy ─────────────► Method
+
+Provenance ─────────► Observation
+               └────► Assertion
+
+Signal ─────────────► External systems
+```
+
+---
+
+# 7. Design Principles
+
+The ResearchOS Conceptual Model follows the following principles.
+
+## Scientific
+
+The model represents scientific understanding rather than software implementation.
+
+## Entity-centred
+
+Research begins with identifiable entities.
+
+Everything else exists to describe, understand or investigate those entities.
+
+## Evidence-based
+
+Assertions should be supported by observations wherever appropriate.
+
+## Temporal
+
+Scientific understanding changes over time.
+
+ResearchOS records the evolution of understanding rather than replacing previous knowledge.
+
+## Minimal
+
+The model defines the smallest set of concepts necessary to represent scientific research.
+
+## Extensible
+
+New scientific disciplines should be representable without modification of the conceptual model.
+
+## Implementation-independent
+
+The conceptual model is independent of storage technology, programming language and execution environment.
+
+---
+
+# 8. Open Questions
+
+The following areas remain under active development.
+
+- Should Properties remain a separate primitive or become specialised Assertions?
+- What canonical assertion vocabulary should ResearchOS define?
+- How should uncertainty, confidence and evidence strength be represented?
+- Which concepts belong to the conceptual model and which belong exclusively to the execution architecture?
+
+---
+
+# 9. Summary
+
+ResearchOS represents scientific understanding rather than scientific data.
+
+Research begins with Entities.
+
+Researchers make Assertions about those Entities.
+
+Observations provide evidence supporting those Assertions.
+
+Methods obtain Observations.
+
+The continual accumulation of evidence-supported Assertions represents the evolving scientific understanding of the research world.
+
+---
+
+## Source: `ResearchOS_Philosophy_0.01.md`
+
+**Version:** 0.01 (Draft)
+
+---
+
+# Purpose
+
+ResearchOS is founded on the principle that scientific research is fundamentally concerned with understanding the world through evidence.
+
+Rather than modelling research as a collection of software workflows or datasets, ResearchOS models the process by which scientific understanding is created, refined and preserved.
+
+This document describes the philosophical principles that underpin the platform.
+
+---
+
+# The Scientific Process
+
+Research begins with things that exist in the world.
+
+Researchers make claims about those things.
+
+Those claims are supported by evidence obtained through observation.
+
+Scientific understanding evolves as new evidence strengthens, refines or replaces previous claims.
+
+ResearchOS represents this process directly.
+
+```text
+                    Entity
+                  (the thing)
+
+                       │
+             described by
+
+                       ▼
+
+                  Assertion
+                 (the claim)
+
+                       ▲
+            supported by
+
+                       │
+
+                 Observation
+                 (the evidence)
+```
+
+Methods obtain observations.
+
+Observations support assertions.
+
+Assertions describe entities.
+
+Knowledge emerges through the continual accumulation of evidence-supported assertions.
+
+---
+
+# Principles
+
+## Reality precedes knowledge
+
+Research begins with entities that exist independently of the researcher.
+
+ResearchOS represents those entities rather than creating them.
+
+---
+
+## Knowledge is provisional
+
+Scientific understanding is never absolute.
+
+Assertions represent the current state of knowledge rather than immutable truth.
+
+Assertions may be strengthened, revised, superseded or withdrawn as new evidence becomes available.
+
+---
+
+## Evidence underpins knowledge
+
+Assertions should be supported by observations wherever appropriate.
+
+The quality of scientific knowledge depends upon the quality of the supporting evidence.
+
+---
+
+## Methods generate evidence
+
+Methods do not create knowledge directly.
+
+They obtain observations from which knowledge is derived.
+
+---
+
+## Provenance creates trust
+
+Every observation and assertion should retain sufficient provenance to permit independent interpretation, verification and reproduction.
+
+Trust arises through transparency rather than authority.
+
+---
+
+## Knowledge evolves
+
+ResearchOS records the evolution of scientific understanding.
+
+Knowledge grows through the accumulation of evidence rather than replacement of previous records.
+
+Historical understanding remains an important part of the scientific record.
+
+---
+
+## Implementation is secondary
+
+The conceptual model is independent of programming language, storage technology and software architecture.
+
+Graphs, relational databases, document stores and append-only logs are implementation choices rather than conceptual foundations.
+
+---
+
+# Vision
+
+ResearchOS is not intended simply to execute research.
+
+Its purpose is to represent scientific understanding in a form that is transparent, reproducible and extensible across disciplines.
+
+By separating entities, assertions and observations, ResearchOS provides a common conceptual language capable of supporting laboratory science, epidemiology, social science, environmental research, engineering and future disciplines that have yet to emerge.
+
+The platform therefore aims to become not only an operating system for research, but a durable representation of scientific knowledge itself.

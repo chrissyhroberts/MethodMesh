@@ -1,0 +1,73 @@
+---
+title: "Troubleshooting"
+---
+
+## Start with the returned status
+
+Record the method ID, returned status, error, provider, timestamp and the exact form used.
+
+## Form does not open ResearchOS
+
+Check:
+
+- ResearchOS is installed;
+- the example uses the current execution action;
+- the method ID exists in the installed build;
+- the `body::intent` value is on the intended group;
+- the form was re-uploaded and re-downloaded after editing.
+
+## ResearchOS opens but nothing returns
+
+Check:
+
+- the output field names match the documented return names;
+- the group is still active in ODK Collect;
+- the user did not navigate away through Android recents;
+- the operation was not cancelled;
+- the provider returned an actual result rather than only closing;
+- the call requested the appropriate return mode.
+
+## Provider or hardware missing
+
+Some capabilities depend on:
+
+- Bluetooth hardware;
+- an ESP32 sensor node;
+- a Bluetooth printer;
+- an installed provider application;
+- a downloaded ML Kit model;
+- Android biometric or device-credential configuration;
+- an NFC-capable phone.
+
+The capability page lists its specific requirements.
+
+## Permission denied
+
+Grant only the permission needed by the method, then repeat the whole call from the form.
+
+Common permissions include camera, microphone, Bluetooth/nearby devices, NFC, location, notifications and SMS.
+
+## Works online but not offline
+
+Look for:
+
+- a model that has not been downloaded;
+- a map package that is absent;
+- an external provider using a remote service;
+- an online URL target;
+- files that exist only in cloud storage.
+
+## Report a reproducible issue
+
+Include:
+
+- ResearchOS version;
+- device and Android version;
+- EDC application and version;
+- capability and call;
+- example workbook name;
+- expected output;
+- actual output;
+- whether airplane mode was enabled.
+
+Do not include participant identifiers, credentials, cryptographic private keys or sensitive payloads.

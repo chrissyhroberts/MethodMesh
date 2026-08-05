@@ -1,0 +1,45 @@
+---
+title: "Scheduling workflows"
+---
+
+## Purpose
+
+The scheduler creates local recurring alarms for an ODK/Kobo form or online web form. It supports daily, weekly, monthly and nth-weekday rules, notification reminders and configurable retry intervals.
+
+The intended round trip is:
+
+```text
+ResearchOS scheduler
+    → launches the relevant form
+    → the form invokes ResearchOS
+    → ResearchOS executes a specialist method
+    → the result returns to the form
+```
+
+## Distinguish scheduling from form launch
+
+The ODK form launcher opens a selected form and observes its return. The scheduler decides when a target should be launched.
+
+See:
+
+- [Scheduler capability](capabilities/scheduler-capability.qmd)
+- [ODK form launcher](capabilities/odk-form-launcher.qmd)
+
+## Field testing
+
+Scheduled workflows should be tested on the actual device model because Android background restrictions vary by manufacturer.
+
+Test at least:
+
+- device unlocked and locked;
+- ResearchOS in the background;
+- notifications permitted and denied;
+- airplane mode;
+- device restart;
+- the EDC already open;
+- recurring schedules;
+- retry behaviour.
+
+## Schedule transfer
+
+The supplied scheduler documentation also defines RIL schedule export and import, including transfer through QR or NFC dependency boundaries.

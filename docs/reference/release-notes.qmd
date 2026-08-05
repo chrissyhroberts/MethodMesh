@@ -1,0 +1,300 @@
+---
+title: "Release notes"
+---
+
+
+
+## Source: `RELEASE_NOTES_v2.1.5.md`
+
+ResearchOS v2.1.5 introduces the first end-to-end ESP32 sensor framework. The app can now install MicroPython onto an ESP32-C3, upload bundled ResearchOS sensor firmware from the phone, provision the node over BLE, and save it into the local device registry. This is the foundation for low-cost custom environmental and field sensors that can be configured without a laptop.
+
+## Highlights
+
+### ESP32 sensor framework
+
+The ESP32 firmware installer and BLE sensor provisioner are now grouped together under:
+
+```text
+ESP32 sensor framework
+```
+
+This keeps the workflow clearer:
+
+1. Install MicroPython to an ESP32-C3 over USB/OTG.
+2. Reset or replug the board.
+3. Upload the bundled ResearchOS `main.py` and sensor-driver files.
+4. Reset or replug again.
+5. Scan for the node over BLE and provision it into the device registry.
+
+### Phone-only firmware installation
+
+ResearchOS now bundles:
+
+- the official ESP32-C3 MicroPython binary;
+- the ResearchOS BLE sensor-node firmware;
+- sensor-specific MicroPython driver files.
+
+The installer uses a guided two-step process because ESP32-C3 USB mode switching is fragile on Android. This avoids the previous false-success state where MicroPython was installed but `main.py` was not visible to the board.
+
+### BLE sensor provisioning
+
+The provisioner can scan for ResearchOS BLE sensor nodes, connect to the node, read its manifest, configure its identity and sampling interval, request a confirmation sample, and save the resulting profile to the ResearchOS device registry.
+
+Provisioning returns useful audit fields including:
+
+```text
+sensor_provisioning_status
+sensor_device_id
+sensor_device_name
+sensor_device_address
+sensor_sample_interval_ms
+sensor_manifest_json
+sensor_command_response_json
+sensor_confirmation_reading_json
+sensor_registry_device_id
+```
+
+### Sensor profile selection
+
+Provisioning now includes a sensor profile selector. The first implemented profile is:
+
+```text
+AHT20 temperature/humidity
+```
+
+An LD2410C mmWave presence profile has also been scaffolded as an in-development placeholder so future sensor-specific work can be added cleanly.
+
+### Modular sensor-driver firmware
+
+Sensor-specific firmware code has been split into separate MicroPython driver files:
+
+```text
+sensor_drivers/aht20.py
+sensor_drivers/ld2410c.py
+sensor_drivers/__init__.py
+```
+
+This means the ESP32 framework is no longer conceptually tied to AHT20. AHT20 is simply the first working driver.
+
+## Validation
+
+Built with:
+
+```text
+./gradlew assembleDebug
+```
+
+Result:
+
+```text
+BUILD SUCCESSFUL
+```
+
+The ESP32-C3 workflow was also tested end to end:
+
+- MicroPython install from ResearchOS succeeded.
+- ResearchOS firmware upload from ResearchOS succeeded.
+- The board advertised as a ResearchOS sensor node after reset.
+- BLE provisioning succeeded and saved the node to the device registry.
+
+## Notes
+
+ESP32-C3 boards may require a manual reset or unplug/replug between USB flashing, firmware upload, and BLE provisioning. The app now treats this as part of the expected workflow rather than as a hidden failure.
+
+The LD2410C profile is scaffolded but not yet a functional radar-driver implementation.
+
+---
+
+## Source: `RELEASE_NOTES_v2.1.4.md`
+
+ResearchOS v2.1.4 expands the platform's field-device and workflow capabilities. This release adds simple SMS sending, stronger Bluetooth device exploration, early Bluetooth printer support, offline NFC protocol administration, and new spatial geometry tools for field measurements.
+
+## Highlights
+
+### SMS sending
+
+ResearchOS can now send a caller-supplied SMS message to a caller-supplied phone number.
+
+This is designed for XLSForms and scheduled workflows where the form constructs the final message text, then passes only:
+
+```text
+input_sms_phone
+input_sms_message
+```
+
+The SMS result returns send status, message hash, number of SMS parts, sent time, and any error.
+
+### Bluetooth device inspection and experimental printer support
+
+The Bluetooth inspector can now work more usefully with nearby and paired devices, exposing readable, writable, and notify-capable endpoints.
+
+An experimental Bluetooth printer capability has also been added for Qutie-style mini label printers. This is currently marked as in development: device discovery and payload sending are present, but reliable label rendering still needs vendor-protocol confirmation.
+
+### NFC protocol administration
+
+This release adds NFC protocol administration tools for offline participant progress tracking.
+
+Protocol NFC support now includes provisioning, checking, completion marking, reconstruction, and override workflows, making it possible to maintain a compact protocol state on a participant NFC card even without network sync.
+
+### Spatial geometry tools
+
+ResearchOS now includes early spatial measurement capabilities:
+
+```text
+tree_height_measurement
+slope_inclination_measurement
+geometry_distance_estimation
+```
+
+These use phone orientation sensors, camera-assisted targeting, and supplied field references to estimate height, slope, tilt, and distance, with formulas and sensor provenance returned for audit.
+
+## Other Improvements
+
+- Standalone module discovery is now generated from module-owned source files rather than relying on runtime dex scanning.
+- The README now includes updated summaries of the current capability set.
+- Bluetooth inspector documentation has been expanded.
+- NFC protocol documentation has been expanded.
+- New example XLSForms have been added for SMS, Bluetooth printing, and spatial geometry.
+- Camera and sensor platform helpers were updated to support the new geometry workflows.
+
+## Validation
+
+Built and tested with:
+
+```text
+./gradlew testDebugUnitTest assembleDebug
+```
+
+Result:
+
+```text
+BUILD SUCCESSFUL
+```
+
+## Notes
+
+Bluetooth printer support is intentionally experimental in this release. The Qutie printer can be detected and written to, but reliable label layout and feed behaviour require further protocol capture or vendor documentation.
+
+---
+
+## Source: `RELEASE_NOTES_v2.1.3.md`
+
+ResearchOS 2.1.3 adds public Android-app inspection, Bluetooth endpoint inspection, richer scheduling and direct capability execution, protocol-aware NFC support, native image/SVG selection tools, and portable direct-run output export.
+
+## Android app inspector
+
+The new `android_app_inspector` capability provides a safe, user-directed way to explore installed Android applications:
+
+- lists installed launchable applications;
+- inspects exported activities, services, receivers, and providers;
+- probes common public actions, categories, and URI schemes;
+- targets exported activities explicitly;
+- sends an action, optional URI, and simple string extras;
+- captures result codes, returned URIs, and returned extras;
+- saves a tested package/component/action/URI/extras combination as a local integration definition.
+
+This makes it possible to investigate applications such as Peek Acuity Pro and test exported entry points such as visual-acuity activities. The inspector does not bypass non-exported components, permissions, authentication, or private implementation details. It is a discovery and test harness, not a universal reverse-engineering tool.
+
+## Runtime and scheduler refinements
+
+- The scheduler is collapsed by default when the ResearchOS app opens.
+- Scheduler state remains available through the expanded central scheduler view.
+- Public launcher resolution is more robust for applications whose package-level `MAIN` probe does not resolve directly.
+- Schedules can launch ODK/Kobo forms, web forms, or direct capabilities and can chain actions with cron timing, retries, notifications, pause/resume, and import/export.
+- Direct capability results can be exported as timestamped JSON with linked attachment files to the default ResearchOS output folder or a user-selected folder.
+- Returned image attachments are delivered to ODK/Kobo image questions rather than only exposing internal content URIs.
+
+## New field capabilities
+
+- `bluetooth_device_inspector` discovers nearby BLE devices, enumerates GATT services and characteristics, reads endpoints, samples notification streams, and saves reusable device profiles.
+- `protocol_nfc_check` and `protocol_nfc_complete` maintain compact offline protocol-progress state on participant NFC cards while preserving unrelated NDEF records.
+- `svg.select` is a native, zoomable SVG polygon selector with single, multiple, and strict ordered-sequence modes, timestamped audit events, reset/backstep controls, and app-private SVG storage.
+- `scaled_photo.capture` captures a ruler-calibrated original image, provides configurable macro/orientation/HUD/grid controls, and returns original and annotated attachments plus separate grid-selection data.
+- NFC tag read/write/wipe and credential workflows include stronger read-back verification and clearer portable-credential evidence.
+
+## Documentation
+
+- Added module-local app-inspector implementation documentation.
+- Added an ODK example workbook for `android_app_inspector`.
+- Added module-local documentation and example workbooks for Bluetooth inspection, protocol NFC, scaled-photo capture, and SVG selection.
+- Updated the repository README and Android developer guide.
+- Documented the limits of generic intent-filter discovery and the expected workflow for combining inspection with application documentation or source review.
+
+## Verification
+
+The release candidate was validated with:
+
+```text
+./gradlew testDebugUnitTest assembleDebug
+```
+
+Both the unit-test suite and debug APK build passed.
+
+---
+
+## Source: `RELEASE_NOTES_v2.1.1.md`
+
+ResearchOS 2.1.1 adds two major pieces of field-workflow infrastructure: direct ODK/Kobo form launching and a scheduler that can build on that launcher.
+
+## ODK and Kobo form launcher
+
+ResearchOS can now inspect locally available forms in ODK Collect and Kobo Collect, show projects and forms for selection, and open the selected form in the correct collection application. The launcher supports explicit project and form selection rather than assuming the currently active project.
+
+## Scheduler
+
+The scheduler creates recurring local workflows for ODK/Kobo forms, web forms, ResearchOS capabilities, and clipboard outputs. Schedules support cron timing, chained actions, configurable capability settings, notifications, retries, pause/resume switches, direct testing, background re-arming after boot or time changes, and individual or chain-level export/import. Chained clipboard outputs accumulate in execution order, and notification taps launch the scheduled action directly.
+
+## Additional runtime improvements
+
+- Calibrated-scale settings and saved device calibration are preserved for scheduled launches.
+- QR/barcode scanning is protected against duplicate scanner re-entry.
+- Capability modules publish typed scheduler configuration schemas.
+
+## Validation
+
+- `testDebugUnitTest` passed.
+- `assembleDebug` passed.
+
+---
+
+## Source: `RELEASE_NOTES_v2.0.0.md`
+
+ResearchOS v2.0.0 is the first cohesive field-capability release of the Android reference application. It establishes independently owned capability modules, direct intent execution from ODK, and cryptographically verifiable field evidence.
+
+## Highlights
+
+- **Capability modules are self-contained.** Each module owns its methods, screens, RIL bindings, documentation, and example ODK XLSForms. The core runtime discovers modules without capability-specific wiring.
+- **ODK intent execution is direct.** An externally invoked capability starts its operation immediately and returns to the calling form on completion; the dashboard remains a manual testing environment.
+- **Signed event attestation is ready for field testing.** Attestations bind an ODK-supplied SHA-256 form hash to local device verification, an ECDSA signature, a device-wide hash chain, and—when requested—RFC 3161 trusted time evidence.
+- **NFC credentials are portable and PIN-protected.** Provisioning writes a signed, encrypted credential to an NFC card; verification checks the card payload, issuer signature, and the holder's 4- or 6-digit PIN on any compatible device.
+
+## Included capabilities
+
+- Calibrated scales, including horizontal, vertical, range, and min/max variants.
+- QR, barcode, and Data Matrix scanning.
+- NFC tag read, controlled write, wipe, credential provisioning, and credential verification.
+- GPS target navigation with live camera-assisted AR guidance.
+- Device biometric and credential access control.
+- Signed event attestation and chain-anchor export.
+- Discrete choice experiments: pairwise comparison, MaxDiff, ranking, points allocation, and conjoint selection.
+
+## NFC improvements
+
+- Supports semantic blank-tag detection, explicit replacement policies, expected-current-content checks, and copied write hashes.
+- Adds NDEF wipe using an empty NDEF record; it removes NDEF user content but does not claim forensic erasure of physical memory.
+- Adds robust post-write verification. Where a tag resets after writing, ResearchOS requests one confirmation tap and verifies the exact stored content before reporting success.
+- Credential envelopes use Argon2id PIN derivation, AES-256-GCM encryption, and P-256 / SHA256withECDSA issuer signatures. PINs and credential secrets are never returned to ODK.
+
+## Compatibility and migration
+
+- The legacy NFC provisioning capability has been replaced by `nfc_credential_provisioning` and `nfc_credential_verification`.
+- The compatibility runtime layer has been removed. New integrations should use canonical method IDs and the documented `com.example.researchos.EXECUTE_METHOD` intent contract.
+- Every public capability ships with module-local implementation documentation and a named example ODK workbook.
+
+## Verification
+
+This release was built and tested with the Android unit-test suite and a debug APK build. NFC credential provisioning and verification were exercised on a physical NFC tag, including confirmation-tap verification after a post-write tag reset.
+
+## Known scope
+
+ResearchOS v2.0.0 is a reference implementation for field testing. Study-specific issuer trust lists, server-side registries, and broader protocol-management workflows remain configuration and deployment work for individual studies.

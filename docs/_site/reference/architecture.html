@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Architecture – ResearchOS User Guide</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../reference/ril.html" rel="next">
+<link href="../troubleshooting.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-4d80fbb67350bf0285aa9751096d180d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-sidebar docked quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/architecture.html">Technical reference</a></li><li class="breadcrumb-item"><a href="../reference/architecture.html">Architecture</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">ResearchOS User Guide</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ResearchOS User Guide</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../getting-started.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting started</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../installation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Installation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../concepts.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Concepts and architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../xlsform-integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">XLSForm integration</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../scheduling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Scheduling workflows</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Capabilities</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Capability catalogue</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/admin-fingerprint.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Local device authentication</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/app-inspector.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Android app inspector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/attestation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Signed event attestation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/bluetooth-inspector.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Bluetooth device inspector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/bluetooth-printer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Bluetooth printer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/calibrated-scale.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Calibrated scale measurement</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/choice-experiments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Choice experiments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/document-scanner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Document scanner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/gps-target-navigator.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GPS target navigation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/mlkit-translate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ML Kit translation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/mlkit-vision.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ML Kit vision</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/nfc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NFC capabilities</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/odk-form-launcher.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ODK form launcher</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/provider-command.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">External command library</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/qr-code.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Automatic code scanner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/scaled-photo.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Scaled photo selector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/scheduler-capability.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Scheduler</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/sensor-firmware-installer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ESP32 sensor firmware installer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/sensor-provisioner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">BLE sensor-node provisioner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/sensor-read.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Read sensor</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/sms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Send SMS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/spatial-geometry.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Spatial geometry</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/speech-transcription.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Speech transcription</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/svg-selector.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SVG polygon selector</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Example XLSForms</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../troubleshooting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Troubleshooting</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Technical reference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/architecture.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/ril.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ResearchOS Intent Language</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/capability-documentation-standard.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Capability documentation standard</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/specification-status.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Specification status</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/release-notes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Release notes</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#source-architecture_standard_v1.02.md" id="toc-source-architecture_standard_v1.02.md" class="nav-link active" data-scroll-target="#source-architecture_standard_v1.02.md">Source: <code>Architecture_Standard_v1.02.md</code></a></li>
+  <li><a href="#purpose" id="toc-purpose" class="nav-link" data-scroll-target="#purpose">1. Purpose</a></li>
+  <li><a href="#relationship-to-other-standards" id="toc-relationship-to-other-standards" class="nav-link" data-scroll-target="#relationship-to-other-standards">2. Relationship to Other Standards</a></li>
+  <li><a href="#scope" id="toc-scope" class="nav-link" data-scroll-target="#scope">3. Scope</a></li>
+  <li><a href="#architectural-principles" id="toc-architectural-principles" class="nav-link" data-scroll-target="#architectural-principles">4. Architectural Principles</a>
+  <ul class="collapse">
+  <li><a href="#knowledge-first" id="toc-knowledge-first" class="nav-link" data-scroll-target="#knowledge-first">Knowledge-first</a></li>
+  <li><a href="#separation-of-concerns" id="toc-separation-of-concerns" class="nav-link" data-scroll-target="#separation-of-concerns">Separation of Concerns</a></li>
+  <li><a href="#registry-driven" id="toc-registry-driven" class="nav-link" data-scroll-target="#registry-driven">Registry-driven</a></li>
+  <li><a href="#service-oriented" id="toc-service-oriented" class="nav-link" data-scroll-target="#service-oriented">Service-oriented</a></li>
+  <li><a href="#technology-independent" id="toc-technology-independent" class="nav-link" data-scroll-target="#technology-independent">Technology-independent</a></li>
+  <li><a href="#extensible" id="toc-extensible" class="nav-link" data-scroll-target="#extensible">Extensible</a></li>
+  </ul></li>
+  <li><a href="#architectural-components" id="toc-architectural-components" class="nav-link" data-scroll-target="#architectural-components">5. Architectural Components</a>
+  <ul class="collapse">
+  <li><a href="#applications" id="toc-applications" class="nav-link" data-scroll-target="#applications">Applications</a></li>
+  <li><a href="#services" id="toc-services" class="nav-link" data-scroll-target="#services">Services</a></li>
+  <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a></li>
+  <li><a href="#registries" id="toc-registries" class="nav-link" data-scroll-target="#registries">Registries</a></li>
+  <li><a href="#knowledge-store" id="toc-knowledge-store" class="nav-link" data-scroll-target="#knowledge-store">Knowledge Store</a></li>
+  <li><a href="#interfaces" id="toc-interfaces" class="nav-link" data-scroll-target="#interfaces">Interfaces</a></li>
+  </ul></li>
+  <li><a href="#interoperability" id="toc-interoperability" class="nav-link" data-scroll-target="#interoperability">6. Interoperability</a>
+  <ul class="collapse">
+  <li><a href="#canonical-objects" id="toc-canonical-objects" class="nav-link" data-scroll-target="#canonical-objects">Canonical Objects</a></li>
+  <li><a href="#stable-interfaces" id="toc-stable-interfaces" class="nav-link" data-scroll-target="#stable-interfaces">Stable Interfaces</a></li>
+  <li><a href="#loose-coupling" id="toc-loose-coupling" class="nav-link" data-scroll-target="#loose-coupling">Loose Coupling</a></li>
+  <li><a href="#capability-discovery" id="toc-capability-discovery" class="nav-link" data-scroll-target="#capability-discovery">Capability Discovery</a></li>
+  <li><a href="#registry-conformance" id="toc-registry-conformance" class="nav-link" data-scroll-target="#registry-conformance">Registry Conformance</a></li>
+  <li><a href="#extensible-ecosystem" id="toc-extensible-ecosystem" class="nav-link" data-scroll-target="#extensible-ecosystem">Extensible Ecosystem</a></li>
+  </ul></li>
+  <li><a href="#extension-model" id="toc-extension-model" class="nav-link" data-scroll-target="#extension-model">7. Extension Model</a></li>
+  <li><a href="#conformance" id="toc-conformance" class="nav-link" data-scroll-target="#conformance">8. Conformance</a></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">9. Summary</a>
+  <ul class="collapse">
+  <li><a href="#source-researchos_conceptual_model_v0.03.md" id="toc-source-researchos_conceptual_model_v0.03.md" class="nav-link" data-scroll-target="#source-researchos_conceptual_model_v0.03.md">Source: <code>ResearchOS_Conceptual_Model_v0.03.md</code></a></li>
+  </ul></li>
+  <li><a href="#purpose-1" id="toc-purpose-1" class="nav-link" data-scroll-target="#purpose-1">1. Purpose</a></li>
+  <li><a href="#the-scientific-model" id="toc-the-scientific-model" class="nav-link" data-scroll-target="#the-scientific-model">2. The Scientific Model</a></li>
+  <li><a href="#conceptual-layers" id="toc-conceptual-layers" class="nav-link" data-scroll-target="#conceptual-layers">3. Conceptual Layers</a>
+  <ul class="collapse">
+  <li><a href="#layer-1-reality" id="toc-layer-1-reality" class="nav-link" data-scroll-target="#layer-1-reality">Layer 1 – Reality</a></li>
+  <li><a href="#layer-2-knowledge" id="toc-layer-2-knowledge" class="nav-link" data-scroll-target="#layer-2-knowledge">Layer 2 – Knowledge</a></li>
+  <li><a href="#layer-3-acquisition" id="toc-layer-3-acquisition" class="nav-link" data-scroll-target="#layer-3-acquisition">Layer 3 – Acquisition</a></li>
+  <li><a href="#layer-4-orchestration" id="toc-layer-4-orchestration" class="nav-link" data-scroll-target="#layer-4-orchestration">Layer 4 – Orchestration</a></li>
+  <li><a href="#layer-5-trust" id="toc-layer-5-trust" class="nav-link" data-scroll-target="#layer-5-trust">Layer 5 – Trust</a></li>
+  </ul></li>
+  <li><a href="#core-concepts" id="toc-core-concepts" class="nav-link" data-scroll-target="#core-concepts">4. Core Concepts</a>
+  <ul class="collapse">
+  <li><a href="#entity" id="toc-entity" class="nav-link" data-scroll-target="#entity">Entity</a></li>
+  <li><a href="#assertion" id="toc-assertion" class="nav-link" data-scroll-target="#assertion">Assertion</a></li>
+  <li><a href="#observation" id="toc-observation" class="nav-link" data-scroll-target="#observation">Observation</a></li>
+  <li><a href="#method" id="toc-method" class="nav-link" data-scroll-target="#method">Method</a></li>
+  </ul></li>
+  <li><a href="#supporting-concepts" id="toc-supporting-concepts" class="nav-link" data-scroll-target="#supporting-concepts">5. Supporting Concepts</a></li>
+  <li><a href="#concept-relationships" id="toc-concept-relationships" class="nav-link" data-scroll-target="#concept-relationships">6. Concept Relationships</a></li>
+  <li><a href="#design-principles" id="toc-design-principles" class="nav-link" data-scroll-target="#design-principles">7. Design Principles</a>
+  <ul class="collapse">
+  <li><a href="#scientific" id="toc-scientific" class="nav-link" data-scroll-target="#scientific">Scientific</a></li>
+  <li><a href="#entity-centred" id="toc-entity-centred" class="nav-link" data-scroll-target="#entity-centred">Entity-centred</a></li>
+  <li><a href="#evidence-based" id="toc-evidence-based" class="nav-link" data-scroll-target="#evidence-based">Evidence-based</a></li>
+  <li><a href="#temporal" id="toc-temporal" class="nav-link" data-scroll-target="#temporal">Temporal</a></li>
+  <li><a href="#minimal" id="toc-minimal" class="nav-link" data-scroll-target="#minimal">Minimal</a></li>
+  <li><a href="#extensible-1" id="toc-extensible-1" class="nav-link" data-scroll-target="#extensible-1">Extensible</a></li>
+  <li><a href="#implementation-independent" id="toc-implementation-independent" class="nav-link" data-scroll-target="#implementation-independent">Implementation-independent</a></li>
+  </ul></li>
+  <li><a href="#open-questions" id="toc-open-questions" class="nav-link" data-scroll-target="#open-questions">8. Open Questions</a></li>
+  <li><a href="#summary-1" id="toc-summary-1" class="nav-link" data-scroll-target="#summary-1">9. Summary</a>
+  <ul class="collapse">
+  <li><a href="#source-researchos_philosophy_0.01.md" id="toc-source-researchos_philosophy_0.01.md" class="nav-link" data-scroll-target="#source-researchos_philosophy_0.01.md">Source: <code>ResearchOS_Philosophy_0.01.md</code></a></li>
+  </ul></li>
+  <li><a href="#purpose-2" id="toc-purpose-2" class="nav-link" data-scroll-target="#purpose-2">Purpose</a></li>
+  <li><a href="#the-scientific-process" id="toc-the-scientific-process" class="nav-link" data-scroll-target="#the-scientific-process">The Scientific Process</a></li>
+  <li><a href="#principles" id="toc-principles" class="nav-link" data-scroll-target="#principles">Principles</a>
+  <ul class="collapse">
+  <li><a href="#reality-precedes-knowledge" id="toc-reality-precedes-knowledge" class="nav-link" data-scroll-target="#reality-precedes-knowledge">Reality precedes knowledge</a></li>
+  <li><a href="#knowledge-is-provisional" id="toc-knowledge-is-provisional" class="nav-link" data-scroll-target="#knowledge-is-provisional">Knowledge is provisional</a></li>
+  <li><a href="#evidence-underpins-knowledge" id="toc-evidence-underpins-knowledge" class="nav-link" data-scroll-target="#evidence-underpins-knowledge">Evidence underpins knowledge</a></li>
+  <li><a href="#methods-generate-evidence" id="toc-methods-generate-evidence" class="nav-link" data-scroll-target="#methods-generate-evidence">Methods generate evidence</a></li>
+  <li><a href="#provenance-creates-trust" id="toc-provenance-creates-trust" class="nav-link" data-scroll-target="#provenance-creates-trust">Provenance creates trust</a></li>
+  <li><a href="#knowledge-evolves" id="toc-knowledge-evolves" class="nav-link" data-scroll-target="#knowledge-evolves">Knowledge evolves</a></li>
+  <li><a href="#implementation-is-secondary" id="toc-implementation-is-secondary" class="nav-link" data-scroll-target="#implementation-is-secondary">Implementation is secondary</a></li>
+  </ul></li>
+  <li><a href="#vision" id="toc-vision" class="nav-link" data-scroll-target="#vision">Vision</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/reference/architecture.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/architecture.html">Technical reference</a></li><li class="breadcrumb-item"><a href="../reference/architecture.html">Architecture</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Architecture</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>This page reproduces the current supplied architecture, conceptual-model and philosophy documents.</p>
+<section id="source-architecture_standard_v1.02.md" class="level2">
+<h2 class="anchored" data-anchor-id="source-architecture_standard_v1.02.md">Source: <code>Architecture_Standard_v1.02.md</code></h2>
+<p><strong>Version:</strong> 1.02 (Draft)</p>
+<hr>
+</section>
+<section id="purpose" class="level1">
+<h1>1. Purpose</h1>
+<p>The ResearchOS Architecture Standard defines the engineering principles governing the implementation of ResearchOS.</p>
+<p>It complements, but does not replace, the ResearchOS Philosophy, Conceptual Model and Registry specifications.</p>
+<p>Where those documents define <em>what</em> ResearchOS represents, the Architecture Standard defines <em>how</em> those concepts should be implemented.</p>
+<p>This standard establishes architectural consistency across applications, services and libraries forming part of the ResearchOS ecosystem.</p>
+<hr>
+</section>
+<section id="relationship-to-other-standards" class="level1">
+<h1>2. Relationship to Other Standards</h1>
+<p>The ResearchOS documentation is organised into complementary layers.</p>
+<pre class="text"><code>ResearchOS Philosophy
+        │
+ResearchOS Conceptual Model
+        │
+Registry Specifications
+(Entity, Observation, Assertion, Intent, ...)
+        │
+Architecture Standard
+        │
+JSON Object Model
+        │
+Software Implementations</code></pre>
+<p>Each layer depends upon the layers above it.</p>
+<p>Architectural decisions shall remain consistent with the Conceptual Model and Registry specifications.</p>
+<p>Implementation details shall not redefine conceptual meaning.</p>
+<hr>
+</section>
+<section id="scope" class="level1">
+<h1>3. Scope</h1>
+<p>This standard defines:</p>
+<ul>
+<li>architectural principles;</li>
+<li>service boundaries;</li>
+<li>implementation patterns;</li>
+<li>interoperability requirements;</li>
+<li>extension mechanisms;</li>
+<li>engineering conventions.</li>
+</ul>
+<p>This standard does not redefine scientific concepts already specified elsewhere.</p>
+</section>
+<section id="architectural-principles" class="level1">
+<h1>4. Architectural Principles</h1>
+<p>All ResearchOS implementations shall conform to the following architectural principles.</p>
+<section id="knowledge-first" class="level2">
+<h2 class="anchored" data-anchor-id="knowledge-first">Knowledge-first</h2>
+<p>ResearchOS is fundamentally a knowledge system.</p>
+<p>Applications, user interfaces, workflows and services exist to create, transform, query and communicate scientific knowledge.</p>
+<p>The core knowledge model consists of:</p>
+<ul>
+<li>Entities</li>
+<li>Observations</li>
+<li>Assertions</li>
+</ul>
+<p>These concepts are defined by their respective Registry specifications and shall not be redefined by implementations.</p>
+<hr>
+</section>
+<section id="separation-of-concerns" class="level2">
+<h2 class="anchored" data-anchor-id="separation-of-concerns">Separation of Concerns</h2>
+<p>ResearchOS separates conceptual knowledge from orchestration and implementation.</p>
+<pre class="text"><code>Knowledge Layer
+---------------
+Entity
+Observation
+Assertion
+
+Orchestration Layer
+-------------------
+Intent
+RIL
+Method Selection
+
+Implementation Layer
+--------------------
+Services
+Applications
+Storage
+Transport
+User Interfaces</code></pre>
+<p>Each layer communicates through well-defined interfaces.</p>
+<p>Responsibilities shall not leak between layers.</p>
+<hr>
+</section>
+<section id="registry-driven" class="level2">
+<h2 class="anchored" data-anchor-id="registry-driven">Registry-driven</h2>
+<p>Canonical behaviour shall be defined by Registry specifications rather than embedded within application code.</p>
+<p>Implementations should consume Registry definitions rather than duplicate conceptual knowledge.</p>
+<hr>
+</section>
+<section id="service-oriented" class="level2">
+<h2 class="anchored" data-anchor-id="service-oriented">Service-oriented</h2>
+<p>ResearchOS capabilities shall be implemented as independent services wherever practical.</p>
+<p>Services communicate through canonical ResearchOS objects rather than direct application-specific interfaces.</p>
+<p>Services should remain independently deployable and reusable across projects.</p>
+<hr>
+</section>
+<section id="technology-independent" class="level2">
+<h2 class="anchored" data-anchor-id="technology-independent">Technology-independent</h2>
+<p>The conceptual architecture shall remain independent of programming language, database technology, cloud provider or deployment model.</p>
+<p>Alternative implementations should remain interoperable provided they conform to the Registry specifications and Architecture Standard.</p>
+<hr>
+</section>
+<section id="extensible" class="level2">
+<h2 class="anchored" data-anchor-id="extensible">Extensible</h2>
+<p>ResearchOS shall support extension through new Registry entries, Methods, Services and Applications without modification of the core conceptual architecture.</p>
+<p>Extensions should compose with the existing architecture rather than replace it.</p>
+</section>
+</section>
+<section id="architectural-components" class="level1">
+<h1>5. Architectural Components</h1>
+<p>ResearchOS implementations are constructed from a small number of architectural component types.</p>
+<p>Each component has a clearly defined responsibility and communicates through canonical ResearchOS objects.</p>
+<section id="applications" class="level2">
+<h2 class="anchored" data-anchor-id="applications">Applications</h2>
+<p>Applications provide user-facing functionality.</p>
+<p>Applications may create Intents, display knowledge, visualise data and coordinate user interaction.</p>
+<p>Applications should not embed scientific knowledge or implementation-specific business logic that belongs elsewhere.</p>
+<hr>
+</section>
+<section id="services" class="level2">
+<h2 class="anchored" data-anchor-id="services">Services</h2>
+<p>Services implement discrete capabilities.</p>
+<p>A Service accepts one or more canonical ResearchOS objects as input and produces one or more canonical ResearchOS objects as output.</p>
+<p>Services should remain independently deployable and reusable.</p>
+<hr>
+</section>
+<section id="methods" class="level2">
+<h2 class="anchored" data-anchor-id="methods">Methods</h2>
+<p>Methods define repeatable scientific or operational procedures.</p>
+<p>Methods fulfil Intents by performing work that may produce one or more Observations.</p>
+<p>Methods are implementation-independent and may be realised by software, hardware, people or combinations thereof.</p>
+<hr>
+</section>
+<section id="registries" class="level2">
+<h2 class="anchored" data-anchor-id="registries">Registries</h2>
+<p>Registries define the canonical vocabulary used throughout ResearchOS.</p>
+<p>Applications and Services should consume Registry definitions rather than duplicate them.</p>
+<p>Registries form the authoritative source of conceptual meaning.</p>
+<hr>
+</section>
+<section id="knowledge-store" class="level2">
+<h2 class="anchored" data-anchor-id="knowledge-store">Knowledge Store</h2>
+<p>The Knowledge Store preserves ResearchOS objects and their relationships.</p>
+<p>Implementations may use relational, document, graph or hybrid storage technologies provided the conceptual model is preserved.</p>
+<p>The storage technology is an implementation decision rather than an architectural requirement.</p>
+<hr>
+</section>
+<section id="interfaces" class="level2">
+<h2 class="anchored" data-anchor-id="interfaces">Interfaces</h2>
+<p>Interfaces provide communication between architectural components.</p>
+<p>Interfaces should exchange canonical ResearchOS objects rather than application-specific data structures.</p>
+<p>Implementations may expose APIs, message queues, files or other transport mechanisms without changing the underlying conceptual architecture.</p>
+</section>
+</section>
+<section id="interoperability" class="level1">
+<h1>6. Interoperability</h1>
+<p>ResearchOS is designed as an interoperable ecosystem rather than a single application.</p>
+<p>Independent applications, services and organisations should be able to exchange knowledge and capabilities without requiring shared implementation technologies.</p>
+<section id="canonical-objects" class="level2">
+<h2 class="anchored" data-anchor-id="canonical-objects">Canonical Objects</h2>
+<p>All communication between architectural components should use canonical ResearchOS objects.</p>
+<p>Canonical objects preserve conceptual meaning independently of implementation.</p>
+<hr>
+</section>
+<section id="stable-interfaces" class="level2">
+<h2 class="anchored" data-anchor-id="stable-interfaces">Stable Interfaces</h2>
+<p>Public interfaces should remain stable across implementation revisions wherever practical.</p>
+<p>Evolution should occur through extension rather than breaking existing interfaces.</p>
+<hr>
+</section>
+<section id="loose-coupling" class="level2">
+<h2 class="anchored" data-anchor-id="loose-coupling">Loose Coupling</h2>
+<p>Applications should communicate through canonical interfaces rather than direct implementation dependencies.</p>
+<p>No application should require knowledge of another application’s internal architecture.</p>
+<hr>
+</section>
+<section id="capability-discovery" class="level2">
+<h2 class="anchored" data-anchor-id="capability-discovery">Capability Discovery</h2>
+<p>Services should expose their capabilities through declarative metadata.</p>
+<p>Applications should discover available capabilities dynamically rather than relying on hard-coded integrations.</p>
+<hr>
+</section>
+<section id="registry-conformance" class="level2">
+<h2 class="anchored" data-anchor-id="registry-conformance">Registry Conformance</h2>
+<p>Applications and services shall interpret canonical concepts consistently with the relevant Registry specifications.</p>
+<p>Registries remain the authoritative source of conceptual meaning.</p>
+<hr>
+</section>
+<section id="extensible-ecosystem" class="level2">
+<h2 class="anchored" data-anchor-id="extensible-ecosystem">Extensible Ecosystem</h2>
+<p>Third-party applications, methods and services should be able to participate within the ResearchOS ecosystem without modification of the core architecture.</p>
+<p>Compliance with the Architecture Standard and Registry specifications is sufficient for interoperability.</p>
+</section>
+</section>
+<section id="extension-model" class="level1">
+<h1>7. Extension Model</h1>
+<p>ResearchOS is designed to evolve through extension rather than modification of its core architecture.</p>
+<p>Extensions shall conform to the Conceptual Model, Registry specifications and Architecture Standard.</p>
+<p>Extensions may include:</p>
+<ul>
+<li>new Applications;</li>
+<li>new Services;</li>
+<li>new Methods;</li>
+<li>new Registry entries;</li>
+<li>new Entity types;</li>
+<li>new Observation types;</li>
+<li>new Assertion types;</li>
+<li>new RIL verbs and domain vocabularies where appropriate.</li>
+</ul>
+<p>Extensions shall not alter the conceptual meaning of existing canonical concepts.</p>
+<p>Backward compatibility should be maintained wherever practical.</p>
+<hr>
+</section>
+<section id="conformance" class="level1">
+<h1>8. Conformance</h1>
+<p>An implementation conforms to the ResearchOS Architecture Standard if it:</p>
+<ul>
+<li>preserves the ResearchOS Conceptual Model;</li>
+<li>interprets Registry specifications consistently;</li>
+<li>exchanges canonical ResearchOS objects;</li>
+<li>maintains separation between knowledge, orchestration and implementation;</li>
+<li>supports interoperability through stable interfaces;</li>
+<li>remains extensible without modification of the core architecture.</li>
+</ul>
+<p>Conformance does not require any particular programming language, database technology, operating system or deployment model.</p>
+<p>Alternative implementations are encouraged provided they preserve the architectural principles defined by this standard.</p>
+<hr>
+</section>
+<section id="summary" class="level1">
+<h1>9. Summary</h1>
+<p>The ResearchOS Architecture Standard defines the engineering principles governing the implementation of ResearchOS.</p>
+<p>Conceptual meaning is defined by the Philosophy, Conceptual Model and Registry specifications.</p>
+<p>The Architecture Standard defines how those concepts should be realised as interoperable software systems.</p>
+<p>ResearchOS separates:</p>
+<ul>
+<li>conceptual knowledge;</li>
+<li>orchestration;</li>
+<li>implementation.</li>
+</ul>
+<p>This separation enables independent evolution of scientific concepts, engineering infrastructure and software implementations while preserving interoperability across the ResearchOS ecosystem.</p>
+<hr>
+<section id="source-researchos_conceptual_model_v0.03.md" class="level2">
+<h2 class="anchored" data-anchor-id="source-researchos_conceptual_model_v0.03.md">Source: <code>ResearchOS_Conceptual_Model_v0.03.md</code></h2>
+<p><strong>Version:</strong> 0.03 (Draft)</p>
+<hr>
+</section>
+</section>
+<section id="purpose-1" class="level1">
+<h1>1. Purpose</h1>
+<p>The ResearchOS Conceptual Model defines the fundamental concepts used to represent scientific research independently of implementation, programming language or storage technology.</p>
+<p>ResearchOS is not primarily a workflow engine or data collection platform.</p>
+<p>It is a conceptual framework for representing scientific understanding.</p>
+<p>The model distinguishes between:</p>
+<ul>
+<li>the world being studied;</li>
+<li>the claims made about that world;</li>
+<li>the evidence supporting those claims.</li>
+</ul>
+<p>All higher-level components of ResearchOS derive from these concepts.</p>
+<hr>
+</section>
+<section id="the-scientific-model" class="level1">
+<h1>2. The Scientific Model</h1>
+<p>Scientific research begins with things that exist in the world.</p>
+<p>Researchers make claims about those things.</p>
+<p>Those claims are supported by observations obtained using scientific methods.</p>
+<p>ResearchOS represents this process directly.</p>
+<pre class="text"><code>                    ENTITY
+                  (the thing)
+
+                       │
+             described by
+
+                       ▼
+
+                  ASSERTION
+                 (the claim)
+
+                       ▲
+            supported by
+
+                       │
+
+                 OBSERVATION
+                 (the evidence)</code></pre>
+<p>The scientific process extends this model by obtaining observations through repeatable methods.</p>
+<pre class="text"><code>                 OBSERVATION
+
+                       ▲
+
+               produced by
+
+                       │
+
+                    METHOD</code></pre>
+<p>ResearchOS therefore distinguishes four fundamental concepts:</p>
+<ul>
+<li><strong>Entities</strong> represent the things being studied.</li>
+<li><strong>Assertions</strong> represent what is currently believed about those things.</li>
+<li><strong>Observations</strong> provide evidence supporting those beliefs.</li>
+<li><strong>Methods</strong> obtain observations.</li>
+</ul>
+<p>Scientific knowledge emerges through the accumulation of evidence-supported assertions.</p>
+<hr>
+</section>
+<section id="conceptual-layers" class="level1">
+<h1>3. Conceptual Layers</h1>
+<p>The ResearchOS conceptual model is organised into five layers.</p>
+<section id="layer-1-reality" class="level2">
+<h2 class="anchored" data-anchor-id="layer-1-reality">Layer 1 – Reality</h2>
+<p>Reality consists of the entities that become the subjects of research.</p>
+<p>ResearchOS does not create these entities.</p>
+<p>It represents them.</p>
+</section>
+<section id="layer-2-knowledge" class="level2">
+<h2 class="anchored" data-anchor-id="layer-2-knowledge">Layer 2 – Knowledge</h2>
+<p>Knowledge consists of assertions concerning entities.</p>
+<p>Assertions describe current scientific understanding.</p>
+<p>Observations provide the evidence supporting those assertions.</p>
+<p>Knowledge evolves through the continual refinement of assertions as additional evidence becomes available.</p>
+</section>
+<section id="layer-3-acquisition" class="level2">
+<h2 class="anchored" data-anchor-id="layer-3-acquisition">Layer 3 – Acquisition</h2>
+<p>Methods obtain observations.</p>
+<p>Methods do not create knowledge directly.</p>
+<p>They create evidence from which knowledge is derived.</p>
+</section>
+<section id="layer-4-orchestration" class="level2">
+<h2 class="anchored" data-anchor-id="layer-4-orchestration">Layer 4 – Orchestration</h2>
+<p>Research activities are coordinated through operational concepts including:</p>
+<ul>
+<li>Intent</li>
+<li>Policy</li>
+<li>Signals</li>
+</ul>
+<p>These concepts govern execution rather than scientific understanding.</p>
+</section>
+<section id="layer-5-trust" class="level2">
+<h2 class="anchored" data-anchor-id="layer-5-trust">Layer 5 – Trust</h2>
+<p>Provenance explains the origin, history and justification of observations and assertions.</p>
+<p>It provides transparency, traceability and reproducibility throughout the research lifecycle.</p>
+<hr>
+</section>
+</section>
+<section id="core-concepts" class="level1">
+<h1>4. Core Concepts</h1>
+<section id="entity" class="level2">
+<h2 class="anchored" data-anchor-id="entity">Entity</h2>
+<p>An Entity is defined as:</p>
+<blockquote class="blockquote">
+<p><strong>A distinct object that may become the subject of observation, description, measurement or reasoning within a research context.</strong></p>
+</blockquote>
+<p>Entities possess identity.</p>
+<p>Entities may exist in one of three Modes:</p>
+<ul>
+<li>Physical</li>
+<li>Digital</li>
+<li>Conceptual</li>
+</ul>
+<p>Entities may participate in assertions.</p>
+<hr>
+</section>
+<section id="assertion" class="level2">
+<h2 class="anchored" data-anchor-id="assertion">Assertion</h2>
+<p>An Assertion is defined as:</p>
+<blockquote class="blockquote">
+<p><strong>A timestamped claim describing a characteristic, state or relationship concerning one or more Research Entities.</strong></p>
+</blockquote>
+<p>Assertions represent scientific understanding rather than immutable truth.</p>
+<p>Assertions may be supported, strengthened, revised, superseded or withdrawn as new observations become available.</p>
+<hr>
+</section>
+<section id="observation" class="level2">
+<h2 class="anchored" data-anchor-id="observation">Observation</h2>
+<p>An Observation is defined as:</p>
+<blockquote class="blockquote">
+<p><strong>Evidence obtained through the application of a Method.</strong></p>
+</blockquote>
+<p>Observations support assertions.</p>
+<p>Observations should retain sufficient provenance to permit independent interpretation and verification.</p>
+<hr>
+</section>
+<section id="method" class="level2">
+<h2 class="anchored" data-anchor-id="method">Method</h2>
+<p>A Method is defined as:</p>
+<blockquote class="blockquote">
+<p><strong>A repeatable procedure used to obtain observations.</strong></p>
+</blockquote>
+<p>Methods may involve:</p>
+<ul>
+<li>human activity;</li>
+<li>laboratory procedures;</li>
+<li>computational analysis;</li>
+<li>simulation;</li>
+<li>data transformation.</li>
+</ul>
+<p>Methods create observations.</p>
+<p>Observations support assertions.</p>
+<p>Assertions describe entities.</p>
+<hr>
+</section>
+</section>
+<section id="supporting-concepts" class="level1">
+<h1>5. Supporting Concepts</h1>
+<p>The following concepts support the core scientific model.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 52%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Concept</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Intent</td>
+<td>Requests one or more Methods</td>
+</tr>
+<tr class="even">
+<td>Policy</td>
+<td>Constrains the execution of Methods</td>
+</tr>
+<tr class="odd">
+<td>Provenance</td>
+<td>Explains the origin and history of Observations and Assertions</td>
+</tr>
+<tr class="even">
+<td>Signal</td>
+<td>Communicates changes to other components</td>
+</tr>
+</tbody>
+</table>
+<p>These concepts support the generation, governance and communication of scientific knowledge but are not themselves part of the core knowledge model.</p>
+<hr>
+</section>
+<section id="concept-relationships" class="level1">
+<h1>6. Concept Relationships</h1>
+<p>The central ResearchOS model is summarised below.</p>
+<pre class="text"><code>                    Entity
+                       ▲
+               described by
+                       │
+                  Assertion
+                       ▲
+               supported by
+                       │
+                 Observation
+                       ▲
+                produced by
+                       │
+                    Method</code></pre>
+<p>Supporting concepts interact with this model as follows.</p>
+<pre class="text"><code>Intent ─────────────► Method
+
+Policy ─────────────► Method
+
+Provenance ─────────► Observation
+               └────► Assertion
+
+Signal ─────────────► External systems</code></pre>
+<hr>
+</section>
+<section id="design-principles" class="level1">
+<h1>7. Design Principles</h1>
+<p>The ResearchOS Conceptual Model follows the following principles.</p>
+<section id="scientific" class="level2">
+<h2 class="anchored" data-anchor-id="scientific">Scientific</h2>
+<p>The model represents scientific understanding rather than software implementation.</p>
+</section>
+<section id="entity-centred" class="level2">
+<h2 class="anchored" data-anchor-id="entity-centred">Entity-centred</h2>
+<p>Research begins with identifiable entities.</p>
+<p>Everything else exists to describe, understand or investigate those entities.</p>
+</section>
+<section id="evidence-based" class="level2">
+<h2 class="anchored" data-anchor-id="evidence-based">Evidence-based</h2>
+<p>Assertions should be supported by observations wherever appropriate.</p>
+</section>
+<section id="temporal" class="level2">
+<h2 class="anchored" data-anchor-id="temporal">Temporal</h2>
+<p>Scientific understanding changes over time.</p>
+<p>ResearchOS records the evolution of understanding rather than replacing previous knowledge.</p>
+</section>
+<section id="minimal" class="level2">
+<h2 class="anchored" data-anchor-id="minimal">Minimal</h2>
+<p>The model defines the smallest set of concepts necessary to represent scientific research.</p>
+</section>
+<section id="extensible-1" class="level2">
+<h2 class="anchored" data-anchor-id="extensible-1">Extensible</h2>
+<p>New scientific disciplines should be representable without modification of the conceptual model.</p>
+</section>
+<section id="implementation-independent" class="level2">
+<h2 class="anchored" data-anchor-id="implementation-independent">Implementation-independent</h2>
+<p>The conceptual model is independent of storage technology, programming language and execution environment.</p>
+<hr>
+</section>
+</section>
+<section id="open-questions" class="level1">
+<h1>8. Open Questions</h1>
+<p>The following areas remain under active development.</p>
+<ul>
+<li>Should Properties remain a separate primitive or become specialised Assertions?</li>
+<li>What canonical assertion vocabulary should ResearchOS define?</li>
+<li>How should uncertainty, confidence and evidence strength be represented?</li>
+<li>Which concepts belong to the conceptual model and which belong exclusively to the execution architecture?</li>
+</ul>
+<hr>
+</section>
+<section id="summary-1" class="level1">
+<h1>9. Summary</h1>
+<p>ResearchOS represents scientific understanding rather than scientific data.</p>
+<p>Research begins with Entities.</p>
+<p>Researchers make Assertions about those Entities.</p>
+<p>Observations provide evidence supporting those Assertions.</p>
+<p>Methods obtain Observations.</p>
+<p>The continual accumulation of evidence-supported Assertions represents the evolving scientific understanding of the research world.</p>
+<hr>
+<section id="source-researchos_philosophy_0.01.md" class="level2">
+<h2 class="anchored" data-anchor-id="source-researchos_philosophy_0.01.md">Source: <code>ResearchOS_Philosophy_0.01.md</code></h2>
+<p><strong>Version:</strong> 0.01 (Draft)</p>
+<hr>
+</section>
+</section>
+<section id="purpose-2" class="level1">
+<h1>Purpose</h1>
+<p>ResearchOS is founded on the principle that scientific research is fundamentally concerned with understanding the world through evidence.</p>
+<p>Rather than modelling research as a collection of software workflows or datasets, ResearchOS models the process by which scientific understanding is created, refined and preserved.</p>
+<p>This document describes the philosophical principles that underpin the platform.</p>
+<hr>
+</section>
+<section id="the-scientific-process" class="level1">
+<h1>The Scientific Process</h1>
+<p>Research begins with things that exist in the world.</p>
+<p>Researchers make claims about those things.</p>
+<p>Those claims are supported by evidence obtained through observation.</p>
+<p>Scientific understanding evolves as new evidence strengthens, refines or replaces previous claims.</p>
+<p>ResearchOS represents this process directly.</p>
+<pre class="text"><code>                    Entity
+                  (the thing)
+
+                       │
+             described by
+
+                       ▼
+
+                  Assertion
+                 (the claim)
+
+                       ▲
+            supported by
+
+                       │
+
+                 Observation
+                 (the evidence)</code></pre>
+<p>Methods obtain observations.</p>
+<p>Observations support assertions.</p>
+<p>Assertions describe entities.</p>
+<p>Knowledge emerges through the continual accumulation of evidence-supported assertions.</p>
+<hr>
+</section>
+<section id="principles" class="level1">
+<h1>Principles</h1>
+<section id="reality-precedes-knowledge" class="level2">
+<h2 class="anchored" data-anchor-id="reality-precedes-knowledge">Reality precedes knowledge</h2>
+<p>Research begins with entities that exist independently of the researcher.</p>
+<p>ResearchOS represents those entities rather than creating them.</p>
+<hr>
+</section>
+<section id="knowledge-is-provisional" class="level2">
+<h2 class="anchored" data-anchor-id="knowledge-is-provisional">Knowledge is provisional</h2>
+<p>Scientific understanding is never absolute.</p>
+<p>Assertions represent the current state of knowledge rather than immutable truth.</p>
+<p>Assertions may be strengthened, revised, superseded or withdrawn as new evidence becomes available.</p>
+<hr>
+</section>
+<section id="evidence-underpins-knowledge" class="level2">
+<h2 class="anchored" data-anchor-id="evidence-underpins-knowledge">Evidence underpins knowledge</h2>
+<p>Assertions should be supported by observations wherever appropriate.</p>
+<p>The quality of scientific knowledge depends upon the quality of the supporting evidence.</p>
+<hr>
+</section>
+<section id="methods-generate-evidence" class="level2">
+<h2 class="anchored" data-anchor-id="methods-generate-evidence">Methods generate evidence</h2>
+<p>Methods do not create knowledge directly.</p>
+<p>They obtain observations from which knowledge is derived.</p>
+<hr>
+</section>
+<section id="provenance-creates-trust" class="level2">
+<h2 class="anchored" data-anchor-id="provenance-creates-trust">Provenance creates trust</h2>
+<p>Every observation and assertion should retain sufficient provenance to permit independent interpretation, verification and reproduction.</p>
+<p>Trust arises through transparency rather than authority.</p>
+<hr>
+</section>
+<section id="knowledge-evolves" class="level2">
+<h2 class="anchored" data-anchor-id="knowledge-evolves">Knowledge evolves</h2>
+<p>ResearchOS records the evolution of scientific understanding.</p>
+<p>Knowledge grows through the accumulation of evidence rather than replacement of previous records.</p>
+<p>Historical understanding remains an important part of the scientific record.</p>
+<hr>
+</section>
+<section id="implementation-is-secondary" class="level2">
+<h2 class="anchored" data-anchor-id="implementation-is-secondary">Implementation is secondary</h2>
+<p>The conceptual model is independent of programming language, storage technology and software architecture.</p>
+<p>Graphs, relational databases, document stores and append-only logs are implementation choices rather than conceptual foundations.</p>
+<hr>
+</section>
+</section>
+<section id="vision" class="level1">
+<h1>Vision</h1>
+<p>ResearchOS is not intended simply to execute research.</p>
+<p>Its purpose is to represent scientific understanding in a form that is transparent, reproducible and extensible across disciplines.</p>
+<p>By separating entities, assertions and observations, ResearchOS provides a common conceptual language capable of supporting laboratory science, epidemiology, social science, environmental research, engineering and future disciplines that have yet to emerge.</p>
+<p>The platform therefore aims to become not only an operating system for research, but a durable representation of scientific knowledge itself.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+            // target, if specified
+            link.setAttribute("target", "_blank");
+            if (link.getAttribute("rel") === null) {
+              link.setAttribute("rel", "noopener");
+            }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../troubleshooting.html" class="pagination-link" aria-label="Troubleshooting">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Troubleshooting</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../reference/ril.html" class="pagination-link" aria-label="ResearchOS Intent Language">
+        <span class="nav-page-text">ResearchOS Intent Language</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/reference/architecture.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

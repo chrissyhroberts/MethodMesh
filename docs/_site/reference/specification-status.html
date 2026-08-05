@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Specification status – ResearchOS User Guide</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../reference/release-notes.html" rel="next">
+<link href="../reference/capability-documentation-standard.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-4d80fbb67350bf0285aa9751096d180d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-sidebar docked quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/architecture.html">Technical reference</a></li><li class="breadcrumb-item"><a href="../reference/specification-status.html">Specification status</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">ResearchOS User Guide</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ResearchOS User Guide</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../getting-started.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting started</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../installation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Installation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../concepts.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Concepts and architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../xlsform-integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">XLSForm integration</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../scheduling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Scheduling workflows</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Capabilities</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Capability catalogue</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/admin-fingerprint.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Local device authentication</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/app-inspector.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Android app inspector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/attestation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Signed event attestation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/bluetooth-inspector.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Bluetooth device inspector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/bluetooth-printer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Bluetooth printer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/calibrated-scale.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Calibrated scale measurement</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/choice-experiments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Choice experiments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/document-scanner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Document scanner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/gps-target-navigator.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GPS target navigation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/mlkit-translate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ML Kit translation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/mlkit-vision.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ML Kit vision</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/nfc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NFC capabilities</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/odk-form-launcher.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ODK form launcher</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/provider-command.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">External command library</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/qr-code.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Automatic code scanner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/scaled-photo.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Scaled photo selector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/scheduler-capability.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Scheduler</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/sensor-firmware-installer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ESP32 sensor firmware installer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/sensor-provisioner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">BLE sensor-node provisioner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/sensor-read.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Read sensor</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/sms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Send SMS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/spatial-geometry.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Spatial geometry</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/speech-transcription.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Speech transcription</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../capabilities/svg-selector.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SVG polygon selector</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Example XLSForms</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../troubleshooting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Troubleshooting</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Technical reference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/architecture.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/ril.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ResearchOS Intent Language</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/capability-documentation-standard.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Capability documentation standard</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/specification-status.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Specification status</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/release-notes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Release notes</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#source-spec_status.md" id="toc-source-spec_status.md" class="nav-link active" data-scroll-target="#source-spec_status.md">Source: <code>SPEC_STATUS.md</code></a></li>
+  <li><a href="#current-specifications-source-of-truth" id="toc-current-specifications-source-of-truth" class="nav-link" data-scroll-target="#current-specifications-source-of-truth">Current Specifications (Source of Truth)</a>
+  <ul class="collapse">
+  <li><a href="#foundation-layer" id="toc-foundation-layer" class="nav-link" data-scroll-target="#foundation-layer">Foundation Layer</a></li>
+  <li><a href="#architecture-design" id="toc-architecture-design" class="nav-link" data-scroll-target="#architecture-design">Architecture &amp; Design</a></li>
+  <li><a href="#language-protocol" id="toc-language-protocol" class="nav-link" data-scroll-target="#language-protocol">Language &amp; Protocol</a></li>
+  <li><a href="#registries" id="toc-registries" class="nav-link" data-scroll-target="#registries">Registries</a></li>
+  </ul></li>
+  <li><a href="#deprecated-archive" id="toc-deprecated-archive" class="nav-link" data-scroll-target="#deprecated-archive">Deprecated / Archive</a></li>
+  <li><a href="#specification-dependencies" id="toc-specification-dependencies" class="nav-link" data-scroll-target="#specification-dependencies">Specification Dependencies</a></li>
+  <li><a href="#version-numbering-scheme" id="toc-version-numbering-scheme" class="nav-link" data-scroll-target="#version-numbering-scheme">Version Numbering Scheme</a></li>
+  <li><a href="#next-steps" id="toc-next-steps" class="nav-link" data-scroll-target="#next-steps">Next Steps</a></li>
+  <li><a href="#source-readme-5.md" id="toc-source-readme-5.md" class="nav-link" data-scroll-target="#source-readme-5.md">Source: <code>README 5.md</code></a></li>
+  <li><a href="#start-here" id="toc-start-here" class="nav-link" data-scroll-target="#start-here">Start Here</a></li>
+  <li><a href="#current-specification-status" id="toc-current-specification-status" class="nav-link" data-scroll-target="#current-specification-status">Current Specification Status</a></li>
+  <li><a href="#folder-structure" id="toc-folder-structure" class="nav-link" data-scroll-target="#folder-structure">Folder Structure</a></li>
+  <li><a href="#key-specifications-by-role" id="toc-key-specifications-by-role" class="nav-link" data-scroll-target="#key-specifications-by-role">Key Specifications by Role</a>
+  <ul class="collapse">
+  <li><a href="#i-want-to-understand-researchos" id="toc-i-want-to-understand-researchos" class="nav-link" data-scroll-target="#i-want-to-understand-researchos">I want to understand ResearchOS</a></li>
+  <li><a href="#im-adding-a-new-capability-android" id="toc-im-adding-a-new-capability-android" class="nav-link" data-scroll-target="#im-adding-a-new-capability-android">I’m adding a new capability (Android)</a></li>
+  <li><a href="#im-integrating-with-another-platform-odk-kobotoolbox-etc." id="toc-im-integrating-with-another-platform-odk-kobotoolbox-etc." class="nav-link" data-scroll-target="#im-integrating-with-another-platform-odk-kobotoolbox-etc.">I’m integrating with another platform (ODK, KoBoToolbox, etc.)</a></li>
+  <li><a href="#im-defining-a-new-entityobservationassertion-type" id="toc-im-defining-a-new-entityobservationassertion-type" class="nav-link" data-scroll-target="#im-defining-a-new-entityobservationassertion-type">I’m defining a new entity/observation/assertion type</a></li>
+  </ul></li>
+  <li><a href="#version-numbers-explained" id="toc-version-numbers-explained" class="nav-link" data-scroll-target="#version-numbers-explained">Version Numbers Explained</a></li>
+  <li><a href="#finding-what-changed-between-versions" id="toc-finding-what-changed-between-versions" class="nav-link" data-scroll-target="#finding-what-changed-between-versions">Finding What Changed Between Versions</a></li>
+  <li><a href="#contributing-to-specs" id="toc-contributing-to-specs" class="nav-link" data-scroll-target="#contributing-to-specs">Contributing to Specs</a></li>
+  <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
+  <li><a href="#quick-links" id="toc-quick-links" class="nav-link" data-scroll-target="#quick-links">Quick Links</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/reference/specification-status.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/architecture.html">Technical reference</a></li><li class="breadcrumb-item"><a href="../reference/specification-status.html">Specification status</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Specification status</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>This page reproduces the supplied status and specification-navigation material.</p>
+<section id="source-spec_status.md" class="level2">
+<h2 class="anchored" data-anchor-id="source-spec_status.md">Source: <code>SPEC_STATUS.md</code></h2>
+<p><strong>Last Updated:</strong> July 13, 2026</p>
+<p>This document defines which specifications are current, their version numbers, and their relationships.</p>
+</section>
+<section id="current-specifications-source-of-truth" class="level2">
+<h2 class="anchored" data-anchor-id="current-specifications-source-of-truth">Current Specifications (Source of Truth)</h2>
+<section id="foundation-layer" class="level3">
+<h3 class="anchored" data-anchor-id="foundation-layer">Foundation Layer</h3>
+<ul>
+<li><strong>Philosophy</strong>: <code>ResearchOS_Philosophy_0.01.md</code> (Stable)
+<ul>
+<li>Core vision and principles</li>
+<li>Not versioned — foundational document</li>
+</ul></li>
+</ul>
+</section>
+<section id="architecture-design" class="level3">
+<h3 class="anchored" data-anchor-id="architecture-design">Architecture &amp; Design</h3>
+<ul>
+<li><strong>Conceptual Model</strong>: <code>design/ResearchOS_Conceptual_Model_v0.03.md</code> (Current)
+<ul>
+<li>Defines Entity → Assertion → Observation → Method framework</li>
+<li><strong>Previous versions</strong>: See <code>_archive/</code> (v0.01, v0.02)</li>
+</ul></li>
+<li><strong>Architecture Standard</strong>: <code>architecture-standard/Architecture_Standard_v1.02.md</code> (Current)
+<ul>
+<li>System layering and component relationships</li>
+<li><strong>Previous version</strong>: <code>_archive/Architecture_Standard_v1.01.md</code></li>
+</ul></li>
+</ul>
+</section>
+<section id="language-protocol" class="level3">
+<h3 class="anchored" data-anchor-id="language-protocol">Language &amp; Protocol</h3>
+<ul>
+<li><strong>ResearchOS Intent Language (RIL)</strong>: <code>ril/RIL_ResearchOS_Intent_Language_v0.03.md</code> (Current)
+<ul>
+<li>Declares WHAT, WHEN, WHERE, HOW, RESULT</li>
+<li>Foundation for method execution</li>
+<li><strong>Previous versions</strong>: <code>_archive/RIL_Core_Verbs_v0.01.md</code></li>
+</ul></li>
+<li><strong>RIL Core Verbs</strong>: <code>core-verbs/RIL_Core_Verbs_v0.02.md</code> (Current)
+<ul>
+<li>Extends RIL specification with concrete verbs</li>
+<li><strong>Previous version</strong>: <code>_archive/RIL_Core_Verbs_v0.01.md</code></li>
+</ul></li>
+<li><strong>JSON Representation</strong>: <code>json/ResearchOS JSON Representation v0.02.md</code> (Current)
+<ul>
+<li>How RIL is serialized to JSON</li>
+<li><strong>Previous version</strong>: <code>_archive/RIL JSON Representation v0.01.md</code></li>
+</ul></li>
+</ul>
+</section>
+<section id="registries" class="level3">
+<h3 class="anchored" data-anchor-id="registries">Registries</h3>
+<p>All registries define canonical knowledge objects and their schemas.</p>
+<ul>
+<li><strong>Entities</strong>: <code>registries/entities/ResearchOS_Entity_Registry_0.02.md</code>
+<ul>
+<li>Defines things being studied (person, place, instrument, etc.)</li>
+<li><strong>Previous version</strong>: <code>_archive/ResearchOS_Entity_Registry_0.01.md</code></li>
+</ul></li>
+<li><strong>Observations</strong>: <code>registries/observations/ResearchOS_Observations_Registry_0.01.md</code>
+<ul>
+<li>Evidence collected during research</li>
+<li><strong>Status</strong>: First release, expecting v0.02</li>
+</ul></li>
+<li><strong>Assertions</strong>: <code>registries/assertions/ResearchOS_Assertions_Registry_0.02.md</code>
+<ul>
+<li>Claims about entities</li>
+<li><strong>Previous version</strong>: <code>_archive/ResearchOS_Assertions_Registry_0.01.md</code></li>
+</ul></li>
+<li><strong>Intents</strong>: <code>registries/intents/ResearchOS Intent_Registry_v0.02.md</code>
+<ul>
+<li>Declares what research is trying to accomplish</li>
+<li><strong>Previous version</strong>: <code>_archive/ResearchOS Intent_Registry_v0.01.md</code></li>
+</ul></li>
+<li><strong>Traits</strong>: <code>registries/traits/ResearchOS_Trait_Registry_0.02.md</code>
+<ul>
+<li>Attributes and properties of entities</li>
+<li><strong>Previous version</strong>: v0.01 (archived)</li>
+</ul></li>
+</ul>
+</section>
+</section>
+<section id="deprecated-archive" class="level2">
+<h2 class="anchored" data-anchor-id="deprecated-archive">Deprecated / Archive</h2>
+<p>See <code>_archive/</code> for: - <code>ResearchOS_Conceptual_Model_v0.01.md</code>, <code>v0.02_draft.md</code> - <code>Architecture_Standard_v1.01.md</code> - <code>RIL_Core_Verbs_v0.01.md</code>, <code>RIL JSON Representation v0.01.md</code> - <code>ResearchOS Intent_Registry_v0.01.md</code> - <code>ResearchOS_Assertions_Registry_0.01.md</code> - <code>ResearchOS_Entity_Registry_0.01.md</code> - <code>XLSFormLab_Capability_Archetype.md</code> (exploratory, not maintained) - <code>ResearchOS_Specification_v0_1.zip</code> (old bundle)</p>
+</section>
+<section id="specification-dependencies" class="level2">
+<h2 class="anchored" data-anchor-id="specification-dependencies">Specification Dependencies</h2>
+<pre><code>Philosophy (foundational)
+    ↓
+Conceptual Model (v0.03)
+    ↓
+┌─────────────────────────┬──────────────┐
+│                         │              │
+RIL (v0.03)          Architecture     Entity Registry
+│                    Standard (v1.02)  (v0.02)
+├─ Core Verbs (v0.02)      ↓          Assertion Registry
+├─ JSON Repr. (v0.02)    Defines      (v0.02)
+│                      layering      Trait Registry
+└─ Intent Registry (v0.02)             (v0.02)
+   Observations (v0.01)
+   Assertions (v0.02)</code></pre>
+</section>
+<section id="version-numbering-scheme" class="level2">
+<h2 class="anchored" data-anchor-id="version-numbering-scheme">Version Numbering Scheme</h2>
+<ul>
+<li><strong>Major version</strong> (0, 1, 2…): Breaking changes to structure or semantics</li>
+<li><strong>Minor version</strong> (v0.01 → v0.02): Additions or clarifications, backward compatible</li>
+<li><strong>Draft status</strong>: Marked explicitly (e.g., <code>v0.02_draft.md</code>)</li>
+</ul>
+</section>
+<section id="next-steps" class="level2">
+<h2 class="anchored" data-anchor-id="next-steps">Next Steps</h2>
+<ul class="task-list">
+<li><label><input type="checkbox">Observation Registry → v0.02 (in progress)</label></li>
+<li><label><input type="checkbox">Protocol Definition Language (coming)</label></li>
+<li><label><input type="checkbox">Extended RIL examples (see <code>/examples/</code>)</label></li>
+<li><label><input type="checkbox">Integration Guide (for existing platforms like ODK, KoBoToolbox)</label></li>
+</ul>
+<hr>
+<p><strong>When to update this file:</strong> - Every time you publish a new specification version - When creating new specifications - When deprecating specifications - Include the date and nature of change in git commit</p>
+<hr>
+</section>
+<section id="source-readme-5.md" class="level2">
+<h2 class="anchored" data-anchor-id="source-readme-5.md">Source: <code>README 5.md</code></h2>
+<p>This folder contains all formal specifications for ResearchOS.</p>
+</section>
+<section id="start-here" class="level2">
+<h2 class="anchored" data-anchor-id="start-here">Start Here</h2>
+<p><strong>New to ResearchOS?</strong> Start with: 1. <code>ResearchOS_Philosophy_0.01.md</code> — Understand the vision (5 min) 2. <code>design/ResearchOS_Conceptual_Model_v0.03.md</code> — Learn the core model (10 min) 3. <code>architecture-standard/Architecture_Standard_v1.02.md</code> — See how it’s organized (10 min)</p>
+<p>Then dive into the Android Developer Guide: <code>../docs/ANDROID_DEVELOPER_GUIDE.md</code></p>
+</section>
+<section id="current-specification-status" class="level2">
+<h2 class="anchored" data-anchor-id="current-specification-status">Current Specification Status</h2>
+<p>See <strong><code>SPEC_STATUS.md</code></strong> for: - Which specifications are current vs.&nbsp;archived - Version numbers and dependencies - What’s in development</p>
+</section>
+<section id="folder-structure" class="level2">
+<h2 class="anchored" data-anchor-id="folder-structure">Folder Structure</h2>
+<pre><code>specifications/
+├── SPEC_STATUS.md             ← START HERE: Current versions
+├── ResearchOS_Philosophy_0.01.md
+├── design/                    ← Conceptual model
+│   └── ResearchOS_Conceptual_Model_v0.03.md (current)
+├── architecture-standard/     ← System architecture
+│   └── Architecture_Standard_v1.02.md (current)
+├── ril/                       ← ResearchOS Intent Language
+│   └── RIL_ResearchOS_Intent_Language_v0.03.md
+├── core-verbs/               ← Extended RIL verbs
+│   └── RIL_Core_Verbs_v0.02.md
+├── json/                     ← JSON serialization
+│   └── ResearchOS JSON Representation v0.02.md
+├── registries/               ← Canonical knowledge objects
+│   ├── entities/
+│   │   └── ResearchOS_Entity_Registry_0.02.md
+│   ├── observations/
+│   │   └── ResearchOS_Observations_Registry_0.01.md
+│   ├── assertions/
+│   │   └── ResearchOS_Assertions_Registry_0.02.md
+│   ├── intents/
+│   │   └── ResearchOS Intent_Registry_v0.02.md
+│   └── traits/
+│       └── ResearchOS_Trait_Registry_0.02.md
+└── _archive/                 ← Old versions (v0.01, v0.02, etc.)
+    └── [previous versions]</code></pre>
+</section>
+<section id="key-specifications-by-role" class="level2">
+<h2 class="anchored" data-anchor-id="key-specifications-by-role">Key Specifications by Role</h2>
+<section id="i-want-to-understand-researchos" class="level3">
+<h3 class="anchored" data-anchor-id="i-want-to-understand-researchos">I want to understand ResearchOS</h3>
+<ul>
+<li><code>ResearchOS_Philosophy_0.01.md</code> — Why it exists</li>
+<li><code>design/ResearchOS_Conceptual_Model_v0.03.md</code> — How it thinks about research</li>
+<li><code>architecture-standard/Architecture_Standard_v1.02.md</code> — How it’s built</li>
+</ul>
+</section>
+<section id="im-adding-a-new-capability-android" class="level3">
+<h3 class="anchored" data-anchor-id="im-adding-a-new-capability-android">I’m adding a new capability (Android)</h3>
+<ul>
+<li><code>ril/RIL_ResearchOS_Intent_Language_v0.03.md</code> — How to declare what you want</li>
+<li><code>core-verbs/RIL_Core_Verbs_v0.02.md</code> — What verbs are available</li>
+<li><code>registries/observations/ResearchOS_Observations_Registry_0.01.md</code> — What you can return</li>
+</ul>
+<p>See <code>../docs/ANDROID_DEVELOPER_GUIDE.md</code> for step-by-step tutorial.</p>
+</section>
+<section id="im-integrating-with-another-platform-odk-kobotoolbox-etc." class="level3">
+<h3 class="anchored" data-anchor-id="im-integrating-with-another-platform-odk-kobotoolbox-etc.">I’m integrating with another platform (ODK, KoBoToolbox, etc.)</h3>
+<ul>
+<li><code>ril/RIL_ResearchOS_Intent_Language_v0.03.md</code> — How to generate RIL from your platform</li>
+<li><code>json/ResearchOS JSON Representation v0.02.md</code> — How to serialize</li>
+<li><code>registries/</code> — Map your data to our canonical objects</li>
+</ul>
+</section>
+<section id="im-defining-a-new-entityobservationassertion-type" class="level3">
+<h3 class="anchored" data-anchor-id="im-defining-a-new-entityobservationassertion-type">I’m defining a new entity/observation/assertion type</h3>
+<ul>
+<li><code>registries/entities/ResearchOS_Entity_Registry_0.02.md</code> — Things being studied</li>
+<li><code>registries/observations/ResearchOS_Observations_Registry_0.01.md</code> — Evidence collected</li>
+<li><code>registries/assertions/ResearchOS_Assertions_Registry_0.02.md</code> — Claims about things</li>
+</ul>
+</section>
+</section>
+<section id="version-numbers-explained" class="level2">
+<h2 class="anchored" data-anchor-id="version-numbers-explained">Version Numbers Explained</h2>
+<ul>
+<li><code>v0.03</code> = stable, we’re using this</li>
+<li><code>v0.02</code> = previous stable, archived for reference</li>
+<li><code>v0.01</code> = original, archived, likely superseded</li>
+<li><code>_draft</code> = work in progress, not ready for implementation</li>
+</ul>
+</section>
+<section id="finding-what-changed-between-versions" class="level2">
+<h2 class="anchored" data-anchor-id="finding-what-changed-between-versions">Finding What Changed Between Versions</h2>
+<p>Old versions are in <code>_archive/</code>. Compare with the current version:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">diff</span> _archive/ResearchOS_Conceptual_Model_v0.02_draft.md <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>     design/ResearchOS_Conceptual_Model_v0.03.md</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="contributing-to-specs" class="level2">
+<h2 class="anchored" data-anchor-id="contributing-to-specs">Contributing to Specs</h2>
+<p>When you update a specification:</p>
+<ol type="1">
+<li><strong>Increment version</strong>: v0.02 → v0.03 (if breaking change) or v0.02 → v0.03 (if additive)</li>
+<li><strong>Update SPEC_STATUS.md</strong> with new version number</li>
+<li><strong>Archive old version</strong>: Move to <code>_archive/</code> with old version number</li>
+<li><strong>Commit with clear message</strong>: “Spec: Conceptual Model v0.03 — Add relationship types”</li>
+<li><strong>Update implementation</strong> to match new spec version</li>
+</ol>
+</section>
+<section id="examples" class="level2">
+<h2 class="anchored" data-anchor-id="examples">Examples</h2>
+<p>See <code>../examples/</code> for working example RIL declarations and how they execute end-to-end.</p>
+<p>(Examples folder is under active development — check back often)</p>
+</section>
+<section id="quick-links" class="level2">
+<h2 class="anchored" data-anchor-id="quick-links">Quick Links</h2>
+<ul>
+<li><strong>Android Development</strong>: <code>../docs/ANDROID_DEVELOPER_GUIDE.md</code></li>
+<li><strong>Implementation Notes</strong>: <code>../docs/implementation-notes.md</code></li>
+<li><strong>Project Root</strong>: <code>../README.md</code></li>
+</ul>
+<hr>
+<p><strong>Last updated</strong>: July 13, 2026</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+            // target, if specified
+            link.setAttribute("target", "_blank");
+            if (link.getAttribute("rel") === null) {
+              link.setAttribute("rel", "noopener");
+            }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../reference/capability-documentation-standard.html" class="pagination-link" aria-label="Capability documentation standard">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Capability documentation standard</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../reference/release-notes.html" class="pagination-link" aria-label="Release notes">
+        <span class="nav-page-text">Release notes</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/reference/specification-status.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

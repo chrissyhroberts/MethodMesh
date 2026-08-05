@@ -1,0 +1,58 @@
+---
+title: "SVG polygon selector"
+---
+
+::: {.status-box .status-complete}
+**Status: Documented and demonstrated**
+
+This status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.
+:::
+
+
+## Purpose
+
+Display an SVG and return selected polygon or region identifiers.
+
+## Capability IDs
+
+- `svg.select`
+
+## Requirements
+
+- SVG asset available to ResearchOS.
+
+## Screenshot
+
+::: {.screenshot-placeholder}
+**Screenshot placeholder**
+
+Add a current capability dashboard or execution screenshot at:
+
+`assets/screenshots/svg-selector.png`
+:::
+
+<!-- Replace the placeholder above with:
+![](../assets/screenshots/svg-selector.png){fig-alt="SVG polygon selector screen in ResearchOS"}
+-->
+
+## Supported XLSForm calls
+
+
+**From `example_odk_svg.select.xlsx`:**
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='svg.select',input_svg_name='bodymap_black.svg',input_selection_mode='sequence',return_mode='flat')
+```
+
+
+## Inputs observed in supplied examples
+
+_None documented in the supplied material._
+
+
+## Expected returned fields
+
+Return fields are documented from the specific XLSForm execution group only.
+
+The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.
+

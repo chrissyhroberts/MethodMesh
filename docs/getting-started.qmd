@@ -1,0 +1,56 @@
+---
+title: "Getting started"
+---
+
+## The operating model
+
+ResearchOS is a modular, offline-first capability extension layer for XLSForm-based research systems. It does not replace the EDC.
+
+A normal workflow is:
+
+1.  The form collects the inputs required by a capability.
+2.  The form invokes ResearchOS through the standard execution action.
+3.  ResearchOS validates the request and runs the selected method.
+4.  ResearchOS returns flat fields and, where useful, structured JSON.
+5.  The form continues and the EDC stores the research record.
+
+## Core principles
+
+- **XLSForm first:** capabilities are designed to be called from real forms.
+- **Offline first:** network use must be explicit rather than an invisible fallback.
+- **Local round trip:** the result returns to the calling EDC.
+- **No second research database:** ResearchOS executes specialist operations but does not become the participant record.
+- **Canonical methods:** forms call a stable ResearchOS method rather than a raw Android component.
+- **Traceable results:** outputs may include timestamps, provider details, hashes and diagnostics.
+
+## A first test
+
+A practical first test is the QR scanner because it has a simple request and an immediately visible result.
+
+1.  Install ResearchOS.
+2.  Import `example_odk_qr.scan.xlsx` into ODK Central or another compatible XLSForm server.
+3.  Download the form to ODK Collect.
+4.  Open the form and launch the ResearchOS scan group.
+5.  Scan a QR code.
+6.  Confirm that the decoded payload and format return to the form.
+
+[Open the QR scanner documentation](capabilities/qr-code.qmd)
+
+## Reading capability pages
+
+Every capability page follows the same sequence:
+
+1.  Status
+2.  Purpose
+3.  Capability IDs
+4.  Requirements
+5.  Screenshot placeholder
+6.  Supported calls
+7.  Inputs
+8.  Expected outputs
+9.  XLSForm examples
+10. Behaviour and validation
+11. Limitations
+12. Detailed source reference
+
+This makes unfinished work visible rather than allowing it to look complete by omission.

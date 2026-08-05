@@ -1,0 +1,319 @@
+---
+title: "Capability documentation standard"
+---
+
+Use these requirements when adding or revising a capability.
+
+## Source: `CAPABILITY_DOCUMENTATION_STANDARD.md`
+
+Every independently discoverable ResearchOS capability module owns its documentation. Documentation travels with the implementation and is reviewed whenever its public contract changes.
+
+## Required module structure
+
+``` text
+modules/<module>/
+├── <ModuleName>Module.kt
+├── ...
+└── docs/
+    ├── README_<CapabilityModule>.md
+    ├── example_odk_<Capability>.xlsx
+    └── ...
+```
+
+The module guide must have exactly one self-identifying filename matching `README_*.md`. A module that exposes several related capabilities documents all of them in that one guide.
+
+## Required guide content
+
+Every guide must include:
+
+- `## Capabilities` — public method IDs and their purpose;
+- `## Android intent` — complete, copyable invocation examples;
+- `## Inputs` — accepted names, types, defaults, constraints, and policies;
+- `## Outputs` — caller-facing result fields and their interpretation;
+- `## ODK example` — what the bundled workbook demonstrates and how to use it.
+
+The guide must distinguish:
+
+- manual/debug behaviour from external invocation behaviour;
+- required inputs from optional inputs;
+- canonical current fields from deprecated fields;
+- successful, cancelled, and failed outcomes;
+- direct work from capability dependencies.
+
+## Required XLSForm example
+
+The module must have one self-identifying workbook matching `example_odk_*.xlsx` for every public capability it exposes. Each must be a real XLSForm workbook containing sheets named:
+
+- `survey`;
+- `choices`;
+- `settings`.
+
+The canonical capability ID is the naming authority. A workbook is named `example_odk_<method-id>.xlsx`, and its `settings.form_title` is exactly `<method-id>`. A workbook demonstrating a verification or presentation variant uses the same suffix in both places, for example `example_odk_attestation.create_Fingerprint.xlsx` with `form_title=attestation.create_Fingerprint`.
+
+Each workbook should exercise one public capability. Intent-driven examples must:
+
+- use `com.example.researchos.EXECUTE_METHOD`;
+- identify the requested method explicitly;
+- place the action on a `begin_group` with `appearance` set to `field-list` when several values are returned;
+- include child fields whose names match returned intent extras;
+- prefix every capability input with `input_`; unprefixed fields are outputs;
+- place static configuration directly in `body::intent` so it does not appear as a question or stored field in the study dataset;
+- use `input64_` with URL-safe Base64 without padding for static structured values whose punctuation is unsafe in XLSForm intent syntax;
+- follow a known-working ODK pattern for those return fields, including read-only display fields where the deployed Collect version supports them;
+- demonstrate the smallest useful input contract while retaining any safety-critical policy.
+
+## Enforcement
+
+`CapabilityDocumentationTest` discovers modules from their `*Module.kt` files. It fails when:
+
+- the module has no `docs` package;
+- the guide is missing or ambiguously duplicated;
+- a required guide section is absent;
+- no example workbook exists or a workbook lacks a required XLSForm sheet.
+
+The test is intentionally generic. Adding a module must not require adding its name to the runtime, dashboard, documentation checker, or any other central list.
+
+## Change rule
+
+A change to a capability's method ID, accepted intent, input policy, dependency, result field, or caller lifecycle is incomplete until both its module guide and XLSForm example are updated.
+
+------------------------------------------------------------------------
+
+## Source: `XLSFormLab_Capability_Archetype.md`
+
+## 1. Capability identity
+
+Every capability must define a stable identity.
+
+``` kotlin
+id = "calibrated_scale"
+name = "Calibrated Scale"
+version = "1.0.0"
+category = CapabilityCategory.Measurement
+tags = listOf("pain", "vas", "scale", "measurement")
+```
+
+The `id` must be stable once released. New behaviour should be introduced through versioning.
+
+## 2. Manifest
+
+Each capability provides a manifest describing what it is, where it appears, what it supports, and what it returns.
+
+## 3. Settings schema
+
+Settings define persistent admin defaults. These are used unless temporarily overridden by an ODK intent.
+
+## 4. Intent override schema
+
+Intent overrides are temporary and must never alter stored admin defaults.
+
+## 5. Demo mode
+
+Every capability provides a standalone demo.
+
+## 6. Settings mode
+
+Every capability exposes configurable defaults.
+
+## 7. Help mode
+
+Every capability provides embedded documentation.
+
+## 8. Execution contract
+
+Every capability accepts a standard request and returns a standard result.
+
+## 9. Return contract
+
+Capabilities declare their returned fields and JSON schema.
+
+## 10. Copy XLSForm intent
+
+Every capability generates a ready-to-paste XLSForm intent template.
+
+## 11. Developer diagnostics
+
+Developer mode exposes effective settings, incoming intent, returned values and diagnostics.
+
+## 12. File structure
+
+``` text
+modules/
+  examplecapability/
+    ExampleCapabilityModule.kt
+    ExampleCapabilityManifest.kt
+    ExampleCapabilityDemo.kt
+    ExampleCapabilityHelp.kt
+    ExampleCapabilityExecution.kt
+    ExampleCapabilityReturnSchema.kt
+```
+
+## 13. Rule
+
+**Everything is a capability.**
+
+The shell should contain no special-case logic for individual modules.
+
+------------------------------------------------------------------------
+
+## Source: `ANDROID_DEVELOPER_GUIDE.md`
+
+This guide describes the current canonical Android implementation. The specification documents remain authoritative when this guide and a specification disagree.
+
+## Project structure
+
+The Android application lives under `app/src/main/java/com/example/researchos/`.
+
+- `core/researchos/` contains canonical architecture objects such as `Entity`, `Observation`, `Signal`, `Transformation`, `Relationship`, `ExecutionRequest`, and `ExecutionResult`.
+- `core/researchos/runtime/` contains the canonical method contract and execution engine.
+- `modules/` contains self-contained capability modules.
+- `platform/` contains Android and device-service boundaries.
+- `transport/` contains RIL parsing, Android intent routing, graph selection, and return formatting.
+- `ui/` contains the Compose dashboard and shared presentation components.
+
+There is one execution model. The former flat `Method`, `MethodRequest`, `MethodResult`, and adapter runtime no longer exist.
+
+## Capability modules
+
+Each capability implements `ResearchOSModule` and may expose:
+
+- canonical `As100Method` implementations;
+- RIL phrase bindings;
+- focused capability screens;
+- declared module dependencies;
+- module-owned examples.
+
+Modules are discovered from standalone `*Module` objects under the modules package. The runtime does not maintain a capability-specific central registry: adding a module, its screen, or its documentation should not require edits to core infrastructure.
+
+Capabilities may invoke other capabilities through their public invocation boundary. They must consume canonical results and must not copy a dependency's implementation. For example, QR-backed attestation invokes `qr.scan` and consumes its returned evidence.
+
+## Canonical execution
+
+A method receives an `ExecutionRequest` and returns an `ExecutionResult`. Results contain canonical graph objects and provenance. Successful results are recorded through `ResearchRuntime`.
+
+The external execution sequence is:
+
+``` text
+Android intent or RIL request
+  -> canonical method ID resolution
+  -> focused capability screen
+  -> required device-service or dependency interaction
+  -> ExecutionResult
+  -> compact selected return
+  -> calling application
+```
+
+An external invocation starts immediately. A capability may pause only for required permission, authentication, capture, consent, or method input. Dashboard launches remain manual and may expose configuration controls.
+
+## Android intent contract
+
+The exported action is:
+
+``` text
+com.example.researchos.EXECUTE_METHOD
+```
+
+The method selector is:
+
+``` text
+method_id='<canonical method ID>'
+```
+
+ODK multi-field calls use the action in the `body::intent` cell and `field-list` in the group appearance. Capability inputs use the generic `input_` namespace; ResearchOS removes that prefix before presenting the settings to the module. Unprefixed child fields are outputs and are never interpreted as capability configuration.
+
+Example:
+
+``` text
+com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',input_event_payload_hash=${form_payload_hash},input_verification_method='Fingerprint',input_trusted_timestamp='preferred',return_mode='flat')
+```
+
+Static structured strings that are unsafe or unwieldy in XLSForm intent syntax may use `input64_<name>`, containing URL-safe Base64 without padding. ResearchOS decodes the UTF-8 value and exposes it to the module as `<name>`.
+
+Transport keys such as `method_id`, `return_mode`, `returns`, and core invocation context remain unprefixed. Old method aliases, unprefixed capability settings, and old transport keys are not accepted.
+
+## RIL transport
+
+RIL is the canonical internal request representation. Direct transport uses:
+
+- `ril` for a complete RIL request; or
+- `method_id` plus `input_`-prefixed method settings;
+- `returns` for graph selectors;
+- `return_mode` for the requested shape.
+
+RIL phrases are owned by modules. Phrase resolution returns the module's canonical method ID. Unknown actions remain unresolved and must not be silently redirected.
+
+## Android app interoperability
+
+The `android_app_inspector` module provides a safe discovery and test harness for public Android integration points. It can:
+
+- list installed launchable applications;
+- inspect exported activities, services, receivers, and providers;
+- probe common public actions, categories, and URI schemes;
+- target an exported activity explicitly;
+- send an action, optional URI, and simple string extras;
+- capture result code, returned URI, and returned extras;
+- save a tested package/component/action/URI/extras combination locally as an integration definition.
+
+The Android public package APIs do not expose every raw manifest intent-filter or undocumented extra. The inspector therefore reports safe resolution probes and supports explicit testing of component/action combinations discovered from application documentation, source, or other authorised references. It does not bypass non-exported components, permissions, authentication, or private implementation details.
+
+The `bluetooth_device_inspector` module provides the corresponding hardware discovery path. It scans nearby BLE devices, connects to a selected device, enumerates GATT endpoints, reads readable characteristics, listens for notifications where supported, reports paired classic-Bluetooth serial candidates, and can save a profile to the central device registry. Transport-specific details remain behind the device-service boundary so later capabilities consume normalized device signals rather than owning Bluetooth code.
+
+## Direct-run output export
+
+When a capability is run from the ResearchOS dashboard, the shared result scaffold provides an **Export** action. Export writes one timestamped JSON record containing the selected return fields and a manifest of any linked attachments. Image, SVG, and other files are copied alongside the JSON using a common base name, so an exported record can be moved as a self-contained bundle. The default location is the app's public `Documents/ResearchOS/outputs` folder; the global Output storage panel can select a different Storage Access Framework folder. Callers such as ODK/Kobo continue to receive attachments through the normal return contract rather than relying on dashboard exports.
+
+## Returns
+
+The default caller return is intentionally compact:
+
+- execution ID, method ID, and status;
+- relevant invocation identifiers when supplied;
+- the scientific or operational result;
+- the minimum provenance required to interpret or verify it;
+- failure diagnostics only when execution fails.
+
+Canonical graph objects and full provenance remain in the ResearchOS graph. Explicit graph selectors may request particular canonical fields. The return formatter does not reproduce deleted flat-model aliases.
+
+## Dashboard organization
+
+The capability dashboard is a manual test and inspection surface, not a second capability registry. Capabilities remain standalone modules, but the dashboard groups them by owning module and provides a search filter so a large installed set can be navigated without scrolling through every method. This presentation layer does not add dependencies between modules or change external intent behavior.
+
+## Attestation contract
+
+`attestation.create` requires:
+
+- `event_payload_hash`: exactly 64 hexadecimal SHA-256 characters;
+- `verification_method`: one of `Fingerprint`, `Pin`, `Qr`, `Nfc`, or `Password`.
+
+`trusted_timestamp` is optional and accepts only:
+
+- `disabled`;
+- `preferred`;
+- `required`.
+
+ResearchOS signs the supplied form hash directly. Raw `event_payload` input and automatic double-hash detection are not supported.
+
+Attestation schema version 4 returns the public key, signature, chain link, hash-only verification evidence, and optional full RFC 3161 evidence. Fingerprint, QR, and NFC verification use their respective capability or device-service boundaries. Raw QR, NFC, and study-token credentials are consumed transiently and are not placed in the attestation record or caller return.
+
+## Adding a capability
+
+1.  Create a folder under `modules/<capability>/`.
+2.  Implement one or more canonical `As100Method` objects.
+3.  Define method descriptors and contracts, including required context and produced graph outputs.
+4.  Create a focused `CapabilityScreenSpec` when interaction is required.
+5.  Expose the methods, screens, RIL bindings, and dependencies from a `ResearchOSModule` object.
+6.  Add unit tests for method output, RIL resolution, return formatting, and invalid requests.
+7.  Verify dashboard and external invocation modes separately.
+
+Do not add an adapter, alias, second result model, direct hardware call from a method, or module-specific transport parser.
+
+## Verification
+
+Run:
+
+``` bash
+./gradlew testDebugUnitTest
+./gradlew assembleDebug
+```
+
+Device-dependent behavior such as camera, NFC, biometric prompts, location, and ODK round trips must also be tested on an Android device.

@@ -1,0 +1,68 @@
+project:
+  type: website
+  output-dir: _site
+  resources:
+    - examples/**
+    - assets/**
+
+website:
+  title: "ResearchOS User Guide"
+  search: true
+  page-navigation: true
+  repo-url: https://github.com/chrissyhroberts/ResearchOS
+  repo-actions: [edit, issue]
+  sidebar:
+    style: docked
+    collapse-level: 2
+    contents:
+      - index.qmd
+      - getting-started.qmd
+      - installation.qmd
+      - concepts.qmd
+      - xlsform-integration.qmd
+      - scheduling.qmd
+      - section: "Capabilities"
+        contents:
+          - capabilities/index.qmd
+          - capabilities/admin-fingerprint.qmd
+          - capabilities/app-inspector.qmd
+          - capabilities/attestation.qmd
+          - capabilities/bluetooth-inspector.qmd
+          - capabilities/bluetooth-printer.qmd
+          - capabilities/calibrated-scale.qmd
+          - capabilities/choice-experiments.qmd
+          - capabilities/document-scanner.qmd
+          - capabilities/gps-target-navigator.qmd
+          - capabilities/mlkit-translate.qmd
+          - capabilities/mlkit-vision.qmd
+          - capabilities/nfc.qmd
+          - capabilities/odk-form-launcher.qmd
+          - capabilities/provider-command.qmd
+          - capabilities/qr-code.qmd
+          - capabilities/scaled-photo.qmd
+          - capabilities/scheduler-capability.qmd
+          - capabilities/sensor-firmware-installer.qmd
+          - capabilities/sensor-provisioner.qmd
+          - capabilities/sensor-read.qmd
+          - capabilities/sms.qmd
+          - capabilities/spatial-geometry.qmd
+          - capabilities/speech-transcription.qmd
+          - capabilities/svg-selector.qmd
+      - examples/index.qmd
+      - troubleshooting.qmd
+      - section: "Technical reference"
+        contents:
+          - reference/architecture.qmd
+          - reference/ril.qmd
+          - reference/capability-documentation-standard.qmd
+          - reference/specification-status.qmd
+          - reference/release-notes.qmd
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+    code-copy: true
+    code-overflow: wrap
+    link-external-newwindow: true
