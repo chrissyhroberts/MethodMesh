@@ -46,6 +46,8 @@ class SchedulerAlarmReceiver : BroadcastReceiver() {
                 SchedulerTarget.ODK_FORM -> "Complete the scheduled ODK form"
                 SchedulerTarget.WEB_FORM -> "Complete the scheduled online form"
                 SchedulerTarget.CAPABILITY -> "Run the scheduled ResearchOS capability"
+                SchedulerTarget.PRESET -> "Run the scheduled ResearchOS preset"
+                SchedulerTarget.PROTOCOL -> "Run the scheduled ResearchOS protocol"
                 SchedulerTarget.CLIPBOARD -> "Run the scheduled clipboard action"
             }
         }

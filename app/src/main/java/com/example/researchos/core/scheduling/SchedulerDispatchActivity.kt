@@ -7,43 +7,79 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import com.example.researchos.transport.android.IntentRouterActivity
 import android.os.Bundle
+import android.widget.Toast
+import com.example.researchos.core.protocols.CapabilityPreset
+import com.example.researchos.core.protocols.ProtocolLibraryRepository
 import com.example.researchos.platform.externalforms.ExternalFormCatalog
+import com.example.researchos.transport.OutputExportRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.time.Instant
+import java.util.UUID
 
 class SchedulerDispatchActivity : Activity() {
     private var resultHandled = false
+    private var activeSchedule: ResearchSchedule? = null
     private val testChain: Boolean
         get() = intent.getBooleanExtra("test_chain", false)
+    private val transientProtocolRun: Boolean
+        get() = intent.getBooleanExtra("transient_protocol_run", false)
+    private val transientPresetRun: Boolean
+        get() = intent.getBooleanExtra("transient_preset_run", false)
+    private val protocolId: String
+        get() = intent.getStringExtra("protocol_id").orEmpty()
+    private val protocolStepIndex: Int
+        get() = intent.getIntExtra("protocol_step_index", 0)
+    private val outputGroupFolder: String
+        get() = intent.getStringExtra("output_group_folder").orEmpty()
+    private val protocolSubmissionId: String
+        get() = intent.getStringExtra("protocol_submission_id").orEmpty()
+    private val suppressOutput: Boolean
+        get() = intent.getBooleanExtra("suppress_output", false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val schedule = SchedulerRepository.get(this, intent.getStringExtra("schedule_id").orEmpty())
+            ?: transientProtocolSchedule()
+            ?: transientPresetSchedule()
         if (schedule == null) { finish(); return }
+        activeSchedule = schedule
         SchedulerRepository.recordEvent(this, schedule.id, "dispatch_started:${intent.getStringExtra("notification_kind").orEmpty().ifBlank { "direct" }}")
         if (schedule.chainOrder <= 0) clearChainClipboard(schedule)
+        if (protocolId.isNotBlank()) {
+            val protocol = ProtocolLibraryRepository.protocol(this, protocolId)
+            val step = protocol?.steps?.sortedBy { it.order }?.getOrNull(protocolStepIndex)
+            val preset = step?.let { ProtocolLibraryRepository.preset(this, it.presetId) }
+            if (preset == null) {
+                SchedulerRepository.recordEvent(this, schedule.id, "protocol_step_missing:$protocolStepIndex")
+                finish()
+                return
+            }
+            launchPreset(preset)
+            return
+        }
+        if (schedule.target == SchedulerTarget.PROTOCOL) {
+            launchProtocolStep(schedule, schedule.targetValue, 0)
+            return
+        }
         if (schedule.target == SchedulerTarget.WEB_FORM) {
             startActivityForResult(Intent(Intent.ACTION_VIEW, Uri.parse(schedule.targetValue)), 102)
             return
         }
         if (schedule.target == SchedulerTarget.CAPABILITY) {
-            startActivityForResult(Intent(this, IntentRouterActivity::class.java).apply {
-                action = "com.example.researchos.EXECUTE_METHOD"
-                putExtra("method_id", schedule.targetValue)
-                runCatching {
-                    val modifiers = JSONObject(schedule.targetSettings)
-                    modifiers.keys().forEach { key ->
-                        val value = modifiers.optString(key)
-                        // Capability settings use the canonical external-input
-                        // namespace so the normal RIL transport exposes them to
-                        // the selected method. Plain extras are treated as ODK
-                        // return placeholders and are intentionally ignored.
-                        putExtra("input_$key", value)
-                    }
-                }
-            }, 101)
+            launchCapability(schedule.targetValue, schedule.targetSettings)
+            return
+        }
+        if (schedule.target == SchedulerTarget.PRESET) {
+            val preset = ProtocolLibraryRepository.preset(this, schedule.targetValue)
+            if (preset == null) {
+                SchedulerRepository.recordEvent(this, schedule.id, "preset_not_found:${schedule.targetValue}")
+                finish()
+                return
+            }
+            launchPreset(preset)
             return
         }
         if (schedule.target == SchedulerTarget.CLIPBOARD) {
@@ -79,12 +115,16 @@ class SchedulerDispatchActivity : Activity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultHandled) return
         resultHandled = true
-        val current = SchedulerRepository.get(this, intent.getStringExtra("schedule_id").orEmpty())
+        val current = activeSchedule ?: SchedulerRepository.get(this, intent.getStringExtra("schedule_id").orEmpty())
         // ODK Collect and browser-based forms commonly return RESULT_CANCELED even
         // after the external activity has completed. For those transports, returning
         // to ResearchOS is the completion signal. Capability calls retain strict
         // RESULT_OK semantics unless this is an explicit test run.
         val completed = resultCode == RESULT_OK || requestCode == 100 || requestCode == 102 || testChain
+        val activeProtocol = if (completed && current != null && protocolId.isNotBlank()) {
+            ProtocolLibraryRepository.protocol(this, protocolId)
+        } else null
+        val nextProtocolStep = activeProtocol?.steps?.sortedBy { it.order }?.getOrNull(protocolStepIndex + 1)
         if (requestCode == 101 && (resultCode == RESULT_OK || testChain) && data != null) {
             val output = data.getStringExtra("value").orEmpty().ifBlank {
                 data.extras?.keySet().orEmpty()
@@ -94,13 +134,43 @@ class SchedulerDispatchActivity : Activity() {
             }
             if (output.isNotBlank()) {
                 current?.let {
-                    publishChainClipboard(it, output, "ResearchOS scheduled capability")
-                    SchedulerRepository.recordEvent(this, it.id, "completed_output_copied")
+                    if (it.target == SchedulerTarget.CLIPBOARD) {
+                        publishChainClipboard(it, output, "ResearchOS scheduled capability")
+                        SchedulerRepository.recordEvent(this, it.id, "completed_output_copied")
+                    } else if (suppressOutput) {
+                        SchedulerRepository.recordEvent(this, it.id, "completed_output_suppressed")
+                    } else {
+                        val exported = exportReturnedFields(it, data)
+                        SchedulerRepository.recordEvent(this, it.id, "completed_output_exported:${exported.folderName}")
+                        if (nextProtocolStep == null) {
+                            Toast.makeText(this, "Saved ResearchOS output: ${exported.folderName}", Toast.LENGTH_LONG).show()
+                            OutputExportRepository.notifySaved(this, exported)
+                        }
+                    }
                 }
             }
         }
-        if (completed && current != null) SchedulerRepository.markCompleted(this, current)
+        if (completed && current != null && !transientProtocolRun && !transientPresetRun) SchedulerRepository.markCompleted(this, current)
+        else if (completed && current != null) SchedulerRepository.recordEvent(this, current.id, "completed")
         else current?.let { SchedulerRepository.recordEvent(this, it.id, "cancelled") }
+        if (completed && current != null && protocolId.isNotBlank()) {
+            val nextStep = nextProtocolStep
+            if (nextStep != null) {
+                SchedulerRepository.recordEvent(this, current.id, "protocol_step_completed:$protocolStepIndex")
+                startActivity(Intent(this, SchedulerDispatchActivity::class.java)
+                    .setAction("com.example.researchos.SCHEDULED_PROTOCOL_DISPATCH")
+                    .putExtra("schedule_id", current.id)
+                    .putExtra("protocol_id", protocolId)
+                    .putExtra("protocol_step_index", protocolStepIndex + 1)
+                    .putExtra("transient_protocol_run", transientProtocolRun)
+                    .putExtra("output_group_folder", outputGroupFolder)
+                    .putExtra("protocol_submission_id", protocolSubmissionId)
+                    .putExtra("suppress_output", suppressOutput)
+                    .putExtra("test_chain", testChain))
+                finish()
+                return
+            }
+        }
         val next = if (completed) current?.let { SchedulerRepository.nextInChain(this, it) } else null
         if (next != null) {
             SchedulerRepository.recordEvent(this, next.id, "chain_dispatch_started")
@@ -111,6 +181,129 @@ class SchedulerDispatchActivity : Activity() {
         }
         finish()
     }
+
+    private fun launchProtocolStep(schedule: ResearchSchedule, protocolLookup: String, stepIndex: Int) {
+        val protocol = ProtocolLibraryRepository.protocol(this, protocolLookup)
+        val step = protocol?.steps?.sortedBy { it.order }?.getOrNull(stepIndex)
+        if (protocol == null || step == null) {
+            SchedulerRepository.recordEvent(this, schedule.id, "protocol_not_found:$protocolLookup")
+            finish()
+            return
+        }
+        SchedulerRepository.recordEvent(this, schedule.id, "protocol_step_started:${step.order}:${step.name}")
+        val group = outputGroupFolder.ifBlank {
+            val submissionId = protocolSubmissionId.ifBlank { UUID.randomUUID().toString() }
+            "protocol_${safeName(protocol.name)}_${Instant.now().toString().replace(Regex("[^A-Za-z0-9_.-]"), "_")}_$submissionId"
+        }
+        val submissionId = protocolSubmissionId.ifBlank { group.substringAfterLast('_') }
+        startActivity(Intent(this, SchedulerDispatchActivity::class.java)
+            .setAction("com.example.researchos.SCHEDULED_PROTOCOL_DISPATCH")
+            .putExtra("schedule_id", schedule.id)
+            .putExtra("protocol_id", protocol.id)
+            .putExtra("protocol_step_index", stepIndex)
+            .putExtra("transient_protocol_run", transientProtocolRun)
+            .putExtra("output_group_folder", group)
+            .putExtra("protocol_submission_id", submissionId)
+            .putExtra("suppress_output", suppressOutput)
+            .putExtra("test_chain", testChain))
+        finish()
+    }
+
+    private fun transientProtocolSchedule(): ResearchSchedule? {
+        val id = intent.getStringExtra("protocol_id").orEmpty().ifBlank { intent.getStringExtra("protocol_lookup").orEmpty() }
+        if (id.isBlank()) return null
+        val protocol = ProtocolLibraryRepository.protocol(this, id) ?: return null
+        return ResearchSchedule(
+            id = "__protocol_run_${protocol.id}",
+            name = protocol.name,
+            target = SchedulerTarget.PROTOCOL,
+            targetValue = protocol.id,
+            frequency = SchedulerFrequency.DAILY,
+            hour = 0,
+            minute = 0,
+            enabled = false
+        )
+    }
+
+    private fun transientPresetSchedule(): ResearchSchedule? {
+        val id = intent.getStringExtra("preset_id").orEmpty().ifBlank { intent.getStringExtra("preset_lookup").orEmpty() }
+        if (id.isBlank()) return null
+        val preset = ProtocolLibraryRepository.preset(this, id) ?: return null
+        return ResearchSchedule(
+            id = "__preset_run_${preset.id}",
+            name = preset.name,
+            target = SchedulerTarget.PRESET,
+            targetValue = preset.id,
+            frequency = SchedulerFrequency.DAILY,
+            hour = 0,
+            minute = 0,
+            enabled = false
+        )
+    }
+
+    private fun launchPreset(preset: CapabilityPreset) {
+        SchedulerRepository.recordEvent(this, intent.getStringExtra("schedule_id").orEmpty(), "preset_started:${preset.name}")
+        launchCapability(preset.methodId, preset.settingsJson)
+    }
+
+    private fun launchCapability(methodId: String, settingsJson: String) {
+        startActivityForResult(Intent(this, IntentRouterActivity::class.java).apply {
+            action = "com.example.researchos.EXECUTE_METHOD"
+            putExtra("method_id", methodId)
+            runCatching {
+                val modifiers = JSONObject(settingsJson.ifBlank { "{}" })
+                modifiers.keys().forEach { key ->
+                    val value = modifiers.optString(key)
+                    // Capability settings use the canonical external-input
+                    // namespace so the normal RIL transport exposes them to
+                    // the selected method. Plain extras are treated as ODK
+                    // return placeholders and are intentionally ignored.
+                    putExtra("input_$key", value)
+                }
+            }
+        }, 101)
+    }
+
+    private fun exportReturnedFields(schedule: ResearchSchedule, data: Intent): OutputExportRepository.ExportPackage {
+        val extras = data.extras
+        val fields = extras?.keySet().orEmpty()
+            .filterNot { it == "value" }
+            .associateWith { key -> extras?.get(key)?.toString() }
+        val methodId = fields["researchos_method_id"] ?: schedule.targetValue
+        val status = fields["researchos_status"] ?: "Succeeded"
+        val protocol = protocolId.takeIf { it.isNotBlank() }?.let { ProtocolLibraryRepository.protocol(this, it) }
+        val protocolStep = protocol?.steps?.sortedBy { it.order }?.getOrNull(protocolStepIndex)
+        val label = when {
+            protocol != null -> "${"%02d".format(protocolStepIndex + 1)}_${safeName(protocolStep?.name ?: schedule.name)}"
+            schedule.target == SchedulerTarget.PRESET -> safeName(schedule.name)
+            else -> safeName(methodId)
+        }
+        val parent = outputGroupFolder.takeIf { it.isNotBlank() }
+        if (protocol != null && parent != null) {
+            return OutputExportRepository.exportProtocolStepPackage(
+                context = this,
+                protocolFolder = parent,
+                protocolName = protocol.name,
+                protocolSubmissionId = protocolSubmissionId.ifBlank { parent.substringAfterLast('_') },
+                stepIndex = protocolStepIndex,
+                stepName = protocolStep?.name ?: schedule.name,
+                methodId = methodId,
+                status = status,
+                fields = fields
+            )
+        }
+        return OutputExportRepository.exportFlatPackage(
+            context = this,
+            packageLabel = label,
+            methodId = methodId,
+            status = status,
+            fields = fields,
+            parentFolder = parent
+        )
+    }
+
+    private fun safeName(value: String): String =
+        value.replace(Regex("[^A-Za-z0-9_.-]"), "_").trim('_').ifBlank { "researchos_run" }
 
     /**
      * A chained run has one clipboard destination. Keep the output from each

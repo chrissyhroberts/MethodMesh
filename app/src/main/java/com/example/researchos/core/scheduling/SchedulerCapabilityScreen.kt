@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.core.researchos.runtime.As100MethodRegistry
 import com.example.researchos.core.researchos.runtime.CapabilityConfigurationRegistry
+import com.example.researchos.core.protocols.ProtocolLibraryRepository
 import com.example.researchos.settings.MethodSetting
 import org.json.JSONObject
 import com.example.researchos.transport.OutputFormatter
@@ -89,6 +90,8 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
         var savedProjects by remember { mutableStateOf(ExternalProjectRegistry.load(androidContext)) }
         var availableForms by remember { mutableStateOf(emptyList<ExternalForm>()) }
         val installedCapabilities = remember { As100MethodRegistry.all().map { it.id }.filterNot { it.startsWith("scheduler.") }.distinct().sorted() }
+        var savedPresets by remember { mutableStateOf(ProtocolLibraryRepository.presets(androidContext)) }
+        var savedProtocols by remember { mutableStateOf(ProtocolLibraryRepository.protocols(androidContext)) }
         var actionTypes by remember { mutableStateOf(List(5) { index -> if (index == 0) target else "ODK_FORM" }) }
         var actionValues by remember { mutableStateOf(List(5) { index -> if (index == 0) targetValue else "" }) }
         var actionModifiers by remember { mutableStateOf(List(5) { index -> if (index == 0) suppliedValue("schedule_target_settings") else "" }) }
@@ -182,7 +185,14 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
                             SchedulerDropdownField(
                                 "Action type",
                                 actionTypeLabel(actionType),
-                                listOf("XLSForm" to "ODK_FORM", "Web form" to "WEB_FORM", "ResearchOS capability" to "CAPABILITY", "Clipboard text" to "CLIPBOARD")
+                                listOf(
+                                    "XLSForm" to "ODK_FORM",
+                                    "Web form" to "WEB_FORM",
+                                    "ResearchOS capability" to "CAPABILITY",
+                                    "Saved capability preset" to "PRESET",
+                                    "Saved protocol" to "PROTOCOL",
+                                    "Clipboard text" to "CLIPBOARD"
+                                )
                             ) { selected ->
                                 actionTypes = actionTypes.toMutableList().also { it[index] = selected }
                         actionValues = actionValues.toMutableList().also { it[index] = "" }
@@ -210,6 +220,22 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
                             CapabilitySettingsCard(actionValues[index], actionModifiers[index]) { value ->
                                 actionModifiers = actionModifiers.toMutableList().also { it[index] = value }
                             }
+                        }
+                        "PRESET" -> {
+                            SchedulerDropdownField(
+                                "Preset",
+                                savedPresets.firstOrNull { it.id == actionValues[index] }?.name ?: actionValues[index].ifBlank { "Choose saved preset" },
+                                savedPresets.map { it.name to it.id }
+                            ) { value -> actionValues = actionValues.toMutableList().also { it[index] = value } }
+                            if (savedPresets.isEmpty()) Text("No saved presets yet. Create one from the Protocol library or import a library bundle.", style = MaterialTheme.typography.bodySmall)
+                        }
+                        "PROTOCOL" -> {
+                            SchedulerDropdownField(
+                                "Protocol",
+                                savedProtocols.firstOrNull { it.id == actionValues[index] }?.name ?: actionValues[index].ifBlank { "Choose saved protocol" },
+                                savedProtocols.map { it.name to it.id }
+                            ) { value -> actionValues = actionValues.toMutableList().also { it[index] = value } }
+                            if (savedProtocols.isEmpty()) Text("No saved protocols yet. Import a library bundle or create one in the Protocol library.", style = MaterialTheme.typography.bodySmall)
                         }
                         else -> OutlinedTextField(actionValues[index], { value -> actionValues = actionValues.toMutableList().also { it[index] = value } }, label = { Text(if (actionType == "WEB_FORM") "Web form URL" else "Clipboard text") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                             }
@@ -258,6 +284,8 @@ private fun actionTypeLabel(type: String): String = when (type) {
     "ODK_FORM" -> "XLSForm"
     "WEB_FORM" -> "Web form"
     "CAPABILITY" -> "ResearchOS capability"
+    "PRESET" -> "Saved preset"
+    "PROTOCOL" -> "Saved protocol"
     "CLIPBOARD" -> "Clipboard text"
     else -> "Choose action type"
 }
@@ -272,7 +300,7 @@ private fun CapabilitySettingsCard(methodId: String, raw: String, onChanged: (St
                 existing.keys().forEach { key -> put(key, existing.optString(key)) }
             }
             schema.forEach { setting ->
-                val value = existing?.optString(setting.id, null) ?: when (setting) {
+                val value = existing?.takeIf { it.has(setting.id) }?.optString(setting.id) ?: when (setting) {
                     is MethodSetting.BooleanSetting -> setting.defaultValue.toString()
                     is MethodSetting.IntSetting -> setting.defaultValue.toString()
                     is MethodSetting.FloatSetting -> setting.defaultValue.toString()

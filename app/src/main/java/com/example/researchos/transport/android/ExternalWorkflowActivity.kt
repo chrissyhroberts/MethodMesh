@@ -162,21 +162,15 @@ private fun ExternalWorkflowScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(18.dp)
+            .padding(8.dp)
     ) {
-        Text(
-            "ResearchOS",
-            style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            if (actions.size == 1) "Complete the requested action" else "Complete ${actions.size} requested actions",
-            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
-            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(16.dp))
-
         if (actions.isEmpty()) {
+            Text(
+                "ResearchOS",
+                style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(16.dp))
             Text("No actions were supplied by the calling app.")
             Spacer(Modifier.height(12.dp))
             Button(onClick = onCancel) { Text("Close") }

@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
@@ -45,6 +46,11 @@ data class CapabilityScreenContext(
         CapabilityCompletionMode.ManualConfirmation
     } else {
         CapabilityCompletionMode.AutomaticReturn
+    },
+    val presentationMode: CapabilityPresentationMode = if (request.source.equals("dashboard", ignoreCase = true)) {
+        CapabilityPresentationMode.Dashboard
+    } else {
+        CapabilityPresentationMode.IntentLaunch
     }
 ) {
     val isLastStep: Boolean get() = stepNumber >= totalSteps
@@ -54,6 +60,11 @@ data class CapabilityScreenContext(
 enum class CapabilityCompletionMode {
     ManualConfirmation,
     AutomaticReturn
+}
+
+enum class CapabilityPresentationMode {
+    Dashboard,
+    IntentLaunch
 }
 
 interface CapabilityScreenSpec {
@@ -92,6 +103,9 @@ fun CapabilityScreenScaffold(
     content: @Composable () -> Unit
 ) {
     val appContext = LocalContext.current
+    val intentPresentation = context.presentationMode == CapabilityPresentationMode.IntentLaunch
+    val automaticReturn = context.completionMode == CapabilityCompletionMode.AutomaticReturn
+    var exportPackage by remember(capturedResult?.request?.id?.value) { mutableStateOf<OutputExportRepository.ExportPackage?>(null) }
     var exportStatus by rememberSaveable(capturedResult?.request?.id?.value) { mutableStateOf<String?>(null) }
     var showDetails by rememberSaveable { mutableStateOf(false) }
     var showAllResultFields by rememberSaveable(capturedResult?.request?.id?.value) { mutableStateOf(false) }
@@ -108,70 +122,112 @@ fun CapabilityScreenScaffold(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(if (intentPresentation) 28.dp else 24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (intentPresentation) 0.dp else 5.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (intentPresentation) {
+                MaterialTheme.colorScheme.background
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        )
     ) {
-        Column(Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.secondaryContainer
+        Column(Modifier.padding(if (intentPresentation) 24.dp else 20.dp)) {
+            if (!intentPresentation || context.totalSteps > 1) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            text = "Step ${context.stepNumber} of ${context.totalSteps}",
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
                     Text(
-                        text = "Step ${context.stepNumber} of ${context.totalSteps}",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        text = if (capturedResult == null) "In progress" else if (automaticReturn) "Returning…" else "Ready",
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        color = if (capturedResult == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
                     )
                 }
-                Text(
-                    text = if (capturedResult == null) "In progress" else "Ready to return",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (capturedResult == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
-                )
+                Spacer(Modifier.height(if (intentPresentation) 20.dp else 16.dp))
             }
 
-            Spacer(Modifier.height(16.dp))
-            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(
+                title,
+                style = if (intentPresentation) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
             Text(
                 text = context.action.requestedId,
-                style = MaterialTheme.typography.bodyMedium,
+                style = if (intentPresentation) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(if (intentPresentation) 24.dp else 18.dp))
 
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                shape = RoundedCornerShape(if (intentPresentation) 24.dp else 18.dp),
+                color = if (intentPresentation) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                }
             ) {
-                Column(Modifier.padding(16.dp)) { content() }
+                Column(Modifier.padding(if (intentPresentation) 20.dp else 16.dp)) { content() }
             }
 
             Spacer(Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = if (intentPresentation) Arrangement.Start else Arrangement.End
+            ) {
                 if (canGoBack) {
                     OutlinedButton(onClick = onBack) { Text("Back") }
                     Spacer(Modifier.width(8.dp))
                 }
                 OutlinedButton(onClick = onCancel) { Text("Cancel") }
-                Spacer(Modifier.width(8.dp))
-                if (capturedResult != null) {
-                    OutlinedButton(onClick = onRetry) { Text("Retry") }
+                if (!intentPresentation) {
                     Spacer(Modifier.width(8.dp))
-                    OutlinedButton(onClick = { exportStatus = runCatching { OutputExportRepository.export(appContext, capturedResult) }.fold({ "Exported to $it" }, { "Export failed: ${it.message ?: "storage error"}" }) }) { Text("Export") }
+                    if (capturedResult != null) {
+                        OutlinedButton(onClick = onRetry) { Text("Retry") }
+                        Spacer(Modifier.width(8.dp))
+                        OutlinedButton(onClick = {
+                            runCatching { OutputExportRepository.exportPackage(appContext, capturedResult) }
+                                .onSuccess {
+                                    exportPackage = it
+                                    exportStatus = "Exported ${it.summary}"
+                                    OutputExportRepository.notifySaved(appContext, it)
+                                }
+                                .onFailure { exportStatus = "Export failed: ${it.message ?: "storage error"}" }
+                        }) { Text("Export") }
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Button(enabled = capturedResult != null, onClick = onConfirm) {
+                        Text(if (context.isLastStep) "Use result" else "Continue")
+                    }
+                } else if (capturedResult != null && automaticReturn) {
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "Returning to calling app…",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                } else if (capturedResult != null) {
                     Spacer(Modifier.width(8.dp))
-                }
-                Button(enabled = capturedResult != null, onClick = onConfirm) {
-                    Text(if (context.isLastStep) "Use result" else "Continue")
+                    Button(enabled = true, onClick = onConfirm) {
+                        Text(if (context.isLastStep) "Use result" else "Continue")
+                    }
                 }
             }
 
-            if (capturedResult != null && resultPreview.isNotEmpty()) {
+            if (!intentPresentation && capturedResult != null && resultPreview.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -206,21 +262,66 @@ fun CapabilityScreenScaffold(
                     }
                 }
             }
-            exportStatus?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
+            if (exportStatus != null || exportPackage != null) {
+                Spacer(Modifier.height(10.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f)
+                ) {
+                    Column(Modifier.padding(14.dp)) {
+                        exportStatus?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                        exportPackage?.let { pkg ->
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "JSON: ${pkg.json.filename}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            if (pkg.attachments.isNotEmpty()) {
+                                Text(
+                                    "Attachments: ${pkg.attachments.size}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(onClick = {
+                                    runCatching { OutputExportRepository.openLocation(appContext, pkg) }
+                                        .onFailure { exportStatus = "Open failed: ${it.message ?: "no file app available"}" }
+                                }) { Text(if (pkg.folderUri != null) "Open folder" else "Open file") }
+                                Button(onClick = {
+                                    runCatching { OutputExportRepository.share(appContext, pkg) }
+                                        .onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
+                                }) { Text("Share") }
+                            }
+                        }
+                    }
+                }
+            }
 
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = if (showDetails) "Hide technical details" else "Technical details",
-                modifier = Modifier.clickable { showDetails = !showDetails }.padding(vertical = 6.dp),
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.labelLarge
-            )
-            AnimatedVisibility(showDetails) {
-                Column {
-                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    Text("Capability: $capabilityId", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                    Text("Subject: ${context.request.invocationContext.canonicalEntityId}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                    Text("Source: ${context.request.source}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+            if (!intentPresentation) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = if (showDetails) "Hide technical details" else "Technical details",
+                    modifier = Modifier.clickable { showDetails = !showDetails }.padding(vertical = 6.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge
+                )
+                AnimatedVisibility(showDetails) {
+                    Column {
+                        HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                        Text("Capability: $capabilityId", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                        Text("Subject: ${context.request.invocationContext.canonicalEntityId}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                        Text("Source: ${context.request.source}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
         }
