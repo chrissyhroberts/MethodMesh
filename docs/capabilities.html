@@ -252,6 +252,18 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./capabilities/question-primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Question primitives</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/random-number.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Random number generator</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./capabilities/scaled-photo.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Scaled photo selector</span></a>
   </div>
@@ -384,6 +396,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#schedule" id="toc-schedule" class="nav-link" data-scroll-target="#schedule">Schedule</a></li>
   </ul></li>
   <li><a href="#current-modules" id="toc-current-modules" class="nav-link" data-scroll-target="#current-modules">Current modules</a></li>
+  <li><a href="#native-protocols-and-outputs" id="toc-native-protocols-and-outputs" class="nav-link" data-scroll-target="#native-protocols-and-outputs">Native protocols and outputs</a></li>
   <li><a href="#capability-documentation" id="toc-capability-documentation" class="nav-link" data-scroll-target="#capability-documentation">Capability documentation</a></li>
   <li><a href="#provider-adapters" id="toc-provider-adapters" class="nav-link" data-scroll-target="#provider-adapters">Provider adapters</a></li>
   <li><a href="#choosing-a-capability" id="toc-choosing-a-capability" class="nav-link" data-scroll-target="#choosing-a-capability">Choosing a capability</a></li>
@@ -542,6 +555,8 @@ ul.task-list li input[type="checkbox"] {
 <li>NFC;</li>
 <li>QR codes and barcodes;</li>
 <li>SMS;</li>
+<li>random number generation;</li>
+<li>native question primitives;</li>
 <li>sensors and connected devices;</li>
 <li>document scanning;</li>
 <li>speech transcription;</li>
@@ -551,6 +566,11 @@ ul.task-list li input[type="checkbox"] {
 <li>attestation;</li>
 <li>scheduling.</li>
 </ul>
+</section>
+<section id="native-protocols-and-outputs" class="level2">
+<h2 class="anchored" data-anchor-id="native-protocols-and-outputs">Native protocols and outputs</h2>
+<p>ResearchOS can now run simple native protocols without handing every step to an external form app. A configured capability can be saved as a preset, presets can be chained into a named protocol, and the whole run can be exported as one output package.</p>
+<p>Each exported package has a stable <code>researchos_submission_id</code>. The same UUID appears in the output folder/filename and inside the JSON, and protocol steps share the same UUID. This makes the exported JSON suitable as a submission-level record for later parsing in R.</p>
 </section>
 <section id="capability-documentation" class="level2">
 <h2 class="anchored" data-anchor-id="capability-documentation">Capability documentation</h2>

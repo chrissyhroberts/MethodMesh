@@ -2335,652 +2335,795 @@
     ]
   },
   {
-    "objectID": "capabilities/provider-command.html",
-    "href": "capabilities/provider-command.html",
-    "title": "External command library",
+    "objectID": "capabilities/random-number.html",
+    "href": "capabilities/random-number.html",
+    "title": "Random number generator",
     "section": "",
-    "text": "Status: Partial return support\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
+    "text": "Status: Documented and implemented\nThis is a native ResearchOS calculation capability. It is intended as a general-purpose random source and as a foundation for later allocation and block randomisation modules.",
     "crumbs": [
       "Capabilities",
-      "External command library"
+      "Random number generator"
     ]
   },
   {
-    "objectID": "capabilities/provider-command.html#purpose",
-    "href": "capabilities/provider-command.html#purpose",
-    "title": "External command library",
+    "objectID": "capabilities/random-number.html#purpose",
+    "href": "capabilities/random-number.html#purpose",
+    "title": "Random number generator",
     "section": "Purpose",
-    "text": "Purpose\nRun a saved, typed Android intent command against an installed provider application.",
+    "text": "Purpose\nGenerate one or more random numbers with configurable range, step size and seed behaviour.\nThe capability supports:\n\nsecure-random generation for ordinary use;\nfixed-seed generation for reproducible testing or deterministic allocation sequences;\ninteger-like or stepped numeric ranges.",
     "crumbs": [
       "Capabilities",
-      "External command library"
+      "Random number generator"
     ]
   },
   {
-    "objectID": "capabilities/provider-command.html#capability-ids",
-    "href": "capabilities/provider-command.html#capability-ids",
-    "title": "External command library",
-    "section": "Capability IDs",
-    "text": "Capability IDs\n\nprovider.command.run",
+    "objectID": "capabilities/random-number.html#capability-id",
+    "href": "capabilities/random-number.html#capability-id",
+    "title": "Random number generator",
+    "section": "Capability ID",
+    "text": "Capability ID\n\nrandom.number.generate",
     "crumbs": [
       "Capabilities",
-      "External command library"
+      "Random number generator"
     ]
   },
   {
-    "objectID": "capabilities/provider-command.html#requirements",
-    "href": "capabilities/provider-command.html#requirements",
-    "title": "External command library",
-    "section": "Requirements",
-    "text": "Requirements\n\nTarget provider application installed.\nSaved command compatible with the provider version.",
+    "objectID": "capabilities/random-number.html#inputs",
+    "href": "capabilities/random-number.html#inputs",
+    "title": "Random number generator",
+    "section": "Inputs",
+    "text": "Inputs\n\n\n\nInput\nDescription\n\n\n\n\ninput_count\nNumber of random values to generate.\n\n\ninput_min\nMinimum possible value.\n\n\ninput_max\nMaximum possible value.\n\n\ninput_step\nStep size between possible values.\n\n\ninput_seed_mode\nsecure_random or fixed_seed.\n\n\ninput_seed\nSeed text used when input_seed_mode='fixed_seed'.",
     "crumbs": [
       "Capabilities",
-      "External command library"
+      "Random number generator"
     ]
   },
   {
-    "objectID": "capabilities/provider-command.html#screenshot",
-    "href": "capabilities/provider-command.html#screenshot",
-    "title": "External command library",
-    "section": "Screenshot",
-    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/provider-command.png",
+    "objectID": "capabilities/random-number.html#example-intent-calls",
+    "href": "capabilities/random-number.html#example-intent-calls",
+    "title": "Random number generator",
+    "section": "Example intent calls",
+    "text": "Example intent calls\n\nOne secure random integer\ncom.example.researchos.EXECUTE_METHOD(method_id='random.number.generate',input_min='1',input_max='100',input_step='1',return_mode='flat')\n\n\nFive reproducible values\ncom.example.researchos.EXECUTE_METHOD(method_id='random.number.generate',input_count='5',input_min='1',input_max='10',input_step='1',input_seed_mode='fixed_seed',input_seed='study001',return_mode='flat')",
     "crumbs": [
       "Capabilities",
-      "External command library"
+      "Random number generator"
     ]
   },
   {
-    "objectID": "capabilities/provider-command.html#supported-xlsform-calls",
-    "href": "capabilities/provider-command.html#supported-xlsform-calls",
-    "title": "External command library",
-    "section": "Supported XLSForm calls",
-    "text": "Supported XLSForm calls\nNo XLSForm call was available in the supplied examples. Use the intent examples in the detailed reference below until a complete workbook is added.",
+    "objectID": "capabilities/random-number.html#returned-fields",
+    "href": "capabilities/random-number.html#returned-fields",
+    "title": "Random number generator",
+    "section": "Returned fields",
+    "text": "Returned fields\n\n\n\n\n\n\n\nField\nDescription\n\n\n\n\nrandom_status\nsucceeded or failed.\n\n\nrandom_numbers_json\nJSON array of generated values.\n\n\nrandom_numbers_csv\nComma-separated values.\n\n\nrandom_first_number\nFirst generated number, convenient for simple callers.\n\n\nrandom_count\nNumber of generated values.\n\n\nrandom_min\nMinimum used.\n\n\nrandom_max\nMaximum used.\n\n\nrandom_step\nStep size used.\n\n\nrandom_seed_mode\nSeed mode used.\n\n\nrandom_seed\nSeed text when fixed-seed mode is used.\n\n\nrandom_algorithm\nUnderlying random source.\n\n\nrandom_generated_time_iso\nGeneration time.\n\n\nrandom_error\nError message, if generation failed.",
     "crumbs": [
       "Capabilities",
-      "External command library"
+      "Random number generator"
     ]
   },
   {
-    "objectID": "capabilities/provider-command.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/provider-command.html#inputs-observed-in-supplied-examples",
-    "title": "External command library",
-    "section": "Inputs observed in supplied examples",
-    "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
+    "objectID": "capabilities/random-number.html#notes",
+    "href": "capabilities/random-number.html#notes",
+    "title": "Random number generator",
+    "section": "Notes",
+    "text": "Notes\nFor trial allocation, this capability should be treated as a low-level primitive. More formal randomisation methods should add allocation concealment, block definitions, audit trails and protocol-specific constraints on top of this generator.",
     "crumbs": [
       "Capabilities",
-      "External command library"
+      "Random number generator"
     ]
   },
   {
-    "objectID": "capabilities/provider-command.html#expected-returned-fields",
-    "href": "capabilities/provider-command.html#expected-returned-fields",
-    "title": "External command library",
-    "section": "Expected returned fields",
-    "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
-    "crumbs": [
-      "Capabilities",
-      "External command library"
-    ]
-  },
-  {
-    "objectID": "capabilities/attestation.html",
-    "href": "capabilities/attestation.html",
-    "title": "Signed event attestation",
-    "section": "",
-    "text": "Status: Documented and demonstrated\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.\nBiometric/Pin/Pattern attestation are fully implemented\nNFC credential provisioning and verification are handled in the NFC capabilities\nPassword, QR and anchor bundle are not fully implemented",
-    "crumbs": [
-      "Capabilities",
-      "Signed event attestation"
-    ]
-  },
-  {
-    "objectID": "capabilities/attestation.html#purpose",
-    "href": "capabilities/attestation.html#purpose",
-    "title": "Signed event attestation",
-    "section": "Purpose",
-    "text": "Purpose\nCreate signed evidence that an event payload was attested using a selected local verification dependency, and anchor bundles of attestations.",
-    "crumbs": [
-      "Capabilities",
-      "Signed event attestation"
-    ]
-  },
-  {
-    "objectID": "capabilities/attestation.html#capability-ids",
-    "href": "capabilities/attestation.html#capability-ids",
-    "title": "Signed event attestation",
-    "section": "Capability IDs",
-    "text": "Capability IDs\n\nattestation.create\nattestation.anchor_bundle",
-    "crumbs": [
-      "Capabilities",
-      "Signed event attestation"
-    ]
-  },
-  {
-    "objectID": "capabilities/attestation.html#requirements",
-    "href": "capabilities/attestation.html#requirements",
-    "title": "Signed event attestation",
-    "section": "Requirements",
-    "text": "Requirements\n\nConfigured ResearchOS device key.\nVerification dependency required by the selected method.",
-    "crumbs": [
-      "Capabilities",
-      "Signed event attestation"
-    ]
-  },
-  {
-    "objectID": "capabilities/attestation.html#screenshot",
-    "href": "capabilities/attestation.html#screenshot",
-    "title": "Signed event attestation",
-    "section": "Screenshot",
-    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/attestation.png",
-    "crumbs": [
-      "Capabilities",
-      "Signed event attestation"
-    ]
-  },
-  {
-    "objectID": "capabilities/attestation.html#supported-xlsform-calls",
-    "href": "capabilities/attestation.html#supported-xlsform-calls",
-    "title": "Signed event attestation",
-    "section": "Supported XLSForm calls",
-    "text": "Supported XLSForm calls\nFrom example_odk_attestation.create_Fingerprint.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Fingerprint',input_trusted_timestamp=${timestamp_policy},return_mode='flat')\nFrom example_odk_attestation.create_Pin.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Pin',input_trusted_timestamp=${timestamp_policy},return_mode='flat')\nFrom example_odk_attestation.create_Password.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Password',input_verification_evidence=${verification_evidence_input},input_trusted_timestamp=${timestamp_policy},return_mode='flat')\nFrom example_odk_attestation.create_Qr.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Qr',input_trusted_timestamp=${timestamp_policy},return_mode='flat')\nFrom example_odk_attestation.create_Nfc.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Nfc',input_trusted_timestamp=${timestamp_policy},return_mode='flat')\nFrom example_odk_attestation.anchor_bundle.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.anchor_bundle',input_study_id=${study_id_input},operator_id=${operator_id_input},return_mode='flat')\nFrom researchos_fingerprint_attestation_test.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.create',event_payload_hash=${event_payload},verification_method='Fingerprint',trusted_timestamp=${timestamp_policy},return_mode='flat')",
-    "crumbs": [
-      "Capabilities",
-      "Signed event attestation"
-    ]
-  },
-  {
-    "objectID": "capabilities/attestation.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/attestation.html#inputs-observed-in-supplied-examples",
-    "title": "Signed event attestation",
-    "section": "Inputs observed in supplied examples",
-    "text": "Inputs observed in supplied examples\n\n\n\n\n\n\n\n\nField\nLabel\nXLSForm type\n\n\n\n\nstart\n\nstart\n\n\nend\n\nend\n\n\nodk_device_id\n\ndeviceid\n\n\nodk_username\n\nusername\n\n\nparticipant_id\nParticipant ID\ntext\n\n\noperator_id_input\nOperator ID\ntext\n\n\ntimestamp_policy\nTrusted timestamp policy\nselect_one timestamp_policy\n\n\nevent_description\nData or event being attested\ntext\n\n\nverification_evidence_input\nStudy verification token (returned as attestation evidence)\ntext\n\n\nstudy_id_input\nStudy ID\ntext",
-    "crumbs": [
-      "Capabilities",
-      "Signed event attestation"
-    ]
-  },
-  {
-    "objectID": "capabilities/attestation.html#expected-returned-fields",
-    "href": "capabilities/attestation.html#expected-returned-fields",
-    "title": "Signed event attestation",
-    "section": "Expected returned fields",
-    "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
-    "crumbs": [
-      "Capabilities",
-      "Signed event attestation"
-    ]
-  },
-  {
-    "objectID": "capabilities/odk-form-launcher.html",
-    "href": "capabilities/odk-form-launcher.html",
-    "title": "ODK form launcher",
-    "section": "",
-    "text": "Status: Documented and demonstrated\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
-    "crumbs": [
-      "Capabilities",
-      "ODK form launcher"
-    ]
-  },
-  {
-    "objectID": "capabilities/odk-form-launcher.html#purpose",
-    "href": "capabilities/odk-form-launcher.html#purpose",
-    "title": "ODK form launcher",
-    "section": "Purpose",
-    "text": "Purpose\nOpen a selected ODK Collect form and return the matched form, project, instance and launch status.",
-    "crumbs": [
-      "Capabilities",
-      "ODK form launcher"
-    ]
-  },
-  {
-    "objectID": "capabilities/odk-form-launcher.html#capability-ids",
-    "href": "capabilities/odk-form-launcher.html#capability-ids",
-    "title": "ODK form launcher",
-    "section": "Capability IDs",
-    "text": "Capability IDs\n\nodk_form_launcher",
-    "crumbs": [
-      "Capabilities",
-      "ODK form launcher"
-    ]
-  },
-  {
-    "objectID": "capabilities/odk-form-launcher.html#requirements",
-    "href": "capabilities/odk-form-launcher.html#requirements",
-    "title": "ODK form launcher",
-    "section": "Requirements",
-    "text": "Requirements\n\nODK Collect installed.\nTarget project and form present on the device.",
-    "crumbs": [
-      "Capabilities",
-      "ODK form launcher"
-    ]
-  },
-  {
-    "objectID": "capabilities/odk-form-launcher.html#screenshot",
-    "href": "capabilities/odk-form-launcher.html#screenshot",
-    "title": "ODK form launcher",
-    "section": "Screenshot",
-    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/odk-form-launcher.png",
-    "crumbs": [
-      "Capabilities",
-      "ODK form launcher"
-    ]
-  },
-  {
-    "objectID": "capabilities/odk-form-launcher.html#supported-xlsform-calls",
-    "href": "capabilities/odk-form-launcher.html#supported-xlsform-calls",
-    "title": "ODK form launcher",
-    "section": "Supported XLSForm calls",
-    "text": "Supported XLSForm calls\nFrom example_odk_odk_form_launcher.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='odk_form_launcher',input_form_selector=${input_form_selector},return_mode='flat')",
-    "crumbs": [
-      "Capabilities",
-      "ODK form launcher"
-    ]
-  },
-  {
-    "objectID": "capabilities/odk-form-launcher.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/odk-form-launcher.html#inputs-observed-in-supplied-examples",
-    "title": "ODK form launcher",
-    "section": "Inputs observed in supplied examples",
-    "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
-    "crumbs": [
-      "Capabilities",
-      "ODK form launcher"
-    ]
-  },
-  {
-    "objectID": "capabilities/odk-form-launcher.html#expected-returned-fields",
-    "href": "capabilities/odk-form-launcher.html#expected-returned-fields",
-    "title": "ODK form launcher",
-    "section": "Expected returned fields",
-    "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
-    "crumbs": [
-      "Capabilities",
-      "ODK form launcher"
-    ]
-  },
-  {
-    "objectID": "capabilities/sensor-provisioner.html",
-    "href": "capabilities/sensor-provisioner.html",
-    "title": "BLE sensor-node provisioner",
+    "objectID": "capabilities/mlkit-vision.html",
+    "href": "capabilities/mlkit-vision.html",
+    "title": "ML Kit vision",
     "section": "",
     "text": "Status: Implemented; XLSForm example pending\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
     "crumbs": [
       "Capabilities",
-      "BLE sensor-node provisioner"
+      "ML Kit vision"
     ]
   },
   {
-    "objectID": "capabilities/sensor-provisioner.html#purpose",
-    "href": "capabilities/sensor-provisioner.html#purpose",
-    "title": "BLE sensor-node provisioner",
+    "objectID": "capabilities/mlkit-vision.html#purpose",
+    "href": "capabilities/mlkit-vision.html#purpose",
+    "title": "ML Kit vision",
     "section": "Purpose",
-    "text": "Purpose\nWrite identity and sampling configuration to a compatible ResearchOS BLE sensor node and register it locally.",
+    "text": "Purpose\nRun supported ML Kit vision analyses on a selected image.",
     "crumbs": [
       "Capabilities",
-      "BLE sensor-node provisioner"
+      "ML Kit vision"
     ]
   },
   {
-    "objectID": "capabilities/sensor-provisioner.html#capability-ids",
-    "href": "capabilities/sensor-provisioner.html#capability-ids",
-    "title": "BLE sensor-node provisioner",
+    "objectID": "capabilities/mlkit-vision.html#capability-ids",
+    "href": "capabilities/mlkit-vision.html#capability-ids",
+    "title": "ML Kit vision",
     "section": "Capability IDs",
-    "text": "Capability IDs\n\nsensor_node_provisioner",
+    "text": "Capability IDs\n\nmlkit.vision.analyze",
     "crumbs": [
       "Capabilities",
-      "BLE sensor-node provisioner"
+      "ML Kit vision"
     ]
   },
   {
-    "objectID": "capabilities/sensor-provisioner.html#requirements",
-    "href": "capabilities/sensor-provisioner.html#requirements",
-    "title": "BLE sensor-node provisioner",
+    "objectID": "capabilities/mlkit-vision.html#requirements",
+    "href": "capabilities/mlkit-vision.html#requirements",
+    "title": "ML Kit vision",
     "section": "Requirements",
-    "text": "Requirements\n\nCompatible ResearchOS BLE sensor firmware.\nBluetooth permissions.",
+    "text": "Requirements\n\nImage accessible through an Android content URI.",
     "crumbs": [
       "Capabilities",
-      "BLE sensor-node provisioner"
+      "ML Kit vision"
     ]
   },
   {
-    "objectID": "capabilities/sensor-provisioner.html#screenshot",
-    "href": "capabilities/sensor-provisioner.html#screenshot",
-    "title": "BLE sensor-node provisioner",
+    "objectID": "capabilities/mlkit-vision.html#screenshot",
+    "href": "capabilities/mlkit-vision.html#screenshot",
+    "title": "ML Kit vision",
     "section": "Screenshot",
-    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/sensor-provisioner.png",
+    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/mlkit-vision.png",
     "crumbs": [
       "Capabilities",
-      "BLE sensor-node provisioner"
+      "ML Kit vision"
     ]
   },
   {
-    "objectID": "capabilities/sensor-provisioner.html#supported-xlsform-calls",
-    "href": "capabilities/sensor-provisioner.html#supported-xlsform-calls",
-    "title": "BLE sensor-node provisioner",
+    "objectID": "capabilities/mlkit-vision.html#supported-xlsform-calls",
+    "href": "capabilities/mlkit-vision.html#supported-xlsform-calls",
+    "title": "ML Kit vision",
     "section": "Supported XLSForm calls",
     "text": "Supported XLSForm calls\nNo XLSForm call was available in the supplied examples. Use the intent examples in the detailed reference below until a complete workbook is added.",
     "crumbs": [
       "Capabilities",
-      "BLE sensor-node provisioner"
+      "ML Kit vision"
     ]
   },
   {
-    "objectID": "capabilities/sensor-provisioner.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/sensor-provisioner.html#inputs-observed-in-supplied-examples",
-    "title": "BLE sensor-node provisioner",
+    "objectID": "capabilities/mlkit-vision.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/mlkit-vision.html#inputs-observed-in-supplied-examples",
+    "title": "ML Kit vision",
     "section": "Inputs observed in supplied examples",
     "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
     "crumbs": [
       "Capabilities",
-      "BLE sensor-node provisioner"
+      "ML Kit vision"
     ]
   },
   {
-    "objectID": "capabilities/sensor-provisioner.html#expected-returned-fields",
-    "href": "capabilities/sensor-provisioner.html#expected-returned-fields",
-    "title": "BLE sensor-node provisioner",
+    "objectID": "capabilities/mlkit-vision.html#expected-returned-fields",
+    "href": "capabilities/mlkit-vision.html#expected-returned-fields",
+    "title": "ML Kit vision",
     "section": "Expected returned fields",
     "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
     "crumbs": [
       "Capabilities",
-      "BLE sensor-node provisioner"
+      "ML Kit vision"
     ]
   },
   {
-    "objectID": "capabilities/index.html",
-    "href": "capabilities/index.html",
-    "title": "Capability catalogue",
+    "objectID": "capabilities/bluetooth-printer.html",
+    "href": "capabilities/bluetooth-printer.html",
+    "title": "Bluetooth printer",
     "section": "",
-    "text": "Documented and demonstrated: source documentation and at least one corresponding XLSForm are present.\nImplemented; XLSForm example pending: the supplied source documentation describes the capability, but no complete workbook was supplied.\nPartial or constrained: the documentation identifies an important limitation, restricted scope or incomplete result path.\nExperimental: useful for investigation, but not yet a stable study-facing interface.",
+    "text": "Status: Incomplete & non-functional\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
     "crumbs": [
       "Capabilities",
-      "Capability catalogue"
+      "Bluetooth printer"
     ]
   },
   {
-    "objectID": "capabilities/index.html#status-vocabulary",
-    "href": "capabilities/index.html#status-vocabulary",
-    "title": "Capability catalogue",
-    "section": "",
-    "text": "Documented and demonstrated: source documentation and at least one corresponding XLSForm are present.\nImplemented; XLSForm example pending: the supplied source documentation describes the capability, but no complete workbook was supplied.\nPartial or constrained: the documentation identifies an important limitation, restricted scope or incomplete result path.\nExperimental: useful for investigation, but not yet a stable study-facing interface.",
-    "crumbs": [
-      "Capabilities",
-      "Capability catalogue"
-    ]
-  },
-  {
-    "objectID": "capabilities/index.html#consistent-page-structure",
-    "href": "capabilities/index.html#consistent-page-structure",
-    "title": "Capability catalogue",
-    "section": "Consistent page structure",
-    "text": "Consistent page structure\nEvery capability page includes purpose, canonical IDs, requirements, screenshot placeholder, observed XLSForm calls, inputs, expected outputs, downloadable examples, implementation status, limitations and the detailed source reference.\n\n\nLocal device authentication\nadmin_fingerprint_confirmation\nDocumented and demonstrated\nRequest Android biometric or device-credential authentication and return a transient local-access decision.\n\n\nAndroid app inspector\nandroid_app_inspector\nExperimental interoperability tool\nInspect installed Android packages and test intent-based integration contracts.\n\n\nSigned event attestation\nattestation.create, attestation.anchor_bundle\nDocumented and demonstrated\nCreate signed evidence that an event payload was attested using a selected local verification dependency, and anchor bundles of attestations.\n\n\nBluetooth device inspector\nbluetooth_device_inspector\nDocumented and demonstrated\nDiscover Bluetooth devices and inspect GATT services, characteristics and values.\n\n\nBluetooth printer\nbluetooth_print\nNon-functional at present\nSend supported print content to a configured Bluetooth printer.\n\n\nCalibrated scale measurement\ncalibrated_scale\nDocumented and demonstrated\nCollect a calibrated visual analogue or numeric range measurement using a physical line length.\n\n\nChoice experiments\ndce.pairwise, dce.maxdiff, dce.ranking, dce.points, dce.conjoint\nDocumented and demonstrated with some outstanding issues\nRun interactive pairwise, MaxDiff, ranking, points-allocation and conjoint choice tasks.\n\n\nDocument scanner\ndocument.scan\nImplemented; XLSForm example pending\nCapture document pages and return PDF and/or image outputs.\n\n\nGPS target navigation\ngps_target_navigator\nDocumented and demonstrated\nGuide a user toward target coordinates using distance, bearing and an optional augmented-reality camera overlay.\n\n\nML Kit language translation\nmlkit.translate\nImplemented; XLSForm example pending\nTranslate text locally with ML Kit and manage downloaded language models.\n\n\nML Kit vision\nmlkit.vision.analyze\nImplemented; XLSForm example pending\nRun supported ML Kit vision analyses on a selected image.\n\n\nNFC capabilities\nnfc_credential_provisioning, nfc_credential_verification, nfc_tag_read, nfc_tag_write, nfc_tag_wipe, protocol_nfc_check, protocol_nfc_complete\nDocumented and demonstrated\nRead, write and wipe NFC tags; provision and verify credentials; and track protocol-step eligibility and completion.\n\n\nODK form launcher\nodk_form_launcher\nDocumented and demonstrated\nOpen a selected ODK Collect form and return the matched form, project, instance and launch status.\n\n\nExternal command library\nprovider.command.run\nPartial return support\nRun a saved, typed Android intent command against an installed provider application.\n\n\nAutomatic code scanner\nqr.scan\nDocumented and demonstrated\nScan QR codes and supported barcode formats and return the decoded payload and detected format.\n\n\nScaled photo selector\nscaled_photo.capture\nDocumented and demonstrated\nCapture or select a photograph with scale and measurement context.\n\n\nScheduler\nscheduler\nImplemented with evolving target support\nCreate and transfer local recurring schedules for forms, web targets and future ResearchOS process targets.\n\n\nESP32 sensor firmware installer\nsensor_firmware_installer\nCurrent scope limited to ESP32-C3\nInstall bundled ResearchOS sensor firmware onto a supported ESP32-C3 device over USB.\n\n\nBLE sensor-node provisioner\nsensor_node_provisioner\nImplemented; XLSForm example pending\nWrite identity and sampling configuration to a compatible ResearchOS BLE sensor node and register it locally.\n\n\nRead sensor\nsensor.read\nDocumented and demonstrated\nRead, trace, average or discover registered ResearchOS BLE sensor nodes.\n\n\nSend SMS\nsms.send\nSend accepted; delivery confirmation pending\nSend an SMS directly from ResearchOS and return the local send-request status.\n\n\nSpatial geometry\nspatial_geometry\nImplemented with measurement constraints\nSupport tree-height, slope and distance-estimation workflows using device measurements and supplied distances.\n\n\nSpeech transcription\nspeech.transcribe\nImplemented; XLSForm example pending\nCapture speech and return a transcription with provider metadata.\n\n\nSVG polygon selector\nsvg.select\nDocumented and demonstrated\nDisplay an SVG and return selected polygon or region identifiers.",
-    "crumbs": [
-      "Capabilities",
-      "Capability catalogue"
-    ]
-  },
-  {
-    "objectID": "capabilities/sensor-read.html",
-    "href": "capabilities/sensor-read.html",
-    "title": "Read sensor",
-    "section": "",
-    "text": "Status: Documented and demonstrated\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
-    "crumbs": [
-      "Capabilities",
-      "Read sensor"
-    ]
-  },
-  {
-    "objectID": "capabilities/sensor-read.html#purpose",
-    "href": "capabilities/sensor-read.html#purpose",
-    "title": "Read sensor",
+    "objectID": "capabilities/bluetooth-printer.html#purpose",
+    "href": "capabilities/bluetooth-printer.html#purpose",
+    "title": "Bluetooth printer",
     "section": "Purpose",
-    "text": "Purpose\nRead, trace, average or discover registered ResearchOS BLE sensor nodes.",
+    "text": "Purpose\nSend supported print content to a configured Bluetooth printer.",
     "crumbs": [
       "Capabilities",
-      "Read sensor"
+      "Bluetooth printer"
     ]
   },
   {
-    "objectID": "capabilities/sensor-read.html#capability-ids",
-    "href": "capabilities/sensor-read.html#capability-ids",
-    "title": "Read sensor",
+    "objectID": "capabilities/bluetooth-printer.html#capability-ids",
+    "href": "capabilities/bluetooth-printer.html#capability-ids",
+    "title": "Bluetooth printer",
     "section": "Capability IDs",
-    "text": "Capability IDs\n\nsensor.read",
+    "text": "Capability IDs\n\nbluetooth_print",
     "crumbs": [
       "Capabilities",
-      "Read sensor"
+      "Bluetooth printer"
     ]
   },
   {
-    "objectID": "capabilities/sensor-read.html#requirements",
-    "href": "capabilities/sensor-read.html#requirements",
-    "title": "Read sensor",
+    "objectID": "capabilities/bluetooth-printer.html#requirements",
+    "href": "capabilities/bluetooth-printer.html#requirements",
+    "title": "Bluetooth printer",
     "section": "Requirements",
-    "text": "Requirements\n\nCompatible sensor node.\nBluetooth permissions.",
+    "text": "Requirements\n\nCompatible paired Bluetooth printer.",
     "crumbs": [
       "Capabilities",
-      "Read sensor"
+      "Bluetooth printer"
     ]
   },
   {
-    "objectID": "capabilities/sensor-read.html#screenshot",
-    "href": "capabilities/sensor-read.html#screenshot",
-    "title": "Read sensor",
+    "objectID": "capabilities/bluetooth-printer.html#screenshot",
+    "href": "capabilities/bluetooth-printer.html#screenshot",
+    "title": "Bluetooth printer",
     "section": "Screenshot",
-    "text": "Screenshot",
+    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/bluetooth-printer.png",
     "crumbs": [
       "Capabilities",
-      "Read sensor"
+      "Bluetooth printer"
     ]
   },
   {
-    "objectID": "capabilities/sensor-read.html#supported-xlsform-calls",
-    "href": "capabilities/sensor-read.html#supported-xlsform-calls",
-    "title": "Read sensor",
+    "objectID": "capabilities/bluetooth-printer.html#supported-xlsform-calls",
+    "href": "capabilities/bluetooth-printer.html#supported-xlsform-calls",
+    "title": "Bluetooth printer",
     "section": "Supported XLSForm calls",
-    "text": "Supported XLSForm calls\nFrom example_odk_sensorread.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='sensor.read',input_device_id=${config_device_id},input_sensor_id=${config_sensor_id},input_sensor_profile=${config_sensor_profile},input_sensor_read_mode=${config_read_mode},input_duration_seconds=${config_duration_seconds},input_sample_interval_seconds=${config_interval_seconds},input_device_match_policy=${config_match_policy},return_mode='flat')",
+    "text": "Supported XLSForm calls\nFrom example_odk_bluetooth_print.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='bluetooth_print')",
     "crumbs": [
       "Capabilities",
-      "Read sensor"
+      "Bluetooth printer"
     ]
   },
   {
-    "objectID": "capabilities/sensor-read.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/sensor-read.html#inputs-observed-in-supplied-examples",
-    "title": "Read sensor",
-    "section": "Inputs observed in supplied examples",
-    "text": "Inputs observed in supplied examples\n\n\n\n\n\n\n\n\nField\nLabel\nXLSForm type\n\n\n\n\nconfig_read_mode\nRead mode\nselect_one read_mode\n\n\nconfig_device_id\nRegistered device ID\ntext\n\n\nconfig_sensor_id\nSensor ID\ntext\n\n\nconfig_sensor_profile\nSensor profile\ntext\n\n\nconfig_match_policy\nDevice matching policy\nselect_one match_policy\n\n\nconfig_duration_seconds\nDuration in seconds\ninteger\n\n\nconfig_interval_seconds\nSample interval in seconds\ninteger",
-    "crumbs": [
-      "Capabilities",
-      "Read sensor"
-    ]
-  },
-  {
-    "objectID": "capabilities/sensor-read.html#expected-returned-fields",
-    "href": "capabilities/sensor-read.html#expected-returned-fields",
-    "title": "Read sensor",
-    "section": "Expected returned fields",
-    "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
-    "crumbs": [
-      "Capabilities",
-      "Read sensor"
-    ]
-  },
-  {
-    "objectID": "capabilities/calibrated-scale.html",
-    "href": "capabilities/calibrated-scale.html",
-    "title": "Calibrated scale measurement",
-    "section": "",
-    "text": "Status: Documented and demonstrated\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
-    "crumbs": [
-      "Capabilities",
-      "Calibrated scale measurement"
-    ]
-  },
-  {
-    "objectID": "capabilities/calibrated-scale.html#purpose",
-    "href": "capabilities/calibrated-scale.html#purpose",
-    "title": "Calibrated scale measurement",
-    "section": "Purpose",
-    "text": "Purpose\nCollect a calibrated visual analogue or numeric range measurement using a physical line length. The calibration allows onscreen display to be an exact representation of real world size. For instance, after calibration a 50mm scale will appear as exactly 50mm on the screen.",
-    "crumbs": [
-      "Capabilities",
-      "Calibrated scale measurement"
-    ]
-  },
-  {
-    "objectID": "capabilities/calibrated-scale.html#capability-ids",
-    "href": "capabilities/calibrated-scale.html#capability-ids",
-    "title": "Calibrated scale measurement",
-    "section": "Capability IDs",
-    "text": "Capability IDs\n\ncalibrated_scale",
-    "crumbs": [
-      "Capabilities",
-      "Calibrated scale measurement"
-    ]
-  },
-  {
-    "objectID": "capabilities/calibrated-scale.html#requirements",
-    "href": "capabilities/calibrated-scale.html#requirements",
-    "title": "Calibrated scale measurement",
-    "section": "Requirements",
-    "text": "Requirements\n\nScreen dimensions and display suitable for the requested physical scale. Global calibration of screen pixel:mm resolution.",
-    "crumbs": [
-      "Capabilities",
-      "Calibrated scale measurement"
-    ]
-  },
-  {
-    "objectID": "capabilities/calibrated-scale.html#screenshot",
-    "href": "capabilities/calibrated-scale.html#screenshot",
-    "title": "Calibrated scale measurement",
-    "section": "Screenshot",
-    "text": "Screenshot",
-    "crumbs": [
-      "Capabilities",
-      "Calibrated scale measurement"
-    ]
-  },
-  {
-    "objectID": "capabilities/calibrated-scale.html#supported-xlsform-calls",
-    "href": "capabilities/calibrated-scale.html#supported-xlsform-calls",
-    "title": "Calibrated scale measurement",
-    "section": "Supported XLSForm calls",
-    "text": "Supported XLSForm calls\nFrom example_odk_calibrated_scale.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',return_mode='flat')\nFrom example_odk_calibrated_scale_MinMax.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_minimum='0',input_maximum='10',return_mode='flat')\nFrom example_odk_calibrated_scale_Range.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_use_range='true',input_lower_label='Least pain',input_upper_label='Worst pain',return_mode='flat')\nFrom example_odk_calibrated_scale_Vertical.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_vertical_mode='true',return_mode='flat')",
-    "crumbs": [
-      "Capabilities",
-      "Calibrated scale measurement"
-    ]
-  },
-  {
-    "objectID": "capabilities/calibrated-scale.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/calibrated-scale.html#inputs-observed-in-supplied-examples",
-    "title": "Calibrated scale measurement",
-    "section": "Inputs observed in supplied examples",
-    "text": "Inputs observed in supplied examples\n\n\n\nField\nLabel\nXLSForm type\n\n\n\n\nstart\n\nstart",
-    "crumbs": [
-      "Capabilities",
-      "Calibrated scale measurement"
-    ]
-  },
-  {
-    "objectID": "capabilities/calibrated-scale.html#expected-returned-fields",
-    "href": "capabilities/calibrated-scale.html#expected-returned-fields",
-    "title": "Calibrated scale measurement",
-    "section": "Expected returned fields",
-    "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
-    "crumbs": [
-      "Capabilities",
-      "Calibrated scale measurement"
-    ]
-  },
-  {
-    "objectID": "capabilities/svg-selector.html",
-    "href": "capabilities/svg-selector.html",
-    "title": "SVG polygon selector",
-    "section": "",
-    "text": "Status: Documented and demonstrated\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
-    "crumbs": [
-      "Capabilities",
-      "SVG polygon selector"
-    ]
-  },
-  {
-    "objectID": "capabilities/svg-selector.html#purpose",
-    "href": "capabilities/svg-selector.html#purpose",
-    "title": "SVG polygon selector",
-    "section": "Purpose",
-    "text": "Purpose\nDisplay an SVG and return selected polygon or region identifiers.",
-    "crumbs": [
-      "Capabilities",
-      "SVG polygon selector"
-    ]
-  },
-  {
-    "objectID": "capabilities/svg-selector.html#capability-ids",
-    "href": "capabilities/svg-selector.html#capability-ids",
-    "title": "SVG polygon selector",
-    "section": "Capability IDs",
-    "text": "Capability IDs\n\nsvg.select",
-    "crumbs": [
-      "Capabilities",
-      "SVG polygon selector"
-    ]
-  },
-  {
-    "objectID": "capabilities/svg-selector.html#requirements",
-    "href": "capabilities/svg-selector.html#requirements",
-    "title": "SVG polygon selector",
-    "section": "Requirements",
-    "text": "Requirements\n\nSVG asset available to ResearchOS.",
-    "crumbs": [
-      "Capabilities",
-      "SVG polygon selector"
-    ]
-  },
-  {
-    "objectID": "capabilities/svg-selector.html#screenshot",
-    "href": "capabilities/svg-selector.html#screenshot",
-    "title": "SVG polygon selector",
-    "section": "Screenshot",
-    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/svg-selector.png",
-    "crumbs": [
-      "Capabilities",
-      "SVG polygon selector"
-    ]
-  },
-  {
-    "objectID": "capabilities/svg-selector.html#supported-xlsform-calls",
-    "href": "capabilities/svg-selector.html#supported-xlsform-calls",
-    "title": "SVG polygon selector",
-    "section": "Supported XLSForm calls",
-    "text": "Supported XLSForm calls\nFrom example_odk_svg.select.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='svg.select',input_svg_name='bodymap_black.svg',input_selection_mode='sequence',return_mode='flat')",
-    "crumbs": [
-      "Capabilities",
-      "SVG polygon selector"
-    ]
-  },
-  {
-    "objectID": "capabilities/svg-selector.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/svg-selector.html#inputs-observed-in-supplied-examples",
-    "title": "SVG polygon selector",
+    "objectID": "capabilities/bluetooth-printer.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/bluetooth-printer.html#inputs-observed-in-supplied-examples",
+    "title": "Bluetooth printer",
     "section": "Inputs observed in supplied examples",
     "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
     "crumbs": [
       "Capabilities",
-      "SVG polygon selector"
+      "Bluetooth printer"
     ]
   },
   {
-    "objectID": "capabilities/svg-selector.html#expected-returned-fields",
-    "href": "capabilities/svg-selector.html#expected-returned-fields",
-    "title": "SVG polygon selector",
+    "objectID": "capabilities/bluetooth-printer.html#expected-returned-fields",
+    "href": "capabilities/bluetooth-printer.html#expected-returned-fields",
+    "title": "Bluetooth printer",
     "section": "Expected returned fields",
     "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
     "crumbs": [
       "Capabilities",
-      "SVG polygon selector"
+      "Bluetooth printer"
+    ]
+  },
+  {
+    "objectID": "capabilities/mlkit-translate.html",
+    "href": "capabilities/mlkit-translate.html",
+    "title": "ML Kit translation",
+    "section": "",
+    "text": "Status: Implemented; XLSForm example pending\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
+    "crumbs": [
+      "Capabilities",
+      "ML Kit translation"
+    ]
+  },
+  {
+    "objectID": "capabilities/mlkit-translate.html#purpose",
+    "href": "capabilities/mlkit-translate.html#purpose",
+    "title": "ML Kit translation",
+    "section": "Purpose",
+    "text": "Purpose\nTranslate text locally with ML Kit and manage downloaded language models.",
+    "crumbs": [
+      "Capabilities",
+      "ML Kit translation"
+    ]
+  },
+  {
+    "objectID": "capabilities/mlkit-translate.html#capability-ids",
+    "href": "capabilities/mlkit-translate.html#capability-ids",
+    "title": "ML Kit translation",
+    "section": "Capability IDs",
+    "text": "Capability IDs\n\nmlkit.translate",
+    "crumbs": [
+      "Capabilities",
+      "ML Kit translation"
+    ]
+  },
+  {
+    "objectID": "capabilities/mlkit-translate.html#requirements",
+    "href": "capabilities/mlkit-translate.html#requirements",
+    "title": "ML Kit translation",
+    "section": "Requirements",
+    "text": "Requirements\n\nRequired language model downloaded before offline translation.",
+    "crumbs": [
+      "Capabilities",
+      "ML Kit translation"
+    ]
+  },
+  {
+    "objectID": "capabilities/mlkit-translate.html#screenshot",
+    "href": "capabilities/mlkit-translate.html#screenshot",
+    "title": "ML Kit translation",
+    "section": "Screenshot",
+    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/mlkit-translate.png",
+    "crumbs": [
+      "Capabilities",
+      "ML Kit translation"
+    ]
+  },
+  {
+    "objectID": "capabilities/mlkit-translate.html#supported-xlsform-calls",
+    "href": "capabilities/mlkit-translate.html#supported-xlsform-calls",
+    "title": "ML Kit translation",
+    "section": "Supported XLSForm calls",
+    "text": "Supported XLSForm calls\nNo XLSForm call was available in the supplied examples. Use the intent examples in the detailed reference below until a complete workbook is added.",
+    "crumbs": [
+      "Capabilities",
+      "ML Kit translation"
+    ]
+  },
+  {
+    "objectID": "capabilities/mlkit-translate.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/mlkit-translate.html#inputs-observed-in-supplied-examples",
+    "title": "ML Kit translation",
+    "section": "Inputs observed in supplied examples",
+    "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
+    "crumbs": [
+      "Capabilities",
+      "ML Kit translation"
+    ]
+  },
+  {
+    "objectID": "capabilities/mlkit-translate.html#expected-returned-fields",
+    "href": "capabilities/mlkit-translate.html#expected-returned-fields",
+    "title": "ML Kit translation",
+    "section": "Expected returned fields",
+    "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
+    "crumbs": [
+      "Capabilities",
+      "ML Kit translation"
+    ]
+  },
+  {
+    "objectID": "capabilities/sms.html",
+    "href": "capabilities/sms.html",
+    "title": "Send SMS",
+    "section": "",
+    "text": "Status: Send accepted; delivery confirmation pending\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
+    "crumbs": [
+      "Capabilities",
+      "Send SMS"
+    ]
+  },
+  {
+    "objectID": "capabilities/sms.html#purpose",
+    "href": "capabilities/sms.html#purpose",
+    "title": "Send SMS",
+    "section": "Purpose",
+    "text": "Purpose\nSend an SMS directly from ResearchOS and return the local send-request status.",
+    "crumbs": [
+      "Capabilities",
+      "Send SMS"
+    ]
+  },
+  {
+    "objectID": "capabilities/sms.html#capability-ids",
+    "href": "capabilities/sms.html#capability-ids",
+    "title": "Send SMS",
+    "section": "Capability IDs",
+    "text": "Capability IDs\n\nsms.send",
+    "crumbs": [
+      "Capabilities",
+      "Send SMS"
+    ]
+  },
+  {
+    "objectID": "capabilities/sms.html#requirements",
+    "href": "capabilities/sms.html#requirements",
+    "title": "Send SMS",
+    "section": "Requirements",
+    "text": "Requirements\n\nAndroid SEND_SMS permission.\nDevice and subscription capable of sending SMS.",
+    "crumbs": [
+      "Capabilities",
+      "Send SMS"
+    ]
+  },
+  {
+    "objectID": "capabilities/sms.html#screenshot",
+    "href": "capabilities/sms.html#screenshot",
+    "title": "Send SMS",
+    "section": "Screenshot",
+    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/sms.png",
+    "crumbs": [
+      "Capabilities",
+      "Send SMS"
+    ]
+  },
+  {
+    "objectID": "capabilities/sms.html#supported-xlsform-calls",
+    "href": "capabilities/sms.html#supported-xlsform-calls",
+    "title": "Send SMS",
+    "section": "Supported XLSForm calls",
+    "text": "Supported XLSForm calls\nFrom example_odk_sms.send.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='sms.send',input_sms_phone=${phone_number},input_sms_message=${sms_message_calc},return_mode='flat')",
+    "crumbs": [
+      "Capabilities",
+      "Send SMS"
+    ]
+  },
+  {
+    "objectID": "capabilities/sms.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/sms.html#inputs-observed-in-supplied-examples",
+    "title": "Send SMS",
+    "section": "Inputs observed in supplied examples",
+    "text": "Inputs observed in supplied examples\n\n\n\nField\nLabel\nXLSForm type\n\n\n\n\nstart\nStart time\nstart\n\n\nphone_number\nPhone number\ntext\n\n\nfield_value\nValue to include in SMS\ntext",
+    "crumbs": [
+      "Capabilities",
+      "Send SMS"
+    ]
+  },
+  {
+    "objectID": "capabilities/sms.html#expected-returned-fields",
+    "href": "capabilities/sms.html#expected-returned-fields",
+    "title": "Send SMS",
+    "section": "Expected returned fields",
+    "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
+    "crumbs": [
+      "Capabilities",
+      "Send SMS"
+    ]
+  },
+  {
+    "objectID": "capabilities/spatial-geometry.html",
+    "href": "capabilities/spatial-geometry.html",
+    "title": "Spatial geometry",
+    "section": "",
+    "text": "Status: Implemented with measurement constraints\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
+    "crumbs": [
+      "Capabilities",
+      "Spatial geometry"
+    ]
+  },
+  {
+    "objectID": "capabilities/spatial-geometry.html#purpose",
+    "href": "capabilities/spatial-geometry.html#purpose",
+    "title": "Spatial geometry",
+    "section": "Purpose",
+    "text": "Purpose\nSupport tree-height, slope and distance-estimation workflows using device measurements and supplied distances.",
+    "crumbs": [
+      "Capabilities",
+      "Spatial geometry"
+    ]
+  },
+  {
+    "objectID": "capabilities/spatial-geometry.html#capability-ids",
+    "href": "capabilities/spatial-geometry.html#capability-ids",
+    "title": "Spatial geometry",
+    "section": "Capability IDs",
+    "text": "Capability IDs\n\nspatial_geometry",
+    "crumbs": [
+      "Capabilities",
+      "Spatial geometry"
+    ]
+  },
+  {
+    "objectID": "capabilities/spatial-geometry.html#requirements",
+    "href": "capabilities/spatial-geometry.html#requirements",
+    "title": "Spatial geometry",
+    "section": "Requirements",
+    "text": "Requirements\n\nRelevant onboard sensors.\nA measured horizontal distance where required.",
+    "crumbs": [
+      "Capabilities",
+      "Spatial geometry"
+    ]
+  },
+  {
+    "objectID": "capabilities/spatial-geometry.html#screenshot",
+    "href": "capabilities/spatial-geometry.html#screenshot",
+    "title": "Spatial geometry",
+    "section": "Screenshot",
+    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/spatial-geometry.png",
+    "crumbs": [
+      "Capabilities",
+      "Spatial geometry"
+    ]
+  },
+  {
+    "objectID": "capabilities/spatial-geometry.html#supported-xlsform-calls",
+    "href": "capabilities/spatial-geometry.html#supported-xlsform-calls",
+    "title": "Spatial geometry",
+    "section": "Supported XLSForm calls",
+    "text": "Supported XLSForm calls\nFrom example_odk_spatialgeometry.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='tree_height_measurement',input_horizontal_distance_m=${input_horizontal_distance_m},input_observer_height_m=${input_observer_height_m},input_base_angle_deg=${input_base_angle_deg},input_top_angle_deg=${input_top_angle_deg},return_mode='flat')",
+    "crumbs": [
+      "Capabilities",
+      "Spatial geometry"
+    ]
+  },
+  {
+    "objectID": "capabilities/spatial-geometry.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/spatial-geometry.html#inputs-observed-in-supplied-examples",
+    "title": "Spatial geometry",
+    "section": "Inputs observed in supplied examples",
+    "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
+    "crumbs": [
+      "Capabilities",
+      "Spatial geometry"
+    ]
+  },
+  {
+    "objectID": "capabilities/spatial-geometry.html#expected-returned-fields",
+    "href": "capabilities/spatial-geometry.html#expected-returned-fields",
+    "title": "Spatial geometry",
+    "section": "Expected returned fields",
+    "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
+    "crumbs": [
+      "Capabilities",
+      "Spatial geometry"
+    ]
+  },
+  {
+    "objectID": "capabilities/qr-code.html",
+    "href": "capabilities/qr-code.html",
+    "title": "Automatic code scanner",
+    "section": "",
+    "text": "Status: Documented and demonstrated\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
+    "crumbs": [
+      "Capabilities",
+      "Automatic code scanner"
+    ]
+  },
+  {
+    "objectID": "capabilities/qr-code.html#purpose",
+    "href": "capabilities/qr-code.html#purpose",
+    "title": "Automatic code scanner",
+    "section": "Purpose",
+    "text": "Purpose\nScan QR codes and supported barcode formats and return the decoded payload and detected format.",
+    "crumbs": [
+      "Capabilities",
+      "Automatic code scanner"
+    ]
+  },
+  {
+    "objectID": "capabilities/qr-code.html#capability-ids",
+    "href": "capabilities/qr-code.html#capability-ids",
+    "title": "Automatic code scanner",
+    "section": "Capability IDs",
+    "text": "Capability IDs\n\nqr.scan",
+    "crumbs": [
+      "Capabilities",
+      "Automatic code scanner"
+    ]
+  },
+  {
+    "objectID": "capabilities/qr-code.html#requirements",
+    "href": "capabilities/qr-code.html#requirements",
+    "title": "Automatic code scanner",
+    "section": "Requirements",
+    "text": "Requirements\n\nCamera permission.",
+    "crumbs": [
+      "Capabilities",
+      "Automatic code scanner"
+    ]
+  },
+  {
+    "objectID": "capabilities/qr-code.html#screenshot",
+    "href": "capabilities/qr-code.html#screenshot",
+    "title": "Automatic code scanner",
+    "section": "Screenshot",
+    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/qr-code.png",
+    "crumbs": [
+      "Capabilities",
+      "Automatic code scanner"
+    ]
+  },
+  {
+    "objectID": "capabilities/qr-code.html#supported-xlsform-calls",
+    "href": "capabilities/qr-code.html#supported-xlsform-calls",
+    "title": "Automatic code scanner",
+    "section": "Supported XLSForm calls",
+    "text": "Supported XLSForm calls\nFrom example_odk_qr.scan.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='qr.scan')",
+    "crumbs": [
+      "Capabilities",
+      "Automatic code scanner"
+    ]
+  },
+  {
+    "objectID": "capabilities/qr-code.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/qr-code.html#inputs-observed-in-supplied-examples",
+    "title": "Automatic code scanner",
+    "section": "Inputs observed in supplied examples",
+    "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
+    "crumbs": [
+      "Capabilities",
+      "Automatic code scanner"
+    ]
+  },
+  {
+    "objectID": "capabilities/qr-code.html#expected-returned-fields",
+    "href": "capabilities/qr-code.html#expected-returned-fields",
+    "title": "Automatic code scanner",
+    "section": "Expected returned fields",
+    "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
+    "crumbs": [
+      "Capabilities",
+      "Automatic code scanner"
+    ]
+  },
+  {
+    "objectID": "capabilities/admin-fingerprint.html",
+    "href": "capabilities/admin-fingerprint.html",
+    "title": "Local device authentication",
+    "section": "",
+    "text": "Status: Documented and demonstrated\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
+    "crumbs": [
+      "Capabilities",
+      "Local device authentication"
+    ]
+  },
+  {
+    "objectID": "capabilities/admin-fingerprint.html#purpose",
+    "href": "capabilities/admin-fingerprint.html#purpose",
+    "title": "Local device authentication",
+    "section": "Purpose",
+    "text": "Purpose\nRequest Android biometric or device-credential authentication and return a transient local-access decision.\nThis is not an identity attestation but can be used to prevent unauthorised users from accessing a form. by placing XLSForm questions inside a required local device authentication step, progress to study questions will only be allowed for registered users of the device.",
+    "crumbs": [
+      "Capabilities",
+      "Local device authentication"
+    ]
+  },
+  {
+    "objectID": "capabilities/admin-fingerprint.html#capability-ids",
+    "href": "capabilities/admin-fingerprint.html#capability-ids",
+    "title": "Local device authentication",
+    "section": "Capability IDs",
+    "text": "Capability IDs\n\nadmin_fingerprint_confirmation",
+    "crumbs": [
+      "Capabilities",
+      "Local device authentication"
+    ]
+  },
+  {
+    "objectID": "capabilities/admin-fingerprint.html#requirements",
+    "href": "capabilities/admin-fingerprint.html#requirements",
+    "title": "Local device authentication",
+    "section": "Requirements",
+    "text": "Requirements\n\nAndroid device with an enrolled biometric or device credential.",
+    "crumbs": [
+      "Capabilities",
+      "Local device authentication"
+    ]
+  },
+  {
+    "objectID": "capabilities/admin-fingerprint.html#screenshots",
+    "href": "capabilities/admin-fingerprint.html#screenshots",
+    "title": "Local device authentication",
+    "section": "Screenshots",
+    "text": "Screenshots",
+    "crumbs": [
+      "Capabilities",
+      "Local device authentication"
+    ]
+  },
+  {
+    "objectID": "capabilities/admin-fingerprint.html#supported-xlsform-calls",
+    "href": "capabilities/admin-fingerprint.html#supported-xlsform-calls",
+    "title": "Local device authentication",
+    "section": "Supported XLSForm calls",
+    "text": "Supported XLSForm calls\nFrom example_odk_admin_fingerprint_confirmation.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',input_authentication_method=${authentication_method})",
+    "crumbs": [
+      "Capabilities",
+      "Local device authentication"
+    ]
+  },
+  {
+    "objectID": "capabilities/admin-fingerprint.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/admin-fingerprint.html#inputs-observed-in-supplied-examples",
+    "title": "Local device authentication",
+    "section": "Inputs observed in supplied examples",
+    "text": "Inputs observed in supplied examples\n\n\n\n\n\n\n\n\nField\nLabel\nXLSForm type\n\n\n\n\nauthentication_method\nAuthentication policy\nselect_one auth_policy",
+    "crumbs": [
+      "Capabilities",
+      "Local device authentication"
+    ]
+  },
+  {
+    "objectID": "capabilities/admin-fingerprint.html#expected-returned-fields",
+    "href": "capabilities/admin-fingerprint.html#expected-returned-fields",
+    "title": "Local device authentication",
+    "section": "Expected returned fields",
+    "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
+    "crumbs": [
+      "Capabilities",
+      "Local device authentication"
+    ]
+  },
+  {
+    "objectID": "capabilities/question-primitives.html",
+    "href": "capabilities/question-primitives.html",
+    "title": "Question primitives",
+    "section": "",
+    "text": "Status: Implemented; native protocol building block\nThese capabilities are intended for ResearchOS-native presets and protocols. They are useful for simple direct data collection but do not yet replace the full logic model of XLSForm.",
+    "crumbs": [
+      "Capabilities",
+      "Question primitives"
+    ]
+  },
+  {
+    "objectID": "capabilities/question-primitives.html#purpose",
+    "href": "capabilities/question-primitives.html#purpose",
+    "title": "Question primitives",
+    "section": "Purpose",
+    "text": "Purpose\nQuestion primitives provide small reusable question blocks that can be run directly in ResearchOS, saved as capability presets, chained into protocols, scheduled, and exported through the common ResearchOS output package system.\nThey are designed for cases where a full ODK/XLSForm is unnecessary but a protocol still needs typed user input.",
+    "crumbs": [
+      "Capabilities",
+      "Question primitives"
+    ]
+  },
+  {
+    "objectID": "capabilities/question-primitives.html#capability-ids",
+    "href": "capabilities/question-primitives.html#capability-ids",
+    "title": "Question primitives",
+    "section": "Capability IDs",
+    "text": "Capability IDs\n\nquestion.text\nquestion.number\nquestion.select_one\nquestion.select_multiple",
+    "crumbs": [
+      "Capabilities",
+      "Question primitives"
+    ]
+  },
+  {
+    "objectID": "capabilities/question-primitives.html#common-inputs",
+    "href": "capabilities/question-primitives.html#common-inputs",
+    "title": "Question primitives",
+    "section": "Common inputs",
+    "text": "Common inputs\n\n\n\n\n\n\n\nInput\nDescription\n\n\n\n\ninput_question_id\nStable ID for the question within a protocol.\n\n\ninput_prompt\nMain question text shown to the operator or participant.\n\n\ninput_hint\nOptional explanatory hint.\n\n\ninput_required\ntrue or false.\n\n\ninput_regex\nOptional regular expression that the answer must satisfy.\n\n\ninput_constraint_message\nMessage returned when the answer fails validation.\n\n\ninput_answer\nOptional pre-filled answer, useful for testing or automated protocol steps.",
+    "crumbs": [
+      "Capabilities",
+      "Question primitives"
+    ]
+  },
+  {
+    "objectID": "capabilities/question-primitives.html#type-specific-inputs",
+    "href": "capabilities/question-primitives.html#type-specific-inputs",
+    "title": "Question primitives",
+    "section": "Type-specific inputs",
+    "text": "Type-specific inputs\n\nNumber\n\n\n\nInput\nDescription\n\n\n\n\ninput_min\nOptional minimum value.\n\n\ninput_max\nOptional maximum value.\n\n\n\n\n\nSelect one / select multiple\n\n\n\nInput\nDescription\n\n\n\n\ninput_options\nOption list separated by |, comma, or newline.",
+    "crumbs": [
+      "Capabilities",
+      "Question primitives"
+    ]
+  },
+  {
+    "objectID": "capabilities/question-primitives.html#example-intent-calls",
+    "href": "capabilities/question-primitives.html#example-intent-calls",
+    "title": "Question primitives",
+    "section": "Example intent calls",
+    "text": "Example intent calls\n\nText\ncom.example.researchos.EXECUTE_METHOD(method_id='question.text',input_question_id='chief_complaint',input_prompt='What is the main complaint?',input_required='true',return_mode='flat')\n\n\nNumber\ncom.example.researchos.EXECUTE_METHOD(method_id='question.number',input_question_id='temperature',input_prompt='Temperature',input_min='30',input_max='45',input_required='true',return_mode='flat')\n\n\nSelect one\ncom.example.researchos.EXECUTE_METHOD(method_id='question.select_one',input_question_id='severity',input_prompt='Severity',input_options='mild|moderate|severe',input_required='true',return_mode='flat')\n\n\nSelect multiple\ncom.example.researchos.EXECUTE_METHOD(method_id='question.select_multiple',input_question_id='symptoms',input_prompt='Symptoms present',input_options='fever|cough|rash|fatigue',return_mode='flat')",
+    "crumbs": [
+      "Capabilities",
+      "Question primitives"
+    ]
+  },
+  {
+    "objectID": "capabilities/question-primitives.html#returned-fields",
+    "href": "capabilities/question-primitives.html#returned-fields",
+    "title": "Question primitives",
+    "section": "Returned fields",
+    "text": "Returned fields\n\n\n\n\n\n\n\nField\nDescription\n\n\n\n\nquestion_status\nsucceeded or failed.\n\n\nquestion_type\ntext, number, select_one, or select_multiple.\n\n\nquestion_id\nStable question identifier.\n\n\nquestion_prompt\nPrompt used for the question.\n\n\nquestion_hint\nHint shown for the question.\n\n\nquestion_answer\nAnswer as a simple scalar or pipe-separated selection list.\n\n\nquestion_answer_json\nAnswer represented as JSON.\n\n\nquestion_valid\ntrue or false.\n\n\nquestion_required\nWhether an answer was required.\n\n\nquestion_regex\nRegex constraint applied, if any.\n\n\nquestion_constraint_message\nConstraint message configured for the question.\n\n\nquestion_error\nValidation error, if any.\n\n\nquestion_options_json\nChoice options for select questions.\n\n\nquestion_selected_count\nNumber of selected answers.\n\n\nquestion_min\nNumeric minimum, where applicable.\n\n\nquestion_max\nNumeric maximum, where applicable.\n\n\nquestion_captured_time_iso\nCapture time.",
+    "crumbs": [
+      "Capabilities",
+      "Question primitives"
+    ]
+  },
+  {
+    "objectID": "capabilities/question-primitives.html#protocol-use",
+    "href": "capabilities/question-primitives.html#protocol-use",
+    "title": "Question primitives",
+    "section": "Protocol use",
+    "text": "Protocol use\nThe most useful route is:\n\nOpen the question capability card in ResearchOS.\nConfigure the prompt, constraints and options.\nSave it as a preset.\nAdd the preset to a named protocol.\nRun the protocol and export one canonical JSON package.\n\nThe exported JSON package keeps the question response inside the relevant protocol step.",
+    "crumbs": [
+      "Capabilities",
+      "Question primitives"
+    ]
+  },
+  {
+    "objectID": "capabilities/question-primitives.html#limitations",
+    "href": "capabilities/question-primitives.html#limitations",
+    "title": "Question primitives",
+    "section": "Limitations",
+    "text": "Limitations\n\nRelevance/skip logic is not yet implemented.\nRegex validation is available, but complex XLSForm-style expressions are not.\nThese primitives are deliberately simple and should be treated as native ResearchOS building blocks rather than a full EDC replacement.",
+    "crumbs": [
+      "Capabilities",
+      "Question primitives"
     ]
   },
   {
@@ -3185,7 +3328,14 @@
     "href": "capabilities.html#current-modules",
     "title": "Capabilities",
     "section": "Current modules",
-    "text": "Current modules\nThe exact set of modules depends on the ResearchOS build.\nThe current project includes or is developing modules for:\n\nNFC;\nQR codes and barcodes;\nSMS;\nsensors and connected devices;\ndocument scanning;\nspeech transcription;\non-device translation;\ncomputer vision;\nprovider commands;\nattestation;\nscheduling."
+    "text": "Current modules\nThe exact set of modules depends on the ResearchOS build.\nThe current project includes or is developing modules for:\n\nNFC;\nQR codes and barcodes;\nSMS;\nrandom number generation;\nnative question primitives;\nsensors and connected devices;\ndocument scanning;\nspeech transcription;\non-device translation;\ncomputer vision;\nprovider commands;\nattestation;\nscheduling."
+  },
+  {
+    "objectID": "capabilities.html#native-protocols-and-outputs",
+    "href": "capabilities.html#native-protocols-and-outputs",
+    "title": "Capabilities",
+    "section": "Native protocols and outputs",
+    "text": "Native protocols and outputs\nResearchOS can now run simple native protocols without handing every step to an external form app. A configured capability can be saved as a preset, presets can be chained into a named protocol, and the whole run can be exported as one output package.\nEach exported package has a stable researchos_submission_id. The same UUID appears in the output folder/filename and inside the JSON, and protocol steps share the same UUID. This makes the exported JSON suitable as a submission-level record for later parsing in R."
   },
   {
     "objectID": "capabilities.html#capability-documentation",
@@ -3392,619 +3542,652 @@
     ]
   },
   {
-    "objectID": "capabilities/admin-fingerprint.html",
-    "href": "capabilities/admin-fingerprint.html",
-    "title": "Local device authentication",
+    "objectID": "capabilities/svg-selector.html",
+    "href": "capabilities/svg-selector.html",
+    "title": "SVG polygon selector",
     "section": "",
     "text": "Status: Documented and demonstrated\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
     "crumbs": [
       "Capabilities",
-      "Local device authentication"
+      "SVG polygon selector"
     ]
   },
   {
-    "objectID": "capabilities/admin-fingerprint.html#purpose",
-    "href": "capabilities/admin-fingerprint.html#purpose",
-    "title": "Local device authentication",
+    "objectID": "capabilities/svg-selector.html#purpose",
+    "href": "capabilities/svg-selector.html#purpose",
+    "title": "SVG polygon selector",
     "section": "Purpose",
-    "text": "Purpose\nRequest Android biometric or device-credential authentication and return a transient local-access decision.\nThis is not an identity attestation but can be used to prevent unauthorised users from accessing a form. by placing XLSForm questions inside a required local device authentication step, progress to study questions will only be allowed for registered users of the device.",
+    "text": "Purpose\nDisplay an SVG and return selected polygon or region identifiers.",
     "crumbs": [
       "Capabilities",
-      "Local device authentication"
+      "SVG polygon selector"
     ]
   },
   {
-    "objectID": "capabilities/admin-fingerprint.html#capability-ids",
-    "href": "capabilities/admin-fingerprint.html#capability-ids",
-    "title": "Local device authentication",
+    "objectID": "capabilities/svg-selector.html#capability-ids",
+    "href": "capabilities/svg-selector.html#capability-ids",
+    "title": "SVG polygon selector",
     "section": "Capability IDs",
-    "text": "Capability IDs\n\nadmin_fingerprint_confirmation",
+    "text": "Capability IDs\n\nsvg.select",
     "crumbs": [
       "Capabilities",
-      "Local device authentication"
+      "SVG polygon selector"
     ]
   },
   {
-    "objectID": "capabilities/admin-fingerprint.html#requirements",
-    "href": "capabilities/admin-fingerprint.html#requirements",
-    "title": "Local device authentication",
+    "objectID": "capabilities/svg-selector.html#requirements",
+    "href": "capabilities/svg-selector.html#requirements",
+    "title": "SVG polygon selector",
     "section": "Requirements",
-    "text": "Requirements\n\nAndroid device with an enrolled biometric or device credential.",
+    "text": "Requirements\n\nSVG asset available to ResearchOS.",
     "crumbs": [
       "Capabilities",
-      "Local device authentication"
+      "SVG polygon selector"
     ]
   },
   {
-    "objectID": "capabilities/admin-fingerprint.html#screenshots",
-    "href": "capabilities/admin-fingerprint.html#screenshots",
-    "title": "Local device authentication",
-    "section": "Screenshots",
-    "text": "Screenshots",
+    "objectID": "capabilities/svg-selector.html#screenshot",
+    "href": "capabilities/svg-selector.html#screenshot",
+    "title": "SVG polygon selector",
+    "section": "Screenshot",
+    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/svg-selector.png",
     "crumbs": [
       "Capabilities",
-      "Local device authentication"
+      "SVG polygon selector"
     ]
   },
   {
-    "objectID": "capabilities/admin-fingerprint.html#supported-xlsform-calls",
-    "href": "capabilities/admin-fingerprint.html#supported-xlsform-calls",
-    "title": "Local device authentication",
+    "objectID": "capabilities/svg-selector.html#supported-xlsform-calls",
+    "href": "capabilities/svg-selector.html#supported-xlsform-calls",
+    "title": "SVG polygon selector",
     "section": "Supported XLSForm calls",
-    "text": "Supported XLSForm calls\nFrom example_odk_admin_fingerprint_confirmation.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',input_authentication_method=${authentication_method})",
+    "text": "Supported XLSForm calls\nFrom example_odk_svg.select.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='svg.select',input_svg_name='bodymap_black.svg',input_selection_mode='sequence',return_mode='flat')",
     "crumbs": [
       "Capabilities",
-      "Local device authentication"
+      "SVG polygon selector"
     ]
   },
   {
-    "objectID": "capabilities/admin-fingerprint.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/admin-fingerprint.html#inputs-observed-in-supplied-examples",
-    "title": "Local device authentication",
+    "objectID": "capabilities/svg-selector.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/svg-selector.html#inputs-observed-in-supplied-examples",
+    "title": "SVG polygon selector",
     "section": "Inputs observed in supplied examples",
-    "text": "Inputs observed in supplied examples\n\n\n\n\n\n\n\n\nField\nLabel\nXLSForm type\n\n\n\n\nauthentication_method\nAuthentication policy\nselect_one auth_policy",
+    "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
     "crumbs": [
       "Capabilities",
-      "Local device authentication"
+      "SVG polygon selector"
     ]
   },
   {
-    "objectID": "capabilities/admin-fingerprint.html#expected-returned-fields",
-    "href": "capabilities/admin-fingerprint.html#expected-returned-fields",
-    "title": "Local device authentication",
+    "objectID": "capabilities/svg-selector.html#expected-returned-fields",
+    "href": "capabilities/svg-selector.html#expected-returned-fields",
+    "title": "SVG polygon selector",
     "section": "Expected returned fields",
     "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
     "crumbs": [
       "Capabilities",
-      "Local device authentication"
+      "SVG polygon selector"
     ]
   },
   {
-    "objectID": "capabilities/qr-code.html",
-    "href": "capabilities/qr-code.html",
-    "title": "Automatic code scanner",
+    "objectID": "capabilities/calibrated-scale.html",
+    "href": "capabilities/calibrated-scale.html",
+    "title": "Calibrated scale measurement",
     "section": "",
     "text": "Status: Documented and demonstrated\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
     "crumbs": [
       "Capabilities",
-      "Automatic code scanner"
+      "Calibrated scale measurement"
     ]
   },
   {
-    "objectID": "capabilities/qr-code.html#purpose",
-    "href": "capabilities/qr-code.html#purpose",
-    "title": "Automatic code scanner",
+    "objectID": "capabilities/calibrated-scale.html#purpose",
+    "href": "capabilities/calibrated-scale.html#purpose",
+    "title": "Calibrated scale measurement",
     "section": "Purpose",
-    "text": "Purpose\nScan QR codes and supported barcode formats and return the decoded payload and detected format.",
+    "text": "Purpose\nCollect a calibrated visual analogue or numeric range measurement using a physical line length. The calibration allows onscreen display to be an exact representation of real world size. For instance, after calibration a 50mm scale will appear as exactly 50mm on the screen.",
     "crumbs": [
       "Capabilities",
-      "Automatic code scanner"
+      "Calibrated scale measurement"
     ]
   },
   {
-    "objectID": "capabilities/qr-code.html#capability-ids",
-    "href": "capabilities/qr-code.html#capability-ids",
-    "title": "Automatic code scanner",
+    "objectID": "capabilities/calibrated-scale.html#capability-ids",
+    "href": "capabilities/calibrated-scale.html#capability-ids",
+    "title": "Calibrated scale measurement",
     "section": "Capability IDs",
-    "text": "Capability IDs\n\nqr.scan",
+    "text": "Capability IDs\n\ncalibrated_scale",
     "crumbs": [
       "Capabilities",
-      "Automatic code scanner"
+      "Calibrated scale measurement"
     ]
   },
   {
-    "objectID": "capabilities/qr-code.html#requirements",
-    "href": "capabilities/qr-code.html#requirements",
-    "title": "Automatic code scanner",
+    "objectID": "capabilities/calibrated-scale.html#requirements",
+    "href": "capabilities/calibrated-scale.html#requirements",
+    "title": "Calibrated scale measurement",
     "section": "Requirements",
-    "text": "Requirements\n\nCamera permission.",
+    "text": "Requirements\n\nScreen dimensions and display suitable for the requested physical scale. Global calibration of screen pixel:mm resolution.",
     "crumbs": [
       "Capabilities",
-      "Automatic code scanner"
+      "Calibrated scale measurement"
     ]
   },
   {
-    "objectID": "capabilities/qr-code.html#screenshot",
-    "href": "capabilities/qr-code.html#screenshot",
-    "title": "Automatic code scanner",
+    "objectID": "capabilities/calibrated-scale.html#screenshot",
+    "href": "capabilities/calibrated-scale.html#screenshot",
+    "title": "Calibrated scale measurement",
     "section": "Screenshot",
-    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/qr-code.png",
+    "text": "Screenshot",
     "crumbs": [
       "Capabilities",
-      "Automatic code scanner"
+      "Calibrated scale measurement"
     ]
   },
   {
-    "objectID": "capabilities/qr-code.html#supported-xlsform-calls",
-    "href": "capabilities/qr-code.html#supported-xlsform-calls",
-    "title": "Automatic code scanner",
+    "objectID": "capabilities/calibrated-scale.html#supported-xlsform-calls",
+    "href": "capabilities/calibrated-scale.html#supported-xlsform-calls",
+    "title": "Calibrated scale measurement",
     "section": "Supported XLSForm calls",
-    "text": "Supported XLSForm calls\nFrom example_odk_qr.scan.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='qr.scan')",
+    "text": "Supported XLSForm calls\nFrom example_odk_calibrated_scale.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',return_mode='flat')\nFrom example_odk_calibrated_scale_MinMax.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_minimum='0',input_maximum='10',return_mode='flat')\nFrom example_odk_calibrated_scale_Range.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_use_range='true',input_lower_label='Least pain',input_upper_label='Worst pain',return_mode='flat')\nFrom example_odk_calibrated_scale_Vertical.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_vertical_mode='true',return_mode='flat')",
     "crumbs": [
       "Capabilities",
-      "Automatic code scanner"
+      "Calibrated scale measurement"
     ]
   },
   {
-    "objectID": "capabilities/qr-code.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/qr-code.html#inputs-observed-in-supplied-examples",
-    "title": "Automatic code scanner",
+    "objectID": "capabilities/calibrated-scale.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/calibrated-scale.html#inputs-observed-in-supplied-examples",
+    "title": "Calibrated scale measurement",
     "section": "Inputs observed in supplied examples",
-    "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
+    "text": "Inputs observed in supplied examples\n\n\n\nField\nLabel\nXLSForm type\n\n\n\n\nstart\n\nstart",
     "crumbs": [
       "Capabilities",
-      "Automatic code scanner"
+      "Calibrated scale measurement"
     ]
   },
   {
-    "objectID": "capabilities/qr-code.html#expected-returned-fields",
-    "href": "capabilities/qr-code.html#expected-returned-fields",
-    "title": "Automatic code scanner",
+    "objectID": "capabilities/calibrated-scale.html#expected-returned-fields",
+    "href": "capabilities/calibrated-scale.html#expected-returned-fields",
+    "title": "Calibrated scale measurement",
     "section": "Expected returned fields",
     "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
     "crumbs": [
       "Capabilities",
-      "Automatic code scanner"
+      "Calibrated scale measurement"
     ]
   },
   {
-    "objectID": "capabilities/spatial-geometry.html",
-    "href": "capabilities/spatial-geometry.html",
-    "title": "Spatial geometry",
+    "objectID": "capabilities/sensor-read.html",
+    "href": "capabilities/sensor-read.html",
+    "title": "Read sensor",
     "section": "",
-    "text": "Status: Implemented with measurement constraints\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
+    "text": "Status: Documented and demonstrated\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
     "crumbs": [
       "Capabilities",
-      "Spatial geometry"
+      "Read sensor"
     ]
   },
   {
-    "objectID": "capabilities/spatial-geometry.html#purpose",
-    "href": "capabilities/spatial-geometry.html#purpose",
-    "title": "Spatial geometry",
+    "objectID": "capabilities/sensor-read.html#purpose",
+    "href": "capabilities/sensor-read.html#purpose",
+    "title": "Read sensor",
     "section": "Purpose",
-    "text": "Purpose\nSupport tree-height, slope and distance-estimation workflows using device measurements and supplied distances.",
+    "text": "Purpose\nRead, trace, average or discover registered ResearchOS BLE sensor nodes.",
     "crumbs": [
       "Capabilities",
-      "Spatial geometry"
+      "Read sensor"
     ]
   },
   {
-    "objectID": "capabilities/spatial-geometry.html#capability-ids",
-    "href": "capabilities/spatial-geometry.html#capability-ids",
-    "title": "Spatial geometry",
+    "objectID": "capabilities/sensor-read.html#capability-ids",
+    "href": "capabilities/sensor-read.html#capability-ids",
+    "title": "Read sensor",
     "section": "Capability IDs",
-    "text": "Capability IDs\n\nspatial_geometry",
+    "text": "Capability IDs\n\nsensor.read",
     "crumbs": [
       "Capabilities",
-      "Spatial geometry"
+      "Read sensor"
     ]
   },
   {
-    "objectID": "capabilities/spatial-geometry.html#requirements",
-    "href": "capabilities/spatial-geometry.html#requirements",
-    "title": "Spatial geometry",
+    "objectID": "capabilities/sensor-read.html#requirements",
+    "href": "capabilities/sensor-read.html#requirements",
+    "title": "Read sensor",
     "section": "Requirements",
-    "text": "Requirements\n\nRelevant onboard sensors.\nA measured horizontal distance where required.",
+    "text": "Requirements\n\nCompatible sensor node.\nBluetooth permissions.",
     "crumbs": [
       "Capabilities",
-      "Spatial geometry"
+      "Read sensor"
     ]
   },
   {
-    "objectID": "capabilities/spatial-geometry.html#screenshot",
-    "href": "capabilities/spatial-geometry.html#screenshot",
-    "title": "Spatial geometry",
+    "objectID": "capabilities/sensor-read.html#screenshot",
+    "href": "capabilities/sensor-read.html#screenshot",
+    "title": "Read sensor",
     "section": "Screenshot",
-    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/spatial-geometry.png",
+    "text": "Screenshot",
     "crumbs": [
       "Capabilities",
-      "Spatial geometry"
+      "Read sensor"
     ]
   },
   {
-    "objectID": "capabilities/spatial-geometry.html#supported-xlsform-calls",
-    "href": "capabilities/spatial-geometry.html#supported-xlsform-calls",
-    "title": "Spatial geometry",
+    "objectID": "capabilities/sensor-read.html#supported-xlsform-calls",
+    "href": "capabilities/sensor-read.html#supported-xlsform-calls",
+    "title": "Read sensor",
     "section": "Supported XLSForm calls",
-    "text": "Supported XLSForm calls\nFrom example_odk_spatialgeometry.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='tree_height_measurement',input_horizontal_distance_m=${input_horizontal_distance_m},input_observer_height_m=${input_observer_height_m},input_base_angle_deg=${input_base_angle_deg},input_top_angle_deg=${input_top_angle_deg},return_mode='flat')",
+    "text": "Supported XLSForm calls\nFrom example_odk_sensorread.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='sensor.read',input_device_id=${config_device_id},input_sensor_id=${config_sensor_id},input_sensor_profile=${config_sensor_profile},input_sensor_read_mode=${config_read_mode},input_duration_seconds=${config_duration_seconds},input_sample_interval_seconds=${config_interval_seconds},input_device_match_policy=${config_match_policy},return_mode='flat')",
     "crumbs": [
       "Capabilities",
-      "Spatial geometry"
+      "Read sensor"
     ]
   },
   {
-    "objectID": "capabilities/spatial-geometry.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/spatial-geometry.html#inputs-observed-in-supplied-examples",
-    "title": "Spatial geometry",
+    "objectID": "capabilities/sensor-read.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/sensor-read.html#inputs-observed-in-supplied-examples",
+    "title": "Read sensor",
     "section": "Inputs observed in supplied examples",
-    "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
+    "text": "Inputs observed in supplied examples\n\n\n\n\n\n\n\n\nField\nLabel\nXLSForm type\n\n\n\n\nconfig_read_mode\nRead mode\nselect_one read_mode\n\n\nconfig_device_id\nRegistered device ID\ntext\n\n\nconfig_sensor_id\nSensor ID\ntext\n\n\nconfig_sensor_profile\nSensor profile\ntext\n\n\nconfig_match_policy\nDevice matching policy\nselect_one match_policy\n\n\nconfig_duration_seconds\nDuration in seconds\ninteger\n\n\nconfig_interval_seconds\nSample interval in seconds\ninteger",
     "crumbs": [
       "Capabilities",
-      "Spatial geometry"
+      "Read sensor"
     ]
   },
   {
-    "objectID": "capabilities/spatial-geometry.html#expected-returned-fields",
-    "href": "capabilities/spatial-geometry.html#expected-returned-fields",
-    "title": "Spatial geometry",
+    "objectID": "capabilities/sensor-read.html#expected-returned-fields",
+    "href": "capabilities/sensor-read.html#expected-returned-fields",
+    "title": "Read sensor",
     "section": "Expected returned fields",
     "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
     "crumbs": [
       "Capabilities",
-      "Spatial geometry"
+      "Read sensor"
     ]
   },
   {
-    "objectID": "capabilities/sms.html",
-    "href": "capabilities/sms.html",
-    "title": "Send SMS",
+    "objectID": "capabilities/index.html",
+    "href": "capabilities/index.html",
+    "title": "Capability catalogue",
     "section": "",
-    "text": "Status: Send accepted; delivery confirmation pending\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
+    "text": "Documented and demonstrated: source documentation and at least one corresponding XLSForm are present.\nImplemented; XLSForm example pending: the supplied source documentation describes the capability, but no complete workbook was supplied.\nPartial or constrained: the documentation identifies an important limitation, restricted scope or incomplete result path.\nExperimental: useful for investigation, but not yet a stable study-facing interface.",
     "crumbs": [
       "Capabilities",
-      "Send SMS"
+      "Capability catalogue"
     ]
   },
   {
-    "objectID": "capabilities/sms.html#purpose",
-    "href": "capabilities/sms.html#purpose",
-    "title": "Send SMS",
-    "section": "Purpose",
-    "text": "Purpose\nSend an SMS directly from ResearchOS and return the local send-request status.",
+    "objectID": "capabilities/index.html#status-vocabulary",
+    "href": "capabilities/index.html#status-vocabulary",
+    "title": "Capability catalogue",
+    "section": "",
+    "text": "Documented and demonstrated: source documentation and at least one corresponding XLSForm are present.\nImplemented; XLSForm example pending: the supplied source documentation describes the capability, but no complete workbook was supplied.\nPartial or constrained: the documentation identifies an important limitation, restricted scope or incomplete result path.\nExperimental: useful for investigation, but not yet a stable study-facing interface.",
     "crumbs": [
       "Capabilities",
-      "Send SMS"
+      "Capability catalogue"
     ]
   },
   {
-    "objectID": "capabilities/sms.html#capability-ids",
-    "href": "capabilities/sms.html#capability-ids",
-    "title": "Send SMS",
-    "section": "Capability IDs",
-    "text": "Capability IDs\n\nsms.send",
+    "objectID": "capabilities/index.html#consistent-page-structure",
+    "href": "capabilities/index.html#consistent-page-structure",
+    "title": "Capability catalogue",
+    "section": "Consistent page structure",
+    "text": "Consistent page structure\nEvery capability page includes purpose, canonical IDs, requirements, screenshot placeholder, observed XLSForm calls, inputs, expected outputs, downloadable examples, implementation status, limitations and the detailed source reference.\n\n\nLocal device authentication\nadmin_fingerprint_confirmation\nDocumented and demonstrated\nRequest Android biometric or device-credential authentication and return a transient local-access decision.\n\n\nAndroid app inspector\nandroid_app_inspector\nExperimental interoperability tool\nInspect installed Android packages and test intent-based integration contracts.\n\n\nSigned event attestation\nattestation.create, attestation.anchor_bundle\nDocumented and demonstrated\nCreate signed evidence that an event payload was attested using a selected local verification dependency, and anchor bundles of attestations.\n\n\nBluetooth device inspector\nbluetooth_device_inspector\nDocumented and demonstrated\nDiscover Bluetooth devices and inspect GATT services, characteristics and values.\n\n\nBluetooth printer\nbluetooth_print\nNon-functional at present\nSend supported print content to a configured Bluetooth printer.\n\n\nCalibrated scale measurement\ncalibrated_scale\nDocumented and demonstrated\nCollect a calibrated visual analogue or numeric range measurement using a physical line length.\n\n\nChoice experiments\ndce.pairwise, dce.maxdiff, dce.ranking, dce.points, dce.conjoint\nDocumented and demonstrated with some outstanding issues\nRun interactive pairwise, MaxDiff, ranking, points-allocation and conjoint choice tasks.\n\n\nDocument scanner\ndocument.scan\nImplemented; XLSForm example pending\nCapture document pages and return PDF and/or image outputs.\n\n\nGPS target navigation\ngps_target_navigator\nDocumented and demonstrated\nGuide a user toward target coordinates using distance, bearing and an optional augmented-reality camera overlay.\n\n\nML Kit language translation\nmlkit.translate\nImplemented; XLSForm example pending\nTranslate text locally with ML Kit and manage downloaded language models.\n\n\nML Kit vision\nmlkit.vision.analyze\nImplemented; XLSForm example pending\nRun supported ML Kit vision analyses on a selected image.\n\n\nNFC capabilities\nnfc_credential_provisioning, nfc_credential_verification, nfc_tag_read, nfc_tag_write, nfc_tag_wipe, protocol_nfc_check, protocol_nfc_complete\nDocumented and demonstrated\nRead, write and wipe NFC tags; provision and verify credentials; and track protocol-step eligibility and completion.\n\n\nODK form launcher\nodk_form_launcher\nDocumented and demonstrated\nOpen a selected ODK Collect form and return the matched form, project, instance and launch status.\n\n\nExternal command library\nprovider.command.run\nPartial return support\nRun a saved, typed Android intent command against an installed provider application.\n\n\nAutomatic code scanner\nqr.scan\nDocumented and demonstrated\nScan QR codes and supported barcode formats and return the decoded payload and detected format.\n\n\nQuestion primitives\nquestion.text, question.number, question.select_one, question.select_multiple\nImplemented; native protocol building block\nCapture simple text, numeric, single-choice and multiple-choice answers directly inside ResearchOS protocols.\n\n\nRandom number generator\nrandom.number.generate\nDocumented and implemented\nGenerate secure or fixed-seed random numbers with count, range and step controls.\n\n\nScaled photo selector\nscaled_photo.capture\nDocumented and demonstrated\nCapture or select a photograph with scale and measurement context.\n\n\nScheduler\nscheduler\nImplemented with evolving target support\nCreate and transfer local recurring schedules for forms, web targets and future ResearchOS process targets.\n\n\nESP32 sensor firmware installer\nsensor_firmware_installer\nCurrent scope limited to ESP32-C3\nInstall bundled ResearchOS sensor firmware onto a supported ESP32-C3 device over USB.\n\n\nBLE sensor-node provisioner\nsensor_node_provisioner\nImplemented; XLSForm example pending\nWrite identity and sampling configuration to a compatible ResearchOS BLE sensor node and register it locally.\n\n\nRead sensor\nsensor.read\nDocumented and demonstrated\nRead, trace, average or discover registered ResearchOS BLE sensor nodes.\n\n\nSend SMS\nsms.send\nSend accepted; delivery confirmation pending\nSend an SMS directly from ResearchOS and return the local send-request status.\n\n\nSpatial geometry\nspatial_geometry\nImplemented with measurement constraints\nSupport tree-height, slope and distance-estimation workflows using device measurements and supplied distances.\n\n\nSpeech transcription\nspeech.transcribe\nImplemented; XLSForm example pending\nCapture speech and return a transcription with provider metadata.\n\n\nSVG polygon selector\nsvg.select\nDocumented and demonstrated\nDisplay an SVG and return selected polygon or region identifiers.",
     "crumbs": [
       "Capabilities",
-      "Send SMS"
+      "Capability catalogue"
     ]
   },
   {
-    "objectID": "capabilities/sms.html#requirements",
-    "href": "capabilities/sms.html#requirements",
-    "title": "Send SMS",
-    "section": "Requirements",
-    "text": "Requirements\n\nAndroid SEND_SMS permission.\nDevice and subscription capable of sending SMS.",
-    "crumbs": [
-      "Capabilities",
-      "Send SMS"
-    ]
-  },
-  {
-    "objectID": "capabilities/sms.html#screenshot",
-    "href": "capabilities/sms.html#screenshot",
-    "title": "Send SMS",
-    "section": "Screenshot",
-    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/sms.png",
-    "crumbs": [
-      "Capabilities",
-      "Send SMS"
-    ]
-  },
-  {
-    "objectID": "capabilities/sms.html#supported-xlsform-calls",
-    "href": "capabilities/sms.html#supported-xlsform-calls",
-    "title": "Send SMS",
-    "section": "Supported XLSForm calls",
-    "text": "Supported XLSForm calls\nFrom example_odk_sms.send.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='sms.send',input_sms_phone=${phone_number},input_sms_message=${sms_message_calc},return_mode='flat')",
-    "crumbs": [
-      "Capabilities",
-      "Send SMS"
-    ]
-  },
-  {
-    "objectID": "capabilities/sms.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/sms.html#inputs-observed-in-supplied-examples",
-    "title": "Send SMS",
-    "section": "Inputs observed in supplied examples",
-    "text": "Inputs observed in supplied examples\n\n\n\nField\nLabel\nXLSForm type\n\n\n\n\nstart\nStart time\nstart\n\n\nphone_number\nPhone number\ntext\n\n\nfield_value\nValue to include in SMS\ntext",
-    "crumbs": [
-      "Capabilities",
-      "Send SMS"
-    ]
-  },
-  {
-    "objectID": "capabilities/sms.html#expected-returned-fields",
-    "href": "capabilities/sms.html#expected-returned-fields",
-    "title": "Send SMS",
-    "section": "Expected returned fields",
-    "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
-    "crumbs": [
-      "Capabilities",
-      "Send SMS"
-    ]
-  },
-  {
-    "objectID": "capabilities/mlkit-translate.html",
-    "href": "capabilities/mlkit-translate.html",
-    "title": "ML Kit translation",
+    "objectID": "capabilities/sensor-provisioner.html",
+    "href": "capabilities/sensor-provisioner.html",
+    "title": "BLE sensor-node provisioner",
     "section": "",
     "text": "Status: Implemented; XLSForm example pending\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
     "crumbs": [
       "Capabilities",
-      "ML Kit translation"
+      "BLE sensor-node provisioner"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-translate.html#purpose",
-    "href": "capabilities/mlkit-translate.html#purpose",
-    "title": "ML Kit translation",
+    "objectID": "capabilities/sensor-provisioner.html#purpose",
+    "href": "capabilities/sensor-provisioner.html#purpose",
+    "title": "BLE sensor-node provisioner",
     "section": "Purpose",
-    "text": "Purpose\nTranslate text locally with ML Kit and manage downloaded language models.",
+    "text": "Purpose\nWrite identity and sampling configuration to a compatible ResearchOS BLE sensor node and register it locally.",
     "crumbs": [
       "Capabilities",
-      "ML Kit translation"
+      "BLE sensor-node provisioner"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-translate.html#capability-ids",
-    "href": "capabilities/mlkit-translate.html#capability-ids",
-    "title": "ML Kit translation",
+    "objectID": "capabilities/sensor-provisioner.html#capability-ids",
+    "href": "capabilities/sensor-provisioner.html#capability-ids",
+    "title": "BLE sensor-node provisioner",
     "section": "Capability IDs",
-    "text": "Capability IDs\n\nmlkit.translate",
+    "text": "Capability IDs\n\nsensor_node_provisioner",
     "crumbs": [
       "Capabilities",
-      "ML Kit translation"
+      "BLE sensor-node provisioner"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-translate.html#requirements",
-    "href": "capabilities/mlkit-translate.html#requirements",
-    "title": "ML Kit translation",
+    "objectID": "capabilities/sensor-provisioner.html#requirements",
+    "href": "capabilities/sensor-provisioner.html#requirements",
+    "title": "BLE sensor-node provisioner",
     "section": "Requirements",
-    "text": "Requirements\n\nRequired language model downloaded before offline translation.",
+    "text": "Requirements\n\nCompatible ResearchOS BLE sensor firmware.\nBluetooth permissions.",
     "crumbs": [
       "Capabilities",
-      "ML Kit translation"
+      "BLE sensor-node provisioner"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-translate.html#screenshot",
-    "href": "capabilities/mlkit-translate.html#screenshot",
-    "title": "ML Kit translation",
+    "objectID": "capabilities/sensor-provisioner.html#screenshot",
+    "href": "capabilities/sensor-provisioner.html#screenshot",
+    "title": "BLE sensor-node provisioner",
     "section": "Screenshot",
-    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/mlkit-translate.png",
+    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/sensor-provisioner.png",
     "crumbs": [
       "Capabilities",
-      "ML Kit translation"
+      "BLE sensor-node provisioner"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-translate.html#supported-xlsform-calls",
-    "href": "capabilities/mlkit-translate.html#supported-xlsform-calls",
-    "title": "ML Kit translation",
+    "objectID": "capabilities/sensor-provisioner.html#supported-xlsform-calls",
+    "href": "capabilities/sensor-provisioner.html#supported-xlsform-calls",
+    "title": "BLE sensor-node provisioner",
     "section": "Supported XLSForm calls",
     "text": "Supported XLSForm calls\nNo XLSForm call was available in the supplied examples. Use the intent examples in the detailed reference below until a complete workbook is added.",
     "crumbs": [
       "Capabilities",
-      "ML Kit translation"
+      "BLE sensor-node provisioner"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-translate.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/mlkit-translate.html#inputs-observed-in-supplied-examples",
-    "title": "ML Kit translation",
+    "objectID": "capabilities/sensor-provisioner.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/sensor-provisioner.html#inputs-observed-in-supplied-examples",
+    "title": "BLE sensor-node provisioner",
     "section": "Inputs observed in supplied examples",
     "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
     "crumbs": [
       "Capabilities",
-      "ML Kit translation"
+      "BLE sensor-node provisioner"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-translate.html#expected-returned-fields",
-    "href": "capabilities/mlkit-translate.html#expected-returned-fields",
-    "title": "ML Kit translation",
+    "objectID": "capabilities/sensor-provisioner.html#expected-returned-fields",
+    "href": "capabilities/sensor-provisioner.html#expected-returned-fields",
+    "title": "BLE sensor-node provisioner",
     "section": "Expected returned fields",
     "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
     "crumbs": [
       "Capabilities",
-      "ML Kit translation"
+      "BLE sensor-node provisioner"
     ]
   },
   {
-    "objectID": "capabilities/bluetooth-printer.html",
-    "href": "capabilities/bluetooth-printer.html",
-    "title": "Bluetooth printer",
+    "objectID": "capabilities/odk-form-launcher.html",
+    "href": "capabilities/odk-form-launcher.html",
+    "title": "ODK form launcher",
     "section": "",
-    "text": "Status: Incomplete & non-functional\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
+    "text": "Status: Documented and demonstrated\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
     "crumbs": [
       "Capabilities",
-      "Bluetooth printer"
+      "ODK form launcher"
     ]
   },
   {
-    "objectID": "capabilities/bluetooth-printer.html#purpose",
-    "href": "capabilities/bluetooth-printer.html#purpose",
-    "title": "Bluetooth printer",
+    "objectID": "capabilities/odk-form-launcher.html#purpose",
+    "href": "capabilities/odk-form-launcher.html#purpose",
+    "title": "ODK form launcher",
     "section": "Purpose",
-    "text": "Purpose\nSend supported print content to a configured Bluetooth printer.",
+    "text": "Purpose\nOpen a selected ODK Collect form and return the matched form, project, instance and launch status.",
     "crumbs": [
       "Capabilities",
-      "Bluetooth printer"
+      "ODK form launcher"
     ]
   },
   {
-    "objectID": "capabilities/bluetooth-printer.html#capability-ids",
-    "href": "capabilities/bluetooth-printer.html#capability-ids",
-    "title": "Bluetooth printer",
+    "objectID": "capabilities/odk-form-launcher.html#capability-ids",
+    "href": "capabilities/odk-form-launcher.html#capability-ids",
+    "title": "ODK form launcher",
     "section": "Capability IDs",
-    "text": "Capability IDs\n\nbluetooth_print",
+    "text": "Capability IDs\n\nodk_form_launcher",
     "crumbs": [
       "Capabilities",
-      "Bluetooth printer"
+      "ODK form launcher"
     ]
   },
   {
-    "objectID": "capabilities/bluetooth-printer.html#requirements",
-    "href": "capabilities/bluetooth-printer.html#requirements",
-    "title": "Bluetooth printer",
+    "objectID": "capabilities/odk-form-launcher.html#requirements",
+    "href": "capabilities/odk-form-launcher.html#requirements",
+    "title": "ODK form launcher",
     "section": "Requirements",
-    "text": "Requirements\n\nCompatible paired Bluetooth printer.",
+    "text": "Requirements\n\nODK Collect installed.\nTarget project and form present on the device.",
     "crumbs": [
       "Capabilities",
-      "Bluetooth printer"
+      "ODK form launcher"
     ]
   },
   {
-    "objectID": "capabilities/bluetooth-printer.html#screenshot",
-    "href": "capabilities/bluetooth-printer.html#screenshot",
-    "title": "Bluetooth printer",
+    "objectID": "capabilities/odk-form-launcher.html#screenshot",
+    "href": "capabilities/odk-form-launcher.html#screenshot",
+    "title": "ODK form launcher",
     "section": "Screenshot",
-    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/bluetooth-printer.png",
+    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/odk-form-launcher.png",
     "crumbs": [
       "Capabilities",
-      "Bluetooth printer"
+      "ODK form launcher"
     ]
   },
   {
-    "objectID": "capabilities/bluetooth-printer.html#supported-xlsform-calls",
-    "href": "capabilities/bluetooth-printer.html#supported-xlsform-calls",
-    "title": "Bluetooth printer",
+    "objectID": "capabilities/odk-form-launcher.html#supported-xlsform-calls",
+    "href": "capabilities/odk-form-launcher.html#supported-xlsform-calls",
+    "title": "ODK form launcher",
     "section": "Supported XLSForm calls",
-    "text": "Supported XLSForm calls\nFrom example_odk_bluetooth_print.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='bluetooth_print')",
+    "text": "Supported XLSForm calls\nFrom example_odk_odk_form_launcher.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='odk_form_launcher',input_form_selector=${input_form_selector},return_mode='flat')",
     "crumbs": [
       "Capabilities",
-      "Bluetooth printer"
+      "ODK form launcher"
     ]
   },
   {
-    "objectID": "capabilities/bluetooth-printer.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/bluetooth-printer.html#inputs-observed-in-supplied-examples",
-    "title": "Bluetooth printer",
+    "objectID": "capabilities/odk-form-launcher.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/odk-form-launcher.html#inputs-observed-in-supplied-examples",
+    "title": "ODK form launcher",
     "section": "Inputs observed in supplied examples",
     "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
     "crumbs": [
       "Capabilities",
-      "Bluetooth printer"
+      "ODK form launcher"
     ]
   },
   {
-    "objectID": "capabilities/bluetooth-printer.html#expected-returned-fields",
-    "href": "capabilities/bluetooth-printer.html#expected-returned-fields",
-    "title": "Bluetooth printer",
+    "objectID": "capabilities/odk-form-launcher.html#expected-returned-fields",
+    "href": "capabilities/odk-form-launcher.html#expected-returned-fields",
+    "title": "ODK form launcher",
     "section": "Expected returned fields",
     "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
     "crumbs": [
       "Capabilities",
-      "Bluetooth printer"
+      "ODK form launcher"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-vision.html",
-    "href": "capabilities/mlkit-vision.html",
-    "title": "ML Kit vision",
+    "objectID": "capabilities/attestation.html",
+    "href": "capabilities/attestation.html",
+    "title": "Signed event attestation",
     "section": "",
-    "text": "Status: Implemented; XLSForm example pending\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
+    "text": "Status: Documented and demonstrated\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.\nBiometric/Pin/Pattern attestation are fully implemented\nNFC credential provisioning and verification are handled in the NFC capabilities\nPassword, QR and anchor bundle are not fully implemented",
     "crumbs": [
       "Capabilities",
-      "ML Kit vision"
+      "Signed event attestation"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-vision.html#purpose",
-    "href": "capabilities/mlkit-vision.html#purpose",
-    "title": "ML Kit vision",
+    "objectID": "capabilities/attestation.html#purpose",
+    "href": "capabilities/attestation.html#purpose",
+    "title": "Signed event attestation",
     "section": "Purpose",
-    "text": "Purpose\nRun supported ML Kit vision analyses on a selected image.",
+    "text": "Purpose\nCreate signed evidence that an event payload was attested using a selected local verification dependency, and anchor bundles of attestations.",
     "crumbs": [
       "Capabilities",
-      "ML Kit vision"
+      "Signed event attestation"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-vision.html#capability-ids",
-    "href": "capabilities/mlkit-vision.html#capability-ids",
-    "title": "ML Kit vision",
+    "objectID": "capabilities/attestation.html#capability-ids",
+    "href": "capabilities/attestation.html#capability-ids",
+    "title": "Signed event attestation",
     "section": "Capability IDs",
-    "text": "Capability IDs\n\nmlkit.vision.analyze",
+    "text": "Capability IDs\n\nattestation.create\nattestation.anchor_bundle",
     "crumbs": [
       "Capabilities",
-      "ML Kit vision"
+      "Signed event attestation"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-vision.html#requirements",
-    "href": "capabilities/mlkit-vision.html#requirements",
-    "title": "ML Kit vision",
+    "objectID": "capabilities/attestation.html#requirements",
+    "href": "capabilities/attestation.html#requirements",
+    "title": "Signed event attestation",
     "section": "Requirements",
-    "text": "Requirements\n\nImage accessible through an Android content URI.",
+    "text": "Requirements\n\nConfigured ResearchOS device key.\nVerification dependency required by the selected method.",
     "crumbs": [
       "Capabilities",
-      "ML Kit vision"
+      "Signed event attestation"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-vision.html#screenshot",
-    "href": "capabilities/mlkit-vision.html#screenshot",
-    "title": "ML Kit vision",
+    "objectID": "capabilities/attestation.html#screenshot",
+    "href": "capabilities/attestation.html#screenshot",
+    "title": "Signed event attestation",
     "section": "Screenshot",
-    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/mlkit-vision.png",
+    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/attestation.png",
     "crumbs": [
       "Capabilities",
-      "ML Kit vision"
+      "Signed event attestation"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-vision.html#supported-xlsform-calls",
-    "href": "capabilities/mlkit-vision.html#supported-xlsform-calls",
-    "title": "ML Kit vision",
+    "objectID": "capabilities/attestation.html#supported-xlsform-calls",
+    "href": "capabilities/attestation.html#supported-xlsform-calls",
+    "title": "Signed event attestation",
+    "section": "Supported XLSForm calls",
+    "text": "Supported XLSForm calls\nFrom example_odk_attestation.create_Fingerprint.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Fingerprint',input_trusted_timestamp=${timestamp_policy},return_mode='flat')\nFrom example_odk_attestation.create_Pin.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Pin',input_trusted_timestamp=${timestamp_policy},return_mode='flat')\nFrom example_odk_attestation.create_Password.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Password',input_verification_evidence=${verification_evidence_input},input_trusted_timestamp=${timestamp_policy},return_mode='flat')\nFrom example_odk_attestation.create_Qr.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Qr',input_trusted_timestamp=${timestamp_policy},return_mode='flat')\nFrom example_odk_attestation.create_Nfc.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Nfc',input_trusted_timestamp=${timestamp_policy},return_mode='flat')\nFrom example_odk_attestation.anchor_bundle.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.anchor_bundle',input_study_id=${study_id_input},operator_id=${operator_id_input},return_mode='flat')\nFrom researchos_fingerprint_attestation_test.xlsx:\ncom.example.researchos.EXECUTE_METHOD(method_id='attestation.create',event_payload_hash=${event_payload},verification_method='Fingerprint',trusted_timestamp=${timestamp_policy},return_mode='flat')",
+    "crumbs": [
+      "Capabilities",
+      "Signed event attestation"
+    ]
+  },
+  {
+    "objectID": "capabilities/attestation.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/attestation.html#inputs-observed-in-supplied-examples",
+    "title": "Signed event attestation",
+    "section": "Inputs observed in supplied examples",
+    "text": "Inputs observed in supplied examples\n\n\n\n\n\n\n\n\nField\nLabel\nXLSForm type\n\n\n\n\nstart\n\nstart\n\n\nend\n\nend\n\n\nodk_device_id\n\ndeviceid\n\n\nodk_username\n\nusername\n\n\nparticipant_id\nParticipant ID\ntext\n\n\noperator_id_input\nOperator ID\ntext\n\n\ntimestamp_policy\nTrusted timestamp policy\nselect_one timestamp_policy\n\n\nevent_description\nData or event being attested\ntext\n\n\nverification_evidence_input\nStudy verification token (returned as attestation evidence)\ntext\n\n\nstudy_id_input\nStudy ID\ntext",
+    "crumbs": [
+      "Capabilities",
+      "Signed event attestation"
+    ]
+  },
+  {
+    "objectID": "capabilities/attestation.html#expected-returned-fields",
+    "href": "capabilities/attestation.html#expected-returned-fields",
+    "title": "Signed event attestation",
+    "section": "Expected returned fields",
+    "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
+    "crumbs": [
+      "Capabilities",
+      "Signed event attestation"
+    ]
+  },
+  {
+    "objectID": "capabilities/provider-command.html",
+    "href": "capabilities/provider-command.html",
+    "title": "External command library",
+    "section": "",
+    "text": "Status: Partial return support\nThis status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.",
+    "crumbs": [
+      "Capabilities",
+      "External command library"
+    ]
+  },
+  {
+    "objectID": "capabilities/provider-command.html#purpose",
+    "href": "capabilities/provider-command.html#purpose",
+    "title": "External command library",
+    "section": "Purpose",
+    "text": "Purpose\nRun a saved, typed Android intent command against an installed provider application.",
+    "crumbs": [
+      "Capabilities",
+      "External command library"
+    ]
+  },
+  {
+    "objectID": "capabilities/provider-command.html#capability-ids",
+    "href": "capabilities/provider-command.html#capability-ids",
+    "title": "External command library",
+    "section": "Capability IDs",
+    "text": "Capability IDs\n\nprovider.command.run",
+    "crumbs": [
+      "Capabilities",
+      "External command library"
+    ]
+  },
+  {
+    "objectID": "capabilities/provider-command.html#requirements",
+    "href": "capabilities/provider-command.html#requirements",
+    "title": "External command library",
+    "section": "Requirements",
+    "text": "Requirements\n\nTarget provider application installed.\nSaved command compatible with the provider version.",
+    "crumbs": [
+      "Capabilities",
+      "External command library"
+    ]
+  },
+  {
+    "objectID": "capabilities/provider-command.html#screenshot",
+    "href": "capabilities/provider-command.html#screenshot",
+    "title": "External command library",
+    "section": "Screenshot",
+    "text": "Screenshot\n\nScreenshot placeholder\nAdd a current capability dashboard or execution screenshot at:\nassets/screenshots/provider-command.png",
+    "crumbs": [
+      "Capabilities",
+      "External command library"
+    ]
+  },
+  {
+    "objectID": "capabilities/provider-command.html#supported-xlsform-calls",
+    "href": "capabilities/provider-command.html#supported-xlsform-calls",
+    "title": "External command library",
     "section": "Supported XLSForm calls",
     "text": "Supported XLSForm calls\nNo XLSForm call was available in the supplied examples. Use the intent examples in the detailed reference below until a complete workbook is added.",
     "crumbs": [
       "Capabilities",
-      "ML Kit vision"
+      "External command library"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-vision.html#inputs-observed-in-supplied-examples",
-    "href": "capabilities/mlkit-vision.html#inputs-observed-in-supplied-examples",
-    "title": "ML Kit vision",
+    "objectID": "capabilities/provider-command.html#inputs-observed-in-supplied-examples",
+    "href": "capabilities/provider-command.html#inputs-observed-in-supplied-examples",
+    "title": "External command library",
     "section": "Inputs observed in supplied examples",
     "text": "Inputs observed in supplied examples\nNone documented in the supplied material.",
     "crumbs": [
       "Capabilities",
-      "ML Kit vision"
+      "External command library"
     ]
   },
   {
-    "objectID": "capabilities/mlkit-vision.html#expected-returned-fields",
-    "href": "capabilities/mlkit-vision.html#expected-returned-fields",
-    "title": "ML Kit vision",
+    "objectID": "capabilities/provider-command.html#expected-returned-fields",
+    "href": "capabilities/provider-command.html#expected-returned-fields",
+    "title": "External command library",
     "section": "Expected returned fields",
     "text": "Expected returned fields\nReturn fields are documented from the specific XLSForm execution group only.\nThe previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.",
     "crumbs": [
       "Capabilities",
-      "ML Kit vision"
+      "External command library"
     ]
   },
   {
@@ -4533,7 +4716,7 @@
     "href": "scheduling.html",
     "title": "Scheduling workflows",
     "section": "",
-    "text": "The scheduler creates local recurring alarms for an ODK/Kobo form or online web form. It supports daily, weekly, monthly and nth-weekday rules, notification reminders and configurable retry intervals.\nThe intended round trip is:\nResearchOS scheduler\n    → launches the relevant form\n    → the form invokes ResearchOS\n    → ResearchOS executes a specialist method\n    → the result returns to the form",
+    "text": "The scheduler creates local recurring alarms for ODK/Kobo forms, online web forms, direct ResearchOS capabilities and saved ResearchOS protocols. It uses cron-style timing, notification reminders and configurable retry intervals.\nThe intended round trip is:\nResearchOS scheduler\n    → launches the relevant form, web form, capability or protocol\n    → the user completes the task\n    → ResearchOS captures the result\n    → outputs are returned, copied or exported",
     "crumbs": [
       "Scheduling workflows"
     ]
@@ -4543,7 +4726,7 @@
     "href": "scheduling.html#purpose",
     "title": "Scheduling workflows",
     "section": "",
-    "text": "The scheduler creates local recurring alarms for an ODK/Kobo form or online web form. It supports daily, weekly, monthly and nth-weekday rules, notification reminders and configurable retry intervals.\nThe intended round trip is:\nResearchOS scheduler\n    → launches the relevant form\n    → the form invokes ResearchOS\n    → ResearchOS executes a specialist method\n    → the result returns to the form",
+    "text": "The scheduler creates local recurring alarms for ODK/Kobo forms, online web forms, direct ResearchOS capabilities and saved ResearchOS protocols. It uses cron-style timing, notification reminders and configurable retry intervals.\nThe intended round trip is:\nResearchOS scheduler\n    → launches the relevant form, web form, capability or protocol\n    → the user completes the task\n    → ResearchOS captures the result\n    → outputs are returned, copied or exported",
     "crumbs": [
       "Scheduling workflows"
     ]
@@ -4574,6 +4757,26 @@
     "title": "Scheduling workflows",
     "section": "Schedule transfer",
     "text": "Schedule transfer\nThe supplied scheduler documentation also defines RIL schedule export and import, including transfer through QR or NFC dependency boundaries.",
+    "crumbs": [
+      "Scheduling workflows"
+    ]
+  },
+  {
+    "objectID": "scheduling.html#protocol-runs",
+    "href": "scheduling.html#protocol-runs",
+    "title": "Scheduling workflows",
+    "section": "Protocol runs",
+    "text": "Protocol runs\nSchedules can now target saved protocols from the ResearchOS protocol library. A protocol is an ordered chain of saved capability presets. When a scheduled protocol runs, each step is launched in order and the outputs are written into one protocol output folder.\nProtocol exports use a single researchos_submission_id across all steps. The canonical JSON contains a steps array, so downstream code can treat the protocol run as one submission while still inspecting each step independently.",
+    "crumbs": [
+      "Scheduling workflows"
+    ]
+  },
+  {
+    "objectID": "scheduling.html#practical-notes",
+    "href": "scheduling.html#practical-notes",
+    "title": "Scheduling workflows",
+    "section": "Practical notes",
+    "text": "Practical notes\n\nUse Test to verify a schedule or protocol chain before relying on it in the field.\nIf a protocol includes interactive capabilities, the user must complete each step before the next step can continue.\nFor direct ResearchOS protocols, prefer output export over clipboard if the result will be used as study data.\nAndroid background notification behaviour varies by device; always test on the field device model.",
     "crumbs": [
       "Scheduling workflows"
     ]
@@ -4683,18 +4886,18 @@
     "href": "reference/release-notes.html",
     "title": "Release notes",
     "section": "",
-    "text": "ResearchOS v2.1.5 introduces the first end-to-end ESP32 sensor framework. The app can now install MicroPython onto an ESP32-C3, upload bundled ResearchOS sensor firmware from the phone, provision the node over BLE, and save it into the local device registry. This is the foundation for low-cost custom environmental and field sensors that can be configured without a laptop.",
+    "text": "ResearchOS v2.1.6 strengthens the app as a native protocol runner. The main change is a new protocol/output layer: reusable capability presets can be saved, chained into named protocols, run directly from ResearchOS, and exported as coherent JSON packages with linked attachments. This release also adds several native building-block capabilities, including random number generation and basic question primitives, moving ResearchOS closer to being a lightweight standalone data-collection runtime as well as an ODK companion.",
     "crumbs": [
       "Technical reference",
       "Release notes"
     ]
   },
   {
-    "objectID": "reference/release-notes.html#source-release_notes_v2.1.5.md",
-    "href": "reference/release-notes.html#source-release_notes_v2.1.5.md",
+    "objectID": "reference/release-notes.html#source-release_notes_v2.1.6.md",
+    "href": "reference/release-notes.html#source-release_notes_v2.1.6.md",
     "title": "Release notes",
     "section": "",
-    "text": "ResearchOS v2.1.5 introduces the first end-to-end ESP32 sensor framework. The app can now install MicroPython onto an ESP32-C3, upload bundled ResearchOS sensor firmware from the phone, provision the node over BLE, and save it into the local device registry. This is the foundation for low-cost custom environmental and field sensors that can be configured without a laptop.",
+    "text": "ResearchOS v2.1.6 strengthens the app as a native protocol runner. The main change is a new protocol/output layer: reusable capability presets can be saved, chained into named protocols, run directly from ResearchOS, and exported as coherent JSON packages with linked attachments. This release also adds several native building-block capabilities, including random number generation and basic question primitives, moving ResearchOS closer to being a lightweight standalone data-collection runtime as well as an ODK companion.",
     "crumbs": [
       "Technical reference",
       "Release notes"
@@ -4705,7 +4908,7 @@
     "href": "reference/release-notes.html#highlights",
     "title": "Release notes",
     "section": "Highlights",
-    "text": "Highlights\n\nESP32 sensor framework\nThe ESP32 firmware installer and BLE sensor provisioner are now grouped together under:\nESP32 sensor framework\nThis keeps the workflow clearer:\n\nInstall MicroPython to an ESP32-C3 over USB/OTG.\nReset or replug the board.\nUpload the bundled ResearchOS main.py and sensor-driver files.\nReset or replug again.\nScan for the node over BLE and provision it into the device registry.\n\n\n\nPhone-only firmware installation\nResearchOS now bundles:\n\nthe official ESP32-C3 MicroPython binary;\nthe ResearchOS BLE sensor-node firmware;\nsensor-specific MicroPython driver files.\n\nThe installer uses a guided two-step process because ESP32-C3 USB mode switching is fragile on Android. This avoids the previous false-success state where MicroPython was installed but main.py was not visible to the board.\n\n\nBLE sensor provisioning\nThe provisioner can scan for ResearchOS BLE sensor nodes, connect to the node, read its manifest, configure its identity and sampling interval, request a confirmation sample, and save the resulting profile to the ResearchOS device registry.\nProvisioning returns useful audit fields including:\nsensor_provisioning_status\nsensor_device_id\nsensor_device_name\nsensor_device_address\nsensor_sample_interval_ms\nsensor_manifest_json\nsensor_command_response_json\nsensor_confirmation_reading_json\nsensor_registry_device_id\n\n\nSensor profile selection\nProvisioning now includes a sensor profile selector. The first implemented profile is:\nAHT20 temperature/humidity\nAn LD2410C mmWave presence profile has also been scaffolded as an in-development placeholder so future sensor-specific work can be added cleanly.\n\n\nModular sensor-driver firmware\nSensor-specific firmware code has been split into separate MicroPython driver files:\nsensor_drivers/aht20.py\nsensor_drivers/ld2410c.py\nsensor_drivers/__init__.py\nThis means the ESP32 framework is no longer conceptually tied to AHT20. AHT20 is simply the first working driver.",
+    "text": "Highlights\n\nProtocol library\nResearchOS now has a protocol library for reusable native workflows.\nYou can:\n\nsave a configured capability card as a reusable preset;\nview saved presets in the protocol library;\nrun a saved preset directly;\ncreate named protocols by chaining presets in order;\nrun a protocol from the app;\nuse protocols from the scheduler.\n\nThis makes it possible to define a small reusable workflow once, then run it repeatedly without manually reconfiguring each capability.\n\n\nCanonical output packages\nDirect capability runs and protocol runs now export into structured output folders.\nEach export contains:\n\none canonical JSON result file;\nany media/file attachments returned by the capability;\na consistent steps array, even for single-capability runs;\nattachment metadata inside the JSON;\nlinked filenames so JSON and attachments remain associated.\n\nThis is intended to make downstream parsing in R much easier. A protocol run should increasingly behave like one submission record rather than a scattering of unrelated output fragments.\n\n\nSubmission UUIDs\nEvery exported run now has a stable submission identifier:\nresearchos_submission_id\nThe same UUID is stored:\n\nin the output folder/filename;\ninside the top-level JSON;\ninside each step record;\nin attachment filenames.\n\nFor protocol runs, all steps share the same submission UUID. This gives each protocol execution a single key identifier that can later be used as the form/submission join key in R or other data-management tools.\n\n\nProtocol output handling\nProtocol runs now write all step outputs into the same protocol output folder.\nIntermediate steps no longer produce separate “saved output” notifications. ResearchOS only notifies once the whole protocol run has finished, reducing noise and avoiding the sense that each step is a separate study submission.\n\n\nQuestion primitive capabilities\nThis release adds native ResearchOS question primitives:\nquestion.text\nquestion.number\nquestion.select_one\nquestion.select_multiple\nThese are basic building blocks for ResearchOS-native protocols that do not need a full XLSForm.\nCommon controls include:\n\nquestion ID;\nprompt;\nhint;\nrequired/not required;\nregex validation;\nconstraint message.\n\nNumber questions also support minimum and maximum values. Choice questions support configurable option lists.\nReturned fields include the question type, question ID, prompt, answer, validation status, validation rule, error message, and timestamp.\n\n\nAdditional native capability building blocks\nThis release also includes several capability additions and refinements that support ResearchOS-native workflows:\n\nRandom number generator (random.number.generate) — generates one or more random numbers with configurable count, minimum, maximum, step size, secure-random mode, and fixed-seed reproducible mode. This is a foundation for later allocation, block randomisation, and simulation tools.\nProtocol-ready direct capability runs — capability cards can be configured, saved as presets, run directly, and used as protocol steps without needing ODK as the handling app.\nImproved intent-launch preview behaviour — capability examples can be launched through the same fullscreen path used by external intent calls, making it easier to test what an ODK or scheduler-triggered user will actually see.\nOutput-aware capability execution — direct runs and protocol runs can now save outputs and attachments into structured folders rather than only copying text to the clipboard.\n\n\n\nOutput export UX\nThe output/export path has been tightened:\n\ndirect capability results can be exported from the shared result panel;\nexports are placed under Documents/ResearchOS/outputs by default;\nconfigured output folders are supported;\nsaved-output notifications include an open action;\nthe home screen can open the output location.\n\n\n\nRuntime cleanup\nThis release also continues the cleanup of older compatibility paths. The goal remains that capabilities should be standalone modules, outputs should use the current canonical package structure, and new workflows should not depend on legacy transport shims.",
     "crumbs": [
       "Technical reference",
       "Release notes"
@@ -4716,7 +4919,7 @@
     "href": "reference/release-notes.html#validation",
     "title": "Release notes",
     "section": "Validation",
-    "text": "Validation\nBuilt with:\n./gradlew assembleDebug\nResult:\nBUILD SUCCESSFUL\nThe ESP32-C3 workflow was also tested end to end:\n\nMicroPython install from ResearchOS succeeded.\nResearchOS firmware upload from ResearchOS succeeded.\nThe board advertised as a ResearchOS sensor node after reset.\nBLE provisioning succeeded and saved the node to the device registry.",
+    "text": "Validation\nBuilt with:\n./gradlew :app:assembleDebug\nResult:\nBUILD SUCCESSFUL",
     "crumbs": [
       "Technical reference",
       "Release notes"
@@ -4725,6 +4928,50 @@
   {
     "objectID": "reference/release-notes.html#notes",
     "href": "reference/release-notes.html#notes",
+    "title": "Release notes",
+    "section": "Notes",
+    "text": "Notes\nThe protocol library is now functional, but it is still early-stage UI. The next likely refinements are:\n\nclearer “run for test” versus “run for real” affordances;\nbetter protocol result previews;\nricher question-logic/relevance support;\ntighter scheduler integration for protocol runs;\ncontinued review of the canonical JSON shape against R import workflows.\n\nThe new question primitives are deliberately simple. They are intended as reusable ResearchOS-native building blocks, not as a replacement for full XLSForm logic yet.",
+    "crumbs": [
+      "Technical reference",
+      "Release notes"
+    ]
+  },
+  {
+    "objectID": "reference/release-notes.html#source-release_notes_v2.1.5.md",
+    "href": "reference/release-notes.html#source-release_notes_v2.1.5.md",
+    "title": "Release notes",
+    "section": "Source: RELEASE_NOTES_v2.1.5.md",
+    "text": "Source: RELEASE_NOTES_v2.1.5.md\nResearchOS v2.1.5 introduces the first end-to-end ESP32 sensor framework. The app can now install MicroPython onto an ESP32-C3, upload bundled ResearchOS sensor firmware from the phone, provision the node over BLE, and save it into the local device registry. This is the foundation for low-cost custom environmental and field sensors that can be configured without a laptop.",
+    "crumbs": [
+      "Technical reference",
+      "Release notes"
+    ]
+  },
+  {
+    "objectID": "reference/release-notes.html#highlights-1",
+    "href": "reference/release-notes.html#highlights-1",
+    "title": "Release notes",
+    "section": "Highlights",
+    "text": "Highlights\n\nESP32 sensor framework\nThe ESP32 firmware installer and BLE sensor provisioner are now grouped together under:\nESP32 sensor framework\nThis keeps the workflow clearer:\n\nInstall MicroPython to an ESP32-C3 over USB/OTG.\nReset or replug the board.\nUpload the bundled ResearchOS main.py and sensor-driver files.\nReset or replug again.\nScan for the node over BLE and provision it into the device registry.\n\n\n\nPhone-only firmware installation\nResearchOS now bundles:\n\nthe official ESP32-C3 MicroPython binary;\nthe ResearchOS BLE sensor-node firmware;\nsensor-specific MicroPython driver files.\n\nThe installer uses a guided two-step process because ESP32-C3 USB mode switching is fragile on Android. This avoids the previous false-success state where MicroPython was installed but main.py was not visible to the board.\n\n\nBLE sensor provisioning\nThe provisioner can scan for ResearchOS BLE sensor nodes, connect to the node, read its manifest, configure its identity and sampling interval, request a confirmation sample, and save the resulting profile to the ResearchOS device registry.\nProvisioning returns useful audit fields including:\nsensor_provisioning_status\nsensor_device_id\nsensor_device_name\nsensor_device_address\nsensor_sample_interval_ms\nsensor_manifest_json\nsensor_command_response_json\nsensor_confirmation_reading_json\nsensor_registry_device_id\n\n\nSensor profile selection\nProvisioning now includes a sensor profile selector. The first implemented profile is:\nAHT20 temperature/humidity\nAn LD2410C mmWave presence profile has also been scaffolded as an in-development placeholder so future sensor-specific work can be added cleanly.\n\n\nModular sensor-driver firmware\nSensor-specific firmware code has been split into separate MicroPython driver files:\nsensor_drivers/aht20.py\nsensor_drivers/ld2410c.py\nsensor_drivers/__init__.py\nThis means the ESP32 framework is no longer conceptually tied to AHT20. AHT20 is simply the first working driver.",
+    "crumbs": [
+      "Technical reference",
+      "Release notes"
+    ]
+  },
+  {
+    "objectID": "reference/release-notes.html#validation-1",
+    "href": "reference/release-notes.html#validation-1",
+    "title": "Release notes",
+    "section": "Validation",
+    "text": "Validation\nBuilt with:\n./gradlew assembleDebug\nResult:\nBUILD SUCCESSFUL\nThe ESP32-C3 workflow was also tested end to end:\n\nMicroPython install from ResearchOS succeeded.\nResearchOS firmware upload from ResearchOS succeeded.\nThe board advertised as a ResearchOS sensor node after reset.\nBLE provisioning succeeded and saved the node to the device registry.",
+    "crumbs": [
+      "Technical reference",
+      "Release notes"
+    ]
+  },
+  {
+    "objectID": "reference/release-notes.html#notes-1",
+    "href": "reference/release-notes.html#notes-1",
     "title": "Release notes",
     "section": "Notes",
     "text": "Notes\nESP32-C3 boards may require a manual reset or unplug/replug between USB flashing, firmware upload, and BLE provisioning. The app now treats this as part of the expected workflow rather than as a hidden failure.\nThe LD2410C profile is scaffolded but not yet a functional radar-driver implementation.",
@@ -4745,8 +4992,8 @@
     ]
   },
   {
-    "objectID": "reference/release-notes.html#highlights-1",
-    "href": "reference/release-notes.html#highlights-1",
+    "objectID": "reference/release-notes.html#highlights-2",
+    "href": "reference/release-notes.html#highlights-2",
     "title": "Release notes",
     "section": "Highlights",
     "text": "Highlights\n\nSMS sending\nResearchOS can now send a caller-supplied SMS message to a caller-supplied phone number.\nThis is designed for XLSForms and scheduled workflows where the form constructs the final message text, then passes only:\ninput_sms_phone\ninput_sms_message\nThe SMS result returns send status, message hash, number of SMS parts, sent time, and any error.\n\n\nBluetooth device inspection and experimental printer support\nThe Bluetooth inspector can now work more usefully with nearby and paired devices, exposing readable, writable, and notify-capable endpoints.\nAn experimental Bluetooth printer capability has also been added for Qutie-style mini label printers. This is currently marked as in development: device discovery and payload sending are present, but reliable label rendering still needs vendor-protocol confirmation.\n\n\nNFC protocol administration\nThis release adds NFC protocol administration tools for offline participant progress tracking.\nProtocol NFC support now includes provisioning, checking, completion marking, reconstruction, and override workflows, making it possible to maintain a compact protocol state on a participant NFC card even without network sync.\n\n\nSpatial geometry tools\nResearchOS now includes early spatial measurement capabilities:\ntree_height_measurement\nslope_inclination_measurement\ngeometry_distance_estimation\nThese use phone orientation sensors, camera-assisted targeting, and supplied field references to estimate height, slope, tilt, and distance, with formulas and sensor provenance returned for audit.",
@@ -4767,8 +5014,8 @@
     ]
   },
   {
-    "objectID": "reference/release-notes.html#validation-1",
-    "href": "reference/release-notes.html#validation-1",
+    "objectID": "reference/release-notes.html#validation-2",
+    "href": "reference/release-notes.html#validation-2",
     "title": "Release notes",
     "section": "Validation",
     "text": "Validation\nBuilt and tested with:\n./gradlew testDebugUnitTest assembleDebug\nResult:\nBUILD SUCCESSFUL",
@@ -4778,8 +5025,8 @@
     ]
   },
   {
-    "objectID": "reference/release-notes.html#notes-1",
-    "href": "reference/release-notes.html#notes-1",
+    "objectID": "reference/release-notes.html#notes-2",
+    "href": "reference/release-notes.html#notes-2",
     "title": "Release notes",
     "section": "Notes",
     "text": "Notes\nBluetooth printer support is intentionally experimental in this release. The Qutie printer can be detected and written to, but reliable label layout and feed behaviour require further protocol capture or vendor documentation.",
@@ -4899,8 +5146,8 @@
     ]
   },
   {
-    "objectID": "reference/release-notes.html#validation-2",
-    "href": "reference/release-notes.html#validation-2",
+    "objectID": "reference/release-notes.html#validation-3",
+    "href": "reference/release-notes.html#validation-3",
     "title": "Release notes",
     "section": "Validation",
     "text": "Validation\n\ntestDebugUnitTest passed.\nassembleDebug passed.",
@@ -4921,8 +5168,8 @@
     ]
   },
   {
-    "objectID": "reference/release-notes.html#highlights-2",
-    "href": "reference/release-notes.html#highlights-2",
+    "objectID": "reference/release-notes.html#highlights-3",
+    "href": "reference/release-notes.html#highlights-3",
     "title": "Release notes",
     "section": "Highlights",
     "text": "Highlights\n\nCapability modules are self-contained. Each module owns its methods, screens, RIL bindings, documentation, and example ODK XLSForms. The core runtime discovers modules without capability-specific wiring.\nODK intent execution is direct. An externally invoked capability starts its operation immediately and returns to the calling form on completion; the dashboard remains a manual testing environment.\nSigned event attestation is ready for field testing. Attestations bind an ODK-supplied SHA-256 form hash to local device verification, an ECDSA signature, a device-wide hash chain, and—when requested—RFC 3161 trusted time evidence.\nNFC credentials are portable and PIN-protected. Provisioning writes a signed, encrypted credential to an NFC card; verification checks the card payload, issuer signature, and the holder’s 4- or 6-digit PIN on any compatible device.",

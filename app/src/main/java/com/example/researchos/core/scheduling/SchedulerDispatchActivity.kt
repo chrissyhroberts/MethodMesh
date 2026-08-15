@@ -48,6 +48,10 @@ class SchedulerDispatchActivity : Activity() {
         activeSchedule = schedule
         SchedulerRepository.recordEvent(this, schedule.id, "dispatch_started:${intent.getStringExtra("notification_kind").orEmpty().ifBlank { "direct" }}")
         if (schedule.chainOrder <= 0) clearChainClipboard(schedule)
+        if (schedule.target == SchedulerTarget.PROTOCOL && outputGroupFolder.isBlank()) {
+            launchProtocolStep(schedule, schedule.targetValue, 0)
+            return
+        }
         if (protocolId.isNotBlank()) {
             val protocol = ProtocolLibraryRepository.protocol(this, protocolId)
             val step = protocol?.steps?.sortedBy { it.order }?.getOrNull(protocolStepIndex)
@@ -58,10 +62,6 @@ class SchedulerDispatchActivity : Activity() {
                 return
             }
             launchPreset(preset)
-            return
-        }
-        if (schedule.target == SchedulerTarget.PROTOCOL) {
-            launchProtocolStep(schedule, schedule.targetValue, 0)
             return
         }
         if (schedule.target == SchedulerTarget.WEB_FORM) {
@@ -193,9 +193,10 @@ class SchedulerDispatchActivity : Activity() {
         SchedulerRepository.recordEvent(this, schedule.id, "protocol_step_started:${step.order}:${step.name}")
         val group = outputGroupFolder.ifBlank {
             val submissionId = protocolSubmissionId.ifBlank { UUID.randomUUID().toString() }
-            "protocol_${safeName(protocol.name)}_${Instant.now().toString().replace(Regex("[^A-Za-z0-9_.-]"), "_")}_$submissionId"
+            val timestamp = Instant.now().toString().replace(Regex("[^A-Za-z0-9_.-]"), "_")
+            "${safeName(protocol.name)}__${submissionId}___${timestamp}"
         }
-        val submissionId = protocolSubmissionId.ifBlank { group.substringAfterLast('_') }
+        val submissionId = protocolSubmissionId.ifBlank { submissionIdFromProtocolFolder(group) }
         startActivity(Intent(this, SchedulerDispatchActivity::class.java)
             .setAction("com.example.researchos.SCHEDULED_PROTOCOL_DISPATCH")
             .putExtra("schedule_id", schedule.id)
@@ -284,7 +285,7 @@ class SchedulerDispatchActivity : Activity() {
                 context = this,
                 protocolFolder = parent,
                 protocolName = protocol.name,
-                protocolSubmissionId = protocolSubmissionId.ifBlank { parent.substringAfterLast('_') },
+                protocolSubmissionId = protocolSubmissionId.ifBlank { submissionIdFromProtocolFolder(parent) },
                 stepIndex = protocolStepIndex,
                 stepName = protocolStep?.name ?: schedule.name,
                 methodId = methodId,
@@ -304,6 +305,13 @@ class SchedulerDispatchActivity : Activity() {
 
     private fun safeName(value: String): String =
         value.replace(Regex("[^A-Za-z0-9_.-]"), "_").trim('_').ifBlank { "researchos_run" }
+
+    private fun submissionIdFromProtocolFolder(folderName: String): String {
+        val leaf = folderName.substringAfterLast('/')
+        return leaf.substringAfter("__", "").substringBefore("___", "")
+            .takeIf { it.isNotBlank() }
+            ?: leaf.substringAfterLast('_')
+    }
 
     /**
      * A chained run has one clipboard destination. Keep the output from each

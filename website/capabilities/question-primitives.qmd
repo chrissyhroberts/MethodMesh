@@ -1,0 +1,115 @@
+---
+title: "Question primitives"
+---
+
+::: {.status-box .status-partial}
+**Status: Implemented; native protocol building block**
+
+These capabilities are intended for ResearchOS-native presets and protocols. They are useful for simple direct data collection but do not yet replace the full logic model of XLSForm.
+:::
+
+## Purpose
+
+Question primitives provide small reusable question blocks that can be run directly in ResearchOS, saved as capability presets, chained into protocols, scheduled, and exported through the common ResearchOS output package system.
+
+They are designed for cases where a full ODK/XLSForm is unnecessary but a protocol still needs typed user input.
+
+## Capability IDs
+
+- `question.text`
+- `question.number`
+- `question.select_one`
+- `question.select_multiple`
+
+## Common inputs
+
+| Input | Description |
+|---|---|
+| `input_question_id` | Stable ID for the question within a protocol. |
+| `input_prompt` | Main question text shown to the operator or participant. |
+| `input_hint` | Optional explanatory hint. |
+| `input_required` | `true` or `false`. |
+| `input_regex` | Optional regular expression that the answer must satisfy. |
+| `input_constraint_message` | Message returned when the answer fails validation. |
+| `input_answer` | Optional pre-filled answer, useful for testing or automated protocol steps. |
+
+## Type-specific inputs
+
+### Number
+
+| Input | Description |
+|---|---|
+| `input_min` | Optional minimum value. |
+| `input_max` | Optional maximum value. |
+
+### Select one / select multiple
+
+| Input | Description |
+|---|---|
+| `input_options` | Option list separated by `|`, comma, or newline. |
+
+## Example intent calls
+
+### Text
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='question.text',input_question_id='chief_complaint',input_prompt='What is the main complaint?',input_required='true',return_mode='flat')
+```
+
+### Number
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='question.number',input_question_id='temperature',input_prompt='Temperature',input_min='30',input_max='45',input_required='true',return_mode='flat')
+```
+
+### Select one
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='question.select_one',input_question_id='severity',input_prompt='Severity',input_options='mild|moderate|severe',input_required='true',return_mode='flat')
+```
+
+### Select multiple
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='question.select_multiple',input_question_id='symptoms',input_prompt='Symptoms present',input_options='fever|cough|rash|fatigue',return_mode='flat')
+```
+
+## Returned fields
+
+| Field | Description |
+|---|---|
+| `question_status` | `succeeded` or `failed`. |
+| `question_type` | `text`, `number`, `select_one`, or `select_multiple`. |
+| `question_id` | Stable question identifier. |
+| `question_prompt` | Prompt used for the question. |
+| `question_hint` | Hint shown for the question. |
+| `question_answer` | Answer as a simple scalar or pipe-separated selection list. |
+| `question_answer_json` | Answer represented as JSON. |
+| `question_valid` | `true` or `false`. |
+| `question_required` | Whether an answer was required. |
+| `question_regex` | Regex constraint applied, if any. |
+| `question_constraint_message` | Constraint message configured for the question. |
+| `question_error` | Validation error, if any. |
+| `question_options_json` | Choice options for select questions. |
+| `question_selected_count` | Number of selected answers. |
+| `question_min` | Numeric minimum, where applicable. |
+| `question_max` | Numeric maximum, where applicable. |
+| `question_captured_time_iso` | Capture time. |
+
+## Protocol use
+
+The most useful route is:
+
+1. Open the question capability card in ResearchOS.
+2. Configure the prompt, constraints and options.
+3. Save it as a preset.
+4. Add the preset to a named protocol.
+5. Run the protocol and export one canonical JSON package.
+
+The exported JSON package keeps the question response inside the relevant protocol step.
+
+## Limitations
+
+- Relevance/skip logic is not yet implemented.
+- Regex validation is available, but complex XLSForm-style expressions are not.
+- These primitives are deliberately simple and should be treated as native ResearchOS building blocks rather than a full EDC replacement.

@@ -166,6 +166,26 @@ Scan QR codes and supported barcode formats and return the decoded payload and d
 :::
 
 ::: {.g-col-12 .g-col-md-6}
+### [Question primitives](question-primitives.qmd)
+
+`question.text, question.number, question.select_one, question.select_multiple`
+
+**Implemented; native protocol building block**
+
+Capture simple text, numeric, single-choice and multiple-choice answers directly inside ResearchOS protocols.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Random number generator](random-number.qmd)
+
+`random.number.generate`
+
+**Documented and implemented**
+
+Generate secure or fixed-seed random numbers with count, range and step controls.
+:::
+
+::: {.g-col-12 .g-col-md-6}
 ### [Scaled photo selector](scaled-photo.qmd)
 
 `scaled_photo.capture`

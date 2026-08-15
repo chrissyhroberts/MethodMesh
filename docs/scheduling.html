@@ -252,6 +252,18 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./capabilities/question-primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Question primitives</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./capabilities/random-number.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Random number generator</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./capabilities/scaled-photo.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Scaled photo selector</span></a>
   </div>
@@ -373,6 +385,8 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#distinguish-scheduling-from-form-launch" id="toc-distinguish-scheduling-from-form-launch" class="nav-link" data-scroll-target="#distinguish-scheduling-from-form-launch">Distinguish scheduling from form launch</a></li>
   <li><a href="#field-testing" id="toc-field-testing" class="nav-link" data-scroll-target="#field-testing">Field testing</a></li>
   <li><a href="#schedule-transfer" id="toc-schedule-transfer" class="nav-link" data-scroll-target="#schedule-transfer">Schedule transfer</a></li>
+  <li><a href="#protocol-runs" id="toc-protocol-runs" class="nav-link" data-scroll-target="#protocol-runs">Protocol runs</a></li>
+  <li><a href="#practical-notes" id="toc-practical-notes" class="nav-link" data-scroll-target="#practical-notes">Practical notes</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/scheduling.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -400,13 +414,13 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="purpose" class="level2">
 <h2 class="anchored" data-anchor-id="purpose">Purpose</h2>
-<p>The scheduler creates local recurring alarms for an ODK/Kobo form or online web form. It supports daily, weekly, monthly and nth-weekday rules, notification reminders and configurable retry intervals.</p>
+<p>The scheduler creates local recurring alarms for ODK/Kobo forms, online web forms, direct ResearchOS capabilities and saved ResearchOS protocols. It uses cron-style timing, notification reminders and configurable retry intervals.</p>
 <p>The intended round trip is:</p>
 <pre class="text"><code>ResearchOS scheduler
-    → launches the relevant form
-    → the form invokes ResearchOS
-    → ResearchOS executes a specialist method
-    → the result returns to the form</code></pre>
+    → launches the relevant form, web form, capability or protocol
+    → the user completes the task
+    → ResearchOS captures the result
+    → outputs are returned, copied or exported</code></pre>
 </section>
 <section id="distinguish-scheduling-from-form-launch" class="level2">
 <h2 class="anchored" data-anchor-id="distinguish-scheduling-from-form-launch">Distinguish scheduling from form launch</h2>
@@ -435,6 +449,20 @@ ul.task-list li input[type="checkbox"] {
 <section id="schedule-transfer" class="level2">
 <h2 class="anchored" data-anchor-id="schedule-transfer">Schedule transfer</h2>
 <p>The supplied scheduler documentation also defines RIL schedule export and import, including transfer through QR or NFC dependency boundaries.</p>
+</section>
+<section id="protocol-runs" class="level2">
+<h2 class="anchored" data-anchor-id="protocol-runs">Protocol runs</h2>
+<p>Schedules can now target saved protocols from the ResearchOS protocol library. A protocol is an ordered chain of saved capability presets. When a scheduled protocol runs, each step is launched in order and the outputs are written into one protocol output folder.</p>
+<p>Protocol exports use a single <code>researchos_submission_id</code> across all steps. The canonical JSON contains a <code>steps</code> array, so downstream code can treat the protocol run as one submission while still inspecting each step independently.</p>
+</section>
+<section id="practical-notes" class="level2">
+<h2 class="anchored" data-anchor-id="practical-notes">Practical notes</h2>
+<ul>
+<li>Use <strong>Test</strong> to verify a schedule or protocol chain before relying on it in the field.</li>
+<li>If a protocol includes interactive capabilities, the user must complete each step before the next step can continue.</li>
+<li>For direct ResearchOS protocols, prefer output export over clipboard if the result will be used as study data.</li>
+<li>Android background notification behaviour varies by device; always test on the field device model.</li>
+</ul>
 
 
 </section>

@@ -4,16 +4,16 @@ title: "Scheduling workflows"
 
 ## Purpose
 
-The scheduler creates local recurring alarms for an ODK/Kobo form or online web form. It supports daily, weekly, monthly and nth-weekday rules, notification reminders and configurable retry intervals.
+The scheduler creates local recurring alarms for ODK/Kobo forms, online web forms, direct ResearchOS capabilities and saved ResearchOS protocols. It uses cron-style timing, notification reminders and configurable retry intervals.
 
 The intended round trip is:
 
 ```text
 ResearchOS scheduler
-    → launches the relevant form
-    → the form invokes ResearchOS
-    → ResearchOS executes a specialist method
-    → the result returns to the form
+    → launches the relevant form, web form, capability or protocol
+    → the user completes the task
+    → ResearchOS captures the result
+    → outputs are returned, copied or exported
 ```
 
 ## Distinguish scheduling from form launch
@@ -43,3 +43,16 @@ Test at least:
 ## Schedule transfer
 
 The supplied scheduler documentation also defines RIL schedule export and import, including transfer through QR or NFC dependency boundaries.
+
+## Protocol runs
+
+Schedules can now target saved protocols from the ResearchOS protocol library. A protocol is an ordered chain of saved capability presets. When a scheduled protocol runs, each step is launched in order and the outputs are written into one protocol output folder.
+
+Protocol exports use a single `researchos_submission_id` across all steps. The canonical JSON contains a `steps` array, so downstream code can treat the protocol run as one submission while still inspecting each step independently.
+
+## Practical notes
+
+- Use **Test** to verify a schedule or protocol chain before relying on it in the field.
+- If a protocol includes interactive capabilities, the user must complete each step before the next step can continue.
+- For direct ResearchOS protocols, prefer output export over clipboard if the result will be used as study data.
+- Android background notification behaviour varies by device; always test on the field device model.

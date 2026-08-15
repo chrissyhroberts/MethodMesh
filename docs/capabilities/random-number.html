@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>SVG polygon selector – ResearchOS User Guide</title>
+<title>Random number generator – ResearchOS User Guide</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -30,8 +30,8 @@ ul.task-list li input[type="checkbox"] {
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../examples/index.html" rel="next">
-<link href="../capabilities/speech-transcription.html" rel="prev">
+<link href="../capabilities/scaled-photo.html" rel="next">
+<link href="../capabilities/question-primitives.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
@@ -84,7 +84,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/svg-selector.html">SVG polygon selector</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/random-number.html">Random number generator</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -258,7 +258,7 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../capabilities/random-number.html" class="sidebar-item-text sidebar-link">
+  <a href="../capabilities/random-number.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Random number generator</span></a>
   </div>
 </li>
@@ -312,7 +312,7 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../capabilities/svg-selector.html" class="sidebar-item-text sidebar-link active">
+  <a href="../capabilities/svg-selector.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">SVG polygon selector</span></a>
   </div>
 </li>
@@ -382,21 +382,24 @@ ul.task-list li input[type="checkbox"] {
    
   <ul>
   <li><a href="#purpose" id="toc-purpose" class="nav-link active" data-scroll-target="#purpose">Purpose</a></li>
-  <li><a href="#capability-ids" id="toc-capability-ids" class="nav-link" data-scroll-target="#capability-ids">Capability IDs</a></li>
-  <li><a href="#requirements" id="toc-requirements" class="nav-link" data-scroll-target="#requirements">Requirements</a></li>
-  <li><a href="#screenshot" id="toc-screenshot" class="nav-link" data-scroll-target="#screenshot">Screenshot</a></li>
-  <li><a href="#supported-xlsform-calls" id="toc-supported-xlsform-calls" class="nav-link" data-scroll-target="#supported-xlsform-calls">Supported XLSForm calls</a></li>
-  <li><a href="#inputs-observed-in-supplied-examples" id="toc-inputs-observed-in-supplied-examples" class="nav-link" data-scroll-target="#inputs-observed-in-supplied-examples">Inputs observed in supplied examples</a></li>
-  <li><a href="#expected-returned-fields" id="toc-expected-returned-fields" class="nav-link" data-scroll-target="#expected-returned-fields">Expected returned fields</a></li>
+  <li><a href="#capability-id" id="toc-capability-id" class="nav-link" data-scroll-target="#capability-id">Capability ID</a></li>
+  <li><a href="#inputs" id="toc-inputs" class="nav-link" data-scroll-target="#inputs">Inputs</a></li>
+  <li><a href="#example-intent-calls" id="toc-example-intent-calls" class="nav-link" data-scroll-target="#example-intent-calls">Example intent calls</a>
+  <ul class="collapse">
+  <li><a href="#one-secure-random-integer" id="toc-one-secure-random-integer" class="nav-link" data-scroll-target="#one-secure-random-integer">One secure random integer</a></li>
+  <li><a href="#five-reproducible-values" id="toc-five-reproducible-values" class="nav-link" data-scroll-target="#five-reproducible-values">Five reproducible values</a></li>
+  </ul></li>
+  <li><a href="#returned-fields" id="toc-returned-fields" class="nav-link" data-scroll-target="#returned-fields">Returned fields</a></li>
+  <li><a href="#notes" id="toc-notes" class="nav-link" data-scroll-target="#notes">Notes</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/capabilities/svg-selector.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/capabilities/random-number.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/svg-selector.html">SVG polygon selector</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/random-number.html">Random number generator</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">SVG polygon selector</h1>
+<h1 class="title">Random number generator</h1>
 </div>
 
 
@@ -414,49 +417,145 @@ ul.task-list li input[type="checkbox"] {
 
 
 <div class="status-box status-complete">
-<p><strong>Status: Documented and demonstrated</strong></p>
-<p>This status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.</p>
+<p><strong>Status: Documented and implemented</strong></p>
+<p>This is a native ResearchOS calculation capability. It is intended as a general-purpose random source and as a foundation for later allocation and block randomisation modules.</p>
 </div>
 <section id="purpose" class="level2">
 <h2 class="anchored" data-anchor-id="purpose">Purpose</h2>
-<p>Display an SVG and return selected polygon or region identifiers.</p>
-</section>
-<section id="capability-ids" class="level2">
-<h2 class="anchored" data-anchor-id="capability-ids">Capability IDs</h2>
+<p>Generate one or more random numbers with configurable range, step size and seed behaviour.</p>
+<p>The capability supports:</p>
 <ul>
-<li><code>svg.select</code></li>
+<li>secure-random generation for ordinary use;</li>
+<li>fixed-seed generation for reproducible testing or deterministic allocation sequences;</li>
+<li>integer-like or stepped numeric ranges.</li>
 </ul>
 </section>
-<section id="requirements" class="level2">
-<h2 class="anchored" data-anchor-id="requirements">Requirements</h2>
+<section id="capability-id" class="level2">
+<h2 class="anchored" data-anchor-id="capability-id">Capability ID</h2>
 <ul>
-<li>SVG asset available to ResearchOS.</li>
+<li><code>random.number.generate</code></li>
 </ul>
 </section>
-<section id="screenshot" class="level2">
-<h2 class="anchored" data-anchor-id="screenshot">Screenshot</h2>
-<div class="screenshot-placeholder">
-<p><strong>Screenshot placeholder</strong></p>
-<p>Add a current capability dashboard or execution screenshot at:</p>
-<p><code>assets/screenshots/svg-selector.png</code></p>
-</div>
-<!-- Replace the placeholder above with:
-![](../assets/screenshots/svg-selector.png){fig-alt="SVG polygon selector screen in ResearchOS"}
--->
+<section id="inputs" class="level2">
+<h2 class="anchored" data-anchor-id="inputs">Inputs</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Input</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>input_count</code></td>
+<td>Number of random values to generate.</td>
+</tr>
+<tr class="even">
+<td><code>input_min</code></td>
+<td>Minimum possible value.</td>
+</tr>
+<tr class="odd">
+<td><code>input_max</code></td>
+<td>Maximum possible value.</td>
+</tr>
+<tr class="even">
+<td><code>input_step</code></td>
+<td>Step size between possible values.</td>
+</tr>
+<tr class="odd">
+<td><code>input_seed_mode</code></td>
+<td><code>secure_random</code> or <code>fixed_seed</code>.</td>
+</tr>
+<tr class="even">
+<td><code>input_seed</code></td>
+<td>Seed text used when <code>input_seed_mode='fixed_seed'</code>.</td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="supported-xlsform-calls" class="level2">
-<h2 class="anchored" data-anchor-id="supported-xlsform-calls">Supported XLSForm calls</h2>
-<p><strong>From <code>example_odk_svg.select.xlsx</code>:</strong></p>
-<pre class="text"><code>com.example.researchos.EXECUTE_METHOD(method_id='svg.select',input_svg_name='bodymap_black.svg',input_selection_mode='sequence',return_mode='flat')</code></pre>
+<section id="example-intent-calls" class="level2">
+<h2 class="anchored" data-anchor-id="example-intent-calls">Example intent calls</h2>
+<section id="one-secure-random-integer" class="level3">
+<h3 class="anchored" data-anchor-id="one-secure-random-integer">One secure random integer</h3>
+<pre class="text"><code>com.example.researchos.EXECUTE_METHOD(method_id='random.number.generate',input_min='1',input_max='100',input_step='1',return_mode='flat')</code></pre>
 </section>
-<section id="inputs-observed-in-supplied-examples" class="level2">
-<h2 class="anchored" data-anchor-id="inputs-observed-in-supplied-examples">Inputs observed in supplied examples</h2>
-<p><em>None documented in the supplied material.</em></p>
+<section id="five-reproducible-values" class="level3">
+<h3 class="anchored" data-anchor-id="five-reproducible-values">Five reproducible values</h3>
+<pre class="text"><code>com.example.researchos.EXECUTE_METHOD(method_id='random.number.generate',input_count='5',input_min='1',input_max='10',input_step='1',input_seed_mode='fixed_seed',input_seed='study001',return_mode='flat')</code></pre>
 </section>
-<section id="expected-returned-fields" class="level2">
-<h2 class="anchored" data-anchor-id="expected-returned-fields">Expected returned fields</h2>
-<p>Return fields are documented from the specific XLSForm execution group only.</p>
-<p>The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.</p>
+</section>
+<section id="returned-fields" class="level2">
+<h2 class="anchored" data-anchor-id="returned-fields">Returned fields</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>random_status</code></td>
+<td><code>succeeded</code> or <code>failed</code>.</td>
+</tr>
+<tr class="even">
+<td><code>random_numbers_json</code></td>
+<td>JSON array of generated values.</td>
+</tr>
+<tr class="odd">
+<td><code>random_numbers_csv</code></td>
+<td>Comma-separated values.</td>
+</tr>
+<tr class="even">
+<td><code>random_first_number</code></td>
+<td>First generated number, convenient for simple callers.</td>
+</tr>
+<tr class="odd">
+<td><code>random_count</code></td>
+<td>Number of generated values.</td>
+</tr>
+<tr class="even">
+<td><code>random_min</code></td>
+<td>Minimum used.</td>
+</tr>
+<tr class="odd">
+<td><code>random_max</code></td>
+<td>Maximum used.</td>
+</tr>
+<tr class="even">
+<td><code>random_step</code></td>
+<td>Step size used.</td>
+</tr>
+<tr class="odd">
+<td><code>random_seed_mode</code></td>
+<td>Seed mode used.</td>
+</tr>
+<tr class="even">
+<td><code>random_seed</code></td>
+<td>Seed text when fixed-seed mode is used.</td>
+</tr>
+<tr class="odd">
+<td><code>random_algorithm</code></td>
+<td>Underlying random source.</td>
+</tr>
+<tr class="even">
+<td><code>random_generated_time_iso</code></td>
+<td>Generation time.</td>
+</tr>
+<tr class="odd">
+<td><code>random_error</code></td>
+<td>Error message, if generation failed.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="notes" class="level2">
+<h2 class="anchored" data-anchor-id="notes">Notes</h2>
+<p>For trial allocation, this capability should be treated as a low-level primitive. More formal randomisation methods should add allocation concealment, block definitions, audit trails and protocol-specific constraints on top of this generator.</p>
 
 
 </section>
@@ -869,13 +968,13 @@ ul.task-list li input[type="checkbox"] {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../capabilities/speech-transcription.html" class="pagination-link" aria-label="Speech transcription">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Speech transcription</span>
+      <a href="../capabilities/question-primitives.html" class="pagination-link" aria-label="Question primitives">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Question primitives</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../examples/index.html" class="pagination-link" aria-label="Example XLSForms">
-        <span class="nav-page-text">Example XLSForms</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../capabilities/scaled-photo.html" class="pagination-link" aria-label="Scaled photo selector">
+        <span class="nav-page-text">Scaled photo selector</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
@@ -884,4 +983,4 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/capabilities/svg-selector.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/capabilities/random-number.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

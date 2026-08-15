@@ -39,6 +39,8 @@ website:
           - capabilities/odk-form-launcher.qmd
           - capabilities/provider-command.qmd
           - capabilities/qr-code.qmd
+          - capabilities/question-primitives.qmd
+          - capabilities/random-number.qmd
           - capabilities/scaled-photo.qmd
           - capabilities/scheduler-capability.qmd
           - capabilities/sensor-firmware-installer.qmd

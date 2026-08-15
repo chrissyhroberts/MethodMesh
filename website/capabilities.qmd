@@ -133,6 +133,8 @@ The current project includes or is developing modules for:
 - NFC;
 - QR codes and barcodes;
 - SMS;
+- random number generation;
+- native question primitives;
 - sensors and connected devices;
 - document scanning;
 - speech transcription;
@@ -141,6 +143,12 @@ The current project includes or is developing modules for:
 - provider commands;
 - attestation;
 - scheduling.
+
+## Native protocols and outputs
+
+ResearchOS can now run simple native protocols without handing every step to an external form app. A configured capability can be saved as a preset, presets can be chained into a named protocol, and the whole run can be exported as one output package.
+
+Each exported package has a stable `researchos_submission_id`. The same UUID appears in the output folder/filename and inside the JSON, and protocol steps share the same UUID. This makes the exported JSON suitable as a submission-level record for later parsing in R.
 
 ## Capability documentation
 

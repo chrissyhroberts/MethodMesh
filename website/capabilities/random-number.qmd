@@ -1,0 +1,70 @@
+---
+title: "Random number generator"
+---
+
+::: {.status-box .status-complete}
+**Status: Documented and implemented**
+
+This is a native ResearchOS calculation capability. It is intended as a general-purpose random source and as a foundation for later allocation and block randomisation modules.
+:::
+
+## Purpose
+
+Generate one or more random numbers with configurable range, step size and seed behaviour.
+
+The capability supports:
+
+- secure-random generation for ordinary use;
+- fixed-seed generation for reproducible testing or deterministic allocation sequences;
+- integer-like or stepped numeric ranges.
+
+## Capability ID
+
+- `random.number.generate`
+
+## Inputs
+
+| Input | Description |
+|---|---|
+| `input_count` | Number of random values to generate. |
+| `input_min` | Minimum possible value. |
+| `input_max` | Maximum possible value. |
+| `input_step` | Step size between possible values. |
+| `input_seed_mode` | `secure_random` or `fixed_seed`. |
+| `input_seed` | Seed text used when `input_seed_mode='fixed_seed'`. |
+
+## Example intent calls
+
+### One secure random integer
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='random.number.generate',input_min='1',input_max='100',input_step='1',return_mode='flat')
+```
+
+### Five reproducible values
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='random.number.generate',input_count='5',input_min='1',input_max='10',input_step='1',input_seed_mode='fixed_seed',input_seed='study001',return_mode='flat')
+```
+
+## Returned fields
+
+| Field | Description |
+|---|---|
+| `random_status` | `succeeded` or `failed`. |
+| `random_numbers_json` | JSON array of generated values. |
+| `random_numbers_csv` | Comma-separated values. |
+| `random_first_number` | First generated number, convenient for simple callers. |
+| `random_count` | Number of generated values. |
+| `random_min` | Minimum used. |
+| `random_max` | Maximum used. |
+| `random_step` | Step size used. |
+| `random_seed_mode` | Seed mode used. |
+| `random_seed` | Seed text when fixed-seed mode is used. |
+| `random_algorithm` | Underlying random source. |
+| `random_generated_time_iso` | Generation time. |
+| `random_error` | Error message, if generation failed. |
+
+## Notes
+
+For trial allocation, this capability should be treated as a low-level primitive. More formal randomisation methods should add allocation concealment, block definitions, audit trails and protocol-specific constraints on top of this generator.

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>SVG polygon selector – ResearchOS User Guide</title>
+<title>Question primitives – ResearchOS User Guide</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -30,8 +30,8 @@ ul.task-list li input[type="checkbox"] {
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../examples/index.html" rel="next">
-<link href="../capabilities/speech-transcription.html" rel="prev">
+<link href="../capabilities/random-number.html" rel="next">
+<link href="../capabilities/qr-code.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
@@ -84,7 +84,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/svg-selector.html">SVG polygon selector</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/question-primitives.html">Question primitives</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -252,7 +252,7 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../capabilities/question-primitives.html" class="sidebar-item-text sidebar-link">
+  <a href="../capabilities/question-primitives.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Question primitives</span></a>
   </div>
 </li>
@@ -312,7 +312,7 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../capabilities/svg-selector.html" class="sidebar-item-text sidebar-link active">
+  <a href="../capabilities/svg-selector.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">SVG polygon selector</span></a>
   </div>
 </li>
@@ -383,20 +383,31 @@ ul.task-list li input[type="checkbox"] {
   <ul>
   <li><a href="#purpose" id="toc-purpose" class="nav-link active" data-scroll-target="#purpose">Purpose</a></li>
   <li><a href="#capability-ids" id="toc-capability-ids" class="nav-link" data-scroll-target="#capability-ids">Capability IDs</a></li>
-  <li><a href="#requirements" id="toc-requirements" class="nav-link" data-scroll-target="#requirements">Requirements</a></li>
-  <li><a href="#screenshot" id="toc-screenshot" class="nav-link" data-scroll-target="#screenshot">Screenshot</a></li>
-  <li><a href="#supported-xlsform-calls" id="toc-supported-xlsform-calls" class="nav-link" data-scroll-target="#supported-xlsform-calls">Supported XLSForm calls</a></li>
-  <li><a href="#inputs-observed-in-supplied-examples" id="toc-inputs-observed-in-supplied-examples" class="nav-link" data-scroll-target="#inputs-observed-in-supplied-examples">Inputs observed in supplied examples</a></li>
-  <li><a href="#expected-returned-fields" id="toc-expected-returned-fields" class="nav-link" data-scroll-target="#expected-returned-fields">Expected returned fields</a></li>
+  <li><a href="#common-inputs" id="toc-common-inputs" class="nav-link" data-scroll-target="#common-inputs">Common inputs</a></li>
+  <li><a href="#type-specific-inputs" id="toc-type-specific-inputs" class="nav-link" data-scroll-target="#type-specific-inputs">Type-specific inputs</a>
+  <ul class="collapse">
+  <li><a href="#number" id="toc-number" class="nav-link" data-scroll-target="#number">Number</a></li>
+  <li><a href="#select-one-select-multiple" id="toc-select-one-select-multiple" class="nav-link" data-scroll-target="#select-one-select-multiple">Select one / select multiple</a></li>
+  </ul></li>
+  <li><a href="#example-intent-calls" id="toc-example-intent-calls" class="nav-link" data-scroll-target="#example-intent-calls">Example intent calls</a>
+  <ul class="collapse">
+  <li><a href="#text" id="toc-text" class="nav-link" data-scroll-target="#text">Text</a></li>
+  <li><a href="#number-1" id="toc-number-1" class="nav-link" data-scroll-target="#number-1">Number</a></li>
+  <li><a href="#select-one" id="toc-select-one" class="nav-link" data-scroll-target="#select-one">Select one</a></li>
+  <li><a href="#select-multiple" id="toc-select-multiple" class="nav-link" data-scroll-target="#select-multiple">Select multiple</a></li>
+  </ul></li>
+  <li><a href="#returned-fields" id="toc-returned-fields" class="nav-link" data-scroll-target="#returned-fields">Returned fields</a></li>
+  <li><a href="#protocol-use" id="toc-protocol-use" class="nav-link" data-scroll-target="#protocol-use">Protocol use</a></li>
+  <li><a href="#limitations" id="toc-limitations" class="nav-link" data-scroll-target="#limitations">Limitations</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/capabilities/svg-selector.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/capabilities/question-primitives.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/svg-selector.html">SVG polygon selector</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/question-primitives.html">Question primitives</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">SVG polygon selector</h1>
+<h1 class="title">Question primitives</h1>
 </div>
 
 
@@ -413,50 +424,233 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<div class="status-box status-complete">
-<p><strong>Status: Documented and demonstrated</strong></p>
-<p>This status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.</p>
+<div class="status-box status-partial">
+<p><strong>Status: Implemented; native protocol building block</strong></p>
+<p>These capabilities are intended for ResearchOS-native presets and protocols. They are useful for simple direct data collection but do not yet replace the full logic model of XLSForm.</p>
 </div>
 <section id="purpose" class="level2">
 <h2 class="anchored" data-anchor-id="purpose">Purpose</h2>
-<p>Display an SVG and return selected polygon or region identifiers.</p>
+<p>Question primitives provide small reusable question blocks that can be run directly in ResearchOS, saved as capability presets, chained into protocols, scheduled, and exported through the common ResearchOS output package system.</p>
+<p>They are designed for cases where a full ODK/XLSForm is unnecessary but a protocol still needs typed user input.</p>
 </section>
 <section id="capability-ids" class="level2">
 <h2 class="anchored" data-anchor-id="capability-ids">Capability IDs</h2>
 <ul>
-<li><code>svg.select</code></li>
+<li><code>question.text</code></li>
+<li><code>question.number</code></li>
+<li><code>question.select_one</code></li>
+<li><code>question.select_multiple</code></li>
 </ul>
 </section>
-<section id="requirements" class="level2">
-<h2 class="anchored" data-anchor-id="requirements">Requirements</h2>
+<section id="common-inputs" class="level2">
+<h2 class="anchored" data-anchor-id="common-inputs">Common inputs</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Input</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>input_question_id</code></td>
+<td>Stable ID for the question within a protocol.</td>
+</tr>
+<tr class="even">
+<td><code>input_prompt</code></td>
+<td>Main question text shown to the operator or participant.</td>
+</tr>
+<tr class="odd">
+<td><code>input_hint</code></td>
+<td>Optional explanatory hint.</td>
+</tr>
+<tr class="even">
+<td><code>input_required</code></td>
+<td><code>true</code> or <code>false</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>input_regex</code></td>
+<td>Optional regular expression that the answer must satisfy.</td>
+</tr>
+<tr class="even">
+<td><code>input_constraint_message</code></td>
+<td>Message returned when the answer fails validation.</td>
+</tr>
+<tr class="odd">
+<td><code>input_answer</code></td>
+<td>Optional pre-filled answer, useful for testing or automated protocol steps.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="type-specific-inputs" class="level2">
+<h2 class="anchored" data-anchor-id="type-specific-inputs">Type-specific inputs</h2>
+<section id="number" class="level3">
+<h3 class="anchored" data-anchor-id="number">Number</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Input</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>input_min</code></td>
+<td>Optional minimum value.</td>
+</tr>
+<tr class="even">
+<td><code>input_max</code></td>
+<td>Optional maximum value.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="select-one-select-multiple" class="level3">
+<h3 class="anchored" data-anchor-id="select-one-select-multiple">Select one / select multiple</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Input</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>input_options</code></td>
+<td>Option list separated by <code>|</code>, comma, or newline.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="example-intent-calls" class="level2">
+<h2 class="anchored" data-anchor-id="example-intent-calls">Example intent calls</h2>
+<section id="text" class="level3">
+<h3 class="anchored" data-anchor-id="text">Text</h3>
+<pre class="text"><code>com.example.researchos.EXECUTE_METHOD(method_id='question.text',input_question_id='chief_complaint',input_prompt='What is the main complaint?',input_required='true',return_mode='flat')</code></pre>
+</section>
+<section id="number-1" class="level3">
+<h3 class="anchored" data-anchor-id="number-1">Number</h3>
+<pre class="text"><code>com.example.researchos.EXECUTE_METHOD(method_id='question.number',input_question_id='temperature',input_prompt='Temperature',input_min='30',input_max='45',input_required='true',return_mode='flat')</code></pre>
+</section>
+<section id="select-one" class="level3">
+<h3 class="anchored" data-anchor-id="select-one">Select one</h3>
+<pre class="text"><code>com.example.researchos.EXECUTE_METHOD(method_id='question.select_one',input_question_id='severity',input_prompt='Severity',input_options='mild|moderate|severe',input_required='true',return_mode='flat')</code></pre>
+</section>
+<section id="select-multiple" class="level3">
+<h3 class="anchored" data-anchor-id="select-multiple">Select multiple</h3>
+<pre class="text"><code>com.example.researchos.EXECUTE_METHOD(method_id='question.select_multiple',input_question_id='symptoms',input_prompt='Symptoms present',input_options='fever|cough|rash|fatigue',return_mode='flat')</code></pre>
+</section>
+</section>
+<section id="returned-fields" class="level2">
+<h2 class="anchored" data-anchor-id="returned-fields">Returned fields</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>question_status</code></td>
+<td><code>succeeded</code> or <code>failed</code>.</td>
+</tr>
+<tr class="even">
+<td><code>question_type</code></td>
+<td><code>text</code>, <code>number</code>, <code>select_one</code>, or <code>select_multiple</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>question_id</code></td>
+<td>Stable question identifier.</td>
+</tr>
+<tr class="even">
+<td><code>question_prompt</code></td>
+<td>Prompt used for the question.</td>
+</tr>
+<tr class="odd">
+<td><code>question_hint</code></td>
+<td>Hint shown for the question.</td>
+</tr>
+<tr class="even">
+<td><code>question_answer</code></td>
+<td>Answer as a simple scalar or pipe-separated selection list.</td>
+</tr>
+<tr class="odd">
+<td><code>question_answer_json</code></td>
+<td>Answer represented as JSON.</td>
+</tr>
+<tr class="even">
+<td><code>question_valid</code></td>
+<td><code>true</code> or <code>false</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>question_required</code></td>
+<td>Whether an answer was required.</td>
+</tr>
+<tr class="even">
+<td><code>question_regex</code></td>
+<td>Regex constraint applied, if any.</td>
+</tr>
+<tr class="odd">
+<td><code>question_constraint_message</code></td>
+<td>Constraint message configured for the question.</td>
+</tr>
+<tr class="even">
+<td><code>question_error</code></td>
+<td>Validation error, if any.</td>
+</tr>
+<tr class="odd">
+<td><code>question_options_json</code></td>
+<td>Choice options for select questions.</td>
+</tr>
+<tr class="even">
+<td><code>question_selected_count</code></td>
+<td>Number of selected answers.</td>
+</tr>
+<tr class="odd">
+<td><code>question_min</code></td>
+<td>Numeric minimum, where applicable.</td>
+</tr>
+<tr class="even">
+<td><code>question_max</code></td>
+<td>Numeric maximum, where applicable.</td>
+</tr>
+<tr class="odd">
+<td><code>question_captured_time_iso</code></td>
+<td>Capture time.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="protocol-use" class="level2">
+<h2 class="anchored" data-anchor-id="protocol-use">Protocol use</h2>
+<p>The most useful route is:</p>
+<ol type="1">
+<li>Open the question capability card in ResearchOS.</li>
+<li>Configure the prompt, constraints and options.</li>
+<li>Save it as a preset.</li>
+<li>Add the preset to a named protocol.</li>
+<li>Run the protocol and export one canonical JSON package.</li>
+</ol>
+<p>The exported JSON package keeps the question response inside the relevant protocol step.</p>
+</section>
+<section id="limitations" class="level2">
+<h2 class="anchored" data-anchor-id="limitations">Limitations</h2>
 <ul>
-<li>SVG asset available to ResearchOS.</li>
+<li>Relevance/skip logic is not yet implemented.</li>
+<li>Regex validation is available, but complex XLSForm-style expressions are not.</li>
+<li>These primitives are deliberately simple and should be treated as native ResearchOS building blocks rather than a full EDC replacement.</li>
 </ul>
-</section>
-<section id="screenshot" class="level2">
-<h2 class="anchored" data-anchor-id="screenshot">Screenshot</h2>
-<div class="screenshot-placeholder">
-<p><strong>Screenshot placeholder</strong></p>
-<p>Add a current capability dashboard or execution screenshot at:</p>
-<p><code>assets/screenshots/svg-selector.png</code></p>
-</div>
-<!-- Replace the placeholder above with:
-![](../assets/screenshots/svg-selector.png){fig-alt="SVG polygon selector screen in ResearchOS"}
--->
-</section>
-<section id="supported-xlsform-calls" class="level2">
-<h2 class="anchored" data-anchor-id="supported-xlsform-calls">Supported XLSForm calls</h2>
-<p><strong>From <code>example_odk_svg.select.xlsx</code>:</strong></p>
-<pre class="text"><code>com.example.researchos.EXECUTE_METHOD(method_id='svg.select',input_svg_name='bodymap_black.svg',input_selection_mode='sequence',return_mode='flat')</code></pre>
-</section>
-<section id="inputs-observed-in-supplied-examples" class="level2">
-<h2 class="anchored" data-anchor-id="inputs-observed-in-supplied-examples">Inputs observed in supplied examples</h2>
-<p><em>None documented in the supplied material.</em></p>
-</section>
-<section id="expected-returned-fields" class="level2">
-<h2 class="anchored" data-anchor-id="expected-returned-fields">Expected returned fields</h2>
-<p>Return fields are documented from the specific XLSForm execution group only.</p>
-<p>The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.</p>
 
 
 </section>
@@ -869,13 +1063,13 @@ ul.task-list li input[type="checkbox"] {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../capabilities/speech-transcription.html" class="pagination-link" aria-label="Speech transcription">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Speech transcription</span>
+      <a href="../capabilities/qr-code.html" class="pagination-link" aria-label="Automatic code scanner">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Automatic code scanner</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../examples/index.html" class="pagination-link" aria-label="Example XLSForms">
-        <span class="nav-page-text">Example XLSForms</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../capabilities/random-number.html" class="pagination-link" aria-label="Random number generator">
+        <span class="nav-page-text">Random number generator</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
@@ -884,4 +1078,4 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/capabilities/svg-selector.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/capabilities/question-primitives.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
