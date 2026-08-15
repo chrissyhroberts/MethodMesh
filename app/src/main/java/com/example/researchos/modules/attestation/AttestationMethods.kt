@@ -89,6 +89,15 @@ object As100CreateAttestationMethod : As100Method {
                 diagnostics = mapOf("reason" to (error.message ?: "Invalid verification evidence"))
             )
         }
+        val trustedTimestampAuthority = c["trusted_timestamp_authority"]
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: c["timestamp_authority"]?.trim()?.takeIf { it.isNotBlank() }
+            ?: DEFAULT_TRUSTED_TIMESTAMP_AUTHORITY_URL
+        val trustedTimestampTimeoutMs = c["trusted_timestamp_timeout_ms"]
+            ?.trim()
+            ?.toIntOrNull()
+            ?: 3500
         val record = try {
             AttestationRepository.createRecord(
                 studyId = c["study_id"].orEmpty(),
@@ -98,7 +107,9 @@ object As100CreateAttestationMethod : As100Method {
                 eventPayloadHash = c["event_payload_hash"],
                 verificationMethod = method,
                 verificationEvidence = verificationEvidence,
-                trustedTimestampPolicy = timestampPolicy
+                trustedTimestampPolicy = timestampPolicy,
+                trustedTimestampAuthorityUrl = trustedTimestampAuthority,
+                trustedTimestampTimeoutMs = trustedTimestampTimeoutMs
             )
         } catch (error: TrustedTimestampRequiredException) {
             return As100ExecutionEngine.complete(
@@ -107,7 +118,8 @@ object As100CreateAttestationMethod : As100Method {
                 diagnostics = mapOf(
                     "reason" to (error.message ?: "Trusted timestamp required but unavailable"),
                     "trusted_timestamp_policy" to timestampPolicy.wireValue,
-                    "trusted_timestamp_status" to "required_failed"
+                    "trusted_timestamp_status" to "required_failed",
+                    "trusted_timestamp_authority" to trustedTimestampAuthority
                 )
             )
         } catch (error: IllegalArgumentException) {
@@ -116,7 +128,8 @@ object As100CreateAttestationMethod : As100Method {
                 status = TransformationStatus.Failed,
                 diagnostics = mapOf(
                     "reason" to (error.message ?: "Invalid attestation payload input"),
-                    "trusted_timestamp_policy" to timestampPolicy.wireValue
+                    "trusted_timestamp_policy" to timestampPolicy.wireValue,
+                    "trusted_timestamp_authority" to trustedTimestampAuthority
                 )
             )
         }

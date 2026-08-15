@@ -76,7 +76,7 @@ object ChoiceExperimentModule : ResearchOSModule {
     private fun dceSettings(vararg ids: String): List<MethodSetting> = ids.map { id ->
         when (id) {
             "rounds" -> MethodSetting.IntSetting(id, "Rounds", defaultValue = 3, minimum = 1, maximum = 100)
-            "items_per_round" -> MethodSetting.IntSetting(id, "Items per round", defaultValue = 4, minimum = 2, maximum = 20)
+            "items_per_round" -> MethodSetting.TextSetting(id, "Items per round", description = "Fixed count such as 4, or a range such as 2-5.", defaultValue = "4")
             "profiles_per_round" -> MethodSetting.IntSetting(id, "Profiles per round", defaultValue = 2, minimum = 2, maximum = 6)
             "points" -> MethodSetting.IntSetting(id, "Points", defaultValue = 100, minimum = 1, maximum = 10000)
             "items" -> MethodSetting.TextSetting(id, "Items (one per line or separated by |)", defaultValue = "A|B|C|D")

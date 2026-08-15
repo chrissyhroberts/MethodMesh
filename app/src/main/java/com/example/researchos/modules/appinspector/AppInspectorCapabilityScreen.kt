@@ -173,24 +173,30 @@ object AppInspectorCapabilityScreen : CapabilityScreenSpec {
             title, capabilityId, context, context.stepNumber > 1, result,
             result?.let { OutputFormatter.fields(it, false) }.orEmpty(), onBack, { inspect() }, { result?.let(onConfirmed) }, onCancel
         ) {
-            Text("Only exported/public interfaces are shown. Testing an intent requires your confirmation.", style = MaterialTheme.typography.bodySmall)
+            Text(
+                "Workflow: choose an app, inspect what Android says is public, choose an exported activity if needed, then test and save a named command. This is a public-interface tester, not a private reverse-engineering tool.",
+                style = MaterialTheme.typography.bodySmall
+            )
             Spacer(Modifier.height(8.dp))
+            Text("1. App", style = MaterialTheme.typography.titleSmall)
             OutlinedButton(onClick = { pickerOpen = true }, Modifier.fillMaxWidth()) { Text(if (selectedPackage.isBlank()) "Choose installed app" else "$selectedPackage") }
             if (activityComponents.isNotEmpty()) {
+                Text("2. Public activity / endpoint", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
                 OutlinedButton(onClick = { componentPickerOpen = true }, Modifier.fillMaxWidth()) {
-                    Text(if (selectedComponent.isBlank()) "Target exported activity (optional)" else selectedComponent.substringAfterLast('.'))
+                    Text(if (selectedComponent.isBlank()) "Use app default, or choose exported activity" else selectedComponent.substringAfterLast('.'))
                 }
             }
-            OutlinedTextField(action, { action = it }, label = { Text("Intent action") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(uriText, { uriText = it }, label = { Text("URI (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            Text("3. Command to test", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+            OutlinedTextField(action, { action = it }, label = { Text("Intent action, e.g. android.intent.action.VIEW") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(uriText, { uriText = it }, label = { Text("URI/data, if the command uses one") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(extrasText, { extrasText = it }, label = { Text("Extras, one key=value per line") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             if (components.isNotEmpty()) {
                 Text("Exported components", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
                 components.take(20).forEach { component -> Text(component, style = MaterialTheme.typography.bodySmall) }
             }
-            Button(onClick = ::inspect, Modifier.fillMaxWidth()) { Text("Inspect app") }
-            Button(onClick = ::testIntent, Modifier.fillMaxWidth(), enabled = selectedPackage.isNotBlank()) { Text("Test intent") }
-            if (testResult.isNotBlank()) Button(onClick = ::saveIntegration, Modifier.fillMaxWidth()) { Text("Save integration definition") }
+            Button(onClick = ::inspect, Modifier.fillMaxWidth()) { Text("Inspect public interfaces") }
+            Button(onClick = ::testIntent, Modifier.fillMaxWidth(), enabled = selectedPackage.isNotBlank()) { Text("Test this command") }
+            if (testResult.isNotBlank()) Button(onClick = ::saveIntegration, Modifier.fillMaxWidth()) { Text("Save tested command") }
             if (savedStatus.isNotBlank()) Text(savedStatus, style = MaterialTheme.typography.bodySmall)
             if (inspection.isNotBlank()) Surface(Modifier.fillMaxWidth().padding(top = 8.dp), tonalElevation = 1.dp) { Text(inspection, Modifier.padding(8.dp), style = MaterialTheme.typography.bodySmall) }
             if (testResult.isNotBlank()) Surface(Modifier.fillMaxWidth().padding(top = 8.dp), tonalElevation = 1.dp) { Text(testResult, Modifier.padding(8.dp), style = MaterialTheme.typography.bodySmall) }

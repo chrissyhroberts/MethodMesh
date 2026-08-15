@@ -14,7 +14,7 @@ data class DeviceSignal(
     val metadata: Map<String, String> = emptyMap()
 )
 
-enum class DeviceTransport { CAMERA, NFC, BLE, BLUETOOTH_CLASSIC, USB, WIFI, ANDROID_SENSOR, LOCATION, AUDIO }
+enum class DeviceTransport { CAMERA, NFC, BLE, BLUETOOTH_CLASSIC, USB, WIFI, LORA, ANDROID_SENSOR, LOCATION, AUDIO }
 
 data class DeviceDescriptor(
     val id: String,

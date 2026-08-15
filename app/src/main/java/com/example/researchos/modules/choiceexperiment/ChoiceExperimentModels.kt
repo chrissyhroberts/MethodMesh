@@ -19,6 +19,9 @@ internal data class DceConfig(
     val rounds: Int,
     val optionsPerRound: Int,
     val itemsPerRound: Int,
+    val itemsPerRoundMin: Int,
+    val itemsPerRoundMax: Int,
+    val itemsPerRoundSpec: String,
     val profilesPerRound: Int,
     val totalPoints: Int,
     val seed: String,
@@ -39,8 +42,9 @@ internal object DceConfigParser {
         val optionsPerRound = settings.value("options_per_round")?.toIntOrNull()
             ?.coerceIn(2, options.size.coerceAtLeast(2))
             ?: if (method == DceMethod.Ranking) options.size else 2
-        val itemsPerRound = settings.value("items_per_round")?.toIntOrNull()
-            ?.coerceIn(2, options.size.coerceAtLeast(2)) ?: 4.coerceAtMost(options.size.coerceAtLeast(2))
+        val itemsPerRoundSpec = settings.value("items_per_round") ?: "4"
+        val itemRange = parseCountRange(itemsPerRoundSpec, options.size.coerceAtLeast(2))
+        val itemsPerRound = itemRange.first
         val profilesPerRound = settings.value("profiles_per_round")?.toIntOrNull()?.coerceIn(2, 6) ?: 2
         val totalPoints = settings.value("points")?.toIntOrNull()
             ?: settings.value("total_points")?.toIntOrNull()
@@ -57,6 +61,9 @@ internal object DceConfigParser {
             rounds = rounds,
             optionsPerRound = optionsPerRound,
             itemsPerRound = itemsPerRound,
+            itemsPerRoundMin = itemRange.first,
+            itemsPerRoundMax = itemRange.last,
+            itemsPerRoundSpec = itemsPerRoundSpec,
             profilesPerRound = profilesPerRound,
             totalPoints = totalPoints.coerceAtLeast(1),
             seed = seed,
@@ -96,6 +103,16 @@ internal object DceConfigParser {
             .toMap()
     }
 
+    internal fun parseCountRange(raw: String?, maxItems: Int): IntRange {
+        val cleaned = raw.orEmpty().trim().ifBlank { "4" }
+        val parts = cleaned.split("-", "–", "..").map { it.trim() }.filter { it.isNotBlank() }
+        val lower = parts.firstOrNull()?.toIntOrNull() ?: 4
+        val upper = parts.getOrNull(1)?.toIntOrNull() ?: lower
+        val min = lower.coerceIn(2, maxItems.coerceAtLeast(2))
+        val max = upper.coerceIn(2, maxItems.coerceAtLeast(2))
+        return if (min <= max) min..max else max..min
+    }
+
     private fun defaultAttributes(): Map<String, List<String>> = linkedMapOf(
         "BRAND" to listOf("A", "B", "C"),
         "FEATURE" to listOf("Basic", "Enhanced", "Premium"),
@@ -110,6 +127,18 @@ internal object DceDesignGenerator {
         val random = Random(stableSeed(config.seed))
         return List(config.rounds) { index ->
             ChoiceRound(index + 1, config.options.shuffled(random).take(perRound.coerceAtMost(config.options.size)))
+        }
+    }
+
+    fun maxDiffRounds(config: DceConfig): List<ChoiceRound> {
+        val random = Random(stableSeed(config.seed))
+        return List(config.rounds) { index ->
+            val count = if (config.itemsPerRoundMin == config.itemsPerRoundMax) {
+                config.itemsPerRoundMin
+            } else {
+                random.nextInt(config.itemsPerRoundMin, config.itemsPerRoundMax + 1)
+            }.coerceAtMost(config.options.size)
+            ChoiceRound(index + 1, config.options.shuffled(random).take(count))
         }
     }
 
@@ -147,6 +176,9 @@ internal object DceJson {
 
     fun maxDiff(config: DceConfig, responses: List<MaxDiffResponse>): String = base(config).apply {
         put("items_per_round", config.itemsPerRound)
+        put("items_per_round_min", config.itemsPerRoundMin)
+        put("items_per_round_max", config.itemsPerRoundMax)
+        put("items_per_round_spec", config.itemsPerRoundSpec)
         put("items", JSONArray(config.options))
         put("rounds", JSONArray().apply {
             responses.forEach { response ->

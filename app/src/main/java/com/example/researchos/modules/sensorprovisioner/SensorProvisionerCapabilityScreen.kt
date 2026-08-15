@@ -83,8 +83,8 @@ private val sensorProfileOptions = listOf(
     SensorProfileOption(
         id = "ld2410c",
         label = "LD2410C mmWave presence",
-        description = "UART radar profile placeholder; firmware driver file is scaffolded but not active yet.",
-        status = "in_development"
+        description = "UART mmWave radar on TX GPIO 21 / RX GPIO 20 by default.",
+        status = "implemented"
     )
 )
 

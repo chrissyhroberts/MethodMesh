@@ -35,6 +35,8 @@ object AttestationModule : ResearchOSModule {
             MethodSetting.TextSetting("event_payload_hash", "Event payload hash", defaultValue = ""),
             MethodSetting.ChoiceSetting("verification_method", "Verification method", defaultValue = "Fingerprint", choices = listOf("Fingerprint", "Pin", "Qr", "Nfc", "Password")),
             MethodSetting.ChoiceSetting("trusted_timestamp", "Trusted timestamp", defaultValue = "preferred", choices = listOf("disabled", "preferred", "required")),
+            MethodSetting.TextSetting("trusted_timestamp_authority", "Trusted timestamp authority URL", defaultValue = DEFAULT_TRUSTED_TIMESTAMP_AUTHORITY_URL),
+            MethodSetting.IntSetting("trusted_timestamp_timeout_ms", "Timestamp timeout (ms)", defaultValue = 3500, minimum = 1000, maximum = 30000),
             MethodSetting.TextSetting("study_id", "Study ID", defaultValue = ""),
             MethodSetting.TextSetting("event_type", "Event type", defaultValue = "field_event")
         ),

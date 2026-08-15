@@ -10,7 +10,7 @@ reported through the manifest; this bundle includes an AHT20 I2C driver.
 import json
 import os
 import time
-from machine import I2C, Pin, unique_id
+from machine import I2C, Pin, UART, unique_id
 
 try:
     from sensor_drivers.aht20 import AHT20
@@ -39,6 +39,10 @@ SUPPORTED_SENSOR_PROFILES = ["aht20", "ld2410c"]
 I2C_SDA_PIN = 8
 I2C_SCL_PIN = 9
 I2C_FREQUENCY = 100000
+LD2410C_UART_ID = 1
+LD2410C_TX_PIN = 21
+LD2410C_RX_PIN = 20
+LD2410C_BAUD = 256000
 DEFAULT_SAMPLE_INTERVAL_MS = 5000
 
 
@@ -198,8 +202,15 @@ class ResearchOSSensorNode:
             elif profile == "ld2410c":
                 if LD2410C is None:
                     raise OSError("LD2410C driver file missing")
-                self.sensor = LD2410C()
-                self.sensor_error = "LD2410C driver placeholder; UART implementation not bundled yet."
+                uart = UART(
+                    LD2410C_UART_ID,
+                    baudrate=LD2410C_BAUD,
+                    tx=Pin(LD2410C_TX_PIN),
+                    rx=Pin(LD2410C_RX_PIN),
+                    timeout=50,
+                )
+                self.sensor = LD2410C(uart)
+                self.sensor_error = ""
             else:
                 raise OSError("Unsupported sensor profile: %s" % profile)
         except Exception as error:

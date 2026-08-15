@@ -79,7 +79,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             mutableStateOf(
                 (supplied["subject_ref"] ?: supplied["subject_id"] ?: supplied["entity_id"]
                     ?: context.request.invocationContext.subjectRef().id.value)
-                    .orEmpty().ifBlank { if (external) "" else "participant/P001" }
+                    .orEmpty()
             )
         }
         var eventType by remember { mutableStateOf(supplied["event_type"].orEmpty().ifBlank { if (external) "" else "field_event" }) }
@@ -87,6 +87,9 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             mutableStateOf(initialAttestationPayloadHash(supplied["event_payload_hash"], external))
         }
         var evidence by remember { mutableStateOf(supplied["verification_evidence"].orEmpty()) }
+        var trustedTimestampPolicy by remember { mutableStateOf(supplied["trusted_timestamp"].orEmpty().ifBlank { "preferred" }) }
+        var trustedTimestampAuthority by remember { mutableStateOf(supplied["trusted_timestamp_authority"].orEmpty().ifBlank { DEFAULT_TRUSTED_TIMESTAMP_AUTHORITY_URL }) }
+        var trustedTimestampTimeoutMs by remember { mutableStateOf(supplied["trusted_timestamp_timeout_ms"].orEmpty().ifBlank { "3500" }) }
         var method by remember {
             mutableStateOf(
                 AttestationVerificationMethod.values().firstOrNull {
@@ -107,6 +110,9 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                 put("event_type", eventType)
                 put("event_payload_hash", eventPayloadHash)
                 put("verification_method", selectedMethod.name)
+                put("trusted_timestamp", trustedTimestampPolicy)
+                put("trusted_timestamp_authority", trustedTimestampAuthority)
+                put("trusted_timestamp_timeout_ms", trustedTimestampTimeoutMs)
                 put("verification_evidence_format", selectedEvidence.format)
                 put("verification_evidence_hash", selectedEvidence.hash)
             }
@@ -238,6 +244,14 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             OutlinedTextField(subjectRef, { subjectRef = it }, label = { Text("Subject / event reference") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(eventType, { eventType = it }, label = { Text("Event type") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(eventPayloadHash, { eventPayloadHash = it }, label = { Text("Event payload SHA-256 (hex)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(trustedTimestampPolicy, { trustedTimestampPolicy = it }, label = { Text("Trusted timestamp policy") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(trustedTimestampAuthority, { trustedTimestampAuthority = it }, label = { Text("Trusted timestamp authority URL") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                trustedTimestampTimeoutMs,
+                { value -> trustedTimestampTimeoutMs = value.filter { it.isDigit() }.take(5) },
+                label = { Text("Timestamp timeout (ms)") },
+                modifier = Modifier.fillMaxWidth()
+            )
             if (!external && eventPayloadHash == MANUAL_DEBUG_EVENT_PAYLOAD_HASH) {
                 Text(
                     "Manual test placeholder: SHA-256 of “researchos-manual-debug-event-v1”. Replace it when testing a specific payload.",
@@ -300,17 +314,17 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "Basic attestation",
                         description = "Sign an event with fingerprint verification",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',input_event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',input_verification_method='Fingerprint',input_trusted_timestamp='preferred',return_mode='flat')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',input_event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',input_verification_method='Fingerprint',input_trusted_timestamp='preferred',input_trusted_timestamp_authority='https://freetsa.org/tsr',return_mode='flat')"
                     ),
                     IntentExample(
                         label = "With event context",
                         description = "Include study, operator, and event information",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',input_event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',input_study_id='study_01',operator_id='op_001',input_event_type='form_submission',input_verification_method='Fingerprint',input_trusted_timestamp='preferred',return_mode='flat')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',input_event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',input_study_id='study_01',operator_id='op_001',input_event_type='form_submission',input_verification_method='Fingerprint',input_trusted_timestamp='preferred',input_trusted_timestamp_authority='https://freetsa.org/tsr',return_mode='flat')"
                     ),
                     IntentExample(
                         label = "With NFC verification",
                         description = "Use NFC tag reading for verification",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',input_event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',input_verification_method='Nfc',input_trusted_timestamp='preferred',return_mode='flat')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',input_event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',input_verification_method='Nfc',input_trusted_timestamp='preferred',input_trusted_timestamp_authority='https://freetsa.org/tsr',return_mode='flat')"
                     )
                 )
             )

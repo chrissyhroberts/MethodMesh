@@ -322,7 +322,9 @@ private fun CapabilityCard(
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
-                Text(if (screen == null) "generic" else "screen", style = MaterialTheme.typography.labelMedium)
+                if (screen == null) {
+                    Text("generic", style = MaterialTheme.typography.labelMedium)
+                }
             }
             Text(method.id, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
             method.descriptor.description?.takeIf { it.isNotBlank() }?.let {
@@ -396,7 +398,7 @@ private fun DashboardCapabilityRunner(
     val action = ExternalActionRequest(requestedId = method.id, canonicalId = method.id)
     val request = ExternalWorkflowRequest(
         actions = listOf(action),
-        invocationContext = InvocationContext(caller = "dashboard", entityType = "participant", entityId = "P001"),
+        invocationContext = InvocationContext(caller = "dashboard"),
         returns = emptyList(),
         returnMode = ReturnMode.Json,
         source = "dashboard"

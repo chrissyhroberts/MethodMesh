@@ -2,7 +2,7 @@
 
 Capability ID: `sensor_node_provisioner`
 
-This capability provisions an already-flashed ResearchOS BLE sensor node. The first bundled firmware target is an ESP32-C3 MicroPython node with a generic ResearchOS BLE sensor contract and an optional AHT20 driver.
+This capability provisions an already-flashed ResearchOS BLE sensor node. The first bundled firmware target is an ESP32-C3 MicroPython node with a generic ResearchOS BLE sensor contract and selectable sensor profiles, currently including AHT20 temperature/humidity and LD2410C mmWave presence.
 
 The provisioner scans for nearby ResearchOS sensor nodes, connects over BLE, reads the node manifest, writes a persistent configuration command, reads a confirmation sample, and saves the resulting device profile to the ResearchOS device registry.
 
@@ -17,6 +17,15 @@ The provisioner scans for nearby ResearchOS sensor nodes, connects over BLE, rea
 7. Confirm that a sample reading is returned and the node is saved to the registry.
 
 The node can be provisioned before sensors are attached. Missing drivers are reported in the manifest and confirmation reading rather than preventing BLE discovery.
+
+## Sensor profiles
+
+| Profile | Hardware | Default wiring | Returned fields |
+|---|---|---|---|
+| `aht20` | AHT20 temperature/humidity | I2C SDA GPIO 8, SCL GPIO 9 | `temperature_c`, `relative_humidity_pct` |
+| `ld2410c` | LD2410C mmWave radar | UART TX GPIO 21, RX GPIO 20, 256000 baud | `presence`, `target_state`, `moving_distance_cm`, `moving_energy`, `stationary_distance_cm`, `stationary_energy`, `detection_distance_cm` |
+
+The LD2410C profile is hardware-specific and should be treated as a first bundled radar driver rather than a universal radar abstraction. If a board uses different UART pins, update the firmware constants before installation.
 
 ## Intent example
 

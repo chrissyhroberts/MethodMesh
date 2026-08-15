@@ -201,6 +201,7 @@ private fun DceConfigurationEditor(
 ) {
     var roundsText by rememberSaveable(method.id) { mutableStateOf(initialConfig.rounds.toString()) }
     var pointsText by rememberSaveable(method.id) { mutableStateOf(initialConfig.totalPoints.toString()) }
+    var itemsPerRoundText by rememberSaveable(method.id) { mutableStateOf(initialConfig.itemsPerRoundSpec) }
     var itemsText by rememberSaveable(method.id) { mutableStateOf(initialConfig.options.joinToString("\n")) }
     var classesText by rememberSaveable(method.id) {
         mutableStateOf(initialConfig.attributes.entries.joinToString("\n") { (name, levels) ->
@@ -212,6 +213,7 @@ private fun DceConfigurationEditor(
     val points = pointsText.toIntOrNull()
     val items = DceConfigParser.parseItemList(itemsText)
     val classes = DceConfigParser.parseAttributes(classesText)
+    val itemRange = DceConfigParser.parseCountRange(itemsPerRoundText, items.size.coerceAtLeast(2))
     val minimumItems = when (method) {
         DceMethod.Points -> 1
         DceMethod.Conjoint -> 0
@@ -251,6 +253,18 @@ private fun DceConfigurationEditor(
             label = { Text("Number of points") },
             supportingText = { if (!pointsValid) Text("Enter a positive points budget.") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        Spacer(Modifier.height(8.dp))
+    }
+
+    if (method == DceMethod.MaxDiff) {
+        OutlinedTextField(
+            value = itemsPerRoundText,
+            onValueChange = { itemsPerRoundText = it.filter { char -> char.isDigit() || char == '-' || char == '–' || char == '.' }.take(8) },
+            label = { Text("Items per round") },
+            supportingText = { Text("Use a fixed count, e.g. 4, or a range, e.g. 2-5. Current: ${itemRange.first}-${itemRange.last}") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -301,7 +315,10 @@ private fun DceConfigurationEditor(
                     DceMethod.Ranking -> configuredOptions.size
                     else -> initialConfig.optionsPerRound.coerceAtMost(configuredOptions.size.coerceAtLeast(2))
                 },
-                itemsPerRound = initialConfig.itemsPerRound.coerceAtMost(configuredOptions.size.coerceAtLeast(2)),
+                itemsPerRound = itemRange.first.coerceAtMost(configuredOptions.size.coerceAtLeast(2)),
+                itemsPerRoundMin = itemRange.first.coerceAtMost(configuredOptions.size.coerceAtLeast(2)),
+                itemsPerRoundMax = itemRange.last.coerceAtMost(configuredOptions.size.coerceAtLeast(2)),
+                itemsPerRoundSpec = itemsPerRoundText,
                 totalPoints = if (method == DceMethod.Points) points!! else initialConfig.totalPoints,
                 attributes = if (method == DceMethod.Conjoint) classes else initialConfig.attributes
             ))
@@ -367,7 +384,7 @@ internal object MaxDiffChoiceScreen : DceCapabilityScreen(DceMethod.MaxDiff) {
         isComplete: Boolean,
         onComplete: (String, Int, Map<String, String>) -> Unit
     ) {
-        val rounds = remember(config, resetCounter) { DceDesignGenerator.choiceRounds(config, config.itemsPerRound) }
+        val rounds = remember(config, resetCounter) { DceDesignGenerator.maxDiffRounds(config) }
         var index by remember(config, resetCounter) { mutableIntStateOf(0) }
         var responses by remember(config, resetCounter) { mutableStateOf(listOf<MaxDiffResponse>()) }
         var best by remember(index, resetCounter) { mutableStateOf<String?>(null) }

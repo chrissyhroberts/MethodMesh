@@ -27,13 +27,15 @@ class SchedulerAlarmReceiver : BroadcastReceiver() {
         SchedulerNotifications.ensureChannel(context)
         val open = Intent(context, SchedulerDispatchActivity::class.java)
             .setAction("com.example.researchos.SCHEDULED_DISPATCH")
-            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            .setPackage(context.packageName)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .putExtra("schedule_id", id)
-        // Cancel any older PendingIntent for this schedule. This matters when
-        // a previous build pointed notifications at the scheduler dashboard.
+            .putExtra("notification_kind", kind.ifBlank { "primary" })
+        // Use a dedicated open request code so reminder alarms and notification
+        // taps cannot accidentally reuse one another's PendingIntent state.
         val pending = PendingIntent.getActivity(
             context,
-            id.hashCode(),
+            SchedulerRepository.requestCode(id, "open"),
             open,
             PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

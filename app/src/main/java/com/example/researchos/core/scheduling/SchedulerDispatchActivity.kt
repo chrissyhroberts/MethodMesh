@@ -22,7 +22,7 @@ class SchedulerDispatchActivity : Activity() {
         super.onCreate(savedInstanceState)
         val schedule = SchedulerRepository.get(this, intent.getStringExtra("schedule_id").orEmpty())
         if (schedule == null) { finish(); return }
-        SchedulerRepository.recordEvent(this, schedule.id, "opened")
+        SchedulerRepository.recordEvent(this, schedule.id, "dispatch_started:${intent.getStringExtra("notification_kind").orEmpty().ifBlank { "direct" }}")
         if (schedule.chainOrder <= 0) clearChainClipboard(schedule)
         if (schedule.target == SchedulerTarget.WEB_FORM) {
             startActivityForResult(Intent(Intent.ACTION_VIEW, Uri.parse(schedule.targetValue)), 102)
@@ -50,9 +50,13 @@ class SchedulerDispatchActivity : Activity() {
             publishChainClipboard(schedule, schedule.targetValue, "ResearchOS scheduled action")
             SchedulerRepository.markCompleted(this, schedule)
             val next = SchedulerRepository.nextInChain(this, schedule)
-            if (next != null) startActivity(Intent(this, SchedulerDispatchActivity::class.java)
-                .putExtra("schedule_id", next.id)
-                .putExtra("test_chain", testChain))
+            if (next != null) {
+                SchedulerRepository.recordEvent(this, next.id, "chain_dispatch_started")
+                startActivity(Intent(this, SchedulerDispatchActivity::class.java)
+                    .setAction("com.example.researchos.SCHEDULED_CHAIN_DISPATCH")
+                    .putExtra("schedule_id", next.id)
+                    .putExtra("test_chain", testChain))
+            }
             finish()
             return
         }
@@ -99,7 +103,9 @@ class SchedulerDispatchActivity : Activity() {
         else current?.let { SchedulerRepository.recordEvent(this, it.id, "cancelled") }
         val next = if (completed) current?.let { SchedulerRepository.nextInChain(this, it) } else null
         if (next != null) {
+            SchedulerRepository.recordEvent(this, next.id, "chain_dispatch_started")
             startActivity(Intent(this, SchedulerDispatchActivity::class.java)
+                .setAction("com.example.researchos.SCHEDULED_CHAIN_DISPATCH")
                 .putExtra("schedule_id", next.id)
                 .putExtra("test_chain", testChain))
         }
