@@ -36,6 +36,8 @@ object QuestionPrimitiveFields {
     const val CONSTRAINT_MESSAGE = "question_constraint_message"
     const val ERROR = "question_error"
     const val OPTIONS_JSON = "question_options_json"
+    const val EXCLUSIVE_OPTIONS_JSON = "question_exclusive_options_json"
+    const val EXCLUSIVE_GROUPS_JSON = "question_exclusive_groups_json"
     const val SELECTED_COUNT = "question_selected_count"
     const val MIN = "question_min"
     const val MAX = "question_max"
@@ -55,6 +57,8 @@ object QuestionPrimitiveFields {
         CONSTRAINT_MESSAGE,
         ERROR,
         OPTIONS_JSON,
+        EXCLUSIVE_OPTIONS_JSON,
+        EXCLUSIVE_GROUPS_JSON,
         SELECTED_COUNT,
         MIN,
         MAX,
@@ -153,6 +157,8 @@ abstract class QuestionPrimitiveMethod(
             put(QuestionPrimitiveFields.VALID, validation.valid.toString())
             put(QuestionPrimitiveFields.ERROR, validation.error)
             put(QuestionPrimitiveFields.OPTIONS_JSON, validation.optionsJson)
+            put(QuestionPrimitiveFields.EXCLUSIVE_OPTIONS_JSON, validation.exclusiveOptionsJson)
+            put(QuestionPrimitiveFields.EXCLUSIVE_GROUPS_JSON, validation.exclusiveGroupsJson)
             put(QuestionPrimitiveFields.SELECTED_COUNT, validation.selectedCount.toString())
             put(QuestionPrimitiveFields.MIN, validation.min)
             put(QuestionPrimitiveFields.MAX, validation.max)
@@ -189,6 +195,24 @@ abstract class QuestionPrimitiveMethod(
             .map { it.trim() }
             .filter { it.isNotBlank() }
             .distinct()
+
+    protected fun exclusiveOptions(settings: Map<String, String>): List<String> =
+        (settings.value("exclusive_options") ?: settings.value("question_exclusive_options") ?: "")
+            .split('\n', '|', ',')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+
+    protected fun exclusiveGroups(settings: Map<String, String>): List<List<String>> =
+        (settings.value("exclusive_groups") ?: settings.value("question_exclusive_groups") ?: "")
+            .split('\n', ';')
+            .map { group ->
+                group.split('|', ',')
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .distinct()
+            }
+            .filter { it.size >= 2 }
 }
 
 data class QuestionValidation(
@@ -197,6 +221,8 @@ data class QuestionValidation(
     val valid: Boolean,
     val error: String = "",
     val optionsJson: String = "[]",
+    val exclusiveOptionsJson: String = "[]",
+    val exclusiveGroupsJson: String = "[]",
     val selectedCount: Int = if (answer.isBlank()) 0 else 1,
     val min: String = "",
     val max: String = ""
@@ -259,8 +285,13 @@ object QuestionSelectMultipleMethod : QuestionPrimitiveMethod(
     override fun validate(settings: Map<String, String>, answer: String, required: Boolean, regex: String, constraint: String): QuestionValidation {
         val opts = options(settings)
         val selected = answer.split('\n', '|', ',').map { it.trim() }.filter { it.isNotBlank() }.distinct()
+        val exclusive = exclusiveOptions(settings)
+        val groups = exclusiveGroups(settings)
+        val exclusiveJson = JSONArray(exclusive).toString()
+        val groupsJson = JSONArray(groups.map { JSONArray(it) }).toString()
+        val optionsJson = JSONArray(opts).toString()
         if (required && selected.isEmpty()) {
-            return QuestionValidation(answer = "", answerJson = "[]", valid = false, error = "At least one answer is required.", optionsJson = JSONArray(opts).toString(), selectedCount = 0)
+            return QuestionValidation(answer = "", answerJson = "[]", valid = false, error = "At least one answer is required.", optionsJson = optionsJson, exclusiveOptionsJson = exclusiveJson, exclusiveGroupsJson = groupsJson, selectedCount = 0)
         }
         val invalid = selected.filterNot { it in opts }.takeIf { opts.isNotEmpty() && it.isNotEmpty() }.orEmpty()
         if (invalid.isNotEmpty()) {
@@ -269,15 +300,44 @@ object QuestionSelectMultipleMethod : QuestionPrimitiveMethod(
                 answerJson = JSONArray(selected).toString(),
                 valid = false,
                 error = "Selected answer is not in the option list: ${invalid.joinToString(", ")}.",
-                optionsJson = JSONArray(opts).toString(),
+                optionsJson = optionsJson,
+                exclusiveOptionsJson = exclusiveJson,
+                exclusiveGroupsJson = groupsJson,
+                selectedCount = selected.size
+            )
+        }
+        val selectedExclusive = selected.filter { it in exclusive }
+        if (selectedExclusive.isNotEmpty() && selected.size > 1) {
+            return QuestionValidation(
+                answer = selected.joinToString("|"),
+                answerJson = JSONArray(selected).toString(),
+                valid = false,
+                error = "This answer cannot be combined with other selected answers: ${selectedExclusive.joinToString(", ")}.",
+                optionsJson = optionsJson,
+                exclusiveOptionsJson = exclusiveJson,
+                exclusiveGroupsJson = groupsJson,
+                selectedCount = selected.size
+            )
+        }
+        val conflictedGroup = groups.firstOrNull { group -> selected.count { it in group } > 1 }
+        if (conflictedGroup != null) {
+            val conflictedSelections = selected.filter { it in conflictedGroup }
+            return QuestionValidation(
+                answer = selected.joinToString("|"),
+                answerJson = JSONArray(selected).toString(),
+                valid = false,
+                error = "These answers cannot be selected together: ${conflictedSelections.joinToString(", ")}.",
+                optionsJson = optionsJson,
+                exclusiveOptionsJson = exclusiveJson,
+                exclusiveGroupsJson = groupsJson,
                 selectedCount = selected.size
             )
         }
         val joined = selected.joinToString("|")
         val regexError = regexError(joined, regex, constraint)
         if (regexError != null) {
-            return QuestionValidation(answer = joined, answerJson = JSONArray(selected).toString(), valid = false, error = regexError, optionsJson = JSONArray(opts).toString(), selectedCount = selected.size)
+            return QuestionValidation(answer = joined, answerJson = JSONArray(selected).toString(), valid = false, error = regexError, optionsJson = optionsJson, exclusiveOptionsJson = exclusiveJson, exclusiveGroupsJson = groupsJson, selectedCount = selected.size)
         }
-        return QuestionValidation(answer = joined, answerJson = JSONArray(selected).toString(), valid = true, optionsJson = JSONArray(opts).toString(), selectedCount = selected.size)
+        return QuestionValidation(answer = joined, answerJson = JSONArray(selected).toString(), valid = true, optionsJson = optionsJson, exclusiveOptionsJson = exclusiveJson, exclusiveGroupsJson = groupsJson, selectedCount = selected.size)
     }
 }

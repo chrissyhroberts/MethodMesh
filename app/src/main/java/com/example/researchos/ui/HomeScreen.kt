@@ -167,7 +167,7 @@ fun HomeScreen() {
 @Composable
 private fun OutputFolderCard() {
     val context = LocalContext.current
-    var expanded by rememberSaveable { mutableStateOf(true) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     var configured by remember { mutableStateOf(OutputExportRepository.configuredFolder(context)) }
     var folderStatus by rememberSaveable { mutableStateOf<String?>(null) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -302,7 +302,7 @@ private fun launchProtocolRun(
 @Composable
 private fun RunProtocolCard(revision: Int) {
     val context = LocalContext.current
-    var expanded by rememberSaveable { mutableStateOf(true) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     val protocols by remember(revision) { mutableStateOf(ProtocolLibraryRepository.protocols(context)) }
     ElevatedCard(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),

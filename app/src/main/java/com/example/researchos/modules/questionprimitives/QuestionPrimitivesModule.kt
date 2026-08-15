@@ -37,7 +37,7 @@ object QuestionPrimitivesModule : ResearchOSModule {
             MethodSetting.TextSetting("max", "Maximum", defaultValue = "")
         ),
         QuestionSelectOneMethod.id to commonSettings() + optionSettings(),
-        QuestionSelectMultipleMethod.id to commonSettings() + optionSettings()
+        QuestionSelectMultipleMethod.id to commonSettings() + optionSettings() + selectMultipleCombinationSettings()
     )
 
     private fun commonSettings() = listOf(
@@ -52,5 +52,18 @@ object QuestionPrimitivesModule : ResearchOSModule {
 
     private fun optionSettings() = listOf(
         MethodSetting.TextSetting("options", "Options", defaultValue = "Yes|No|Unknown")
+    )
+
+    private fun selectMultipleCombinationSettings() = listOf(
+        MethodSetting.TextSetting(
+            "exclusive_options",
+            "Exclusive options",
+            defaultValue = "None|Unknown"
+        ),
+        MethodSetting.TextSetting(
+            "exclusive_groups",
+            "Mutually exclusive groups",
+            defaultValue = "Yes|No"
+        )
     )
 }

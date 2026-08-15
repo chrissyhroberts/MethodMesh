@@ -19,14 +19,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
 import com.example.researchos.core.researchos.ExecutionResult
 import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
+import com.example.researchos.transport.workflow.ui.CapabilityPresentationMode
 import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
 import com.example.researchos.transport.workflow.ui.IntentExample
 import com.example.researchos.transport.workflow.ui.IntentExampleDropdown
+import kotlinx.coroutines.delay
 
 object QuestionTextCapabilityScreen : QuestionPrimitiveScreen(
     method = QuestionTextMethod,
@@ -72,16 +79,25 @@ abstract class QuestionPrimitiveScreen(
         var questionId by rememberSaveable { mutableStateOf(settings.setting("question_id", method.id.replace('.', '_'))) }
         var prompt by rememberSaveable { mutableStateOf(settings.setting("prompt", titleText)) }
         var hint by rememberSaveable { mutableStateOf(settings.setting("hint", "")) }
-        var answer by rememberSaveable { mutableStateOf(settings.setting("answer", "")) }
+        val initialAnswer = settings.setting("answer", "")
+        var answer by rememberSaveable { mutableStateOf(initialAnswer) }
         var required by rememberSaveable { mutableStateOf(settings.setting("required", "false").toBooleanStrictOrNull() ?: false) }
         var regex by rememberSaveable { mutableStateOf(settings.setting("regex", "")) }
         var constraint by rememberSaveable { mutableStateOf(settings.setting("constraint_message", "Answer does not meet the required constraint.")) }
         var optionsText by rememberSaveable { mutableStateOf(settings.setting("options", "Yes|No|Unknown")) }
+        var exclusiveOptionsText by rememberSaveable { mutableStateOf(settings.setting("exclusive_options", "")) }
+        var exclusiveGroupsText by rememberSaveable { mutableStateOf(settings.setting("exclusive_groups", "")) }
         var min by rememberSaveable { mutableStateOf(settings.setting("min", "")) }
         var max by rememberSaveable { mutableStateOf(settings.setting("max", "")) }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var status by remember { mutableStateOf("Ready.") }
+        val intentPresentation = context.presentationMode == CapabilityPresentationMode.IntentLaunch
+        val allowPrefilledAutoReturn = context.startsImmediately &&
+            !context.request.source.equals("intent_test", ignoreCase = true)
+        val selectionQuestion = method.id == QuestionSelectOneMethod.id || method.id == QuestionSelectMultipleMethod.id
+        val answerFocusRequester = remember { FocusRequester() }
+        val keyboardController = LocalSoftwareKeyboardController.current
         val options = optionsText.split('\n', '|', ',').map { it.trim() }.filter { it.isNotBlank() }.distinct()
 
         fun capture() {
@@ -94,22 +110,36 @@ abstract class QuestionPrimitiveScreen(
                 "regex" to regex,
                 "constraint_message" to constraint,
                 "options" to optionsText,
+                "exclusive_options" to exclusiveOptionsText,
+                "exclusive_groups" to exclusiveGroupsText,
                 "min" to min,
                 "max" to max
             )
             val request = method.request(method.id, requestContext, emptyList(), emptyList())
             val execution = method.result(request, method.evaluate(requestContext), context.request.invocationContext)
-            result = execution
             val preview = OutputFormatter.fields(execution, includeProvenance = false)
-            status = preview[QuestionPrimitiveFields.ERROR]?.toString()?.takeIf { it.isNotBlank() }
-                ?: preview[QuestionPrimitiveFields.STATUS]?.toString().orEmpty().ifBlank { "Captured." }
-            if (context.startsImmediately && answer.isNotBlank()) onConfirmed(execution)
+            val error = preview[QuestionPrimitiveFields.ERROR]?.toString()?.takeIf { it.isNotBlank() }
+            val succeeded = preview[QuestionPrimitiveFields.STATUS]?.toString() == "succeeded"
+            status = error ?: preview[QuestionPrimitiveFields.STATUS]?.toString().orEmpty().ifBlank { "Captured." }
+            if (succeeded || !intentPresentation) {
+                result = execution
+            }
         }
 
-        LaunchedEffect(context.startsImmediately, answer) {
-            if (context.startsImmediately && !launched && answer.isNotBlank()) {
+        LaunchedEffect(allowPrefilledAutoReturn, context.action.canonicalId) {
+            if (allowPrefilledAutoReturn && !launched && initialAnswer.isNotBlank()) {
                 launched = true
                 capture()
+            }
+        }
+
+        LaunchedEffect(intentPresentation, selectionQuestion, context.action.canonicalId) {
+            if (intentPresentation && !selectionQuestion) {
+                delay(250)
+                runCatching {
+                    answerFocusRequester.requestFocus()
+                    keyboardController?.show()
+                }
             }
         }
 
@@ -125,16 +155,33 @@ abstract class QuestionPrimitiveScreen(
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
-            OutlinedTextField(value = questionId, onValueChange = { questionId = it }, label = { Text("Question ID") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Prompt") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = hint, onValueChange = { hint = it }, label = { Text("Hint") }, modifier = Modifier.fillMaxWidth())
-            OutlinedButton(onClick = { required = !required }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (required) "Required: yes" else "Required: no")
+            if (intentPresentation) {
+                if (selectionQuestion) {
+                    Text(prompt, style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
+                    if (hint.isNotBlank()) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(hint, style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+                    }
+                }
+                if (required) {
+                    Spacer(Modifier.height(6.dp))
+                    Text("Required", style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
+                }
+                Spacer(Modifier.height(18.dp))
+            } else {
+                Text("Configure question", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(value = questionId, onValueChange = { questionId = it }, label = { Text("Question ID") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Prompt") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = hint, onValueChange = { hint = it }, label = { Text("Hint") }, modifier = Modifier.fillMaxWidth())
+                OutlinedButton(onClick = { required = !required }, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (required) "Required: yes" else "Required: no")
+                }
+                OutlinedTextField(value = regex, onValueChange = { regex = it }, label = { Text("Regex constraint (optional)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = constraint, onValueChange = { constraint = it }, label = { Text("Constraint message") }, modifier = Modifier.fillMaxWidth())
             }
-            OutlinedTextField(value = regex, onValueChange = { regex = it }, label = { Text("Regex constraint (optional)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = constraint, onValueChange = { constraint = it }, label = { Text("Constraint message") }, modifier = Modifier.fillMaxWidth())
 
-            if (method.id == QuestionNumberMethod.id) {
+            if (!intentPresentation && method.id == QuestionNumberMethod.id) {
                 Row(Modifier.fillMaxWidth()) {
                     OutlinedTextField(value = min, onValueChange = { min = it.numericText() }, label = { Text("Min") }, modifier = Modifier.weight(1f))
                     Spacer(Modifier.padding(4.dp))
@@ -142,13 +189,29 @@ abstract class QuestionPrimitiveScreen(
                 }
             }
 
-            if (method.id == QuestionSelectOneMethod.id || method.id == QuestionSelectMultipleMethod.id) {
-                OutlinedTextField(
-                    value = optionsText,
-                    onValueChange = { optionsText = it },
-                    label = { Text("Options, separated by |, comma, or newline") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+            if (selectionQuestion) {
+                if (!intentPresentation) {
+                    OutlinedTextField(
+                        value = optionsText,
+                        onValueChange = { optionsText = it },
+                        label = { Text("Options, separated by |, comma, or newline") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (method.id == QuestionSelectMultipleMethod.id) {
+                        OutlinedTextField(
+                            value = exclusiveOptionsText,
+                            onValueChange = { exclusiveOptionsText = it },
+                            label = { Text("Exclusive options, e.g. None|Unknown") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = exclusiveGroupsText,
+                            onValueChange = { exclusiveGroupsText = it },
+                            label = { Text("Mutually exclusive groups, one per line, e.g. Yes|No") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
                 Column {
                     options.forEach { option ->
                         val selected = answer.split('|').map { it.trim() }.contains(option)
@@ -170,19 +233,45 @@ abstract class QuestionPrimitiveScreen(
                 }
             }
 
-            OutlinedTextField(
-                value = answer,
-                onValueChange = { answer = if (method.id == QuestionNumberMethod.id) it.numericText() else it },
-                label = { Text("Answer") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            if (!intentPresentation || !selectionQuestion) {
+                OutlinedTextField(
+                    value = answer,
+                    onValueChange = { answer = it },
+                    label = { Text(if (intentPresentation) prompt else "Answer") },
+                    placeholder = if (intentPresentation && hint.isNotBlank()) {
+                        { Text(hint) }
+                    } else {
+                        null
+                    },
+                    keyboardOptions = if (method.id == QuestionNumberMethod.id) {
+                        KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                    } else {
+                        KeyboardOptions.Default
+                    },
+                    singleLine = method.id == QuestionNumberMethod.id,
+                    minLines = if (method.id == QuestionTextMethod.id) 4 else 1,
+                    maxLines = if (method.id == QuestionTextMethod.id) 8 else 1,
+                    modifier = if (intentPresentation && !selectionQuestion) {
+                        Modifier.fillMaxWidth().focusRequester(answerFocusRequester)
+                    } else {
+                        Modifier.fillMaxWidth()
+                    }
+                )
+            }
             Spacer(Modifier.height(10.dp))
-            Button(onClick = { capture() }, modifier = Modifier.fillMaxWidth()) { Text("Capture answer") }
-            Text(status)
-            IntentExampleDropdown(
-                capabilityId = capabilityId,
-                examples = examples()
-            )
+            Button(onClick = { capture() }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (intentPresentation) "Continue" else "Capture answer")
+            }
+            if (status.isNotBlank() && status != "Ready.") {
+                Spacer(Modifier.height(8.dp))
+                Text(status)
+            }
+            if (!intentPresentation) {
+                IntentExampleDropdown(
+                    capabilityId = capabilityId,
+                    examples = examples()
+                )
+            }
         }
     }
 
