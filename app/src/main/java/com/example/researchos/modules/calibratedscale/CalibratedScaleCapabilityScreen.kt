@@ -49,7 +49,9 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
         val interaction = remember { CalibratedScaleInteraction() }
         val calibration by CalibrationRepository.calibration
         val settings = remember(action.settings) {
-            SettingsState(interaction.settings).also { state ->
+            SettingsState(interaction.settings) { key, value ->
+                context.onSettingsChanged(mapOf(key to value.toString()))
+            }.also { state ->
                 applyParameters(state, interaction.settings, action.settings)
             }
         }

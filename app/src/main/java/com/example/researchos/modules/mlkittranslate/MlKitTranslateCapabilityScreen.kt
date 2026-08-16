@@ -63,6 +63,18 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
+        LaunchedEffect(source, target, text, action, modelLanguage) {
+            context.onSettingsChanged(
+                buildMap {
+                    put("source_language", source)
+                    put("target_language", target)
+                    put("input_text", text)
+                    put("model_action", action)
+                    modelLanguage?.takeIf { it.isNotBlank() }?.let { put("model_language", it) }
+                }
+            )
+        }
+
         fun complete(values: Map<String, String>, succeeded: Boolean) {
             val request = As100MlKitTranslateMethod.request(
                 action = As100MlKitTranslateMethod.ID,

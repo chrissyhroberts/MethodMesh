@@ -1,11 +1,14 @@
 package com.example.researchos.modules.randomnumber
 
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,15 +38,28 @@ object RandomNumberCapabilityScreen : CapabilityScreenSpec {
         onConfirmed: (ExecutionResult) -> Unit,
         onCancel: () -> Unit
     ) {
-        val count = context.action.settings["count"] ?: context.action.settings["input_count"] ?: "1"
-        val min = context.action.settings["min"] ?: context.action.settings["input_min"] ?: "0"
-        val max = context.action.settings["max"] ?: context.action.settings["input_max"] ?: "1"
-        val step = context.action.settings["step"] ?: context.action.settings["input_step"] ?: "1"
-        val seedMode = context.action.settings["seed_mode"] ?: context.action.settings["input_seed_mode"] ?: "secure_random"
-        val seed = context.action.settings["seed"] ?: context.action.settings["input_seed"] ?: ""
+        var count by rememberSaveable { mutableStateOf(context.action.settings["count"] ?: context.action.settings["input_count"] ?: "1") }
+        var min by rememberSaveable { mutableStateOf(context.action.settings["min"] ?: context.action.settings["input_min"] ?: "0") }
+        var max by rememberSaveable { mutableStateOf(context.action.settings["max"] ?: context.action.settings["input_max"] ?: "1") }
+        var step by rememberSaveable { mutableStateOf(context.action.settings["step"] ?: context.action.settings["input_step"] ?: "1") }
+        var seedMode by rememberSaveable { mutableStateOf(context.action.settings["seed_mode"] ?: context.action.settings["input_seed_mode"] ?: "secure_random") }
+        var seed by rememberSaveable { mutableStateOf(context.action.settings["seed"] ?: context.action.settings["input_seed"] ?: "") }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var status by remember { mutableStateOf("Ready to generate.") }
+
+        LaunchedEffect(count, min, max, step, seedMode, seed) {
+            context.onSettingsChanged(
+                mapOf(
+                    "count" to count,
+                    "min" to min,
+                    "max" to max,
+                    "step" to step,
+                    "seed_mode" to seedMode,
+                    "seed" to seed
+                )
+            )
+        }
 
         fun generate() {
             val settings = mapOf("count" to count, "min" to min, "max" to max, "step" to step, "seed_mode" to seedMode, "seed" to seed)
@@ -80,6 +96,15 @@ object RandomNumberCapabilityScreen : CapabilityScreenSpec {
         ) {
             Text("Generate random values from the current capability settings.", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
+            OutlinedTextField(count, { count = it.filter(Char::isDigit).ifBlank { "" } }, label = { Text("How many numbers") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(min, { min = it.numericText() }, label = { Text("Minimum") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(max, { max = it.numericText() }, label = { Text("Maximum") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(step, { step = it.numericText() }, label = { Text("Step") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            SeedModeChooser(seedMode = seedMode, onSeedModeSelected = { seedMode = it })
+            if (seedMode == "fixed_seed") {
+                OutlinedTextField(seed, { seed = it }, label = { Text("Fixed seed") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            }
+            Spacer(Modifier.height(8.dp))
             Text(
                 "Configured: count $count, range $min to $max, step $step, seed mode $seedMode${if (seedMode == "fixed_seed" && seed.isNotBlank()) ", seed supplied" else ""}.",
                 style = MaterialTheme.typography.bodySmall
@@ -90,3 +115,29 @@ object RandomNumberCapabilityScreen : CapabilityScreenSpec {
         }
     }
 }
+
+@Composable
+private fun SeedModeChooser(seedMode: String, onSeedModeSelected: (String) -> Unit) {
+    Text("Seed mode", style = MaterialTheme.typography.bodySmall)
+    Row(Modifier.fillMaxWidth()) {
+        if (seedMode == "secure_random") {
+            Button(onClick = { onSeedModeSelected("secure_random") }, modifier = Modifier.weight(1f).padding(2.dp)) { Text("✓ Secure random") }
+        } else {
+            OutlinedButton(onClick = { onSeedModeSelected("secure_random") }, modifier = Modifier.weight(1f).padding(2.dp)) { Text("Secure random") }
+        }
+        if (seedMode == "fixed_seed") {
+            Button(onClick = { onSeedModeSelected("fixed_seed") }, modifier = Modifier.weight(1f).padding(2.dp)) { Text("✓ Fixed seed") }
+        } else {
+            OutlinedButton(onClick = { onSeedModeSelected("fixed_seed") }, modifier = Modifier.weight(1f).padding(2.dp)) { Text("Fixed seed") }
+        }
+    }
+}
+
+private fun String.numericText(): String =
+    filter { it.isDigit() || it == '-' || it == '.' }.let { filtered ->
+        val minus = if (filtered.startsWith("-")) "-" else ""
+        val body = filtered.removePrefix("-")
+        minus + body.split('.').let { parts ->
+            parts.first() + if (parts.size > 1) "." + parts.drop(1).joinToString("") else ""
+        }
+    }

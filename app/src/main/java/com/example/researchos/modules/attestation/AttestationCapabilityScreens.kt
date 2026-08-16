@@ -104,6 +104,34 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
         var activeDependency by remember { mutableStateOf<String?>(null) }
         val focusedLaunch = context.presentationMode == CapabilityPresentationMode.IntentLaunch
 
+        LaunchedEffect(
+            studyId,
+            operatorId,
+            subjectRef,
+            eventType,
+            eventPayloadHash,
+            evidence,
+            trustedTimestampPolicy,
+            trustedTimestampAuthority,
+            trustedTimestampTimeoutMs,
+            method
+        ) {
+            context.onSettingsChanged(
+                mapOf(
+                    "study_id" to studyId,
+                    "operator_id" to operatorId,
+                    "subject_ref" to subjectRef,
+                    "event_type" to eventType,
+                    "event_payload_hash" to eventPayloadHash,
+                    "verification_evidence" to evidence,
+                    "verification_method" to method.name,
+                    "trusted_timestamp" to trustedTimestampPolicy,
+                    "trusted_timestamp_authority" to trustedTimestampAuthority,
+                    "trusted_timestamp_timeout_ms" to trustedTimestampTimeoutMs
+                )
+            )
+        }
+
         fun contextMapFor(selectedMethod: AttestationVerificationMethod, selectedEvidence: AttestationEvidence): Map<String, String> =
             supplied.filterKeys { it != "verification_evidence" } + buildMap {
                 put("study_id", studyId)
@@ -252,7 +280,11 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                 OutlinedTextField(subjectRef, { subjectRef = it }, label = { Text("Subject / event reference") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(eventType, { eventType = it }, label = { Text("Event type") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(eventPayloadHash, { eventPayloadHash = it }, label = { Text("Event payload SHA-256 (hex)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(trustedTimestampPolicy, { trustedTimestampPolicy = it }, label = { Text("Trusted timestamp policy") }, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                TimestampPolicyChooser(
+                    selected = trustedTimestampPolicy,
+                    onSelected = { trustedTimestampPolicy = it }
+                )
                 OutlinedTextField(trustedTimestampAuthority, { trustedTimestampAuthority = it }, label = { Text("Trusted timestamp authority URL") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(
                     trustedTimestampTimeoutMs,
@@ -330,6 +362,43 @@ internal fun initialAttestationPayloadHash(
     startsImmediately: Boolean
 ): String = suppliedHash.orEmpty().ifBlank {
     if (startsImmediately) "" else MANUAL_DEBUG_EVENT_PAYLOAD_HASH
+}
+
+@Composable
+private fun TimestampPolicyChooser(
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    val options = listOf(
+        Triple("disabled", "Off", "Only local signed attestation; no server timestamp."),
+        Triple("preferred", "Preferred", "Try RFC 3161 if online, but keep the local attestation if unavailable."),
+        Triple("required", "Required", "Fail unless RFC 3161 timestamping succeeds.")
+    )
+    Text("Trusted timestamp policy", fontWeight = FontWeight.SemiBold)
+    options.forEach { (value, label, description) ->
+        val active = selected.equals(value, ignoreCase = true)
+        if (active) {
+            Button(
+                onClick = { onSelected(value) },
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+            ) {
+                Column(Modifier.fillMaxWidth()) {
+                    Text("✓ $label")
+                    Text(description, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        } else {
+            OutlinedButton(
+                onClick = { onSelected(value) },
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+            ) {
+                Column(Modifier.fillMaxWidth()) {
+                    Text(label)
+                    Text(description, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+    }
 }
 
 object AttestationAnchorCapabilityScreen : CapabilityScreenSpec {

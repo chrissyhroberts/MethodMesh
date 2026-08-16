@@ -62,6 +62,15 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
             requestedByPermission = granted
         }
 
+        LaunchedEffect(phone, message) {
+            context.onSettingsChanged(
+                mapOf(
+                    "sms_phone" to phone,
+                    "sms_message" to message
+                )
+            )
+        }
+
         fun finalMessage(): String = message
 
         fun record(values: Map<String, String>) {

@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -130,11 +132,21 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
         // second scanner before the result has been delivered upstream.
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var scanFinished by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var barcodeFormatsValue by rememberSaveable {
+            mutableStateOf(context.action.settings["barcode_formats"] ?: context.action.settings["input_barcode_formats"] ?: "")
+        }
         var status by remember { mutableStateOf("Opening camera…") }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        val scannerContext = context.copy(
+            action = context.action.copy(settings = context.action.settings + mapOf("barcode_formats" to barcodeFormatsValue))
+        )
+
+        LaunchedEffect(barcodeFormatsValue) {
+            context.onSettingsChanged(mapOf("barcode_formats" to barcodeFormatsValue))
+        }
 
         val launchScanner = rememberQrCapabilityInvocation(
-            context = context,
+            context = scannerContext,
             sourceLabel = "camera_zxing",
             onResult = {
                 scanFinished = true
@@ -188,6 +200,11 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
                 }
                 Text(status, style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(16.dp))
+                CodeFormatChooser(
+                    selectedValue = barcodeFormatsValue,
+                    onSelected = { barcodeFormatsValue = it }
+                )
+                Spacer(Modifier.height(12.dp))
                 Button(onClick = {
                     launched = true
                     scanFinished = false
@@ -219,5 +236,65 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun CodeFormatChooser(
+    selectedValue: String,
+    onSelected: (String) -> Unit
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Text("Accepted code formats", style = MaterialTheme.typography.labelLarge)
+        Text(
+            CodeFormatPreset.options.firstOrNull { it.value == selectedValue }?.description
+                ?: "Custom format set from an external intent.",
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(Modifier.height(8.dp))
+        CodeFormatPreset.options.forEach { preset ->
+            val selected = preset.value == selectedValue
+            val colors = if (selected) {
+                ButtonDefaults.buttonColors()
+            } else {
+                ButtonDefaults.outlinedButtonColors()
+            }
+            val buttonModifier = Modifier.fillMaxWidth()
+            if (selected) {
+                Button(
+                    onClick = { onSelected(preset.value) },
+                    modifier = buttonModifier,
+                    colors = colors
+                ) {
+                    Text("✓ ${preset.label}")
+                }
+            } else {
+                OutlinedButton(
+                    onClick = { onSelected(preset.value) },
+                    modifier = buttonModifier,
+                    colors = colors
+                ) {
+                    Text(preset.label)
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+        }
+    }
+}
+
+private data class CodeFormatPreset(
+    val label: String,
+    val value: String,
+    val description: String
+) {
+    companion object {
+        val options = listOf(
+            CodeFormatPreset("Automatic detection", "", "Accept QR, Data Matrix, and common one-dimensional barcodes."),
+            CodeFormatPreset("QR codes only", "QR_CODE", "Use when the expected token is definitely a QR code."),
+            CodeFormatPreset("Data Matrix only", "DATA_MATRIX", "Use for medication packs, laboratory labels, and compact 2D identifiers."),
+            CodeFormatPreset("QR + Data Matrix", "QR_CODE|DATA_MATRIX", "Accept either common 2D code format."),
+            CodeFormatPreset("1D barcodes", "CODE_128|CODE_39|EAN_13|EAN_8|UPC_A|UPC_E", "Accept common linear barcode formats."),
+            CodeFormatPreset("Data Matrix + Code 128", "DATA_MATRIX|CODE_128", "Useful for mixed clinical/lab label workflows.")
+        )
     }
 }

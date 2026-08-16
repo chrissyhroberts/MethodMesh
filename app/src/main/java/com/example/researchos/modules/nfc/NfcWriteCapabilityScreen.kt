@@ -87,6 +87,17 @@ object NfcWriteCapabilityScreen : CapabilityScreenSpec {
         var recordTypeExpanded by remember { mutableStateOf(false) }
         var overwritePolicyExpanded by remember { mutableStateOf(false) }
 
+        LaunchedEffect(recordType, dataToWrite, overwritePolicy, expectedCurrentHash) {
+            context.onSettingsChanged(
+                mapOf(
+                    "record_type" to recordType,
+                    "value" to dataToWrite,
+                    "overwrite_policy" to overwritePolicy.wireValue,
+                    "expected_current_hash" to expectedCurrentHash
+                )
+            )
+        }
+
         fun startWrite() {
             if (requestedOverwritePolicy != null && NfcOverwritePolicy.parse(requestedOverwritePolicy) == null) {
                 status = "Error: Unknown overwrite_policy '$requestedOverwritePolicy'. Use empty_only, replace, or compare_and_replace."

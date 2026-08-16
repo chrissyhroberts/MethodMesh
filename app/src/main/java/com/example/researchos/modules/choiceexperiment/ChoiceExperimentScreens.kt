@@ -14,6 +14,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -98,7 +99,11 @@ internal abstract class DceCapabilityScreen(
                 DceConfigurationEditor(
                     method = method,
                     initialConfig = initialConfig,
+                    onConfigChanged = { configured ->
+                        context.onSettingsChanged(configured.toPresetSettings())
+                    },
                     onStart = { configured ->
+                        context.onSettingsChanged(configured.toPresetSettings())
                         config = configured
                         taskStarted = true
                         status = "Task started."
@@ -197,6 +202,7 @@ internal abstract class DceCapabilityScreen(
 private fun DceConfigurationEditor(
     method: DceMethod,
     initialConfig: DceConfig,
+    onConfigChanged: (DceConfig) -> Unit = {},
     onStart: (DceConfig) -> Unit
 ) {
     var roundsText by rememberSaveable(method.id) { mutableStateOf(initialConfig.rounds.toString()) }
@@ -226,6 +232,30 @@ private fun DceConfigurationEditor(
         (classes.isNotEmpty() && classes.values.all { it.size >= 2 })
     val pointsValid = method != DceMethod.Points || (points != null && points > 0)
     val canStart = roundsValid && itemsValid && classesValid && pointsValid
+    val configuredConfig = if (canStart) {
+        val configuredOptions = if (method == DceMethod.Conjoint) initialConfig.options else items
+        initialConfig.copy(
+            options = configuredOptions,
+            rounds = if (method == DceMethod.Points) 1 else rounds!!,
+            optionsPerRound = when (method) {
+                DceMethod.Pairwise -> 2
+                DceMethod.Ranking -> configuredOptions.size
+                else -> initialConfig.optionsPerRound.coerceAtMost(configuredOptions.size.coerceAtLeast(2))
+            },
+            itemsPerRound = itemRange.first.coerceAtMost(configuredOptions.size.coerceAtLeast(2)),
+            itemsPerRoundMin = itemRange.first.coerceAtMost(configuredOptions.size.coerceAtLeast(2)),
+            itemsPerRoundMax = itemRange.last.coerceAtMost(configuredOptions.size.coerceAtLeast(2)),
+            itemsPerRoundSpec = itemsPerRoundText,
+            totalPoints = if (method == DceMethod.Points) points!! else initialConfig.totalPoints,
+            attributes = if (method == DceMethod.Conjoint) classes else initialConfig.attributes
+        )
+    } else {
+        null
+    }
+
+    LaunchedEffect(configuredConfig) {
+        configuredConfig?.let(onConfigChanged)
+    }
 
     Text("Task setup", fontWeight = FontWeight.SemiBold)
     Spacer(Modifier.height(8.dp))
@@ -306,24 +336,41 @@ private fun DceConfigurationEditor(
         enabled = canStart,
         modifier = Modifier.fillMaxWidth(),
         onClick = {
-            val configuredOptions = if (method == DceMethod.Conjoint) initialConfig.options else items
-            onStart(initialConfig.copy(
-                options = configuredOptions,
-                rounds = if (method == DceMethod.Points) 1 else rounds!!,
-                optionsPerRound = when (method) {
-                    DceMethod.Pairwise -> 2
-                    DceMethod.Ranking -> configuredOptions.size
-                    else -> initialConfig.optionsPerRound.coerceAtMost(configuredOptions.size.coerceAtLeast(2))
-                },
-                itemsPerRound = itemRange.first.coerceAtMost(configuredOptions.size.coerceAtLeast(2)),
-                itemsPerRoundMin = itemRange.first.coerceAtMost(configuredOptions.size.coerceAtLeast(2)),
-                itemsPerRoundMax = itemRange.last.coerceAtMost(configuredOptions.size.coerceAtLeast(2)),
-                itemsPerRoundSpec = itemsPerRoundText,
-                totalPoints = if (method == DceMethod.Points) points!! else initialConfig.totalPoints,
-                attributes = if (method == DceMethod.Conjoint) classes else initialConfig.attributes
-            ))
+            configuredConfig?.let(onStart)
         }
     ) { Text("Start task") }
+}
+
+private fun DceConfig.toPresetSettings(): Map<String, String> {
+    val values = linkedMapOf<String, String>()
+    when (method) {
+        DceMethod.Pairwise -> {
+            values["rounds"] = rounds.toString()
+            values["items"] = options.joinToString("|")
+        }
+        DceMethod.MaxDiff -> {
+            values["rounds"] = rounds.toString()
+            values["items"] = options.joinToString("|")
+            values["items_per_round"] = itemsPerRoundSpec
+        }
+        DceMethod.Ranking -> {
+            values["rounds"] = rounds.toString()
+            values["items"] = options.joinToString("|")
+        }
+        DceMethod.Points -> {
+            values["points"] = totalPoints.toString()
+            values["items"] = options.joinToString("|")
+        }
+        DceMethod.Conjoint -> {
+            values["rounds"] = rounds.toString()
+            values["classes"] = attributes.entries.joinToString("|") { (name, levels) ->
+                "$name:${levels.joinToString(",")}"
+            }
+            values["profiles_per_round"] = profilesPerRound.toString()
+        }
+    }
+    if (seed.isNotBlank()) values["seed"] = seed
+    return values
 }
 
 internal object PairwiseChoiceScreen : DceCapabilityScreen(DceMethod.Pairwise) {

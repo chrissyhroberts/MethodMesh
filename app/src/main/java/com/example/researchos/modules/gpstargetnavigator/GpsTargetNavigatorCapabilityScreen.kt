@@ -52,7 +52,9 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
         val androidContext = LocalContext.current
         val interaction = remember { GpsTargetNavigatorInteraction() }
         val settings = remember(action.settings) {
-            SettingsState(interaction.settings).also { applyParameters(it, interaction.settings, action.settings) }
+            SettingsState(interaction.settings) { key, value ->
+                context.onSettingsChanged(mapOf(key to value.toString()))
+            }.also { applyParameters(it, interaction.settings, action.settings) }
         }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var targetLatitudeText by remember(settings) {

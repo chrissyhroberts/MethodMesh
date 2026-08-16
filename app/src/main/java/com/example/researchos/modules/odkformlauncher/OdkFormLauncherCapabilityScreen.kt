@@ -77,6 +77,16 @@ object OdkFormLauncherCapabilityScreen : CapabilityScreenSpec {
         var pending by remember { mutableStateOf<OdkFormDescriptor?>(null) }
         var launched by remember { mutableStateOf(false) }
 
+        LaunchedEffect(selector, projectId, projectPackage) {
+            context.onSettingsChanged(
+                mapOf(
+                    "form_selector" to selector,
+                    "project_id" to projectId,
+                    "project_package" to projectPackage
+                )
+            )
+        }
+
         val projectPicker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { returned ->
             val selectedUri = returned.data?.data ?: return@rememberLauncherForActivityResult
             val selectedProject = selectedUri.getQueryParameter("projectId").orEmpty()

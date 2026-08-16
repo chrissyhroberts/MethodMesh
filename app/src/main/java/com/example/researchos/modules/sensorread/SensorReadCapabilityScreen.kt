@@ -123,6 +123,20 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
         val nearby = remember { mutableStateListOf<NearbySensor>() }
         val sampleValues = remember { mutableStateListOf<String>() }
 
+        LaunchedEffect(selectedDeviceId, sensorId, sensorProfile, mode, durationSeconds, intervalSeconds, matchPolicy) {
+            context.onSettingsChanged(
+                mapOf(
+                    "device_id" to selectedDeviceId,
+                    "sensor_id" to sensorId,
+                    "sensor_profile" to sensorProfile,
+                    "sensor_read_mode" to mode,
+                    "duration_seconds" to durationSeconds,
+                    "sample_interval_seconds" to intervalSeconds,
+                    "device_match_policy" to matchPolicy
+                )
+            )
+        }
+
         fun permissions(): Array<String> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
         } else {
@@ -455,8 +469,14 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                         )
                     }
                 }
-                OutlinedTextField(sensorId, { sensorId = it }, label = { Text("Sensor ID (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(sensorProfile, { sensorProfile = it }, label = { Text("Sensor profile (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                Spacer(Modifier.height(8.dp))
+                SensorProfileChooser(
+                    selected = sensorProfile,
+                    onSelected = {
+                        sensorProfile = it
+                        sensorId = ""
+                    }
+                )
                 Spacer(Modifier.height(8.dp))
                 Text("Read mode", fontWeight = FontWeight.SemiBold)
                 OutlinedButton(onClick = { modeMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
@@ -583,6 +603,35 @@ private fun deviceLabel(deviceId: String, devices: List<RegisteredDevice>): Stri
     val device = devices.firstOrNull { it.id == deviceId || it.name == deviceId || it.address.equals(deviceId, true) }
     return device?.let { "${it.name} (${it.id})" } ?: deviceId
 }
+
+@Composable
+private fun SensorProfileChooser(
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    Text("Sensor data", fontWeight = FontWeight.SemiBold)
+    sensorProfileOptions().forEach { (value, label) ->
+        val active = selected.equals(value, ignoreCase = true) || (selected.isBlank() && value.isBlank())
+        if (active) {
+            Button(
+                onClick = { onSelected(value) },
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+            ) { Text("✓ $label") }
+        } else {
+            OutlinedButton(
+                onClick = { onSelected(value) },
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+            ) { Text(label) }
+        }
+    }
+}
+
+private fun sensorProfileOptions(): List<Pair<String, String>> = listOf(
+    "" to "All data streams returned by the sensor",
+    "aht20" to "AHT20 temperature and humidity",
+    "ld2410c" to "LD2410C radar/presence",
+    "generic" to "Generic ResearchOS sensor payload"
+)
 
 private fun actualDeviceId(item: NearbySensor?, registered: RegisteredDevice?): String {
     val manifestId = runCatching { JSONObject(registered?.profile.orEmpty()).optString("device_id") }.getOrNull().orEmpty()

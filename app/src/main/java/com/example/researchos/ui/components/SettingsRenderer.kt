@@ -113,7 +113,7 @@ fun SettingsRenderer(
                             .padding(vertical = 6.dp)
                     ) {
                         OutlinedTextField(
-                            value = settingsState.getString(setting.id),
+                            value = choiceLabel(settingsState.getString(setting.id)),
                             onValueChange = {},
                             readOnly = true,
                             label = { Text(setting.label) },
@@ -128,7 +128,7 @@ fun SettingsRenderer(
                         ) {
                             setting.choices.forEach { choice ->
                                 DropdownMenuItem(
-                                    text = { Text(choice) },
+                                    text = { Text(choiceLabel(choice)) },
                                     onClick = {
                                         settingsState.setString(setting.id, choice)
                                         expanded = false
@@ -142,6 +142,52 @@ fun SettingsRenderer(
         }
     }
 }
+
+private fun choiceLabel(value: String): String =
+    when (value) {
+        "" -> "Automatic / default"
+        "android.intent.action.MAIN" -> "Open app"
+        "android.intent.action.VIEW" -> "View / open URI"
+        "android.intent.action.SEND" -> "Send"
+        "android.intent.action.SENDTO" -> "Send to"
+        "android.intent.action.GET_CONTENT" -> "Pick content"
+        "android.intent.action.EDIT" -> "Edit"
+        "full" -> "Full document scanner"
+        "base_with_filter" -> "Basic scanner + image filters"
+        "base" -> "Basic scanner"
+        "single" -> "Single read"
+        "trace" -> "Trace over time"
+        "average" -> "Average over time"
+        "discover" -> "Discover available sensors"
+        "fallback" -> "Use selected sensor, otherwise choose nearby"
+        "strict" -> "Only use selected sensor"
+        "any_nearby" -> "Choose nearby sensor"
+        "aht20" -> "AHT20 temperature/humidity"
+        "ld2410c" -> "LD2410C radar/presence"
+        "generic_ble_sensor" -> "Generic BLE sensor"
+        "generic" -> "Generic sensor payload"
+        "secure_random" -> "Secure random seed"
+        "fixed_seed" -> "Fixed reproducible seed"
+        "disabled" -> "Off / disabled"
+        "preferred" -> "Preferred"
+        "required" -> "Required"
+        "Fingerprint" -> "Fingerprint / biometric"
+        "Pin" -> "Device PIN / pattern"
+        "Qr" -> "QR / camera code"
+        "Nfc" -> "NFC token"
+        "Password" -> "Study password/token"
+        "replace" -> "Replace existing content"
+        "empty_only" -> "Only if tag is empty"
+        "camera" -> "Camera"
+        "file_picker" -> "Choose file"
+        "ocr" -> "OCR text"
+        "barcodes" -> "Barcodes only"
+        "ocr_and_barcodes" -> "OCR + barcodes"
+        "download" -> "Download language model"
+        "delete" -> "Delete language model"
+        "list" -> "List language models"
+        else -> value
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

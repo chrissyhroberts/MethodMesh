@@ -13,11 +13,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,15 +62,28 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
         onCancel: () -> Unit
     ) {
         val appContext = LocalContext.current
-        val pageLimitText = context.action.settings["page_limit"] ?: context.action.settings["input_page_limit"] ?: "10"
-        val scannerMode = context.action.settings["scanner_mode"] ?: context.action.settings["input_scanner_mode"] ?: "full"
-        val allowGallery = (context.action.settings["allow_gallery_import"] ?: context.action.settings["input_allow_gallery_import"] ?: "true").equals("true", true)
-        val runOcr = (context.action.settings["run_ocr"] ?: context.action.settings["input_run_ocr"] ?: "true").equals("true", true)
-        val returnSearchablePdf = (context.action.settings["return_searchable_pdf"] ?: context.action.settings["input_return_searchable_pdf"] ?: "true").equals("true", true)
-        val returnTextFile = (context.action.settings["return_text_file"] ?: context.action.settings["input_return_text_file"] ?: "true").equals("true", true)
+        var pageLimitText by rememberSaveable { mutableStateOf(context.action.settings["page_limit"] ?: context.action.settings["input_page_limit"] ?: "10") }
+        var scannerMode by rememberSaveable { mutableStateOf(context.action.settings["scanner_mode"] ?: context.action.settings["input_scanner_mode"] ?: "full") }
+        var allowGallery by rememberSaveable { mutableStateOf((context.action.settings["allow_gallery_import"] ?: context.action.settings["input_allow_gallery_import"] ?: "true").equals("true", true)) }
+        var runOcr by rememberSaveable { mutableStateOf((context.action.settings["run_ocr"] ?: context.action.settings["input_run_ocr"] ?: "true").equals("true", true)) }
+        var returnSearchablePdf by rememberSaveable { mutableStateOf((context.action.settings["return_searchable_pdf"] ?: context.action.settings["input_return_searchable_pdf"] ?: "true").equals("true", true)) }
+        var returnTextFile by rememberSaveable { mutableStateOf((context.action.settings["return_text_file"] ?: context.action.settings["input_return_text_file"] ?: "true").equals("true", true)) }
         var status by rememberSaveable { mutableStateOf("Ready to scan a paper document.") }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
+
+        LaunchedEffect(pageLimitText, scannerMode, allowGallery, runOcr, returnSearchablePdf, returnTextFile) {
+            context.onSettingsChanged(
+                mapOf(
+                    "page_limit" to pageLimitText,
+                    "scanner_mode" to scannerMode,
+                    "allow_gallery_import" to allowGallery.toString(),
+                    "run_ocr" to runOcr.toString(),
+                    "return_searchable_pdf" to returnSearchablePdf.toString(),
+                    "return_text_file" to returnTextFile.toString()
+                )
+            )
+        }
 
         fun complete(values: Map<String, String>, succeeded: Boolean) {
             val request = As100DocumentScannerMethod.request(
@@ -144,6 +160,27 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
         ) {
             Text("Scan one or more paper pages. ML Kit handles page detection, crop and alignment; ResearchOS copies the outputs and can OCR them.", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = pageLimitText,
+                onValueChange = { pageLimitText = it.filter(Char::isDigit).take(2) },
+                label = { Text("Maximum pages") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            ScannerModeChooser(scannerMode = scannerMode, onScannerModeSelected = { scannerMode = it })
+            OutlinedButton(onClick = { allowGallery = !allowGallery }, modifier = Modifier.fillMaxWidth()) {
+                Text("Gallery import: ${if (allowGallery) "on" else "off"}")
+            }
+            OutlinedButton(onClick = { runOcr = !runOcr }, modifier = Modifier.fillMaxWidth()) {
+                Text("OCR: ${if (runOcr) "on" else "off"}")
+            }
+            OutlinedButton(onClick = { returnSearchablePdf = !returnSearchablePdf }, modifier = Modifier.fillMaxWidth()) {
+                Text("Searchable PDF: ${if (returnSearchablePdf) "on" else "off"}")
+            }
+            OutlinedButton(onClick = { returnTextFile = !returnTextFile }, modifier = Modifier.fillMaxWidth()) {
+                Text("OCR text file: ${if (returnTextFile) "on" else "off"}")
+            }
+            Spacer(Modifier.height(8.dp))
             Text(
                 "Configured: up to ${pageLimitText.toIntOrNull()?.coerceIn(1, 50) ?: 10} page(s), mode $scannerMode, OCR ${if (runOcr) "on" else "off"}, searchable PDF ${if (returnSearchablePdf) "on" else "off"}.",
                 style = MaterialTheme.typography.bodySmall
@@ -154,6 +191,33 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
             }
             Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
         }
+    }
+}
+
+@Composable
+private fun ScannerModeChooser(scannerMode: String, onScannerModeSelected: (String) -> Unit) {
+    Text("Scanner mode", style = MaterialTheme.typography.bodySmall)
+    Row(Modifier.fillMaxWidth()) {
+        ScannerModeButton("full", "Full scanner", scannerMode, onScannerModeSelected, Modifier.weight(1f).padding(2.dp))
+    }
+    Row(Modifier.fillMaxWidth()) {
+        ScannerModeButton("base_with_filter", "Basic + filters", scannerMode, onScannerModeSelected, Modifier.weight(1f).padding(2.dp))
+        ScannerModeButton("base", "Basic", scannerMode, onScannerModeSelected, Modifier.weight(1f).padding(2.dp))
+    }
+}
+
+@Composable
+private fun ScannerModeButton(
+    value: String,
+    label: String,
+    selectedValue: String,
+    onSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (selectedValue == value) {
+        Button(onClick = { onSelected(value) }, modifier = modifier) { Text("✓ $label") }
+    } else {
+        OutlinedButton(onClick = { onSelected(value) }, modifier = modifier) { Text(label) }
     }
 }
 

@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -65,6 +66,18 @@ object AppInspectorCapabilityScreen : CapabilityScreenSpec {
         var testResult by remember { mutableStateOf("") }
         var savedStatus by remember { mutableStateOf("") }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
+
+        LaunchedEffect(selectedPackage, selectedComponent, action, uriText, extrasText) {
+            context.onSettingsChanged(
+                mapOf(
+                    "package_name" to selectedPackage,
+                    "component_name" to selectedComponent,
+                    "test_action" to action,
+                    "test_uri" to uriText,
+                    "extras" to extrasText
+                )
+            )
+        }
 
         fun integrationDefinition(): String = JSONObject().apply {
             put("label", selectedPackage.substringAfterLast('.'))
@@ -187,6 +200,7 @@ object AppInspectorCapabilityScreen : CapabilityScreenSpec {
                 }
             }
             Text("3. Command to test", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+            IntentActionChooser(action = action, onActionSelected = { action = it })
             OutlinedTextField(action, { action = it }, label = { Text("Intent action, e.g. android.intent.action.VIEW") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(uriText, { uriText = it }, label = { Text("URI/data, if the command uses one") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(extrasText, { extrasText = it }, label = { Text("Extras, one key=value per line") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
@@ -234,3 +248,25 @@ object AppInspectorCapabilityScreen : CapabilityScreenSpec {
 }
 
 private data class IntentProbe(val action: String, val category: String, val scheme: String?)
+
+@Composable
+private fun IntentActionChooser(action: String, onActionSelected: (String) -> Unit) {
+    val rows = listOf(
+        listOf(Intent.ACTION_MAIN to "Open app", Intent.ACTION_VIEW to "View / open URI"),
+        listOf(Intent.ACTION_SEND to "Send", Intent.ACTION_SENDTO to "Send to"),
+        listOf(Intent.ACTION_GET_CONTENT to "Pick content", Intent.ACTION_EDIT to "Edit")
+    )
+    Text("Common Android actions", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+    rows.forEach { row ->
+        Row(Modifier.fillMaxWidth()) {
+            row.forEach { (value, label) ->
+                val selected = action == value
+                if (selected) {
+                    Button(onClick = { onActionSelected(value) }, modifier = Modifier.weight(1f).padding(2.dp)) { Text("✓ $label") }
+                } else {
+                    OutlinedButton(onClick = { onActionSelected(value) }, modifier = Modifier.weight(1f).padding(2.dp)) { Text(label) }
+                }
+            }
+        }
+    }
+}

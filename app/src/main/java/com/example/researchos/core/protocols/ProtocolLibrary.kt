@@ -5,6 +5,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.security.MessageDigest
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.util.UUID
 
 data class CapabilityPreset(
@@ -14,7 +17,8 @@ data class CapabilityPreset(
     val settingsJson: String = "{}",
     val description: String = "",
     val createdAtIso: String = Instant.now().toString(),
-    val updatedAtIso: String = Instant.now().toString()
+    val updatedAtIso: String = Instant.now().toString(),
+    val versionIso: String = Instant.now().toString()
 )
 
 data class ProtocolStep(
@@ -30,7 +34,8 @@ data class ProtocolDefinition(
     val description: String = "",
     val steps: List<ProtocolStep> = emptyList(),
     val createdAtIso: String = Instant.now().toString(),
-    val updatedAtIso: String = Instant.now().toString()
+    val updatedAtIso: String = Instant.now().toString(),
+    val versionIso: String = Instant.now().toString()
 )
 
 /** Local, transportable library of reusable capability configurations and chains. */
@@ -54,18 +59,38 @@ object ProtocolLibraryRepository {
     fun protocol(context: Context, id: String): ProtocolDefinition? =
         protocols(context).firstOrNull { it.id == id || it.name.equals(id, ignoreCase = true) }
 
-    fun savePreset(context: Context, preset: CapabilityPreset) {
-        val now = Instant.now().toString()
-        val replacement = preset.copy(updatedAtIso = now)
-        val merged = presets(context).filterNot { it.id == replacement.id } + replacement
+    fun savePreset(context: Context, preset: CapabilityPreset): CapabilityPreset {
+        val existing = presets(context)
+        val now = Instant.now()
+        val nowIso = now.toString()
+        val prior = existing.firstOrNull { it.id == preset.id }
+        val baseName = preset.name.trim().ifBlank { preset.methodId.ifBlank { "capability_preset" } }
+        val replacement = preset.copy(
+            name = uniqueName(baseName, existing.filterNot { it.id == preset.id }, now),
+            createdAtIso = prior?.createdAtIso ?: preset.createdAtIso.ifBlank { nowIso },
+            updatedAtIso = nowIso,
+            versionIso = nowIso
+        )
+        val merged = existing.filterNot { it.id == replacement.id } + replacement
         writeArray(context, PRESETS, JSONArray().apply { merged.sortedBy { it.id }.forEach { put(encodePreset(it)) } })
+        return replacement
     }
 
-    fun saveProtocol(context: Context, protocol: ProtocolDefinition) {
-        val now = Instant.now().toString()
-        val replacement = protocol.copy(updatedAtIso = now)
-        val merged = protocols(context).filterNot { it.id == replacement.id } + replacement
+    fun saveProtocol(context: Context, protocol: ProtocolDefinition): ProtocolDefinition {
+        val existing = protocols(context)
+        val now = Instant.now()
+        val nowIso = now.toString()
+        val prior = existing.firstOrNull { it.id == protocol.id }
+        val baseName = protocol.name.trim().ifBlank { "protocol" }
+        val replacement = protocol.copy(
+            name = uniqueName(baseName, existing.filterNot { it.id == protocol.id }, now),
+            createdAtIso = prior?.createdAtIso ?: protocol.createdAtIso.ifBlank { nowIso },
+            updatedAtIso = nowIso,
+            versionIso = nowIso
+        )
+        val merged = existing.filterNot { it.id == replacement.id } + replacement
         writeArray(context, PROTOCOLS, JSONArray().apply { merged.sortedBy { it.id }.forEach { put(encodeProtocol(it)) } })
+        return replacement
     }
 
     fun removePreset(context: Context, id: String) {
@@ -100,8 +125,12 @@ object ProtocolLibraryRepository {
         val canonical = canonical(importedPresets.sortedBy { it.id }, importedProtocols.sortedBy { it.id })
         require(expected.equals(sha256(canonical), ignoreCase = true)) { "Protocol library bundle hash verification failed." }
 
-        val mergedPresets = (presets(context).associateBy { it.id } + importedPresets.associateBy { it.id }).values.sortedBy { it.id }
-        val mergedProtocols = (protocols(context).associateBy { it.id } + importedProtocols.associateBy { it.id }).values.sortedBy { it.id }
+        val mergedPresets = uniquePresetNames(
+            (presets(context).associateBy { it.id } + importedPresets.associateBy { it.id }).values.sortedBy { it.id }
+        )
+        val mergedProtocols = uniqueProtocolNames(
+            (protocols(context).associateBy { it.id } + importedProtocols.associateBy { it.id }).values.sortedBy { it.id }
+        )
         writeArray(context, PRESETS, JSONArray().apply { mergedPresets.forEach { put(encodePreset(it)) } })
         writeArray(context, PROTOCOLS, JSONArray().apply { mergedProtocols.forEach { put(encodeProtocol(it)) } })
         return Imported(importedPresets.size, importedProtocols.size, expected.lowercase())
@@ -137,6 +166,8 @@ object ProtocolLibraryRepository {
         put("description", preset.description)
         put("created_at_iso", preset.createdAtIso)
         put("updated_at_iso", preset.updatedAtIso)
+        put("version_iso", preset.versionIso)
+        put("version", versionStamp(preset.versionIso))
     }
 
     private fun decodePreset(o: JSONObject) = CapabilityPreset(
@@ -146,7 +177,8 @@ object ProtocolLibraryRepository {
         settingsJson = o.optString("settings_json", "{}"),
         description = o.optString("description"),
         createdAtIso = o.optString("created_at_iso", Instant.now().toString()),
-        updatedAtIso = o.optString("updated_at_iso", Instant.now().toString())
+        updatedAtIso = o.optString("updated_at_iso", Instant.now().toString()),
+        versionIso = o.optString("version_iso").ifBlank { o.optString("updated_at_iso", Instant.now().toString()) }
     )
 
     private fun encodeProtocol(protocol: ProtocolDefinition) = JSONObject().apply {
@@ -155,6 +187,8 @@ object ProtocolLibraryRepository {
         put("description", protocol.description)
         put("created_at_iso", protocol.createdAtIso)
         put("updated_at_iso", protocol.updatedAtIso)
+        put("version_iso", protocol.versionIso)
+        put("version", versionStamp(protocol.versionIso))
         put("steps", JSONArray().apply { protocol.steps.sortedBy { it.order }.forEach { put(encodeStep(it)) } })
     }
 
@@ -164,7 +198,8 @@ object ProtocolLibraryRepository {
         description = o.optString("description"),
         steps = o.optJSONArray("steps").orEmptyObjects().map { decodeStep(it) }.sortedBy { it.order },
         createdAtIso = o.optString("created_at_iso", Instant.now().toString()),
-        updatedAtIso = o.optString("updated_at_iso", Instant.now().toString())
+        updatedAtIso = o.optString("updated_at_iso", Instant.now().toString()),
+        versionIso = o.optString("version_iso").ifBlank { o.optString("updated_at_iso", Instant.now().toString()) }
     )
 
     private fun encodeStep(step: ProtocolStep) = JSONObject().apply {
@@ -188,4 +223,59 @@ object ProtocolLibraryRepository {
 
     private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
         .digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+
+    fun versionLabel(iso: String): String = "v${versionStamp(iso)}"
+
+    private fun uniquePresetNames(items: List<CapabilityPreset>): List<CapabilityPreset> =
+        enforceUniqueNames(items) { item, name -> item.copy(name = name) }
+
+    private fun uniqueProtocolNames(items: List<ProtocolDefinition>): List<ProtocolDefinition> =
+        enforceUniqueNames(items) { item, name -> item.copy(name = name) }
+
+    private fun <T> enforceUniqueNames(items: List<T>, rename: (T, String) -> T): List<T> {
+        val seen = mutableSetOf<String>()
+        return items.map { item ->
+            val original = when (item) {
+                is CapabilityPreset -> item.name
+                is ProtocolDefinition -> item.name
+                else -> ""
+            }.ifBlank { "unnamed" }
+            var candidate = original
+            var counter = 2
+            while (!seen.add(candidate.normalizedNameKey())) {
+                candidate = "${original}__v${versionStamp(Instant.now())}${if (counter > 2) "_$counter" else ""}"
+                counter += 1
+            }
+            if (candidate == original) item else rename(item, candidate)
+        }
+    }
+
+    private fun uniqueName(baseName: String, existing: List<Any>, now: Instant): String {
+        val existingNames = existing.mapNotNull {
+            when (it) {
+                is CapabilityPreset -> it.name
+                is ProtocolDefinition -> it.name
+                else -> null
+            }
+        }.map { it.normalizedNameKey() }.toSet()
+        if (baseName.normalizedNameKey() !in existingNames) return baseName
+        val suffix = "__v${versionStamp(now)}"
+        var candidate = "$baseName$suffix"
+        var counter = 2
+        while (candidate.normalizedNameKey() in existingNames) {
+            candidate = "$baseName${suffix}_$counter"
+            counter += 1
+        }
+        return candidate
+    }
+
+    private fun String.normalizedNameKey(): String = trim().lowercase(Locale.ROOT)
+
+    private fun versionStamp(iso: String): String =
+        runCatching { versionStamp(Instant.parse(iso)) }.getOrElse { iso.replace(Regex("[^0-9A-Za-z]+"), "_").trim('_') }
+
+    private fun versionStamp(instant: Instant): String =
+        DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
+            .withZone(ZoneOffset.UTC)
+            .format(instant)
 }

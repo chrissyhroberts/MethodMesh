@@ -129,6 +129,17 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         val candidates = remember { mutableStateListOf<SensorCandidate>() }
 
+        LaunchedEffect(deviceId, deviceName, sampleInterval, sensorProfileId) {
+            context.onSettingsChanged(
+                mapOf(
+                    "sensor_device_id" to deviceId,
+                    "sensor_device_name" to deviceName,
+                    "sensor_sample_interval_ms" to sampleInterval,
+                    "sensor_profile" to sensorProfileId
+                )
+            )
+        }
+
         fun hasPermission(): Boolean = bluetoothPermissions().all { permission ->
             ContextCompat.checkSelfPermission(androidContext, permission) == PackageManager.PERMISSION_GRANTED
         }

@@ -51,6 +51,16 @@ object SpeechTranscriptionCapabilityScreen : CapabilityScreenSpec {
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
+        LaunchedEffect(language, prompt, preferOffline) {
+            context.onSettingsChanged(
+                mapOf(
+                    "speech_language" to language,
+                    "speech_prompt" to prompt,
+                    "speech_prefer_offline" to preferOffline.toString()
+                )
+            )
+        }
+
         fun complete(values: Map<String, String>, succeeded: Boolean) {
             val request = As100SpeechTranscriptionMethod.request(
                 action = As100SpeechTranscriptionMethod.ID,
@@ -108,7 +118,7 @@ object SpeechTranscriptionCapabilityScreen : CapabilityScreenSpec {
         ) {
             Text("Uses the Android speech recognizer. Offline mode depends on the recognizer/language packs installed on the device.", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(10.dp))
-            OutlinedTextField(value = language, onValueChange = { language = it }, label = { Text("Language tag") }, modifier = Modifier.fillMaxWidth())
+            SpeechLanguageChooser(language, onSelected = { language = it })
             OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Prompt") }, modifier = Modifier.fillMaxWidth())
             OutlinedButton(onClick = { preferOffline = !preferOffline }, modifier = Modifier.fillMaxWidth()) {
                 Text("Prefer offline: ${if (preferOffline) "on" else "off"}")
@@ -144,3 +154,39 @@ private fun speechValues(
     SpeechTranscriptionFields.ERROR to error,
     SpeechTranscriptionFields.TRANSCRIBED_TIME_ISO to Instant.now().toString()
 )
+
+@Composable
+private fun SpeechLanguageChooser(
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    Text("Recognition language", style = MaterialTheme.typography.labelLarge)
+    SpeechLanguagePreset.options.forEach { option ->
+        val active = selected.equals(option.tag, ignoreCase = true)
+        if (active) {
+            Button(
+                onClick = { onSelected(option.tag) },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("✓ ${option.label}") }
+        } else {
+            OutlinedButton(
+                onClick = { onSelected(option.tag) },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(option.label) }
+        }
+        Spacer(Modifier.height(4.dp))
+    }
+}
+
+private data class SpeechLanguagePreset(val tag: String, val label: String) {
+    companion object {
+        val options = listOf(
+            SpeechLanguagePreset("en-GB", "English (UK)"),
+            SpeechLanguagePreset("en-US", "English (US)"),
+            SpeechLanguagePreset("fr-FR", "French"),
+            SpeechLanguagePreset("es-ES", "Spanish"),
+            SpeechLanguagePreset("pt-PT", "Portuguese"),
+            SpeechLanguagePreset("sw-KE", "Swahili")
+        )
+    }
+}

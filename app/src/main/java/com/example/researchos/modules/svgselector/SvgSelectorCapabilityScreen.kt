@@ -57,7 +57,9 @@ object SvgSelectorCapabilityScreen : CapabilityScreenSpec {
         val appContext = LocalContext.current
         val definitions = SvgSelectorModule.capabilitySettings()[capabilityId].orEmpty().associateBy { it.id }
         val settings = remember(context.action.settings) {
-            SettingsState(SvgSelectorModule.capabilitySettings()[capabilityId].orEmpty()).also { state ->
+            SettingsState(SvgSelectorModule.capabilitySettings()[capabilityId].orEmpty()) { key, value ->
+                context.onSettingsChanged(mapOf(key to value.toString()))
+            }.also { state ->
                 context.action.settings.forEach { (key, value) ->
                     when (definitions[key]) {
                         is MethodSetting.BooleanSetting -> state.setBoolean(key, value.equals("true", true))

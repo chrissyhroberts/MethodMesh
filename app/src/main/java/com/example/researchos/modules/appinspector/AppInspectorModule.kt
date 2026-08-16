@@ -13,7 +13,19 @@ object AppInspectorModule : ResearchOSModule {
     override fun capabilityScreens() = listOf(AppInspectorCapabilityScreen)
     override fun capabilitySettings() = mapOf(As100AppInspectorMethod.ID to listOf(
         MethodSetting.TextSetting("package_name", "Package name", defaultValue = ""),
-        MethodSetting.TextSetting("test_action", "Test intent action", defaultValue = "android.intent.action.MAIN"),
+        MethodSetting.ChoiceSetting(
+            "test_action",
+            "Test intent action",
+            defaultValue = "android.intent.action.MAIN",
+            choices = listOf(
+                "android.intent.action.MAIN",
+                "android.intent.action.VIEW",
+                "android.intent.action.SEND",
+                "android.intent.action.SENDTO",
+                "android.intent.action.GET_CONTENT",
+                "android.intent.action.EDIT"
+            )
+        ),
         MethodSetting.TextSetting("test_uri", "Test URI", defaultValue = "")
     ))
 }

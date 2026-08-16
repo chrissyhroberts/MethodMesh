@@ -75,6 +75,17 @@ object MlKitVisionCapabilityScreen : CapabilityScreenSpec {
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
+        LaunchedEffect(mode, inputSource, returnPdf, returnTextFile) {
+            context.onSettingsChanged(
+                mapOf(
+                    "mlkit_mode" to mode,
+                    "input_source" to inputSource,
+                    "return_pdf" to returnPdf.toString(),
+                    "return_text_file" to returnTextFile.toString()
+                )
+            )
+        }
+
         fun complete(values: Map<String, String>, succeeded: Boolean) {
             val request = As100MlKitVisionMethod.request(
                 action = As100MlKitVisionMethod.ID,

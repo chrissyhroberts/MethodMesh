@@ -25,16 +25,16 @@ A normal workflow is:
 
 ## A first test
 
-A practical first test is the QR scanner because it has a simple request and an immediately visible result.
+A practical first test is the automatic code scanner because it has a simple request and an immediately visible result.
 
 1.  Install ResearchOS.
 2.  Import `example_odk_qr.scan.xlsx` into ODK Central or another compatible XLSForm server.
 3.  Download the form to ODK Collect.
 4.  Open the form and launch the ResearchOS scan group.
-5.  Scan a QR code.
+5.  Scan a QR code, Data Matrix code, or supported one-dimensional barcode.
 6.  Confirm that the decoded payload and format return to the form.
 
-[Open the QR scanner documentation](capabilities/qr-code.qmd)
+[Open the automatic code scanner documentation](capabilities/qr-code.qmd)
 
 ## Reading capability pages
 

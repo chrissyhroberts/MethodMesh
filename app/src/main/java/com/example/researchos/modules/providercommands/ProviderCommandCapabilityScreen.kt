@@ -90,6 +90,39 @@ object ProviderCommandCapabilityScreen : CapabilityScreenSpec {
         var stability by rememberSaveable { mutableStateOf("experimental") }
         var offlineSupported by rememberSaveable { mutableStateOf(true) }
 
+        LaunchedEffect(
+            selectedCommandId,
+            selectedProviderId,
+            commandId,
+            displayName,
+            providerId,
+            packageName,
+            action,
+            dataUriTemplate,
+            mimeType,
+            defaultsText,
+            extrasText,
+            stability,
+            offlineSupported
+        ) {
+            context.onSettingsChanged(
+                mapOf(
+                    "provider_command_id" to selectedCommandId.ifBlank { commandId },
+                    "provider_id" to selectedProviderId.ifBlank { providerId },
+                    "command_id" to commandId,
+                    "display_name" to displayName,
+                    "package_name" to packageName,
+                    "action" to action,
+                    "data_uri_template" to dataUriTemplate,
+                    "mime_type" to mimeType,
+                    "default_values" to defaultsText,
+                    "extras_template" to extrasText,
+                    "stability" to stability,
+                    "offline_supported" to offlineSupported.toString()
+                )
+            )
+        }
+
         fun refresh() { commands = ProviderCommandRegistry.all(appContext) }
 
         fun load(command: ProviderCommand) {
@@ -396,12 +429,13 @@ object ProviderCommandCapabilityScreen : CapabilityScreenSpec {
                 OutlinedTextField(displayName, { displayName = it }, label = { Text("Display name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 OutlinedTextField(providerId, { providerId = it }, label = { Text("Provider ID, e.g. osmand") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 OutlinedTextField(packageName, { packageName = it }, label = { Text("Package name(s), separated by |") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                ProviderIntentActionChooser(action = action, onActionSelected = { action = it })
                 OutlinedTextField(action, { action = it }, label = { Text("Intent action") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 OutlinedTextField(dataUriTemplate, { dataUriTemplate = it }, label = { Text("URI template") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 OutlinedTextField(mimeType, { mimeType = it }, label = { Text("MIME type (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 OutlinedTextField(defaultsText, { defaultsText = it }, label = { Text("Default values, one key=value per line") }, modifier = Modifier.fillMaxWidth().height(110.dp))
                 OutlinedTextField(extrasText, { extrasText = it }, label = { Text("Extras template, one key=value per line") }, modifier = Modifier.fillMaxWidth().height(90.dp))
-                OutlinedTextField(stability, { stability = it }, label = { Text("Stability") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                CommandStabilityChooser(stability = stability, onStabilitySelected = { stability = it })
                 Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
                     Text("Offline supported", modifier = Modifier.weight(1f))
                     Switch(checked = offlineSupported, onCheckedChange = { offlineSupported = it })
@@ -485,6 +519,64 @@ private fun ProviderCommand.modeDescription(): String = when (interfaceType) {
     "activity_result_intent" -> "Returns data to ResearchOS when the external app finishes."
     "launch_only_intent" -> "Launch-only: opens the external app, but completion is not confirmed by ResearchOS."
     else -> "Generic intent command."
+}
+
+@Composable
+private fun ProviderIntentActionChooser(action: String, onActionSelected: (String) -> Unit) {
+    val rows = listOf(
+        listOf(Intent.ACTION_VIEW to "View URI", Intent.ACTION_MAIN to "Open app"),
+        listOf(Intent.ACTION_SEND to "Send", Intent.ACTION_SENDTO to "Send to"),
+        listOf(Intent.ACTION_GET_CONTENT to "Pick content", Intent.ACTION_EDIT to "Edit")
+    )
+    Text("Intent action preset", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+    rows.forEach { row ->
+        Row(Modifier.fillMaxWidth()) {
+            row.forEach { (value, label) ->
+                val selected = action == value
+                if (selected) {
+                    Button(onClick = { onActionSelected(value) }, modifier = Modifier.weight(1f).padding(2.dp)) { Text("✓ $label") }
+                } else {
+                    OutlinedButton(onClick = { onActionSelected(value) }, modifier = Modifier.weight(1f).padding(2.dp)) { Text(label) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CommandStabilityChooser(stability: String, onStabilitySelected: (String) -> Unit) {
+    val options = listOf(
+        "stable" to "Stable",
+        "experimental" to "Experimental",
+        "launch_only" to "Launch-only",
+        "unknown" to "Unknown"
+    )
+    Text("Command status", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+    Row(Modifier.fillMaxWidth()) {
+        options.take(2).forEach { (value, label) ->
+            StabilityButton(value, label, stability, onStabilitySelected, Modifier.weight(1f).padding(2.dp))
+        }
+    }
+    Row(Modifier.fillMaxWidth()) {
+        options.drop(2).forEach { (value, label) ->
+            StabilityButton(value, label, stability, onStabilitySelected, Modifier.weight(1f).padding(2.dp))
+        }
+    }
+}
+
+@Composable
+private fun StabilityButton(
+    value: String,
+    label: String,
+    selectedValue: String,
+    onSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (selectedValue == value) {
+        Button(onClick = { onSelected(value) }, modifier = modifier) { Text("✓ $label") }
+    } else {
+        OutlinedButton(onClick = { onSelected(value) }, modifier = modifier) { Text(label) }
+    }
 }
 
 private fun Bundle.toFlatStringMap(): Map<String, String> =

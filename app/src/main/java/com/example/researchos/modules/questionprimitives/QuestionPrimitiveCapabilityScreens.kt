@@ -100,6 +100,24 @@ abstract class QuestionPrimitiveScreen(
         val keyboardController = LocalSoftwareKeyboardController.current
         val options = optionsText.split('\n', '|', ',').map { it.trim() }.filter { it.isNotBlank() }.distinct()
 
+        LaunchedEffect(questionId, prompt, hint, required, regex, constraint, optionsText, exclusiveOptionsText, exclusiveGroupsText, min, max) {
+            context.onSettingsChanged(
+                mapOf(
+                    "question_id" to questionId,
+                    "prompt" to prompt,
+                    "hint" to hint,
+                    "required" to required.toString(),
+                    "regex" to regex,
+                    "constraint_message" to constraint,
+                    "options" to optionsText,
+                    "exclusive_options" to exclusiveOptionsText,
+                    "exclusive_groups" to exclusiveGroupsText,
+                    "min" to min,
+                    "max" to max
+                )
+            )
+        }
+
         fun capture() {
             val requestContext = context.request.invocationContext.asMap(method.id) + settings + mapOf(
                 "question_id" to questionId,

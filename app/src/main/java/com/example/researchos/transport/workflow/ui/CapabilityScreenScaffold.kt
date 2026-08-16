@@ -51,7 +51,8 @@ data class CapabilityScreenContext(
         CapabilityPresentationMode.Dashboard
     } else {
         CapabilityPresentationMode.IntentLaunch
-    }
+    },
+    val onSettingsChanged: (Map<String, String>) -> Unit = {}
 ) {
     val isLastStep: Boolean get() = stepNumber >= totalSteps
     val startsImmediately: Boolean get() = completionMode == CapabilityCompletionMode.AutomaticReturn

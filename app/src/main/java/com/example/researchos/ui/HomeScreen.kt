@@ -415,6 +415,10 @@ private fun ProtocolLibraryCard(revision: Int) {
                             Column(Modifier.padding(10.dp)) {
                                 Text(preset.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                 Text(preset.methodId, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
+                                Text(
+                                    "${ProtocolLibraryRepository.versionLabel(preset.versionIso)} · updated ${preset.updatedAtIso}",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
                                 Row(Modifier.fillMaxWidth().padding(top = 6.dp)) {
                                     Button(onClick = { runPreset(preset) }, modifier = Modifier.weight(1f)) { Text("Run") }
                                     Spacer(Modifier.width(8.dp))
@@ -463,7 +467,7 @@ private fun ProtocolLibraryCard(revision: Int) {
                             if (protocolName.isBlank() || selected.isEmpty()) {
                                 status = "Protocol name and at least one preset are required."
                             } else {
-                                ProtocolLibraryRepository.saveProtocol(
+                                val saved = ProtocolLibraryRepository.saveProtocol(
                                     context,
                                     ProtocolDefinition(
                                         name = protocolName.trim(),
@@ -475,7 +479,7 @@ private fun ProtocolLibraryCard(revision: Int) {
                                 protocolName = ""
                                 protocolPresetIds = emptyList()
                                 refresh()
-                                status = "Protocol saved."
+                                status = "Protocol saved: ${saved.name} (${ProtocolLibraryRepository.versionLabel(saved.versionIso)})."
                             }
                         },
                         modifier = Modifier.weight(1f),
@@ -520,6 +524,10 @@ private fun ProtocolLibraryCard(revision: Int) {
                         ) {
                             Column(Modifier.padding(10.dp)) {
                                 Text(protocol.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "${ProtocolLibraryRepository.versionLabel(protocol.versionIso)} · updated ${protocol.updatedAtIso}",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
                                 protocol.steps.sortedBy { it.order }.forEachIndexed { index, step ->
                                     val preset = presets.firstOrNull { it.id == step.presetId }
                                     Text("${index + 1}. ${preset?.name ?: step.name}", style = MaterialTheme.typography.bodySmall)
@@ -791,17 +799,33 @@ private fun CapabilityCard(
             if (expanded) {
                 Spacer(Modifier.height(8.dp))
                 CapabilityOutputsSection(method, module)
-                CollapsibleCapabilitySection(
-                    title = "Settings",
-                    subtitle = if (settingSchema.isEmpty()) "No typed settings" else "${settingSchema.size} setting${if (settingSchema.size == 1) "" else "s"}"
-                ) {
-                    if (settingSchema.isEmpty()) {
-                        Text(
-                            "This capability has no typed settings registered yet. Saving a preset will still preserve the capability identity.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    } else {
-                        SettingsRenderer(settingSchema, settingsState, capabilityId = method.id)
+                if (screen == null) {
+                    CollapsibleCapabilitySection(
+                        title = "Settings",
+                        subtitle = if (settingSchema.isEmpty()) "No typed settings" else "${settingSchema.size} setting${if (settingSchema.size == 1) "" else "s"}"
+                    ) {
+                        if (settingSchema.isEmpty()) {
+                            Text(
+                                "This capability has no typed settings registered yet. Saving a preset will still preserve the capability identity.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        } else {
+                            SettingsRenderer(settingSchema, settingsState, capabilityId = method.id)
+                        }
+                    }
+                } else {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column(Modifier.padding(10.dp)) {
+                            Text("Configuration", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            Text(
+                                "This capability has its own configuration screen. Press Test to open the authoritative controls.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
                 CapabilityExamplesSection(method, module)
@@ -813,7 +837,11 @@ private fun CapabilityCard(
                 ) {
                     Column(Modifier.padding(10.dp)) {
                         Text("Configuration actions", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                        Text("The settings above define both the in-app test and the ODK intent call.", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            if (screen == null) "The generic settings above define both the in-app test and the ODK intent call."
+                            else "Bespoke capability controls are authoritative. Open Test, configure the screen, then save or copy from the captured settings.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
                         Spacer(Modifier.height(8.dp))
                         OutlinedButton(
                             onClick = { presetDialogOpen = true },
@@ -860,7 +888,7 @@ private fun CapabilityCard(
                         settingsJson = settingsJsonFromMap(settingsState.asMap()),
                         onDismiss = { presetDialogOpen = false },
                         onSave = { name ->
-                            ProtocolLibraryRepository.savePreset(
+                            val saved = ProtocolLibraryRepository.savePreset(
                                 context,
                                 CapabilityPreset(
                                     name = name,
@@ -870,7 +898,7 @@ private fun CapabilityCard(
                                 )
                             )
                             presetDialogOpen = false
-                            presetStatus = "Saved preset: $name"
+                            presetStatus = "Saved preset: ${saved.name} (${ProtocolLibraryRepository.versionLabel(saved.versionIso)})."
                             onPresetSaved()
                         }
                     )
@@ -883,6 +911,7 @@ private fun CapabilityCard(
                         screen = screen,
                         saveOutput = false,
                         settingsJson = settingsJsonFromMap(settingsState.asMap()),
+                        onSettingsChanged = { updated -> updated.forEach { (key, value) -> settingsState.setString(key, value) } },
                         onConfirmed = { result ->
                             acceptResult(result, saveOutput = false)
                             quickTestOpen = false
@@ -898,6 +927,7 @@ private fun CapabilityCard(
                         screen = screen,
                         saveOutput = true,
                         settingsJson = settingsJsonFromMap(settingsState.asMap()),
+                        onSettingsChanged = { updated -> updated.forEach { (key, value) -> settingsState.setString(key, value) } },
                         onConfirmed = { result ->
                             acceptResult(result, saveOutput = true)
                             quickTestSaveOpen = false
@@ -1093,6 +1123,7 @@ private fun DashboardCapabilityRunner(
     screen: CapabilityScreenSpec?,
     saveOutput: Boolean,
     settingsJson: String,
+    onSettingsChanged: (Map<String, String>) -> Unit = {},
     onConfirmed: (ExecutionResult) -> Unit,
     onCancel: () -> Unit
 ) {
@@ -1104,7 +1135,8 @@ private fun DashboardCapabilityRunner(
         stepNumber = 1,
         totalSteps = 1,
         completionMode = CapabilityCompletionMode.ManualConfirmation,
-        presentationMode = CapabilityPresentationMode.IntentLaunch
+        presentationMode = CapabilityPresentationMode.Dashboard,
+        onSettingsChanged = onSettingsChanged
     )
 
     if (screen != null) {

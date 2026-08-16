@@ -20,7 +20,12 @@ object SpeechTranscriptionModule : ResearchOSModule {
 
     override fun capabilitySettings() = mapOf(
         As100SpeechTranscriptionMethod.ID to listOf(
-            MethodSetting.TextSetting("speech_language", "Language", defaultValue = "en-GB"),
+            MethodSetting.ChoiceSetting(
+                "speech_language",
+                "Language",
+                defaultValue = "en-GB",
+                choices = listOf("en-GB", "en-US", "fr-FR", "es-ES", "pt-PT", "sw-KE")
+            ),
             MethodSetting.TextSetting("speech_prompt", "Prompt", defaultValue = "Speak now"),
             MethodSetting.BooleanSetting("speech_prefer_offline", "Prefer offline recognizer", defaultValue = true)
         )

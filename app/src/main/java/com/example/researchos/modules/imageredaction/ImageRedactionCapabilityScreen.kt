@@ -70,7 +70,9 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
     ) {
         val appContext = LocalContext.current
         val settings = remember(context.action.settings) {
-            SettingsState(ImageRedactionModule.capabilitySettings()[capabilityId].orEmpty()).also { state ->
+            SettingsState(ImageRedactionModule.capabilitySettings()[capabilityId].orEmpty()) { key, value ->
+                context.onSettingsChanged(mapOf(key to value.toString()))
+            }.also { state ->
                 val definitions = ImageRedactionModule.capabilitySettings()[capabilityId].orEmpty().associateBy { it.id }
                 context.action.settings.forEach { (key, value) ->
                     when (definitions[key]) {

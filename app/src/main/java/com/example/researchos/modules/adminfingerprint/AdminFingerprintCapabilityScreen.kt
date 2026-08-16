@@ -84,7 +84,9 @@ object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
         val request = context.request
         val androidContext = LocalContext.current
         val settings = remember(action.settings) {
-            SettingsState(settingsSpec).also { state ->
+            SettingsState(settingsSpec) { key, value ->
+                context.onSettingsChanged(mapOf(key to value.toString()))
+            }.also { state ->
                 applyParameters(state, settingsSpec, action.settings)
             }
         }

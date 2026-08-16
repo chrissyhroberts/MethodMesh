@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -93,6 +94,21 @@ object BluetoothPrinterCapabilityScreen : CapabilityScreenSpec {
         val handler = remember { Handler(Looper.getMainLooper()) }
         val scope = rememberCoroutineScope()
         val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { refreshPaired(adapter, paired, androidContext, statusSetter = { status = it }) }
+
+        LaunchedEffect(selectedAddress, serviceUuid, writeUuid, payload, format, fontSize, lineSpacing, labelHeight) {
+            context.onSettingsChanged(
+                mapOf(
+                    BluetoothPrinterFields.DEVICE_ADDRESS to selectedAddress,
+                    "printer_service_uuid" to serviceUuid,
+                    BluetoothPrinterFields.WRITE_UUID to writeUuid,
+                    BluetoothPrinterFields.PAYLOAD to payload,
+                    BluetoothPrinterFields.FORMAT to format,
+                    BluetoothPrinterFields.FONT_SIZE to fontSize,
+                    BluetoothPrinterFields.LINE_SPACING to lineSpacing,
+                    BluetoothPrinterFields.LABEL_HEIGHT to labelHeight
+                )
+            )
+        }
 
         fun permissions(): Array<String> = if (android.os.Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN) else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
         fun hasPermissions() = permissions().all { ContextCompat.checkSelfPermission(androidContext, it) == PackageManager.PERMISSION_GRANTED }

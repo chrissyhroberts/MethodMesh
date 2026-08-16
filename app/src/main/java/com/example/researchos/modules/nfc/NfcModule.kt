@@ -65,7 +65,12 @@ object NfcModule : ResearchOSModule {
     override fun capabilitySettings() = mapOf(
         As100NfcWriteMethod.ID to listOf(
             MethodSetting.TextSetting("value", "Value to write", defaultValue = ""),
-            MethodSetting.TextSetting("record_type", "Record type", defaultValue = "text/plain"),
+            MethodSetting.ChoiceSetting(
+                "record_type",
+                "Record type",
+                defaultValue = "text/plain",
+                choices = listOf("text/plain", "text/uri-list", "application/json")
+            ),
             MethodSetting.ChoiceSetting("overwrite_policy", "Overwrite policy", defaultValue = "replace", choices = listOf("replace", "empty_only"))
         ),
         As100NfcCredentialProvisioningMethod.ID to listOf(

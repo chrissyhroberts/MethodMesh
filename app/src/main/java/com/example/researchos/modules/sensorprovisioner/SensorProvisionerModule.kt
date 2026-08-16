@@ -22,7 +22,13 @@ object SensorProvisionerModule : ResearchOSModule {
         As100SensorProvisionerMethod.ID to listOf(
             MethodSetting.TextSetting("sensor_device_id", "Device ID", group = "Provisioning", defaultValue = "clinic_room_01_sensor"),
             MethodSetting.TextSetting("sensor_device_name", "Display name", group = "Provisioning", defaultValue = "Clinic room 01 sensor"),
-            MethodSetting.TextSetting("sensor_profile", "Sensor profile", group = "Provisioning", defaultValue = "aht20"),
+            MethodSetting.ChoiceSetting(
+                "sensor_profile",
+                "Sensor profile",
+                group = "Provisioning",
+                defaultValue = "aht20",
+                choices = listOf("aht20", "ld2410c", "generic_ble_sensor")
+            ),
             MethodSetting.IntSetting("sensor_sample_interval_ms", "Sample interval (ms)", group = "Provisioning", defaultValue = 60000, minimum = 1000, maximum = 3600000, step = 1000, unit = "ms")
         )
     )

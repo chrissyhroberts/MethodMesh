@@ -87,6 +87,17 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
         var status by remember { mutableStateOf(initialStatus) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
+        LaunchedEffect(subjectId, credentialId, pinLength, overwritePolicy) {
+            context.onSettingsChanged(
+                mapOf(
+                    NfcProvisionFields.CREDENTIAL_SUBJECT_ID to subjectId,
+                    NfcProvisionFields.CREDENTIAL_ID to credentialId,
+                    NfcProvisionFields.PIN_LENGTH to pinLength.toString(),
+                    NfcWriteFields.OVERWRITE_POLICY to overwritePolicy.wireValue
+                )
+            )
+        }
+
         fun startFirstScan() {
             if (subjectId.isBlank()) {
                 status = "credential_subject_id is required."

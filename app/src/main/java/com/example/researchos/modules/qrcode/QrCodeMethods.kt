@@ -31,11 +31,11 @@ object As100QrScanMethod : As100Method {
     private const val VERSION = "0.3.0"
 
     override val id: String = ID
-    override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "QR token scan")
+    override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "Automatic code scanner")
     override val descriptor: MethodDescriptor = MethodDescriptor(
         id = ArchitectureId(ID),
         methodType = MethodObjectType.SignalInterpreter,
-        name = "Automatic code scan",
+        name = "Automatic code scanner",
         version = VERSION,
         description = "Automatically decode QR, Data Matrix, and common 1D barcode formats and convert the payload into canonical evidence.",
         outputs = listOf(

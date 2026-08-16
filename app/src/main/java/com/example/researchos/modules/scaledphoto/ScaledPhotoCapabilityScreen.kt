@@ -60,7 +60,9 @@ object ScaledPhotoCapabilityScreen : CapabilityScreenSpec {
     override fun Render(context: CapabilityScreenContext, onBack: () -> Unit, onConfirmed: (ExecutionResult) -> Unit, onCancel: () -> Unit) {
         val appContext = LocalContext.current
         val lifecycleOwner = LocalLifecycleOwner.current
-        val settings = remember(context.action.settings) { SettingsState(ScaledPhotoModule.capabilitySettings()[capabilityId].orEmpty()).also { state ->
+        val settings = remember(context.action.settings) { SettingsState(ScaledPhotoModule.capabilitySettings()[capabilityId].orEmpty()) { key, value ->
+            context.onSettingsChanged(mapOf(key to value.toString()))
+        }.also { state ->
             val definitions = ScaledPhotoModule.capabilitySettings()[capabilityId].orEmpty().associateBy { it.id }
             context.action.settings.forEach { (k, v) -> when (definitions[k]) {
                 is MethodSetting.BooleanSetting -> state.setBoolean(k, v.equals("true", true))

@@ -66,7 +66,11 @@ private fun GeometryScreen(context: CapabilityScreenContext, mode: GeometryMode,
         GeometryMode.Slope -> SpatialGeometryModule.capabilitySettings()[As100SlopeInclinationMethod.id].orEmpty()
         GeometryMode.Distance -> SpatialGeometryModule.capabilitySettings()[As100GeometryDistanceMethod.id].orEmpty()
     }
-    val settings = remember(context.action.settings, mode) { SettingsState(settingsDefinition).also { applyParameters(it, settingsDefinition, context.request.settings + context.action.settings) } }
+    val settings = remember(context.action.settings, mode) {
+        SettingsState(settingsDefinition) { key, value ->
+            context.onSettingsChanged(mapOf(key to value.toString()))
+        }.also { applyParameters(it, settingsDefinition, context.request.settings + context.action.settings) }
+    }
     var result by remember { mutableStateOf<ExecutionResult?>(null) }
     var status by remember { mutableStateOf("Ready.") }
     var values by remember(mode) { mutableStateOf(mode.fields.associate { it.first to settingsValue(settings, it.first) }) }
