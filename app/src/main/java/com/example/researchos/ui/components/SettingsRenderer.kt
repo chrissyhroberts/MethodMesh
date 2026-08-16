@@ -19,7 +19,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.researchos.platform.devices.DeviceRegistry
+import com.example.researchos.platform.devices.DeviceTransport
+import com.example.researchos.platform.devices.RegisteredDevice
 import com.example.researchos.settings.MethodSetting
 import com.example.researchos.settings.SettingsState
 
@@ -27,10 +32,15 @@ import com.example.researchos.settings.SettingsState
 @Composable
 fun SettingsRenderer(
     settings: List<MethodSetting>,
-    settingsState: SettingsState
+    settingsState: SettingsState,
+    capabilityId: String? = null
 ) {
     Column {
         settings.forEach { setting ->
+            if (capabilityId == "sensor.read" && setting.id == "device_id") {
+                RegisteredSensorSetting(setting, settingsState)
+                return@forEach
+            }
             when (setting) {
                 is MethodSetting.TextSetting -> {
                     OutlinedTextField(
@@ -128,6 +138,81 @@ fun SettingsRenderer(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RegisteredSensorSetting(
+    setting: MethodSetting,
+    settingsState: SettingsState
+) {
+    val context = LocalContext.current
+    val devices = remember {
+        DeviceRegistry.all(context).filter {
+            it.transport == DeviceTransport.BLE &&
+                it.enabled &&
+                !it.paused &&
+                (it.profile.contains("researchos_ble_sensor", true) || it.id.startsWith("sensor:") || it.name.contains("sensor", true))
+        }.sortedBy { it.name.lowercase() }
+    }
+    var expanded by remember(setting.id) { mutableStateOf(false) }
+    val selected = settingsState.getString(setting.id)
+    val selectedDevice = devices.firstOrNull { it.id == selected || it.name == selected || it.address.equals(selected, true) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+    ) {
+        OutlinedTextField(
+            value = selectedDevice?.let { "${it.name} (${it.id})" } ?: if (selected.isBlank()) "Choose nearby sensor" else selected,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(setting.label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Column {
+                        Text("Choose nearby sensor", fontWeight = FontWeight.SemiBold)
+                        Text("Scan and choose from ResearchOS sensors in range")
+                    }
+                },
+                onClick = {
+                    settingsState.setString(setting.id, "")
+                    expanded = false
+                }
+            )
+            devices.forEach { device ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(device.name, fontWeight = FontWeight.SemiBold)
+                            Text("${device.id} · ${device.address}")
+                        }
+                    },
+                    onClick = {
+                        settingsState.setString(setting.id, device.id)
+                        expanded = false
+                    }
+                )
+            }
+            if (devices.isEmpty()) {
+                DropdownMenuItem(
+                    text = { Text("No registered sensors found") },
+                    onClick = { expanded = false }
+                )
             }
         }
     }

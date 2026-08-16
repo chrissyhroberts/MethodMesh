@@ -20,13 +20,9 @@ object SensorReadModule : ResearchOSModule {
 
     override fun capabilitySettings() = mapOf(
         As100SensorReadMethod.ID to listOf(
-            MethodSetting.TextSetting("device_id", "Device ID", group = "Sensor", defaultValue = ""),
-            MethodSetting.TextSetting("sensor_id", "Sensor ID", group = "Sensor", defaultValue = ""),
-            MethodSetting.TextSetting("sensor_profile", "Sensor profile", group = "Sensor", defaultValue = ""),
-            MethodSetting.TextSetting("sensor_read_mode", "Read mode", group = "Sampling", defaultValue = "single"),
-            MethodSetting.IntSetting("duration_seconds", "Duration", group = "Sampling", defaultValue = 30, minimum = 1, maximum = 3600, step = 1, unit = "s"),
-            MethodSetting.IntSetting("sample_interval_seconds", "Sample interval", group = "Sampling", defaultValue = 5, minimum = 1, maximum = 3600, step = 1, unit = "s"),
-            MethodSetting.TextSetting("device_match_policy", "Device match policy", group = "Fallback", defaultValue = "fallback")
+            MethodSetting.TextSetting("device_id", "Registered sensor", group = "Sensor", defaultValue = ""),
+            MethodSetting.ChoiceSetting("sensor_read_mode", "Read mode", group = "Sampling", defaultValue = "single", choices = listOf("single", "trace", "average", "discover")),
+            MethodSetting.ChoiceSetting("device_match_policy", "Device match policy", group = "Fallback", defaultValue = "fallback", choices = listOf("fallback", "strict", "any_nearby"))
         )
     )
 }

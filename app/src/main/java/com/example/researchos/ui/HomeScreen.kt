@@ -77,10 +77,7 @@ import com.example.researchos.settings.DisplaySettingsScreen
 import com.example.researchos.settings.SettingsState
 import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.OutputExportRepository
-import com.example.researchos.transport.LaunchConfigParser
-import com.example.researchos.transport.ParsedLaunchConfig
 import com.example.researchos.transport.ReturnMode
-import com.example.researchos.transport.android.AndroidIntentRequestReader
 import com.example.researchos.transport.android.IntentRouterActivity
 import com.example.researchos.transport.workflow.ExternalActionRequest
 import com.example.researchos.transport.workflow.ExternalWorkflowRequest
@@ -726,12 +723,11 @@ private fun CapabilityCard(
     var expanded by rememberSaveable(method.id) { mutableStateOf(false) }
     var quickTestOpen by rememberSaveable("${method.id}:quickTest") { mutableStateOf(false) }
     var quickTestSaveOpen by rememberSaveable("${method.id}:quickTestSave") { mutableStateOf(false) }
-    var runnerOpen by rememberSaveable(method.id) { mutableStateOf(false) }
-    var intentTestOpen by rememberSaveable("${method.id}:intentTest") { mutableStateOf(false) }
     var lastResult by remember(method.id) { mutableStateOf<ExecutionResult?>(null) }
     var lastResultStatus by rememberSaveable("${method.id}:lastResultStatus") { mutableStateOf<String?>(null) }
     var presetDialogOpen by rememberSaveable("${method.id}:presetDialog") { mutableStateOf(false) }
     var presetStatus by rememberSaveable("${method.id}:presetStatus") { mutableStateOf<String?>(null) }
+    var intentCopyStatus by rememberSaveable("${method.id}:intentCopyStatus") { mutableStateOf<String?>(null) }
     val settingSchema = remember(method.id) { CapabilityConfigurationRegistry.settingsFor(method.id) }
     val settingsState = remember(method.id) { SettingsState(settingSchema) }
     fun acceptResult(result: ExecutionResult, saveOutput: Boolean) {
@@ -805,7 +801,7 @@ private fun CapabilityCard(
                             style = MaterialTheme.typography.bodySmall
                         )
                     } else {
-                        SettingsRenderer(settingSchema, settingsState)
+                        SettingsRenderer(settingSchema, settingsState, capabilityId = method.id)
                     }
                 }
                 CapabilityExamplesSection(method, module)
@@ -816,28 +812,26 @@ private fun CapabilityCard(
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Column(Modifier.padding(10.dp)) {
-                        Text("Debug actions", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                        Text("These dry-runs do not save study data. Run protocols create output packages.", style = MaterialTheme.typography.bodySmall)
-                        Spacer(Modifier.height(8.dp))
-                        Button(
-                            onClick = { runnerOpen = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Open runner")
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = { intentTestOpen = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Test intent launch")
-                        }
+                        Text("Configuration actions", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text("The settings above define both the in-app test and the ODK intent call.", style = MaterialTheme.typography.bodySmall)
                         Spacer(Modifier.height(8.dp))
                         OutlinedButton(
                             onClick = { presetDialogOpen = true },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("Save as preset")
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = {
+                                val intentText = odkIntentFromSettings(method.id, settingsState.asMap())
+                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("ResearchOS ODK intent", intentText))
+                                intentCopyStatus = "Copied ODK intent for ${method.id}."
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Copy ODK intent")
                         }
                         if (lastResult != null) {
                             Spacer(Modifier.height(8.dp))
@@ -854,6 +848,9 @@ private fun CapabilityCard(
                     }
                 }
                 presetStatus?.let {
+                    Text(it, modifier = Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
+                }
+                intentCopyStatus?.let {
                     Text(it, modifier = Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
                 }
                 if (presetDialogOpen) {
@@ -883,9 +880,7 @@ private fun CapabilityCard(
                 FullScreenCapabilityDialog(onDismiss = { quickTestOpen = false }) {
                     DashboardCapabilityRunner(
                         method = method,
-                        module = module,
                         screen = screen,
-                        intentTest = true,
                         saveOutput = false,
                         settingsJson = settingsJsonFromMap(settingsState.asMap()),
                         onConfirmed = { result ->
@@ -900,9 +895,7 @@ private fun CapabilityCard(
                 FullScreenCapabilityDialog(onDismiss = { quickTestSaveOpen = false }) {
                     DashboardCapabilityRunner(
                         method = method,
-                        module = module,
                         screen = screen,
-                        intentTest = false,
                         saveOutput = true,
                         settingsJson = settingsJsonFromMap(settingsState.asMap()),
                         onConfirmed = { result ->
@@ -910,40 +903,6 @@ private fun CapabilityCard(
                             quickTestSaveOpen = false
                         },
                         onCancel = { quickTestSaveOpen = false }
-                    )
-                }
-            }
-            if (runnerOpen) {
-                FullScreenCapabilityDialog(onDismiss = { runnerOpen = false }) {
-                    DashboardCapabilityRunner(
-                        method = method,
-                        module = module,
-                        screen = screen,
-                        intentTest = false,
-                        saveOutput = false,
-                        settingsJson = settingsJsonFromMap(settingsState.asMap()),
-                        onConfirmed = { result ->
-                            acceptResult(result, saveOutput = false)
-                            runnerOpen = false
-                        },
-                        onCancel = { runnerOpen = false }
-                    )
-                }
-            }
-            if (intentTestOpen) {
-                FullScreenCapabilityDialog(onDismiss = { intentTestOpen = false }) {
-                    DashboardCapabilityRunner(
-                        method = method,
-                        module = module,
-                        screen = screen,
-                        intentTest = true,
-                        saveOutput = false,
-                        settingsJson = settingsJsonFromMap(settingsState.asMap()),
-                        onConfirmed = { result ->
-                            acceptResult(result, saveOutput = false)
-                            intentTestOpen = false
-                        },
-                        onCancel = { intentTestOpen = false }
                     )
                 }
             }
@@ -1112,38 +1071,40 @@ private fun settingsMapFromJson(json: String): Map<String, String> = runCatching
     }
 }.getOrDefault(emptyMap())
 
+private fun odkIntentFromSettings(methodId: String, settings: Map<String, Any>): String {
+    val parameters = mutableListOf("method_id=${quoteIntentValue(methodId)}")
+    settings.toSortedMap().forEach { (key, value) ->
+        val stringValue = value.toString()
+        if (stringValue.isNotBlank()) {
+            val intentKey = if (key.startsWith("input_")) key else "input_$key"
+            parameters += "$intentKey=${quoteIntentValue(stringValue)}"
+        }
+    }
+    parameters += "return_mode='flat'"
+    return "com.example.researchos.EXECUTE_METHOD(${parameters.joinToString(",")})"
+}
+
+private fun quoteIntentValue(value: String): String =
+    "'${value.replace("\\", "\\\\").replace("'", "\\'")}'"
+
 @Composable
 private fun DashboardCapabilityRunner(
     method: As100Method,
-    module: ResearchOSModule?,
     screen: CapabilityScreenSpec?,
-    intentTest: Boolean,
     saveOutput: Boolean,
     settingsJson: String,
     onConfirmed: (ExecutionResult) -> Unit,
     onCancel: () -> Unit
 ) {
-    val request = if (intentTest) {
-        testIntentWorkflowRequest(method, module, settingsJson)
-    } else {
-        val action = ExternalActionRequest(requestedId = method.id, canonicalId = method.id, settings = settingsMapFromJson(settingsJson))
-        ExternalWorkflowRequest(
-            actions = listOf(action),
-            invocationContext = InvocationContext(caller = "dashboard"),
-            returns = emptyList(),
-            returnMode = ReturnMode.Json,
-            settings = settingsMapFromJson(settingsJson),
-            source = if (saveOutput) "dashboard_save" else "dashboard"
-        )
-    }
+    val request = capabilityTestWorkflowRequest(method, settingsJson, saveOutput)
     val action = request.actions.firstOrNull() ?: ExternalActionRequest(requestedId = method.id, canonicalId = method.id)
     val context = CapabilityScreenContext(
         action = action,
         request = request,
         stepNumber = 1,
         totalSteps = 1,
-        completionMode = if (intentTest) CapabilityCompletionMode.AutomaticReturn else CapabilityCompletionMode.ManualConfirmation,
-        presentationMode = if (intentTest) CapabilityPresentationMode.IntentLaunch else CapabilityPresentationMode.Dashboard
+        completionMode = CapabilityCompletionMode.ManualConfirmation,
+        presentationMode = CapabilityPresentationMode.IntentLaunch
     )
 
     if (screen != null) {
@@ -1158,55 +1119,22 @@ private fun DashboardCapabilityRunner(
     }
 }
 
-private fun testIntentWorkflowRequest(method: As100Method, module: ResearchOSModule?, settingsJson: String): ExternalWorkflowRequest {
+private fun capabilityTestWorkflowRequest(method: As100Method, settingsJson: String, saveOutput: Boolean): ExternalWorkflowRequest {
     val cardSettings = settingsMapFromJson(settingsJson)
-    val example = testIntentExampleFor(method, module)
-    val request = when {
-        example?.ril?.contains("EXECUTE_METHOD", ignoreCase = true) == true ->
-            AndroidIntentRequestReader.workflowRequest(Intent(example.ril))
-        example?.ril?.isNotBlank() == true ->
-            workflowRequestFromParsed(LaunchConfigParser.parse(example.ril))
-        else ->
-            AndroidIntentRequestReader.workflowRequest(Intent("com.example.researchos.EXECUTE_METHOD(method_id='${method.id}',return_mode='flat')"))
-    }
-
-    val resolved = if (request.actions.any { it.canonicalId == method.id || it.requestedId == method.id }) {
-        request
-    } else {
-        AndroidIntentRequestReader.workflowRequest(Intent("com.example.researchos.EXECUTE_METHOD(method_id='${method.id}',return_mode='flat')"))
-    }
-    return resolved.copy(
-        actions = resolved.actions.map { action ->
-            if (action.canonicalId == method.id || action.requestedId == method.id) {
-                action.copy(settings = stripDemoSubjectSettings(action.settings) + cardSettings)
-            } else {
-                action
-            }
-        },
-        invocationContext = InvocationContext(caller = "intent_test"),
-        settings = stripDemoSubjectSettings(resolved.settings) + cardSettings,
-        source = "intent_test"
+    val source = if (saveOutput) "dashboard_save" else "intent_test"
+    val action = ExternalActionRequest(
+        requestedId = method.id,
+        canonicalId = method.id,
+        settings = cardSettings
     )
-}
-
-private fun stripDemoSubjectSettings(settings: Map<String, String>): Map<String, String> =
-    settings.filterNot { (key, value) ->
-        value == "participant/P001" &&
-            key in setOf("entity_id", "subject_id", "context_entity_id", "participant_id")
-    }
-
-private fun testIntentExampleFor(method: As100Method, module: ResearchOSModule?): ModuleExample? {
-    val bindings = module?.rilBindings().orEmpty().filter { it.actionId == method.id }
-    val examples = module?.examples().orEmpty()
-    return examples.firstOrNull { example ->
-        example.ril.contains(method.id, ignoreCase = true) ||
-            bindings.any { binding -> example.ril.contains(binding.phrase, ignoreCase = true) }
-    } ?: examples.firstOrNull { it.ril.contains("EXECUTE_METHOD", ignoreCase = true) }
-}
-
-private fun workflowRequestFromParsed(parsed: ParsedLaunchConfig): ExternalWorkflowRequest {
-    val context = AndroidIntentRequestReader.invocationContextFrom(parsed)
-    return ExternalWorkflowRequest.from(parsed.copy(source = "intent_test"), context)
+    return ExternalWorkflowRequest(
+        actions = listOf(action),
+        invocationContext = InvocationContext(caller = source),
+        returns = emptyList(),
+        returnMode = ReturnMode.Json,
+        settings = cardSettings,
+        source = source
+    )
 }
 
 @Composable

@@ -36,6 +36,7 @@ import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
 import com.example.researchos.transport.workflow.ui.CapabilityDependencyScreen
+import com.example.researchos.transport.workflow.ui.CapabilityPresentationMode
 import com.example.researchos.transport.workflow.ui.IntentExample
 import com.example.researchos.transport.workflow.ui.IntentExampleDropdown
 
@@ -101,6 +102,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var status by remember { mutableStateOf("Ready to create a signed attestation.") }
         var activeDependency by remember { mutableStateOf<String?>(null) }
+        val focusedLaunch = context.presentationMode == CapabilityPresentationMode.IntentLaunch
 
         fun contextMapFor(selectedMethod: AttestationVerificationMethod, selectedEvidence: AttestationEvidence): Map<String, String> =
             supplied.filterKeys { it != "verification_evidence" } + buildMap {
@@ -239,46 +241,53 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
         ) {
             Text("Creates a signed, hash-chained proof that this phone attested a specific event under a declared verification method.")
             Spacer(Modifier.height(10.dp))
-            OutlinedTextField(studyId, { studyId = it }, label = { Text("Study ID") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(operatorId, { operatorId = it }, label = { Text("Operator ID") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(subjectRef, { subjectRef = it }, label = { Text("Subject / event reference") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(eventType, { eventType = it }, label = { Text("Event type") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(eventPayloadHash, { eventPayloadHash = it }, label = { Text("Event payload SHA-256 (hex)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(trustedTimestampPolicy, { trustedTimestampPolicy = it }, label = { Text("Trusted timestamp policy") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(trustedTimestampAuthority, { trustedTimestampAuthority = it }, label = { Text("Trusted timestamp authority URL") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(
-                trustedTimestampTimeoutMs,
-                { value -> trustedTimestampTimeoutMs = value.filter { it.isDigit() }.take(5) },
-                label = { Text("Timestamp timeout (ms)") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            if (!external && eventPayloadHash == MANUAL_DEBUG_EVENT_PAYLOAD_HASH) {
+            if (focusedLaunch) {
                 Text(
-                    "Manual test placeholder: SHA-256 of “researchos-manual-debug-event-v1”. Replace it when testing a specific payload.",
+                    "Configured: ${method.label}, timestamp $trustedTimestampPolicy, event hash ${eventPayloadHash.take(12)}…",
                     style = MaterialTheme.typography.bodySmall
                 )
-            }
-            Spacer(Modifier.height(8.dp))
-            Text("Verification method", fontWeight = FontWeight.SemiBold)
-            AttestationVerificationMethod.values().forEach { option ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
-                        .clickable {
-                            method = option
-                            activeDependency = null
-                            status = when (option) {
-                                AttestationVerificationMethod.Nfc -> "NFC evidence will be captured through the NFC capability dependency."
-                                AttestationVerificationMethod.Qr -> "QR evidence will be captured through the QR capability dependency."
-                                AttestationVerificationMethod.Pin -> "Phone PIN, pattern or password will be requested through Android device credential."
-                                AttestationVerificationMethod.Fingerprint -> "Fingerprint/biometric will be requested through Android biometric prompt."
-                                AttestationVerificationMethod.Password -> "Enter a study password token below."
+            } else {
+                OutlinedTextField(studyId, { studyId = it }, label = { Text("Study ID") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(operatorId, { operatorId = it }, label = { Text("Operator ID") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(subjectRef, { subjectRef = it }, label = { Text("Subject / event reference") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(eventType, { eventType = it }, label = { Text("Event type") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(eventPayloadHash, { eventPayloadHash = it }, label = { Text("Event payload SHA-256 (hex)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(trustedTimestampPolicy, { trustedTimestampPolicy = it }, label = { Text("Trusted timestamp policy") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(trustedTimestampAuthority, { trustedTimestampAuthority = it }, label = { Text("Trusted timestamp authority URL") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    trustedTimestampTimeoutMs,
+                    { value -> trustedTimestampTimeoutMs = value.filter { it.isDigit() }.take(5) },
+                    label = { Text("Timestamp timeout (ms)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (!external && eventPayloadHash == MANUAL_DEBUG_EVENT_PAYLOAD_HASH) {
+                    Text(
+                        "Manual test placeholder: SHA-256 of “researchos-manual-debug-event-v1”. Replace it when testing a specific payload.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Verification method", fontWeight = FontWeight.SemiBold)
+                AttestationVerificationMethod.values().forEach { option ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                            .clickable {
+                                method = option
+                                activeDependency = null
+                                status = when (option) {
+                                    AttestationVerificationMethod.Nfc -> "NFC evidence will be captured through the NFC capability dependency."
+                                    AttestationVerificationMethod.Qr -> "QR evidence will be captured through the QR capability dependency."
+                                    AttestationVerificationMethod.Pin -> "Phone PIN, pattern or password will be requested through Android device credential."
+                                    AttestationVerificationMethod.Fingerprint -> "Fingerprint/biometric will be requested through Android biometric prompt."
+                                    AttestationVerificationMethod.Password -> "Enter a study password token below."
+                                }
                             }
-                        }
-                ) {
-                    Text(if (method == option) "●" else "○", modifier = Modifier.padding(end = 8.dp))
-                    Text(option.label)
+                    ) {
+                        Text(if (method == option) "●" else "○", modifier = Modifier.padding(end = 8.dp))
+                        Text(option.label)
+                    }
                 }
             }
             if (method == AttestationVerificationMethod.Password) {
@@ -308,26 +317,6 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             AttestationKeySummary()
 
             Spacer(Modifier.height(16.dp))
-            IntentExampleDropdown(
-                capabilityId = As100CreateAttestationMethod.ID,
-                examples = listOf(
-                    IntentExample(
-                        label = "Basic attestation",
-                        description = "Sign an event with fingerprint verification",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',input_event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',input_verification_method='Fingerprint',input_trusted_timestamp='preferred',input_trusted_timestamp_authority='https://freetsa.org/tsr',return_mode='flat')"
-                    ),
-                    IntentExample(
-                        label = "With event context",
-                        description = "Include study, operator, and event information",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',input_event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',input_study_id='study_01',operator_id='op_001',input_event_type='form_submission',input_verification_method='Fingerprint',input_trusted_timestamp='preferred',input_trusted_timestamp_authority='https://freetsa.org/tsr',return_mode='flat')"
-                    ),
-                    IntentExample(
-                        label = "With NFC verification",
-                        description = "Use NFC tag reading for verification",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='${As100CreateAttestationMethod.ID}',input_event_payload_hash='0000000000000000000000000000000000000000000000000000000000000000',input_verification_method='Nfc',input_trusted_timestamp='preferred',input_trusted_timestamp_authority='https://freetsa.org/tsr',return_mode='flat')"
-                    )
-                )
-            )
         }
     }
 }

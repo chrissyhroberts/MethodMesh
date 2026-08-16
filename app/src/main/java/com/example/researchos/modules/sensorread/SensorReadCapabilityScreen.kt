@@ -51,6 +51,7 @@ import com.example.researchos.platform.devices.DeviceRegistry
 import com.example.researchos.platform.devices.DeviceTransport
 import com.example.researchos.platform.devices.RegisteredDevice
 import com.example.researchos.transport.OutputFormatter
+import com.example.researchos.transport.workflow.ui.CapabilityPresentationMode
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
@@ -88,14 +89,22 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
         val supplied = remember(context.request.settings, context.action.settings, context.request.invocationContext) {
             context.request.invocationContext.asMap(context.action.canonicalId) + context.request.settings + context.action.settings
         }
+        val focusedLaunch = context.presentationMode == CapabilityPresentationMode.IntentLaunch
         var registryDevices by remember { mutableStateOf(sensorRegistryDevices(androidContext)) }
-        var selectedDeviceId by rememberSaveable { mutableStateOf(supplied.firstPresent("device_id", "input_device_id", "sensor_device_id", "input_sensor_device_id")) }
-        var sensorId by rememberSaveable { mutableStateOf(supplied.firstPresent("sensor_id", "input_sensor_id")) }
-        var sensorProfile by rememberSaveable { mutableStateOf(supplied.firstPresent("sensor_profile", "input_sensor_profile", "sensor_type", "input_sensor_type")) }
-        var mode by rememberSaveable { mutableStateOf(normalizeMode(supplied.firstPresent("sensor_read_mode", "input_sensor_read_mode", "mode", "input_mode").ifBlank { "single" })) }
-        var durationSeconds by rememberSaveable { mutableStateOf(supplied.firstPresent("duration_seconds", "input_duration_seconds", "sensor_duration_seconds").ifBlank { "30" }) }
-        var intervalSeconds by rememberSaveable { mutableStateOf(supplied.firstPresent("sample_interval_seconds", "input_sample_interval_seconds", "sensor_sample_interval_seconds").ifBlank { "5" }) }
-        var matchPolicy by rememberSaveable { mutableStateOf(supplied.firstPresent("device_match_policy", "input_device_match_policy", "fallback_to_nearby").ifBlank { "fallback" }) }
+        val suppliedDeviceId = supplied.firstPresent("device_id", "input_device_id", "sensor_device_id", "input_sensor_device_id")
+        val suppliedSensorId = supplied.firstPresent("sensor_id", "input_sensor_id")
+        val suppliedSensorProfile = supplied.firstPresent("sensor_profile", "input_sensor_profile", "sensor_type", "input_sensor_type")
+        val suppliedMode = normalizeMode(supplied.firstPresent("sensor_read_mode", "input_sensor_read_mode", "mode", "input_mode").ifBlank { "single" })
+        val suppliedDurationSeconds = supplied.firstPresent("duration_seconds", "input_duration_seconds", "sensor_duration_seconds").ifBlank { "30" }
+        val suppliedIntervalSeconds = supplied.firstPresent("sample_interval_seconds", "input_sample_interval_seconds", "sensor_sample_interval_seconds").ifBlank { "5" }
+        val suppliedMatchPolicy = supplied.firstPresent("device_match_policy", "input_device_match_policy", "fallback_to_nearby").ifBlank { "fallback" }
+        var selectedDeviceId by rememberSaveable(suppliedDeviceId) { mutableStateOf(suppliedDeviceId) }
+        var sensorId by rememberSaveable(suppliedSensorId) { mutableStateOf(suppliedSensorId) }
+        var sensorProfile by rememberSaveable(suppliedSensorProfile) { mutableStateOf(suppliedSensorProfile) }
+        var mode by rememberSaveable(suppliedMode) { mutableStateOf(suppliedMode) }
+        var durationSeconds by rememberSaveable(suppliedDurationSeconds) { mutableStateOf(suppliedDurationSeconds) }
+        var intervalSeconds by rememberSaveable(suppliedIntervalSeconds) { mutableStateOf(suppliedIntervalSeconds) }
+        var matchPolicy by rememberSaveable(suppliedMatchPolicy) { mutableStateOf(suppliedMatchPolicy) }
         var status by rememberSaveable { mutableStateOf("Ready to read a registered ResearchOS sensor.") }
         var scanning by rememberSaveable { mutableStateOf(false) }
         var deviceMenuOpen by rememberSaveable { mutableStateOf(false) }
@@ -109,6 +118,7 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
         var startedTime by rememberSaveable { mutableStateOf("") }
         var readInProgress by rememberSaveable { mutableStateOf(false) }
         var samplesRemaining by rememberSaveable { mutableStateOf(0) }
+        var autoAttempted by rememberSaveable(context.action.canonicalId, suppliedDeviceId, suppliedMode, suppliedMatchPolicy) { mutableStateOf(false) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         val nearby = remember { mutableStateListOf<NearbySensor>() }
         val sampleValues = remember { mutableStateListOf<String>() }
@@ -385,11 +395,7 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                 ?: selectedNearby
             when {
                 direct != null -> connectAndRead(direct)
-                requested.isBlank() && registryDevices.size == 1 -> {
-                    selectedDeviceId = registryDevices.first().id
-                    startScan(autoConnect = true)
-                }
-                else -> startScan(autoConnect = context.startsImmediately || requested.isNotBlank())
+                else -> startScan(autoConnect = focusedLaunch || context.startsImmediately || requested.isNotBlank())
             }
         }
 
@@ -400,8 +406,11 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
-        LaunchedEffect(context.startsImmediately) {
-            if (context.startsImmediately) readNow()
+        LaunchedEffect(focusedLaunch, context.startsImmediately, supplied) {
+            if ((focusedLaunch || context.startsImmediately) && !autoAttempted) {
+                autoAttempted = true
+                readNow()
+            }
         }
 
         CapabilityScreenScaffold(
@@ -416,53 +425,68 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
-            Text("Read a registered ESP32 ResearchOS sensor. If a requested device is not found, fallback mode lets the operator choose a nearby sensor and records the substitution.", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                if (focusedLaunch) "Reading sensor using the configured request." else "Configure and read a registered ESP32 ResearchOS sensor. If a requested device is not found, fallback mode lets the operator choose a nearby sensor and records the substitution.",
+                style = MaterialTheme.typography.bodyMedium
+            )
             Spacer(Modifier.height(8.dp))
-            Text("Known sensor", fontWeight = FontWeight.SemiBold)
-            OutlinedButton(onClick = { deviceMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(deviceLabel(selectedDeviceId, registryDevices), modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
-                Text("▼")
-            }
-            DropdownMenu(expanded = deviceMenuOpen, onDismissRequest = { deviceMenuOpen = false }, modifier = Modifier.fillMaxWidth(0.9f)) {
-                DropdownMenuItem(text = { Text("No preset / choose nearby") }, onClick = { selectedDeviceId = ""; deviceMenuOpen = false })
-                registryDevices.forEach { device ->
-                    DropdownMenuItem(
-                        text = { Column { Text(device.name); Text("${device.id} · ${device.address}", style = MaterialTheme.typography.bodySmall) } },
-                        onClick = { selectedDeviceId = device.id; deviceMenuOpen = false }
-                    )
+            if (focusedLaunch) {
+                SensorReadLaunchSummary(
+                    device = deviceLabel(selectedDeviceId, registryDevices),
+                    sensorId = sensorId,
+                    sensorProfile = sensorProfile,
+                    mode = mode,
+                    durationSeconds = durationSeconds,
+                    intervalSeconds = intervalSeconds,
+                    matchPolicy = matchPolicy
+                )
+            } else {
+                Text("Known sensor", fontWeight = FontWeight.SemiBold)
+                OutlinedButton(onClick = { deviceMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(deviceLabel(selectedDeviceId, registryDevices), modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
+                    Text("▼")
                 }
-            }
-            OutlinedTextField(sensorId, { sensorId = it }, label = { Text("Sensor ID (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(sensorProfile, { sensorProfile = it }, label = { Text("Sensor profile (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            Spacer(Modifier.height(8.dp))
-            Text("Read mode", fontWeight = FontWeight.SemiBold)
-            OutlinedButton(onClick = { modeMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(modeLabel(mode), modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
-                Text("▼")
-            }
-            DropdownMenu(expanded = modeMenuOpen, onDismissRequest = { modeMenuOpen = false }) {
-                listOf("single", "trace", "average", "discover").forEach { option ->
-                    DropdownMenuItem(text = { Text(modeLabel(option)) }, onClick = { mode = option; modeMenuOpen = false })
+                DropdownMenu(expanded = deviceMenuOpen, onDismissRequest = { deviceMenuOpen = false }, modifier = Modifier.fillMaxWidth(0.9f)) {
+                    DropdownMenuItem(text = { Text("Choose nearby sensor") }, onClick = { selectedDeviceId = ""; deviceMenuOpen = false })
+                    registryDevices.forEach { device ->
+                        DropdownMenuItem(
+                            text = { Column { Text(device.name); Text("${device.id} · ${device.address}", style = MaterialTheme.typography.bodySmall) } },
+                            onClick = { selectedDeviceId = device.id; deviceMenuOpen = false }
+                        )
+                    }
                 }
-            }
-            if (mode == "trace" || mode == "average") {
-                OutlinedTextField(durationSeconds, { durationSeconds = it.filter(Char::isDigit) }, label = { Text("Duration (seconds)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(intervalSeconds, { intervalSeconds = it.filter(Char::isDigit) }, label = { Text("Sample interval (seconds)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            }
-            Spacer(Modifier.height(8.dp))
-            Text("Device matching", fontWeight = FontWeight.SemiBold)
-            OutlinedButton(onClick = { policyMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(matchPolicyLabel(matchPolicy), modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
-                Text("▼")
-            }
-            DropdownMenu(expanded = policyMenuOpen, onDismissRequest = { policyMenuOpen = false }) {
-                listOf("fallback", "strict", "any_nearby").forEach { option ->
-                    DropdownMenuItem(text = { Text(matchPolicyLabel(option)) }, onClick = { matchPolicy = option; policyMenuOpen = false })
+                OutlinedTextField(sensorId, { sensorId = it }, label = { Text("Sensor ID (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(sensorProfile, { sensorProfile = it }, label = { Text("Sensor profile (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                Spacer(Modifier.height(8.dp))
+                Text("Read mode", fontWeight = FontWeight.SemiBold)
+                OutlinedButton(onClick = { modeMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(modeLabel(mode), modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
+                    Text("▼")
+                }
+                DropdownMenu(expanded = modeMenuOpen, onDismissRequest = { modeMenuOpen = false }) {
+                    listOf("single", "trace", "average", "discover").forEach { option ->
+                        DropdownMenuItem(text = { Text(modeLabel(option)) }, onClick = { mode = option; modeMenuOpen = false })
+                    }
+                }
+                if (mode == "trace" || mode == "average") {
+                    OutlinedTextField(durationSeconds, { durationSeconds = it.filter(Char::isDigit) }, label = { Text("Duration (seconds)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedTextField(intervalSeconds, { intervalSeconds = it.filter(Char::isDigit) }, label = { Text("Sample interval (seconds)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Device matching", fontWeight = FontWeight.SemiBold)
+                OutlinedButton(onClick = { policyMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(matchPolicyLabel(matchPolicy), modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
+                    Text("▼")
+                }
+                DropdownMenu(expanded = policyMenuOpen, onDismissRequest = { policyMenuOpen = false }) {
+                    listOf("fallback", "strict", "any_nearby").forEach { option ->
+                        DropdownMenuItem(text = { Text(matchPolicyLabel(option)) }, onClick = { matchPolicy = option; policyMenuOpen = false })
+                    }
                 }
             }
             Spacer(Modifier.height(10.dp))
-            Button(onClick = { readNow() }, modifier = Modifier.fillMaxWidth()) { Text(if (readInProgress) "Reading…" else "Read sensor") }
-            OutlinedButton(onClick = { startScan(autoConnect = false) }, modifier = Modifier.fillMaxWidth()) { Text(if (scanning) "Scanning…" else "Scan nearby sensors") }
+            Button(onClick = { readNow() }, modifier = Modifier.fillMaxWidth()) { Text(if (readInProgress) "Reading…" else if (result == null) "Read sensor" else "Read again") }
+            OutlinedButton(onClick = { startScan(autoConnect = false) }, modifier = Modifier.fillMaxWidth()) { Text(if (scanning) "Scanning…" else "Choose nearby sensor") }
             Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
             LazyColumn(modifier = Modifier.fillMaxWidth().height(180.dp)) {
                 items(nearby, key = { it.address }) { item ->
@@ -493,6 +517,32 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                     IntentExample("Strict device match", "Fail if the specified sensor is not nearby.", "com.example.researchos.EXECUTE_METHOD(method_id='sensor.read',input_device_id='clinic_room_01_sensor',input_device_match_policy='strict',return_mode='flat')")
                 )
             )
+        }
+    }
+}
+
+@Composable
+private fun SensorReadLaunchSummary(
+    device: String,
+    sensorId: String,
+    sensorProfile: String,
+    mode: String,
+    durationSeconds: String,
+    intervalSeconds: String,
+    matchPolicy: String
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp)) {
+            Text("Configured sensor read", fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(4.dp))
+            Text("Device: $device", style = MaterialTheme.typography.bodyMedium)
+            Text("Mode: ${modeLabel(mode)}", style = MaterialTheme.typography.bodyMedium)
+            if (sensorId.isNotBlank()) Text("Sensor ID: $sensorId", style = MaterialTheme.typography.bodyMedium)
+            if (sensorProfile.isNotBlank()) Text("Sensor profile: $sensorProfile", style = MaterialTheme.typography.bodyMedium)
+            if (mode == "trace" || mode == "average") {
+                Text("Sampling: ${durationSeconds.ifBlank { "30" }}s every ${intervalSeconds.ifBlank { "5" }}s", style = MaterialTheme.typography.bodyMedium)
+            }
+            Text("Matching: ${matchPolicyLabel(matchPolicy)}", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -529,7 +579,7 @@ private fun matchPolicyLabel(policy: String): String = when (policy.trim().lower
 }
 
 private fun deviceLabel(deviceId: String, devices: List<RegisteredDevice>): String {
-    if (deviceId.isBlank()) return "No preset / choose nearby"
+    if (deviceId.isBlank()) return "Choose nearby sensor"
     val device = devices.firstOrNull { it.id == deviceId || it.name == deviceId || it.address.equals(deviceId, true) }
     return device?.let { "${it.name} (${it.id})" } ?: deviceId
 }
@@ -587,4 +637,3 @@ private fun summariseSamples(samples: List<String>): JSONObject {
 private fun valueFor(latest: JSONObject, summary: JSONObject, key: String, mode: String): String =
     if (mode == "average") summary.optString("${key}_mean")
     else latest.optString(key)
-

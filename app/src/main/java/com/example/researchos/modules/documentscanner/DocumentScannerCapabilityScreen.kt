@@ -12,17 +12,12 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,8 +28,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.example.researchos.core.researchos.ExecutionResult
@@ -42,8 +35,6 @@ import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
-import com.example.researchos.transport.workflow.ui.IntentExample
-import com.example.researchos.transport.workflow.ui.IntentExampleDropdown
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
@@ -68,13 +59,12 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
         onCancel: () -> Unit
     ) {
         val appContext = LocalContext.current
-        var pageLimitText by rememberSaveable { mutableStateOf(context.action.settings["page_limit"] ?: context.action.settings["input_page_limit"] ?: "10") }
-        var scannerMode by rememberSaveable { mutableStateOf(context.action.settings["scanner_mode"] ?: context.action.settings["input_scanner_mode"] ?: "full") }
-        var allowGallery by rememberSaveable { mutableStateOf((context.action.settings["allow_gallery_import"] ?: context.action.settings["input_allow_gallery_import"] ?: "true").equals("true", true)) }
-        var runOcr by rememberSaveable { mutableStateOf((context.action.settings["run_ocr"] ?: context.action.settings["input_run_ocr"] ?: "true").equals("true", true)) }
-        var returnSearchablePdf by rememberSaveable { mutableStateOf((context.action.settings["return_searchable_pdf"] ?: context.action.settings["input_return_searchable_pdf"] ?: "true").equals("true", true)) }
-        var returnTextFile by rememberSaveable { mutableStateOf((context.action.settings["return_text_file"] ?: context.action.settings["input_return_text_file"] ?: "true").equals("true", true)) }
-        var modeMenuOpen by rememberSaveable { mutableStateOf(false) }
+        val pageLimitText = context.action.settings["page_limit"] ?: context.action.settings["input_page_limit"] ?: "10"
+        val scannerMode = context.action.settings["scanner_mode"] ?: context.action.settings["input_scanner_mode"] ?: "full"
+        val allowGallery = (context.action.settings["allow_gallery_import"] ?: context.action.settings["input_allow_gallery_import"] ?: "true").equals("true", true)
+        val runOcr = (context.action.settings["run_ocr"] ?: context.action.settings["input_run_ocr"] ?: "true").equals("true", true)
+        val returnSearchablePdf = (context.action.settings["return_searchable_pdf"] ?: context.action.settings["input_return_searchable_pdf"] ?: "true").equals("true", true)
+        val returnTextFile = (context.action.settings["return_text_file"] ?: context.action.settings["input_return_text_file"] ?: "true").equals("true", true)
         var status by rememberSaveable { mutableStateOf("Ready to scan a paper document.") }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
@@ -133,8 +123,8 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
                 }
         }
 
-        LaunchedEffect(context.startsImmediately) {
-            if (context.startsImmediately && !launched) {
+        LaunchedEffect(context.presentationMode, context.action.settings) {
+            if (context.presentationMode == com.example.researchos.transport.workflow.ui.CapabilityPresentationMode.IntentLaunch && !launched) {
                 launched = true
                 start()
             }
@@ -153,42 +143,17 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
             onCancel = onCancel
         ) {
             Text("Scan one or more paper pages. ML Kit handles page detection, crop and alignment; ResearchOS copies the outputs and can OCR them.", style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(10.dp))
-            OutlinedTextField(value = pageLimitText, onValueChange = { pageLimitText = it.filter(Char::isDigit).take(2) }, label = { Text("Maximum pages") }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            Text("Scanner mode", fontWeight = FontWeight.SemiBold)
-            OutlinedButton(onClick = { modeMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(scannerMode, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
-                Text("▼")
-            }
-            DropdownMenu(expanded = modeMenuOpen, onDismissRequest = { modeMenuOpen = false }, modifier = Modifier.fillMaxWidth(.9f)) {
-                listOf("full", "base_with_filter", "base").forEach { option ->
-                    DropdownMenuItem(text = { Text(option) }, onClick = { scannerMode = option; modeMenuOpen = false })
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            ToggleRow("Gallery import", allowGallery) { allowGallery = !allowGallery }
-            ToggleRow("Run OCR", runOcr) { runOcr = !runOcr }
-            ToggleRow("Searchable PDF", returnSearchablePdf) { returnSearchablePdf = !returnSearchablePdf }
-            ToggleRow("OCR text file", returnTextFile) { returnTextFile = !returnTextFile }
-            Spacer(Modifier.height(12.dp))
-            Button(onClick = { start() }, modifier = Modifier.fillMaxWidth()) { Text("Scan document") }
-            Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
-            IntentExampleDropdown(
-                capabilityId = capabilityId,
-                examples = listOf(
-                    IntentExample("Scan document to searchable PDF", "Scan paper pages and return PDF/OCR attachments.", "com.example.researchos.EXECUTE_METHOD(method_id='document.scan',input_page_limit='10',input_scanner_mode='full',input_run_ocr='true',input_return_searchable_pdf='true',return_mode='flat')"),
-                    IntentExample("Quick PDF scan", "Scan pages without OCR.", "com.example.researchos.EXECUTE_METHOD(method_id='document.scan',input_page_limit='5',input_run_ocr='false',input_return_searchable_pdf='false',return_mode='flat')")
-                )
+            Text(
+                "Configured: up to ${pageLimitText.toIntOrNull()?.coerceIn(1, 50) ?: 10} page(s), mode $scannerMode, OCR ${if (runOcr) "on" else "off"}, searchable PDF ${if (returnSearchablePdf) "on" else "off"}.",
+                style = MaterialTheme.typography.bodySmall
             )
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = { start() }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (result == null) "Open document scanner" else "Scan again")
+            }
+            Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
         }
-    }
-}
-
-@Composable
-private fun ToggleRow(label: String, enabled: Boolean, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Text("$label: ${if (enabled) "on" else "off"}")
     }
 }
 

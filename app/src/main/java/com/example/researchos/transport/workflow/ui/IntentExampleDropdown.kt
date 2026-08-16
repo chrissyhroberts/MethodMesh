@@ -40,6 +40,10 @@ fun IntentExampleDropdown(
         )
     )
 ) {
+    // Intent examples are now exposed from the capability card/documentation layer.
+    // The live execution surface should stay focused on doing the action.
+    return
+
     var selectedIndex by remember { mutableStateOf(0) }
     var expanded by remember { mutableStateOf(false) }
 

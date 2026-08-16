@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,8 +32,6 @@ import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.workflow.ui.CapabilityScreenContext
 import com.example.researchos.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.researchos.transport.workflow.ui.CapabilityScreenSpec
-import com.example.researchos.transport.workflow.ui.IntentExample
-import com.example.researchos.transport.workflow.ui.IntentExampleDropdown
 import java.security.MessageDigest
 
 object SmsCapabilityScreen : CapabilityScreenSpec {
@@ -54,8 +51,8 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
         val supplied = remember(context.request.settings, context.action.settings, context.request.invocationContext) {
             context.request.invocationContext.asMap(context.action.canonicalId) + context.request.settings + context.action.settings
         }
-        var phone by rememberSaveable { mutableStateOf(supplied.firstPresent("sms_phone", "input_sms_phone", "phone", "input_phone", "recipient_phone")) }
-        var message by rememberSaveable { mutableStateOf(supplied.firstPresent("sms_message", "input_sms_message", "message", "input_message", "sms_message_template", "input_sms_message_template")) }
+        val phone = supplied.firstPresent("sms_phone", "input_sms_phone", "phone", "input_phone", "recipient_phone")
+        val message = supplied.firstPresent("sms_message", "input_sms_message", "message", "input_message", "sms_message_template", "input_sms_message_template")
         var status by rememberSaveable { mutableStateOf("Ready to send SMS.") }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var requestedByPermission by remember { mutableStateOf(false) }
@@ -146,21 +143,9 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
             Text("Message preview", fontWeight = FontWeight.SemiBold)
             Text(finalMessage(), style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(10.dp))
-            OutlinedTextField(phone, { phone = it }, label = { Text("Phone number") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(message, { message = it }, label = { Text("Message") }, modifier = Modifier.fillMaxWidth().height(120.dp))
+            Text("Recipient: ${phone.ifBlank { "not configured" }}", style = MaterialTheme.typography.bodySmall)
             Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
-            Button({ sendNow() }, Modifier.fillMaxWidth()) { Text("Send SMS") }
-            Spacer(Modifier.height(16.dp))
-            IntentExampleDropdown(
-                capabilityId = As100SendSmsMethod.ID,
-                examples = listOf(
-                    IntentExample(
-                        label = "Send SMS",
-                        description = "Send a short message using a phone number and message calculated by the form.",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='sms.send',input_sms_phone=\${phone_number},input_sms_message=\${sms_message},return_mode='flat')"
-                    )
-                )
-            )
+            Button({ sendNow() }, Modifier.fillMaxWidth()) { Text(if (result == null) "Send SMS" else "Send again") }
         }
     }
 }
