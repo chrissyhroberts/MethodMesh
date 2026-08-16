@@ -131,6 +131,8 @@ Examples include:
 
 This allows field devices to continue supporting research activities without relying on constant server communication.
 
+ResearchOS can also run configured capability presets and named protocols directly from the app. Test runs are separated from real saved output: **Test** previews the result without writing a study package, while **Test and save** writes the normal JSON-plus-attachments output package. Each card keeps a visible last-result preview so operators can inspect returned fields and image media before using a workflow operationally.
+
 
 #### A system notification leads to a chain of events (ODK Collect form and Enketo Webform) are scheduled for completion at a prespecified time
 ![](assets/screenshots/scheduled_event_chain2.png){width="350"}  
@@ -193,8 +195,12 @@ Examples include:
 - document scanning;
 - OCR of printed text;
 - image capture workflows;
+- scaled photo annotation;
+- image redaction before export;
 - computer vision analysis;
 - structured extraction of information from visual sources.
+
+Image-output capabilities can return media attachments into ODK/Kobo calls or into ResearchOS output folders. Direct tests now show image previews in the dashboard so it is easier to confirm that the captured or redacted media are what the operator intended.
 
 ---
 
@@ -250,4 +256,3 @@ Every capability page follows the same structure:
 8. Example XLSForms
 9. Limitations
 10. Technical notes
-

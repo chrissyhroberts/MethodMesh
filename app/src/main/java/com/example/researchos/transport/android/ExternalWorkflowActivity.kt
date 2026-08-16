@@ -41,6 +41,7 @@ import com.example.researchos.core.researchos.TransformationStatus
 import com.example.researchos.core.researchos.runtime.As100MethodRegistry
 import com.example.researchos.core.researchos.withInvocationContext
 import com.example.researchos.calibration.CalibrationRepository
+import com.example.researchos.settings.DisplaySettingsRepository
 import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.workflow.ConfirmedWorkflowStep
 import com.example.researchos.transport.workflow.ExternalActionRequest
@@ -69,6 +70,7 @@ class ExternalWorkflowActivity : FragmentActivity() {
         // MainActivity ever being created. Initialise device calibration here
         // as well so calibrated-scale settings use the saved dp/mm value.
         CalibrationRepository.initialiseBlocking(applicationContext)
+        DisplaySettingsRepository.initialiseBlocking(applicationContext)
         request = AndroidIntentRequestReader.workflowRequest(intent)
         ResearchRuntime.session.setInvocationContext(request.invocationContext)
 

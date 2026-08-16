@@ -269,6 +269,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../capabilities/image-redaction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Image redaction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../capabilities/scheduler-capability.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Scheduler</span></a>
   </div>
@@ -380,8 +386,25 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#source-release_notes_v2.1.6.md" id="toc-source-release_notes_v2.1.6.md" class="nav-link active" data-scroll-target="#source-release_notes_v2.1.6.md">Source: <code>RELEASE_NOTES_v2.1.6.md</code></a></li>
+  <li><a href="#source-release_notes_v2.1.8.md" id="toc-source-release_notes_v2.1.8.md" class="nav-link active" data-scroll-target="#source-release_notes_v2.1.8.md">Source: <code>RELEASE_NOTES_v2.1.8.md</code></a></li>
   <li><a href="#highlights" id="toc-highlights" class="nav-link" data-scroll-target="#highlights">Highlights</a>
+  <ul class="collapse">
+  <li><a href="#app-wide-display-accessibility" id="toc-app-wide-display-accessibility" class="nav-link" data-scroll-target="#app-wide-display-accessibility">App-wide display accessibility</a></li>
+  <li><a href="#cleaner-capability-testing" id="toc-cleaner-capability-testing" class="nav-link" data-scroll-target="#cleaner-capability-testing">Cleaner capability testing</a></li>
+  <li><a href="#media-previews-in-test-results" id="toc-media-previews-in-test-results" class="nav-link" data-scroll-target="#media-previews-in-test-results">Media previews in test results</a></li>
+  <li><a href="#better-output-discipline" id="toc-better-output-discipline" class="nav-link" data-scroll-target="#better-output-discipline">Better output discipline</a></li>
+  <li><a href="#question-primitive-refinements" id="toc-question-primitive-refinements" class="nav-link" data-scroll-target="#question-primitive-refinements">Question primitive refinements</a></li>
+  <li><a href="#image-annotation-and-redaction-grouping" id="toc-image-annotation-and-redaction-grouping" class="nav-link" data-scroll-target="#image-annotation-and-redaction-grouping">Image annotation and redaction grouping</a></li>
+  </ul></li>
+  <li><a href="#validation" id="toc-validation" class="nav-link" data-scroll-target="#validation">Validation</a></li>
+  <li><a href="#source-release_notes_v2.1.7.md" id="toc-source-release_notes_v2.1.7.md" class="nav-link" data-scroll-target="#source-release_notes_v2.1.7.md">Source: <code>RELEASE_NOTES_v2.1.7.md</code></a></li>
+  <li><a href="#highlights-1" id="toc-highlights-1" class="nav-link" data-scroll-target="#highlights-1">Highlights</a>
+  <ul class="collapse">
+  <li><a href="#single-folder-protocol-exports" id="toc-single-folder-protocol-exports" class="nav-link" data-scroll-target="#single-folder-protocol-exports">Single-folder protocol exports</a></li>
+  <li><a href="#clearer-protocol-folder-naming" id="toc-clearer-protocol-folder-naming" class="nav-link" data-scroll-target="#clearer-protocol-folder-naming">Clearer protocol folder naming</a></li>
+  </ul></li>
+  <li><a href="#source-release_notes_v2.1.6.md" id="toc-source-release_notes_v2.1.6.md" class="nav-link" data-scroll-target="#source-release_notes_v2.1.6.md">Source: <code>RELEASE_NOTES_v2.1.6.md</code></a></li>
+  <li><a href="#highlights-2" id="toc-highlights-2" class="nav-link" data-scroll-target="#highlights-2">Highlights</a>
   <ul class="collapse">
   <li><a href="#protocol-library" id="toc-protocol-library" class="nav-link" data-scroll-target="#protocol-library">Protocol library</a></li>
   <li><a href="#canonical-output-packages" id="toc-canonical-output-packages" class="nav-link" data-scroll-target="#canonical-output-packages">Canonical output packages</a></li>
@@ -392,10 +415,10 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#output-export-ux" id="toc-output-export-ux" class="nav-link" data-scroll-target="#output-export-ux">Output export UX</a></li>
   <li><a href="#runtime-cleanup" id="toc-runtime-cleanup" class="nav-link" data-scroll-target="#runtime-cleanup">Runtime cleanup</a></li>
   </ul></li>
-  <li><a href="#validation" id="toc-validation" class="nav-link" data-scroll-target="#validation">Validation</a></li>
+  <li><a href="#validation-1" id="toc-validation-1" class="nav-link" data-scroll-target="#validation-1">Validation</a></li>
   <li><a href="#notes" id="toc-notes" class="nav-link" data-scroll-target="#notes">Notes</a></li>
   <li><a href="#source-release_notes_v2.1.5.md" id="toc-source-release_notes_v2.1.5.md" class="nav-link" data-scroll-target="#source-release_notes_v2.1.5.md">Source: <code>RELEASE_NOTES_v2.1.5.md</code></a></li>
-  <li><a href="#highlights-1" id="toc-highlights-1" class="nav-link" data-scroll-target="#highlights-1">Highlights</a>
+  <li><a href="#highlights-3" id="toc-highlights-3" class="nav-link" data-scroll-target="#highlights-3">Highlights</a>
   <ul class="collapse">
   <li><a href="#esp32-sensor-framework" id="toc-esp32-sensor-framework" class="nav-link" data-scroll-target="#esp32-sensor-framework">ESP32 sensor framework</a></li>
   <li><a href="#phone-only-firmware-installation" id="toc-phone-only-firmware-installation" class="nav-link" data-scroll-target="#phone-only-firmware-installation">Phone-only firmware installation</a></li>
@@ -403,10 +426,10 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#sensor-profile-selection" id="toc-sensor-profile-selection" class="nav-link" data-scroll-target="#sensor-profile-selection">Sensor profile selection</a></li>
   <li><a href="#modular-sensor-driver-firmware" id="toc-modular-sensor-driver-firmware" class="nav-link" data-scroll-target="#modular-sensor-driver-firmware">Modular sensor-driver firmware</a></li>
   </ul></li>
-  <li><a href="#validation-1" id="toc-validation-1" class="nav-link" data-scroll-target="#validation-1">Validation</a></li>
+  <li><a href="#validation-2" id="toc-validation-2" class="nav-link" data-scroll-target="#validation-2">Validation</a></li>
   <li><a href="#notes-1" id="toc-notes-1" class="nav-link" data-scroll-target="#notes-1">Notes</a></li>
   <li><a href="#source-release_notes_v2.1.4.md" id="toc-source-release_notes_v2.1.4.md" class="nav-link" data-scroll-target="#source-release_notes_v2.1.4.md">Source: <code>RELEASE_NOTES_v2.1.4.md</code></a></li>
-  <li><a href="#highlights-2" id="toc-highlights-2" class="nav-link" data-scroll-target="#highlights-2">Highlights</a>
+  <li><a href="#highlights-4" id="toc-highlights-4" class="nav-link" data-scroll-target="#highlights-4">Highlights</a>
   <ul class="collapse">
   <li><a href="#sms-sending" id="toc-sms-sending" class="nav-link" data-scroll-target="#sms-sending">SMS sending</a></li>
   <li><a href="#bluetooth-device-inspection-and-experimental-printer-support" id="toc-bluetooth-device-inspection-and-experimental-printer-support" class="nav-link" data-scroll-target="#bluetooth-device-inspection-and-experimental-printer-support">Bluetooth device inspection and experimental printer support</a></li>
@@ -414,7 +437,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#spatial-geometry-tools" id="toc-spatial-geometry-tools" class="nav-link" data-scroll-target="#spatial-geometry-tools">Spatial geometry tools</a></li>
   </ul></li>
   <li><a href="#other-improvements" id="toc-other-improvements" class="nav-link" data-scroll-target="#other-improvements">Other Improvements</a></li>
-  <li><a href="#validation-2" id="toc-validation-2" class="nav-link" data-scroll-target="#validation-2">Validation</a></li>
+  <li><a href="#validation-3" id="toc-validation-3" class="nav-link" data-scroll-target="#validation-3">Validation</a></li>
   <li><a href="#notes-2" id="toc-notes-2" class="nav-link" data-scroll-target="#notes-2">Notes</a></li>
   <li><a href="#source-release_notes_v2.1.3.md" id="toc-source-release_notes_v2.1.3.md" class="nav-link" data-scroll-target="#source-release_notes_v2.1.3.md">Source: <code>RELEASE_NOTES_v2.1.3.md</code></a></li>
   <li><a href="#android-app-inspector" id="toc-android-app-inspector" class="nav-link" data-scroll-target="#android-app-inspector">Android app inspector</a></li>
@@ -426,9 +449,9 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#odk-and-kobo-form-launcher" id="toc-odk-and-kobo-form-launcher" class="nav-link" data-scroll-target="#odk-and-kobo-form-launcher">ODK and Kobo form launcher</a></li>
   <li><a href="#scheduler" id="toc-scheduler" class="nav-link" data-scroll-target="#scheduler">Scheduler</a></li>
   <li><a href="#additional-runtime-improvements" id="toc-additional-runtime-improvements" class="nav-link" data-scroll-target="#additional-runtime-improvements">Additional runtime improvements</a></li>
-  <li><a href="#validation-3" id="toc-validation-3" class="nav-link" data-scroll-target="#validation-3">Validation</a></li>
+  <li><a href="#validation-4" id="toc-validation-4" class="nav-link" data-scroll-target="#validation-4">Validation</a></li>
   <li><a href="#source-release_notes_v2.0.0.md" id="toc-source-release_notes_v2.0.0.md" class="nav-link" data-scroll-target="#source-release_notes_v2.0.0.md">Source: <code>RELEASE_NOTES_v2.0.0.md</code></a></li>
-  <li><a href="#highlights-3" id="toc-highlights-3" class="nav-link" data-scroll-target="#highlights-3">Highlights</a></li>
+  <li><a href="#highlights-5" id="toc-highlights-5" class="nav-link" data-scroll-target="#highlights-5">Highlights</a></li>
   <li><a href="#included-capabilities" id="toc-included-capabilities" class="nav-link" data-scroll-target="#included-capabilities">Included capabilities</a></li>
   <li><a href="#nfc-improvements" id="toc-nfc-improvements" class="nav-link" data-scroll-target="#nfc-improvements">NFC improvements</a></li>
   <li><a href="#compatibility-and-migration" id="toc-compatibility-and-migration" class="nav-link" data-scroll-target="#compatibility-and-migration">Compatibility and migration</a></li>
@@ -459,12 +482,98 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
+<section id="source-release_notes_v2.1.8.md" class="level2">
+<h2 class="anchored" data-anchor-id="source-release_notes_v2.1.8.md">Source: <code>RELEASE_NOTES_v2.1.8.md</code></h2>
+<p>ResearchOS v2.1.8 is a usability and output-polish release. It focuses on making direct capability use feel less like a debug console and more like a field tool: larger text, cleaner fullscreen intent previews, clearer test/save behaviour, persistent result previews, better media feedback, and tighter image annotation/redaction handling.</p>
+</section>
+<section id="highlights" class="level2">
+<h2 class="anchored" data-anchor-id="highlights">Highlights</h2>
+<section id="app-wide-display-accessibility" class="level3">
+<h3 class="anchored" data-anchor-id="app-wide-display-accessibility">App-wide display accessibility</h3>
+<p>ResearchOS now has global display-accessibility settings in the dashboard. Text scale can be adjusted across the app, and the default has been increased so ordinary field-facing screens are easier to read.</p>
+<p>The dashboard action layout has also been changed to avoid cramped horizontal button rows. This prevents buttons from colliding or wrapping awkwardly at larger display scales.</p>
+</section>
+<section id="cleaner-capability-testing" class="level3">
+<h3 class="anchored" data-anchor-id="cleaner-capability-testing">Cleaner capability testing</h3>
+<p>Capability cards now distinguish between:</p>
+<ul>
+<li><strong>Test</strong> — run the capability without saving study output;</li>
+<li><strong>Test and save</strong> — run the capability and write a normal output package;</li>
+<li><strong>Open runner</strong> — inspect the interactive runner;</li>
+<li><strong>Test intent launch</strong> — preview the fullscreen external-intent experience.</li>
+</ul>
+<p>Test runs now leave a persistent <strong>Last confirmed result</strong> panel on the capability card rather than disappearing back to the dashboard with no feedback.</p>
+</section>
+<section id="media-previews-in-test-results" class="level3">
+<h3 class="anchored" data-anchor-id="media-previews-in-test-results">Media previews in test results</h3>
+<p>The dashboard result preview now detects image URI outputs and shows image previews directly inside the last-result panel. This makes camera/photo capabilities much easier to test because the operator can immediately confirm that the returned media are sensible.</p>
+</section>
+<section id="better-output-discipline" class="level3">
+<h3 class="anchored" data-anchor-id="better-output-discipline">Better output discipline</h3>
+<p>Dashboard dry-runs no longer pretend to be study captures. Output writing is explicit through <strong>Test and save</strong> or through real protocol execution.</p>
+<p>The output formatter has also been tightened so old dashboard/example placeholder subjects such as:</p>
+<pre class="text"><code>participant/P001</code></pre>
+<p>are no longer emitted as if they were real study subjects during dashboard/test runs. Real caller-supplied subjects from ODK or another external workflow remain supported.</p>
+</section>
+<section id="question-primitive-refinements" class="level3">
+<h3 class="anchored" data-anchor-id="question-primitive-refinements">Question primitive refinements</h3>
+<p>The native question capabilities have been made more usable as actual ResearchOS protocol steps:</p>
+<ul>
+<li>intent previews open the real question/answer interface rather than a settings panel;</li>
+<li>text and number questions focus the answer box correctly;</li>
+<li>text questions support multiline wrapping;</li>
+<li>number questions use numeric keyboard behaviour;</li>
+<li>select-multiple questions support mutually exclusive options and mutually exclusive groups.</li>
+</ul>
+</section>
+<section id="image-annotation-and-redaction-grouping" class="level3">
+<h3 class="anchored" data-anchor-id="image-annotation-and-redaction-grouping">Image annotation and redaction grouping</h3>
+<p>The scaled photo selector and image redaction tool now appear together under:</p>
+<pre class="text"><code>Image annotation and redaction</code></pre>
+<p>Image redaction no longer changes the image geometry before the operator marks the redaction grid. The redaction grid and touch mapping now align to the displayed image bounds rather than the surrounding white box.</p>
+</section>
+</section>
+<section id="validation" class="level2">
+<h2 class="anchored" data-anchor-id="validation">Validation</h2>
+<p>Built with:</p>
+<pre class="text"><code>./gradlew :app:assembleDebug</code></pre>
+<p>Result:</p>
+<pre class="text"><code>BUILD SUCCESSFUL</code></pre>
+<hr>
+</section>
+<section id="source-release_notes_v2.1.7.md" class="level2">
+<h2 class="anchored" data-anchor-id="source-release_notes_v2.1.7.md">Source: <code>RELEASE_NOTES_v2.1.7.md</code></h2>
+<p>ResearchOS v2.1.7 is a focused protocol-output fix release. It corrects how protocol runs are exported so that a protocol behaves as one coherent submission rather than a set of separate per-step exports.</p>
+</section>
+<section id="highlights-1" class="level2">
+<h2 class="anchored" data-anchor-id="highlights-1">Highlights</h2>
+<section id="single-folder-protocol-exports" class="level3">
+<h3 class="anchored" data-anchor-id="single-folder-protocol-exports">Single-folder protocol exports</h3>
+<p>Protocol runs now create the shared protocol output folder before launching the first step.</p>
+<p>Previously, the first step of a protocol could be treated like a standalone capability run. That produced a separate JSON file and folder before the later steps entered the protocol export path.</p>
+<p>This is now fixed. A protocol run should export as:</p>
+<ul>
+<li>one protocol output folder;</li>
+<li>one canonical protocol JSON file;</li>
+<li>one shared <code>researchos_submission_id</code>;</li>
+<li>a <code>steps</code> array containing all completed protocol steps;</li>
+<li>any attachments linked to the same protocol run.</li>
+</ul>
+</section>
+<section id="clearer-protocol-folder-naming" class="level3">
+<h3 class="anchored" data-anchor-id="clearer-protocol-folder-naming">Clearer protocol folder naming</h3>
+<p>Protocol output folders now use the convention:</p>
+<pre class="text"><code>protocol_name__UUID___timestamp</code></pre>
+<p>This keeps the human-readable protocol name first, makes the submission UUID easy to identify, and still preserves the run time in the filename.</p>
+<hr>
+</section>
+</section>
 <section id="source-release_notes_v2.1.6.md" class="level2">
 <h2 class="anchored" data-anchor-id="source-release_notes_v2.1.6.md">Source: <code>RELEASE_NOTES_v2.1.6.md</code></h2>
 <p>ResearchOS v2.1.6 strengthens the app as a native protocol runner. The main change is a new protocol/output layer: reusable capability presets can be saved, chained into named protocols, run directly from ResearchOS, and exported as coherent JSON packages with linked attachments. This release also adds several native building-block capabilities, including random number generation and basic question primitives, moving ResearchOS closer to being a lightweight standalone data-collection runtime as well as an ODK companion.</p>
 </section>
-<section id="highlights" class="level2">
-<h2 class="anchored" data-anchor-id="highlights">Highlights</h2>
+<section id="highlights-2" class="level2">
+<h2 class="anchored" data-anchor-id="highlights-2">Highlights</h2>
 <section id="protocol-library" class="level3">
 <h3 class="anchored" data-anchor-id="protocol-library">Protocol library</h3>
 <p>ResearchOS now has a protocol library for reusable native workflows.</p>
@@ -556,8 +665,8 @@ question.select_multiple</code></pre>
 <p>This release also continues the cleanup of older compatibility paths. The goal remains that capabilities should be standalone modules, outputs should use the current canonical package structure, and new workflows should not depend on legacy transport shims.</p>
 </section>
 </section>
-<section id="validation" class="level2">
-<h2 class="anchored" data-anchor-id="validation">Validation</h2>
+<section id="validation-1" class="level2">
+<h2 class="anchored" data-anchor-id="validation-1">Validation</h2>
 <p>Built with:</p>
 <pre class="text"><code>./gradlew :app:assembleDebug</code></pre>
 <p>Result:</p>
@@ -580,8 +689,8 @@ question.select_multiple</code></pre>
 <h2 class="anchored" data-anchor-id="source-release_notes_v2.1.5.md">Source: <code>RELEASE_NOTES_v2.1.5.md</code></h2>
 <p>ResearchOS v2.1.5 introduces the first end-to-end ESP32 sensor framework. The app can now install MicroPython onto an ESP32-C3, upload bundled ResearchOS sensor firmware from the phone, provision the node over BLE, and save it into the local device registry. This is the foundation for low-cost custom environmental and field sensors that can be configured without a laptop.</p>
 </section>
-<section id="highlights-1" class="level2">
-<h2 class="anchored" data-anchor-id="highlights-1">Highlights</h2>
+<section id="highlights-3" class="level2">
+<h2 class="anchored" data-anchor-id="highlights-3">Highlights</h2>
 <section id="esp32-sensor-framework" class="level3">
 <h3 class="anchored" data-anchor-id="esp32-sensor-framework">ESP32 sensor framework</h3>
 <p>The ESP32 firmware installer and BLE sensor provisioner are now grouped together under:</p>
@@ -634,8 +743,8 @@ sensor_drivers/__init__.py</code></pre>
 <p>This means the ESP32 framework is no longer conceptually tied to AHT20. AHT20 is simply the first working driver.</p>
 </section>
 </section>
-<section id="validation-1" class="level2">
-<h2 class="anchored" data-anchor-id="validation-1">Validation</h2>
+<section id="validation-2" class="level2">
+<h2 class="anchored" data-anchor-id="validation-2">Validation</h2>
 <p>Built with:</p>
 <pre class="text"><code>./gradlew assembleDebug</code></pre>
 <p>Result:</p>
@@ -658,8 +767,8 @@ sensor_drivers/__init__.py</code></pre>
 <h2 class="anchored" data-anchor-id="source-release_notes_v2.1.4.md">Source: <code>RELEASE_NOTES_v2.1.4.md</code></h2>
 <p>ResearchOS v2.1.4 expands the platform’s field-device and workflow capabilities. This release adds simple SMS sending, stronger Bluetooth device exploration, early Bluetooth printer support, offline NFC protocol administration, and new spatial geometry tools for field measurements.</p>
 </section>
-<section id="highlights-2" class="level2">
-<h2 class="anchored" data-anchor-id="highlights-2">Highlights</h2>
+<section id="highlights-4" class="level2">
+<h2 class="anchored" data-anchor-id="highlights-4">Highlights</h2>
 <section id="sms-sending" class="level3">
 <h3 class="anchored" data-anchor-id="sms-sending">SMS sending</h3>
 <p>ResearchOS can now send a caller-supplied SMS message to a caller-supplied phone number.</p>
@@ -698,8 +807,8 @@ geometry_distance_estimation</code></pre>
 <li>Camera and sensor platform helpers were updated to support the new geometry workflows.</li>
 </ul>
 </section>
-<section id="validation-2" class="level2">
-<h2 class="anchored" data-anchor-id="validation-2">Validation</h2>
+<section id="validation-3" class="level2">
+<h2 class="anchored" data-anchor-id="validation-3">Validation</h2>
 <p>Built and tested with:</p>
 <pre class="text"><code>./gradlew testDebugUnitTest assembleDebug</code></pre>
 <p>Result:</p>
@@ -786,8 +895,8 @@ geometry_distance_estimation</code></pre>
 <li>Capability modules publish typed scheduler configuration schemas.</li>
 </ul>
 </section>
-<section id="validation-3" class="level2">
-<h2 class="anchored" data-anchor-id="validation-3">Validation</h2>
+<section id="validation-4" class="level2">
+<h2 class="anchored" data-anchor-id="validation-4">Validation</h2>
 <ul>
 <li><code>testDebugUnitTest</code> passed.</li>
 <li><code>assembleDebug</code> passed.</li>
@@ -798,8 +907,8 @@ geometry_distance_estimation</code></pre>
 <h2 class="anchored" data-anchor-id="source-release_notes_v2.0.0.md">Source: <code>RELEASE_NOTES_v2.0.0.md</code></h2>
 <p>ResearchOS v2.0.0 is the first cohesive field-capability release of the Android reference application. It establishes independently owned capability modules, direct intent execution from ODK, and cryptographically verifiable field evidence.</p>
 </section>
-<section id="highlights-3" class="level2">
-<h2 class="anchored" data-anchor-id="highlights-3">Highlights</h2>
+<section id="highlights-5" class="level2">
+<h2 class="anchored" data-anchor-id="highlights-5">Highlights</h2>
 <ul>
 <li><strong>Capability modules are self-contained.</strong> Each module owns its methods, screens, RIL bindings, documentation, and example ODK XLSForms. The core runtime discovers modules without capability-specific wiring.</li>
 <li><strong>ODK intent execution is direct.</strong> An externally invoked capability starts its operation immediately and returns to the calling form on completion; the dashboard remains a manual testing environment.</li>

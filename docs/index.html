@@ -269,6 +269,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./capabilities/image-redaction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Image redaction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./capabilities/scheduler-capability.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Scheduler</span></a>
   </div>
@@ -510,6 +516,7 @@ ul.task-list li input[type="checkbox"] {
 <li>local execution triggers.</li>
 </ul>
 <p>This allows field devices to continue supporting research activities without relying on constant server communication.</p>
+<p>ResearchOS can also run configured capability presets and named protocols directly from the app. Test runs are separated from real saved output: <strong>Test</strong> previews the result without writing a study package, while <strong>Test and save</strong> writes the normal JSON-plus-attachments output package. Each card keeps a visible last-result preview so operators can inspect returned fields and image media before using a workflow operationally.</p>
 <section id="a-system-notification-leads-to-a-chain-of-events-odk-collect-form-and-enketo-webform-are-scheduled-for-completion-at-a-prespecified-time" class="level4">
 <h4 class="anchored" data-anchor-id="a-system-notification-leads-to-a-chain-of-events-odk-collect-form-and-enketo-webform-are-scheduled-for-completion-at-a-prespecified-time">A system notification leads to a chain of events (ODK Collect form and Enketo Webform) are scheduled for completion at a prespecified time</h4>
 <p><img src="assets/screenshots/scheduled_event_chain2.png" class="img-fluid" width="350"><br>
@@ -565,9 +572,12 @@ ul.task-list li input[type="checkbox"] {
 <li>document scanning;</li>
 <li>OCR of printed text;</li>
 <li>image capture workflows;</li>
+<li>scaled photo annotation;</li>
+<li>image redaction before export;</li>
 <li>computer vision analysis;</li>
 <li>structured extraction of information from visual sources.</li>
 </ul>
+<p>Image-output capabilities can return media attachments into ODK/Kobo calls or into ResearchOS output folders. Direct tests now show image previews in the dashboard so it is easier to confirm that the captured or redacted media are what the operator intended.</p>
 <hr>
 </section>
 <section id="android-ecosystem-integration" class="level2">

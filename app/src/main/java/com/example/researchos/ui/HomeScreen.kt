@@ -2,8 +2,11 @@ package com.example.researchos.ui
 
 import android.content.Intent
 import android.content.ClipData
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Column
@@ -41,6 +44,8 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -68,6 +73,7 @@ import com.example.researchos.core.researchos.withInvocationContext
 import com.example.researchos.modules.ModuleExample
 import com.example.researchos.modules.ResearchOSModule
 import com.example.researchos.modules.ResearchOSModuleRegistry
+import com.example.researchos.settings.DisplaySettingsScreen
 import com.example.researchos.settings.SettingsState
 import com.example.researchos.transport.OutputFormatter
 import com.example.researchos.transport.OutputExportRepository
@@ -718,13 +724,29 @@ private fun CapabilityCard(
 ) {
     val context = LocalContext.current
     var expanded by rememberSaveable(method.id) { mutableStateOf(false) }
+    var quickTestOpen by rememberSaveable("${method.id}:quickTest") { mutableStateOf(false) }
+    var quickTestSaveOpen by rememberSaveable("${method.id}:quickTestSave") { mutableStateOf(false) }
     var runnerOpen by rememberSaveable(method.id) { mutableStateOf(false) }
     var intentTestOpen by rememberSaveable("${method.id}:intentTest") { mutableStateOf(false) }
     var lastResult by remember(method.id) { mutableStateOf<ExecutionResult?>(null) }
+    var lastResultStatus by rememberSaveable("${method.id}:lastResultStatus") { mutableStateOf<String?>(null) }
     var presetDialogOpen by rememberSaveable("${method.id}:presetDialog") { mutableStateOf(false) }
     var presetStatus by rememberSaveable("${method.id}:presetStatus") { mutableStateOf<String?>(null) }
     val settingSchema = remember(method.id) { CapabilityConfigurationRegistry.settingsFor(method.id) }
     val settingsState = remember(method.id) { SettingsState(settingSchema) }
+    fun acceptResult(result: ExecutionResult, saveOutput: Boolean) {
+        lastResult = result
+        lastResultStatus = if (saveOutput) {
+            runCatching { OutputExportRepository.exportPackage(context, result) }
+                .onSuccess { OutputExportRepository.notifySaved(context, it) }
+                .fold(
+                    onSuccess = { "Saved output package: ${it.summary}" },
+                    onFailure = { "Save failed: ${it.message ?: "storage error"}" }
+                )
+        } else {
+            "Test only — not saved."
+        }
+    }
 
     ElevatedCard(
         modifier = Modifier
@@ -736,7 +758,8 @@ private fun CapabilityCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = !expanded }
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = if (expanded) "▼ ${method.descriptor.name}" else "▶ ${method.descriptor.name}",
@@ -753,44 +776,81 @@ private fun CapabilityCard(
                 Text(it, modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodySmall)
             }
             module?.let { Text("Module: ${it.displayName}", style = MaterialTheme.typography.labelSmall) }
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { quickTestOpen = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("▶ Test")
+            }
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = { quickTestSaveOpen = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Test and save")
+            }
+            lastResult?.let { ResultPreview(it, lastResultStatus) }
 
             if (expanded) {
                 Spacer(Modifier.height(8.dp))
-                CapabilityMetadata(method, module)
+                CapabilityOutputsSection(method, module)
+                CollapsibleCapabilitySection(
+                    title = "Settings",
+                    subtitle = if (settingSchema.isEmpty()) "No typed settings" else "${settingSchema.size} setting${if (settingSchema.size == 1) "" else "s"}"
+                ) {
+                    if (settingSchema.isEmpty()) {
+                        Text(
+                            "This capability has no typed settings registered yet. Saving a preset will still preserve the capability identity.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    } else {
+                        SettingsRenderer(settingSchema, settingsState)
+                    }
+                }
+                CapabilityExamplesSection(method, module)
                 Spacer(Modifier.height(8.dp))
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f),
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Column(Modifier.padding(10.dp)) {
-                        Text("Preset settings", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                        if (settingSchema.isEmpty()) {
-                            Text(
-                                "This capability has no typed settings registered yet. Saving a preset will still preserve the capability identity.",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        } else {
-                            SettingsRenderer(settingSchema, settingsState)
+                        Text("Debug actions", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text("These dry-runs do not save study data. Run protocols create output packages.", style = MaterialTheme.typography.bodySmall)
+                        Spacer(Modifier.height(8.dp))
+                        Button(
+                            onClick = { runnerOpen = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Open runner")
                         }
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                Row {
-                    Button(onClick = { runnerOpen = !runnerOpen }) {
-                        Text(if (runnerOpen) "Hide runner" else "Open runner")
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    OutlinedButton(onClick = { intentTestOpen = !intentTestOpen }) {
-                        Text(if (intentTestOpen) "Hide intent test" else "Test intent launch")
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    OutlinedButton(onClick = { presetDialogOpen = true }) {
-                        Text("Save as preset")
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    if (lastResult != null) {
-                        OutlinedButton(onClick = { lastResult = null }) { Text("Clear result") }
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { intentTestOpen = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Test intent launch")
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { presetDialogOpen = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Save as preset")
+                        }
+                        if (lastResult != null) {
+                            Spacer(Modifier.height(8.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    lastResult = null
+                                    lastResultStatus = null
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Clear last confirmed result")
+                            }
+                        }
                     }
                 }
                 presetStatus?.let {
@@ -818,52 +878,73 @@ private fun CapabilityCard(
                         }
                     )
                 }
-                lastResult?.let { ResultPreview(it) }
-                if (runnerOpen) {
-                    Spacer(Modifier.height(12.dp))
+            }
+            if (quickTestOpen) {
+                FullScreenCapabilityDialog(onDismiss = { quickTestOpen = false }) {
+                    DashboardCapabilityRunner(
+                        method = method,
+                        module = module,
+                        screen = screen,
+                        intentTest = true,
+                        saveOutput = false,
+                        settingsJson = settingsJsonFromMap(settingsState.asMap()),
+                        onConfirmed = { result ->
+                            acceptResult(result, saveOutput = false)
+                            quickTestOpen = false
+                        },
+                        onCancel = { quickTestOpen = false }
+                    )
+                }
+            }
+            if (quickTestSaveOpen) {
+                FullScreenCapabilityDialog(onDismiss = { quickTestSaveOpen = false }) {
                     DashboardCapabilityRunner(
                         method = method,
                         module = module,
                         screen = screen,
                         intentTest = false,
+                        saveOutput = true,
                         settingsJson = settingsJsonFromMap(settingsState.asMap()),
                         onConfirmed = { result ->
-                            lastResult = ResearchRuntime.session.record(result)
+                            acceptResult(result, saveOutput = true)
+                            quickTestSaveOpen = false
+                        },
+                        onCancel = { quickTestSaveOpen = false }
+                    )
+                }
+            }
+            if (runnerOpen) {
+                FullScreenCapabilityDialog(onDismiss = { runnerOpen = false }) {
+                    DashboardCapabilityRunner(
+                        method = method,
+                        module = module,
+                        screen = screen,
+                        intentTest = false,
+                        saveOutput = false,
+                        settingsJson = settingsJsonFromMap(settingsState.asMap()),
+                        onConfirmed = { result ->
+                            acceptResult(result, saveOutput = false)
                             runnerOpen = false
                         },
                         onCancel = { runnerOpen = false }
                     )
                 }
-                if (intentTestOpen) {
-                    Dialog(
-                        onDismissRequest = { intentTestOpen = false },
-                        properties = DialogProperties(usePlatformDefaultWidth = false)
-                    ) {
-                        Surface(
-                            modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.background
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(18.dp)
-                            ) {
-                                DashboardCapabilityRunner(
-                                    method = method,
-                                    module = module,
-                                    screen = screen,
-                                    intentTest = true,
-                                    settingsJson = settingsJsonFromMap(settingsState.asMap()),
-                                    onConfirmed = { result ->
-                                        lastResult = ResearchRuntime.session.record(result)
-                                        intentTestOpen = false
-                                    },
-                                    onCancel = { intentTestOpen = false }
-                                )
-                            }
-                        }
-                    }
+            }
+            if (intentTestOpen) {
+                FullScreenCapabilityDialog(onDismiss = { intentTestOpen = false }) {
+                    DashboardCapabilityRunner(
+                        method = method,
+                        module = module,
+                        screen = screen,
+                        intentTest = true,
+                        saveOutput = false,
+                        settingsJson = settingsJsonFromMap(settingsState.asMap()),
+                        onConfirmed = { result ->
+                            acceptResult(result, saveOutput = false)
+                            intentTestOpen = false
+                        },
+                        onCancel = { intentTestOpen = false }
+                    )
                 }
             }
         }
@@ -871,19 +952,100 @@ private fun CapabilityCard(
 }
 
 @Composable
-private fun CapabilityMetadata(method: As100Method, module: ResearchOSModule?) {
+private fun FullScreenCapabilityDialog(
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(18.dp)
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollapsibleCapabilitySection(
+    title: String,
+    subtitle: String? = null,
+    content: @Composable () -> Unit
+) {
+    var expanded by rememberSaveable(title) { mutableStateOf(false) }
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(Modifier.padding(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    if (expanded) "▼ $title" else "▶ $title",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                subtitle?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.labelMedium)
+                }
+            }
+            if (expanded) {
+                Spacer(Modifier.height(8.dp))
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun CapabilityOutputsSection(method: As100Method, module: ResearchOSModule?) {
+    val bindings = module?.rilBindings().orEmpty().filter { it.actionId == method.id }
+    CollapsibleCapabilitySection(
+        title = "Outputs and RIL",
+        subtitle = "${method.descriptor.outputs.size} output${if (method.descriptor.outputs.size == 1) "" else "s"}"
+    ) {
+        Text("Outputs", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
+        Text(method.descriptor.outputs.joinToString().ifBlank { "none declared" }, style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(6.dp))
+        Text("Graph outputs", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
+        Text(method.descriptor.graphOutputs.joinToString().ifBlank { "none declared" }, style = MaterialTheme.typography.bodySmall)
+        if (bindings.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text("RIL phrases", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
+            bindings.forEach { binding ->
+                Text("• ${binding.phrase}", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CapabilityExamplesSection(method: As100Method, module: ResearchOSModule?) {
     val bindings = module?.rilBindings().orEmpty().filter { it.actionId == method.id }
     val examples = module?.examples().orEmpty().filter { example ->
         bindings.any { binding -> example.ril.contains(binding.phrase) || example.ril.contains(method.id) }
     }
-    Text("Outputs: ${method.descriptor.outputs.joinToString().ifBlank { "none declared" }}", style = MaterialTheme.typography.bodySmall)
-    Text("Graph outputs: ${method.descriptor.graphOutputs.joinToString().ifBlank { "none declared" }}", style = MaterialTheme.typography.bodySmall)
-    if (bindings.isNotEmpty()) {
-        Text("RIL: ${bindings.take(5).joinToString { it.phrase }}${if (bindings.size > 5) " …" else ""}", style = MaterialTheme.typography.bodySmall)
-    }
-    if (examples.isNotEmpty()) {
-        Spacer(Modifier.height(6.dp))
-        Text("Examples", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
+    CollapsibleCapabilitySection(
+        title = "Examples",
+        subtitle = "${examples.size} available"
+    ) {
+        if (examples.isEmpty()) {
+            Text("No module examples registered for this capability.", style = MaterialTheme.typography.bodySmall)
+        }
         examples.take(3).forEach { ExampleSummary(it) }
     }
 }
@@ -956,6 +1118,7 @@ private fun DashboardCapabilityRunner(
     module: ResearchOSModule?,
     screen: CapabilityScreenSpec?,
     intentTest: Boolean,
+    saveOutput: Boolean,
     settingsJson: String,
     onConfirmed: (ExecutionResult) -> Unit,
     onCancel: () -> Unit
@@ -970,7 +1133,7 @@ private fun DashboardCapabilityRunner(
             returns = emptyList(),
             returnMode = ReturnMode.Json,
             settings = settingsMapFromJson(settingsJson),
-            source = "dashboard"
+            source = if (saveOutput) "dashboard_save" else "dashboard"
         )
     }
     val action = request.actions.firstOrNull() ?: ExternalActionRequest(requestedId = method.id, canonicalId = method.id)
@@ -1015,15 +1178,22 @@ private fun testIntentWorkflowRequest(method: As100Method, module: ResearchOSMod
     return resolved.copy(
         actions = resolved.actions.map { action ->
             if (action.canonicalId == method.id || action.requestedId == method.id) {
-                action.copy(settings = action.settings + cardSettings)
+                action.copy(settings = stripDemoSubjectSettings(action.settings) + cardSettings)
             } else {
                 action
             }
         },
-        settings = resolved.settings + cardSettings,
+        invocationContext = InvocationContext(caller = "intent_test"),
+        settings = stripDemoSubjectSettings(resolved.settings) + cardSettings,
         source = "intent_test"
     )
 }
+
+private fun stripDemoSubjectSettings(settings: Map<String, String>): Map<String, String> =
+    settings.filterNot { (key, value) ->
+        value == "participant/P001" &&
+            key in setOf("entity_id", "subject_id", "context_entity_id", "participant_id")
+    }
 
 private fun testIntentExampleFor(method: As100Method, module: ResearchOSModule?): ModuleExample? {
     val bindings = module?.rilBindings().orEmpty().filter { it.actionId == method.id }
@@ -1081,27 +1251,112 @@ private fun GenericDashboardRunner(
 }
 
 @Composable
-private fun ResultPreview(result: ExecutionResult) {
+private fun ResultPreview(result: ExecutionResult, statusNote: String?) {
     val fields = OutputFormatter.fields(result, includeProvenance = false)
     var expanded by rememberSaveable(result.request.id.value) { mutableStateOf(false) }
     Spacer(Modifier.height(8.dp))
-    Text("Last confirmed result: ${result.status.name}", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
-    val visibleFields = if (expanded) fields.entries else fields.entries.take(10)
-    SelectionContainer {
-        Column {
-            visibleFields.forEach { (key, value) ->
-                Text("$key = ${value?.toString().orEmpty()}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Text(
+                "Last confirmed result",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleSmall
+            )
+            Text(
+                "Status: ${result.status.name}",
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            statusNote?.takeIf { it.isNotBlank() }?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall)
+            }
+            ResultMediaPreview(fields)
+            Spacer(Modifier.height(8.dp))
+            val visibleFields = if (expanded) fields.entries else fields.entries.take(10)
+            SelectionContainer {
+                Column {
+                    visibleFields.forEach { (key, value) ->
+                        Text(
+                            "$key = ${value?.toString().orEmpty()}",
+                            fontFamily = FontFamily.Monospace,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+            }
+            if (fields.size > 10) {
+                Text(
+                    text = if (expanded) "▲ Show fewer fields" else "▼ ${fields.size - 10} more fields",
+                    modifier = Modifier
+                        .clickable { expanded = !expanded }
+                        .padding(top = 6.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }
-    if (fields.size > 10) {
-        Text(
-            text = if (expanded) "▲ Show fewer fields" else "▼ ${fields.size - 10} more fields",
-            modifier = Modifier.clickable { expanded = !expanded }.padding(top = 4.dp),
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.labelSmall
-        )
+}
+
+@Composable
+private fun ResultMediaPreview(fields: Map<String, Any?>) {
+    val context = LocalContext.current
+    val mediaFields = fields
+        .filter { (key, value) ->
+            key.endsWith("_uri") &&
+                value?.toString()?.isNotBlank() == true &&
+                value.toString().looksLikeImageReference()
+        }
+        .entries
+        .take(4)
+        .toList()
+    if (mediaFields.isEmpty()) return
+    Spacer(Modifier.height(10.dp))
+    Text("Media preview", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+    mediaFields.forEach { (key, value) ->
+        val uriText = value?.toString().orEmpty()
+        val bitmap = remember(uriText) {
+            runCatching {
+                context.contentResolver.openInputStream(Uri.parse(uriText))?.use { input ->
+                    BitmapFactory.decodeStream(input)
+                }
+            }.getOrNull()
+        }
+        if (bitmap != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(key, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
+            ) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = key,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .padding(6.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
+        }
     }
+}
+
+private fun String.looksLikeImageReference(): Boolean {
+    val lower = lowercase()
+    return lower.startsWith("content://") ||
+        lower.startsWith("file://") ||
+        lower.endsWith(".jpg") ||
+        lower.endsWith(".jpeg") ||
+        lower.endsWith(".png") ||
+        lower.endsWith(".webp")
 }
 
 @Composable
@@ -1144,6 +1399,7 @@ private fun RuntimeStateCard() {
 
 @Composable
 private fun DeviceServicesCard() {
+    var displayExpanded by rememberSaveable { mutableStateOf(false) }
     var calibrationExpanded by rememberSaveable { mutableStateOf(false) }
     var signalsExpanded by rememberSaveable { mutableStateOf(false) }
 
@@ -1160,6 +1416,18 @@ private fun DeviceServicesCard() {
                 modifier = Modifier.padding(top = 4.dp),
                 style = MaterialTheme.typography.bodySmall
             )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .clickable { displayExpanded = !displayExpanded }
+            ) {
+                Text(if (displayExpanded) "▼ Display accessibility" else "▶ Display accessibility", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+            }
+            if (displayExpanded) {
+                Spacer(Modifier.height(8.dp))
+                DisplaySettingsScreen()
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

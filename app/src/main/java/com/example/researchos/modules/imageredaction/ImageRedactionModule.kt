@@ -6,7 +6,7 @@ import com.example.researchos.settings.MethodSetting
 
 object ImageRedactionModule : ResearchOSModule {
     override val moduleId = "imageredaction"
-    override val displayName = "Image redaction"
+    override val displayName = "Image annotation and redaction"
     override val summary = "Mask selected image regions and return only a redacted image attachment."
 
     override fun as100Methods() = listOf(As100ImageRedactionMethod)

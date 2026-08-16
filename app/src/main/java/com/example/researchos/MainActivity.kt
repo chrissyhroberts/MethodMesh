@@ -8,6 +8,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.activity.enableEdgeToEdge
 import com.example.researchos.calibration.CalibrationRepository
 import com.example.researchos.core.ResearchRuntime
+import com.example.researchos.settings.DisplaySettingsRepository
 import com.example.researchos.transport.android.IntentRouterActivity
 import com.example.researchos.ui.HomeScreen
 import com.example.researchos.ui.theme.ResearchOSTheme
@@ -21,6 +22,7 @@ class MainActivity : FragmentActivity() {
         if (routeExternalResearchOsIntent(intent)) return
 
         CalibrationRepository.initialise(applicationContext)
+        DisplaySettingsRepository.initialise(applicationContext)
 
         enableEdgeToEdge()
         setContent {

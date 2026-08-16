@@ -270,6 +270,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../capabilities/image-redaction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Image redaction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../capabilities/scheduler-capability.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Scheduler</span></a>
   </div>
@@ -386,18 +392,20 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#common-inputs" id="toc-common-inputs" class="nav-link" data-scroll-target="#common-inputs">Common inputs</a></li>
   <li><a href="#type-specific-inputs" id="toc-type-specific-inputs" class="nav-link" data-scroll-target="#type-specific-inputs">Type-specific inputs</a>
   <ul class="collapse">
+  <li><a href="#text" id="toc-text" class="nav-link" data-scroll-target="#text">Text</a></li>
   <li><a href="#number" id="toc-number" class="nav-link" data-scroll-target="#number">Number</a></li>
   <li><a href="#select-one-select-multiple" id="toc-select-one-select-multiple" class="nav-link" data-scroll-target="#select-one-select-multiple">Select one / select multiple</a></li>
   </ul></li>
   <li><a href="#example-intent-calls" id="toc-example-intent-calls" class="nav-link" data-scroll-target="#example-intent-calls">Example intent calls</a>
   <ul class="collapse">
-  <li><a href="#text" id="toc-text" class="nav-link" data-scroll-target="#text">Text</a></li>
+  <li><a href="#text-1" id="toc-text-1" class="nav-link" data-scroll-target="#text-1">Text</a></li>
   <li><a href="#number-1" id="toc-number-1" class="nav-link" data-scroll-target="#number-1">Number</a></li>
   <li><a href="#select-one" id="toc-select-one" class="nav-link" data-scroll-target="#select-one">Select one</a></li>
   <li><a href="#select-multiple" id="toc-select-multiple" class="nav-link" data-scroll-target="#select-multiple">Select multiple</a></li>
   </ul></li>
   <li><a href="#returned-fields" id="toc-returned-fields" class="nav-link" data-scroll-target="#returned-fields">Returned fields</a></li>
   <li><a href="#protocol-use" id="toc-protocol-use" class="nav-link" data-scroll-target="#protocol-use">Protocol use</a></li>
+  <li><a href="#direct-testing" id="toc-direct-testing" class="nav-link" data-scroll-target="#direct-testing">Direct testing</a></li>
   <li><a href="#limitations" id="toc-limitations" class="nav-link" data-scroll-target="#limitations">Limitations</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/capabilities/question-primitives.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
@@ -489,6 +497,10 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="type-specific-inputs" class="level2">
 <h2 class="anchored" data-anchor-id="type-specific-inputs">Type-specific inputs</h2>
+<section id="text" class="level3">
+<h3 class="anchored" data-anchor-id="text">Text</h3>
+<p>Text questions use a multiline answer box in user-facing mode. The prompt is used as the field label and the hint is shown as placeholder/help text where supplied.</p>
+</section>
 <section id="number" class="level3">
 <h3 class="anchored" data-anchor-id="number">Number</h3>
 <table class="caption-top table">
@@ -513,6 +525,10 @@ ul.task-list li input[type="checkbox"] {
 <section id="select-one-select-multiple" class="level3">
 <h3 class="anchored" data-anchor-id="select-one-select-multiple">Select one / select multiple</h3>
 <table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
 <thead>
 <tr class="header">
 <th>Input</th>
@@ -524,14 +540,22 @@ ul.task-list li input[type="checkbox"] {
 <td><code>input_options</code></td>
 <td>Option list separated by <code>|</code>, comma, or newline.</td>
 </tr>
+<tr class="even">
+<td><code>input_exclusive_options</code></td>
+<td>Select-multiple options that cannot be combined with any other selection, e.g.&nbsp;<code>None|Unknown</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>input_exclusive_groups</code></td>
+<td>Mutually exclusive groups, one group per line, e.g.&nbsp;<code>Yes|No</code>.</td>
+</tr>
 </tbody>
 </table>
 </section>
 </section>
 <section id="example-intent-calls" class="level2">
 <h2 class="anchored" data-anchor-id="example-intent-calls">Example intent calls</h2>
-<section id="text" class="level3">
-<h3 class="anchored" data-anchor-id="text">Text</h3>
+<section id="text-1" class="level3">
+<h3 class="anchored" data-anchor-id="text-1">Text</h3>
 <pre class="text"><code>com.example.researchos.EXECUTE_METHOD(method_id='question.text',input_question_id='chief_complaint',input_prompt='What is the main complaint?',input_required='true',return_mode='flat')</code></pre>
 </section>
 <section id="number-1" class="level3">
@@ -643,6 +667,10 @@ ul.task-list li input[type="checkbox"] {
 <li>Run the protocol and export one canonical JSON package.</li>
 </ol>
 <p>The exported JSON package keeps the question response inside the relevant protocol step.</p>
+</section>
+<section id="direct-testing" class="level2">
+<h2 class="anchored" data-anchor-id="direct-testing">Direct testing</h2>
+<p>The dashboard <strong>Test</strong> button opens the same question interface that an intent or protocol run would use. It does not save output. <strong>Test and save</strong> writes a normal output package, which is useful when checking text wrapping, validation and select-multiple constraints with real exported JSON.</p>
 </section>
 <section id="limitations" class="level2">
 <h2 class="anchored" data-anchor-id="limitations">Limitations</h2>

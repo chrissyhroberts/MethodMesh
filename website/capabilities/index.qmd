@@ -192,7 +192,17 @@ Generate secure or fixed-seed random numbers with count, range and step controls
 
 **Documented and demonstrated**
 
-Capture or select a photograph with scale and measurement context.
+Capture a ruler-calibrated photograph, select grid regions, and return original and annotated image attachments.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Image redaction](image-redaction.qmd)
+
+`image.redact`
+
+**Implemented and documented**
+
+Capture or pick an image, mask selected grid cells, and return only the redacted image plus mask metadata.
 :::
 
 ::: {.g-col-12 .g-col-md-6}

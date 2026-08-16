@@ -5,7 +5,7 @@ import com.example.researchos.settings.MethodSetting
 
 object ScaledPhotoModule : ResearchOSModule {
     override val moduleId = "scaledphoto"
-    override val displayName = "Scaled photo selector"
+    override val displayName = "Image annotation and redaction"
     override val summary = "Capture a ruler-calibrated photo and an optional grid-based region selection."
     override fun as100Methods() = listOf(As100ScaledPhotoMethod)
     override fun capabilityScreens() = listOf(ScaledPhotoCapabilityScreen)

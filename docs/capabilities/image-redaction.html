@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Capability catalogue – ResearchOS User Guide</title>
+<title>Image redaction – ResearchOS User Guide</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -30,8 +30,8 @@ ul.task-list li input[type="checkbox"] {
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../capabilities/admin-fingerprint.html" rel="next">
-<link href="../scheduling.html" rel="prev">
+<link href="../capabilities/scheduler-capability.html" rel="next">
+<link href="../capabilities/scaled-photo.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
@@ -75,7 +75,7 @@ ul.task-list li input[type="checkbox"] {
 <link rel="stylesheet" href="../styles.css">
 </head>
 
-<body class="nav-sidebar docked fullcontent quarto-light">
+<body class="nav-sidebar docked quarto-light">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -84,7 +84,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/index.html">Capability catalogue</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/image-redaction.html">Image redaction</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -156,7 +156,7 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../capabilities/index.html" class="sidebar-item-text sidebar-link active">
+  <a href="../capabilities/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Capability catalogue</span></a>
   </div>
 </li>
@@ -270,7 +270,7 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../capabilities/image-redaction.html" class="sidebar-item-text sidebar-link">
+  <a href="../capabilities/image-redaction.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Image redaction</span></a>
   </div>
 </li>
@@ -382,13 +382,32 @@ ul.task-list li input[type="checkbox"] {
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#purpose" id="toc-purpose" class="nav-link active" data-scroll-target="#purpose">Purpose</a></li>
+  <li><a href="#capability-id" id="toc-capability-id" class="nav-link" data-scroll-target="#capability-id">Capability ID</a></li>
+  <li><a href="#inputs" id="toc-inputs" class="nav-link" data-scroll-target="#inputs">Inputs</a></li>
+  <li><a href="#example-intent-calls" id="toc-example-intent-calls" class="nav-link" data-scroll-target="#example-intent-calls">Example intent calls</a>
+  <ul class="collapse">
+  <li><a href="#redact-a-new-camera-image" id="toc-redact-a-new-camera-image" class="nav-link" data-scroll-target="#redact-a-new-camera-image">Redact a new camera image</a></li>
+  <li><a href="#redact-a-picked-image" id="toc-redact-a-picked-image" class="nav-link" data-scroll-target="#redact-a-picked-image">Redact a picked image</a></li>
+  </ul></li>
+  <li><a href="#returned-fields" id="toc-returned-fields" class="nav-link" data-scroll-target="#returned-fields">Returned fields</a></li>
+  <li><a href="#geometry-behaviour" id="toc-geometry-behaviour" class="nav-link" data-scroll-target="#geometry-behaviour">Geometry behaviour</a></li>
+  <li><a href="#direct-researchos-use" id="toc-direct-researchos-use" class="nav-link" data-scroll-target="#direct-researchos-use">Direct ResearchOS use</a></li>
+  <li><a href="#limitations" id="toc-limitations" class="nav-link" data-scroll-target="#limitations">Limitations</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/capabilities/image-redaction.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/index.html">Capability catalogue</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/image-redaction.html">Image redaction</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Capability catalogue</h1>
+<h1 class="title">Image redaction</h1>
 </div>
 
 
@@ -405,182 +424,146 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="status-vocabulary" class="level2">
-<h2 class="anchored" data-anchor-id="status-vocabulary">Status vocabulary</h2>
+<div class="status-box status-complete">
+<p><strong>Status: Implemented and documented</strong></p>
+<p>This capability is intended for removing visible identifying or sensitive regions before an image leaves ResearchOS.</p>
+</div>
+<section id="purpose" class="level2">
+<h2 class="anchored" data-anchor-id="purpose">Purpose</h2>
+<p><code>image.redact</code> captures or selects an image, displays it with a configurable grid, lets the operator mark cells for masking, and returns only the redacted image plus compact mask metadata.</p>
+<p>It is paired in the dashboard with the scaled photo selector under:</p>
+<pre class="text"><code>Image annotation and redaction</code></pre>
+<p>The distinction is:</p>
 <ul>
-<li><strong>Documented and demonstrated:</strong> source documentation and at least one corresponding XLSForm are present.</li>
-<li><strong>Implemented; XLSForm example pending:</strong> the supplied source documentation describes the capability, but no complete workbook was supplied.</li>
-<li><strong>Partial or constrained:</strong> the documentation identifies an important limitation, restricted scope or incomplete result path.</li>
-<li><strong>Experimental:</strong> useful for investigation, but not yet a stable study-facing interface.</li>
+<li><code>scaled_photo.capture</code> preserves the original and returns an annotated copy;</li>
+<li><code>image.redact</code> uses the original transiently and returns only the redacted output.</li>
 </ul>
 </section>
-<section id="consistent-page-structure" class="level2">
-<h2 class="anchored" data-anchor-id="consistent-page-structure">Consistent page structure</h2>
-<p>Every capability page includes purpose, canonical IDs, requirements, screenshot placeholder, observed XLSForm calls, inputs, expected outputs, downloadable examples, implementation status, limitations and the detailed source reference.</p>
-<div class="grid">
-<section id="local-device-authentication" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="local-device-authentication"><a href="../capabilities/admin-fingerprint.html">Local device authentication</a></h3>
-<p><code>admin_fingerprint_confirmation</code></p>
-<p><strong>Documented and demonstrated</strong></p>
-<p>Request Android biometric or device-credential authentication and return a transient local-access decision.</p>
+<section id="capability-id" class="level2">
+<h2 class="anchored" data-anchor-id="capability-id">Capability ID</h2>
+<ul>
+<li><code>image.redact</code></li>
+</ul>
 </section>
-<section id="android-app-inspector" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="android-app-inspector"><a href="../capabilities/app-inspector.html">Android app inspector</a></h3>
-<p><code>android_app_inspector</code></p>
-<p><strong>Experimental interoperability tool</strong></p>
-<p>Inspect installed Android packages and test intent-based integration contracts.</p>
+<section id="inputs" class="level2">
+<h2 class="anchored" data-anchor-id="inputs">Inputs</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Input</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>input_source</code></td>
+<td><code>camera</code> or <code>file_picker</code>.</td>
+</tr>
+<tr class="even">
+<td><code>input_grid_rows</code></td>
+<td>Number of redaction grid rows.</td>
+</tr>
+<tr class="odd">
+<td><code>input_grid_columns</code></td>
+<td>Number of redaction grid columns.</td>
+</tr>
+<tr class="even">
+<td><code>input_redaction_style</code></td>
+<td><code>black</code> or <code>white</code>.</td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="signed-event-attestation" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="signed-event-attestation"><a href="../capabilities/attestation.html">Signed event attestation</a></h3>
-<p><code>attestation.create, attestation.anchor_bundle</code></p>
-<p><strong>Documented and demonstrated</strong></p>
-<p>Create signed evidence that an event payload was attested using a selected local verification dependency, and anchor bundles of attestations.</p>
+<section id="example-intent-calls" class="level2">
+<h2 class="anchored" data-anchor-id="example-intent-calls">Example intent calls</h2>
+<section id="redact-a-new-camera-image" class="level3">
+<h3 class="anchored" data-anchor-id="redact-a-new-camera-image">Redact a new camera image</h3>
+<pre class="text"><code>com.example.researchos.EXECUTE_METHOD(method_id='image.redact',input_source='camera',input_grid_rows='10',input_grid_columns='10',return_mode='flat')</code></pre>
 </section>
-<section id="bluetooth-device-inspector" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="bluetooth-device-inspector"><a href="../capabilities/bluetooth-inspector.html">Bluetooth device inspector</a></h3>
-<p><code>bluetooth_device_inspector</code></p>
-<p><strong>Documented and demonstrated</strong></p>
-<p>Discover Bluetooth devices and inspect GATT services, characteristics and values.</p>
+<section id="redact-a-picked-image" class="level3">
+<h3 class="anchored" data-anchor-id="redact-a-picked-image">Redact a picked image</h3>
+<pre class="text"><code>com.example.researchos.EXECUTE_METHOD(method_id='image.redact',input_source='file_picker',input_grid_rows='12',input_grid_columns='12',input_redaction_style='black',return_mode='flat')</code></pre>
 </section>
-<section id="bluetooth-printer" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="bluetooth-printer"><a href="../capabilities/bluetooth-printer.html">Bluetooth printer</a></h3>
-<p><code>bluetooth_print</code></p>
-<p><strong>Non-functional at present</strong></p>
-<p>Send supported print content to a configured Bluetooth printer.</p>
 </section>
-<section id="calibrated-scale-measurement" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="calibrated-scale-measurement"><a href="../capabilities/calibrated-scale.html">Calibrated scale measurement</a></h3>
-<p><code>calibrated_scale</code></p>
-<p><strong>Documented and demonstrated</strong></p>
-<p>Collect a calibrated visual analogue or numeric range measurement using a physical line length.</p>
+<section id="returned-fields" class="level2">
+<h2 class="anchored" data-anchor-id="returned-fields">Returned fields</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>image_redaction_status</code></td>
+<td><code>succeeded</code> or failure status.</td>
+</tr>
+<tr class="even">
+<td><code>redacted_image_uri</code></td>
+<td>Returned image attachment URI.</td>
+</tr>
+<tr class="odd">
+<td><code>redacted_image_name</code></td>
+<td>Suggested attachment filename.</td>
+</tr>
+<tr class="even">
+<td><code>redaction_mask_json</code></td>
+<td>Selected grid cells.</td>
+</tr>
+<tr class="odd">
+<td><code>redaction_selected_cells</code></td>
+<td>Number of selected cells.</td>
+</tr>
+<tr class="even">
+<td><code>redaction_grid_rows</code></td>
+<td>Grid rows used.</td>
+</tr>
+<tr class="odd">
+<td><code>redaction_grid_columns</code></td>
+<td>Grid columns used.</td>
+</tr>
+<tr class="even">
+<td><code>redaction_style</code></td>
+<td>Mask colour used.</td>
+</tr>
+<tr class="odd">
+<td><code>redaction_input_source</code></td>
+<td>Camera or file picker.</td>
+</tr>
+<tr class="even">
+<td><code>redaction_created_time_iso</code></td>
+<td>Redaction creation time.</td>
+</tr>
+<tr class="odd">
+<td><code>image_redaction_error</code></td>
+<td>Error message, if any.</td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="choice-experiments" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="choice-experiments"><a href="../capabilities/choice-experiments.html">Choice experiments</a></h3>
-<p><code>dce.pairwise, dce.maxdiff, dce.ranking, dce.points, dce.conjoint</code></p>
-<p><strong>Documented and demonstrated with some outstanding issues</strong></p>
-<p>Run interactive pairwise, MaxDiff, ranking, points-allocation and conjoint choice tasks.</p>
+<section id="geometry-behaviour" class="level2">
+<h2 class="anchored" data-anchor-id="geometry-behaviour">Geometry behaviour</h2>
+<p>The redaction grid is aligned to the displayed image bounds, not to the surrounding panel. This matters when the image aspect ratio does not match the available screen area: blank padding around the image is ignored, and cell selection maps to the actual image pixels.</p>
+<p>ResearchOS does not intentionally rotate the image before the operator marks the redaction region. The editing surface should therefore reflect the image geometry being redacted.</p>
 </section>
-<section id="document-scanner" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="document-scanner"><a href="../capabilities/document-scanner.html">Document scanner</a></h3>
-<p><code>document.scan</code></p>
-<p><strong>Implemented; XLSForm example pending</strong></p>
-<p>Capture document pages and return PDF and/or image outputs.</p>
+<section id="direct-researchos-use" class="level2">
+<h2 class="anchored" data-anchor-id="direct-researchos-use">Direct ResearchOS use</h2>
+<p>From the dashboard, use:</p>
+<ul>
+<li><strong>Test</strong> to run without saving output;</li>
+<li><strong>Test and save</strong> to create the normal output package;</li>
+<li>the last-result preview to confirm the returned redacted image visually.</li>
+</ul>
+<p>Saved output packages contain one canonical JSON file plus the returned redacted image attachment.</p>
 </section>
-<section id="gps-target-navigation" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="gps-target-navigation"><a href="../capabilities/gps-target-navigator.html">GPS target navigation</a></h3>
-<p><code>gps_target_navigator</code></p>
-<p><strong>Documented and demonstrated</strong></p>
-<p>Guide a user toward target coordinates using distance, bearing and an optional augmented-reality camera overlay.</p>
-</section>
-<section id="ml-kit-language-translation" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="ml-kit-language-translation"><a href="../capabilities/mlkit-translate.html">ML Kit language translation</a></h3>
-<p><code>mlkit.translate</code></p>
-<p><strong>Implemented; XLSForm example pending</strong></p>
-<p>Translate text locally with ML Kit and manage downloaded language models.</p>
-</section>
-<section id="ml-kit-vision" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="ml-kit-vision"><a href="../capabilities/mlkit-vision.html">ML Kit vision</a></h3>
-<p><code>mlkit.vision.analyze</code></p>
-<p><strong>Implemented; XLSForm example pending</strong></p>
-<p>Run supported ML Kit vision analyses on a selected image.</p>
-</section>
-<section id="nfc-capabilities" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="nfc-capabilities"><a href="../capabilities/nfc.html">NFC capabilities</a></h3>
-<p><code>nfc_credential_provisioning, nfc_credential_verification, nfc_tag_read, nfc_tag_write, nfc_tag_wipe, protocol_nfc_check, protocol_nfc_complete</code></p>
-<p><strong>Documented and demonstrated</strong></p>
-<p>Read, write and wipe NFC tags; provision and verify credentials; and track protocol-step eligibility and completion.</p>
-</section>
-<section id="odk-form-launcher" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="odk-form-launcher"><a href="../capabilities/odk-form-launcher.html">ODK form launcher</a></h3>
-<p><code>odk_form_launcher</code></p>
-<p><strong>Documented and demonstrated</strong></p>
-<p>Open a selected ODK Collect form and return the matched form, project, instance and launch status.</p>
-</section>
-<section id="external-command-library" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="external-command-library"><a href="../capabilities/provider-command.html">External command library</a></h3>
-<p><code>provider.command.run</code></p>
-<p><strong>Partial return support</strong></p>
-<p>Run a saved, typed Android intent command against an installed provider application.</p>
-</section>
-<section id="automatic-code-scanner" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="automatic-code-scanner"><a href="../capabilities/qr-code.html">Automatic code scanner</a></h3>
-<p><code>qr.scan</code></p>
-<p><strong>Documented and demonstrated</strong></p>
-<p>Scan QR codes and supported barcode formats and return the decoded payload and detected format.</p>
-</section>
-<section id="question-primitives" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="question-primitives"><a href="../capabilities/question-primitives.html">Question primitives</a></h3>
-<p><code>question.text, question.number, question.select_one, question.select_multiple</code></p>
-<p><strong>Implemented; native protocol building block</strong></p>
-<p>Capture simple text, numeric, single-choice and multiple-choice answers directly inside ResearchOS protocols.</p>
-</section>
-<section id="random-number-generator" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="random-number-generator"><a href="../capabilities/random-number.html">Random number generator</a></h3>
-<p><code>random.number.generate</code></p>
-<p><strong>Documented and implemented</strong></p>
-<p>Generate secure or fixed-seed random numbers with count, range and step controls.</p>
-</section>
-<section id="scaled-photo-selector" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="scaled-photo-selector"><a href="../capabilities/scaled-photo.html">Scaled photo selector</a></h3>
-<p><code>scaled_photo.capture</code></p>
-<p><strong>Documented and demonstrated</strong></p>
-<p>Capture a ruler-calibrated photograph, select grid regions, and return original and annotated image attachments.</p>
-</section>
-<section id="image-redaction" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="image-redaction"><a href="../capabilities/image-redaction.html">Image redaction</a></h3>
-<p><code>image.redact</code></p>
-<p><strong>Implemented and documented</strong></p>
-<p>Capture or pick an image, mask selected grid cells, and return only the redacted image plus mask metadata.</p>
-</section>
-<section id="scheduler" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="scheduler"><a href="../capabilities/scheduler-capability.html">Scheduler</a></h3>
-<p><code>scheduler</code></p>
-<p><strong>Implemented with evolving target support</strong></p>
-<p>Create and transfer local recurring schedules for forms, web targets and future ResearchOS process targets.</p>
-</section>
-<section id="esp32-sensor-firmware-installer" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="esp32-sensor-firmware-installer"><a href="../capabilities/sensor-firmware-installer.html">ESP32 sensor firmware installer</a></h3>
-<p><code>sensor_firmware_installer</code></p>
-<p><strong>Current scope limited to ESP32-C3</strong></p>
-<p>Install bundled ResearchOS sensor firmware onto a supported ESP32-C3 device over USB.</p>
-</section>
-<section id="ble-sensor-node-provisioner" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="ble-sensor-node-provisioner"><a href="../capabilities/sensor-provisioner.html">BLE sensor-node provisioner</a></h3>
-<p><code>sensor_node_provisioner</code></p>
-<p><strong>Implemented; XLSForm example pending</strong></p>
-<p>Write identity and sampling configuration to a compatible ResearchOS BLE sensor node and register it locally.</p>
-</section>
-<section id="read-sensor" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="read-sensor"><a href="../capabilities/sensor-read.html">Read sensor</a></h3>
-<p><code>sensor.read</code></p>
-<p><strong>Documented and demonstrated</strong></p>
-<p>Read, trace, average or discover registered ResearchOS BLE sensor nodes.</p>
-</section>
-<section id="send-sms" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="send-sms"><a href="../capabilities/sms.html">Send SMS</a></h3>
-<p><code>sms.send</code></p>
-<p><strong>Send accepted; delivery confirmation pending</strong></p>
-<p>Send an SMS directly from ResearchOS and return the local send-request status.</p>
-</section>
-<section id="spatial-geometry" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="spatial-geometry"><a href="../capabilities/spatial-geometry.html">Spatial geometry</a></h3>
-<p><code>spatial_geometry</code></p>
-<p><strong>Implemented with measurement constraints</strong></p>
-<p>Support tree-height, slope and distance-estimation workflows using device measurements and supplied distances.</p>
-</section>
-<section id="speech-transcription" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="speech-transcription"><a href="../capabilities/speech-transcription.html">Speech transcription</a></h3>
-<p><code>speech.transcribe</code></p>
-<p><strong>Implemented; XLSForm example pending</strong></p>
-<p>Capture speech and return a transcription with provider metadata.</p>
-</section>
-<section id="svg-polygon-selector" class="level3 g-col-12 g-col-md-6">
-<h3 class="anchored" data-anchor-id="svg-polygon-selector"><a href="../capabilities/svg-selector.html">SVG polygon selector</a></h3>
-<p><code>svg.select</code></p>
-<p><strong>Documented and demonstrated</strong></p>
-<p>Display an SVG and return selected polygon or region identifiers.</p>
-</section>
-</div>
+<section id="limitations" class="level2">
+<h2 class="anchored" data-anchor-id="limitations">Limitations</h2>
+<ul>
+<li>Redaction is currently grid-based rather than freehand.</li>
+<li>The original image is not returned by this capability.</li>
+<li>The capability does not yet perform automatic face or text detection; masking is operator-directed.</li>
+</ul>
 
 
 </section>
@@ -993,13 +976,13 @@ ul.task-list li input[type="checkbox"] {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../scheduling.html" class="pagination-link" aria-label="Scheduling workflows">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Scheduling workflows</span>
+      <a href="../capabilities/scaled-photo.html" class="pagination-link" aria-label="Scaled photo selector">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Scaled photo selector</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../capabilities/admin-fingerprint.html" class="pagination-link" aria-label="Local device authentication">
-        <span class="nav-page-text">Local device authentication</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../capabilities/scheduler-capability.html" class="pagination-link" aria-label="Scheduler">
+        <span class="nav-page-text">Scheduler</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
@@ -1008,4 +991,4 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/capabilities/index.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/chrissyhroberts/ResearchOS/edit/main/capabilities/image-redaction.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/ResearchOS/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

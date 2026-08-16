@@ -105,6 +105,8 @@ fun CapabilityScreenScaffold(
     val appContext = LocalContext.current
     val intentPresentation = context.presentationMode == CapabilityPresentationMode.IntentLaunch
     val automaticReturn = context.completionMode == CapabilityCompletionMode.AutomaticReturn
+    val allowManualExport = !context.request.source.equals("dashboard", ignoreCase = true) &&
+        !context.request.source.equals("intent_test", ignoreCase = true)
     var exportPackage by remember(capturedResult?.request?.id?.value) { mutableStateOf<OutputExportRepository.ExportPackage?>(null) }
     var exportStatus by rememberSaveable(capturedResult?.request?.id?.value) { mutableStateOf<String?>(null) }
     var showDetails by rememberSaveable { mutableStateOf(false) }
@@ -197,16 +199,18 @@ fun CapabilityScreenScaffold(
                     if (capturedResult != null) {
                         OutlinedButton(onClick = onRetry) { Text("Retry") }
                         Spacer(Modifier.width(8.dp))
-                        OutlinedButton(onClick = {
-                            runCatching { OutputExportRepository.exportPackage(appContext, capturedResult) }
-                                .onSuccess {
-                                    exportPackage = it
-                                    exportStatus = "Exported ${it.summary}"
-                                    OutputExportRepository.notifySaved(appContext, it)
-                                }
-                                .onFailure { exportStatus = "Export failed: ${it.message ?: "storage error"}" }
-                        }) { Text("Export") }
-                        Spacer(Modifier.width(8.dp))
+                        if (allowManualExport) {
+                            OutlinedButton(onClick = {
+                                runCatching { OutputExportRepository.exportPackage(appContext, capturedResult) }
+                                    .onSuccess {
+                                        exportPackage = it
+                                        exportStatus = "Exported ${it.summary}"
+                                        OutputExportRepository.notifySaved(appContext, it)
+                                    }
+                                    .onFailure { exportStatus = "Export failed: ${it.message ?: "storage error"}" }
+                            }) { Text("Export") }
+                            Spacer(Modifier.width(8.dp))
+                        }
                     }
                     Button(enabled = capturedResult != null, onClick = onConfirm) {
                         Text(if (context.isLastStep) "Use result" else "Continue")

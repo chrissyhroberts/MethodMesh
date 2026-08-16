@@ -35,6 +35,10 @@ They are designed for cases where a full ODK/XLSForm is unnecessary but a protoc
 
 ## Type-specific inputs
 
+### Text
+
+Text questions use a multiline answer box in user-facing mode. The prompt is used as the field label and the hint is shown as placeholder/help text where supplied.
+
 ### Number
 
 | Input | Description |
@@ -47,6 +51,8 @@ They are designed for cases where a full ODK/XLSForm is unnecessary but a protoc
 | Input | Description |
 |---|---|
 | `input_options` | Option list separated by `|`, comma, or newline. |
+| `input_exclusive_options` | Select-multiple options that cannot be combined with any other selection, e.g. `None|Unknown`. |
+| `input_exclusive_groups` | Mutually exclusive groups, one group per line, e.g. `Yes|No`. |
 
 ## Example intent calls
 
@@ -107,6 +113,10 @@ The most useful route is:
 5. Run the protocol and export one canonical JSON package.
 
 The exported JSON package keeps the question response inside the relevant protocol step.
+
+## Direct testing
+
+The dashboard **Test** button opens the same question interface that an intent or protocol run would use. It does not save output. **Test and save** writes a normal output package, which is useful when checking text wrapping, validation and select-multiple constraints with real exported JSON.
 
 ## Limitations
 

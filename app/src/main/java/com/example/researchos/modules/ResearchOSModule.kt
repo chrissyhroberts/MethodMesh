@@ -60,7 +60,7 @@ interface ResearchOSModule {
     fun examples(): List<ModuleExample> = rilBindings().take(3).map { binding ->
         ModuleExample(
             title = binding.description.ifBlank { binding.phrase },
-            ril = "WHAT; ${binding.phrase}; WHERE; participant/P001; RESULT; return execution.id as execution_id; format json"
+            ril = "WHAT; ${binding.phrase}; RESULT; return execution.id as execution_id; format json"
         )
     }
 

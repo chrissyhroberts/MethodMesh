@@ -57,8 +57,10 @@ object OutputFormatter {
     private fun copyContext(result: ExecutionResult, fields: LinkedHashMap<String, Any?>) {
         val subjectId = result.request.context["subject_id"]
         val contextEntityId = result.request.context["context_entity_id"]
-        subjectId?.let { fields["subject_id"] = it }
-        if (contextEntityId != null && contextEntityId != subjectId) {
+        subjectId
+            ?.takeUnless { result.isDemoPlaceholderSubject(it) }
+            ?.let { fields["subject_id"] = it }
+        if (contextEntityId != null && contextEntityId != subjectId && !result.isDemoPlaceholderSubject(contextEntityId)) {
             fields["context_entity_id"] = contextEntityId
         }
         listOf("visit_id", "form_id", "operator_id").forEach { key ->
@@ -73,7 +75,9 @@ object OutputFormatter {
     ) {
         if (result.observations.size == 1) {
             val observation = result.observations.first()
-            observation.subject?.id?.value?.let { fields.putIfAbsent("subject_id", it) }
+            observation.subject?.id?.value
+                ?.takeUnless { result.isDemoPlaceholderSubject(it) }
+                ?.let { fields.putIfAbsent("subject_id", it) }
             observation.values.forEach { (key, value) -> fields[key] = value }
             return
         }
@@ -90,6 +94,7 @@ object OutputFormatter {
             fields["${prefix}_type"] = observation.phenomenon
             observation.subject?.id?.value
                 ?.takeIf { it != fields["subject_id"]?.toString() }
+                ?.takeUnless { result.isDemoPlaceholderSubject(it) }
                 ?.let { fields["${prefix}_subject_id"] = it }
             observation.values.forEach { (key, value) -> fields["${prefix}_${key}"] = value }
         }
@@ -104,6 +109,7 @@ object OutputFormatter {
             if (!unprefixed) fields["${prefix}_type"] = state.stateType
             state.subject.id.value
                 .takeIf { it != fields["subject_id"]?.toString() }
+                ?.takeUnless { result.isDemoPlaceholderSubject(it) }
                 ?.let { fields["${prefix}_subject_id"] = it }
             state.values.forEach { (key, value) ->
                 fields[if (unprefixed) key else "${prefix}_${key}"] = value
@@ -125,6 +131,14 @@ object OutputFormatter {
             fields["${prefix}_id"] = entity.id.value
             fields["${prefix}_type"] = entity.entityType
         }
+    }
+
+    private fun ExecutionResult.isDemoPlaceholderSubject(subject: String): Boolean {
+        if (subject != "participant/P001") return false
+        val caller = request.context["caller"].orEmpty().lowercase()
+        val source = request.context["source"].orEmpty().lowercase()
+        return caller in setOf("dashboard", "intent_test") ||
+            source in setOf("dashboard", "intent_test")
     }
 
     private fun formatFields(fields: Map<String, Any?>, returnMode: ReturnMode): String = when (returnMode) {

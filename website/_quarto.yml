@@ -42,6 +42,7 @@ website:
           - capabilities/question-primitives.qmd
           - capabilities/random-number.qmd
           - capabilities/scaled-photo.qmd
+          - capabilities/image-redaction.qmd
           - capabilities/scheduler-capability.qmd
           - capabilities/sensor-firmware-installer.qmd
           - capabilities/sensor-provisioner.qmd

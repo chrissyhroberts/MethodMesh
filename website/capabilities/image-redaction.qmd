@@ -1,0 +1,89 @@
+---
+title: "Image redaction"
+---
+
+::: {.status-box .status-complete}
+**Status: Implemented and documented**
+
+This capability is intended for removing visible identifying or sensitive regions before an image leaves ResearchOS.
+:::
+
+## Purpose
+
+`image.redact` captures or selects an image, displays it with a configurable grid, lets the operator mark cells for masking, and returns only the redacted image plus compact mask metadata.
+
+It is paired in the dashboard with the scaled photo selector under:
+
+```text
+Image annotation and redaction
+```
+
+The distinction is:
+
+- `scaled_photo.capture` preserves the original and returns an annotated copy;
+- `image.redact` uses the original transiently and returns only the redacted output.
+
+## Capability ID
+
+- `image.redact`
+
+## Inputs
+
+| Input | Description |
+|---|---|
+| `input_source` | `camera` or `file_picker`. |
+| `input_grid_rows` | Number of redaction grid rows. |
+| `input_grid_columns` | Number of redaction grid columns. |
+| `input_redaction_style` | `black` or `white`. |
+
+## Example intent calls
+
+### Redact a new camera image
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='image.redact',input_source='camera',input_grid_rows='10',input_grid_columns='10',return_mode='flat')
+```
+
+### Redact a picked image
+
+```text
+com.example.researchos.EXECUTE_METHOD(method_id='image.redact',input_source='file_picker',input_grid_rows='12',input_grid_columns='12',input_redaction_style='black',return_mode='flat')
+```
+
+## Returned fields
+
+| Field | Description |
+|---|---|
+| `image_redaction_status` | `succeeded` or failure status. |
+| `redacted_image_uri` | Returned image attachment URI. |
+| `redacted_image_name` | Suggested attachment filename. |
+| `redaction_mask_json` | Selected grid cells. |
+| `redaction_selected_cells` | Number of selected cells. |
+| `redaction_grid_rows` | Grid rows used. |
+| `redaction_grid_columns` | Grid columns used. |
+| `redaction_style` | Mask colour used. |
+| `redaction_input_source` | Camera or file picker. |
+| `redaction_created_time_iso` | Redaction creation time. |
+| `image_redaction_error` | Error message, if any. |
+
+## Geometry behaviour
+
+The redaction grid is aligned to the displayed image bounds, not to the surrounding panel. This matters when the image aspect ratio does not match the available screen area: blank padding around the image is ignored, and cell selection maps to the actual image pixels.
+
+ResearchOS does not intentionally rotate the image before the operator marks the redaction region. The editing surface should therefore reflect the image geometry being redacted.
+
+## Direct ResearchOS use
+
+From the dashboard, use:
+
+- **Test** to run without saving output;
+- **Test and save** to create the normal output package;
+- the last-result preview to confirm the returned redacted image visually.
+
+Saved output packages contain one canonical JSON file plus the returned redacted image attachment.
+
+## Limitations
+
+- Redaction is currently grid-based rather than freehand.
+- The original image is not returned by this capability.
+- The capability does not yet perform automatic face or text detection; masking is operator-directed.

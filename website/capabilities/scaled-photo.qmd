@@ -10,7 +10,15 @@ This status is based on the supplied project documentation and example XLSForms.
 
 ## Purpose
 
-Capture or select a photograph with scale and measurement context. Select gridspaces to highlight features and return both annotated and unannotated versions.
+Capture a photograph with scale and measurement context. The operator aligns an on-screen calibrated HUD ruler with a physical ruler, captures the original photo, optionally selects grid cells, and returns both the unmodified original and an annotated copy.
+
+In the dashboard this capability is grouped with image redaction under:
+
+```text
+Image annotation and redaction
+```
+
+Use scaled photo when the original image should be preserved. Use image redaction when sensitive regions should be removed before export.
 
 ## Capability IDs
 
@@ -46,10 +54,38 @@ com.example.researchos.EXECUTE_METHOD(method_id='scaled_photo.capture',input_rul
 
 ## Inputs observed in supplied examples
 
-*None documented in the supplied material.*
+| Input | Description |
+|---|---|
+| `input_ruler_length_mm` | Length of the on-screen HUD ruler. |
+| `input_hud_scale_ratio` | Real-world ruler multiplier, e.g. a 50 mm HUD labelled as a 100 mm physical ruler at 1:2. |
+| `input_capture_orientation` | `portrait` or `landscape`. |
+| `input_grid_rows` | Number of overlay rows. |
+| `input_grid_columns` | Number of overlay columns. |
+| `input_show_grid` | Whether to draw grid lines on the annotated output. |
+| `input_macro_mode` | Close-up focus/zoom helper for near subjects. |
 
 ## Expected returned fields
 
-Return fields are documented from the specific XLSForm execution group only.
+| Field | Description |
+|---|---|
+| `original_image_uri` | Original captured image attachment. |
+| `annotated_image_uri` | Annotated image attachment with selected grid cells. |
+| `grid_selection_json` | Selected cell IDs. |
+| `grid_selection_hash` | Hash of the selected-cell record. |
+| `ruler_length_mm` | HUD ruler length. |
+| `ruler_target_length_mm` | Real-world ruler length represented by the HUD. |
+| `hud_scale_ratio` | HUD scale ratio used. |
+| `hud_display_length_mm` | Displayed HUD length. |
+| `calibration_pixels_per_mm` | Derived pixel/mm calibration context. |
+| `photo_captured_at` | Capture timestamp. |
+| `overlay_completed_at` | Annotation timestamp. |
 
-The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.
+## Direct ResearchOS use
+
+From a capability card:
+
+- **Test** runs without saving study output;
+- **Test and save** writes a normal ResearchOS output package;
+- the last-result preview shows returned media thumbnails where image URIs are present.
+
+Saved packages contain one canonical JSON file plus the original and annotated image attachments.
