@@ -43,6 +43,7 @@ object ProtocolLibraryRepository {
     private const val PREFS = "researchos_protocol_library"
     private const val PRESETS = "capability_presets_json"
     private const val PROTOCOLS = "protocol_definitions_json"
+    private const val ARCHIVED_PROTOCOLS = "archived_protocol_definitions_json"
     const val BUNDLE_VERSION = "1"
 
     data class Imported(val presetCount: Int, val protocolCount: Int, val hash: String)
@@ -52,6 +53,9 @@ object ProtocolLibraryRepository {
 
     fun protocols(context: Context): List<ProtocolDefinition> =
         readArray(context, PROTOCOLS).map { decodeProtocol(it) }.sortedBy { it.name.lowercase() }
+
+    fun archivedProtocols(context: Context): List<ProtocolDefinition> =
+        readArray(context, ARCHIVED_PROTOCOLS).map { decodeProtocol(it) }.sortedByDescending { it.versionIso }
 
     fun preset(context: Context, id: String): CapabilityPreset? =
         presets(context).firstOrNull { it.id == id || it.name.equals(id, ignoreCase = true) }
@@ -88,6 +92,7 @@ object ProtocolLibraryRepository {
             updatedAtIso = nowIso,
             versionIso = nowIso
         )
+        if (prior != null) archiveProtocolVersion(context, prior)
         val merged = existing.filterNot { it.id == replacement.id } + replacement
         writeArray(context, PROTOCOLS, JSONArray().apply { merged.sortedBy { it.id }.forEach { put(encodeProtocol(it)) } })
         return replacement
@@ -99,6 +104,22 @@ object ProtocolLibraryRepository {
 
     fun removeProtocol(context: Context, id: String) {
         writeArray(context, PROTOCOLS, JSONArray().apply { protocols(context).filterNot { it.id == id }.forEach { put(encodeProtocol(it)) } })
+    }
+
+    fun archiveProtocol(context: Context, id: String): Boolean {
+        val active = protocols(context)
+        val target = active.firstOrNull { it.id == id } ?: return false
+        archiveProtocolVersion(context, target)
+        writeArray(context, PROTOCOLS, JSONArray().apply { active.filterNot { it.id == id }.forEach { put(encodeProtocol(it)) } })
+        return true
+    }
+
+    fun unarchiveProtocol(context: Context, id: String): Boolean {
+        val archived = archivedProtocols(context)
+        val target = archived.firstOrNull { it.id == id } ?: return false
+        val restored = saveProtocol(context, target.copy(id = UUID.randomUUID().toString()))
+        writeArray(context, ARCHIVED_PROTOCOLS, JSONArray().apply { archived.filterNot { it.id == id }.forEach { put(encodeProtocol(it)) } })
+        return restored.id.isNotBlank()
     }
 
     fun export(context: Context): String {
@@ -156,6 +177,11 @@ object ProtocolLibraryRepository {
 
     private fun writeArray(context: Context, key: String, array: JSONArray) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(key, array.toString()).apply()
+    }
+
+    private fun archiveProtocolVersion(context: Context, protocol: ProtocolDefinition) {
+        val archived = archivedProtocols(context).filterNot { it.id == protocol.id && it.versionIso == protocol.versionIso } + protocol
+        writeArray(context, ARCHIVED_PROTOCOLS, JSONArray().apply { archived.sortedBy { it.versionIso }.forEach { put(encodeProtocol(it)) } })
     }
 
     private fun encodePreset(preset: CapabilityPreset) = JSONObject().apply {

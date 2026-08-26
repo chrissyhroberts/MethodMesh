@@ -442,6 +442,28 @@ object OutputExportRepository {
         context.startActivity(Intent.createChooser(intent, "Share ResearchOS export").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
+    fun shareMedia(context: Context, exportPackage: ExportPackage) {
+        val media = exportPackage.attachments.filterNot { it.mimeType == "application/json" || it.mimeType == "text/plain" }
+        val uris = ArrayList(media.mapNotNull { shareableUri(context, it.uri) })
+        if (uris.isEmpty()) throw IllegalStateException("No media attachments are available to share.")
+        val intent = if (uris.size == 1) {
+            Intent(Intent.ACTION_SEND).apply {
+                type = media.first().mimeType
+                putExtra(Intent.EXTRA_STREAM, uris.first())
+            }
+        } else {
+            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "*/*"
+                putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+            }
+        }.apply {
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            putExtra(Intent.EXTRA_SUBJECT, "ResearchOS media export")
+            putExtra(Intent.EXTRA_TEXT, "ResearchOS media export: ${exportPackage.summary}")
+        }
+        context.startActivity(Intent.createChooser(intent, "Share ResearchOS media").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
     fun notifySaved(context: Context, exportPackage: ExportPackage) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         val channelId = "researchos_outputs"

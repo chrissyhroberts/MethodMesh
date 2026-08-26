@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +59,9 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var status by remember { mutableStateOf("Ready to measure.") }
         var touchedValues by remember { mutableStateOf(emptySet<String>()) }
+        var vasLengthText by rememberSaveable(action.settings) { mutableStateOf(settings.getFloat("vas_length_mm").formatConfigNumber()) }
+        var minimumText by rememberSaveable(action.settings) { mutableStateOf(settings.getFloat("minimum").formatConfigNumber()) }
+        var maximumText by rememberSaveable(action.settings) { mutableStateOf(settings.getFloat("maximum").formatConfigNumber()) }
 
         fun captureValue(): ExecutionResult {
             val execution = As100CalibratedScaleMethod.execute(
@@ -138,9 +142,10 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
             Spacer(Modifier.height(8.dp))
 
             OutlinedTextField(
-                value = settings.getFloat("vas_length_mm").toString(),
+                value = vasLengthText,
                 onValueChange = { value ->
-                    value.toFloatOrNull()
+                    vasLengthText = value.configNumericText()
+                    vasLengthText.toFloatOrNull()
                         ?.takeIf { it in 40f..200f }
                         ?.let { settings.setFloat("vas_length_mm", it) }
                 },
@@ -167,8 +172,11 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
             ) {
                 Text("Minimum value", modifier = Modifier.weight(1f))
                 OutlinedTextField(
-                    value = settings.getFloat("minimum").toString(),
-                    onValueChange = { it.toFloatOrNull()?.let { f -> settings.setFloat("minimum", f) } },
+                    value = minimumText,
+                    onValueChange = {
+                        minimumText = it.configNumericText()
+                        minimumText.toFloatOrNull()?.let { f -> settings.setFloat("minimum", f) }
+                    },
                     modifier = Modifier.weight(0.5f),
                     singleLine = true
                 )
@@ -181,8 +189,11 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
             ) {
                 Text("Maximum value", modifier = Modifier.weight(1f))
                 OutlinedTextField(
-                    value = settings.getFloat("maximum").toString(),
-                    onValueChange = { it.toFloatOrNull()?.let { f -> settings.setFloat("maximum", f) } },
+                    value = maximumText,
+                    onValueChange = {
+                        maximumText = it.configNumericText()
+                        maximumText.toFloatOrNull()?.let { f -> settings.setFloat("maximum", f) }
+                    },
                     modifier = Modifier.weight(0.5f),
                     singleLine = true
                 )
@@ -327,6 +338,22 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
             }
         }
     }
+}
+
+private fun Float.formatConfigNumber(): String =
+    if (this % 1f == 0f) toInt().toString() else toString()
+
+private fun String.configNumericText(): String {
+    val filtered = filter { it.isDigit() || it == '.' || it == '-' }
+    val minus = if (filtered.startsWith("-")) "-" else ""
+    val withoutMinus = filtered.removePrefix("-").replace("-", "")
+    val firstDot = withoutMinus.indexOf('.')
+    val body = if (firstDot < 0) {
+        withoutMinus
+    } else {
+        withoutMinus.take(firstDot + 1) + withoutMinus.drop(firstDot + 1).replace(".", "")
+    }
+    return minus + body
 }
 
 @Composable

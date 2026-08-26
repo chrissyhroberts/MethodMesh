@@ -22,6 +22,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -54,6 +57,7 @@ object ProviderCommandCapabilityScreen : CapabilityScreenSpec {
     override val title = "External command library"
     override val description = "Save, test, import, export, and run named commands for external Android apps."
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Render(
         context: CapabilityScreenContext,
@@ -77,6 +81,7 @@ object ProviderCommandCapabilityScreen : CapabilityScreenSpec {
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var pendingCommand by remember { mutableStateOf<ProviderCommand?>(null) }
         var pendingInputs by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+        var commandInputValues by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
         var commandId by rememberSaveable { mutableStateOf("") }
         var displayName by rememberSaveable { mutableStateOf("") }
@@ -139,6 +144,7 @@ object ProviderCommandCapabilityScreen : CapabilityScreenSpec {
             extrasText = formatKeyValueLines(command.extrasTemplate)
             stability = command.stability
             offlineSupported = command.offlineSupported
+            commandInputValues = command.inputDefaultsForPanel()
             status = "Loaded ${command.commandId}."
         }
 
@@ -317,6 +323,14 @@ object ProviderCommandCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
+        LaunchedEffect(selectedCommandId) {
+            commands.firstOrNull { it.commandId == selectedCommandId }?.let { command ->
+                if (commandInputValues.isEmpty() || commandInputValues.keys != command.inputKeysForPanel()) {
+                    commandInputValues = command.inputDefaultsForPanel()
+                }
+            }
+        }
+
         val providerOptions = commands
             .map { it.providerId.ifBlank { "other" } }
             .distinct()
@@ -357,46 +371,78 @@ object ProviderCommandCapabilityScreen : CapabilityScreenSpec {
             Spacer(Modifier.height(12.dp))
 
             Text("App / provider", fontWeight = FontWeight.SemiBold)
-            OutlinedButton(onClick = { providerMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(selectedProviderId.ifBlank { "Choose app/provider" }, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
-                Text("▼")
-            }
-            DropdownMenu(expanded = providerMenuOpen, onDismissRequest = { providerMenuOpen = false }, modifier = Modifier.fillMaxWidth(0.92f)) {
-                providerOptions.forEach { provider ->
-                    DropdownMenuItem(
-                        text = { Text(provider) },
-                        onClick = {
-                            selectedProviderId = provider
-                            val first = commands.firstOrNull { it.providerId.ifBlank { "other" } == provider }
-                            if (first != null) load(first)
-                            providerMenuOpen = false
-                        }
-                    )
+            ExposedDropdownMenuBox(
+                expanded = providerMenuOpen,
+                onExpandedChange = { providerMenuOpen = !providerMenuOpen },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = selectedProviderId.ifBlank { "Choose app/provider" },
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = providerMenuOpen) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(expanded = providerMenuOpen, onDismissRequest = { providerMenuOpen = false }) {
+                    providerOptions.forEach { provider ->
+                        DropdownMenuItem(
+                            text = { Text(provider) },
+                            onClick = {
+                                selectedProviderId = provider
+                                val first = commands.firstOrNull { it.providerId.ifBlank { "other" } == provider }
+                                if (first != null) load(first)
+                                providerMenuOpen = false
+                            }
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(8.dp))
 
             Text("Command", fontWeight = FontWeight.SemiBold)
-            OutlinedButton(onClick = { commandMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(selectedCommandId.ifBlank { "Choose saved command" }, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
-                Text("▼")
-            }
-            DropdownMenu(expanded = commandMenuOpen, onDismissRequest = { commandMenuOpen = false }, modifier = Modifier.fillMaxWidth(0.92f)) {
-                filteredCommands.forEach { command ->
-                    DropdownMenuItem(
-                        text = { Column { Text(command.displayName.ifBlank { command.commandId }); Text("${command.commandId} · ${command.modeLabel()}", style = MaterialTheme.typography.bodySmall) } },
-                        onClick = { load(command); commandMenuOpen = false }
-                    )
+            ExposedDropdownMenuBox(
+                expanded = commandMenuOpen,
+                onExpandedChange = { commandMenuOpen = !commandMenuOpen },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = selectedCommand?.displayName?.ifBlank { selectedCommandId } ?: selectedCommandId.ifBlank { "Choose saved command" },
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = commandMenuOpen) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(expanded = commandMenuOpen, onDismissRequest = { commandMenuOpen = false }) {
+                    filteredCommands.forEach { command ->
+                        DropdownMenuItem(
+                            text = { Column { Text(command.displayName.ifBlank { command.commandId }); Text("${command.commandId} · ${command.modeLabel()}", style = MaterialTheme.typography.bodySmall) } },
+                            onClick = { load(command); commandMenuOpen = false }
+                        )
+                    }
                 }
             }
             selectedCommand?.let { command ->
                 Text(command.modeDescription(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+                CommandInputPanel(
+                    command = command,
+                    values = commandInputValues,
+                    onValueChanged = { key, value ->
+                        commandInputValues = commandInputValues.toMutableMap().apply { put(key, value) }
+                    }
+                )
             }
             Spacer(Modifier.height(8.dp))
 
             if (activeView == "run") {
                 Row {
-                    Button(onClick = { runSelected() }, modifier = Modifier.weight(1f)) { Text("Run / test") }
+                    Button(onClick = {
+                        val command = commands.firstOrNull { it.commandId == selectedCommandId.trim() }
+                        if (command == null) {
+                            status = "Choose a saved command first."
+                        } else {
+                            runCommand(command, commandInputValues)
+                        }
+                    }, modifier = Modifier.weight(1f)) { Text("Run / test") }
                     Spacer(Modifier.padding(4.dp))
                     OutlinedButton(onClick = {
                         val payload = ProviderCommandRegistry.exportBundle(appContext, selectedCommandId.takeIf(String::isNotBlank))
@@ -416,7 +462,7 @@ object ProviderCommandCapabilityScreen : CapabilityScreenSpec {
                                 Row {
                                     OutlinedButton(onClick = { load(command) }) { Text("Select") }
                                     Spacer(Modifier.padding(4.dp))
-                                    Button(onClick = { load(command); runCommand(command) }) { Text("Run") }
+                                    Button(onClick = { load(command); runCommand(command, command.inputDefaultsForPanel()) }) { Text("Run") }
                                 }
                             }
                         }
@@ -519,6 +565,61 @@ private fun ProviderCommand.modeDescription(): String = when (interfaceType) {
     "activity_result_intent" -> "Returns data to ResearchOS when the external app finishes."
     "launch_only_intent" -> "Launch-only: opens the external app, but completion is not confirmed by ResearchOS."
     else -> "Generic intent command."
+}
+
+private fun ProviderCommand.inputKeysForPanel(): Set<String> {
+    val fromTemplates = buildList {
+        addAll(templateKeys(dataUriTemplate))
+        extrasTemplate.values.forEach { addAll(templateKeys(it)) }
+    }.map { key ->
+        key.removeSuffix("_uri").removeSuffix("_plus")
+    }
+    return (defaultValues.keys + fromTemplates)
+        .filter { it.isNotBlank() }
+        .filterNot { it in setOf("provider_command_id", "command_id") }
+        .toSet()
+}
+
+private fun ProviderCommand.inputDefaultsForPanel(): Map<String, String> =
+    inputKeysForPanel().associateWith { defaultValues[it].orEmpty() }
+
+private fun templateKeys(template: String): List<String> =
+    Regex("""\{([A-Za-z0-9_]+)}|\$\{([A-Za-z0-9_]+)}""")
+        .findAll(template)
+        .map { match -> match.groupValues[1].ifBlank { match.groupValues[2] } }
+        .toList()
+
+private fun String.commandInputLabel(): String = when (this) {
+    "phone" -> "Phone number"
+    "message" -> "Message"
+    "text" -> "Text"
+    "label" -> "Label"
+    "latitude" -> "Latitude"
+    "longitude" -> "Longitude"
+    "query" -> "Search query"
+    "url" -> "URL"
+    else -> replace("_", " ").replaceFirstChar { it.uppercase() }
+}
+
+@Composable
+private fun CommandInputPanel(
+    command: ProviderCommand,
+    values: Map<String, String>,
+    onValueChanged: (String, String) -> Unit
+) {
+    val keys = command.inputKeysForPanel().toList()
+    if (keys.isEmpty()) return
+    Text("Command inputs", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 10.dp))
+    keys.forEach { key ->
+        OutlinedTextField(
+            value = values[key].orEmpty(),
+            onValueChange = { onValueChanged(key, it) },
+            label = { Text(key.commandInputLabel()) },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = if (key.contains("message", true) || key.contains("text", true)) 2 else 1,
+            singleLine = !(key.contains("message", true) || key.contains("text", true))
+        )
+    }
 }
 
 @Composable

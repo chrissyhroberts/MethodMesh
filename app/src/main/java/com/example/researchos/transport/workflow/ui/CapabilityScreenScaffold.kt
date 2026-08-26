@@ -306,6 +306,12 @@ fun CapabilityScreenScaffold(
                                     runCatching { OutputExportRepository.share(appContext, pkg) }
                                         .onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
                                 }) { Text("Share") }
+                                if (pkg.attachments.any { it.mimeType.startsWith("image/") || it.mimeType.startsWith("audio/") || it.mimeType.startsWith("video/") || it.mimeType == "application/pdf" }) {
+                                    OutlinedButton(onClick = {
+                                        runCatching { OutputExportRepository.shareMedia(appContext, pkg) }
+                                            .onFailure { exportStatus = "Media share failed: ${it.message ?: "no media available"}" }
+                                    }) { Text("Share media") }
+                                }
                             }
                         }
                     }

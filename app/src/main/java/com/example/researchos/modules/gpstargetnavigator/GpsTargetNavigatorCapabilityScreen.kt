@@ -196,7 +196,11 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
     private fun applyParameters(settingsState: SettingsState, settings: List<MethodSetting>, parameters: Map<String, String>) {
         settings.forEach { setting ->
             val raw = parameters[setting.id]
+                ?: parameters["input_${setting.id}"]
                 ?: (if (setting.id == "arrival_radius_m") parameters["arrival_radius"] else null)
+                ?: (if (setting.id == "arrival_radius_m") parameters["input_arrival_radius"] else null)
+                ?: (if (setting.id == "target_latitude") parameters["latitude"] ?: parameters["lat"] else null)
+                ?: (if (setting.id == "target_longitude") parameters["longitude"] ?: parameters["lon"] ?: parameters["lng"] else null)
                 ?: return@forEach
             when (setting) {
                 is MethodSetting.BooleanSetting -> settingsState.setBoolean(setting.id, raw.toBooleanStrictOrNull() ?: raw == "1")

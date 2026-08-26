@@ -73,6 +73,9 @@ import com.example.researchos.core.researchos.withInvocationContext
 import com.example.researchos.modules.ModuleExample
 import com.example.researchos.modules.ResearchOSModule
 import com.example.researchos.modules.ResearchOSModuleRegistry
+import com.example.researchos.modules.odkformlauncher.As100OdkFormLauncherMethod
+import com.example.researchos.platform.externalforms.ExternalFormCatalog
+import com.example.researchos.platform.externalforms.ExternalProjectRegistry
 import com.example.researchos.settings.DisplaySettingsScreen
 import com.example.researchos.settings.SettingsState
 import com.example.researchos.transport.OutputFormatter
@@ -360,15 +363,20 @@ private fun ProtocolLibraryCard(revision: Int) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     var presets by remember(revision) { mutableStateOf(ProtocolLibraryRepository.presets(context)) }
     var protocols by remember(revision) { mutableStateOf(ProtocolLibraryRepository.protocols(context)) }
+    var archivedProtocols by remember(revision) { mutableStateOf(ProtocolLibraryRepository.archivedProtocols(context)) }
     var status by rememberSaveable { mutableStateOf<String?>(null) }
     var importPayload by rememberSaveable { mutableStateOf("") }
     var protocolName by rememberSaveable { mutableStateOf("") }
     var protocolPresetIds by rememberSaveable { mutableStateOf(listOf<String>()) }
+    var editingProtocolId by rememberSaveable { mutableStateOf<String?>(null) }
     var addPresetDialogOpen by rememberSaveable { mutableStateOf(false) }
+    var addOdkStepDialogOpen by rememberSaveable { mutableStateOf(false) }
+    var showArchive by rememberSaveable { mutableStateOf(false) }
 
     fun refresh() {
         presets = ProtocolLibraryRepository.presets(context)
         protocols = ProtocolLibraryRepository.protocols(context)
+        archivedProtocols = ProtocolLibraryRepository.archivedProtocols(context)
     }
 
     fun runPreset(preset: CapabilityPreset) {
@@ -461,6 +469,11 @@ private fun ProtocolLibraryCard(revision: Int) {
                         Text("Add step")
                     }
                     Spacer(Modifier.width(8.dp))
+                    OutlinedButton(onClick = { addOdkStepDialogOpen = true }, modifier = Modifier.weight(1f)) {
+                        Text("Add ODK form")
+                    }
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     Button(
                         onClick = {
                             val selected = protocolPresetIds.mapNotNull { id -> presets.firstOrNull { it.id == id } }
@@ -470,6 +483,7 @@ private fun ProtocolLibraryCard(revision: Int) {
                                 val saved = ProtocolLibraryRepository.saveProtocol(
                                     context,
                                     ProtocolDefinition(
+                                        id = editingProtocolId ?: java.util.UUID.randomUUID().toString(),
                                         name = protocolName.trim(),
                                         steps = selected.mapIndexed { index, preset ->
                                             ProtocolStep(name = preset.name, presetId = preset.id, order = index)
@@ -478,6 +492,7 @@ private fun ProtocolLibraryCard(revision: Int) {
                                 )
                                 protocolName = ""
                                 protocolPresetIds = emptyList()
+                                editingProtocolId = null
                                 refresh()
                                 status = "Protocol saved: ${saved.name} (${ProtocolLibraryRepository.versionLabel(saved.versionIso)})."
                             }
@@ -485,6 +500,17 @@ private fun ProtocolLibraryCard(revision: Int) {
                         modifier = Modifier.weight(1f),
                         enabled = protocolName.isNotBlank() && protocolPresetIds.isNotEmpty()
                     ) { Text("Save protocol") }
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            protocolName = ""
+                            protocolPresetIds = emptyList()
+                            editingProtocolId = null
+                            status = "Protocol edit cancelled."
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = editingProtocolId != null || protocolName.isNotBlank() || protocolPresetIds.isNotEmpty()
+                    ) { Text("Clear") }
                 }
                 if (addPresetDialogOpen) {
                     Dialog(onDismissRequest = { addPresetDialogOpen = false }) {
@@ -510,6 +536,18 @@ private fun ProtocolLibraryCard(revision: Int) {
                         }
                     }
                 }
+                if (addOdkStepDialogOpen) {
+                    OdkProtocolStepDialog(
+                        onDismiss = { addOdkStepDialogOpen = false },
+                        onStepCreated = { preset ->
+                            val saved = ProtocolLibraryRepository.savePreset(context, preset)
+                            protocolPresetIds = protocolPresetIds + saved.id
+                            refresh()
+                            addOdkStepDialogOpen = false
+                            status = "Added ODK form step: ${saved.name}"
+                        }
+                    )
+                }
 
                 Spacer(Modifier.height(14.dp))
                 Text("Saved protocols", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -533,6 +571,16 @@ private fun ProtocolLibraryCard(revision: Int) {
                                     Text("${index + 1}. ${preset?.name ?: step.name}", style = MaterialTheme.typography.bodySmall)
                                 }
                                 Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            protocolName = protocol.name
+                                            protocolPresetIds = protocol.steps.sortedBy { it.order }.map { it.presetId }
+                                            editingProtocolId = protocol.id
+                                            status = "Editing ${protocol.name}. Saving will create a new version and archive the previous version."
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) { Text("Edit protocol") }
+                                    Spacer(Modifier.height(6.dp))
                                     Button(
                                         onClick = { launchProtocolRun(context, protocol, saveOutput = false, testMode = true) },
                                         modifier = Modifier.fillMaxWidth()
@@ -550,12 +598,40 @@ private fun ProtocolLibraryCard(revision: Int) {
                                     Spacer(Modifier.height(6.dp))
                                     OutlinedButton(
                                         onClick = {
-                                            ProtocolLibraryRepository.removeProtocol(context, protocol.id)
+                                            ProtocolLibraryRepository.archiveProtocol(context, protocol.id)
                                             refresh()
-                                            status = "Removed protocol: ${protocol.name}"
+                                            status = "Archived protocol: ${protocol.name}"
                                         },
                                         modifier = Modifier.fillMaxWidth()
-                                    ) { Text("Remove protocol") }
+                                    ) { Text("Archive protocol") }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (archivedProtocols.isNotEmpty()) {
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedButton(onClick = { showArchive = !showArchive }, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (showArchive) "Hide archived protocol versions" else "Show archived protocol versions (${archivedProtocols.size})")
+                    }
+                    if (showArchive) {
+                        archivedProtocols.forEach { protocol ->
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                Column(Modifier.padding(10.dp)) {
+                                    Text(protocol.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                    Text("${ProtocolLibraryRepository.versionLabel(protocol.versionIso)} · archived version", style = MaterialTheme.typography.labelSmall)
+                                    OutlinedButton(
+                                        onClick = {
+                                            ProtocolLibraryRepository.unarchiveProtocol(context, protocol.id)
+                                            refresh()
+                                            status = "Unarchived protocol version: ${protocol.name}"
+                                        },
+                                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
+                                    ) { Text("Unarchive as active copy") }
                                 }
                             }
                         }
@@ -595,6 +671,91 @@ private fun ProtocolLibraryCard(revision: Int) {
                     enabled = importPayload.isNotBlank()
                 ) { Text("Import without replacing existing") }
                 status?.let { Text(it, modifier = Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OdkProtocolStepDialog(
+    onDismiss: () -> Unit,
+    onStepCreated: (CapabilityPreset) -> Unit
+) {
+    val context = LocalContext.current
+    var selectedProjectId by rememberSaveable { mutableStateOf("") }
+    var selectedPackage by rememberSaveable { mutableStateOf("org.odk.collect.android") }
+    var manualFormId by rememberSaveable { mutableStateOf("") }
+    val projects = remember { ExternalProjectRegistry.load(context) }
+    val forms = remember(selectedProjectId, selectedPackage) {
+        if (selectedProjectId.isBlank()) emptyList() else ExternalFormCatalog.list(context, selectedProjectId, selectedPackage)
+    }
+
+    fun presetFor(formSelector: String, displayName: String = formSelector): CapabilityPreset =
+        CapabilityPreset(
+            name = "odk_form_${displayName.ifBlank { formSelector }}",
+            methodId = As100OdkFormLauncherMethod.ID,
+            settingsJson = JSONObject().apply {
+                put("project_id", selectedProjectId)
+                put("package_name", selectedPackage)
+                put("form_selector", formSelector)
+            }.toString()
+        )
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = MaterialTheme.shapes.large, tonalElevation = 6.dp) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Add ODK/XLSForm step", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Pick a known project and form, or enter a form ID manually.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth()) {
+                    if (selectedPackage == "org.odk.collect.android") {
+                        Button(onClick = { selectedPackage = "org.odk.collect.android" }, modifier = Modifier.weight(1f)) { Text("✓ ODK") }
+                    } else {
+                        OutlinedButton(onClick = { selectedPackage = "org.odk.collect.android" }, modifier = Modifier.weight(1f)) { Text("ODK") }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    if (selectedPackage == "org.koboc.collect.android") {
+                        Button(onClick = { selectedPackage = "org.koboc.collect.android" }, modifier = Modifier.weight(1f)) { Text("✓ Kobo") }
+                    } else {
+                        OutlinedButton(onClick = { selectedPackage = "org.koboc.collect.android" }, modifier = Modifier.weight(1f)) { Text("Kobo") }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Known projects", style = MaterialTheme.typography.labelLarge)
+                if (projects.isEmpty()) {
+                    Text("No saved projects yet. Use the ODK form launcher once to discover/save a project, or enter the form ID manually.", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    projects.filter { it.packageName.isBlank() || it.packageName == selectedPackage }.forEach { project ->
+                        OutlinedButton(
+                            onClick = { selectedProjectId = project.id; selectedPackage = project.packageName.ifBlank { selectedPackage } },
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) { Text(if (selectedProjectId == project.id) "✓ ${project.name}" else project.name) }
+                    }
+                }
+                if (forms.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Forms in selected project", style = MaterialTheme.typography.labelLarge)
+                    forms.forEach { form ->
+                        OutlinedButton(
+                            onClick = { onStepCreated(presetFor(form.id, form.name)) },
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) { Text("${form.name} (${form.id})") }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = manualFormId,
+                    onValueChange = { manualFormId = it },
+                    label = { Text("Manual form ID") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Button(
+                    onClick = { onStepCreated(presetFor(manualFormId.trim())) },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    enabled = manualFormId.isNotBlank()
+                ) { Text("Add manual form step") }
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Text("Cancel") }
             }
         }
     }

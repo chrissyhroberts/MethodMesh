@@ -75,7 +75,7 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
         val usbManager = androidContext.getSystemService(Context.USB_SERVICE) as UsbManager
         val scope = remember { CoroutineScope(Dispatchers.Main) }
         var devices by remember { mutableStateOf(usbDevices(usbManager)) }
-        var selected by remember { mutableStateOf<UsbDevice?>(devices.firstOrNull()) }
+        var selected by remember { mutableStateOf<UsbDevice?>(null) }
         var status by rememberSaveable { mutableStateOf("Connect an ESP32-C3 by USB/OTG, then refresh devices.") }
         var log by rememberSaveable { mutableStateOf("") }
         var installing by rememberSaveable { mutableStateOf(false) }
@@ -173,7 +173,7 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
                 append(outcome.message)
                 if (outcome.success) {
                     devices = usbDevices(usbManager)
-                    selected = devices.firstOrNull()
+                    selected = null
                 }
                 record(
                     SensorFirmwareInstallOutcome(
@@ -275,7 +275,12 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
             capturedResult = result,
             resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
             onBack = onBack,
-            onRetry = { result = null; devices = usbDevices(usbManager); selected = devices.firstOrNull(); status = "Device list refreshed." },
+            onRetry = {
+                result = null
+                devices = usbDevices(usbManager)
+                selected = null
+                status = "Device list refreshed. Select the ESP32-C3 board before continuing."
+            },
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
@@ -288,13 +293,30 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
             Text("$MAIN_PY_ASSET · ${mainPy.toByteArray(Charsets.UTF_8).size} bytes", style = MaterialTheme.typography.bodySmall)
             Text("${driverFiles.size} sensor driver file(s) · ${driverFiles.sumOf { it.second.toByteArray(Charsets.UTF_8).size }} bytes", style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(10.dp))
-            OutlinedButton(onClick = { devices = usbDevices(usbManager); selected = devices.firstOrNull(); status = "Found ${devices.size} USB device(s)." }, modifier = Modifier.fillMaxWidth()) { Text("Refresh USB devices") }
+            OutlinedButton(
+                onClick = {
+                    devices = usbDevices(usbManager)
+                    selected = null
+                    status = "Found ${devices.size} USB device(s). Select the ESP32-C3 board below."
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Refresh USB devices") }
             Spacer(Modifier.height(8.dp))
+            if (devices.isEmpty()) {
+                Text("No USB devices found. Connect the ESP32-C3 by USB/OTG, then refresh.", style = MaterialTheme.typography.bodySmall)
+            } else {
+                Text("Select USB device", fontWeight = FontWeight.SemiBold)
+            }
             devices.forEach { device ->
                 OutlinedButton(onClick = { selected = device; status = "Selected ${device.usbLabel()} ${device.guardLabel()}" }, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (selected == device) "✓ ${device.usbLabel()}" else device.usbLabel())
+                    Text(if (selected == device) "Selected: ${device.usbLabel()}" else "Use ${device.usbLabel()}")
                 }
             }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Usual sequence: choose board → confirm overwrite → Step 1. After flashing succeeds, reset or unplug/replug normally, refresh, choose the board again, then Step 2.",
+                style = MaterialTheme.typography.bodySmall
+            )
             Spacer(Modifier.height(8.dp))
             Row {
                 Checkbox(checked = destructiveConfirmed, onCheckedChange = { destructiveConfirmed = it })

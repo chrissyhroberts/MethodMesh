@@ -25,9 +25,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -97,6 +99,7 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
     override val description = "Configure a ResearchOS ESP32-C3 sensor node and save it into the device registry."
 
     @SuppressLint("MissingPermission")
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Render(
         context: CapabilityScreenContext,
@@ -383,33 +386,37 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
             OutlinedTextField(sampleInterval, { sampleInterval = it.filter(Char::isDigit) }, label = { Text("Sample interval (ms)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             Spacer(Modifier.height(8.dp))
             val selectedProfile = sensorProfileById(sensorProfileId)
-            Text("Sensor profile", fontWeight = FontWeight.SemiBold)
-            OutlinedButton(
-                onClick = { sensorProfilePickerOpen = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("${selectedProfile.label} (${selectedProfile.status})", modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
-                Text("▼")
-            }
-            DropdownMenu(
+            ExposedDropdownMenuBox(
                 expanded = sensorProfilePickerOpen,
-                onDismissRequest = { sensorProfilePickerOpen = false },
-                modifier = Modifier.fillMaxWidth(0.9f)
+                onExpandedChange = { sensorProfilePickerOpen = !sensorProfilePickerOpen }
             ) {
-                sensorProfileOptions.forEach { profile ->
-                    DropdownMenuItem(
-                        text = {
-                            Column {
-                                Text(profile.label)
-                                Text("${profile.id} · ${profile.status}", style = MaterialTheme.typography.labelSmall)
-                                Text(profile.description, style = MaterialTheme.typography.bodySmall)
+                OutlinedTextField(
+                    value = "${selectedProfile.label} (${selectedProfile.status})",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Attached sensor") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sensorProfilePickerOpen) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                )
+                ExposedDropdownMenu(
+                    expanded = sensorProfilePickerOpen,
+                    onDismissRequest = { sensorProfilePickerOpen = false }
+                ) {
+                    sensorProfileOptions.forEach { profile ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(profile.label)
+                                    Text("${profile.id} · ${profile.status}", style = MaterialTheme.typography.labelSmall)
+                                    Text(profile.description, style = MaterialTheme.typography.bodySmall)
+                                }
+                            },
+                            onClick = {
+                                sensorProfileId = profile.id
+                                sensorProfilePickerOpen = false
                             }
-                        },
-                        onClick = {
-                            sensorProfileId = profile.id
-                            sensorProfilePickerOpen = false
-                        }
-                    )
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -446,7 +453,7 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "Provision ResearchOS BLE sensor",
                         description = "Scan for a ResearchOS BLE sensor node and configure its persisted identity.",
-                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='sensor_node_provisioner',input_sensor_device_id='clinic_room_01_sensor',input_sensor_device_name='Clinic room 01 sensor',input_sensor_sample_interval_ms='60000',return_mode='flat')"
+                        intentUri = "com.example.researchos.EXECUTE_METHOD(method_id='sensor_node_provisioner',input_sensor_device_id='clinic_room_01_sensor',input_sensor_device_name='Clinic room 01 sensor',input_sensor_profile='aht20',input_sensor_sample_interval_ms='60000',return_mode='flat')"
                     )
                 )
             )
