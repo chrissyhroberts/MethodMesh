@@ -25,7 +25,7 @@ Create signed evidence that an event payload was attested using a selected local
 
 ## Requirements
 
-- Configured ResearchOS device key.
+- Configured MethodMesh device key.
 - Verification dependency required by the selected method.
 
 ## Screenshot
@@ -40,7 +40,7 @@ Add a current capability dashboard or execution screenshot at:
 
 ```{=html}
 <!-- Replace the placeholder above with:
-![](../assets/screenshots/attestation.png){fig-alt="Signed event attestation screen in ResearchOS"}
+![](../assets/screenshots/attestation.png){fig-alt="Signed event attestation screen in MethodMesh"}
 -->
 ```
 
@@ -49,43 +49,43 @@ Add a current capability dashboard or execution screenshot at:
 **From `example_odk_attestation.create_Fingerprint.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Fingerprint',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='methodmesh_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Fingerprint',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
 ```
 
 **From `example_odk_attestation.create_Pin.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Pin',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='methodmesh_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Pin',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
 ```
 
 **From `example_odk_attestation.create_Password.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Password',input_verification_evidence=${verification_evidence_input},input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='methodmesh_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Password',input_verification_evidence=${verification_evidence_input},input_trusted_timestamp=${timestamp_policy},return_mode='flat')
 ```
 
 **From `example_odk_attestation.create_Qr.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Qr',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='methodmesh_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Qr',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
 ```
 
 **From `example_odk_attestation.create_Nfc.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='researchos_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Nfc',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='attestation.create',entity_type='participant',entity_id=${participant_id},subject_id=${participant_id},operator_id=${operator_id_input},input_study_id='methodmesh_attestation_test',input_event_type='form_submission',input_event_payload_hash=${event_payload_hash},input_verification_method='Nfc',input_trusted_timestamp=${timestamp_policy},return_mode='flat')
 ```
 
 **From `example_odk_attestation.anchor_bundle.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='attestation.anchor_bundle',input_study_id=${study_id_input},operator_id=${operator_id_input},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='attestation.anchor_bundle',input_study_id=${study_id_input},operator_id=${operator_id_input},return_mode='flat')
 ```
 
-**From `researchos_fingerprint_attestation_test.xlsx`:**
+**From `methodmesh_fingerprint_attestation_test.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',event_payload_hash=${event_payload},verification_method='Fingerprint',trusted_timestamp=${timestamp_policy},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='attestation.create',event_payload_hash=${event_payload},verification_method='Fingerprint',trusted_timestamp=${timestamp_policy},return_mode='flat')
 ```
 
 ## Inputs observed in supplied examples

@@ -1,15 +1,15 @@
 ---
-title: "ResearchOS User Guide"
+title: "MethodMesh User Guide"
 page-layout: full
 toc: false
 ---
 
 ::: hero-banner
-# ResearchOS
+# MethodMesh
 
 ## Extend XLSForm workflows with offline Android capabilities
 
-ResearchOS is a capability layer that allows XLSForm-based research workflows to access specialist Android functions while keeping the electronic data capture system as the source of the research record.
+MethodMesh is a capability layer that allows XLSForm-based research workflows to access specialist Android functions while keeping the electronic data capture system as the source of the research record.
 
 It connects forms to identity verification, sensors, instruments, maps, communication tools, machine learning, external applications and field devices through a common execution framework.
 
@@ -19,20 +19,18 @@ It connects forms to identity verification, sensors, instruments, maps, communic
 
 ## Screenshots
 
-![Homescreen](assets/screenshots/showcase1.png){width="250"} ![Capabilities](assets/screenshots/showcase2.png){width="250"} ![svg.select.capability](assets/screenshots/showcase3.png){width="250"} ![svg.select.data.return](assets/screenshots/showcase4.png){width="250"}
 
-
-## What ResearchOS does
+## What MethodMesh does
 
 ```text
 XLSForm / EDC
-    → ResearchOS capability request
+    → MethodMesh capability request
     → Android function, sensor, device or application
     → structured result
     → calling form
 ```
 
-ResearchOS does not aim to replace an EDC system. Instead, it acts as a bridge between research workflows and the rapidly expanding capabilities available on modern Android devices.
+MethodMesh does not aim to replace an EDC system. Instead, it acts as a bridge between research workflows and the rapidly expanding capabilities available on modern Android devices.
 
 ---
 
@@ -42,7 +40,7 @@ ResearchOS does not aim to replace an EDC system. Instead, it acts as a bridge b
 
 Research data often requires evidence that an event happened at a particular time, on a particular device, by an authorised person.
 
-ResearchOS provides building blocks for:
+MethodMesh provides building blocks for:
 
 - device-authenticated actions;
 - biometric or device credential confirmation;
@@ -61,7 +59,7 @@ These capabilities support stronger evidence chains for research activities with
 
 ## Sensors and connected instruments
 
-ResearchOS provides a bridge between XLSForm workflows and physical measurement devices.
+MethodMesh provides a bridge between XLSForm workflows and physical measurement devices.
 
 The built-in sensor ecosystem supports:
 
@@ -74,18 +72,18 @@ The built-in sensor ecosystem supports:
 
 The goal is not to create a single instrument, but a reusable framework for connecting research workflows to low-cost hardware.  
 
-#### AHT20 Temperature/Humidity sensor flashed and provisioned by ResearchOS
+#### AHT20 Temperature/Humidity sensor flashed and provisioned by MethodMesh
 
 ![](assets/screenshots/sensor_read1.png){width="250" }  
 
-#### ODK Form collecting data from AHT20 sensor via ResearchOS
+#### ODK Form collecting data from AHT20 sensor via MethodMesh
 ![](assets/screenshots/sensor_video.mp4){width="350" } 
 
 ---
 
 ## New digital research instruments
 
-ResearchOS extends the types of measurements that can be collected through standard field workflows.
+MethodMesh extends the types of measurements that can be collected through standard field workflows.
 
 Examples include:
 
@@ -101,7 +99,7 @@ These capabilities allow richer research instruments to be deployed through fami
 
 ## NFC, QR codes and physical-world interaction
 
-ResearchOS connects digital records with physical objects.
+MethodMesh connects digital records with physical objects.
 
 Supported workflows include:
 
@@ -118,7 +116,7 @@ These capabilities are especially useful where field workflows involve samples, 
 
 ## Scheduling and automated research workflows
 
-ResearchOS can act as a local workflow engine for devices.
+MethodMesh can act as a local workflow engine for devices.
 
 Examples include:
 
@@ -131,18 +129,17 @@ Examples include:
 
 This allows field devices to continue supporting research activities without relying on constant server communication.
 
-ResearchOS can also run configured capability presets and named protocols directly from the app. Test runs are separated from real saved output: **Test** previews the result without writing a study package, while **Test and save** writes the normal JSON-plus-attachments output package. Each card keeps a visible last-result preview so operators can inspect returned fields and image media before using a workflow operationally.
+MethodMesh can also run configured capability presets and named protocols directly from the app. Test runs are separated from real saved output: **Test** previews the result without writing a study package, while **Test and save** writes the normal JSON-plus-attachments output package. Each card keeps a visible last-result preview so operators can inspect returned fields and image media before using a workflow operationally.
 
 
 #### A system notification leads to a chain of events (ODK Collect form and Enketo Webform) are scheduled for completion at a prespecified time
-![](assets/screenshots/scheduled_event_chain2.png){width="350"}  
 ![](assets/screenshots/scheduled_event_chain.mp4){width="350"} 
 
 ---
 
 ## Communication from the field
 
-ResearchOS can connect research workflows to device communication functions.
+MethodMesh can connect research workflows to device communication functions.
 
 Examples include:
 
@@ -158,7 +155,7 @@ This enables research systems to trigger actions directly from field observation
 
 Modern Android devices can perform increasingly powerful local computation.
 
-ResearchOS exposes these capabilities for research workflows, including:
+MethodMesh exposes these capabilities for research workflows, including:
 
 - offline language translation using downloaded language packs;
 - speech transcription;
@@ -172,7 +169,7 @@ Where possible, computation remains on the device rather than requiring cloud se
 
 ## Maps, navigation and spatial research
 
-ResearchOS connects forms to spatial tools and navigation capabilities.
+MethodMesh connects forms to spatial tools and navigation capabilities.
 
 Examples include:
 
@@ -188,7 +185,7 @@ This supports research activities where location, movement and field navigation 
 
 ## Documents, images and text extraction
 
-ResearchOS enables field devices to process physical documents and images.
+MethodMesh enables field devices to process physical documents and images.
 
 Examples include:
 
@@ -200,13 +197,13 @@ Examples include:
 - computer vision analysis;
 - structured extraction of information from visual sources.
 
-Image-output capabilities can return media attachments into ODK/Kobo calls or into ResearchOS output folders. Direct tests now show image previews in the dashboard so it is easier to confirm that the captured or redacted media are what the operator intended.
+Image-output capabilities can return media attachments into ODK/Kobo calls or into MethodMesh output folders. Direct tests now show image previews in the dashboard so it is easier to confirm that the captured or redacted media are what the operator intended.
 
 ---
 
 ## Android ecosystem integration
 
-ResearchOS can discover and interact with useful capabilities already present in the Android ecosystem.
+MethodMesh can discover and interact with useful capabilities already present in the Android ecosystem.
 
 Examples include:
 
@@ -220,12 +217,12 @@ The objective is to avoid rebuilding existing Android capabilities and instead p
 
 ---
 
-## The ResearchOS principle
+## The MethodMesh principle
 
-ResearchOS is designed as a **Rosetta stone for research applications**:
+MethodMesh is designed as a **Rosetta stone for research applications**:
 
 - EDC systems define the research workflow.
-- ResearchOS provides specialist device capabilities.
+- MethodMesh provides specialist device capabilities.
 - Android provides the execution environment.
 - Field devices provide the measurements and interactions.
 

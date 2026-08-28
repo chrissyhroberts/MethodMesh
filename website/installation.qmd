@@ -3,11 +3,11 @@ title: "Installation"
 toc: true
 ---
 
-## Install ResearchOS
+## Install MethodMesh
 
-ResearchOS is not yet distributed through the Google Play Store. You will therefore need to build the APK from the source code and sideload it onto the Android device.
+MethodMesh is not yet distributed through the Google Play Store. You will therefore need to build the APK from the source code and sideload it onto the Android device.
 
-Only install APK files that you have built yourself or obtained from a trusted ResearchOS project source.
+Only install APK files that you have built yourself or obtained from a trusted MethodMesh project source.
 
 ## Build the APK
 
@@ -16,7 +16,7 @@ Only install APK files that you have built yourself or obtained from a trusted R
 You will need:
 
 - Android Studio;
-- a local copy of the ResearchOS repository;
+- a local copy of the MethodMesh repository;
 - the Android SDK required by the project;
 - a Java Development Kit compatible with the project;
 - sufficient disk space for Gradle dependencies and Android build tools.
@@ -26,13 +26,13 @@ You will need:
 Clone the repository:
 
 ``` bash
-git clone git@github.com:chrissyhroberts/ResearchOS.git
-cd ResearchOS
+git clone git@github.com:chrissyhroberts/MethodMesh.git
+cd MethodMesh
 ```
 
 Alternatively, download the repository from GitHub and extract it locally.
 
-Open the `ResearchOS` directory in Android Studio.
+Open the `MethodMesh` directory in Android Studio.
 
 Allow Android Studio to complete:
 
@@ -122,7 +122,7 @@ Connect the device to the computer using a USB cable.
 
 When Android displays the USB debugging authorisation prompt, approve the computer. Only approve computers you trust.
 
-### Run ResearchOS
+### Run MethodMesh
 
 In Android Studio:
 
@@ -130,7 +130,7 @@ In Android Studio:
 2.  Select the `app` run configuration.
 3.  Press **Run**.
 
-Android Studio will build, install and launch ResearchOS.
+Android Studio will build, install and launch MethodMesh.
 
 ## Sideload the APK manually
 
@@ -210,7 +210,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 If the installed application was signed with a different key, Android may refuse the update. In that case, uninstall the existing application first:
 
 ``` bash
-adb uninstall com.example.researchos
+adb uninstall com.example.methodmesh
 ```
 
 Then install the APK again.
@@ -223,14 +223,14 @@ Android may display warnings because the application was installed outside the P
 
 Confirm that:
 
-- the APK came from the official ResearchOS repository or another approved source;
-- the package name is the expected ResearchOS package;
+- the APK came from the official MethodMesh repository or another approved source;
+- the package name is the expected MethodMesh package;
 - the APK has not been modified after building;
 - the requested permissions are appropriate for the capabilities being used.
 
 Do not bypass device-management restrictions on managed research devices. Ask the project administrator to approve or deploy the application.
 
-## Updating ResearchOS
+## Updating MethodMesh
 
 To install a newer build:
 
@@ -250,12 +250,12 @@ An update will only install over the existing application when both APKs use the
 
 After installation:
 
-1.  Open ResearchOS.
+1.  Open MethodMesh.
 2.  Confirm that the main dashboard loads.
 3.  Open the capability list.
 4.  Grant only the permissions required for the capabilities being tested.
 5.  Run a built-in capability test where available.
-6.  Test a complete XLSForm-to-ResearchOS round trip.
+6.  Test a complete XLSForm-to-MethodMesh round trip.
 7.  Repeat the test in airplane mode where offline operation is expected.
 
 ## Common installation problems
@@ -298,4 +298,4 @@ The previous installation may have been signed using a different key.
 
 Either rebuild using the same signing configuration or uninstall the existing application before installing the new one.
 
-Be aware that uninstalling removes locally stored ResearchOS configuration and data.
+Be aware that uninstalling removes locally stored MethodMesh configuration and data.

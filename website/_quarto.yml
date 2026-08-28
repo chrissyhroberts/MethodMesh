@@ -6,10 +6,11 @@ project:
     - assets/**
 
 website:
-  title: "ResearchOS User Guide"
+  title: "MethodMesh User Guide"
   search: true
   page-navigation: true
-  repo-url: https://github.com/chrissyhroberts/ResearchOS
+  repo-url: https://github.com/chrissyhroberts/MethodMesh
+  repo-branch: master
   repo-actions: [edit, issue]
   sidebar:
     style: docked

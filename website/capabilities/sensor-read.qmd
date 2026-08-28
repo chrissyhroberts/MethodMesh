@@ -10,7 +10,7 @@ This status is based on the supplied project documentation and example XLSForms.
 
 ## Purpose
 
-Read, trace, average or discover registered ResearchOS BLE sensor nodes.
+Read, trace, average or discover registered MethodMesh BLE sensor nodes.
 
 ## Capability IDs
 
@@ -23,7 +23,7 @@ Read, trace, average or discover registered ResearchOS BLE sensor nodes.
 
 ## Screenshot
 
-![](../assets/screenshots/sensor_read1.png){width=250} ![](../assets/screenshots/sensor_read2.png){width=250} ![](../assets/screenshots/sensor_read3.png){width=250}
+![](../assets/screenshots/sensor_read1.png){width=250}
 
 
 ## Supported XLSForm calls
@@ -31,7 +31,7 @@ Read, trace, average or discover registered ResearchOS BLE sensor nodes.
 **From `example_odk_sensorread.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='sensor.read',input_device_id=${config_device_id},input_sensor_id=${config_sensor_id},input_sensor_profile=${config_sensor_profile},input_sensor_read_mode=${config_read_mode},input_duration_seconds=${config_duration_seconds},input_sample_interval_seconds=${config_interval_seconds},input_device_match_policy=${config_match_policy},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='sensor.read',input_device_id=${config_device_id},input_sensor_id=${config_sensor_id},input_sensor_profile=${config_sensor_profile},input_sensor_read_mode=${config_read_mode},input_duration_seconds=${config_duration_seconds},input_sample_interval_seconds=${config_interval_seconds},input_device_match_policy=${config_match_policy},return_mode='flat')
 ```
 
 ## Inputs observed in supplied examples

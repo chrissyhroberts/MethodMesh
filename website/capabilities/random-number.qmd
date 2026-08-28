@@ -5,7 +5,7 @@ title: "Random number generator"
 ::: {.status-box .status-complete}
 **Status: Documented and implemented**
 
-This is a native ResearchOS calculation capability. It is intended as a general-purpose random source and as a foundation for later allocation and block randomisation modules.
+This is a native MethodMesh calculation capability. It is intended as a general-purpose random source and as a foundation for later allocation and block randomisation modules.
 :::
 
 ## Purpose
@@ -38,13 +38,13 @@ The capability supports:
 ### One secure random integer
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='random.number.generate',input_min='1',input_max='100',input_step='1',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='random.number.generate',input_min='1',input_max='100',input_step='1',return_mode='flat')
 ```
 
 ### Five reproducible values
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='random.number.generate',input_count='5',input_min='1',input_max='10',input_step='1',input_seed_mode='fixed_seed',input_seed='study001',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='random.number.generate',input_count='5',input_min='1',input_max='10',input_step='1',input_seed_mode='fixed_seed',input_seed='study001',return_mode='flat')
 ```
 
 ## Returned fields

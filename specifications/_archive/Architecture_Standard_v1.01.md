@@ -9,7 +9,7 @@ Chrissy H. Roberts
 
 Companion Specifications:
 
-- ResearchOS Intent Language (RIL)
+- Research Intent Language (RIL)
 - Core Verbs
 - Core Resources
 - Core Types
@@ -17,9 +17,9 @@ Companion Specifications:
 
 Reference Implementation:
 
-The Architecture Standard (AS) defines the conceptual architecture of the ResearchOS platform.
+The Architecture Standard (AS) defines the conceptual architecture of the MethodMesh platform.
 
-It specifies the architectural domains, execution model, core abstractions and design principles that all conforming ResearchOS implementations shall preserve.
+It specifies the architectural domains, execution model, core abstractions and design principles that all conforming MethodMesh implementations shall preserve.
 
 This specification is implementation-independent.
 
@@ -40,12 +40,12 @@ These concerns are addressed by companion specifications and reference implement
 
 # Specification Family
 
-The Architecture Standard forms the foundation of the ResearchOS specification family.
+The Architecture Standard forms the foundation of the MethodMesh specification family.
 
 ```text
 Architecture Standard (AS)
         ↓
-ResearchOS Intent Language (RIL)
+Research Intent Language (RIL)
         ↓
 Transport Bindings
         ↓
@@ -58,8 +58,8 @@ Each specification has a single responsibility.
 
 | Specification | Responsibility |
 |--------------|----------------|
-| Architecture Standard | Defines the conceptual architecture of ResearchOS. |
-| ResearchOS Intent Language (RIL) | Defines how research operations are requested. |
+| Architecture Standard | Defines the conceptual architecture of MethodMesh. |
+| Research Intent Language (RIL) | Defines how research operations are requested. |
 | Core Verbs | Defines the standard vocabulary of actions. |
 | Core Resources | Defines the entities upon which actions operate. |
 | Core Types | Defines refinements of intents and resources. |
@@ -71,7 +71,7 @@ Each specification has a single responsibility.
 
 # 1. Purpose
 
-The Architecture Standard defines the conceptual model underlying ResearchOS.
+The Architecture Standard defines the conceptual model underlying MethodMesh.
 
 Its purpose is to provide a stable engineering foundation for reusable research software that is independent of any particular programming language, operating system or application domain.
 
@@ -82,7 +82,7 @@ The standard describes:
 - the canonical execution model;
 - the architectural building blocks from which implementations are constructed.
 
-The Architecture Standard describes **how ResearchOS is organised**.
+The Architecture Standard describes **how MethodMesh is organised**.
 
 It does not define:
 
@@ -98,7 +98,7 @@ These concerns are defined by companion specifications.
 
 # 2. Scope
 
-This specification applies to all conforming ResearchOS implementations.
+This specification applies to all conforming MethodMesh implementations.
 
 It defines concepts rather than implementation technologies.
 
@@ -108,7 +108,7 @@ Conforming implementations MAY use different programming languages, storage tech
 
 # 3. Design Philosophy
 
-ResearchOS is founded upon five architectural principles.
+MethodMesh is founded upon five architectural principles.
 
 1. Separation of concerns.
 2. Explicit execution.
@@ -122,7 +122,7 @@ These principles guide every subsequent architectural decision within the platfo
 
 # 4. Architectural Domains
 
-ResearchOS is organised around five orthogonal architectural domains.
+MethodMesh is organised around five orthogonal architectural domains.
 
 ```text
 Knowledge
@@ -153,7 +153,7 @@ Together they provide a complete architectural description of the platform.
 
 # 5. Architectural Domains
 
-The Architecture Standard organises ResearchOS into five independent architectural domains.
+The Architecture Standard organises MethodMesh into five independent architectural domains.
 
 Each domain represents a distinct aspect of the platform and answers a single fundamental question.
 
@@ -235,7 +235,7 @@ This separation enables long-term architectural stability.
 
 ## 5.4 Architectural Completeness
 
-Every architectural component within ResearchOS belongs primarily to one domain.
+Every architectural component within MethodMesh belongs primarily to one domain.
 
 Examples include:
 
@@ -367,7 +367,7 @@ Examples include:
 
 ## 6.4 Knowledge Graph
 
-Collectively these concepts form the ResearchOS Knowledge Graph.
+Collectively these concepts form the MethodMesh Knowledge Graph.
 
 The Architecture Standard does not prescribe any storage mechanism.
 
@@ -398,7 +398,7 @@ While the Knowledge Domain represents what exists, the Method Domain represents 
 
 Methods consume knowledge, evaluate knowledge, create observations, coordinate execution and initiate transformations.
 
-A Method is therefore the fundamental executable unit within the ResearchOS architecture.
+A Method is therefore the fundamental executable unit within the MethodMesh architecture.
 
 ---
 
@@ -437,7 +437,7 @@ Methods SHOULD communicate through defined interfaces rather than direct impleme
 
 A Method is an executable architectural component.
 
-Every executable operation within ResearchOS is represented as a Method.
+Every executable operation within MethodMesh is represented as a Method.
 
 Examples include:
 
@@ -604,7 +604,7 @@ Each Method has a single architectural responsibility.
 
 ## 7.7 Architectural Principle
 
-Every executable behaviour within ResearchOS SHOULD be representable as a Method.
+Every executable behaviour within MethodMesh SHOULD be representable as a Method.
 
 New functionality SHOULD be introduced by defining new Methods rather than modifying the execution engine.
 
@@ -797,7 +797,7 @@ Examples include:
 - floor plans;
 - contact networks.
 
-ResearchOS does not privilege any single spatial system.
+MethodMesh does not privilege any single spatial system.
 
 GPS coordinates, body-map polygons and image coordinates are all spatial representations.
 
@@ -925,12 +925,12 @@ Examples:
 
 New spatial systems SHOULD be introduced as Spatial Reference Systems rather than by altering the architecture.
 
-This allows ResearchOS to represent geographic, anatomical, image-based, laboratory, household and network spaces using a common conceptual model.
+This allows MethodMesh to represent geographic, anatomical, image-based, laboratory, household and network spaces using a common conceptual model.
 
 ---
 # 10. Transformation Domain
 
-The Transformation Domain defines how the state of the ResearchOS platform changes over time.
+The Transformation Domain defines how the state of the MethodMesh platform changes over time.
 
 While the Knowledge Domain describes what exists, the Transformation Domain describes how that knowledge evolves through execution.
 
@@ -975,11 +975,11 @@ Every completed transformation SHOULD be represented within provenance.
 
 ### Execution Request
 
-An Execution Request represents work submitted to the ResearchOS runtime.
+An Execution Request represents work submitted to the MethodMesh runtime.
 
 Execution Requests originate from:
 
-- ResearchOS Intent Language (RIL);
+- Research Intent Language (RIL);
 - internal workflows;
 - schedulers;
 - automation;
@@ -1096,7 +1096,7 @@ This ensures that execution remains reproducible, auditable and independent of i
 
 # 11. Execution Model
 
-The Architecture Standard defines a canonical execution model for all ResearchOS implementations.
+The Architecture Standard defines a canonical execution model for all MethodMesh implementations.
 
 The execution model describes how architectural domains interact during execution.
 
@@ -1116,7 +1116,7 @@ Regardless of whether execution is initiated by:
 - a scheduled workflow;
 - an external API;
 - a Device Service;
-- the ResearchOS Orchestrator;
+- the MethodMesh Orchestrator;
 - another Method;
 
 execution follows the same conceptual model.
@@ -1165,8 +1165,8 @@ Execution begins with an Execution Request.
 
 Execution Requests may originate from:
 
-- the ResearchOS Intent Language (RIL);
-- the ResearchOS Orchestrator;
+- the Research Intent Language (RIL);
+- the MethodMesh Orchestrator;
 - internal workflows;
 - Device Services;
 - scheduled events;
@@ -1283,7 +1283,7 @@ Companion specifications define provenance structure and transport.
 
 Execution concludes by returning a Result.
 
-The Result returned to the caller is defined by the ResearchOS Intent Language (RIL).
+The Result returned to the caller is defined by the Research Intent Language (RIL).
 
 The Architecture Standard does not prescribe the structure or transport of returned results.
 
@@ -1299,11 +1299,11 @@ The execution model is independent of:
 - operating systems;
 - storage technologies.
 
-Every ResearchOS implementation SHALL preserve the conceptual execution model regardless of implementation details.
+Every MethodMesh implementation SHALL preserve the conceptual execution model regardless of implementation details.
 
 # 12. Reference Runtime Architecture
 
-The Architecture Standard defines a logical reference architecture for ResearchOS implementations.
+The Architecture Standard defines a logical reference architecture for MethodMesh implementations.
 
 The reference architecture describes the responsibilities of the principal runtime components.
 
@@ -1473,13 +1473,13 @@ Examples include:
 - Location providers;
 - Notification frameworks.
 
-ResearchOS interacts with Platform Services exclusively through Device Services.
+MethodMesh interacts with Platform Services exclusively through Device Services.
 
 ---
 
 ## 12.10 Registries
 
-ResearchOS uses registries to discover architectural components dynamically.
+MethodMesh uses registries to discover architectural components dynamically.
 
 Typical registries include:
 
@@ -1642,7 +1642,7 @@ Typical modules include:
 - Randomisation
 - Sample Tracking
 - Protocol Completeness
-- ResearchOS Integration
+- MethodMesh Integration
 
 Modules SHOULD register Methods, Device Services and presentation components without modifying the Execution Engine.
 
@@ -1681,12 +1681,12 @@ The Architecture Standard SHOULD remain small and stable.
 
 Innovation SHOULD occur through new Methods, Device Services, Resources, Types and Policies rather than continual modification of the architecture itself.
 
-A stable architecture provides the foundation upon which the remainder of the ResearchOS specification family can evolve.
+A stable architecture provides the foundation upon which the remainder of the MethodMesh specification family can evolve.
 
 ---
 # 14. Conformance
 
-This specification defines the conceptual architecture of ResearchOS.
+This specification defines the conceptual architecture of MethodMesh.
 
 A conforming implementation SHALL preserve the architectural concepts, relationships and execution semantics defined by this standard.
 
@@ -1739,49 +1739,49 @@ Such extensions SHALL preserve the architecture defined by this specification.
 ---
 # 15. Companion Specifications
 
-The Architecture Standard forms the conceptual foundation of the ResearchOS specification family.
+The Architecture Standard forms the conceptual foundation of the MethodMesh specification family.
 
 Companion specifications define complementary aspects of the platform.
 
 | Specification | Responsibility |
 |---------------|----------------|
 | Architecture Standard (AS) | Conceptual architecture |
-| ResearchOS Intent Language (RIL) | Platform-independent request language |
+| Research Intent Language (RIL) | Platform-independent request language |
 | Core Verbs | Standard action vocabulary |
 | Core Resources | Standard research entities |
 | Core Types | Resource and Method specialisation |
 | Core Policies | Execution policies |
 | Transport Bindings | JSON, Android, HTTP and future representations |
 | Protocol Definition Language | Declarative protocol specification |
-| ResearchOS Orchestrator | Protocol execution over time |
+| MethodMesh Orchestrator | Protocol execution over time |
 
 Each specification has a single responsibility.
 
-Together they define the complete ResearchOS platform.
+Together they define the complete MethodMesh platform.
 
 ---
 
 # 15. Companion Specifications
 
-The Architecture Standard forms the conceptual foundation of the ResearchOS specification family.
+The Architecture Standard forms the conceptual foundation of the MethodMesh specification family.
 
 Companion specifications define complementary aspects of the platform.
 
 | Specification | Responsibility |
 |---------------|----------------|
 | Architecture Standard (AS) | Conceptual architecture |
-| ResearchOS Intent Language (RIL) | Platform-independent request language |
+| Research Intent Language (RIL) | Platform-independent request language |
 | Core Verbs | Standard action vocabulary |
 | Core Resources | Standard research entities |
 | Core Types | Resource and Method specialisation |
 | Core Policies | Execution policies |
 | Transport Bindings | JSON, Android, HTTP and future representations |
 | Protocol Definition Language | Declarative protocol specification |
-| ResearchOS Orchestrator | Protocol execution over time |
+| MethodMesh Orchestrator | Protocol execution over time |
 
 Each specification has a single responsibility.
 
-Together they define the complete ResearchOS platform.
+Together they define the complete MethodMesh platform.
 
 ---
 
@@ -1813,5 +1813,5 @@ Together they define the complete ResearchOS platform.
 | Version | Summary |
 |---------|---------|
 | AS1.00 | Initial Architecture Standard. |
-| AS1.01 | Markdown conversion; alignment with ResearchOS terminology; Method terminology replacing Capability terminology; canonical Execution Model; Reference Runtime Architecture; separation of architecture, language and runtime; alignment with the ResearchOS Intent Language (RIL); improved specification structure. |
+| AS1.01 | Markdown conversion; alignment with MethodMesh terminology; Method terminology replacing Capability terminology; canonical Execution Model; Reference Runtime Architecture; separation of architecture, language and runtime; alignment with the Research Intent Language (RIL); improved specification structure. |
 

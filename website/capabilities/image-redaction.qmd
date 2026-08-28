@@ -5,7 +5,7 @@ title: "Image redaction"
 ::: {.status-box .status-complete}
 **Status: Implemented and documented**
 
-This capability is intended for removing visible identifying or sensitive regions before an image leaves ResearchOS.
+This capability is intended for removing visible identifying or sensitive regions before an image leaves MethodMesh.
 :::
 
 ## Purpose
@@ -41,13 +41,13 @@ The distinction is:
 ### Redact a new camera image
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='image.redact',input_source='camera',input_grid_rows='10',input_grid_columns='10',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='image.redact',input_source='camera',input_grid_rows='10',input_grid_columns='10',return_mode='flat')
 ```
 
 ### Redact a picked image
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='image.redact',input_source='file_picker',input_grid_rows='12',input_grid_columns='12',input_redaction_style='black',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='image.redact',input_source='file_picker',input_grid_rows='12',input_grid_columns='12',input_redaction_style='black',return_mode='flat')
 ```
 
 ## Returned fields
@@ -70,9 +70,9 @@ com.example.researchos.EXECUTE_METHOD(method_id='image.redact',input_source='fil
 
 The redaction grid is aligned to the displayed image bounds, not to the surrounding panel. This matters when the image aspect ratio does not match the available screen area: blank padding around the image is ignored, and cell selection maps to the actual image pixels.
 
-ResearchOS does not intentionally rotate the image before the operator marks the redaction region. The editing surface should therefore reflect the image geometry being redacted.
+MethodMesh does not intentionally rotate the image before the operator marks the redaction region. The editing surface should therefore reflect the image geometry being redacted.
 
-## Direct ResearchOS use
+## Direct MethodMesh use
 
 From the dashboard, use:
 

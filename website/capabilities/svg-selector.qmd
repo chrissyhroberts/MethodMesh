@@ -19,7 +19,7 @@ Display an SVG and return selected polygon or region identifiers.
 
 ## Requirements
 
-- SVG asset available to ResearchOS.
+- SVG asset available to MethodMesh.
 
 ## Screenshot
 
@@ -32,7 +32,7 @@ Add a current capability dashboard or execution screenshot at:
 :::
 
 <!-- Replace the placeholder above with:
-![](../assets/screenshots/svg-selector.png){fig-alt="SVG polygon selector screen in ResearchOS"}
+![](../assets/screenshots/svg-selector.png){fig-alt="SVG polygon selector screen in MethodMesh"}
 -->
 
 ## Supported XLSForm calls
@@ -41,7 +41,7 @@ Add a current capability dashboard or execution screenshot at:
 **From `example_odk_svg.select.xlsx`:**
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='svg.select',input_svg_name='bodymap_black.svg',input_selection_mode='sequence',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='svg.select',input_svg_name='bodymap_black.svg',input_selection_mode='sequence',return_mode='flat')
 ```
 
 

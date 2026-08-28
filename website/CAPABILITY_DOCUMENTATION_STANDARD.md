@@ -1,6 +1,6 @@
 # Capability documentation standard
 
-Every independently discoverable ResearchOS capability module owns its documentation. Documentation travels with the implementation and is reviewed whenever its public contract changes.
+Every independently discoverable MethodMesh capability module owns its documentation. Documentation travels with the implementation and is reviewed whenever its public contract changes.
 
 ## Required module structure
 
@@ -53,7 +53,7 @@ uses the same suffix in both places, for example
 
 Each workbook should exercise one public capability. Intent-driven examples must:
 
-- use `com.example.researchos.EXECUTE_METHOD`;
+- use `com.example.methodmesh.EXECUTE_METHOD`;
 - identify the requested method explicitly;
 - place the action on a `begin_group` with `appearance` set to `field-list` when several values are returned;
 - include child fields whose names match returned intent extras;

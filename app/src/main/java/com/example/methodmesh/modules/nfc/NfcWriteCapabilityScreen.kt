@@ -1,0 +1,404 @@
+package com.example.methodmesh.modules.nfc
+
+import android.content.ClipData
+import android.content.ClipboardManager
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
+import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
+import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
+import com.example.methodmesh.transport.workflow.ui.IntentExample
+import com.example.methodmesh.transport.workflow.ui.IntentExampleDropdown
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+object NfcWriteCapabilityScreen : CapabilityScreenSpec {
+    override val capabilityId: String = As100NfcWriteMethod.ID
+    override val title: String = "NFC tag write"
+    override val description: String = "Write data to an NFC tag and verify the write with a post-write read."
+
+    @Composable
+    override fun Render(
+        context: CapabilityScreenContext,
+        onBack: () -> Unit,
+        onConfirmed: (ExecutionResult) -> Unit,
+        onCancel: () -> Unit
+    ) {
+        val request = context.request
+        val action = context.action
+        val scope = rememberCoroutineScope()
+        val initialStatus = rememberNfcAvailabilityMessage()
+        val supplied = remember(action.settings, request.settings) {
+            request.settings.filterValues(String::isNotBlank) +
+                action.settings.filterValues(String::isNotBlank)
+        }
+        val requestedOverwritePolicy = supplied["overwrite_policy"]
+
+        var recordType by remember {
+            mutableStateOf(
+                supplied["record_type"]
+                    ?: if (context.startsImmediately) "text/plain" else "application/x-participantid"
+            )
+        }
+        var dataToWrite by remember {
+            mutableStateOf(
+                supplied["value"]
+                    ?: if (context.startsImmediately) "" else "participant_P001"
+            )
+        }
+        var overwritePolicy by remember {
+            mutableStateOf(NfcOverwritePolicy.parse(requestedOverwritePolicy) ?: NfcOverwritePolicy.EmptyOnly)
+        }
+        var expectedCurrentHash by remember { mutableStateOf(supplied["expected_current_hash"].orEmpty()) }
+        var active by remember { mutableStateOf(false) }
+        var status by remember { mutableStateOf(initialStatus) }
+        var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        var writtenMessageHash by remember { mutableStateOf("") }
+        var recordTypeExpanded by remember { mutableStateOf(false) }
+        var overwritePolicyExpanded by remember { mutableStateOf(false) }
+
+        LaunchedEffect(recordType, dataToWrite, overwritePolicy, expectedCurrentHash) {
+            context.onSettingsChanged(
+                mapOf(
+                    "record_type" to recordType,
+                    "value" to dataToWrite,
+                    "overwrite_policy" to overwritePolicy.wireValue,
+                    "expected_current_hash" to expectedCurrentHash
+                )
+            )
+        }
+
+        fun startWrite() {
+            if (requestedOverwritePolicy != null && NfcOverwritePolicy.parse(requestedOverwritePolicy) == null) {
+                status = "Error: Unknown overwrite_policy '$requestedOverwritePolicy'. Use empty_only, replace, or compare_and_replace."
+                return
+            }
+            if (dataToWrite.isBlank()) {
+                status = "Error: No data to write. Please enter data."
+                return
+            }
+            active = true
+            result = null
+            writtenMessageHash = ""
+            status = "Ready to write. Tap an NFC tag to begin..."
+        }
+
+        LaunchedEffect(context.startsImmediately, dataToWrite) {
+            if (context.startsImmediately && dataToWrite.isNotBlank()) startWrite()
+        }
+
+        NfcDeviceServiceEffect(
+            enabled = active,
+            onStatus = { status = it },
+            onSignal = { tagSignal ->
+                scope.launch {
+                    status = "Writing tag…"
+                    try {
+                        val writeRequest = NfcWriteRequest(
+                            recordType = recordType,
+                            value = dataToWrite,
+                            mimeType = recordType,
+                            overwritePolicy = overwritePolicy,
+                            expectedCurrentHash = expectedCurrentHash.takeIf(String::isNotBlank)
+                        )
+
+                        val execution = withContext(Dispatchers.IO) {
+                            As100NfcWriteMethod.write(
+                                tagSignal = tagSignal,
+                                writeRequest = writeRequest,
+                                invocationContext = request.invocationContext
+                            )
+                        }
+
+                        val values = execution.observations.lastOrNull { it.phenomenon == "nfc.tag.write" }?.values.orEmpty()
+                        writtenMessageHash = values[NfcWriteFields.WRITTEN_MESSAGE_HASH].orEmpty()
+                        result = execution
+                        active = false
+                        status = if (values[NfcWriteFields.WRITE_SUCCESS] == "true") {
+                            "Write successful. Wrote ${values[NfcWriteFields.WRITE_SIZE_BYTES]} bytes to tag (${values[NfcWriteFields.WRITE_MESSAGE]})."
+                        } else {
+                            "Write failed: ${values[NfcWriteFields.WRITE_MESSAGE]}"
+                        }
+                    } catch (e: Exception) {
+                        result = null
+                        active = false
+                        status = "Write error: ${e.message ?: "Unknown error"}"
+                    }
+                }
+            }
+        )
+
+        CapabilityScreenScaffold(
+            title = title,
+            capabilityId = action.canonicalId,
+            context = context,
+            canGoBack = context.stepNumber > 1,
+            capturedResult = result,
+            resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
+            onBack = onBack,
+            onRetry = {
+                startWrite()
+            },
+            onConfirm = { result?.let(onConfirmed) },
+            onCancel = onCancel
+        ) {
+            if (context.startsImmediately) {
+                Text(
+                    if (dataToWrite.isBlank()) {
+                        "The calling app did not supply data to write."
+                    } else {
+                        "Ready to write the ${dataToWrite.length}-character payload supplied by the calling app."
+                    }
+                )
+            } else {
+                Text("Configure the data to write, then tap an NFC tag.")
+                Spacer(Modifier.height(12.dp))
+
+                // Record type dropdown
+                Column {
+                Text("Record Type", modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(4.dp))
+                OutlinedButton(
+                    onClick = { recordTypeExpanded = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(recordType, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
+                    Text("▼")
+                }
+                DropdownMenu(
+                    expanded = recordTypeExpanded,
+                    onDismissRequest = { recordTypeExpanded = false },
+                    modifier = Modifier.fillMaxWidth(0.9f)
+                ) {
+                    val recordTypes = listOf(
+                        "text/plain" to "Plain text",
+                        "application/json" to "JSON data",
+                        "application/x-studyid" to "Study ID",
+                        "application/x-participantid" to "Participant ID"
+                    )
+                    recordTypes.forEach { (type, label) ->
+                        DropdownMenuItem(
+                            text = { Column {
+                                Text(label)
+                                Text(type, style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
+                            } },
+                            onClick = {
+                                recordType = type
+                                recordTypeExpanded = false
+                            }
+                        )
+                    }
+                }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Column {
+                Text("Existing tag content", modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(4.dp))
+                OutlinedButton(
+                    onClick = { overwritePolicyExpanded = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(overwritePolicy.label, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
+                    Text("▼")
+                }
+                DropdownMenu(
+                    expanded = overwritePolicyExpanded,
+                    onDismissRequest = { overwritePolicyExpanded = false },
+                    modifier = Modifier.fillMaxWidth(0.9f)
+                ) {
+                    NfcOverwritePolicy.entries.forEach { policy ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(policy.label)
+                                    Text(policy.wireValue, style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
+                                }
+                            },
+                            onClick = {
+                                overwritePolicy = policy
+                                overwritePolicyExpanded = false
+                            }
+                        )
+                    }
+                }
+                }
+
+                if (overwritePolicy == NfcOverwritePolicy.CompareAndReplace) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = expectedCurrentHash,
+                    onValueChange = { expectedCurrentHash = it },
+                    label = { Text("Expected current NDEF SHA-256") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                }
+
+                Text(
+                when (overwritePolicy) {
+                    NfcOverwritePolicy.EmptyOnly -> "Safe default: writing stops if the tag already contains data."
+                    NfcOverwritePolicy.Replace -> "Existing NDEF content will be replaced. Its previous hash is recorded."
+                    NfcOverwritePolicy.CompareAndReplace -> "Content is replaced only when its current hash matches."
+                },
+                style = androidx.compose.material3.MaterialTheme.typography.labelSmall
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                // Data to write
+                OutlinedTextField(
+                value = dataToWrite,
+                onValueChange = { dataToWrite = it },
+                label = { Text("Data to write to tag") },
+                placeholder = { Text("e.g., study_01 or participant data") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 4
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                "Characters: ${dataToWrite.length}",
+                style = androidx.compose.material3.MaterialTheme.typography.labelSmall
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Text(status)
+            if (!context.startsImmediately && writtenMessageHash.isNotBlank()) {
+                NfcWriteHashSummary(writtenMessageHash)
+            }
+            Spacer(Modifier.height(10.dp))
+
+            if (!context.startsImmediately) Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = { startWrite() },
+                    enabled = !active,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(if (result == null) "Write to tag" else "Write again")
+                }
+                if (active) {
+                    Spacer(Modifier.weight(0.1f))
+                    OutlinedButton(
+                        onClick = { active = false; status = "Write cancelled." },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            IntentExampleDropdown(
+                capabilityId = As100NfcWriteMethod.ID,
+                examples = listOf(
+                    IntentExample(
+                        label = "Write study ID",
+                        description = "Write a study identifier to a tag",
+                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',input_value='study_01',input_record_type='application/x-studyid',input_overwrite_policy='empty_only')"
+                    ),
+                    IntentExample(
+                        label = "Write participant ID",
+                        description = "Write participant information to a tag",
+                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',input_value='participant_P001',input_record_type='application/x-participantid',input_overwrite_policy='replace')"
+                    ),
+                    IntentExample(
+                        label = "Write JSON data",
+                        description = "Write structured JSON to a tag",
+                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',input_value='{\"study\":\"study_01\",\"event\":\"enrollment\"}',input_record_type='application/json',input_overwrite_policy='replace')"
+                    ),
+                    IntentExample(
+                        label = "Write plain text",
+                        description = "Write simple text data to a tag",
+                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='${As100NfcWriteMethod.ID}',input_value='Hello NFC tag',input_record_type='text/plain',input_overwrite_policy='empty_only')"
+                    )
+                )
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun NfcWriteHashSummary(writtenMessageHash: String) {
+    val context = LocalContext.current
+    val clipboard = remember(context) {
+        context.getSystemService(ClipboardManager::class.java)
+    }
+    var copied by remember(writtenMessageHash) { mutableStateOf(false) }
+
+    Spacer(Modifier.height(10.dp))
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = { },
+                    onLongClick = {
+                        clipboard.setPrimaryClip(
+                            ClipData.newPlainText(
+                                "MethodMesh written NDEF message SHA-256",
+                                writtenMessageHash
+                            )
+                        )
+                        copied = true
+                    }
+                )
+                .padding(12.dp)
+        ) {
+            Text(
+                text = if (copied) {
+                    "Written NDEF hash copied"
+                } else {
+                    "Written NDEF message SHA-256 — hold to copy"
+                },
+                modifier = Modifier.fillMaxWidth(),
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (copied) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+            )
+            Text(
+                text = writtenMessageHash,
+                modifier = Modifier.fillMaxWidth(),
+                fontFamily = FontFamily.Monospace,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}

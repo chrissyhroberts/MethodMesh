@@ -1,12 +1,12 @@
-# ResearchOS v2.1.4 Release Notes
+# MethodMesh v2.1.4 Release Notes
 
-ResearchOS v2.1.4 expands the platform's field-device and workflow capabilities. This release adds simple SMS sending, stronger Bluetooth device exploration, early Bluetooth printer support, offline NFC protocol administration, and new spatial geometry tools for field measurements.
+MethodMesh v2.1.4 expands the platform's field-device and workflow capabilities. This release adds simple SMS sending, stronger Bluetooth device exploration, early Bluetooth printer support, offline NFC protocol administration, and new spatial geometry tools for field measurements.
 
 ## Highlights
 
 ### SMS sending
 
-ResearchOS can now send a caller-supplied SMS message to a caller-supplied phone number.
+MethodMesh can now send a caller-supplied SMS message to a caller-supplied phone number.
 
 This is designed for XLSForms and scheduled workflows where the form constructs the final message text, then passes only:
 
@@ -31,7 +31,7 @@ Protocol NFC support now includes provisioning, checking, completion marking, re
 
 ### Spatial geometry tools
 
-ResearchOS now includes early spatial measurement capabilities:
+MethodMesh now includes early spatial measurement capabilities:
 
 ```text
 tree_height_measurement

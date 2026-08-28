@@ -1,6 +1,6 @@
-# ResearchOS v2.0.0
+# MethodMesh v2.0.0
 
-ResearchOS v2.0.0 is the first cohesive field-capability release of the Android reference application. It establishes independently owned capability modules, direct intent execution from ODK, and cryptographically verifiable field evidence.
+MethodMesh v2.0.0 is the first cohesive field-capability release of the Android reference application. It establishes independently owned capability modules, direct intent execution from ODK, and cryptographically verifiable field evidence.
 
 ## Highlights
 
@@ -23,13 +23,13 @@ ResearchOS v2.0.0 is the first cohesive field-capability release of the Android 
 
 - Supports semantic blank-tag detection, explicit replacement policies, expected-current-content checks, and copied write hashes.
 - Adds NDEF wipe using an empty NDEF record; it removes NDEF user content but does not claim forensic erasure of physical memory.
-- Adds robust post-write verification. Where a tag resets after writing, ResearchOS requests one confirmation tap and verifies the exact stored content before reporting success.
+- Adds robust post-write verification. Where a tag resets after writing, MethodMesh requests one confirmation tap and verifies the exact stored content before reporting success.
 - Credential envelopes use Argon2id PIN derivation, AES-256-GCM encryption, and P-256 / SHA256withECDSA issuer signatures. PINs and credential secrets are never returned to ODK.
 
 ## Compatibility and migration
 
 - The legacy NFC provisioning capability has been replaced by `nfc_credential_provisioning` and `nfc_credential_verification`.
-- The compatibility runtime layer has been removed. New integrations should use canonical method IDs and the documented `com.example.researchos.EXECUTE_METHOD` intent contract.
+- The compatibility runtime layer has been removed. New integrations should use canonical method IDs and the documented `com.example.methodmesh.EXECUTE_METHOD` intent contract.
 - Every public capability ships with module-local implementation documentation and a named example ODK workbook.
 
 ## Verification
@@ -38,4 +38,4 @@ This release was built and tested with the Android unit-test suite and a debug A
 
 ## Known scope
 
-ResearchOS v2.0.0 is a reference implementation for field testing. Study-specific issuer trust lists, server-side registries, and broader protocol-management workflows remain configuration and deployment work for individual studies.
+MethodMesh v2.0.0 is a reference implementation for field testing. Study-specific issuer trust lists, server-side registries, and broader protocol-management workflows remain configuration and deployment work for individual studies.

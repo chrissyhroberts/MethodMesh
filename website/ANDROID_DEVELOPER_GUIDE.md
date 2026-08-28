@@ -1,13 +1,13 @@
-# ResearchOS Android Developer Guide
+# MethodMesh Android Developer Guide
 
 This guide describes the current canonical Android implementation. The specification documents remain authoritative when this guide and a specification disagree.
 
 ## Project structure
 
-The Android application lives under `app/src/main/java/com/example/researchos/`.
+The Android application lives under `app/src/main/java/com/example/methodmesh/`.
 
-- `core/researchos/` contains canonical architecture objects such as `Entity`, `Observation`, `Signal`, `Transformation`, `Relationship`, `ExecutionRequest`, and `ExecutionResult`.
-- `core/researchos/runtime/` contains the canonical method contract and execution engine.
+- `core/methodmesh/` contains canonical architecture objects such as `Entity`, `Observation`, `Signal`, `Transformation`, `Relationship`, `ExecutionRequest`, and `ExecutionResult`.
+- `core/methodmesh/runtime/` contains the canonical method contract and execution engine.
 - `modules/` contains self-contained capability modules.
 - `platform/` contains Android and device-service boundaries.
 - `transport/` contains RIL parsing, Android intent routing, graph selection, and return formatting.
@@ -17,7 +17,7 @@ There is one execution model. The former flat `Method`, `MethodRequest`, `Method
 
 ## Capability modules
 
-Each capability implements `ResearchOSModule` and may expose:
+Each capability implements `MethodMeshModule` and may expose:
 
 - canonical `As100Method` implementations;
 - RIL phrase bindings;
@@ -52,7 +52,7 @@ An external invocation starts immediately. A capability may pause only for requi
 The exported action is:
 
 ```text
-com.example.researchos.EXECUTE_METHOD
+com.example.methodmesh.EXECUTE_METHOD
 ```
 
 The method selector is:
@@ -63,18 +63,18 @@ method_id='<canonical method ID>'
 
 ODK multi-field calls use the action in the `body::intent` cell and `field-list`
 in the group appearance. Capability inputs use the generic `input_` namespace;
-ResearchOS removes that prefix before presenting the settings to the module.
+MethodMesh removes that prefix before presenting the settings to the module.
 Unprefixed child fields are outputs and are never interpreted as capability
 configuration.
 
 Example:
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='attestation.create',input_event_payload_hash=${form_payload_hash},input_verification_method='Fingerprint',input_trusted_timestamp='preferred',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='attestation.create',input_event_payload_hash=${form_payload_hash},input_verification_method='Fingerprint',input_trusted_timestamp='preferred',return_mode='flat')
 ```
 
 Static structured strings that are unsafe or unwieldy in XLSForm intent syntax
-may use `input64_<name>`, containing URL-safe Base64 without padding. ResearchOS
+may use `input64_<name>`, containing URL-safe Base64 without padding. MethodMesh
 decodes the UTF-8 value and exposes it to the module as `<name>`.
 
 Transport keys such as `method_id`, `return_mode`, `returns`, and core invocation
@@ -110,7 +110,7 @@ The `bluetooth_device_inspector` module provides the corresponding hardware disc
 
 ## Direct-run output export
 
-When a capability is run from the ResearchOS dashboard, the shared result scaffold provides an **Export** action. Export writes one timestamped JSON record containing the selected return fields and a manifest of any linked attachments. Image, SVG, and other files are copied alongside the JSON using a common base name, so an exported record can be moved as a self-contained bundle. The default location is the app's public `Documents/ResearchOS/outputs` folder; the global Output storage panel can select a different Storage Access Framework folder. Callers such as ODK/Kobo continue to receive attachments through the normal return contract rather than relying on dashboard exports.
+When a capability is run from the MethodMesh dashboard, the shared result scaffold provides an **Export** action. Export writes one timestamped JSON record containing the selected return fields and a manifest of any linked attachments. Image, SVG, and other files are copied alongside the JSON using a common base name, so an exported record can be moved as a self-contained bundle. The default location is the app's public `Documents/MethodMesh/outputs` folder; the global Output storage panel can select a different Storage Access Framework folder. Callers such as ODK/Kobo continue to receive attachments through the normal return contract rather than relying on dashboard exports.
 
 ## Returns
 
@@ -122,7 +122,7 @@ The default caller return is intentionally compact:
 - the minimum provenance required to interpret or verify it;
 - failure diagnostics only when execution fails.
 
-Canonical graph objects and full provenance remain in the ResearchOS graph. Explicit graph selectors may request particular canonical fields. The return formatter does not reproduce deleted flat-model aliases.
+Canonical graph objects and full provenance remain in the MethodMesh graph. Explicit graph selectors may request particular canonical fields. The return formatter does not reproduce deleted flat-model aliases.
 
 ## Dashboard organization
 
@@ -141,7 +141,7 @@ The capability dashboard is a manual test and inspection surface, not a second c
 - `preferred`;
 - `required`.
 
-ResearchOS signs the supplied form hash directly. Raw `event_payload` input and automatic double-hash detection are not supported.
+MethodMesh signs the supplied form hash directly. Raw `event_payload` input and automatic double-hash detection are not supported.
 
 Attestation schema version 4 returns the public key, signature, chain link,
 hash-only verification evidence, and optional full RFC 3161 evidence.
@@ -155,7 +155,7 @@ transiently and are not placed in the attestation record or caller return.
 2. Implement one or more canonical `As100Method` objects.
 3. Define method descriptors and contracts, including required context and produced graph outputs.
 4. Create a focused `CapabilityScreenSpec` when interaction is required.
-5. Expose the methods, screens, RIL bindings, and dependencies from a `ResearchOSModule` object.
+5. Expose the methods, screens, RIL bindings, and dependencies from a `MethodMeshModule` object.
 6. Add unit tests for method output, RIL resolution, return formatting, and invalid requests.
 7. Verify dashboard and external invocation modes separately.
 

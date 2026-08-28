@@ -1,6 +1,6 @@
-# ResearchOS v2.1.5 Release Notes
+# MethodMesh v2.1.5 Release Notes
 
-ResearchOS v2.1.5 introduces the first end-to-end ESP32 sensor framework. The app can now install MicroPython onto an ESP32-C3, upload bundled ResearchOS sensor firmware from the phone, provision the node over BLE, and save it into the local device registry. This is the foundation for low-cost custom environmental and field sensors that can be configured without a laptop.
+MethodMesh v2.1.5 introduces the first end-to-end ESP32 sensor framework. The app can now install MicroPython onto an ESP32-C3, upload bundled MethodMesh sensor firmware from the phone, provision the node over BLE, and save it into the local device registry. This is the foundation for low-cost custom environmental and field sensors that can be configured without a laptop.
 
 ## Highlights
 
@@ -16,23 +16,23 @@ This keeps the workflow clearer:
 
 1. Install MicroPython to an ESP32-C3 over USB/OTG.
 2. Reset or replug the board.
-3. Upload the bundled ResearchOS `main.py` and sensor-driver files.
+3. Upload the bundled MethodMesh `main.py` and sensor-driver files.
 4. Reset or replug again.
 5. Scan for the node over BLE and provision it into the device registry.
 
 ### Phone-only firmware installation
 
-ResearchOS now bundles:
+MethodMesh now bundles:
 
 - the official ESP32-C3 MicroPython binary;
-- the ResearchOS BLE sensor-node firmware;
+- the MethodMesh BLE sensor-node firmware;
 - sensor-specific MicroPython driver files.
 
 The installer uses a guided two-step process because ESP32-C3 USB mode switching is fragile on Android. This avoids the previous false-success state where MicroPython was installed but `main.py` was not visible to the board.
 
 ### BLE sensor provisioning
 
-The provisioner can scan for ResearchOS BLE sensor nodes, connect to the node, read its manifest, configure its identity and sampling interval, request a confirmation sample, and save the resulting profile to the ResearchOS device registry.
+The provisioner can scan for MethodMesh BLE sensor nodes, connect to the node, read its manifest, configure its identity and sampling interval, request a confirmation sample, and save the resulting profile to the MethodMesh device registry.
 
 Provisioning returns useful audit fields including:
 
@@ -86,9 +86,9 @@ BUILD SUCCESSFUL
 
 The ESP32-C3 workflow was also tested end to end:
 
-- MicroPython install from ResearchOS succeeded.
-- ResearchOS firmware upload from ResearchOS succeeded.
-- The board advertised as a ResearchOS sensor node after reset.
+- MicroPython install from MethodMesh succeeded.
+- MethodMesh firmware upload from MethodMesh succeeded.
+- The board advertised as a MethodMesh sensor node after reset.
 - BLE provisioning succeeded and saved the node to the device registry.
 
 ## Notes

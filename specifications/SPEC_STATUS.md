@@ -1,4 +1,4 @@
-# ResearchOS Specification Status
+# MethodMesh Specification Status
 
 **Last Updated:** July 13, 2026
 
@@ -7,12 +7,12 @@ This document defines which specifications are current, their version numbers, a
 ## Current Specifications (Source of Truth)
 
 ### Foundation Layer
-- **Philosophy**: `ResearchOS_Philosophy_0.01.md` (Stable)
+- **Philosophy**: `MethodMesh_Philosophy_0.01.md` (Stable)
   - Core vision and principles
   - Not versioned — foundational document
 
 ### Architecture & Design
-- **Conceptual Model**: `design/ResearchOS_Conceptual_Model_v0.03.md` (Current)
+- **Conceptual Model**: `design/MethodMesh_Conceptual_Model_v0.03.md` (Current)
   - Defines Entity → Assertion → Observation → Method framework
   - **Previous versions**: See `_archive/` (v0.01, v0.02)
 
@@ -21,7 +21,7 @@ This document defines which specifications are current, their version numbers, a
   - **Previous version**: `_archive/Architecture_Standard_v1.01.md`
 
 ### Language & Protocol
-- **ResearchOS Intent Language (RIL)**: `ril/RIL_ResearchOS_Intent_Language_v0.03.md` (Current)
+- **Research Intent Language (RIL)**: `ril/RIL_Research_Intent_Language_v0.03.md` (Current)
   - Declares WHAT, WHEN, WHERE, HOW, RESULT
   - Foundation for method execution
   - **Previous versions**: `_archive/RIL_Core_Verbs_v0.01.md`
@@ -30,44 +30,44 @@ This document defines which specifications are current, their version numbers, a
   - Extends RIL specification with concrete verbs
   - **Previous version**: `_archive/RIL_Core_Verbs_v0.01.md`
 
-- **JSON Representation**: `json/ResearchOS JSON Representation v0.02.md` (Current)
+- **JSON Representation**: `json/MethodMesh JSON Representation v0.02.md` (Current)
   - How RIL is serialized to JSON
   - **Previous version**: `_archive/RIL JSON Representation v0.01.md`
 
 ### Registries
 All registries define canonical knowledge objects and their schemas.
 
-- **Entities**: `registries/entities/ResearchOS_Entity_Registry_0.02.md`
+- **Entities**: `registries/entities/MethodMesh_Entity_Registry_0.02.md`
   - Defines things being studied (person, place, instrument, etc.)
-  - **Previous version**: `_archive/ResearchOS_Entity_Registry_0.01.md`
+  - **Previous version**: `_archive/MethodMesh_Entity_Registry_0.01.md`
 
-- **Observations**: `registries/observations/ResearchOS_Observations_Registry_0.01.md`
+- **Observations**: `registries/observations/MethodMesh_Observations_Registry_0.01.md`
   - Evidence collected during research
   - **Status**: First release, expecting v0.02
 
-- **Assertions**: `registries/assertions/ResearchOS_Assertions_Registry_0.02.md`
+- **Assertions**: `registries/assertions/MethodMesh_Assertions_Registry_0.02.md`
   - Claims about entities
-  - **Previous version**: `_archive/ResearchOS_Assertions_Registry_0.01.md`
+  - **Previous version**: `_archive/MethodMesh_Assertions_Registry_0.01.md`
 
-- **Intents**: `registries/intents/ResearchOS Intent_Registry_v0.02.md`
+- **Intents**: `registries/intents/MethodMesh Intent_Registry_v0.02.md`
   - Declares what research is trying to accomplish
-  - **Previous version**: `_archive/ResearchOS Intent_Registry_v0.01.md`
+  - **Previous version**: `_archive/MethodMesh Intent_Registry_v0.01.md`
 
-- **Traits**: `registries/traits/ResearchOS_Trait_Registry_0.02.md`
+- **Traits**: `registries/traits/MethodMesh_Trait_Registry_0.02.md`
   - Attributes and properties of entities
   - **Previous version**: v0.01 (archived)
 
 ## Deprecated / Archive
 
 See `_archive/` for:
-- `ResearchOS_Conceptual_Model_v0.01.md`, `v0.02_draft.md`
+- `MethodMesh_Conceptual_Model_v0.01.md`, `v0.02_draft.md`
 - `Architecture_Standard_v1.01.md`
 - `RIL_Core_Verbs_v0.01.md`, `RIL JSON Representation v0.01.md`
-- `ResearchOS Intent_Registry_v0.01.md`
-- `ResearchOS_Assertions_Registry_0.01.md`
-- `ResearchOS_Entity_Registry_0.01.md`
+- `MethodMesh Intent_Registry_v0.01.md`
+- `MethodMesh_Assertions_Registry_0.01.md`
+- `MethodMesh_Entity_Registry_0.01.md`
 - `XLSFormLab_Capability_Archetype.md` (exploratory, not maintained)
-- `ResearchOS_Specification_v0_1.zip` (old bundle)
+- `MethodMesh_Specification_v0_1.zip` (old bundle)
 
 ## Specification Dependencies
 

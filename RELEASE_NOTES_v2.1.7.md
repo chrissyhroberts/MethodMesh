@@ -1,6 +1,6 @@
-# ResearchOS v2.1.7 Release Notes
+# MethodMesh v2.1.7 Release Notes
 
-ResearchOS v2.1.7 is a focused protocol-output fix release. It corrects how protocol runs are exported so that a protocol behaves as one coherent submission rather than a set of separate per-step exports.
+MethodMesh v2.1.7 is a focused protocol-output fix release. It corrects how protocol runs are exported so that a protocol behaves as one coherent submission rather than a set of separate per-step exports.
 
 ## Highlights
 
@@ -14,7 +14,7 @@ This is now fixed. A protocol run should export as:
 
 - one protocol output folder;
 - one canonical protocol JSON file;
-- one shared `researchos_submission_id`;
+- one shared `methodmesh_submission_id`;
 - a `steps` array containing all completed protocol steps;
 - any attachments linked to the same protocol run.
 

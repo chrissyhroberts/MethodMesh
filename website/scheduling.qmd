@@ -4,15 +4,15 @@ title: "Scheduling workflows"
 
 ## Purpose
 
-The scheduler creates local recurring alarms for ODK/Kobo forms, online web forms, direct ResearchOS capabilities and saved ResearchOS protocols. It uses cron-style timing, notification reminders and configurable retry intervals.
+The scheduler creates local recurring alarms for ODK/Kobo forms, online web forms, direct MethodMesh capabilities and saved MethodMesh protocols. It uses cron-style timing, notification reminders and configurable retry intervals.
 
 The intended round trip is:
 
 ```text
-ResearchOS scheduler
+MethodMesh scheduler
     → launches the relevant form, web form, capability or protocol
     → the user completes the task
-    → ResearchOS captures the result
+    → MethodMesh captures the result
     → outputs are returned, copied or exported
 ```
 
@@ -32,7 +32,7 @@ Scheduled workflows should be tested on the actual device model because Android 
 Test at least:
 
 - device unlocked and locked;
-- ResearchOS in the background;
+- MethodMesh in the background;
 - notifications permitted and denied;
 - airplane mode;
 - device restart;
@@ -46,13 +46,13 @@ The supplied scheduler documentation also defines RIL schedule export and import
 
 ## Protocol runs
 
-Schedules can now target saved protocols from the ResearchOS protocol library. A protocol is an ordered chain of saved capability presets. When a scheduled protocol runs, each step is launched in order and the outputs are written into one protocol output folder.
+Schedules can now target saved protocols from the MethodMesh protocol library. A protocol is an ordered chain of saved capability presets. When a scheduled protocol runs, each step is launched in order and the outputs are written into one protocol output folder.
 
-Protocol exports use a single `researchos_submission_id` across all steps. The canonical JSON contains a `steps` array, so downstream code can treat the protocol run as one submission while still inspecting each step independently.
+Protocol exports use a single `methodmesh_submission_id` across all steps. The canonical JSON contains a `steps` array, so downstream code can treat the protocol run as one submission while still inspecting each step independently.
 
 ## Practical notes
 
 - Use **Test** to verify a schedule or protocol chain before relying on it in the field.
 - If a protocol includes interactive capabilities, the user must complete each step before the next step can continue.
-- For direct ResearchOS protocols, prefer output export over clipboard if the result will be used as study data.
+- For direct MethodMesh protocols, prefer output export over clipboard if the result will be used as study data.
 - Android background notification behaviour varies by device; always test on the field device model.

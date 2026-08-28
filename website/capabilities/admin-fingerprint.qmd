@@ -24,14 +24,14 @@ This is not an identity attestation but can be used to prevent unauthorised user
 
 ## Screenshots
 
-![](../assets/screenshots/admin-fingerprint1.png){width="250"} ![](../assets/screenshots/admin-fingerprint2.png){width="250"} ![](../assets/screenshots/admin-fingerprint3.png){width="250"}
+![](../assets/screenshots/admin-fingerprint2.png){width="250"}
 
 ## Supported XLSForm calls
 
 **From `example_odk_admin_fingerprint_confirmation.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',input_authentication_method=${authentication_method})
+com.example.methodmesh.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',input_authentication_method=${authentication_method})
 ```
 
 ## Inputs observed in supplied examples

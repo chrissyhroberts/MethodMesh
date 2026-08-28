@@ -1,12 +1,12 @@
-# ResearchOS v2.1.8 Release Notes
+# MethodMesh v2.1.8 Release Notes
 
-ResearchOS v2.1.8 is a usability and output-polish release. It focuses on making direct capability use feel less like a debug console and more like a field tool: larger text, cleaner fullscreen intent previews, clearer test/save behaviour, persistent result previews, better media feedback, and tighter image annotation/redaction handling.
+MethodMesh v2.1.8 is a usability and output-polish release. It focuses on making direct capability use feel less like a debug console and more like a field tool: larger text, cleaner fullscreen intent previews, clearer test/save behaviour, persistent result previews, better media feedback, and tighter image annotation/redaction handling.
 
 ## Highlights
 
 ### App-wide display accessibility
 
-ResearchOS now has global display-accessibility settings in the dashboard. Text scale can be adjusted across the app, and the default has been increased so ordinary field-facing screens are easier to read.
+MethodMesh now has global display-accessibility settings in the dashboard. Text scale can be adjusted across the app, and the default has been increased so ordinary field-facing screens are easier to read.
 
 The dashboard action layout has also been changed to avoid cramped horizontal button rows. This prevents buttons from colliding or wrapping awkwardly at larger display scales.
 
@@ -39,7 +39,7 @@ are no longer emitted as if they were real study subjects during dashboard/test 
 
 ### Question primitive refinements
 
-The native question capabilities have been made more usable as actual ResearchOS protocol steps:
+The native question capabilities have been made more usable as actual MethodMesh protocol steps:
 
 - intent previews open the real question/answer interface rather than a settings panel;
 - text and number questions focus the answer box correctly;
@@ -47,7 +47,7 @@ The native question capabilities have been made more usable as actual ResearchOS
 - number questions use numeric keyboard behaviour;
 - select-multiple questions support mutually exclusive options and mutually exclusive groups.
 
-This makes the question primitives more realistic as building blocks for native ResearchOS protocols.
+This makes the question primitives more realistic as building blocks for native MethodMesh protocols.
 
 ### Image annotation and redaction grouping
 
@@ -81,4 +81,4 @@ BUILD SUCCESSFUL
 
 ## Notes
 
-This release does not change the core ResearchOS data model. It makes the current runtime safer and easier to use directly, especially for workflows involving saved presets, protocol runs, image outputs, and user-facing question screens.
+This release does not change the core MethodMesh data model. It makes the current runtime safer and easier to use directly, especially for workflows involving saved presets, protocol runs, image outputs, and user-facing question screens.

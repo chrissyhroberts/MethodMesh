@@ -1,11 +1,11 @@
-# ResearchOS Examples
+# MethodMesh Examples
 
-Working examples of ResearchOS in action. Each example shows how a research intent flows through the system.
+Working examples of MethodMesh in action. Each example shows how a research intent flows through the system.
 
 ## How to Use These Examples
 
 1. **Read the human explanation** in each example's README.md
-2. **See the RIL declaration** (What ResearchOS sees)
+2. **See the RIL declaration** (What MethodMesh sees)
 3. **See the JSON representation** (Wire format)
 4. **See the Android implementation** (How it runs on device)
 5. **Trace the execution** (Step-by-step flow)

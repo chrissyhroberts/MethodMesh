@@ -172,7 +172,7 @@ Scan QR codes and supported barcode formats and return the decoded payload and d
 
 **Implemented; native protocol building block**
 
-Capture simple text, numeric, single-choice and multiple-choice answers directly inside ResearchOS protocols.
+Capture simple text, numeric, single-choice and multiple-choice answers directly inside MethodMesh protocols.
 :::
 
 ::: {.g-col-12 .g-col-md-6}
@@ -212,7 +212,7 @@ Capture or pick an image, mask selected grid cells, and return only the redacted
 
 **Implemented with evolving target support**
 
-Create and transfer local recurring schedules for forms, web targets and future ResearchOS process targets.
+Create and transfer local recurring schedules for forms, web targets and future MethodMesh process targets.
 :::
 
 ::: {.g-col-12 .g-col-md-6}
@@ -222,7 +222,7 @@ Create and transfer local recurring schedules for forms, web targets and future 
 
 **Current scope limited to ESP32-C3**
 
-Install bundled ResearchOS sensor firmware onto a supported ESP32-C3 device over USB.
+Install bundled MethodMesh sensor firmware onto a supported ESP32-C3 device over USB.
 :::
 
 ::: {.g-col-12 .g-col-md-6}
@@ -232,7 +232,7 @@ Install bundled ResearchOS sensor firmware onto a supported ESP32-C3 device over
 
 **Implemented; XLSForm example pending**
 
-Write identity and sampling configuration to a compatible ResearchOS BLE sensor node and register it locally.
+Write identity and sampling configuration to a compatible MethodMesh BLE sensor node and register it locally.
 :::
 
 ::: {.g-col-12 .g-col-md-6}
@@ -242,7 +242,7 @@ Write identity and sampling configuration to a compatible ResearchOS BLE sensor 
 
 **Documented and demonstrated**
 
-Read, trace, average or discover registered ResearchOS BLE sensor nodes.
+Read, trace, average or discover registered MethodMesh BLE sensor nodes.
 :::
 
 ::: {.g-col-12 .g-col-md-6}
@@ -252,7 +252,7 @@ Read, trace, average or discover registered ResearchOS BLE sensor nodes.
 
 **Send accepted; delivery confirmation pending**
 
-Send an SMS directly from ResearchOS and return the local send-request status.
+Send an SMS directly from MethodMesh and return the local send-request status.
 :::
 
 ::: {.g-col-12 .g-col-md-6}

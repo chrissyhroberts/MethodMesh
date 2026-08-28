@@ -1,6 +1,6 @@
-# ResearchOS 2.1.3
+# MethodMesh 2.1.3
 
-ResearchOS 2.1.3 adds public Android-app inspection, Bluetooth endpoint inspection, richer scheduling and direct capability execution, protocol-aware NFC support, native image/SVG selection tools, and portable direct-run output export.
+MethodMesh 2.1.3 adds public Android-app inspection, Bluetooth endpoint inspection, richer scheduling and direct capability execution, protocol-aware NFC support, native image/SVG selection tools, and portable direct-run output export.
 
 ## Android app inspector
 
@@ -18,11 +18,11 @@ This makes it possible to investigate applications such as Peek Acuity Pro and t
 
 ## Runtime and scheduler refinements
 
-- The scheduler is collapsed by default when the ResearchOS app opens.
+- The scheduler is collapsed by default when the MethodMesh app opens.
 - Scheduler state remains available through the expanded central scheduler view.
 - Public launcher resolution is more robust for applications whose package-level `MAIN` probe does not resolve directly.
 - Schedules can launch ODK/Kobo forms, web forms, or direct capabilities and can chain actions with cron timing, retries, notifications, pause/resume, and import/export.
-- Direct capability results can be exported as timestamped JSON with linked attachment files to the default ResearchOS output folder or a user-selected folder.
+- Direct capability results can be exported as timestamped JSON with linked attachment files to the default MethodMesh output folder or a user-selected folder.
 - Returned image attachments are delivered to ODK/Kobo image questions rather than only exposing internal content URIs.
 
 ## New field capabilities

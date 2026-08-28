@@ -1,9 +1,9 @@
 
-# ResearchOS
+# MethodMesh
 
-ResearchOS is an open, modular platform for building, executing and orchestrating digital research workflows.
+MethodMesh is an open, modular platform for building, executing and orchestrating digital research workflows.
 
-Rather than being another electronic data capture (EDC) system, ResearchOS provides reusable research capabilities that can be embedded within existing ecosystems such as ODK, KoBoToolbox, REDCap, custom web applications and future platforms.
+Rather than being another electronic data capture (EDC) system, MethodMesh provides reusable research capabilities that can be embedded within existing ecosystems such as ODK, KoBoToolbox, REDCap, custom web applications and future platforms.
 
 The project is built around a family of open specifications that separate architecture, execution, interoperability and protocol orchestration. This separation allows research methods to be implemented once and reused across studies, organisations and software platforms.
 
@@ -13,15 +13,15 @@ The project is built around a family of open specifications that separate archit
 
 Research software is frequently rewritten for every study despite solving the same underlying problems: identifying participants, capturing observations, interacting with hardware, collecting measurements and maintaining provenance.
 
-ResearchOS aims to provide a common execution platform for these reusable operations.
+MethodMesh aims to provide a common execution platform for these reusable operations.
 
-Applications remain responsible for study design, questionnaires and data management, while ResearchOS provides specialised research capabilities through a stable execution runtime and a platform-independent intent language.
+Applications remain responsible for study design, questionnaires and data management, while MethodMesh provides specialised research capabilities through a stable execution runtime and a platform-independent intent language.
 
 ---
 
 # Architecture
 
-ResearchOS is organised into complementary layers.
+MethodMesh is organised into complementary layers.
 
 ```text
 Research Protocol
@@ -30,10 +30,10 @@ Research Protocol
 Protocol Definition Language (planned)
         │
         ▼
-ResearchOS Orchestrator (planned)
+MethodMesh Orchestrator (planned)
         │
         ▼
-ResearchOS Intent Language (RIL)
+Research Intent Language (RIL)
         │
         ▼
 Architecture Standard (AS1.00)
@@ -62,12 +62,12 @@ Each layer has a single responsibility.
 | Architecture Standard (AS1.00) | ✅ Stable |
 | Runtime 1.x | ✅ Implemented |
 | Native Methods | ✅ Initial implementation |
-| ResearchOS Intent Language (RIL v0.03) | ✅ Conceptually complete |
+| Research Intent Language (RIL v0.03) | ✅ Conceptually complete |
 | Core Verbs | ✅ Initial specification |
 | JSON Binding | 🚧 Planned |
 | Android Intent Binding | 🚧 Planned |
 | HTTP Binding | 🚧 Planned |
-| ResearchOS Orchestrator | 🚧 Planned |
+| MethodMesh Orchestrator | 🚧 Planned |
 | Protocol Definition Language | 📋 Planned |
 
 ---
@@ -83,7 +83,7 @@ Implemented components include:
 - Device Service framework
 - Signal model
 - Presentation separation
-- Native ResearchOS methods
+- Native MethodMesh methods
 
 Current native methods include:
 
@@ -96,9 +96,9 @@ These demonstrate that observations, interventions, measurements and hardware in
 
 ---
 
-# ResearchOS Intent Language (RIL)
+# Research Intent Language (RIL)
 
-RIL is the interoperability layer of ResearchOS.
+RIL is the interoperability layer of MethodMesh.
 
 Every request is expressed using five independent concerns:
 
@@ -112,7 +112,7 @@ This separation allows the same request to execute consistently regardless of tr
 
 ## Language, not API
 
-ResearchOS deliberately separates **language** from **transport**.
+MethodMesh deliberately separates **language** from **transport**.
 
 A RIL request has the same meaning whether it is carried using:
 
@@ -133,11 +133,11 @@ RIL defines what those requests mean.
 
 # Interoperability
 
-ResearchOS is designed to complement existing software rather than replace it.
+MethodMesh is designed to complement existing software rather than replace it.
 
 External systems can request specialised operations while continuing to manage their own workflows and data models.
 
-ResearchOS internally maintains canonical methods, execution records and provenance, while callers remain free to map returned values into their own field names and schemas.
+MethodMesh internally maintains canonical methods, execution records and provenance, while callers remain free to map returned values into their own field names and schemas.
 
 ---
 
@@ -154,7 +154,7 @@ ResearchOS internally maintains canonical methods, execution records and provena
 
 ## Phase 2 — Interoperability
 
-- ResearchOS Intent Language
+- Research Intent Language
 - JSON binding
 - Android binding
 - HTTP binding
@@ -164,7 +164,7 @@ ResearchOS internally maintains canonical methods, execution records and provena
 
 ## Phase 3 — Orchestration
 
-The ResearchOS Orchestrator will execute complete research protocols.
+The MethodMesh Orchestrator will execute complete research protocols.
 
 Responsibilities include:
 
@@ -182,7 +182,7 @@ Typical workflow:
 2. Protocol is installed.
 3. Activities are scheduled.
 4. Notifications launch the appropriate application.
-5. External applications invoke ResearchOS through RIL.
+5. External applications invoke MethodMesh through RIL.
 6. Results and provenance are returned.
 7. Progress is tracked throughout the study.
 
@@ -190,12 +190,12 @@ Typical workflow:
 
 # Specification Family
 
-ResearchOS is defined by a family of open specifications.
+MethodMesh is defined by a family of open specifications.
 
 Current:
 
 - Architecture Standard (AS1.00)
-- ResearchOS Intent Language (RIL)
+- Research Intent Language (RIL)
 - Core Verbs
 
 Planned:
@@ -207,7 +207,7 @@ Planned:
 - RIL JSON Binding
 - Android Intent Binding
 - HTTP Binding
-- ResearchOS Orchestrator Specification
+- MethodMesh Orchestrator Specification
 
 Together these specifications define the platform independently of any programming language, operating system or transport mechanism.
 
@@ -215,6 +215,6 @@ Together these specifications define the platform independently of any programmi
 
 # Contributing
 
-ResearchOS is developed in the open.
+MethodMesh is developed in the open.
 
 The project welcomes discussion around architecture, interoperability, reusable research methods and open standards for digital research.

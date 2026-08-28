@@ -4,14 +4,14 @@ title: "Getting started"
 
 ## The operating model
 
-ResearchOS is a modular, offline-first capability extension layer for XLSForm-based research systems. It does not replace the EDC.
+MethodMesh is a modular, offline-first capability extension layer for XLSForm-based research systems. It does not replace the EDC.
 
 A normal workflow is:
 
 1.  The form collects the inputs required by a capability.
-2.  The form invokes ResearchOS through the standard execution action.
-3.  ResearchOS validates the request and runs the selected method.
-4.  ResearchOS returns flat fields and, where useful, structured JSON.
+2.  The form invokes MethodMesh through the standard execution action.
+3.  MethodMesh validates the request and runs the selected method.
+4.  MethodMesh returns flat fields and, where useful, structured JSON.
 5.  The form continues and the EDC stores the research record.
 
 ## Core principles
@@ -19,18 +19,18 @@ A normal workflow is:
 - **XLSForm first:** capabilities are designed to be called from real forms.
 - **Offline first:** network use must be explicit rather than an invisible fallback.
 - **Local round trip:** the result returns to the calling EDC.
-- **No second research database:** ResearchOS executes specialist operations but does not become the participant record.
-- **Canonical methods:** forms call a stable ResearchOS method rather than a raw Android component.
+- **No second research database:** MethodMesh executes specialist operations but does not become the participant record.
+- **Canonical methods:** forms call a stable MethodMesh method rather than a raw Android component.
 - **Traceable results:** outputs may include timestamps, provider details, hashes and diagnostics.
 
 ## A first test
 
 A practical first test is the automatic code scanner because it has a simple request and an immediately visible result.
 
-1.  Install ResearchOS.
+1.  Install MethodMesh.
 2.  Import `example_odk_qr.scan.xlsx` into ODK Central or another compatible XLSForm server.
 3.  Download the form to ODK Collect.
-4.  Open the form and launch the ResearchOS scan group.
+4.  Open the form and launch the MethodMesh scan group.
 5.  Scan a QR code, Data Matrix code, or supported one-dimensional barcode.
 6.  Confirm that the decoded payload and format return to the form.
 

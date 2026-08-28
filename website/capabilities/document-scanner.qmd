@@ -33,7 +33,7 @@ Add a current capability dashboard or execution screenshot at:
 :::
 
 <!-- Replace the placeholder above with:
-![](../assets/screenshots/document-scanner.png){fig-alt="Document scanner screen in ResearchOS"}
+![](../assets/screenshots/document-scanner.png){fig-alt="Document scanner screen in MethodMesh"}
 -->
 
 ## Supported XLSForm calls

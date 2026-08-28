@@ -1,12 +1,12 @@
-# ResearchOS v2.1.6 Release Notes
+# MethodMesh v2.1.6 Release Notes
 
-ResearchOS v2.1.6 strengthens the app as a native protocol runner. The main change is a new protocol/output layer: reusable capability presets can be saved, chained into named protocols, run directly from ResearchOS, and exported as coherent JSON packages with linked attachments. This release also adds several native building-block capabilities, including random number generation and basic question primitives, moving ResearchOS closer to being a lightweight standalone data-collection runtime as well as an ODK companion.
+MethodMesh v2.1.6 strengthens the app as a native protocol runner. The main change is a new protocol/output layer: reusable capability presets can be saved, chained into named protocols, run directly from MethodMesh, and exported as coherent JSON packages with linked attachments. This release also adds several native building-block capabilities, including random number generation and basic question primitives, moving MethodMesh closer to being a lightweight standalone data-collection runtime as well as an ODK companion.
 
 ## Highlights
 
 ### Protocol library
 
-ResearchOS now has a protocol library for reusable native workflows.
+MethodMesh now has a protocol library for reusable native workflows.
 
 You can:
 
@@ -38,7 +38,7 @@ This is intended to make downstream parsing in R much easier. A protocol run sho
 Every exported run now has a stable submission identifier:
 
 ```text
-researchos_submission_id
+methodmesh_submission_id
 ```
 
 The same UUID is stored:
@@ -54,11 +54,11 @@ For protocol runs, all steps share the same submission UUID. This gives each pro
 
 Protocol runs now write all step outputs into the same protocol output folder.
 
-Intermediate steps no longer produce separate “saved output” notifications. ResearchOS only notifies once the whole protocol run has finished, reducing noise and avoiding the sense that each step is a separate study submission.
+Intermediate steps no longer produce separate “saved output” notifications. MethodMesh only notifies once the whole protocol run has finished, reducing noise and avoiding the sense that each step is a separate study submission.
 
 ### Question primitive capabilities
 
-This release adds native ResearchOS question primitives:
+This release adds native MethodMesh question primitives:
 
 ```text
 question.text
@@ -67,7 +67,7 @@ question.select_one
 question.select_multiple
 ```
 
-These are basic building blocks for ResearchOS-native protocols that do not need a full XLSForm.
+These are basic building blocks for MethodMesh-native protocols that do not need a full XLSForm.
 
 Common controls include:
 
@@ -84,7 +84,7 @@ Returned fields include the question type, question ID, prompt, answer, validati
 
 ### Additional native capability building blocks
 
-This release also includes several capability additions and refinements that support ResearchOS-native workflows:
+This release also includes several capability additions and refinements that support MethodMesh-native workflows:
 
 - **Random number generator** (`random.number.generate`) — generates one or more random numbers with configurable count, minimum, maximum, step size, secure-random mode, and fixed-seed reproducible mode. This is a foundation for later allocation, block randomisation, and simulation tools.
 - **Protocol-ready direct capability runs** — capability cards can be configured, saved as presets, run directly, and used as protocol steps without needing ODK as the handling app.
@@ -96,7 +96,7 @@ This release also includes several capability additions and refinements that sup
 The output/export path has been tightened:
 
 - direct capability results can be exported from the shared result panel;
-- exports are placed under `Documents/ResearchOS/outputs` by default;
+- exports are placed under `Documents/MethodMesh/outputs` by default;
 - configured output folders are supported;
 - saved-output notifications include an open action;
 - the home screen can open the output location.
@@ -129,4 +129,4 @@ The protocol library is now functional, but it is still early-stage UI. The next
 - tighter scheduler integration for protocol runs;
 - continued review of the canonical JSON shape against R import workflows.
 
-The new question primitives are deliberately simple. They are intended as reusable ResearchOS-native building blocks, not as a replacement for full XLSForm logic yet.
+The new question primitives are deliberately simple. They are intended as reusable MethodMesh-native building blocks, not as a replacement for full XLSForm logic yet.

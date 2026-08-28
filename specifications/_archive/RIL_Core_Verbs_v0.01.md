@@ -1,11 +1,11 @@
-# ResearchOS Intent Language (RIL)
+# Research Intent Language (RIL)
 ## Core Verbs v0.01
 
 ## Purpose
 
-The ResearchOS Intent Language (RIL) is built around a deliberately small and stable vocabulary of **verbs**.
+The Research Intent Language (RIL) is built around a deliberately small and stable vocabulary of **verbs**.
 
-Each verb represents a fundamental operation that ResearchOS can perform. New functionality should normally be introduced by defining new **types**, rather than inventing new verbs.
+Each verb represents a fundamental operation that MethodMesh can perform. New functionality should normally be introduced by defining new **types**, rather than inventing new verbs.
 
 For example:
 
@@ -192,7 +192,7 @@ retrieve participant p001
 
 # 7. System
 
-*Interrogates or administers the ResearchOS runtime.*
+*Interrogates or administers the MethodMesh runtime.*
 
 | Verb | Meaning |
 |------|---------|
@@ -202,8 +202,8 @@ retrieve participant p001
 | **check** | Evaluate the current state of something. |
 | **validate** | Test whether something conforms to rules. |
 | **ping** | Test availability or responsiveness. |
-| **import** | Bring external resources into ResearchOS. |
-| **export** | Transfer resources out of ResearchOS. |
+| **import** | Bring external resources into MethodMesh. |
+| **export** | Transfer resources out of MethodMesh. |
 
 ---
 
@@ -235,7 +235,7 @@ The following common computing terms are intentionally **not** part of the core 
 
 The RIL vocabulary should remain intentionally small.
 
-ResearchOS should grow by introducing new **types**, **policies** and **modules**, rather than continually adding new verbs.
+MethodMesh should grow by introducing new **types**, **policies** and **modules**, rather than continually adding new verbs.
 
 A stable verb vocabulary makes the language easier to learn, easier to document, easier to implement and more interoperable across applications and platforms.
 

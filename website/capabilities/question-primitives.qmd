@@ -5,12 +5,12 @@ title: "Question primitives"
 ::: {.status-box .status-partial}
 **Status: Implemented; native protocol building block**
 
-These capabilities are intended for ResearchOS-native presets and protocols. They are useful for simple direct data collection but do not yet replace the full logic model of XLSForm.
+These capabilities are intended for MethodMesh-native presets and protocols. They are useful for simple direct data collection but do not yet replace the full logic model of XLSForm.
 :::
 
 ## Purpose
 
-Question primitives provide small reusable question blocks that can be run directly in ResearchOS, saved as capability presets, chained into protocols, scheduled, and exported through the common ResearchOS output package system.
+Question primitives provide small reusable question blocks that can be run directly in MethodMesh, saved as capability presets, chained into protocols, scheduled, and exported through the common MethodMesh output package system.
 
 They are designed for cases where a full ODK/XLSForm is unnecessary but a protocol still needs typed user input.
 
@@ -59,25 +59,25 @@ Text questions use a multiline answer box in user-facing mode. The prompt is use
 ### Text
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='question.text',input_question_id='chief_complaint',input_prompt='What is the main complaint?',input_required='true',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='question.text',input_question_id='chief_complaint',input_prompt='What is the main complaint?',input_required='true',return_mode='flat')
 ```
 
 ### Number
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='question.number',input_question_id='temperature',input_prompt='Temperature',input_min='30',input_max='45',input_required='true',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='question.number',input_question_id='temperature',input_prompt='Temperature',input_min='30',input_max='45',input_required='true',return_mode='flat')
 ```
 
 ### Select one
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='question.select_one',input_question_id='severity',input_prompt='Severity',input_options='mild|moderate|severe',input_required='true',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='question.select_one',input_question_id='severity',input_prompt='Severity',input_options='mild|moderate|severe',input_required='true',return_mode='flat')
 ```
 
 ### Select multiple
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='question.select_multiple',input_question_id='symptoms',input_prompt='Symptoms present',input_options='fever|cough|rash|fatigue',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='question.select_multiple',input_question_id='symptoms',input_prompt='Symptoms present',input_options='fever|cough|rash|fatigue',return_mode='flat')
 ```
 
 ## Returned fields
@@ -106,7 +106,7 @@ com.example.researchos.EXECUTE_METHOD(method_id='question.select_multiple',input
 
 The most useful route is:
 
-1. Open the question capability card in ResearchOS.
+1. Open the question capability card in MethodMesh.
 2. Configure the prompt, constraints and options.
 3. Save it as a preset.
 4. Add the preset to a named protocol.
@@ -122,4 +122,4 @@ The dashboard **Test** button opens the same question interface that an intent o
 
 - Relevance/skip logic is not yet implemented.
 - Regex validation is available, but complex XLSForm-style expressions are not.
-- These primitives are deliberately simple and should be treated as native ResearchOS building blocks rather than a full EDC replacement.
+- These primitives are deliberately simple and should be treated as native MethodMesh building blocks rather than a full EDC replacement.

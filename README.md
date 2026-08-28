@@ -1,14 +1,14 @@
-# ResearchOS
+# MethodMesh
 
 > **An open architecture for scientific knowledge, interoperable research methods and reusable digital research infrastructure.**
 
-ResearchOS is an open, modular architecture for designing, executing and preserving scientific research.
+MethodMesh is an open, modular architecture for designing, executing and preserving scientific research.
 
 It separates scientific knowledge from software implementation, allowing methods, applications and services to evolve independently while remaining interoperable.
 
-Rather than replacing existing research software, ResearchOS provides a common conceptual model and execution architecture that can be embedded within existing ecosystems such as ODK, KoBoToolbox, REDCap and custom research applications.
+Rather than replacing existing research software, MethodMesh provides a common conceptual model and execution architecture that can be embedded within existing ecosystems such as ODK, KoBoToolbox, REDCap and custom research applications.
 
-ResearchOS is designed around a simple principle:
+MethodMesh is designed around a simple principle:
 
 > **Research should outlive the software used to perform it.**
 
@@ -18,7 +18,7 @@ ResearchOS is designed around a simple principle:
 
 Research software has traditionally been built as isolated applications that combine user interface, workflow, storage and scientific logic into a single system.
 
-ResearchOS instead treats research as a collection of interoperable concepts:
+MethodMesh instead treats research as a collection of interoperable concepts:
 
 - things being studied;
 - scientific observations;
@@ -32,7 +32,7 @@ Applications become interchangeable views onto a shared knowledge architecture r
 
 # Architecture
 
-ResearchOS is organised into complementary layers.
+MethodMesh is organised into complementary layers.
 
 ```text
 Research Philosophy
@@ -45,7 +45,7 @@ Architecture Standard
         │
 JSON Object Model
         │
-ResearchOS Intent Language (RIL)
+Research Intent Language (RIL)
         │
 Applications • Services • Methods
         │
@@ -86,20 +86,20 @@ This separation enables reproducible methods, interoperable applications and lon
 
 # Current Focus
 
-The conceptual architecture of ResearchOS is now considered sufficiently stable for implementation.
+The conceptual architecture of MethodMesh is now considered sufficiently stable for implementation.
 
 Current development focuses on validating the architecture through working reference implementations rather than further redesign of the core knowledge model.
 
 Immediate priorities are:
 
 - JSON Object Model
-- ResearchOS Orchestrator
+- MethodMesh Orchestrator
 - Device Services
 - Native Methods
 - Android interoperability discovery and reusable integration definitions
 - Bluetooth device discovery and endpoint assay
 - Android reference implementation
-- ResearchOS Intent Language (RIL)
+- Research Intent Language (RIL)
 
 The objective of this phase is to demonstrate that the architecture can support complete research workflows from protocol definition through data collection, analysis and reporting.
 
@@ -125,13 +125,13 @@ The objective of this phase is to demonstrate that the architecture can support 
 
 ## Phase 3 — Proof of Architecture
 
-Demonstrate that ResearchOS can:
+Demonstrate that MethodMesh can:
 
 1. Represent a complete research design.
 2. Represent a complete research protocol.
-3. Create, analyse and interpret a study dataset using only the ResearchOS graph.
+3. Create, analyse and interpret a study dataset using only the MethodMesh graph.
 
-Successful completion of these milestones will provide the first end-to-end validation of the ResearchOS architecture.
+Successful completion of these milestones will provide the first end-to-end validation of the MethodMesh architecture.
 
 ---
 
@@ -157,7 +157,7 @@ Successful completion of these milestones will provide the first end-to-end vali
 
 ## Interoperability
 
-- ResearchOS Intent Language
+- Research Intent Language
 - Core Verbs
 
 ## Reference Implementation
@@ -169,7 +169,7 @@ Successful completion of these milestones will provide the first end-to-end vali
 
 ## Capability modules
 
-Each standalone module under `app/src/main/java/com/example/researchos/modules/` owns both its implementation and its integration documentation. Its `docs` folder contains a module-named implementation guide and a working example ODK XLSForm. See [Capability documentation standard](docs/CAPABILITY_DOCUMENTATION_STANDARD.md).
+Each standalone module under `app/src/main/java/com/example/methodmesh/modules/` owns both its implementation and its integration documentation. Its `docs` folder contains a module-named implementation guide and a working example ODK XLSForm. See [Capability documentation standard](docs/CAPABILITY_DOCUMENTATION_STANDARD.md).
 
 The Android app inspector is a deliberately conservative interoperability tool. It lists installed launchable applications, inspects exported components, probes common public intent filters, targets exported activities explicitly, captures returned data, and can save a tested package/component/action/URI/extras combination as a local integration definition. It does not bypass non-exported components, permissions, authentication, or undocumented application internals. An app may expose more useful behavior than Android can discover generically; in that case the inspector is a test harness for combinations found in the app's documentation, source, or other authoritative references.
 
@@ -177,7 +177,7 @@ The Bluetooth device inspector applies the same pattern to nearby hardware: it s
 
 ## Current XLSForm capabilities
 
-The Android reference implementation currently exposes the following standalone capabilities to ODK Collect, KoboToolbox-compatible callers, scheduled workflows, and other RIL clients. Each is invoked through the common `com.example.researchos.EXECUTE_METHOD(...)` intent boundary; the module owns its settings, UI, outputs, and example form.
+The Android reference implementation currently exposes the following standalone capabilities to ODK Collect, KoboToolbox-compatible callers, scheduled workflows, and other RIL clients. Each is invoked through the common `com.example.methodmesh.EXECUTE_METHOD(...)` intent boundary; the module owns its settings, UI, outputs, and example form.
 
 - **Calibrated scale** (`calibrated_scale`) — presents a physically calibrated horizontal or vertical continuum, including single-value, minimum/maximum, and range modes. It returns selected values with the configured prompt, hint, labels, and measurement metadata.
 - **SVG polygon selector** (`svg.select`) — loads a named SVG from app storage and supports single selection, multi-selection, or strict ordered polygon selection with timestamped audit events and backstep-only removal.
@@ -193,23 +193,23 @@ The Android reference implementation currently exposes the following standalone 
 - **Protocol NFC tracking and administration** (`protocol_nfc_provision`, `protocol_nfc_check`, `protocol_nfc_complete`, `protocol_nfc_reconstruct`, `protocol_nfc_override`) — keeps a compact, offline protocol-progress receipt on a participant card. Recruitment can provision a configurable protocol definition, forms can check eligibility before starting and mark a step complete after submission, and authorised staff can reconstruct a lost card or apply a justified flag/bit override. Definitions can be loaded from a JSON file or built in the UI; the card stores only compact state and the definition hash. Unrelated NDEF records, including credentials, are preserved.
 - **Automatic code scanner** (`qr.scan`) — captures QR, Data Matrix, and supported one-dimensional barcodes with automatic format detection, returning the decoded payload, format, and evidence hash. The historical method ID remains `qr.scan` so existing forms and chained attestation calls keep working.
 - **ML Kit vision** (`mlkit.vision.analyze`) — captures or selects an image and runs on-device OCR and/or barcode detection using ML Kit. It can return recognised text, barcode payloads, a PDF rendition of the scanned image, and an OCR text-file attachment.
-- **Document scanner** (`document.scan`) — opens ML Kit Document Scanner to capture, crop, align, and package paper pages. It returns the scanner PDF, copied page images, OCR text, a text attachment, and a ResearchOS searchable PDF package.
+- **Document scanner** (`document.scan`) — opens ML Kit Document Scanner to capture, crop, align, and package paper pages. It returns the scanner PDF, copied page images, OCR text, a text attachment, and a MethodMesh searchable PDF package.
 - **ML Kit translation** (`mlkit.translate`) — lists available translation languages, manages downloaded on-device language models, and translates caller-supplied text locally once the required models are installed.
 - **Speech transcription** (`speech.transcribe`) — opens Android speech recognition, optionally requests offline recognition, and returns the best transcript plus alternative recognitions.
 - **Random number generator** (`random.number.generate`) — generates secure or fixed-seed random numbers with count, minimum, maximum and step controls. It is intended as a foundation for later block randomisation and allocation tools.
-- **Question primitives** (`question.text`, `question.number`, `question.select_one`, `question.select_multiple`) — provides native ResearchOS building blocks for text, numeric, single-choice and multiple-choice questions. Each primitive supports prompt, hint, required status, regex validation and a constraint message; number questions add min/max bounds and choice questions add reusable option lists. These are intended for ResearchOS-native protocols that do not need a full XLSForm.
+- **Question primitives** (`question.text`, `question.number`, `question.select_one`, `question.select_multiple`) — provides native MethodMesh building blocks for text, numeric, single-choice and multiple-choice questions. Each primitive supports prompt, hint, required status, regex validation and a constraint message; number questions add min/max bounds and choice questions add reusable option lists. These are intended for MethodMesh-native protocols that do not need a full XLSForm.
 - **Traceable attestation** (`attestation.create`) — creates a device-signed, hash-chained event attestation. It can invoke fingerprint/device credential, QR, NFC, or study-password verification and can optionally obtain an RFC 3161 trusted timestamp.
 - **Attestation chain anchor** (`attestation.anchor_bundle`) — exports the current chain head and signed public evidence for an independent ODK/server receipt or nightly study anchor.
 - **Local device authentication** (`admin_fingerprint_confirmation`) — performs standalone biometric, PIN, pattern, password, or combined device-credential authentication for access control; unlike formal attestation, it does not claim to prove a research event.
 - **ODK form launcher** (`odk_form_launcher`) — discovers stored ODK/Kobo projects and forms, lets the operator select the correct project/form, and opens the selected form in the appropriate collection app.
-- **SMS sender** (`sms.send`) — sends a caller-supplied message to a caller-supplied phone number, returning send status, message hash, SMS part count, and sent time. XLSForms can construct the message text themselves and pass only the final phone number and message to ResearchOS.
+- **SMS sender** (`sms.send`) — sends a caller-supplied message to a caller-supplied phone number, returning send status, message hash, SMS part count, and sent time. XLSForms can construct the message text themselves and pass only the final phone number and message to MethodMesh.
 - **Android app inspector** (`android_app_inspector`) — lists installed applications and exported public components, tests documented or user-supplied intent actions, captures returned data, and saves tested integration definitions. It does not bypass permissions or private components.
 - **Bluetooth device inspector** (`bluetooth_device_inspector`) — scans nearby BLE devices, discovers and groups GATT services, reads endpoints, samples readable characteristics, subscribes to notification streams through CCCD, decodes printable values, and saves profiles to the device registry.
 - **Spatial geometry** (`tree_height_measurement`, `slope_inclination_measurement`, `geometry_distance_estimation`) — uses phone orientation sensors and supplied field references to estimate object height, slope/grade, and distance from angular size, with formulas and sensor provenance returned for audit.
 
 For implementation details, intent examples, input settings, output fields, and an example XLSForm, open the capability-specific guide in each module's `docs` folder. The naming and packaging rules are defined in [Capability documentation standard](docs/CAPABILITY_DOCUMENTATION_STANDARD.md).
 
-When a capability is run directly from the ResearchOS dashboard, the shared result panel also provides **Export**. It writes a timestamped output folder containing one canonical JSON package plus any returned attachments into `Documents/ResearchOS/outputs` by default, or into a folder selected under the global Output storage panel. Every export has a `researchos_submission_id` UUID that appears in the folder/filename and inside the JSON text; protocol runs keep the same UUID across all steps so the JSON can act as the key submission record. The canonical JSON always contains a `steps` array, even for a single capability run, and attachment filenames include the same submission UUID so media remain linked when copied or archived.
+When a capability is run directly from the MethodMesh dashboard, the shared result panel also provides **Export**. It writes a timestamped output folder containing one canonical JSON package plus any returned attachments into `Documents/MethodMesh/outputs` by default, or into a folder selected under the global Output storage panel. Every export has a `methodmesh_submission_id` UUID that appears in the folder/filename and inside the JSON text; protocol runs keep the same UUID across all steps so the JSON can act as the key submission record. The canonical JSON always contains a `steps` array, even for a single capability run, and attachment filenames include the same submission UUID so media remain linked when copied or archived.
 
 Direct dashboard testing is separated from real output capture. Capability cards provide **Test** for a no-save dry run, **Test and save** for a full output package including media attachments, and a persistent **Last confirmed result** preview so operators can inspect returned fields and image thumbnails before using a workflow in anger. User-facing intent previews now use the same fullscreen presentation path as external callers, while settings, examples and technical outputs remain collapsed by default.
 
@@ -217,7 +217,7 @@ The runtime also has global display-accessibility controls. Text scaling can be 
 
 ## Scheduler and task orchestration
 
-ResearchOS also includes a core scheduler for organising recurring field tasks. Schedules use five-field cron expressions and can run hourly, daily, weekly, monthly, or on any other supported cron pattern. A scheduled item may launch an XLSForm in ODK Collect or Kobo Collect, open a web form, invoke a ResearchOS capability directly, or publish capability output to a reusable destination such as the clipboard. Tasks can be chained so several actions run as one workflow, with configurable ordering, retries, retry windows, custom notifications, pause/resume controls, and completion tracking. The scheduler is part of the runtime workflow layer rather than a study-specific capability: future action types can be added without changing the scheduling model. Schedule chains can also be exported and imported as integrity-checked bundles through text, files, QR, or NFC.
+MethodMesh also includes a core scheduler for organising recurring field tasks. Schedules use five-field cron expressions and can run hourly, daily, weekly, monthly, or on any other supported cron pattern. A scheduled item may launch an XLSForm in ODK Collect or Kobo Collect, open a web form, invoke a MethodMesh capability directly, or publish capability output to a reusable destination such as the clipboard. Tasks can be chained so several actions run as one workflow, with configurable ordering, retries, retry windows, custom notifications, pause/resume controls, and completion tracking. The scheduler is part of the runtime workflow layer rather than a study-specific capability: future action types can be added without changing the scheduling model. Schedule chains can also be exported and imported as integrity-checked bundles through text, files, QR, or NFC.
 
 Build and test the Android reference implementation with:
 
@@ -229,7 +229,7 @@ Build and test the Android reference implementation with:
 
 # Design Principles
 
-ResearchOS is:
+MethodMesh is:
 
 - Knowledge-first
 - Registry-driven
@@ -243,10 +243,10 @@ ResearchOS is:
 
 # Licence
 
-ResearchOS is an open project intended to support reusable scientific infrastructure across disciplines, organisations and platforms.
+MethodMesh is an open project intended to support reusable scientific infrastructure across disciplines, organisations and platforms.
 ### Using the scheduler
 
-Open **Scheduler** on the ResearchOS home screen and choose **Create schedule**. Give the schedule a name, then configure each action in order: an XLSForm, web form, direct ResearchOS capability, or reusable output such as clipboard. XLSForm actions use the discovered project/form list; web-form actions use a URL; capability actions expose the selected capability's normal settings. Add further actions to create a chain; they run in displayed order after the preceding action succeeds.
+Open **Scheduler** on the MethodMesh home screen and choose **Create schedule**. Give the schedule a name, then configure each action in order: an XLSForm, web form, direct MethodMesh capability, or reusable output such as clipboard. XLSForm actions use the discovered project/form list; web-form actions use a URL; capability actions expose the selected capability's normal settings. Add further actions to create a chain; they run in displayed order after the preceding action succeeds.
 
 Schedules use five cron fields: minute, hour, day of month, month, weekday. Examples are `0 9 * * *` (daily at 09:00), `0 * * * *` (hourly), `*/5 * * * *` (every five minutes), and `0 9 * * 1` (every Monday at 09:00). Configure notification text, retries, retry interval, and retry window before saving. Use **Test** to run immediately, or pause/resume the schedule from its central card.
 

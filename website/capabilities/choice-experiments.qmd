@@ -22,42 +22,40 @@ Run interactive pairwise, MaxDiff, ranking, points-allocation and conjoint choic
 
 ## Requirements
 
-- No additional requirement is stated beyond the installed ResearchOS application.
+- No additional requirement is stated beyond the installed MethodMesh application.
 
 ## Screenshots
-
-![](../assets/screenshots/DCE1.png){width=250} ![](../assets/screenshots/DCE2.png){width=250} ![](../assets/screenshots/DCE3.png){width=250} ![](../assets/screenshots/DCE4.png){width=250} ![](../assets/screenshots/DCE5.png){width=250}
 
 ## Supported XLSForm calls
 
 **From `example_odk_dce.pairwise.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='dce.pairwise',input_rounds='5',input64_items='UGFuYXNvbmljClNvbnkKTmludGVuZG8KU2Ftc3VuZw',input_seed='participant_001',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='dce.pairwise',input_rounds='5',input64_items='UGFuYXNvbmljClNvbnkKTmludGVuZG8KU2Ftc3VuZw',input_seed='participant_001',return_mode='flat')
 ```
 
 **From `example_odk_dce.maxdiff.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='dce.maxdiff',input_rounds='6',input_items_per_round='4',input64_items='UmVsaWFibGUKQWZmb3JkYWJsZQpGYXN0CkZhbWlsaWFyClBvcnRhYmxlCkR1cmFibGU',input_seed='participant_001',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='dce.maxdiff',input_rounds='6',input_items_per_round='4',input64_items='UmVsaWFibGUKQWZmb3JkYWJsZQpGYXN0CkZhbWlsaWFyClBvcnRhYmxlCkR1cmFibGU',input_seed='participant_001',return_mode='flat')
 ```
 
 **From `example_odk_dce.ranking.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='dce.ranking',input_rounds='3',input64_items='Q2xpbmljIEEKQ2xpbmljIEIKQ2xpbmljIEMKQ2xpbmljIEQ',input_seed='participant_001',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='dce.ranking',input_rounds='3',input64_items='Q2xpbmljIEEKQ2xpbmljIEIKQ2xpbmljIEMKQ2xpbmljIEQ',input_seed='participant_001',return_mode='flat')
 ```
 
 **From `example_odk_dce.points.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='dce.points',input_points='100',input64_items='UHJldmVudGlvbgpUcmVhdG1lbnQKVHJhaW5pbmcKVHJhbnNwb3J0',input_seed='participant_001',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='dce.points',input_points='100',input64_items='UHJldmVudGlvbgpUcmVhdG1lbnQKVHJhaW5pbmcKVHJhbnNwb3J0',input_seed='participant_001',return_mode='flat')
 ```
 
 **From `example_odk_dce.conjoint.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='dce.conjoint',input_rounds='6',input_profiles_per_round='2',input64_classes='QlJBTkQ6IFBhbmFzb25pYywgU29ueSwgTmludGVuZG8KRkVBVFVSRTogQmFzaWMsIFNtYXJ0LCBQcmVtaXVtClBSSUNFOiAxMDAsIDIwMCwgMzAw',input_seed='participant_001',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='dce.conjoint',input_rounds='6',input_profiles_per_round='2',input64_classes='QlJBTkQ6IFBhbmFzb25pYywgU29ueSwgTmludGVuZG8KRkVBVFVSRTogQmFzaWMsIFNtYXJ0LCBQcmVtaXVtClBSSUNFOiAxMDAsIDIwMCwgMzAw',input_seed='participant_001',return_mode='flat')
 ```
 
 ## Inputs observed in supplied examples

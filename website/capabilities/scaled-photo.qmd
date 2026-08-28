@@ -40,7 +40,7 @@ Add a current capability dashboard or execution screenshot at:
 
 ```{=html}
 <!-- Replace the placeholder above with:
-![](../assets/screenshots/scaled-photo.png){fig-alt="Scaled photo selector screen in ResearchOS"}
+![](../assets/screenshots/scaled-photo.png){fig-alt="Scaled photo selector screen in MethodMesh"}
 -->
 ```
 
@@ -49,7 +49,7 @@ Add a current capability dashboard or execution screenshot at:
 **From `example_odk_scaled_photo.capture.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='scaled_photo.capture',input_ruler_length_mm='50',input_hud_scale_ratio='1',input_capture_orientation='portrait',input_grid_rows='10',input_grid_columns='10',input_show_grid='true',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='scaled_photo.capture',input_ruler_length_mm='50',input_hud_scale_ratio='1',input_capture_orientation='portrait',input_grid_rows='10',input_grid_columns='10',input_show_grid='true',return_mode='flat')
 ```
 
 ## Inputs observed in supplied examples
@@ -80,12 +80,12 @@ com.example.researchos.EXECUTE_METHOD(method_id='scaled_photo.capture',input_rul
 | `photo_captured_at` | Capture timestamp. |
 | `overlay_completed_at` | Annotation timestamp. |
 
-## Direct ResearchOS use
+## Direct MethodMesh use
 
 From a capability card:
 
 - **Test** runs without saving study output;
-- **Test and save** writes a normal ResearchOS output package;
+- **Test and save** writes a normal MethodMesh output package;
 - the last-result preview shows returned media thumbnails where image URIs are present.
 
 Saved packages contain one canonical JSON file plus the original and annotated image attachments.
