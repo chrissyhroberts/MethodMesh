@@ -23,5 +23,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ResearchOS"
+rootProject.name = "MethodMesh"
 include(":app")

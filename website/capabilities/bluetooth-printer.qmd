@@ -32,7 +32,7 @@ Add a current capability dashboard or execution screenshot at:
 
 ```{=html}
 <!-- Replace the placeholder above with:
-![](../assets/screenshots/bluetooth-printer.png){fig-alt="Bluetooth printer screen in ResearchOS"}
+![](../assets/screenshots/bluetooth-printer.png){fig-alt="Bluetooth printer screen in MethodMesh"}
 -->
 ```
 
@@ -41,7 +41,7 @@ Add a current capability dashboard or execution screenshot at:
 **From `example_odk_bluetooth_print.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='bluetooth_print')
+com.example.methodmesh.EXECUTE_METHOD(method_id='bluetooth_print')
 ```
 
 ## Inputs observed in supplied examples

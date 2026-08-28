@@ -33,7 +33,7 @@ Add a current capability dashboard or execution screenshot at:
 :::
 
 <!-- Replace the placeholder above with:
-![](../assets/screenshots/spatial-geometry.png){fig-alt="Spatial geometry screen in ResearchOS"}
+![](../assets/screenshots/spatial-geometry.png){fig-alt="Spatial geometry screen in MethodMesh"}
 -->
 
 ## Supported XLSForm calls
@@ -42,7 +42,7 @@ Add a current capability dashboard or execution screenshot at:
 **From `example_odk_spatialgeometry.xlsx`:**
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='tree_height_measurement',input_horizontal_distance_m=${input_horizontal_distance_m},input_observer_height_m=${input_observer_height_m},input_base_angle_deg=${input_base_angle_deg},input_top_angle_deg=${input_top_angle_deg},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='tree_height_measurement',input_horizontal_distance_m=${input_horizontal_distance_m},input_observer_height_m=${input_observer_height_m},input_base_angle_deg=${input_base_angle_deg},input_top_angle_deg=${input_top_angle_deg},return_mode='flat')
 ```
 
 

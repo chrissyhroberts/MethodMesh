@@ -33,7 +33,7 @@ Add a current capability dashboard or execution screenshot at:
 :::
 
 <!-- Replace the placeholder above with:
-![](../assets/screenshots/speech-transcription.png){fig-alt="Speech transcription screen in ResearchOS"}
+![](../assets/screenshots/speech-transcription.png){fig-alt="Speech transcription screen in MethodMesh"}
 -->
 
 ## Supported XLSForm calls

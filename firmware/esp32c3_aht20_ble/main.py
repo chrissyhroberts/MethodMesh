@@ -1,8 +1,8 @@
 """
-ResearchOS ESP32-C3 BLE sensor node.
+MethodMesh ESP32-C3 BLE sensor node.
 
 Copy this file to an ESP32-C3 running MicroPython as main.py. It exposes a
-generic ResearchOS sensor GATT service with a manifest characteristic, a latest
+generic MethodMesh sensor GATT service with a manifest characteristic, a latest
 reading characteristic, and a command characteristic. Sensor drivers are
 reported through the manifest; this bundle includes an AHT20 I2C driver.
 """
@@ -30,10 +30,10 @@ except ImportError:
 
 # Adjust these for your ESP32-C3 board if needed. Many ESP32-C3 dev boards use
 # GPIO 8/9 for I2C, but boards vary.
-FIRMWARE_VERSION = "researchos-sensor-0.1.1"
-DEFAULT_DEVICE_NAME = "ResearchOS-Sensor"
+FIRMWARE_VERSION = "methodmesh-sensor-0.1.1"
+DEFAULT_DEVICE_NAME = "MethodMesh-Sensor"
 DEFAULT_DEVICE_ID = "esp32c3-" + "".join("%02x" % b for b in unique_id()[-3:])
-CONFIG_FILE = "researchos_sensor_config.json"
+CONFIG_FILE = "methodmesh_sensor_config.json"
 DEFAULT_SENSOR_PROFILE = "aht20"
 SUPPORTED_SENSOR_PROFILES = ["aht20", "ld2410c"]
 I2C_SDA_PIN = 8
@@ -42,7 +42,7 @@ I2C_FREQUENCY = 100000
 DEFAULT_SAMPLE_INTERVAL_MS = 5000
 
 
-# ResearchOS environmental sensor service.
+# MethodMesh environmental sensor service.
 SERVICE_UUID = bluetooth.UUID("b6f2a900-9b8f-4f4e-9a1f-4f37a0010000")
 MANIFEST_UUID = bluetooth.UUID("b6f2a901-9b8f-4f4e-9a1f-4f37a0010000")
 READING_UUID = bluetooth.UUID("b6f2a902-9b8f-4f4e-9a1f-4f37a0010000")
@@ -135,7 +135,7 @@ def normalize_config(config):
     }
 
 
-class ResearchOSSensorNode:
+class MethodMeshSensorNode:
     def __init__(self):
         self.config = load_config()
         self.i2c = None
@@ -247,7 +247,7 @@ class ResearchOSSensorNode:
 
     def write_command_status(self, status, message):
         response = {
-            "researchos_sensor_command_version": "1",
+            "methodmesh_sensor_command_version": "1",
             "status": status,
             "message": message,
             "device_id": self.config["device_id"],
@@ -260,7 +260,7 @@ class ResearchOSSensorNode:
 
     def _write_manifest(self):
         manifest = {
-            "researchos_sensor_manifest_version": "1",
+            "methodmesh_sensor_manifest_version": "1",
             "device_id": self.config["device_id"],
             "device_name": self.config["device_name"],
             "firmware_version": FIRMWARE_VERSION,
@@ -292,7 +292,7 @@ class ResearchOSSensorNode:
     def sample(self, notify=False):
         now_ms = time.ticks_ms()
         reading = {
-            "researchos_sensor_reading_version": "1",
+            "methodmesh_sensor_reading_version": "1",
             "device_id": self.config["device_id"],
             "device_name": self.config["device_name"],
             "firmware_version": FIRMWARE_VERSION,
@@ -334,8 +334,8 @@ class ResearchOSSensorNode:
             time.sleep_ms(200)
 
 
-node = ResearchOSSensorNode()
-print("ResearchOS sensor node started")
+node = MethodMeshSensorNode()
+print("MethodMesh sensor node started")
 print("Device:", node.config["device_name"], node.config["device_id"])
 try:
     print("I2C scan:", node.i2c.scan() if node.i2c else [])

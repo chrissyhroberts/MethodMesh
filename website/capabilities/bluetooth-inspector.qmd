@@ -33,7 +33,7 @@ Add a current capability dashboard or execution screenshot at:
 :::
 
 <!-- Replace the placeholder above with:
-![](../assets/screenshots/bluetooth-inspector.png){fig-alt="Bluetooth device inspector screen in ResearchOS"}
+![](../assets/screenshots/bluetooth-inspector.png){fig-alt="Bluetooth device inspector screen in MethodMesh"}
 -->
 
 ## Supported XLSForm calls
@@ -42,7 +42,7 @@ Add a current capability dashboard or execution screenshot at:
 **From `example_odk_bluetooth_device_inspector.xlsx`:**
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='bluetooth_device_inspector')
+com.example.methodmesh.EXECUTE_METHOD(method_id='bluetooth_device_inspector')
 ```
 
 

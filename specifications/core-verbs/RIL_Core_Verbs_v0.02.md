@@ -1,13 +1,13 @@
-# ResearchOS Intent Language (RIL)
+# Research Intent Language (RIL)
 ## Core Verbs v0.02
 
 ---
 
 # 1. Purpose
 
-The ResearchOS Intent Language defines the canonical verbs used to express requests for action within ResearchOS.
+The Research Intent Language defines the canonical verbs used to express requests for action within MethodMesh.
 
-RIL sits in the orchestration layer of the ResearchOS conceptual model.
+RIL sits in the orchestration layer of the MethodMesh conceptual model.
 
 An Intent requests one or more Methods.
 
@@ -27,7 +27,7 @@ New functionality should normally be introduced by defining new types, targets, 
 
 # 2. The Role of Core Verbs
 
-Core verbs express what a user, system or Method is asking ResearchOS to do.
+Core verbs express what a user, system or Method is asking MethodMesh to do.
 
 They are part of the orchestration layer rather than the scientific knowledge model.
 
@@ -53,7 +53,7 @@ Assertion
 Entity
 ```
 
-Within the ResearchOS conceptual model:
+Within the MethodMesh conceptual model:
 
 - Intents express requested action.
 - Core verbs define the canonical action language.
@@ -106,7 +106,7 @@ The language should resemble ordinary scientific instruction wherever practical.
 
 ## Machine-interpretable
 
-Every core verb should possess a precise operational meaning that can be interpreted consistently by ResearchOS.
+Every core verb should possess a precise operational meaning that can be interpreted consistently by MethodMesh.
 
 ---
 
@@ -116,7 +116,7 @@ The Core Verbs Registry provides a stable foundation upon which higher-level dom
 
 # 4. Core Verb Registry
 
-The RIL Core Verb Registry defines the stable vocabulary of actions recognised by ResearchOS.
+The RIL Core Verb Registry defines the stable vocabulary of actions recognised by MethodMesh.
 
 Each verb represents a single conceptual operation.
 
@@ -130,7 +130,7 @@ Each registry entry contains the following fields.
 |--------|-------------|
 | **Verb** | Canonical RIL verb |
 | **Purpose** | Conceptual meaning of the verb |
-| **Typical Target** | Entity, Method, Observation, Assertion or other ResearchOS object |
+| **Typical Target** | Entity, Method, Observation, Assertion or other MethodMesh object |
 | **Parameters** | Common parameters accepted by the verb |
 | **Result** | Expected outcome of successful execution |
 | **Examples** | Informative examples |
@@ -139,7 +139,7 @@ The Core Verb Registry is descriptive rather than prescriptive.
 
 It defines the meaning of each verb independently of any particular implementation.
 
-The following sections define the canonical RIL verbs recognised by ResearchOS.
+The following sections define the canonical RIL verbs recognised by MethodMesh.
 
 # 5. Core Verb Definitions
 
@@ -150,7 +150,7 @@ Each RIL core verb is defined using a common structure.
 | **Verb** | Canonical RIL verb |
 | **Purpose** | Conceptual meaning of the verb |
 | **Behaviour** | Expected behaviour when executed |
-| **Typical Targets** | Common ResearchOS objects acted upon |
+| **Typical Targets** | Common MethodMesh objects acted upon |
 | **Typical Parameters** | Common parameters accepted |
 | **Result** | Expected outcome |
 | **Examples** | Informative examples |
@@ -163,7 +163,7 @@ The following sections define the canonical RIL verbs.
 
 **Purpose**
 
-Create a new ResearchOS object.
+Create a new MethodMesh object.
 
 **Behaviour**
 
@@ -186,7 +186,7 @@ Creates a new object of the requested type and returns its identifier.
 
 **Result**
 
-A new object exists within ResearchOS.
+A new object exists within MethodMesh.
 
 **Examples**
 
@@ -217,7 +217,7 @@ Examples...
 
 # 7. Summary
 
-The RIL Core Verbs Registry defines the stable action vocabulary of ResearchOS.
+The RIL Core Verbs Registry defines the stable action vocabulary of MethodMesh.
 
 Core verbs express intent.
 

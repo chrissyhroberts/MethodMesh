@@ -6,17 +6,17 @@ title: "Troubleshooting"
 
 Record the method ID, returned status, error, provider, timestamp and the exact form used.
 
-## Form does not open ResearchOS
+## Form does not open MethodMesh
 
 Check:
 
-- ResearchOS is installed;
+- MethodMesh is installed;
 - the example uses the current execution action;
 - the method ID exists in the installed build;
 - the `body::intent` value is on the intended group;
 - the form was re-uploaded and re-downloaded after editing.
 
-## ResearchOS opens but nothing returns
+## MethodMesh opens but nothing returns
 
 Check:
 
@@ -61,7 +61,7 @@ Look for:
 
 Include:
 
-- ResearchOS version;
+- MethodMesh version;
 - device and Android version;
 - EDC application and version;
 - capability and call;

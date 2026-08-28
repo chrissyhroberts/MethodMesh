@@ -21,4 +21,4 @@
 #-renamesourcefileattribute SourceFile
 
 # Capability modules are discovered by their module object class name.
--keep public class com.example.researchos.modules.**Module { public static ** INSTANCE; }
+-keep public class com.example.methodmesh.modules.**Module { public static ** INSTANCE; }

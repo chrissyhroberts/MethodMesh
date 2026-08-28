@@ -33,7 +33,7 @@ Add a current capability dashboard or execution screenshot at:
 :::
 
 <!-- Replace the placeholder above with:
-![](../assets/screenshots/provider-command.png){fig-alt="External command library screen in ResearchOS"}
+![](../assets/screenshots/provider-command.png){fig-alt="External command library screen in MethodMesh"}
 -->
 
 ## Supported XLSForm calls

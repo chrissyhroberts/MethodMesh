@@ -1,4 +1,4 @@
-# ResearchOS Architecture Standard
+# MethodMesh Architecture Standard
 
 **Version:** 1.02 (Draft)
 
@@ -6,24 +6,24 @@
 
 # 1. Purpose
 
-The ResearchOS Architecture Standard defines the engineering principles governing the implementation of ResearchOS.
+The MethodMesh Architecture Standard defines the engineering principles governing the implementation of MethodMesh.
 
-It complements, but does not replace, the ResearchOS Philosophy, Conceptual Model and Registry specifications.
+It complements, but does not replace, the MethodMesh Philosophy, Conceptual Model and Registry specifications.
 
-Where those documents define *what* ResearchOS represents, the Architecture Standard defines *how* those concepts should be implemented.
+Where those documents define *what* MethodMesh represents, the Architecture Standard defines *how* those concepts should be implemented.
 
-This standard establishes architectural consistency across applications, services and libraries forming part of the ResearchOS ecosystem.
+This standard establishes architectural consistency across applications, services and libraries forming part of the MethodMesh ecosystem.
 
 ---
 
 # 2. Relationship to Other Standards
 
-The ResearchOS documentation is organised into complementary layers.
+The MethodMesh documentation is organised into complementary layers.
 
 ```text
-ResearchOS Philosophy
+MethodMesh Philosophy
         │
-ResearchOS Conceptual Model
+MethodMesh Conceptual Model
         │
 Registry Specifications
 (Entity, Observation, Assertion, Intent, ...)
@@ -58,11 +58,11 @@ This standard does not redefine scientific concepts already specified elsewhere.
 
 # 4. Architectural Principles
 
-All ResearchOS implementations shall conform to the following architectural principles.
+All MethodMesh implementations shall conform to the following architectural principles.
 
 ## Knowledge-first
 
-ResearchOS is fundamentally a knowledge system.
+MethodMesh is fundamentally a knowledge system.
 
 Applications, user interfaces, workflows and services exist to create, transform, query and communicate scientific knowledge.
 
@@ -78,7 +78,7 @@ These concepts are defined by their respective Registry specifications and shall
 
 ## Separation of Concerns
 
-ResearchOS separates conceptual knowledge from orchestration and implementation.
+MethodMesh separates conceptual knowledge from orchestration and implementation.
 
 ```text
 Knowledge Layer
@@ -118,9 +118,9 @@ Implementations should consume Registry definitions rather than duplicate concep
 
 ## Service-oriented
 
-ResearchOS capabilities shall be implemented as independent services wherever practical.
+MethodMesh capabilities shall be implemented as independent services wherever practical.
 
-Services communicate through canonical ResearchOS objects rather than direct application-specific interfaces.
+Services communicate through canonical MethodMesh objects rather than direct application-specific interfaces.
 
 Services should remain independently deployable and reusable across projects.
 
@@ -136,15 +136,15 @@ Alternative implementations should remain interoperable provided they conform to
 
 ## Extensible
 
-ResearchOS shall support extension through new Registry entries, Methods, Services and Applications without modification of the core conceptual architecture.
+MethodMesh shall support extension through new Registry entries, Methods, Services and Applications without modification of the core conceptual architecture.
 
 Extensions should compose with the existing architecture rather than replace it.
 
 # 5. Architectural Components
 
-ResearchOS implementations are constructed from a small number of architectural component types.
+MethodMesh implementations are constructed from a small number of architectural component types.
 
-Each component has a clearly defined responsibility and communicates through canonical ResearchOS objects.
+Each component has a clearly defined responsibility and communicates through canonical MethodMesh objects.
 
 ## Applications
 
@@ -160,7 +160,7 @@ Applications should not embed scientific knowledge or implementation-specific bu
 
 Services implement discrete capabilities.
 
-A Service accepts one or more canonical ResearchOS objects as input and produces one or more canonical ResearchOS objects as output.
+A Service accepts one or more canonical MethodMesh objects as input and produces one or more canonical MethodMesh objects as output.
 
 Services should remain independently deployable and reusable.
 
@@ -178,7 +178,7 @@ Methods are implementation-independent and may be realised by software, hardware
 
 ## Registries
 
-Registries define the canonical vocabulary used throughout ResearchOS.
+Registries define the canonical vocabulary used throughout MethodMesh.
 
 Applications and Services should consume Registry definitions rather than duplicate them.
 
@@ -188,7 +188,7 @@ Registries form the authoritative source of conceptual meaning.
 
 ## Knowledge Store
 
-The Knowledge Store preserves ResearchOS objects and their relationships.
+The Knowledge Store preserves MethodMesh objects and their relationships.
 
 Implementations may use relational, document, graph or hybrid storage technologies provided the conceptual model is preserved.
 
@@ -200,20 +200,20 @@ The storage technology is an implementation decision rather than an architectura
 
 Interfaces provide communication between architectural components.
 
-Interfaces should exchange canonical ResearchOS objects rather than application-specific data structures.
+Interfaces should exchange canonical MethodMesh objects rather than application-specific data structures.
 
 Implementations may expose APIs, message queues, files or other transport mechanisms without changing the underlying conceptual architecture.
 
 
 # 6. Interoperability
 
-ResearchOS is designed as an interoperable ecosystem rather than a single application.
+MethodMesh is designed as an interoperable ecosystem rather than a single application.
 
 Independent applications, services and organisations should be able to exchange knowledge and capabilities without requiring shared implementation technologies.
 
 ## Canonical Objects
 
-All communication between architectural components should use canonical ResearchOS objects.
+All communication between architectural components should use canonical MethodMesh objects.
 
 Canonical objects preserve conceptual meaning independently of implementation.
 
@@ -253,13 +253,13 @@ Registries remain the authoritative source of conceptual meaning.
 
 ## Extensible Ecosystem
 
-Third-party applications, methods and services should be able to participate within the ResearchOS ecosystem without modification of the core architecture.
+Third-party applications, methods and services should be able to participate within the MethodMesh ecosystem without modification of the core architecture.
 
 Compliance with the Architecture Standard and Registry specifications is sufficient for interoperability.
 
 # 7. Extension Model
 
-ResearchOS is designed to evolve through extension rather than modification of its core architecture.
+MethodMesh is designed to evolve through extension rather than modification of its core architecture.
 
 Extensions shall conform to the Conceptual Model, Registry specifications and Architecture Standard.
 
@@ -282,11 +282,11 @@ Backward compatibility should be maintained wherever practical.
 
 # 8. Conformance
 
-An implementation conforms to the ResearchOS Architecture Standard if it:
+An implementation conforms to the MethodMesh Architecture Standard if it:
 
-- preserves the ResearchOS Conceptual Model;
+- preserves the MethodMesh Conceptual Model;
 - interprets Registry specifications consistently;
-- exchanges canonical ResearchOS objects;
+- exchanges canonical MethodMesh objects;
 - maintains separation between knowledge, orchestration and implementation;
 - supports interoperability through stable interfaces;
 - remains extensible without modification of the core architecture.
@@ -299,16 +299,16 @@ Alternative implementations are encouraged provided they preserve the architectu
 
 # 9. Summary
 
-The ResearchOS Architecture Standard defines the engineering principles governing the implementation of ResearchOS.
+The MethodMesh Architecture Standard defines the engineering principles governing the implementation of MethodMesh.
 
 Conceptual meaning is defined by the Philosophy, Conceptual Model and Registry specifications.
 
 The Architecture Standard defines how those concepts should be realised as interoperable software systems.
 
-ResearchOS separates:
+MethodMesh separates:
 
 - conceptual knowledge;
 - orchestration;
 - implementation.
 
-This separation enables independent evolution of scientific concepts, engineering infrastructure and software implementations while preserving interoperability across the ResearchOS ecosystem.
+This separation enables independent evolution of scientific concepts, engineering infrastructure and software implementations while preserving interoperability across the MethodMesh ecosystem.

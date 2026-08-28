@@ -4,13 +4,13 @@ title: "Release notes"
 
 ## Source: `RELEASE_NOTES_v2.1.8.md`
 
-ResearchOS v2.1.8 is a usability and output-polish release. It focuses on making direct capability use feel less like a debug console and more like a field tool: larger text, cleaner fullscreen intent previews, clearer test/save behaviour, persistent result previews, better media feedback, and tighter image annotation/redaction handling.
+MethodMesh v2.1.8 is a usability and output-polish release. It focuses on making direct capability use feel less like a debug console and more like a field tool: larger text, cleaner fullscreen intent previews, clearer test/save behaviour, persistent result previews, better media feedback, and tighter image annotation/redaction handling.
 
 ## Highlights
 
 ### App-wide display accessibility
 
-ResearchOS now has global display-accessibility settings in the dashboard. Text scale can be adjusted across the app, and the default has been increased so ordinary field-facing screens are easier to read.
+MethodMesh now has global display-accessibility settings in the dashboard. Text scale can be adjusted across the app, and the default has been increased so ordinary field-facing screens are easier to read.
 
 The dashboard action layout has also been changed to avoid cramped horizontal button rows. This prevents buttons from colliding or wrapping awkwardly at larger display scales.
 
@@ -43,7 +43,7 @@ are no longer emitted as if they were real study subjects during dashboard/test 
 
 ### Question primitive refinements
 
-The native question capabilities have been made more usable as actual ResearchOS protocol steps:
+The native question capabilities have been made more usable as actual MethodMesh protocol steps:
 
 - intent previews open the real question/answer interface rather than a settings panel;
 - text and number questions focus the answer box correctly;
@@ -79,7 +79,7 @@ BUILD SUCCESSFUL
 
 ## Source: `RELEASE_NOTES_v2.1.7.md`
 
-ResearchOS v2.1.7 is a focused protocol-output fix release. It corrects how protocol runs are exported so that a protocol behaves as one coherent submission rather than a set of separate per-step exports.
+MethodMesh v2.1.7 is a focused protocol-output fix release. It corrects how protocol runs are exported so that a protocol behaves as one coherent submission rather than a set of separate per-step exports.
 
 ## Highlights
 
@@ -93,7 +93,7 @@ This is now fixed. A protocol run should export as:
 
 - one protocol output folder;
 - one canonical protocol JSON file;
-- one shared `researchos_submission_id`;
+- one shared `methodmesh_submission_id`;
 - a `steps` array containing all completed protocol steps;
 - any attachments linked to the same protocol run.
 
@@ -111,13 +111,13 @@ This keeps the human-readable protocol name first, makes the submission UUID eas
 
 ## Source: `RELEASE_NOTES_v2.1.6.md`
 
-ResearchOS v2.1.6 strengthens the app as a native protocol runner. The main change is a new protocol/output layer: reusable capability presets can be saved, chained into named protocols, run directly from ResearchOS, and exported as coherent JSON packages with linked attachments. This release also adds several native building-block capabilities, including random number generation and basic question primitives, moving ResearchOS closer to being a lightweight standalone data-collection runtime as well as an ODK companion.
+MethodMesh v2.1.6 strengthens the app as a native protocol runner. The main change is a new protocol/output layer: reusable capability presets can be saved, chained into named protocols, run directly from MethodMesh, and exported as coherent JSON packages with linked attachments. This release also adds several native building-block capabilities, including random number generation and basic question primitives, moving MethodMesh closer to being a lightweight standalone data-collection runtime as well as an ODK companion.
 
 ## Highlights
 
 ### Protocol library
 
-ResearchOS now has a protocol library for reusable native workflows.
+MethodMesh now has a protocol library for reusable native workflows.
 
 You can:
 
@@ -149,7 +149,7 @@ This is intended to make downstream parsing in R much easier. A protocol run sho
 Every exported run now has a stable submission identifier:
 
 ```text
-researchos_submission_id
+methodmesh_submission_id
 ```
 
 The same UUID is stored:
@@ -165,11 +165,11 @@ For protocol runs, all steps share the same submission UUID. This gives each pro
 
 Protocol runs now write all step outputs into the same protocol output folder.
 
-Intermediate steps no longer produce separate “saved output” notifications. ResearchOS only notifies once the whole protocol run has finished, reducing noise and avoiding the sense that each step is a separate study submission.
+Intermediate steps no longer produce separate “saved output” notifications. MethodMesh only notifies once the whole protocol run has finished, reducing noise and avoiding the sense that each step is a separate study submission.
 
 ### Question primitive capabilities
 
-This release adds native ResearchOS question primitives:
+This release adds native MethodMesh question primitives:
 
 ```text
 question.text
@@ -178,7 +178,7 @@ question.select_one
 question.select_multiple
 ```
 
-These are basic building blocks for ResearchOS-native protocols that do not need a full XLSForm.
+These are basic building blocks for MethodMesh-native protocols that do not need a full XLSForm.
 
 Common controls include:
 
@@ -195,7 +195,7 @@ Returned fields include the question type, question ID, prompt, answer, validati
 
 ### Additional native capability building blocks
 
-This release also includes several capability additions and refinements that support ResearchOS-native workflows:
+This release also includes several capability additions and refinements that support MethodMesh-native workflows:
 
 - **Random number generator** (`random.number.generate`) — generates one or more random numbers with configurable count, minimum, maximum, step size, secure-random mode, and fixed-seed reproducible mode. This is a foundation for later allocation, block randomisation, and simulation tools.
 - **Protocol-ready direct capability runs** — capability cards can be configured, saved as presets, run directly, and used as protocol steps without needing ODK as the handling app.
@@ -207,7 +207,7 @@ This release also includes several capability additions and refinements that sup
 The output/export path has been tightened:
 
 - direct capability results can be exported from the shared result panel;
-- exports are placed under `Documents/ResearchOS/outputs` by default;
+- exports are placed under `Documents/MethodMesh/outputs` by default;
 - configured output folders are supported;
 - saved-output notifications include an open action;
 - the home screen can open the output location.
@@ -240,14 +240,14 @@ The protocol library is now functional, but it is still early-stage UI. The next
 - tighter scheduler integration for protocol runs;
 - continued review of the canonical JSON shape against R import workflows.
 
-The new question primitives are deliberately simple. They are intended as reusable ResearchOS-native building blocks, not as a replacement for full XLSForm logic yet.
+The new question primitives are deliberately simple. They are intended as reusable MethodMesh-native building blocks, not as a replacement for full XLSForm logic yet.
 
 ---
 
 
 ## Source: `RELEASE_NOTES_v2.1.5.md`
 
-ResearchOS v2.1.5 introduces the first end-to-end ESP32 sensor framework. The app can now install MicroPython onto an ESP32-C3, upload bundled ResearchOS sensor firmware from the phone, provision the node over BLE, and save it into the local device registry. This is the foundation for low-cost custom environmental and field sensors that can be configured without a laptop.
+MethodMesh v2.1.5 introduces the first end-to-end ESP32 sensor framework. The app can now install MicroPython onto an ESP32-C3, upload bundled MethodMesh sensor firmware from the phone, provision the node over BLE, and save it into the local device registry. This is the foundation for low-cost custom environmental and field sensors that can be configured without a laptop.
 
 ## Highlights
 
@@ -263,23 +263,23 @@ This keeps the workflow clearer:
 
 1. Install MicroPython to an ESP32-C3 over USB/OTG.
 2. Reset or replug the board.
-3. Upload the bundled ResearchOS `main.py` and sensor-driver files.
+3. Upload the bundled MethodMesh `main.py` and sensor-driver files.
 4. Reset or replug again.
 5. Scan for the node over BLE and provision it into the device registry.
 
 ### Phone-only firmware installation
 
-ResearchOS now bundles:
+MethodMesh now bundles:
 
 - the official ESP32-C3 MicroPython binary;
-- the ResearchOS BLE sensor-node firmware;
+- the MethodMesh BLE sensor-node firmware;
 - sensor-specific MicroPython driver files.
 
 The installer uses a guided two-step process because ESP32-C3 USB mode switching is fragile on Android. This avoids the previous false-success state where MicroPython was installed but `main.py` was not visible to the board.
 
 ### BLE sensor provisioning
 
-The provisioner can scan for ResearchOS BLE sensor nodes, connect to the node, read its manifest, configure its identity and sampling interval, request a confirmation sample, and save the resulting profile to the ResearchOS device registry.
+The provisioner can scan for MethodMesh BLE sensor nodes, connect to the node, read its manifest, configure its identity and sampling interval, request a confirmation sample, and save the resulting profile to the MethodMesh device registry.
 
 Provisioning returns useful audit fields including:
 
@@ -333,9 +333,9 @@ BUILD SUCCESSFUL
 
 The ESP32-C3 workflow was also tested end to end:
 
-- MicroPython install from ResearchOS succeeded.
-- ResearchOS firmware upload from ResearchOS succeeded.
-- The board advertised as a ResearchOS sensor node after reset.
+- MicroPython install from MethodMesh succeeded.
+- MethodMesh firmware upload from MethodMesh succeeded.
+- The board advertised as a MethodMesh sensor node after reset.
 - BLE provisioning succeeded and saved the node to the device registry.
 
 ## Notes
@@ -348,13 +348,13 @@ The LD2410C profile is scaffolded but not yet a functional radar-driver implemen
 
 ## Source: `RELEASE_NOTES_v2.1.4.md`
 
-ResearchOS v2.1.4 expands the platform's field-device and workflow capabilities. This release adds simple SMS sending, stronger Bluetooth device exploration, early Bluetooth printer support, offline NFC protocol administration, and new spatial geometry tools for field measurements.
+MethodMesh v2.1.4 expands the platform's field-device and workflow capabilities. This release adds simple SMS sending, stronger Bluetooth device exploration, early Bluetooth printer support, offline NFC protocol administration, and new spatial geometry tools for field measurements.
 
 ## Highlights
 
 ### SMS sending
 
-ResearchOS can now send a caller-supplied SMS message to a caller-supplied phone number.
+MethodMesh can now send a caller-supplied SMS message to a caller-supplied phone number.
 
 This is designed for XLSForms and scheduled workflows where the form constructs the final message text, then passes only:
 
@@ -379,7 +379,7 @@ Protocol NFC support now includes provisioning, checking, completion marking, re
 
 ### Spatial geometry tools
 
-ResearchOS now includes early spatial measurement capabilities:
+MethodMesh now includes early spatial measurement capabilities:
 
 ```text
 tree_height_measurement
@@ -420,7 +420,7 @@ Bluetooth printer support is intentionally experimental in this release. The Qut
 
 ## Source: `RELEASE_NOTES_v2.1.3.md`
 
-ResearchOS 2.1.3 adds public Android-app inspection, Bluetooth endpoint inspection, richer scheduling and direct capability execution, protocol-aware NFC support, native image/SVG selection tools, and portable direct-run output export.
+MethodMesh 2.1.3 adds public Android-app inspection, Bluetooth endpoint inspection, richer scheduling and direct capability execution, protocol-aware NFC support, native image/SVG selection tools, and portable direct-run output export.
 
 ## Android app inspector
 
@@ -438,11 +438,11 @@ This makes it possible to investigate applications such as Peek Acuity Pro and t
 
 ## Runtime and scheduler refinements
 
-- The scheduler is collapsed by default when the ResearchOS app opens.
+- The scheduler is collapsed by default when the MethodMesh app opens.
 - Scheduler state remains available through the expanded central scheduler view.
 - Public launcher resolution is more robust for applications whose package-level `MAIN` probe does not resolve directly.
 - Schedules can launch ODK/Kobo forms, web forms, or direct capabilities and can chain actions with cron timing, retries, notifications, pause/resume, and import/export.
-- Direct capability results can be exported as timestamped JSON with linked attachment files to the default ResearchOS output folder or a user-selected folder.
+- Direct capability results can be exported as timestamped JSON with linked attachment files to the default MethodMesh output folder or a user-selected folder.
 - Returned image attachments are delivered to ODK/Kobo image questions rather than only exposing internal content URIs.
 
 ## New field capabilities
@@ -475,15 +475,15 @@ Both the unit-test suite and debug APK build passed.
 
 ## Source: `RELEASE_NOTES_v2.1.1.md`
 
-ResearchOS 2.1.1 adds two major pieces of field-workflow infrastructure: direct ODK/Kobo form launching and a scheduler that can build on that launcher.
+MethodMesh 2.1.1 adds two major pieces of field-workflow infrastructure: direct ODK/Kobo form launching and a scheduler that can build on that launcher.
 
 ## ODK and Kobo form launcher
 
-ResearchOS can now inspect locally available forms in ODK Collect and Kobo Collect, show projects and forms for selection, and open the selected form in the correct collection application. The launcher supports explicit project and form selection rather than assuming the currently active project.
+MethodMesh can now inspect locally available forms in ODK Collect and Kobo Collect, show projects and forms for selection, and open the selected form in the correct collection application. The launcher supports explicit project and form selection rather than assuming the currently active project.
 
 ## Scheduler
 
-The scheduler creates recurring local workflows for ODK/Kobo forms, web forms, ResearchOS capabilities, and clipboard outputs. Schedules support cron timing, chained actions, configurable capability settings, notifications, retries, pause/resume switches, direct testing, background re-arming after boot or time changes, and individual or chain-level export/import. Chained clipboard outputs accumulate in execution order, and notification taps launch the scheduled action directly.
+The scheduler creates recurring local workflows for ODK/Kobo forms, web forms, MethodMesh capabilities, and clipboard outputs. Schedules support cron timing, chained actions, configurable capability settings, notifications, retries, pause/resume switches, direct testing, background re-arming after boot or time changes, and individual or chain-level export/import. Chained clipboard outputs accumulate in execution order, and notification taps launch the scheduled action directly.
 
 ## Additional runtime improvements
 
@@ -500,7 +500,7 @@ The scheduler creates recurring local workflows for ODK/Kobo forms, web forms, R
 
 ## Source: `RELEASE_NOTES_v2.0.0.md`
 
-ResearchOS v2.0.0 is the first cohesive field-capability release of the Android reference application. It establishes independently owned capability modules, direct intent execution from ODK, and cryptographically verifiable field evidence.
+MethodMesh v2.0.0 is the first cohesive field-capability release of the Android reference application. It establishes independently owned capability modules, direct intent execution from ODK, and cryptographically verifiable field evidence.
 
 ## Highlights
 
@@ -523,13 +523,13 @@ ResearchOS v2.0.0 is the first cohesive field-capability release of the Android 
 
 - Supports semantic blank-tag detection, explicit replacement policies, expected-current-content checks, and copied write hashes.
 - Adds NDEF wipe using an empty NDEF record; it removes NDEF user content but does not claim forensic erasure of physical memory.
-- Adds robust post-write verification. Where a tag resets after writing, ResearchOS requests one confirmation tap and verifies the exact stored content before reporting success.
+- Adds robust post-write verification. Where a tag resets after writing, MethodMesh requests one confirmation tap and verifies the exact stored content before reporting success.
 - Credential envelopes use Argon2id PIN derivation, AES-256-GCM encryption, and P-256 / SHA256withECDSA issuer signatures. PINs and credential secrets are never returned to ODK.
 
 ## Compatibility and migration
 
 - The legacy NFC provisioning capability has been replaced by `nfc_credential_provisioning` and `nfc_credential_verification`.
-- The compatibility runtime layer has been removed. New integrations should use canonical method IDs and the documented `com.example.researchos.EXECUTE_METHOD` intent contract.
+- The compatibility runtime layer has been removed. New integrations should use canonical method IDs and the documented `com.example.methodmesh.EXECUTE_METHOD` intent contract.
 - Every public capability ships with module-local implementation documentation and a named example ODK workbook.
 
 ## Verification
@@ -538,4 +538,4 @@ This release was built and tested with the Android unit-test suite and a debug A
 
 ## Known scope
 
-ResearchOS v2.0.0 is a reference implementation for field testing. Study-specific issuer trust lists, server-side registries, and broader protocol-management workflows remain configuration and deployment work for individual studies.
+MethodMesh v2.0.0 is a reference implementation for field testing. Study-specific issuer trust lists, server-side registries, and broader protocol-management workflows remain configuration and deployment work for individual studies.

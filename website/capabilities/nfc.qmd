@@ -41,7 +41,7 @@ Add a current capability dashboard or execution screenshot at:
 
 ```{=html}
 <!-- Replace the placeholder above with:
-![](../assets/screenshots/nfc.png){fig-alt="NFC capabilities screen in ResearchOS"}
+![](../assets/screenshots/nfc.png){fig-alt="NFC capabilities screen in MethodMesh"}
 -->
 ```
 
@@ -50,43 +50,43 @@ Add a current capability dashboard or execution screenshot at:
 **From `example_odk_nfc_credential_provisioning.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='nfc_credential_provisioning',input_credential_subject_id=${credential_subject_id_input},input_pin_length=${pin_length_input},input_overwrite_policy=${overwrite_policy_input},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_provisioning',input_credential_subject_id=${credential_subject_id_input},input_pin_length=${pin_length_input},input_overwrite_policy=${overwrite_policy_input},return_mode='flat')
 ```
 
 **From `example_odk_nfc_credential_verification.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='nfc_credential_verification',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_verification',return_mode='flat')
 ```
 
 **From `example_odk_nfc_tag_read.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='nfc_tag_read',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_tag_read',return_mode='flat')
 ```
 
 **From `example_odk_nfc_tag_write.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='nfc_tag_write',input_value=${write_value},input_record_type='text/plain',input_overwrite_policy=${overwrite_policy_input},input_expected_current_hash=${expected_current_hash_input},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_tag_write',input_value=${write_value},input_record_type='text/plain',input_overwrite_policy=${overwrite_policy_input},input_expected_current_hash=${expected_current_hash_input},return_mode='flat')
 ```
 
 **From `example_odk_nfc_tag_wipe.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='nfc_tag_wipe',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_tag_wipe',return_mode='flat')
 ```
 
 **From `example_odk_protocol_nfc_check.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='protocol_nfc_check',input_protocol_id='study_protocol_example',input_protocol_version='1',input_step_id='baseline',input_required_bits='00',input_required_value='00',input_completion_bits='01',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='protocol_nfc_check',input_protocol_id='study_protocol_example',input_protocol_version='1',input_step_id='baseline',input_required_bits='00',input_required_value='00',input_completion_bits='01',return_mode='flat')
 ```
 
 **From `example_odk_protocol_nfc_complete.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='protocol_nfc_complete',input_protocol_id='study_protocol_example',input_protocol_version='1',input_step_id='baseline',input_required_bits='00',input_required_value='00',input_completion_bits='01',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='protocol_nfc_complete',input_protocol_id='study_protocol_example',input_protocol_version='1',input_step_id='baseline',input_required_bits='00',input_required_value='00',input_completion_bits='01',return_mode='flat')
 ```
 
 ## Inputs observed in supplied examples

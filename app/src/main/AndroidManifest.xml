@@ -25,7 +25,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Android 11+ package visibility: ResearchOS reads ODK Collect's
+    <!-- Android 11+ package visibility: MethodMesh reads ODK Collect's
          exported forms provider before launching a selected form. -->
     <queries>
         <intent>
@@ -37,7 +37,7 @@
     </queries>
 
     <application
-        android:name=".ResearchOSApplication"
+        android:name=".MethodMeshApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -45,26 +45,26 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.ResearchOS">
+        android:theme="@style/Theme.MethodMesh">
         <activity
             android:name=".transport.android.ExternalWorkflowActivity"
             android:exported="false"
-            android:label="ResearchOS Workflow"
-            android:theme="@style/Theme.ResearchOS" />
+            android:label="MethodMesh Workflow"
+            android:theme="@style/Theme.MethodMesh" />
 
         <activity
             android:name=".transport.android.IntentRouterActivity"
             android:exported="true"
-            android:label="ResearchOS Intent Router"
-            android:theme="@style/Theme.ResearchOS">
+            android:label="MethodMesh Intent Router"
+            android:theme="@style/Theme.MethodMesh">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="researchos" />
+                <data android:scheme="methodmesh" />
             </intent-filter>
             <intent-filter>
-                <action android:name="com.example.researchos.EXECUTE_METHOD" />
+                <action android:name="com.example.methodmesh.EXECUTE_METHOD" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -101,7 +101,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.ResearchOS">
+            android:theme="@style/Theme.MethodMesh">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

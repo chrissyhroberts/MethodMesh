@@ -32,7 +32,7 @@ Add a current capability dashboard or execution screenshot at:
 :::
 
 <!-- Replace the placeholder above with:
-![](../assets/screenshots/qr-code.png){fig-alt="Automatic code scanner screen in ResearchOS"}
+![](../assets/screenshots/qr-code.png){fig-alt="Automatic code scanner screen in MethodMesh"}
 -->
 
 ## Supported XLSForm calls
@@ -41,7 +41,7 @@ Add a current capability dashboard or execution screenshot at:
 **From `example_odk_qr.scan.xlsx`:**
 
 ```text
-com.example.researchos.EXECUTE_METHOD(method_id='qr.scan')
+com.example.methodmesh.EXECUTE_METHOD(method_id='qr.scan')
 ```
 
 

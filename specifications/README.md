@@ -1,12 +1,12 @@
-# ResearchOS Specifications
+# MethodMesh Specifications
 
-This folder contains all formal specifications for ResearchOS.
+This folder contains all formal specifications for MethodMesh.
 
 ## Start Here
 
-**New to ResearchOS?** Start with:
-1. `ResearchOS_Philosophy_0.01.md` — Understand the vision (5 min)
-2. `design/ResearchOS_Conceptual_Model_v0.03.md` — Learn the core model (10 min)
+**New to MethodMesh?** Start with:
+1. `MethodMesh_Philosophy_0.01.md` — Understand the vision (5 min)
+2. `design/MethodMesh_Conceptual_Model_v0.03.md` — Learn the core model (10 min)
 3. `architecture-standard/Architecture_Standard_v1.02.md` — See how it's organized (10 min)
 
 Then dive into the Android Developer Guide: `../docs/ANDROID_DEVELOPER_GUIDE.md`
@@ -23,55 +23,55 @@ See **`SPEC_STATUS.md`** for:
 ```
 specifications/
 ├── SPEC_STATUS.md             ← START HERE: Current versions
-├── ResearchOS_Philosophy_0.01.md
+├── MethodMesh_Philosophy_0.01.md
 ├── design/                    ← Conceptual model
-│   └── ResearchOS_Conceptual_Model_v0.03.md (current)
+│   └── MethodMesh_Conceptual_Model_v0.03.md (current)
 ├── architecture-standard/     ← System architecture
 │   └── Architecture_Standard_v1.02.md (current)
-├── ril/                       ← ResearchOS Intent Language
-│   └── RIL_ResearchOS_Intent_Language_v0.03.md
+├── ril/                       ← Research Intent Language
+│   └── RIL_Research_Intent_Language_v0.03.md
 ├── core-verbs/               ← Extended RIL verbs
 │   └── RIL_Core_Verbs_v0.02.md
 ├── json/                     ← JSON serialization
-│   └── ResearchOS JSON Representation v0.02.md
+│   └── MethodMesh JSON Representation v0.02.md
 ├── registries/               ← Canonical knowledge objects
 │   ├── entities/
-│   │   └── ResearchOS_Entity_Registry_0.02.md
+│   │   └── MethodMesh_Entity_Registry_0.02.md
 │   ├── observations/
-│   │   └── ResearchOS_Observations_Registry_0.01.md
+│   │   └── MethodMesh_Observations_Registry_0.01.md
 │   ├── assertions/
-│   │   └── ResearchOS_Assertions_Registry_0.02.md
+│   │   └── MethodMesh_Assertions_Registry_0.02.md
 │   ├── intents/
-│   │   └── ResearchOS Intent_Registry_v0.02.md
+│   │   └── MethodMesh Intent_Registry_v0.02.md
 │   └── traits/
-│       └── ResearchOS_Trait_Registry_0.02.md
+│       └── MethodMesh_Trait_Registry_0.02.md
 └── _archive/                 ← Old versions (v0.01, v0.02, etc.)
     └── [previous versions]
 ```
 
 ## Key Specifications by Role
 
-### I want to understand ResearchOS
-- `ResearchOS_Philosophy_0.01.md` — Why it exists
-- `design/ResearchOS_Conceptual_Model_v0.03.md` — How it thinks about research
+### I want to understand MethodMesh
+- `MethodMesh_Philosophy_0.01.md` — Why it exists
+- `design/MethodMesh_Conceptual_Model_v0.03.md` — How it thinks about research
 - `architecture-standard/Architecture_Standard_v1.02.md` — How it's built
 
 ### I'm adding a new capability (Android)
-- `ril/RIL_ResearchOS_Intent_Language_v0.03.md` — How to declare what you want
+- `ril/RIL_Research_Intent_Language_v0.03.md` — How to declare what you want
 - `core-verbs/RIL_Core_Verbs_v0.02.md` — What verbs are available
-- `registries/observations/ResearchOS_Observations_Registry_0.01.md` — What you can return
+- `registries/observations/MethodMesh_Observations_Registry_0.01.md` — What you can return
 
 See `../docs/ANDROID_DEVELOPER_GUIDE.md` for step-by-step tutorial.
 
 ### I'm integrating with another platform (ODK, KoBoToolbox, etc.)
-- `ril/RIL_ResearchOS_Intent_Language_v0.03.md` — How to generate RIL from your platform
-- `json/ResearchOS JSON Representation v0.02.md` — How to serialize
+- `ril/RIL_Research_Intent_Language_v0.03.md` — How to generate RIL from your platform
+- `json/MethodMesh JSON Representation v0.02.md` — How to serialize
 - `registries/` — Map your data to our canonical objects
 
 ### I'm defining a new entity/observation/assertion type
-- `registries/entities/ResearchOS_Entity_Registry_0.02.md` — Things being studied
-- `registries/observations/ResearchOS_Observations_Registry_0.01.md` — Evidence collected
-- `registries/assertions/ResearchOS_Assertions_Registry_0.02.md` — Claims about things
+- `registries/entities/MethodMesh_Entity_Registry_0.02.md` — Things being studied
+- `registries/observations/MethodMesh_Observations_Registry_0.01.md` — Evidence collected
+- `registries/assertions/MethodMesh_Assertions_Registry_0.02.md` — Claims about things
 
 ## Version Numbers Explained
 
@@ -84,8 +84,8 @@ See `../docs/ANDROID_DEVELOPER_GUIDE.md` for step-by-step tutorial.
 
 Old versions are in `_archive/`. Compare with the current version:
 ```bash
-diff _archive/ResearchOS_Conceptual_Model_v0.02_draft.md \
-     design/ResearchOS_Conceptual_Model_v0.03.md
+diff _archive/MethodMesh_Conceptual_Model_v0.02_draft.md \
+     design/MethodMesh_Conceptual_Model_v0.03.md
 ```
 
 ## Contributing to Specs

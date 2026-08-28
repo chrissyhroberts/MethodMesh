@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.researchos"
+    namespace = "com.example.methodmesh"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.researchos"
+        applicationId = "com.example.methodmesh"
         minSdk = 27
         targetSdk = 36
         versionCode = 5
@@ -43,9 +43,9 @@ android {
 // Generate the standalone module index from module-owned source files. This
 // keeps discovery automatic without runtime dex reflection or a central list
 // of capability implementations.
-val generateResearchOSModuleIndex = tasks.register("generateResearchOSModuleIndex") {
-    val sourceRoot = file("src/main/java/com/example/researchos/modules")
-    val outputFile = layout.buildDirectory.file("generated/res/researchosModuleIndex/raw/researchos_module_index.txt")
+val generateMethodMeshModuleIndex = tasks.register("generateMethodMeshModuleIndex") {
+    val sourceRoot = file("src/main/java/com/example/methodmesh/modules")
+    val outputFile = layout.buildDirectory.file("generated/res/methodmeshModuleIndex/raw/methodmesh_module_index.txt")
     inputs.files(fileTree(sourceRoot) { include("**/*Module.kt") })
     outputs.file(outputFile)
     doLast {
@@ -63,8 +63,8 @@ val generateResearchOSModuleIndex = tasks.register("generateResearchOSModuleInde
         target.writeText(modules.joinToString("\n") + "\n")
     }
 }
-android.sourceSets["main"].res.srcDir(file("$buildDir/generated/res/researchosModuleIndex"))
-tasks.named("preBuild").configure { dependsOn(generateResearchOSModuleIndex) }
+android.sourceSets["main"].res.srcDir(file("$buildDir/generated/res/methodmeshModuleIndex"))
+tasks.named("preBuild").configure { dependsOn(generateMethodMeshModuleIndex) }
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))

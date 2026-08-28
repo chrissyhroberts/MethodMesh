@@ -2,9 +2,9 @@
 
 **Status:** Draft
 
-This specification defines the canonical JSON representation of the ResearchOS Intent Language (RIL).
+This specification defines the canonical JSON representation of the Research Intent Language (RIL).
 
-It specifies how RIL requests are represented using JSON while preserving the semantics defined by the ResearchOS Intent Language specification.
+It specifies how RIL requests are represented using JSON while preserving the semantics defined by the Research Intent Language specification.
 
 This specification defines representation only.
 
@@ -93,7 +93,7 @@ The root object SHALL contain a single `request` object.
 }
 ```
 
-The request object contains the five sections defined by the ResearchOS Intent Language.
+The request object contains the five sections defined by the Research Intent Language.
 
 | Section | Purpose |
 |---------|---------|

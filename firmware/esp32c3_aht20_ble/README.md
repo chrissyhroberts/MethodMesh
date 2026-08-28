@@ -1,6 +1,6 @@
-# ResearchOS ESP32-C3 BLE sensor-node firmware
+# MethodMesh ESP32-C3 BLE sensor-node firmware
 
-This is the first ResearchOS generic environmental sensor node firmware. It runs on an ESP32-C3 with MicroPython and exposes a generic ResearchOS BLE GATT contract.
+This is the first MethodMesh generic environmental sensor node firmware. It runs on an ESP32-C3 with MicroPython and exposes a generic MethodMesh BLE GATT contract.
 
 The bundled firmware includes an AHT20 temperature/humidity driver as the first concrete sensor driver and an LD2410C profile scaffold for future radar/presence work. The node still boots and advertises without the selected sensor attached; the manifest and readings report the driver as missing until the sensor is wired.
 
@@ -40,7 +40,7 @@ mpremote connect auto reset
 The board should advertise over BLE as:
 
 ```text
-ResearchOS-Sensor
+MethodMesh-Sensor
 ```
 
 ## BLE contract
@@ -59,16 +59,16 @@ b6f2a902-9b8f-4f4e-9a1f-4f37a0010000  latest reading JSON, read/notify
 b6f2a903-9b8f-4f4e-9a1f-4f37a0010000  command JSON, read/write
 ```
 
-The manifest advertises device identity, firmware version, sensor fields, and the UUIDs needed by ResearchOS.
+The manifest advertises device identity, firmware version, sensor fields, and the UUIDs needed by MethodMesh.
 
 The reading characteristic returns JSON like:
 
 ```json
 {
-  "researchos_sensor_reading_version": "1",
+  "methodmesh_sensor_reading_version": "1",
   "device_id": "esp32c3-a1b2c3",
-  "device_name": "ResearchOS-Sensor",
-  "firmware_version": "researchos-sensor-0.1.1",
+  "device_name": "MethodMesh-Sensor",
+  "firmware_version": "methodmesh-sensor-0.1.1",
   "sensor_id": "aht20_1",
   "sensor_type": "AHT20",
   "sample_time_ms": 123456,
@@ -81,7 +81,7 @@ The reading characteristic returns JSON like:
 
 ## Provisioning
 
-ResearchOS should act as the provisioner by connecting over BLE and writing JSON commands to the command characteristic.
+MethodMesh should act as the provisioner by connecting over BLE and writing JSON commands to the command characteristic.
 
 Sample immediately:
 
@@ -112,19 +112,19 @@ Reset the stored configuration:
 The firmware stores provisioning data in:
 
 ```text
-researchos_sensor_config.json
+methodmesh_sensor_config.json
 ```
 
 ## App-side expectation
 
-The ResearchOS Android provisioner should eventually provide:
+The MethodMesh Android provisioner should eventually provide:
 
-- scan for unprovisioned `ResearchOS-Sensor` nodes;
+- scan for unprovisioned `MethodMesh-Sensor` nodes;
 - read manifest;
 - select the sensor profile;
 - set device ID, display name, and sample interval;
 - read a confirmation sample;
-- save the device profile into the ResearchOS device registry.
+- save the device profile into the MethodMesh device registry.
 
 The Android app now provides the intended field workflow: install MicroPython,
-upload the bundled ResearchOS Python files, then provision the BLE sensor node.
+upload the bundled MethodMesh Python files, then provision the BLE sensor node.

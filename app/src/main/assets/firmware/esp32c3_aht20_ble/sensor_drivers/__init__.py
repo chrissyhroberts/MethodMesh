@@ -1,1 +1,1 @@
-# ResearchOS MicroPython sensor drivers.
+# MethodMesh MicroPython sensor drivers.

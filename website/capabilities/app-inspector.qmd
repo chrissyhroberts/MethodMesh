@@ -22,14 +22,12 @@ Inspect installed Android packages and test intent-based integration contracts.
 
 ## Screenshots
 
-![](../assets/screenshots/android_app_inspector1.png){width="250"}
-
 ## Supported XLSForm calls
 
 **From `example_odk_android_app_inspector.xlsx`:**
 
 ``` text
-com.example.researchos.EXECUTE_METHOD(method_id='android_app_inspector')
+com.example.methodmesh.EXECUTE_METHOD(method_id='android_app_inspector')
 ```
 
 ## Inputs observed in supplied examples

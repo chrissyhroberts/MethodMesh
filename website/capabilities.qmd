@@ -5,7 +5,7 @@ toc: true
 
 ## Overview
 
-ResearchOS capabilities are modular methods that expose specialist Android functionality to an XLSForm workflow.
+MethodMesh capabilities are modular methods that expose specialist Android functionality to an XLSForm workflow.
 
 A capability should have:
 
@@ -122,11 +122,11 @@ Examples include:
 
 Launch an EDC workflow at a defined time or recurrence.
 
-The scheduler starts the form. The form can then invoke ResearchOS capabilities as part of the normal workflow.
+The scheduler starts the form. The form can then invoke MethodMesh capabilities as part of the normal workflow.
 
 ## Current modules
 
-The exact set of modules depends on the ResearchOS build.
+The exact set of modules depends on the MethodMesh build.
 
 The current project includes or is developing modules for:
 
@@ -146,9 +146,9 @@ The current project includes or is developing modules for:
 
 ## Native protocols and outputs
 
-ResearchOS can now run simple native protocols without handing every step to an external form app. A configured capability can be saved as a preset, presets can be chained into a named protocol, and the whole run can be exported as one output package.
+MethodMesh can now run simple native protocols without handing every step to an external form app. A configured capability can be saved as a preset, presets can be chained into a named protocol, and the whole run can be exported as one output package.
 
-Each exported package has a stable `researchos_submission_id`. The same UUID appears in the output folder/filename and inside the JSON, and protocol steps share the same UUID. This makes the exported JSON suitable as a submission-level record for later parsing in R.
+Each exported package has a stable `methodmesh_submission_id`. The same UUID appears in the output folder/filename and inside the JSON, and protocol steps share the same UUID. This makes the exported JSON suitable as a submission-level record for later parsing in R.
 
 ## Capability documentation
 
@@ -175,7 +175,7 @@ For example:
 
 ``` text
 scanner.capture
-    ├── researchos_internal
+    ├── methodmesh_internal
     ├── zxing_compatible
     ├── datawedge
     └── proglove
