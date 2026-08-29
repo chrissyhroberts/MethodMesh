@@ -7,20 +7,14 @@ import com.example.methodmesh.settings.MethodSetting
 object SensorFirmwareInstallerModule : MethodMeshModule {
     override val moduleId = "sensorfirmwareinstaller"
     override val displayName = "ESP32 sensor framework"
-    override val summary = "Install and manage bundled MethodMesh MicroPython firmware for ESP32-C3 sensor nodes."
+    override val summary = "Install bundled MethodMesh ESP32-C3 sensor images."
     override fun as100Methods() = listOf(
-        As100Esp32BoardWipeMethod,
-        As100Esp32RuntimeInstallMethod,
         As100Esp32SensorProfileInstallMethod
     )
     override fun rilBindings() = listOf(
-        RilBinding("wipe esp32 board", As100Esp32BoardWipeMethod.id, "Erase an ESP32-C3 and verify old firmware is gone"),
-        RilBinding("install methodmesh esp32 runtime", As100Esp32RuntimeInstallMethod.id, "Write the bundled board-level MicroPython image"),
-        RilBinding("install esp32 sensor profile", As100Esp32SensorProfileInstallMethod.id, "Install or replace the configured ESP32 sensor profile")
+        RilBinding("install esp32 sensor image", As100Esp32SensorProfileInstallMethod.id, "Erase and install a complete MethodMesh ESP32-C3 sensor image")
     )
     override fun capabilityScreens() = listOf(
-        Esp32BoardWipeCapabilityScreen,
-        Esp32RuntimeInstallCapabilityScreen,
         Esp32SensorProfileInstallCapabilityScreen
     )
     override fun capabilitySettings() = mapOf(

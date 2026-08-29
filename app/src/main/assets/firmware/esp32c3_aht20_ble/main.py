@@ -30,7 +30,7 @@ except ImportError:
 
 # Adjust these for your ESP32-C3 board if needed. Many ESP32-C3 dev boards use
 # GPIO 8/9 for I2C, but boards vary.
-FIRMWARE_VERSION = "methodmesh-sensor-0.1.2"
+FIRMWARE_VERSION = "methodmesh-sensor-0.1.6"
 DEFAULT_DEVICE_NAME = "MethodMesh-Sensor"
 DEFAULT_DEVICE_ID = "esp32c3-" + "".join("%02x" % b for b in unique_id()[-3:])
 CONFIG_FILE = "methodmesh_sensor_config.json"
@@ -88,12 +88,21 @@ def sha256_hex(text):
         return ""
 
 
+def compact_json(payload):
+    # MicroPython's json module does not consistently expose CPython's
+    # separators= option. This keeps BLE characteristic payloads short enough
+    # for small MTU devices without changing values.
+    return json.dumps(payload).replace(": ", ":").replace(", ", ",")
+
+
 def load_config():
     config = {
         "device_id": DEFAULT_DEVICE_ID,
         "device_name": DEFAULT_DEVICE_NAME,
         "sample_interval_ms": DEFAULT_SAMPLE_INTERVAL_MS,
         "sensor_profile": DEFAULT_SENSOR_PROFILE,
+        "image_profile": DEFAULT_SENSOR_PROFILE,
+        "image_label": DEFAULT_SENSOR_PROFILE,
         "provisioned": False,
     }
     try:
@@ -109,7 +118,7 @@ def load_config():
 
 def save_config(config):
     with open(CONFIG_FILE, "w") as handle:
-        handle.write(json.dumps(normalize_config(config)))
+        handle.write(compact_json(normalize_config(config)))
 
 
 def reset_config():
@@ -135,6 +144,8 @@ def normalize_config(config):
         "device_name": device_name or DEFAULT_DEVICE_NAME,
         "sample_interval_ms": max(1000, min(interval, 3600000)),
         "sensor_profile": sensor_profile,
+        "image_profile": str(config.get("image_profile") or sensor_profile).strip().lower(),
+        "image_label": str(config.get("image_label") or sensor_profile).strip(),
         "provisioned": bool(config.get("provisioned", False)),
     }
 
@@ -161,9 +172,12 @@ class MethodMeshSensorNode:
                 ),
             ),
         ))
-        self.ble.gatts_set_buffer(self.manifest_handle, 768)
-        self.ble.gatts_set_buffer(self.reading_handle, 512)
-        self.ble.gatts_set_buffer(self.command_handle, 512)
+        # Radar profiles return larger JSON payloads than the AHT20 path. Keep
+        # these comfortably above the largest expected manifest/reading so the
+        # BLE attribute value is not truncated before Android reads it.
+        self.ble.gatts_set_buffer(self.manifest_handle, 2048)
+        self.ble.gatts_set_buffer(self.reading_handle, 2048)
+        self.ble.gatts_set_buffer(self.command_handle, 1024)
         self._init_sensor()
         self._write_manifest()
         self.sample()
@@ -234,7 +248,7 @@ class MethodMeshSensorNode:
             self.sample(notify=True)
         elif action == "configure":
             updated = dict(self.config)
-            for key in ("device_id", "device_name", "sample_interval_ms", "sensor_profile"):
+            for key in ("device_id", "device_name", "sample_interval_ms"):
                 if key in payload:
                     updated[key] = payload[key]
             updated["provisioned"] = True
@@ -257,39 +271,34 @@ class MethodMeshSensorNode:
             self.write_command_status("error", "Unknown command: %s" % action)
 
     def write_command_status(self, status, message):
+        # Keep command responses short enough for a single Android BLE read.
         response = {
             "methodmesh_sensor_command_version": "1",
             "status": status,
             "message": message,
             "device_id": self.config["device_id"],
-            "device_name": self.config["device_name"],
             "sample_interval_ms": self.config["sample_interval_ms"],
             "sensor_profile": self.config["sensor_profile"],
             "provisioned": self.config["provisioned"],
         }
-        self.ble.gatts_write(self.command_handle, json.dumps(response).encode("utf-8"))
+        self.ble.gatts_write(self.command_handle, compact_json(response).encode("utf-8"))
 
     def _write_manifest(self):
+        # Keep the manifest below the practical single-read ATT limit. Android
+        # devices are inconsistent about assembling long GATT reads from
+        # MicroPython, and provisioning only needs one authoritative profile.
         manifest = {
             "methodmesh_sensor_manifest_version": "1",
             "device_id": self.config["device_id"],
-            "device_name": self.config["device_name"],
             "firmware_version": FIRMWARE_VERSION,
             "provisioned": self.config["provisioned"],
             "sample_interval_ms": self.config["sample_interval_ms"],
             "sensor_profile": self.config["sensor_profile"],
-            "transport": "ble_gatt",
-            "service_uuid": str(SERVICE_UUID),
-            "manifest_uuid": str(MANIFEST_UUID),
-            "reading_uuid": str(READING_UUID),
-            "command_uuid": str(COMMAND_UUID),
-            "sample_command": "sample",
-            "provisioning_commands": ["configure", "reset_config", "status", "sample"],
-            "supported_sensor_profiles": SUPPORTED_SENSOR_PROFILES,
             "sensors": [
                 self.sensor.manifest(self.sensor_error) if self.sensor else {
                     "sensor_id": self.config["sensor_profile"] + "_1",
                     "sensor_type": self.config["sensor_profile"],
+                    "sensor_profile": self.config["sensor_profile"],
                     "present": False,
                     "status": "error",
                     "error": self.sensor_error,
@@ -297,7 +306,7 @@ class MethodMeshSensorNode:
                 }
             ],
         }
-        manifest_json = json.dumps(manifest)
+        manifest_json = compact_json(manifest)
         self.ble.gatts_write(self.manifest_handle, manifest_json.encode("utf-8"))
 
     def sample(self, notify=False):
@@ -305,7 +314,6 @@ class MethodMeshSensorNode:
         reading = {
             "methodmesh_sensor_reading_version": "1",
             "device_id": self.config["device_id"],
-            "device_name": self.config["device_name"],
             "firmware_version": FIRMWARE_VERSION,
             "sensor_profile": self.config["sensor_profile"],
             "sample_time_ms": now_ms,
@@ -323,9 +331,9 @@ class MethodMeshSensorNode:
                 "error": str(error),
             })
 
-        reading_json = json.dumps(reading)
+        reading_json = compact_json(reading)
         reading["payload_sha256"] = sha256_hex(reading_json)
-        reading_json = json.dumps(reading)
+        reading_json = compact_json(reading)
         self.latest_reading = reading
         self.ble.gatts_write(self.reading_handle, reading_json.encode("utf-8"))
         if notify:

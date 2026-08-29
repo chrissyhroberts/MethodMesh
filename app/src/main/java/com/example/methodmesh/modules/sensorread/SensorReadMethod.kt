@@ -55,6 +55,7 @@ object SensorReadFields {
     const val PAYLOAD_SHA256 = "payload_sha256"
     const val IN_RANGE_DEVICE_COUNT = "in_range_sensor_count"
     const val IN_RANGE_DEVICES_JSON = "in_range_devices_json"
+    const val WARNING = "sensor_read_warning"
     const val ERROR = "sensor_read_error"
 
     val outputs = listOf(
@@ -65,7 +66,7 @@ object SensorReadFields {
         READING_JSON, TRACE_JSON, SUMMARY_JSON, TEMPERATURE_C, RELATIVE_HUMIDITY_PCT,
         PRESENCE, TARGET_STATE, MOVING_DISTANCE_CM, MOVING_ENERGY, STATIONARY_DISTANCE_CM,
         STATIONARY_ENERGY, DETECTION_DISTANCE_CM, PAYLOAD_SHA256, IN_RANGE_DEVICE_COUNT,
-        IN_RANGE_DEVICES_JSON, ERROR
+        IN_RANGE_DEVICES_JSON, WARNING, ERROR
     )
 }
 

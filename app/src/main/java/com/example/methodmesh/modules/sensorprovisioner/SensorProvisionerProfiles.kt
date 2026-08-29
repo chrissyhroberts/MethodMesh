@@ -1,5 +1,6 @@
 package com.example.methodmesh.modules.sensorprovisioner
 
+import org.json.JSONArray
 import org.json.JSONObject
 
 data class SensorProvisioningProfile(
@@ -22,7 +23,7 @@ object SensorProvisioningProfiles {
         SensorProvisioningProfile(
             id = "ld2410c",
             label = "LD2410C mmWave presence",
-            description = "UART LD2410C on TX GPIO 21 / RX GPIO 4.",
+            description = "UART LD2410C on TX GPIO 21 / RX GPIO 20.",
             defaultSampleIntervalMs = 1000,
             fields = listOf(
                 "presence",
@@ -36,15 +37,95 @@ object SensorProvisioningProfiles {
         )
     )
 
-    fun byId(id: String): SensorProvisioningProfile =
-        all.firstOrNull { it.id.equals(id.trim(), ignoreCase = true) } ?: all.first()
+    private fun canonicalId(value: String): String {
+        val compact = value.trim().lowercase().replace(Regex("[^a-z0-9]"), "")
+        return when {
+            compact.contains("ld2410") -> "ld2410c"
+            compact.contains("aht20") -> "aht20"
+            else -> compact
+        }
+    }
+
+    fun byId(id: String): SensorProvisioningProfile {
+        val canonical = canonicalId(id)
+        return all.firstOrNull { it.id == canonical } ?: all.first()
+    }
+
+    fun knownIdOrBlank(id: String): String {
+        val canonical = canonicalId(id)
+        return all.firstOrNull { it.id == canonical }?.id.orEmpty()
+    }
+
+    fun readingProfileId(readingJson: String): String {
+        val reading = extractJsonObject(readingJson)
+        if (reading == null) return profileIdFromPartialJson(readingJson)
+        return firstKnownProfile(
+            reading.optString("installed_sensor_profile"),
+            reading.optString("active_sensor_profile"),
+            reading.optString("image_profile"),
+            reading.optString("sensor_profile"),
+            reading.optString("sensor_type"),
+            reading.optString("sensor_id")
+        )
+    }
+
+    fun manifestProfileId(manifestJson: String): String {
+        val manifest = extractJsonObject(manifestJson)
+        if (manifest == null) return profileIdFromPartialJson(manifestJson)
+        firstKnownProfile(
+            manifest.optString("installed_sensor_profile"),
+            manifest.optString("active_sensor_profile"),
+            manifest.optString("image_profile"),
+            manifest.optString("sensor_profile"),
+            manifest.optString("sensor_type"),
+            manifest.optString("sensor_id")
+        ).takeIf(String::isNotBlank)?.let { return it }
+        val sensors = manifest.optJSONArray("sensors") ?: JSONArray()
+        for (index in 0 until sensors.length()) {
+            val sensor = sensors.optJSONObject(index) ?: continue
+            firstKnownProfile(
+                sensor.optString("installed_sensor_profile"),
+                sensor.optString("active_sensor_profile"),
+                sensor.optString("sensor_profile"),
+                sensor.optString("sensor_type"),
+                sensor.optString("sensor_id")
+            ).takeIf(String::isNotBlank)?.let { return it }
+        }
+        return ""
+    }
+
+    private fun firstKnownProfile(vararg values: String): String = values
+        .asSequence()
+        .map(::knownIdOrBlank)
+        .firstOrNull(String::isNotBlank)
+        .orEmpty()
+
+    /**
+     * Identity fields are intentionally near the front of the BLE payload. Some
+     * ESP32/Android combinations return only the first ATT value fragment for a
+     * long characteristic, so recover the installed profile without pretending
+     * that the truncated payload is otherwise valid JSON.
+     */
+    private fun profileIdFromPartialJson(raw: String): String {
+        val keys = listOf(
+            "installed_sensor_profile",
+            "active_sensor_profile",
+            "image_profile",
+            "sensor_profile",
+            "sensor_type",
+            "sensor_id"
+        )
+        for (key in keys) {
+            val match = Regex("\\\"${Regex.escape(key)}\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"")
+                .find(raw)
+            val profileId = knownIdOrBlank(match?.groupValues?.getOrNull(1).orEmpty())
+            if (profileId.isNotBlank()) return profileId
+        }
+        return ""
+    }
 
     fun fromManifestOrSelected(manifestJson: String, selectedProfileId: String): SensorProvisioningProfile {
-        val manifest = extractJsonObject(manifestJson)
-        val manifestProfile = manifest
-            ?.optString("sensor_profile")
-            ?.ifBlank { manifest.optString("sensor_type") }
-            .orEmpty()
+        val manifestProfile = manifestProfileId(manifestJson)
         return byId(manifestProfile.ifBlank { selectedProfileId })
     }
 

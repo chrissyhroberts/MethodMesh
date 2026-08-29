@@ -1,30 +1,56 @@
 # MethodMesh ESP32-C3 BLE sensor-node firmware
 
-This is the first MethodMesh generic environmental sensor node firmware. It runs on an ESP32-C3 with MicroPython and exposes a generic MethodMesh BLE GATT contract.
+This is the MethodMesh generic sensor-node firmware. It runs on an ESP32-C3 with MicroPython and exposes a generic MethodMesh BLE GATT contract.
 
-The bundled firmware includes an AHT20 temperature/humidity driver as the first concrete sensor driver and an LD2410C profile scaffold for future radar/presence work. The node still boots and advertises without the selected sensor attached; the manifest and readings report the driver as missing until the sensor is wired.
+The bundled firmware includes AHT20 temperature/humidity and LD2410C mmWave presence drivers. The node still boots and advertises without the selected sensor attached; the manifest and readings report the driver as missing until the sensor is wired.
 
 ## Hardware
 
 - ESP32-C3 board running MicroPython.
-- Optional AHT20 temperature/humidity sensor.
-- I2C wiring:
+- Optional AHT20 temperature/humidity sensor:
   - AHT20 `VIN` to ESP32-C3 `3V3`.
   - AHT20 `GND` to ESP32-C3 `GND`.
   - AHT20 `SDA` to GPIO `8` by default.
   - AHT20 `SCL` to GPIO `9` by default.
+- Optional LD2410C mmWave presence sensor:
+  - LD2410C `VCC` to ESP32-C3 `5V` or suitable board power.
+  - LD2410C `GND` to ESP32-C3 `GND`.
+  - LD2410C `RX` to ESP32-C3 TX GPIO `21` by default.
+  - LD2410C `TX` to ESP32-C3 RX GPIO `4` by default.
 
-If your ESP32-C3 board uses different I2C pins, edit these constants in `main.py`:
+If your ESP32-C3 board uses different pins, edit these constants in `main.py`:
 
 ```python
 I2C_SDA_PIN = 8
 I2C_SCL_PIN = 9
+LD2410C_TX_PIN = 21
+LD2410C_RX_PIN = 4
 ```
 
 ## Install
 
-Flash MicroPython to the ESP32-C3, then copy `main.py` and the `sensor_drivers/`
-folder to the board.
+The preferred app-side workflow flashes a complete 4 MB image for the selected sensor profile. Each generated image contains:
+
+- MicroPython;
+- a real `vfs` filesystem partition;
+- `main.py`;
+- `methodmesh_sensor_config.json`;
+- `sensor_drivers/`.
+
+Build those bundled images from the repository root:
+
+```text
+.venv-firmware-tools/bin/python firmware/esp32c3_aht20_ble/build_sensor_images.py
+```
+
+The outputs are Android app assets:
+
+```text
+app/src/main/assets/firmware/esp32c3_images/methodmesh_esp32c3_aht20.bin
+app/src/main/assets/firmware/esp32c3_images/methodmesh_esp32c3_ld2410c.bin
+```
+
+The older REPL-copy workflow is still useful for laptop debugging after MicroPython has already been installed.
 
 Using `mpremote`, the usual workflow is:
 
@@ -119,9 +145,7 @@ methodmesh_sensor_config.json
 
 The MethodMesh Android tools provide:
 
-- wipe an ESP32-C3 that may contain previous firmware;
-- install the bundled MicroPython runtime image;
-- install or replace the selected sensor profile;
+- erase and install a complete ESP32-C3 image for the selected sensor profile;
 - scan for unprovisioned `MethodMesh-Sensor` nodes;
 - read manifest;
 - select the sensor profile;
@@ -129,6 +153,5 @@ The MethodMesh Android tools provide:
 - read a confirmation sample;
 - save the device profile into the MethodMesh device registry.
 
-The intended field workflow is now split into explicit capabilities:
-`esp32.board_wipe`, `esp32.runtime_install`, `esp32.sensor_profile_install`,
-and then BLE sensor provisioning.
+The intended field workflow is now `esp32.sensor_profile_install`, then BLE
+sensor provisioning.

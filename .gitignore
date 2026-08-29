@@ -5,6 +5,7 @@
 *.iml
 .gradle/
 .kotlin/
+.venv-firmware-tools/
 
 local.properties
 

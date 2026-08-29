@@ -50,6 +50,7 @@ import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.platform.devices.DeviceRegistry
 import com.example.methodmesh.platform.devices.DeviceTransport
 import com.example.methodmesh.platform.devices.RegisteredDevice
+import com.example.methodmesh.modules.sensorprovisioner.SensorProvisioningProfiles
 import com.example.methodmesh.modules.sensorprovisioner.extractJsonObject
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
@@ -110,7 +111,6 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
         var scanning by rememberSaveable { mutableStateOf(false) }
         var deviceMenuOpen by rememberSaveable { mutableStateOf(false) }
         var modeMenuOpen by rememberSaveable { mutableStateOf(false) }
-        var policyMenuOpen by rememberSaveable { mutableStateOf(false) }
         var selectedNearby by remember { mutableStateOf<NearbySensor?>(null) }
         var gatt by remember { mutableStateOf<BluetoothGatt?>(null) }
         var manifestCharacteristic by remember { mutableStateOf<BluetoothGattCharacteristic?>(null) }
@@ -174,7 +174,7 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                 SensorReadFields.DEVICE_NAME to (registered?.name ?: actual?.name).orEmpty(),
                 SensorReadFields.DEVICE_ADDRESS to (actual?.address ?: registered?.address).orEmpty(),
                 SensorReadFields.REQUESTED_SENSOR_ID to sensorId.trim(),
-                SensorReadFields.SENSOR_PROFILE to sensorProfile.trim(),
+                SensorReadFields.SENSOR_PROFILE to canonicalSensorProfile(sensorProfile),
                 SensorReadFields.DEVICE_SELECTION_MODE to selectionMode(requested, actualId, actual?.registered),
                 SensorReadFields.DEVICE_SUBSTITUTION to substituted.toString(),
                 SensorReadFields.DEVICE_SUBSTITUTION_REASON to if (substituted) "requested_device_not_found_or_operator_selected" else "",
@@ -221,7 +221,7 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                         SensorReadFields.READING_JSON to sampleValues.last(),
                         SensorReadFields.ERROR to latest.optString("error").ifBlank { "Sensor reported an error." },
                         SensorReadFields.ACTUAL_SENSOR_ID to latest.optString("sensor_id"),
-                        SensorReadFields.SENSOR_PROFILE to sensorProfile.ifBlank { latest.optString("sensor_profile").ifBlank { latest.optString("sensor_type") } },
+                        SensorReadFields.SENSOR_PROFILE to canonicalSensorProfile(sensorProfile.ifBlank { latest.optString("sensor_profile").ifBlank { latest.optString("sensor_type") } }),
                         SensorReadFields.PAYLOAD_SHA256 to latest.optString("payload_sha256")
                     ),
                     false
@@ -235,7 +235,7 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                 put(SensorReadFields.TRACE_JSON, if (mode == "trace") traceArray.toString() else "")
                 put(SensorReadFields.SUMMARY_JSON, if (mode == "average") summary.toString() else "")
                 put(SensorReadFields.ACTUAL_SENSOR_ID, latest.optString("sensor_id"))
-                put(SensorReadFields.SENSOR_PROFILE, sensorProfile.ifBlank { latest.optString("sensor_profile").ifBlank { latest.optString("sensor_type") } })
+                put(SensorReadFields.SENSOR_PROFILE, canonicalSensorProfile(sensorProfile.ifBlank { latest.optString("sensor_profile").ifBlank { latest.optString("sensor_type") } }))
                 put(SensorReadFields.TEMPERATURE_C, valueFor(latest, summary, "temperature_c", mode))
                 put(SensorReadFields.RELATIVE_HUMIDITY_PCT, valueFor(latest, summary, "relative_humidity_pct", mode))
                 put(SensorReadFields.PRESENCE, valueFor(latest, summary, "presence", mode))
@@ -284,8 +284,9 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                 override fun onConnectionStateChange(g: BluetoothGatt, statusCode: Int, newState: Int) {
                     handler.post {
                         status = if (newState == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
-                            handler.postDelayed({ g.discoverServices() }, 350L)
-                            "Connected; discovering MethodMesh sensor service…"
+                            runCatching { g.requestMtu(517) }
+                            handler.postDelayed({ g.discoverServices() }, 700L)
+                            "Connected; preparing BLE link for sensor payloads…"
                         } else {
                             if (readInProgress) produce(baseValues("failed") + mapOf(SensorReadFields.ERROR to "Disconnected before read completed (status=$statusCode)."), false)
                             "Disconnected (status=$statusCode)."
@@ -329,15 +330,37 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                         when (characteristic.uuid) {
                             manifestUuid -> {
                                 manifestJson = text
-                                val manifest = runCatching { JSONObject(text) }.getOrNull()
-                                if (sensorProfile.isBlank()) sensorProfile = manifest?.optString("sensor_profile").orEmpty()
+                                if (sensorProfile.isBlank()) {
+                                    sensorProfile = canonicalSensorProfile(SensorProvisioningProfiles.manifestProfileId(text))
+                                }
                                 status = "Manifest read. Starting ${modeLabel(mode).lowercase()}."
                                 beginSampling()
                             }
                             readingUuid -> {
                                 val filtered = filterSample(text, sensorId, sensorProfile)
                                 if (extractJsonObject(filtered) == null) {
-                                    produce(baseValues("failed") + mapOf(SensorReadFields.ERROR to "Sensor reading was not valid JSON.", SensorReadFields.READING_JSON to filtered), false)
+                                    val firmwareVersion = runCatching { JSONObject(manifestJson).optString("firmware_version") }.getOrNull().orEmpty()
+                                    val likelyTruncated = !filtered.trim().endsWith("}") && filtered.contains("{")
+                                    val error = when {
+                                        likelyTruncated && firmwareVersion == "methodmesh-sensor-0.1.2" ->
+                                            "Sensor reading was truncated by older firmware $firmwareVersion. Reflash the sensor image so the board reports methodmesh-sensor-0.1.3 or newer."
+                                        likelyTruncated ->
+                                            "Sensor reading was truncated before the closing brace. Try again; if it persists, reflash the latest sensor image."
+                                        else -> "Sensor reading was not valid JSON."
+                                    }
+                                    val recovered = recoverPartialSensorReading(filtered)
+                                    if (recovered != null) {
+                                        sampleValues.add(recovered.toString())
+                                        samplesRemaining -= 1
+                                        status = "Sensor read returned a shortened payload; recovered values were captured."
+                                        if (samplesRemaining <= 0 || mode == "single") {
+                                            finishWithSamples()
+                                        } else {
+                                            handler.postDelayed({ requestNextSample() }, (intervalSeconds.toLongOrNull() ?: 5L).coerceAtLeast(1L) * 1000L)
+                                        }
+                                        return@post
+                                    }
+                                    produce(baseValues("failed") + mapOf(SensorReadFields.ERROR to error, SensorReadFields.READING_JSON to filtered), false)
                                     return@post
                                 }
                                 sampleValues.add(filtered)
@@ -359,12 +382,14 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                 override fun onScanResult(callbackType: Int, scanResult: ScanResult) {
                     val device = scanResult.device ?: return
                     val address = device.address ?: return
-                    val name = scanResult.scanRecord?.deviceName ?: runCatching { device.name }.getOrNull().orEmpty()
+                    val advertisedName = scanResult.scanRecord?.deviceName.orEmpty()
+                    val cachedName = runCatching { device.name }.getOrNull().orEmpty()
                     val services = scanResult.scanRecord?.serviceUuids?.map { it.uuid } ?: emptyList()
                     val reg = registryDevices.firstOrNull { it.address.equals(address, true) }
-                    val looksLikeSensor = services.contains(sensorServiceUuid) || reg != null || name.startsWith("MethodMesh", true)
+                    val looksLikeSensor = services.contains(sensorServiceUuid) || reg != null || advertisedName.startsWith("MethodMesh", true) || cachedName.startsWith("MethodMesh", true)
                     if (!looksLikeSensor) return
-                    val item = NearbySensor(device, name.ifBlank { reg?.name ?: "MethodMesh sensor" }, address, scanResult.rssi, reg)
+                    val displayName = advertisedName.ifBlank { reg?.name ?: "MethodMesh sensor ${address.takeLast(5)}" }
+                    val item = NearbySensor(device, displayName, address, scanResult.rssi, reg)
                     nearby.removeAll { it.address == address }
                     nearby.add(item)
                 }
@@ -408,6 +433,7 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
             sampleValues.clear()
             readInProgress = true
             status = "Connecting to ${item.name}…"
+            runCatching { gatt?.refreshGattCacheQuietly() }
             runCatching { gatt?.close() }
             gatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 item.device.connectGatt(androidContext, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
@@ -459,7 +485,8 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
         DisposableEffect(Unit) {
             onDispose {
                 stopScan()
-                runCatching { gatt?.close() }
+                runCatching { gatt?.refreshGattCacheQuietly() }
+            runCatching { gatt?.close() }
             }
         }
 
@@ -483,7 +510,7 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
             onCancel = onCancel
         ) {
             Text(
-                if (focusedLaunch) "Reading sensor using the configured request." else "Configure and read a registered ESP32 MethodMesh sensor. If a requested device is not found, fallback mode lets the operator choose a nearby sensor and records the substitution.",
+                if (focusedLaunch) "Reading sensor using the configured request." else "Search for nearby MethodMesh sensors, then read the selected sensor. The sensor decides which data fields it returns.",
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(Modifier.height(8.dp))
@@ -498,29 +525,6 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                     matchPolicy = matchPolicy
                 )
             } else {
-                Text("Known sensor", fontWeight = FontWeight.SemiBold)
-                OutlinedButton(onClick = { deviceMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(deviceLabel(selectedDeviceId, registryDevices), modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
-                    Text("▼")
-                }
-                DropdownMenu(expanded = deviceMenuOpen, onDismissRequest = { deviceMenuOpen = false }, modifier = Modifier.fillMaxWidth(0.9f)) {
-                    DropdownMenuItem(text = { Text("Choose nearby sensor") }, onClick = { selectedDeviceId = ""; deviceMenuOpen = false })
-                    registryDevices.forEach { device ->
-                        DropdownMenuItem(
-                            text = { Column { Text(device.name); Text("${device.id} · ${device.address}", style = MaterialTheme.typography.bodySmall) } },
-                            onClick = { selectedDeviceId = device.id; deviceMenuOpen = false }
-                        )
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                SensorProfileChooser(
-                    selected = sensorProfile,
-                    onSelected = {
-                        sensorProfile = it
-                        sensorId = ""
-                    }
-                )
-                Spacer(Modifier.height(8.dp))
                 Text("Read mode", fontWeight = FontWeight.SemiBold)
                 OutlinedButton(onClick = { modeMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(modeLabel(mode), modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
@@ -536,20 +540,12 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                     OutlinedTextField(intervalSeconds, { intervalSeconds = it.filter(Char::isDigit) }, label = { Text("Sample interval (seconds)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("Device matching", fontWeight = FontWeight.SemiBold)
-                OutlinedButton(onClick = { policyMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(matchPolicyLabel(matchPolicy), modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
-                    Text("▼")
-                }
-                DropdownMenu(expanded = policyMenuOpen, onDismissRequest = { policyMenuOpen = false }) {
-                    listOf("fallback", "strict", "any_nearby").forEach { option ->
-                        DropdownMenuItem(text = { Text(matchPolicyLabel(option)) }, onClick = { matchPolicy = option; policyMenuOpen = false })
-                    }
-                }
             }
             Spacer(Modifier.height(10.dp))
-            Button(onClick = { readNow() }, modifier = Modifier.fillMaxWidth()) { Text(if (readInProgress) "Reading…" else if (result == null) "Read sensor" else "Read again") }
-            OutlinedButton(onClick = { startScan(autoConnect = false) }, modifier = Modifier.fillMaxWidth()) { Text(if (scanning) "Scanning…" else "Choose nearby sensor") }
+            Button(onClick = { startScan(autoConnect = false) }, modifier = Modifier.fillMaxWidth()) { Text(if (scanning) "Searching…" else "Search for sensors") }
+            if (selectedNearby != null || selectedDeviceId.isNotBlank()) {
+                OutlinedButton(onClick = { readNow() }, modifier = Modifier.fillMaxWidth()) { Text(if (readInProgress) "Reading…" else if (result == null) "Read selected sensor" else "Read again") }
+            }
             Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
             LazyColumn(modifier = Modifier.fillMaxWidth().height(180.dp)) {
                 items(nearby, key = { it.address }) { item ->
@@ -558,11 +554,7 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                             Text(item.name, fontWeight = FontWeight.SemiBold)
                             Text("${item.address} · RSSI ${item.rssi}", style = MaterialTheme.typography.bodySmall)
                             Text("Registry: ${item.registered?.id ?: "not saved"}", style = MaterialTheme.typography.bodySmall)
-                            Row {
-                                OutlinedButton(onClick = { selectedNearby = item }) { Text("Select") }
-                                Spacer(Modifier.padding(4.dp))
-                                Button(onClick = { connectAndRead(item) }) { Text("Read this sensor") }
-                            }
+                            Button(onClick = { connectAndRead(item) }, modifier = Modifier.fillMaxWidth()) { Text("Read this sensor") }
                         }
                     }
                 }
@@ -620,6 +612,13 @@ private fun sensorRegistryDevices(context: android.content.Context): List<Regist
 
 private fun Map<String, String>.firstPresent(vararg keys: String): String =
     keys.firstNotNullOfOrNull { key -> get(key)?.trim()?.takeIf(String::isNotBlank) }.orEmpty()
+
+private fun BluetoothGatt.refreshGattCacheQuietly() {
+    runCatching {
+        val method = javaClass.getMethod("refresh")
+        method.invoke(this)
+    }
+}
 
 private fun normalizeMode(value: String): String = when (value.trim().lowercase()) {
     "trace", "timeseries", "time_series" -> "trace"
@@ -688,6 +687,16 @@ private fun selectionMode(requested: String, actual: String, registered: Registe
     else -> "fallback_operator_selected"
 }
 
+private fun canonicalSensorProfile(value: String): String {
+    val compact = value.trim().lowercase().replace(Regex("[^a-z0-9]"), "")
+    return when {
+        compact.contains("ld2410") -> "ld2410c"
+        compact.contains("aht20") -> "aht20"
+        compact.isBlank() -> ""
+        else -> compact
+    }
+}
+
 private fun filterSample(text: String, requestedSensorId: String, requestedProfile: String): String {
     val root = extractJsonObject(text) ?: return text
     val readings = root.optJSONArray("readings") ?: root.optJSONArray("sensors")
@@ -695,11 +704,67 @@ private fun filterSample(text: String, requestedSensorId: String, requestedProfi
     for (i in 0 until readings.length()) {
         val item = readings.optJSONObject(i) ?: continue
         val idOk = requestedSensorId.isBlank() || item.optString("sensor_id").equals(requestedSensorId, true)
-        val profile = item.optString("sensor_profile").ifBlank { item.optString("sensor_type") }
-        val profileOk = requestedProfile.isBlank() || profile.equals(requestedProfile, true)
+        val profile = canonicalSensorProfile(item.optString("sensor_profile").ifBlank { item.optString("sensor_type") })
+        val profileOk = requestedProfile.isBlank() || profile == canonicalSensorProfile(requestedProfile)
         if (idOk && profileOk) return item.toString()
     }
     return root.toString()
+}
+
+private fun recoverPartialSensorReading(text: String): JSONObject? {
+    if (!text.contains("{") || text.trim().endsWith("}")) return null
+    val recovered = JSONObject()
+    val keys = listOf(
+        "methodmesh_sensor_reading_version",
+        "device_id",
+        "device_name",
+        "firmware_version",
+        "sensor_profile",
+        "sensor_type",
+        "sensor_id",
+        "status",
+        "sample_time_ms",
+        "payload_sha256",
+        "temperature_c",
+        "relative_humidity_pct",
+        "presence",
+        "target_state",
+        "moving_distance_cm",
+        "moving_energy",
+        "stationary_distance_cm",
+        "stationary_energy",
+        "detection_distance_cm"
+    )
+    keys.forEach { key ->
+        val quoted = Regex("\"${Regex.escape(key)}\"\\s*:\\s*\"([^\"]*)\"").find(text)?.groupValues?.getOrNull(1)
+        if (quoted != null) {
+            recovered.put(key, quoted)
+            return@forEach
+        }
+        val bool = Regex("\"${Regex.escape(key)}\"\\s*:\\s*(true|false)").find(text)?.groupValues?.getOrNull(1)
+        if (bool != null) {
+            recovered.put(key, bool.toBoolean())
+            return@forEach
+        }
+        val number = Regex("\"${Regex.escape(key)}\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)").find(text)?.groupValues?.getOrNull(1)
+        if (number != null) {
+            val numericValue = number.toDoubleOrNull()
+            recovered.put(key, if (numericValue != null && numericValue % 1.0 == 0.0) numericValue.toLong() else numericValue ?: number)
+        }
+    }
+    val hasIdentity = recovered.has("sensor_profile") || recovered.has("sensor_type") || recovered.has("sensor_id")
+    val hasData = listOf(
+        "temperature_c",
+        "relative_humidity_pct",
+        "presence",
+        "target_state",
+        "moving_distance_cm",
+        "moving_energy",
+        "stationary_distance_cm",
+        "stationary_energy",
+        "detection_distance_cm"
+    ).any { recovered.has(it) }
+    return if (hasIdentity && hasData) recovered else null
 }
 
 private fun summariseSamples(samples: List<String>): JSONObject {

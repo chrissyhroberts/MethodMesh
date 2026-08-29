@@ -55,9 +55,23 @@ Aliases accepted by the UI include `sensor_device_id`, `sensor_device_name`, and
 | `sensor_device_name` | Configured device name. |
 | `sensor_device_address` | BLE MAC/address observed by Android. |
 | `sensor_sample_interval_ms` | Configured sample interval. |
+| `sensor_profile` | Confirmed sensor profile from the final reading. |
+| `sensor_type` | Confirmed sensor type from the final reading, for example `AHT20` or `LD2410C`. |
+| `sensor_id` | Confirmed sensor driver ID. |
+| `sensor_status` | Final reading status. |
 | `sensor_manifest_json` | Manifest read from the node. |
 | `sensor_command_response_json` | Response from the provisioning command characteristic. |
 | `sensor_confirmation_reading_json` | Confirmation sensor reading after provisioning. |
+| `temperature_c` | AHT20 temperature value when present. |
+| `relative_humidity_pct` | AHT20 humidity value when present. |
+| `presence` | LD2410C presence flag when present. |
+| `target_state` | LD2410C target-state code when present. |
+| `moving_distance_cm` | LD2410C moving target distance when present. |
+| `moving_energy` | LD2410C moving target energy when present. |
+| `stationary_distance_cm` | LD2410C stationary target distance when present. |
+| `stationary_energy` | LD2410C stationary target energy when present. |
+| `detection_distance_cm` | LD2410C detection distance when present. |
+| `payload_sha256` | SHA-256 of the final reading payload. |
 | `registry_device_id` | Local MethodMesh device-registry ID. |
 | `sensor_provisioning_error` | Error message when provisioning fails. |
 | `sensor_provisioned_time_iso` | Time the provisioning result was recorded. |
