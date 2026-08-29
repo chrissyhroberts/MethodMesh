@@ -62,6 +62,7 @@ import com.example.methodmesh.core.scheduling.SchedulerTransferCapabilityScreen
 import com.example.methodmesh.core.protocols.CapabilityPreset
 import com.example.methodmesh.core.protocols.ProtocolDefinition
 import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
+import com.example.methodmesh.core.protocols.ProtocolOutputMode
 import com.example.methodmesh.core.protocols.ProtocolStep
 import com.example.methodmesh.core.ResearchRuntime
 import com.example.methodmesh.core.methodmesh.ExecutionResult
@@ -95,6 +96,11 @@ import com.example.methodmesh.platform.devices.DeviceRegistry
 import com.example.methodmesh.platform.devices.DeviceTransport
 import com.example.methodmesh.platform.devices.RegisteredDevice
 import org.json.JSONObject
+
+private data class ProtocolStepDraft(
+    val presetId: String,
+    val outputMode: String = ProtocolOutputMode.SAVE
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -367,7 +373,7 @@ private fun ProtocolLibraryCard(revision: Int) {
     var status by rememberSaveable { mutableStateOf<String?>(null) }
     var importPayload by rememberSaveable { mutableStateOf("") }
     var protocolName by rememberSaveable { mutableStateOf("") }
-    var protocolPresetIds by rememberSaveable { mutableStateOf(listOf<String>()) }
+    var protocolStepDrafts by rememberSaveable { mutableStateOf(listOf<ProtocolStepDraft>()) }
     var editingProtocolId by rememberSaveable { mutableStateOf<String?>(null) }
     var addPresetDialogOpen by rememberSaveable { mutableStateOf(false) }
     var addOdkStepDialogOpen by rememberSaveable { mutableStateOf(false) }
@@ -433,7 +439,7 @@ private fun ProtocolLibraryCard(revision: Int) {
                                     OutlinedButton(
                                         onClick = {
                                             ProtocolLibraryRepository.removePreset(context, preset.id)
-                                            protocolPresetIds = protocolPresetIds.filterNot { it == preset.id }
+                                            protocolStepDrafts = protocolStepDrafts.filterNot { it.presetId == preset.id }
                                             refresh()
                                             status = "Removed preset: ${preset.name}"
                                         },
@@ -449,16 +455,19 @@ private fun ProtocolLibraryCard(revision: Int) {
                 Text("Create protocol", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Text("Build a chain from saved presets. Press Add step, pick a preset, repeat, then save.", style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(protocolName, { protocolName = it }, label = { Text("Protocol name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                protocolPresetIds.forEachIndexed { index, presetId ->
-                    val preset = presets.firstOrNull { it.id == presetId }
+                protocolStepDrafts.forEachIndexed { index, stepDraft ->
+                    val preset = presets.firstOrNull { it.id == stepDraft.presetId }
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
                         shape = MaterialTheme.shapes.medium
                     ) {
                         Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("${index + 1}. ${preset?.name ?: presetId}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                            OutlinedButton(onClick = { protocolPresetIds = protocolPresetIds.toMutableList().also { it.removeAt(index) } }) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("${index + 1}. ${preset?.name ?: stepDraft.presetId}", style = MaterialTheme.typography.bodySmall)
+                                Text(protocolOutputLabel(stepDraft.outputMode), style = MaterialTheme.typography.labelSmall)
+                            }
+                            OutlinedButton(onClick = { protocolStepDrafts = protocolStepDrafts.toMutableList().also { it.removeAt(index) } }) {
                                 Text("Remove")
                             }
                         }
@@ -476,7 +485,7 @@ private fun ProtocolLibraryCard(revision: Int) {
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     Button(
                         onClick = {
-                            val selected = protocolPresetIds.mapNotNull { id -> presets.firstOrNull { it.id == id } }
+                            val selected = protocolStepDrafts.mapNotNull { draft -> presets.firstOrNull { it.id == draft.presetId }?.let { draft to it } }
                             if (protocolName.isBlank() || selected.isEmpty()) {
                                 status = "Protocol name and at least one preset are required."
                             } else {
@@ -485,43 +494,55 @@ private fun ProtocolLibraryCard(revision: Int) {
                                     ProtocolDefinition(
                                         id = editingProtocolId ?: java.util.UUID.randomUUID().toString(),
                                         name = protocolName.trim(),
-                                        steps = selected.mapIndexed { index, preset ->
-                                            ProtocolStep(name = preset.name, presetId = preset.id, order = index)
+                                        steps = selected.mapIndexed { index, (draft, preset) ->
+                                            ProtocolStep(
+                                                name = preset.name,
+                                                presetId = preset.id,
+                                                order = index,
+                                                outputMode = ProtocolOutputMode.normalize(draft.outputMode)
+                                            )
                                         }
                                     )
                                 )
                                 protocolName = ""
-                                protocolPresetIds = emptyList()
+                                protocolStepDrafts = emptyList()
                                 editingProtocolId = null
                                 refresh()
                                 status = "Protocol saved: ${saved.name} (${ProtocolLibraryRepository.versionLabel(saved.versionIso)})."
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        enabled = protocolName.isNotBlank() && protocolPresetIds.isNotEmpty()
+                        enabled = protocolName.isNotBlank() && protocolStepDrafts.isNotEmpty()
                     ) { Text("Save protocol") }
                     Spacer(Modifier.width(8.dp))
                     OutlinedButton(
                         onClick = {
                             protocolName = ""
-                            protocolPresetIds = emptyList()
+                            protocolStepDrafts = emptyList()
                             editingProtocolId = null
                             status = "Protocol edit cancelled."
                         },
                         modifier = Modifier.weight(1f),
-                        enabled = editingProtocolId != null || protocolName.isNotBlank() || protocolPresetIds.isNotEmpty()
+                        enabled = editingProtocolId != null || protocolName.isNotBlank() || protocolStepDrafts.isNotEmpty()
                     ) { Text("Clear") }
                 }
                 if (addPresetDialogOpen) {
                     Dialog(onDismissRequest = { addPresetDialogOpen = false }) {
                         Surface(shape = MaterialTheme.shapes.large, tonalElevation = 6.dp) {
+                            var selectedOutputMode by rememberSaveable { mutableStateOf(ProtocolOutputMode.SAVE) }
                             Column(Modifier.padding(16.dp)) {
                                 Text("Add protocol step", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text("Choose the preset and what should happen to its output.", style = MaterialTheme.typography.bodySmall)
+                                Spacer(Modifier.height(8.dp))
+                                ProtocolOutputModeSelector(
+                                    selected = selectedOutputMode,
+                                    onSelected = { selectedOutputMode = it }
+                                )
                                 Spacer(Modifier.height(8.dp))
                                 presets.forEach { preset ->
                                     OutlinedButton(
                                         onClick = {
-                                            protocolPresetIds = protocolPresetIds + preset.id
+                                            protocolStepDrafts = protocolStepDrafts + ProtocolStepDraft(preset.id, selectedOutputMode)
                                             addPresetDialogOpen = false
                                         },
                                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
@@ -539,9 +560,9 @@ private fun ProtocolLibraryCard(revision: Int) {
                 if (addOdkStepDialogOpen) {
                     OdkProtocolStepDialog(
                         onDismiss = { addOdkStepDialogOpen = false },
-                        onStepCreated = { preset ->
+                        onStepCreated = { preset, outputMode ->
                             val saved = ProtocolLibraryRepository.savePreset(context, preset)
-                            protocolPresetIds = protocolPresetIds + saved.id
+                            protocolStepDrafts = protocolStepDrafts + ProtocolStepDraft(saved.id, outputMode)
                             refresh()
                             addOdkStepDialogOpen = false
                             status = "Added ODK form step: ${saved.name}"
@@ -568,13 +589,16 @@ private fun ProtocolLibraryCard(revision: Int) {
                                 )
                                 protocol.steps.sortedBy { it.order }.forEachIndexed { index, step ->
                                     val preset = presets.firstOrNull { it.id == step.presetId }
-                                    Text("${index + 1}. ${preset?.name ?: step.name}", style = MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        "${index + 1}. ${preset?.name ?: step.name} · ${protocolOutputLabel(step.outputMode)}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
                                 }
                                 Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
                                     OutlinedButton(
                                         onClick = {
                                             protocolName = protocol.name
-                                            protocolPresetIds = protocol.steps.sortedBy { it.order }.map { it.presetId }
+                                            protocolStepDrafts = protocol.steps.sortedBy { it.order }.map { ProtocolStepDraft(it.presetId, it.outputMode) }
                                             editingProtocolId = protocol.id
                                             status = "Editing ${protocol.name}. Saving will create a new version and archive the previous version."
                                         },
@@ -589,7 +613,7 @@ private fun ProtocolLibraryCard(revision: Int) {
                                     OutlinedButton(
                                         onClick = { launchProtocolRun(context, protocol, saveOutput = true, testMode = true) },
                                         modifier = Modifier.fillMaxWidth()
-                                    ) { Text("Test and save output") }
+                                    ) { Text("Test with step outputs") }
                                     Spacer(Modifier.height(6.dp))
                                     Button(
                                         onClick = { launchProtocolRun(context, protocol, saveOutput = true, testMode = false) },
@@ -677,14 +701,74 @@ private fun ProtocolLibraryCard(revision: Int) {
 }
 
 @Composable
+private fun ProtocolOutputModeSelector(
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Text("Output handling", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            ProtocolOutputModeButton(
+                label = "Save",
+                selected = ProtocolOutputMode.normalize(selected) == ProtocolOutputMode.SAVE,
+                onClick = { onSelected(ProtocolOutputMode.SAVE) },
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(Modifier.width(6.dp))
+            ProtocolOutputModeButton(
+                label = "Don't save",
+                selected = ProtocolOutputMode.normalize(selected) == ProtocolOutputMode.NONE,
+                onClick = { onSelected(ProtocolOutputMode.NONE) },
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(Modifier.width(6.dp))
+            ProtocolOutputModeButton(
+                label = "Share",
+                selected = ProtocolOutputMode.normalize(selected) == ProtocolOutputMode.SHARE,
+                onClick = { onSelected(ProtocolOutputMode.SHARE) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Text(protocolOutputDescription(selected), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+@Composable
+private fun ProtocolOutputModeButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (selected) {
+        Button(onClick = onClick, modifier = modifier) { Text("✓ $label") }
+    } else {
+        OutlinedButton(onClick = onClick, modifier = modifier) { Text(label) }
+    }
+}
+
+private fun protocolOutputLabel(mode: String): String = when (ProtocolOutputMode.normalize(mode)) {
+    ProtocolOutputMode.NONE -> "No MethodMesh output"
+    ProtocolOutputMode.SHARE -> "Share result"
+    else -> "Save to MethodMesh outputs"
+}
+
+private fun protocolOutputDescription(mode: String): String = when (ProtocolOutputMode.normalize(mode)) {
+    ProtocolOutputMode.NONE -> "Do not write a MethodMesh output package for this step; useful when ODK/Kobo/Central owns the data."
+    ProtocolOutputMode.SHARE -> "Create a MethodMesh package and open Android share for the result."
+    else -> "Write this step into the MethodMesh output folder."
+}
+
+@Composable
 private fun OdkProtocolStepDialog(
     onDismiss: () -> Unit,
-    onStepCreated: (CapabilityPreset) -> Unit
+    onStepCreated: (CapabilityPreset, String) -> Unit
 ) {
     val context = LocalContext.current
     var selectedProjectId by rememberSaveable { mutableStateOf("") }
     var selectedPackage by rememberSaveable { mutableStateOf("org.odk.collect.android") }
     var manualFormId by rememberSaveable { mutableStateOf("") }
+    var selectedOutputMode by rememberSaveable { mutableStateOf(ProtocolOutputMode.NONE) }
     val projects = remember { ExternalProjectRegistry.load(context) }
     val forms = remember(selectedProjectId, selectedPackage) {
         if (selectedProjectId.isBlank()) emptyList() else ExternalFormCatalog.list(context, selectedProjectId, selectedPackage)
@@ -706,6 +790,11 @@ private fun OdkProtocolStepDialog(
             Column(Modifier.padding(16.dp)) {
                 Text("Add ODK/XLSForm step", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text("Pick a known project and form, or enter a form ID manually.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                ProtocolOutputModeSelector(
+                    selected = selectedOutputMode,
+                    onSelected = { selectedOutputMode = it }
+                )
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth()) {
                     if (selectedPackage == "org.odk.collect.android") {
@@ -737,7 +826,7 @@ private fun OdkProtocolStepDialog(
                     Text("Forms in selected project", style = MaterialTheme.typography.labelLarge)
                     forms.forEach { form ->
                         OutlinedButton(
-                            onClick = { onStepCreated(presetFor(form.id, form.name)) },
+                            onClick = { onStepCreated(presetFor(form.id, form.name), selectedOutputMode) },
                             modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                         ) { Text("${form.name} (${form.id})") }
                     }
@@ -751,7 +840,7 @@ private fun OdkProtocolStepDialog(
                     singleLine = true
                 )
                 Button(
-                    onClick = { onStepCreated(presetFor(manualFormId.trim())) },
+                    onClick = { onStepCreated(presetFor(manualFormId.trim()), selectedOutputMode) },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     enabled = manualFormId.isNotBlank()
                 ) { Text("Add manual form step") }

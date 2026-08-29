@@ -45,6 +45,13 @@ object SensorReadFields {
     const val SUMMARY_JSON = "sensor_summary_json"
     const val TEMPERATURE_C = "temperature_c"
     const val RELATIVE_HUMIDITY_PCT = "relative_humidity_pct"
+    const val PRESENCE = "presence"
+    const val TARGET_STATE = "target_state"
+    const val MOVING_DISTANCE_CM = "moving_distance_cm"
+    const val MOVING_ENERGY = "moving_energy"
+    const val STATIONARY_DISTANCE_CM = "stationary_distance_cm"
+    const val STATIONARY_ENERGY = "stationary_energy"
+    const val DETECTION_DISTANCE_CM = "detection_distance_cm"
     const val PAYLOAD_SHA256 = "payload_sha256"
     const val IN_RANGE_DEVICE_COUNT = "in_range_sensor_count"
     const val IN_RANGE_DEVICES_JSON = "in_range_devices_json"
@@ -56,7 +63,9 @@ object SensorReadFields {
         DEVICE_SUBSTITUTION, DEVICE_SUBSTITUTION_REASON, SAMPLE_COUNT, DURATION_SECONDS,
         SAMPLE_INTERVAL_SECONDS, STARTED_TIME_ISO, FINISHED_TIME_ISO, MANIFEST_JSON,
         READING_JSON, TRACE_JSON, SUMMARY_JSON, TEMPERATURE_C, RELATIVE_HUMIDITY_PCT,
-        PAYLOAD_SHA256, IN_RANGE_DEVICE_COUNT, IN_RANGE_DEVICES_JSON, ERROR
+        PRESENCE, TARGET_STATE, MOVING_DISTANCE_CM, MOVING_ENERGY, STATIONARY_DISTANCE_CM,
+        STATIONARY_ENERGY, DETECTION_DISTANCE_CM, PAYLOAD_SHA256, IN_RANGE_DEVICE_COUNT,
+        IN_RANGE_DEVICES_JSON, ERROR
     )
 }
 
@@ -100,6 +109,8 @@ object As100SensorReadMethod : As100Method {
 
     fun result(request: ExecutionRequest, outcome: SensorReadOutcome, invocation: InvocationContext?): ExecutionResult {
         val status = if (outcome.succeeded) TransformationStatus.Succeeded else TransformationStatus.Failed
+        val values = (outcome.values + (SensorReadFields.FINISHED_TIME_ISO to (outcome.values[SensorReadFields.FINISHED_TIME_ISO] ?: Instant.now().toString())))
+            .filterValues { it.isNotBlank() }
         val entity = Entity(
             id = ArchitectureId("sensor-read:${System.currentTimeMillis()}"),
             entityType = "SensorReading",
@@ -109,7 +120,7 @@ object As100SensorReadMethod : As100Method {
         val observation = Observation(
             phenomenon = "sensor.reading",
             subject = ArchitectureRef(entity.id, entity.objectType, ID),
-            values = outcome.values + (SensorReadFields.FINISHED_TIME_ISO to (outcome.values[SensorReadFields.FINISHED_TIME_ISO] ?: Instant.now().toString())),
+            values = values,
             temporalContext = request.temporalContext,
             provenance = provenance
         )

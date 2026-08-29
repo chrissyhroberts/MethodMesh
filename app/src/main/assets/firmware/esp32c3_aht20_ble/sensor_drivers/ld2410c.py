@@ -78,7 +78,12 @@ class LD2410C:
         # Common LD2410 report frames contain target data at the start of the
         # payload. Some firmware modes prefix a frame type byte; accept both.
         data = payload
-        if len(data) >= 10 and data[0] in (0x01, 0x02, 0xaa):
+        # Normal LD2410C engineering report payloads begin with 02 aa, then the
+        # target data bytes. Older drafts of this driver stripped only one byte,
+        # causing 0xaa to be decoded as the target state.
+        if len(data) >= 11 and data[0] == 0x02 and data[1] == 0xaa:
+            data = data[2:]
+        elif len(data) >= 10 and data[0] in (0x01, 0x02, 0xaa):
             data = data[1:]
         if len(data) < 9:
             raise OSError("LD2410C frame too short")

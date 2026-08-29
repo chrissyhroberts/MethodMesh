@@ -27,7 +27,7 @@ object SensorProvisionerModule : MethodMeshModule {
                 "Sensor profile",
                 group = "Provisioning",
                 defaultValue = "aht20",
-                choices = listOf("aht20", "ld2410c", "generic_ble_sensor")
+                choices = listOf("aht20", "ld2410c")
             ),
             MethodSetting.IntSetting("sensor_sample_interval_ms", "Sample interval (ms)", group = "Provisioning", defaultValue = 60000, minimum = 1000, maximum = 3600000, step = 1000, unit = "ms")
         )

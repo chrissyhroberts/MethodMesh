@@ -1,60 +1,81 @@
-# Install ESP32 sensor firmware
+# ESP32 sensor framework installer
 
-Capability ID: `sensor_firmware_installer`
+Capability IDs:
 
-This capability installs the bundled MethodMesh ESP32-C3 sensor-node firmware stack from inside the Android app. It is intended to remove the need for `esptool`, `mpremote`, or a laptop during field provisioning.
+- `esp32.board_wipe`
+- `esp32.runtime_install`
+- `esp32.sensor_profile_install`
 
-## Current scope
+These capabilities install the MethodMesh ESP32-C3 sensor stack from inside the Android app. They are split deliberately so each physical board state is explicit and testable, rather than hidden inside one flaky all-in-one flow.
 
-Supported now:
+## Recommended workflow
 
-- MethodMesh carries the official MicroPython `ESP32_GENERIC_C3-20260406-v1.28.0.bin` as an Android asset.
-- MethodMesh carries the bundled sensor-node `main.py` and sensor driver files
-  as Android assets.
-- The phone lists connected USB devices.
-- The user grants USB permission.
-- MethodMesh only enables raw flashing for recognised Espressif or USB-serial targets.
-- MethodMesh requires explicit confirmation before overwriting firmware.
-- MethodMesh speaks a small ESP32 ROM bootloader protocol to write MicroPython
-  at flash address `0`.
-- After the board has restarted into MicroPython, MethodMesh uploads the bundled
-  MethodMesh Python files over the friendly REPL.
+### 1. Wipe old firmware
 
-The implementation is intentionally conservative: it does not attempt arbitrary USB writes to unknown devices.
-
-## Field workflow
+Use `esp32.board_wipe`.
 
 1. Connect the ESP32-C3 over USB/OTG.
-2. Open `sensor_firmware_installer`.
-3. Select the USB device.
-4. Hold **BOOT**, tap **RESET**, release **BOOT**, then tick the overwrite confirmation.
-5. Tap **Install MicroPython to blank board**.
-6. When flashing succeeds, reset or replug the board without holding **BOOT** so
-   it starts MicroPython normally.
-7. Tap **Install MethodMesh main.py**. This uploads `main.py` and the bundled
-   sensor driver files.
-8. After the board restarts, open `sensor_node_provisioner` to configure device
-   identity and BLE registry details.
+2. Put the board into ROM bootloader mode: hold **BOOT**, tap **RESET**, then release **BOOT**.
+3. Refresh USB devices.
+4. Select the ESP32-C3.
+5. Confirm that the board may be erased.
+6. Tap **Wipe old firmware**.
 
-The workflow is intentionally split because ESP32-C3 boards move between ROM
-bootloader mode and MicroPython REPL mode. Keeping those steps explicit is more
-reliable than trying to do both operations in one hidden sequence.
+This step is intended for boards that may contain Home Assistant, ESPHome, Arduino, old MethodMesh firmware, or any other previous firmware.
 
-## Intent example
+### 2. Install the MethodMesh runtime
+
+Use `esp32.runtime_install`.
+
+1. Keep or put the board in ROM bootloader mode.
+2. Refresh USB devices.
+3. Select the ESP32-C3.
+4. Tap **Install MethodMesh runtime**.
+
+This writes the bundled MicroPython image. When it succeeds, reset or unplug/replug the board normally without holding **BOOT**.
+
+### 3. Install or replace the sensor profile
+
+Use `esp32.sensor_profile_install`.
+
+1. The board should now be in normal MicroPython USB mode, not BOOT mode.
+2. Choose the attached sensor profile:
+   - `aht20` — AHT20 temperature/humidity on GPIO 8 SDA / GPIO 9 SCL.
+   - `ld2410c` — LD2410C mmWave presence on TX GPIO 21 / RX GPIO 4.
+3. Refresh USB devices.
+4. Select the ESP32-C3.
+5. Tap **Check MicroPython connection**.
+6. Tap **Upload sensor profile to board**.
+
+Installing a sensor profile replaces `main.py`, shared driver files, and the active sensor config. This means changing from one sensor profile to another is an overwrite operation, not an additive one.
+
+## Intent examples
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='sensor_firmware_installer',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='esp32.board_wipe',return_mode='flat')
+```
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='esp32.runtime_install',return_mode='flat')
+```
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='esp32.sensor_profile_install',input_sensor_profile='aht20',return_mode='flat')
+```
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='esp32.sensor_profile_install',input_sensor_profile='ld2410c',return_mode='flat')
 ```
 
 ## Outputs
 
 | Field | Description |
 |---|---|
-| `firmware_install_status` | `installed` or `failed`. |
+| `firmware_install_status` | `installed`, `erased`, or `failed`. |
 | `firmware_board` | Target board family, currently `ESP32-C3`. |
-| `firmware_name` | Bundled firmware file installed. |
+| `firmware_name` | Bundled firmware or profile installed. |
 | `firmware_version` | MethodMesh firmware version. |
-| `firmware_bytes` | Size of installed `main.py`. |
+| `firmware_bytes` | Size of written firmware/profile payload. |
 | `usb_device` | Android USB device label. |
 | `firmware_install_error` | Error message if installation failed. |
 | `firmware_installed_time_iso` | Time the result was recorded. |

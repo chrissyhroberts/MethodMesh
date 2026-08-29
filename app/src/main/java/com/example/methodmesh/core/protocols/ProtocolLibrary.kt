@@ -25,8 +25,21 @@ data class ProtocolStep(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
     val presetId: String,
-    val order: Int
+    val order: Int,
+    val outputMode: String = ProtocolOutputMode.SAVE
 )
+
+object ProtocolOutputMode {
+    const val SAVE = "SAVE"
+    const val NONE = "NONE"
+    const val SHARE = "SHARE"
+
+    fun normalize(value: String): String = when (value.trim().uppercase(Locale.ROOT)) {
+        NONE -> NONE
+        SHARE -> SHARE
+        else -> SAVE
+    }
+}
 
 data class ProtocolDefinition(
     val id: String = UUID.randomUUID().toString(),
@@ -233,13 +246,15 @@ object ProtocolLibraryRepository {
         put("name", step.name)
         put("preset_id", step.presetId)
         put("order", step.order)
+        put("output_mode", ProtocolOutputMode.normalize(step.outputMode))
     }
 
     private fun decodeStep(o: JSONObject) = ProtocolStep(
         id = o.optString("id").ifBlank { UUID.randomUUID().toString() },
         name = o.optString("name"),
         presetId = o.optString("preset_id"),
-        order = o.optInt("order")
+        order = o.optInt("order"),
+        outputMode = ProtocolOutputMode.normalize(o.optString("output_mode", ProtocolOutputMode.SAVE))
     )
 
     private fun JSONArray?.orEmptyObjects(): List<JSONObject> {

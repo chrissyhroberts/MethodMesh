@@ -50,6 +50,7 @@ import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.platform.devices.DeviceRegistry
 import com.example.methodmesh.platform.devices.DeviceTransport
 import com.example.methodmesh.platform.devices.RegisteredDevice
+import com.example.methodmesh.modules.sensorprovisioner.extractJsonObject
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
@@ -192,14 +193,41 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
             }
             val traceArray = JSONArray().apply {
                 sampleValues.forEachIndexed { index, sample ->
+                    val reading = extractJsonObject(sample)
                     put(JSONObject().apply {
                         put("index", index + 1)
-                        put("reading", JSONObject(sample))
+                        if (reading != null) put("reading", reading) else put("reading_text", sample)
                     })
                 }
             }
-            val latest = JSONObject(sampleValues.last())
+            val latest = extractJsonObject(sampleValues.last()) ?: run {
+                produce(
+                    baseValues("failed") + mapOf(
+                        SensorReadFields.ERROR to "Sensor returned unreadable JSON.",
+                        SensorReadFields.READING_JSON to sampleValues.last(),
+                        SensorReadFields.FINISHED_TIME_ISO to finished
+                    ),
+                    false
+                )
+                return
+            }
             val summary = summariseSamples(sampleValues)
+            val sensorStatus = latest.optString("status")
+            if (sensorStatus.equals("error", ignoreCase = true)) {
+                produce(
+                    baseValues("failed") + mapOf(
+                        SensorReadFields.SAMPLE_COUNT to sampleValues.size.toString(),
+                        SensorReadFields.FINISHED_TIME_ISO to finished,
+                        SensorReadFields.READING_JSON to sampleValues.last(),
+                        SensorReadFields.ERROR to latest.optString("error").ifBlank { "Sensor reported an error." },
+                        SensorReadFields.ACTUAL_SENSOR_ID to latest.optString("sensor_id"),
+                        SensorReadFields.SENSOR_PROFILE to sensorProfile.ifBlank { latest.optString("sensor_profile").ifBlank { latest.optString("sensor_type") } },
+                        SensorReadFields.PAYLOAD_SHA256 to latest.optString("payload_sha256")
+                    ),
+                    false
+                )
+                return
+            }
             val values = baseValues("succeeded").apply {
                 put(SensorReadFields.SAMPLE_COUNT, sampleValues.size.toString())
                 put(SensorReadFields.FINISHED_TIME_ISO, finished)
@@ -210,6 +238,13 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                 put(SensorReadFields.SENSOR_PROFILE, sensorProfile.ifBlank { latest.optString("sensor_profile").ifBlank { latest.optString("sensor_type") } })
                 put(SensorReadFields.TEMPERATURE_C, valueFor(latest, summary, "temperature_c", mode))
                 put(SensorReadFields.RELATIVE_HUMIDITY_PCT, valueFor(latest, summary, "relative_humidity_pct", mode))
+                put(SensorReadFields.PRESENCE, valueFor(latest, summary, "presence", mode))
+                put(SensorReadFields.TARGET_STATE, valueFor(latest, summary, "target_state", mode))
+                put(SensorReadFields.MOVING_DISTANCE_CM, valueFor(latest, summary, "moving_distance_cm", mode))
+                put(SensorReadFields.MOVING_ENERGY, valueFor(latest, summary, "moving_energy", mode))
+                put(SensorReadFields.STATIONARY_DISTANCE_CM, valueFor(latest, summary, "stationary_distance_cm", mode))
+                put(SensorReadFields.STATIONARY_ENERGY, valueFor(latest, summary, "stationary_energy", mode))
+                put(SensorReadFields.DETECTION_DISTANCE_CM, valueFor(latest, summary, "detection_distance_cm", mode))
                 put(SensorReadFields.PAYLOAD_SHA256, latest.optString("payload_sha256"))
             }
             status = "Sensor read complete (${sampleValues.size} sample${if (sampleValues.size == 1) "" else "s"})."
@@ -287,6 +322,10 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                             return@post
                         }
                         val text = value.toString(Charsets.UTF_8)
+                        if (text.isBlank()) {
+                            produce(baseValues("failed") + mapOf(SensorReadFields.ERROR to "BLE endpoint returned an empty payload."), false)
+                            return@post
+                        }
                         when (characteristic.uuid) {
                             manifestUuid -> {
                                 manifestJson = text
@@ -297,6 +336,10 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                             }
                             readingUuid -> {
                                 val filtered = filterSample(text, sensorId, sensorProfile)
+                                if (extractJsonObject(filtered) == null) {
+                                    produce(baseValues("failed") + mapOf(SensorReadFields.ERROR to "Sensor reading was not valid JSON.", SensorReadFields.READING_JSON to filtered), false)
+                                    return@post
+                                }
                                 sampleValues.add(filtered)
                                 samplesRemaining -= 1
                                 if (samplesRemaining <= 0 || mode == "single") {
@@ -646,9 +689,9 @@ private fun selectionMode(requested: String, actual: String, registered: Registe
 }
 
 private fun filterSample(text: String, requestedSensorId: String, requestedProfile: String): String {
-    val root = runCatching { JSONObject(text) }.getOrElse { return text }
+    val root = extractJsonObject(text) ?: return text
     val readings = root.optJSONArray("readings") ?: root.optJSONArray("sensors")
-    if (readings == null) return text
+    if (readings == null) return root.toString()
     for (i in 0 until readings.length()) {
         val item = readings.optJSONObject(i) ?: continue
         val idOk = requestedSensorId.isBlank() || item.optString("sensor_id").equals(requestedSensorId, true)
@@ -656,13 +699,13 @@ private fun filterSample(text: String, requestedSensorId: String, requestedProfi
         val profileOk = requestedProfile.isBlank() || profile.equals(requestedProfile, true)
         if (idOk && profileOk) return item.toString()
     }
-    return text
+    return root.toString()
 }
 
 private fun summariseSamples(samples: List<String>): JSONObject {
     val numeric = linkedMapOf<String, MutableList<Double>>()
     samples.forEach { sample ->
-        val json = runCatching { JSONObject(sample) }.getOrNull() ?: return@forEach
+        val json = extractJsonObject(sample) ?: return@forEach
         json.keys().forEach { key ->
             val value = json.opt(key)
             val number = when (value) {

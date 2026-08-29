@@ -17,7 +17,6 @@ import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,7 +45,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
@@ -57,8 +55,6 @@ import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
-import com.example.methodmesh.transport.workflow.ui.IntentExample
-import com.example.methodmesh.transport.workflow.ui.IntentExampleDropdown
 import org.json.JSONObject
 import java.util.UUID
 
@@ -68,30 +64,6 @@ private val readingUuid: UUID = UUID.fromString("b6f2a902-9b8f-4f4e-9a1f-4f37a00
 private val commandUuid: UUID = UUID.fromString("b6f2a903-9b8f-4f4e-9a1f-4f37a0010000")
 
 private data class SensorCandidate(val device: BluetoothDevice, val name: String, val address: String, val rssi: Int)
-private data class SensorProfileOption(
-    val id: String,
-    val label: String,
-    val description: String,
-    val status: String
-)
-
-private val sensorProfileOptions = listOf(
-    SensorProfileOption(
-        id = "aht20",
-        label = "AHT20 temperature/humidity",
-        description = "I2C AHT20 on GPIO 8/9 by default.",
-        status = "implemented"
-    ),
-    SensorProfileOption(
-        id = "ld2410c",
-        label = "LD2410C mmWave presence",
-        description = "UART mmWave radar on TX GPIO 21 / RX GPIO 20 by default.",
-        status = "implemented"
-    )
-)
-
-private fun sensorProfileById(id: String): SensorProfileOption =
-    sensorProfileOptions.firstOrNull { it.id.equals(id.trim(), ignoreCase = true) } ?: sensorProfileOptions.first()
 
 object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100SensorProvisionerMethod.ID
@@ -116,8 +88,13 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
         }
         var deviceId by rememberSaveable { mutableStateOf(supplied.firstPresent("sensor_device_id", "input_sensor_device_id", "device_id").ifBlank { "clinic_room_01_sensor" }) }
         var deviceName by rememberSaveable { mutableStateOf(supplied.firstPresent("sensor_device_name", "input_sensor_device_name", "device_name").ifBlank { "Clinic room 01 sensor" }) }
-        var sampleInterval by rememberSaveable { mutableStateOf(supplied.firstPresent("sensor_sample_interval_ms", "input_sensor_sample_interval_ms", "sample_interval_ms").ifBlank { "60000" }) }
-        var sensorProfileId by rememberSaveable { mutableStateOf(sensorProfileById(supplied.firstPresent("sensor_profile", "input_sensor_profile", "sensor_type")).id) }
+        var sensorProfileId by rememberSaveable { mutableStateOf(SensorProvisioningProfiles.byId(supplied.firstPresent("sensor_profile", "input_sensor_profile", "sensor_type")).id) }
+        var sampleInterval by rememberSaveable {
+            mutableStateOf(
+                supplied.firstPresent("sensor_sample_interval_ms", "input_sensor_sample_interval_ms", "sample_interval_ms")
+                    .ifBlank { SensorProvisioningProfiles.byId(sensorProfileId).defaultSampleIntervalMs.toString() }
+            )
+        }
         var sensorProfilePickerOpen by rememberSaveable { mutableStateOf(false) }
         var scanning by rememberSaveable { mutableStateOf(false) }
         var status by rememberSaveable { mutableStateOf("Ready to scan for MethodMesh sensor nodes.") }
@@ -129,7 +106,9 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
         var manifestJson by rememberSaveable { mutableStateOf("") }
         var commandResponseJson by rememberSaveable { mutableStateOf("") }
         var readingJson by rememberSaveable { mutableStateOf("") }
+        var connectedReady by rememberSaveable { mutableStateOf(false) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        var registeredSensors by remember { mutableStateOf(sensorRegistryDevices(androidContext)) }
         val candidates = remember { mutableStateListOf<SensorCandidate>() }
 
         LaunchedEffect(deviceId, deviceName, sampleInterval, sensorProfileId) {
@@ -172,24 +151,23 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
             registryDeviceId = registryId
         )
 
+        fun currentProfile() = SensorProvisioningProfiles.fromManifestOrSelected(manifestJson, sensorProfileId)
+
         fun saveRegistryAndRecord() {
             val candidate = selected ?: run {
                 record(SensorProvisioningOutcome(status = "failed", error = "No sensor node selected."))
                 return
             }
-            val profile = JSONObject().apply {
-                put("profile_type", "methodmesh_ble_sensor_node")
-                put("service_uuid", sensorServiceUuid.toString())
-                put("manifest_uuid", manifestUuid.toString())
-                put("reading_uuid", readingUuid.toString())
-                put("command_uuid", commandUuid.toString())
-                put("device_id", deviceId.trim())
-                put("device_name", deviceName.trim())
-                put("sample_interval_ms", sampleInterval.trim().toIntOrNull() ?: 60000)
-                put("sensor_profile", sensorProfileId)
-                put("manifest", manifestJson)
-                put("latest_reading", readingJson)
-            }.toString()
+            val interval = sampleInterval.trim().toIntOrNull() ?: currentProfile().defaultSampleIntervalMs
+            val normalisedReading = SensorProvisioningProfiles.normaliseReading(readingJson, sensorProfileId)
+            val profile = SensorProvisioningProfiles.registryProfile(
+                deviceId = deviceId.trim(),
+                deviceName = deviceName.trim(),
+                sampleIntervalMs = interval,
+                sensorProfileId = sensorProfileId,
+                manifestJson = manifestJson,
+                latestReadingJson = normalisedReading
+            )
             val registryId = "sensor:${deviceId.trim().ifBlank { candidate.address }}"
             DeviceRegistry.save(
                 androidContext,
@@ -203,6 +181,8 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
                     lastConnectedEpochMillis = System.currentTimeMillis()
                 )
             )
+            registeredSensors = sensorRegistryDevices(androidContext)
+            readingJson = normalisedReading
             status = "Provisioned and saved to device registry."
             record(successfulOutcome(registryId))
         }
@@ -234,6 +214,7 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
                             }, 350L)
                             "Connected; discovering MethodMesh sensor service…"
                         } else {
+                            connectedReady = false
                             "Disconnected (status=$statusCode)."
                         }
                     }
@@ -246,10 +227,12 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
                         readingCharacteristic = service?.getCharacteristic(readingUuid)
                         commandCharacteristic = service?.getCharacteristic(commandUuid)
                         if (statusCode != BluetoothGatt.GATT_SUCCESS || service == null || manifestCharacteristic == null || readingCharacteristic == null || commandCharacteristic == null) {
+                            connectedReady = false
                             status = "Connected, but this is not a complete MethodMesh sensor node."
                             record(SensorProvisioningOutcome(status = "failed", deviceAddress = selected?.address.orEmpty(), error = status))
                         } else {
-                            status = "Sensor endpoint ready; reading manifest…"
+                            connectedReady = true
+                            status = "Connected. Reading sensor manifest…"
                             g.readCharacteristic(manifestCharacteristic)
                         }
                     }
@@ -269,16 +252,25 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
                         when (characteristic.uuid) {
                             manifestUuid -> {
                                 manifestJson = text
-                                status = if (text.isBlank()) "Manifest read failed." else "Manifest read. Ready to provision."
+                                if (text.isNotBlank()) {
+                                    val profile = currentProfile()
+                                    sensorProfileId = profile.id
+                                    sampleInterval = sampleInterval.ifBlank { profile.defaultSampleIntervalMs.toString() }
+                                }
+                                status = if (text.isBlank()) "Manifest read failed." else "Manifest read. Test a measurement, then name and save."
                             }
                             commandUuid -> {
                                 commandResponseJson = text
-                                status = "Provisioning command accepted; reading confirmation sample…"
+                                status = "Configuration accepted. Reading final confirmation sample…"
                                 handler.postDelayed({ g.readCharacteristic(readingCharacteristic) }, 400L)
                             }
                             readingUuid -> {
-                                readingJson = text
-                                saveRegistryAndRecord()
+                                readingJson = SensorProvisioningProfiles.normaliseReading(text, sensorProfileId)
+                                if (commandResponseJson.isNotBlank()) {
+                                    saveRegistryAndRecord()
+                                } else {
+                                    status = "Test measurement read. Name the device, then save it to the registry."
+                                }
                             }
                         }
                     }
@@ -303,6 +295,7 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
             if (!hasPermission()) { permissionLauncher.launch(bluetoothPermissions()); return }
             candidates.clear()
             selected = null
+            connectedReady = false
             result = null
             status = "Scanning for MethodMesh sensor nodes…"
             scanning = true
@@ -322,6 +315,7 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
             manifestJson = ""
             commandResponseJson = ""
             readingJson = ""
+            connectedReady = false
             status = "Connecting to ${candidate.name}…"
             runCatching { adapter?.bluetoothLeScanner?.stopScan(callback) }
             scanning = false
@@ -356,6 +350,20 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
+        fun testMeasurement() {
+            val characteristic = readingCharacteristic
+            val connection = gatt
+            if (connection == null || characteristic == null) {
+                status = "Connect to a MethodMesh sensor node before testing a measurement."
+                return
+            }
+            commandResponseJson = ""
+            status = "Reading test measurement…"
+            if (!connection.readCharacteristic(characteristic)) {
+                status = "Could not queue test measurement read."
+            }
+        }
+
         DisposableEffect(Unit) {
             onDispose {
                 runCatching { adapter?.bluetoothLeScanner?.stopScan(callback) }
@@ -379,19 +387,61 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
-            Text("Configure an already-flashed MethodMesh ESP32-C3 sensor node. The node advertises even if an attached sensor is missing; sensor status is reported in the manifest and readings.", style = MaterialTheme.typography.bodyMedium)
+            Text("Configure an already-flashed MethodMesh ESP32-C3 sensor node and save it to the device registry.", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
+            if (registeredSensors.isNotEmpty()) {
+                Text("Provisioned sensors", fontWeight = FontWeight.SemiBold)
+                registeredSensors.forEach { device ->
+                    Text("• ${device.name} · ${device.id}", style = MaterialTheme.typography.bodySmall)
+                }
+                Spacer(Modifier.height(10.dp))
+            }
+            Text("1. Scan for devices", fontWeight = FontWeight.SemiBold)
+            Button(onClick = { startScan() }, modifier = Modifier.fillMaxWidth()) { Text(if (scanning) "Scanning…" else "Scan for MethodMesh sensors") }
+            Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
+            LazyColumn(modifier = Modifier.fillMaxWidth().height(180.dp)) {
+                items(candidates, key = { it.address }) { candidate ->
+                    ElevatedCard(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Column(Modifier.padding(10.dp)) {
+                            Text(candidate.name, fontWeight = FontWeight.SemiBold)
+                            Text("${candidate.address} · RSSI ${candidate.rssi}", style = MaterialTheme.typography.bodySmall)
+                            OutlinedButton(onClick = { connect(candidate) }) { Text(if (selected?.address == candidate.address) "Reconnect" else "Connect") }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Text("2. Connect", fontWeight = FontWeight.SemiBold)
+            Text(
+                if (connectedReady) "✓ Connected to ${selected?.name.orEmpty()}." else "Select a scanned device and press Connect.",
+                style = MaterialTheme.typography.bodySmall
+            )
+            if (manifestJson.isNotBlank()) {
+                Text("Detected: ${currentProfile().label}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(10.dp))
+            Text("3. Test measurement", fontWeight = FontWeight.SemiBold)
+            Button(
+                onClick = { testMeasurement() },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = readingCharacteristic != null
+            ) { Text("Test measurement") }
+            if (readingJson.isNotBlank()) {
+                Text(SensorProvisioningProfiles.normaliseReading(readingJson, sensorProfileId), style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(Modifier.height(10.dp))
+            Text("4. Name and configure", fontWeight = FontWeight.SemiBold)
             OutlinedTextField(deviceId, { deviceId = it }, label = { Text("Device ID") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(deviceName, { deviceName = it }, label = { Text("Display name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(sampleInterval, { sampleInterval = it.filter(Char::isDigit) }, label = { Text("Sample interval (ms)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             Spacer(Modifier.height(8.dp))
-            val selectedProfile = sensorProfileById(sensorProfileId)
+            val selectedProfile = SensorProvisioningProfiles.byId(sensorProfileId)
             ExposedDropdownMenuBox(
                 expanded = sensorProfilePickerOpen,
                 onExpandedChange = { sensorProfilePickerOpen = !sensorProfilePickerOpen }
             ) {
                 OutlinedTextField(
-                    value = "${selectedProfile.label} (${selectedProfile.status})",
+                    value = selectedProfile.label,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Attached sensor") },
@@ -402,17 +452,18 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
                     expanded = sensorProfilePickerOpen,
                     onDismissRequest = { sensorProfilePickerOpen = false }
                 ) {
-                    sensorProfileOptions.forEach { profile ->
+                    SensorProvisioningProfiles.all.forEach { profile ->
                         DropdownMenuItem(
                             text = {
                                 Column {
                                     Text(profile.label)
-                                    Text("${profile.id} · ${profile.status}", style = MaterialTheme.typography.labelSmall)
+                                    Text(profile.id, style = MaterialTheme.typography.labelSmall)
                                     Text(profile.description, style = MaterialTheme.typography.bodySmall)
                                 }
                             },
                             onClick = {
                                 sensorProfileId = profile.id
+                                sampleInterval = profile.defaultSampleIntervalMs.toString()
                                 sensorProfilePickerOpen = false
                             }
                         )
@@ -420,48 +471,24 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
                 }
             }
             Spacer(Modifier.height(10.dp))
-            Button(onClick = { startScan() }, modifier = Modifier.fillMaxWidth()) { Text(if (scanning) "Scanning…" else "Scan for sensor nodes") }
-            Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
-            LazyColumn(modifier = Modifier.fillMaxWidth().height(180.dp)) {
-                items(candidates, key = { it.address }) { candidate ->
-                    ElevatedCard(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                        Column(Modifier.padding(10.dp)) {
-                            Text(candidate.name, fontWeight = FontWeight.SemiBold)
-                            Text("${candidate.address} · RSSI ${candidate.rssi}", style = MaterialTheme.typography.bodySmall)
-                            Row {
-                                OutlinedButton(onClick = { connect(candidate) }) { Text(if (selected?.address == candidate.address) "Reconnect" else "Connect") }
-                            }
-                        }
-                    }
-                }
-            }
-            if (manifestJson.isNotBlank()) {
-                Text("Manifest", fontWeight = FontWeight.SemiBold)
-                Text(manifestJson, style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(8.dp))
-            }
-            Button(onClick = { provision() }, modifier = Modifier.fillMaxWidth(), enabled = commandCharacteristic != null) { Text("Provision and save sensor") }
+            Text("5. Save to device registry", fontWeight = FontWeight.SemiBold)
+            Button(onClick = { provision() }, modifier = Modifier.fillMaxWidth(), enabled = commandCharacteristic != null && readingJson.isNotBlank()) { Text("Save sensor to registry") }
             if (commandResponseJson.isNotBlank() || readingJson.isNotBlank()) {
                 Spacer(Modifier.height(8.dp))
-                Text("Provisioning response", fontWeight = FontWeight.SemiBold)
-                Text(listOf(commandResponseJson, readingJson).filter(String::isNotBlank).joinToString("\n"), style = MaterialTheme.typography.bodySmall)
+                Text("Latest sensor payload", fontWeight = FontWeight.SemiBold)
+                Text(listOf(commandResponseJson, SensorProvisioningProfiles.normaliseReading(readingJson, sensorProfileId)).filter(String::isNotBlank).joinToString("\n"), style = MaterialTheme.typography.bodySmall)
             }
-            Spacer(Modifier.height(16.dp))
-            IntentExampleDropdown(
-                capabilityId = As100SensorProvisionerMethod.ID,
-                examples = listOf(
-                    IntentExample(
-                        label = "Provision MethodMesh BLE sensor",
-                        description = "Scan for a MethodMesh BLE sensor node and configure its persisted identity.",
-                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='sensor_node_provisioner',input_sensor_device_id='clinic_room_01_sensor',input_sensor_device_name='Clinic room 01 sensor',input_sensor_profile='aht20',input_sensor_sample_interval_ms='60000',return_mode='flat')"
-                    )
-                )
-            )
         }
     }
 }
 
 private fun Map<String, String>.firstPresent(vararg keys: String): String = keys.firstNotNullOfOrNull { key -> get(key)?.trim()?.takeIf(String::isNotBlank) }.orEmpty()
+
+private fun sensorRegistryDevices(context: Context): List<RegisteredDevice> =
+    DeviceRegistry.all(context).filter { device ->
+        device.transport == DeviceTransport.BLE &&
+            runCatching { JSONObject(device.profile).optString("profile_type") == "methodmesh_ble_sensor_node" }.getOrDefault(false)
+    }.sortedBy { it.name.lowercase() }
 
 private fun bluetoothPermissions(): Array<String> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
     arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)

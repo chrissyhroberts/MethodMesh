@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.widget.Toast
 import com.example.methodmesh.core.protocols.CapabilityPreset
 import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
+import com.example.methodmesh.core.protocols.ProtocolOutputMode
 import com.example.methodmesh.platform.externalforms.ExternalFormCatalog
 import com.example.methodmesh.transport.OutputExportRepository
 import kotlinx.coroutines.CoroutineScope
@@ -140,11 +141,25 @@ class SchedulerDispatchActivity : Activity() {
                     } else if (suppressOutput) {
                         SchedulerRepository.recordEvent(this, it.id, "completed_output_suppressed")
                     } else {
-                        val exported = exportReturnedFields(it, data)
-                        SchedulerRepository.recordEvent(this, it.id, "completed_output_exported:${exported.folderName}")
-                        if (nextProtocolStep == null) {
-                            Toast.makeText(this, "Saved MethodMesh output: ${exported.folderName}", Toast.LENGTH_LONG).show()
-                            OutputExportRepository.notifySaved(this, exported)
+                        val mode = ProtocolOutputMode.normalize(
+                            activeProtocol?.steps?.sortedBy { step -> step.order }?.getOrNull(protocolStepIndex)?.outputMode
+                                ?: ProtocolOutputMode.SAVE
+                        )
+                        if (mode == ProtocolOutputMode.NONE) {
+                            SchedulerRepository.recordEvent(this, it.id, "completed_output_suppressed_by_step")
+                        } else {
+                            val exported = exportReturnedFields(it, data)
+                            val event = if (mode == ProtocolOutputMode.SHARE) "completed_output_share_ready" else "completed_output_exported"
+                            SchedulerRepository.recordEvent(this, it.id, "$event:${exported.folderName}")
+                            if (nextProtocolStep == null) {
+                                val message = if (mode == ProtocolOutputMode.SHARE) {
+                                    "MethodMesh output ready to share: ${exported.folderName}"
+                                } else {
+                                    "Saved MethodMesh output: ${exported.folderName}"
+                                }
+                                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                                OutputExportRepository.notifySaved(this, exported)
+                            }
                         }
                     }
                 }

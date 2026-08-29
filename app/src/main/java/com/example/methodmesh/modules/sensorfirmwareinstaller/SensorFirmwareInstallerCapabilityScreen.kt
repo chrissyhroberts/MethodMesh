@@ -13,17 +13,26 @@ import android.hardware.usb.UsbEndpoint
 import android.hardware.usb.UsbInterface
 import android.hardware.usb.UsbManager
 import android.os.Build
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
@@ -48,10 +58,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.json.JSONObject
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
 
 private const val ACTION_USB_PERMISSION = "com.example.methodmesh.USB_SENSOR_FIRMWARE_PERMISSION"
 private const val MAIN_PY_ASSET = "firmware/esp32c3_aht20_ble/main.py"
+private const val SENSOR_CONFIG_TARGET = "methodmesh_sensor_config.json"
 private val SENSOR_DRIVER_ASSETS = listOf(
     "firmware/esp32c3_aht20_ble/sensor_drivers/__init__.py" to "sensor_drivers/__init__.py",
     "firmware/esp32c3_aht20_ble/sensor_drivers/aht20.py" to "sensor_drivers/aht20.py",
@@ -60,13 +74,98 @@ private val SENSOR_DRIVER_ASSETS = listOf(
 private const val MICROPYTHON_BIN_ASSET = "firmware/esp32c3_aht20_ble/ESP32_GENERIC_C3-20260406-v1.28.0.bin"
 private const val ESP_FLASH_ADDRESS = 0
 private const val ESP_FLASH_BLOCK = 0x1000
-private const val ESP_CLEAN_FLASH_BYTES = 4 * 1024 * 1024
 private const val ESP_STATUS_BYTES = 2
+private const val ESP_BOOT_NUKE_BYTES = 2 * 1024 * 1024
+private val TERMINAL_TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
-object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
-    override val capabilityId = As100SensorFirmwareInstallerMethod.ID
-    override val title = "Install ESP32 sensor firmware"
-    override val description = "Install MicroPython and bundled MethodMesh sensor firmware to an ESP32-C3 over USB."
+private data class SensorFirmwareProfile(
+    val id: String,
+    val label: String,
+    val description: String,
+    val sampleIntervalMs: Int
+)
+
+private data class PreparedFlashBlock(
+    val sequence: Int,
+    val bytes: ByteArray,
+    val checksum: Int
+)
+
+private data class PreparedFlashImage(
+    val sourceBytes: Int,
+    val eraseSize: Int,
+    val blocks: List<PreparedFlashBlock>
+) {
+    companion object {
+        fun from(image: ByteArray): PreparedFlashImage {
+            val blockCount = ceil(image.size / ESP_FLASH_BLOCK.toDouble()).toInt()
+            val blocks = (0 until blockCount).map { sequence ->
+                val start = sequence * ESP_FLASH_BLOCK
+                val block = ByteArray(ESP_FLASH_BLOCK) { 0xFF.toByte() }
+                val length = minOf(ESP_FLASH_BLOCK, image.size - start)
+                image.copyInto(block, 0, start, start + length)
+                PreparedFlashBlock(sequence, block, espChecksum(block))
+            }
+            return PreparedFlashImage(
+                sourceBytes = image.size,
+                eraseSize = blockCount * ESP_FLASH_BLOCK,
+                blocks = blocks
+            )
+        }
+    }
+}
+
+private val SENSOR_FIRMWARE_PROFILES = listOf(
+    SensorFirmwareProfile(
+        id = "aht20",
+        label = "AHT20 temperature/humidity",
+        description = "I2C AHT20 on GPIO 8 SDA / GPIO 9 SCL.",
+        sampleIntervalMs = 5000
+    ),
+    SensorFirmwareProfile(
+        id = "ld2410c",
+        label = "LD2410C mmWave presence",
+        description = "UART LD2410C on TX GPIO 21 / RX GPIO 4.",
+        sampleIntervalMs = 1000
+    )
+)
+
+private fun sensorFirmwareProfileById(id: String): SensorFirmwareProfile =
+    SENSOR_FIRMWARE_PROFILES.firstOrNull { it.id == id } ?: SENSOR_FIRMWARE_PROFILES.first()
+
+private fun Map<String, String>.firstPresent(vararg keys: String): String =
+    keys.firstNotNullOfOrNull { key -> get(key)?.trim()?.takeIf(String::isNotBlank) }.orEmpty()
+
+private fun esp32FirmwareExamples(capabilityId: String): List<IntentExample> = when (capabilityId) {
+    As100Esp32BoardWipeMethod.id -> listOf(
+        IntentExample("Wipe ESP32 board", "Open the bootloader-mode board wipe screen.", "com.example.methodmesh.EXECUTE_METHOD(method_id='esp32.board_wipe',return_mode='flat')")
+    )
+    As100Esp32RuntimeInstallMethod.id -> listOf(
+        IntentExample("Install MethodMesh runtime", "Open the bootloader-mode MicroPython runtime installer.", "com.example.methodmesh.EXECUTE_METHOD(method_id='esp32.runtime_install',return_mode='flat')")
+    )
+    As100Esp32SensorProfileInstallMethod.id -> listOf(
+        IntentExample("Install AHT20 profile", "Install the AHT20 temperature/humidity profile to a MicroPython ESP32-C3.", "com.example.methodmesh.EXECUTE_METHOD(method_id='esp32.sensor_profile_install',input_sensor_profile='aht20',return_mode='flat')"),
+        IntentExample("Install LD2410C profile", "Install the LD2410C radar profile to a MicroPython ESP32-C3.", "com.example.methodmesh.EXECUTE_METHOD(method_id='esp32.sensor_profile_install',input_sensor_profile='ld2410c',return_mode='flat')")
+    )
+    else -> listOf(
+        IntentExample("Install ESP32 sensor stack", "Open the ESP32 sensor firmware tools.", "com.example.methodmesh.EXECUTE_METHOD(method_id='esp32.sensor_profile_install',return_mode='flat')")
+    )
+}
+
+private fun esp32FirmwareMethodFor(capabilityId: String) = when (capabilityId) {
+    As100Esp32BoardWipeMethod.id -> As100Esp32BoardWipeMethod
+    As100Esp32RuntimeInstallMethod.id -> As100Esp32RuntimeInstallMethod
+    As100Esp32SensorProfileInstallMethod.id -> As100Esp32SensorProfileInstallMethod
+    else -> As100Esp32SensorProfileInstallMethod
+}
+
+private class SensorFirmwareInstallerCapabilityScreenSpec(
+    override val capabilityId: String,
+    override val title: String,
+    override val description: String,
+    private val initialInstallStage: String = "bootloader",
+    private val initialFlashEraseCompleted: Boolean = false
+) : CapabilityScreenSpec {
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Composable
@@ -74,6 +173,9 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
         val androidContext = LocalContext.current
         val usbManager = androidContext.getSystemService(Context.USB_SERVICE) as UsbManager
         val scope = remember { CoroutineScope(Dispatchers.Main) }
+        val supplied = remember(context.request.settings, context.action.settings, context.request.invocationContext) {
+            context.request.invocationContext.asMap(context.action.canonicalId) + context.request.settings + context.action.settings
+        }
         var devices by remember { mutableStateOf(usbDevices(usbManager)) }
         var selected by remember { mutableStateOf<UsbDevice?>(null) }
         var status by rememberSaveable { mutableStateOf("Connect an ESP32-C3 by USB/OTG, then refresh devices.") }
@@ -83,7 +185,23 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
         var pendingAction by rememberSaveable { mutableStateOf("main_py") }
         var permissionCheckTick by rememberSaveable { mutableStateOf(0) }
         var permissionCheckDevice by remember { mutableStateOf<UsbDevice?>(null) }
+        var selectedSensorProfileId by rememberSaveable {
+            mutableStateOf(
+                sensorFirmwareProfileById(
+                    supplied.firstPresent("sensor_profile", "input_sensor_profile", "sensor_type", "input_sensor_type")
+                ).id
+            )
+        }
+        var installStage by rememberSaveable { mutableStateOf(initialInstallStage) }
+        var installerProgress by rememberSaveable { mutableStateOf<Float?>(null) }
+        var installerProgressNote by rememberSaveable { mutableStateOf("") }
+        var bootloaderCheckSummary by rememberSaveable { mutableStateOf("") }
+        var bootloaderCheckDeviceName by rememberSaveable { mutableStateOf("") }
+        var microPythonReadyDeviceName by rememberSaveable { mutableStateOf("") }
+        var flashEraseCompleted by rememberSaveable { mutableStateOf(initialFlashEraseCompleted) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        val logScrollState = rememberScrollState()
+        val selectedSensorProfile = sensorFirmwareProfileById(selectedSensorProfileId)
         val mainPy = remember { androidContext.assets.open(MAIN_PY_ASSET).bufferedReader().use { it.readText() } }
         val driverFiles = remember {
             SENSOR_DRIVER_ASSETS.map { (assetPath, targetPath) ->
@@ -91,13 +209,80 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
             }
         }
         val microPythonBin = remember { androidContext.assets.open(MICROPYTHON_BIN_ASSET).use { it.readBytes() } }
+        val microPythonFlashImage = remember(microPythonBin) { PreparedFlashImage.from(microPythonBin) }
+        val bootNukeImage = remember { PreparedFlashImage.from(ByteArray(ESP_BOOT_NUKE_BYTES) { 0xFF.toByte() }) }
 
         fun record(outcome: SensorFirmwareInstallOutcome) {
-            val request = As100SensorFirmwareInstallerMethod.request(As100SensorFirmwareInstallerMethod.ID, emptyMap(), emptyList(), emptyList())
-            result = As100SensorFirmwareInstallerMethod.result(request, outcome, context.request.invocationContext)
+            val method = esp32FirmwareMethodFor(capabilityId)
+            val request = method.request(method.id, emptyMap(), emptyList(), emptyList())
+            result = sensorFirmwareInstallResult(method, request, outcome, context.request.invocationContext)
         }
 
-        fun append(message: String) { log = (log + "\n" + message).trim() }
+        fun append(message: String) {
+            val stamp = LocalTime.now().format(TERMINAL_TIME_FORMAT)
+            log = (log + "\n[$stamp] $message").trim().lines().takeLast(220).joinToString("\n")
+        }
+
+        fun setInstallerProgress(message: String) {
+            status = message
+            append(message)
+            when {
+                message.startsWith("Synchronising") -> {
+                    installerProgress = 0.05f
+                    installerProgressNote = "Checking bootloader connection."
+                }
+                message.startsWith("Nuking ESP32 boot/app flash") -> {
+                    installerProgress = 0.08f
+                    installerProgressNote = "Erasing the boot/app/settings region that lets old firmware start."
+                    scope.launch {
+                        val totalSeconds = 180
+                        repeat(totalSeconds) { second ->
+                            delay(1000L)
+                            if (!installing || !status.startsWith("Nuking ESP32 boot/app flash")) return@launch
+                            installerProgress = (0.08f + (second + 1) / totalSeconds.toFloat() * 0.72f).coerceAtMost(0.80f)
+                            installerProgressNote = "Nuking old firmware… about ${second + 1}s elapsed. Keep the phone awake and cable still."
+                        }
+                    }
+                }
+                message.startsWith("Using bundled MicroPython") -> {
+                    installerProgress = 0.81f
+                    installerProgressNote = "Using the pre-bundled board image; sensor choice is applied later in MethodMesh config."
+                }
+                message.startsWith("Requesting flash write") -> {
+                    installerProgress = 0.82f
+                    installerProgressNote = "Asking the ESP32 bootloader to accept the bundled image blocks."
+                }
+                message.startsWith("Flash write accepted") -> {
+                    installerProgress = 0.84f
+                    installerProgressNote = message
+                }
+                message.startsWith("Writing MicroPython block") -> {
+                    val parts = Regex("""block (\d+)/(\d+)""").find(message)?.groupValues
+                    val current = parts?.getOrNull(1)?.toFloatOrNull()
+                    val total = parts?.getOrNull(2)?.toFloatOrNull()
+                    installerProgress = if (current != null && total != null && total > 0f) {
+                        (0.84f + (current / total) * 0.14f).coerceAtMost(0.98f)
+                    } else 0.9f
+                    installerProgressNote = message
+                }
+                message.startsWith("Finishing") -> {
+                    installerProgress = 0.99f
+                    installerProgressNote = "Finishing and rebooting."
+                }
+            }
+        }
+
+        LaunchedEffect(log) {
+            if (log.isNotBlank()) logScrollState.animateScrollTo(logScrollState.maxValue)
+        }
+
+        fun selectedSensorConfig(): String = JSONObject().apply {
+            put("device_id", "methodmesh_sensor")
+            put("device_name", "MethodMesh-Sensor")
+            put("sample_interval_ms", selectedSensorProfile.sampleIntervalMs)
+            put("sensor_profile", selectedSensorProfile.id)
+            put("provisioned", false)
+        }.toString()
 
         fun requestPermission(device: UsbDevice, action: String) {
             pendingAction = action
@@ -110,6 +295,164 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
             status = "Waiting for USB permission…"
         }
 
+        fun clearBootloaderCheck() {
+            bootloaderCheckSummary = ""
+            bootloaderCheckDeviceName = ""
+        }
+
+        fun clearMicroPythonCheck() {
+            microPythonReadyDeviceName = ""
+        }
+
+        fun checkBootloader(device: UsbDevice) {
+            if (!usbManager.hasPermission(device)) {
+                status = "USB permission needed before checking the ESP32-C3 bootloader."
+                requestPermission(device, "bootloader_check")
+                return
+            }
+            if (!device.isLikelyEsp32Target()) {
+                clearBootloaderCheck()
+                status = "Selected USB device is not a recognised Espressif/USB-serial target."
+                return
+            }
+            installing = true
+            installerProgress = 0.03f
+            installerProgressNote = "Checking that the selected device is really in ESP32 ROM bootloader mode."
+            status = "Checking ESP32-C3 bootloader…"
+            log = "Opening ESP32 ROM bootloader on ${device.deviceName}\nThis is a safe preflight check. It does not erase or write flash."
+            scope.launch {
+                val outcome = withContext(Dispatchers.IO) {
+                    runCatching { probeEsp32Bootloader(usbManager, device) { progress -> scope.launch { setInstallerProgress(progress) } } }
+                        .getOrElse { error -> FirmwareInstallResult(false, device.usbLabel(), "${error::class.java.simpleName}: ${error.message.orEmpty()}") }
+                }
+                installing = false
+                if (outcome.success) {
+                    bootloaderCheckDeviceName = device.deviceName
+                    bootloaderCheckSummary = outcome.message
+                    installerProgress = 1f
+                    installerProgressNote = "Bootloader preflight passed."
+                    if (flashEraseCompleted && installStage == "bootloader") {
+                        installStage = "write_micropython"
+                        status = "Bootloader detected on erased board. Ready to write bundled MicroPython."
+                    } else {
+                        status = "Bootloader detected. You can now clean replace with MicroPython."
+                    }
+                } else {
+                    clearBootloaderCheck()
+                    installerProgress = null
+                    installerProgressNote = ""
+                    status = "Bootloader check failed: ${outcome.message}"
+                }
+                append(if (outcome.success) "BOOTLOADER OK: ${outcome.message}" else "BOOTLOADER CHECK FAILED: ${outcome.message}")
+            }
+        }
+
+        fun detectBoardState(device: UsbDevice) {
+            if (!usbManager.hasPermission(device)) {
+                status = "USB permission needed before detecting board state."
+                requestPermission(device, "detect_state")
+                return
+            }
+            if (!device.isLikelyEsp32Target()) {
+                clearBootloaderCheck()
+                status = "Selected USB device is not a recognised Espressif/USB-serial target."
+                return
+            }
+            installing = true
+            installerProgress = 0.02f
+            installerProgressNote = "Trying bootloader first, then MicroPython REPL if needed."
+            status = "Detecting board state…"
+            log = "Detecting ESP32 state on ${device.deviceName}\nThis safe check does not erase or write flash."
+            scope.launch {
+                val bootloader = withContext(Dispatchers.IO) {
+                    runCatching { probeEsp32Bootloader(usbManager, device) { progress -> scope.launch { setInstallerProgress(progress) } } }
+                }
+                if (bootloader.isSuccess && bootloader.getOrThrow().success) {
+                    val outcome = bootloader.getOrThrow()
+                    bootloaderCheckDeviceName = device.deviceName
+                    bootloaderCheckSummary = outcome.message
+                    installing = false
+                    installerProgress = 1f
+                    installerProgressNote = "Board is in ESP32 ROM bootloader mode."
+                    if (flashEraseCompleted) {
+                        installStage = "write_micropython"
+                        status = "Detected erased/bootloader board. Ready to write bundled MicroPython."
+                    } else {
+                        installStage = "bootloader"
+                        status = "Detected ESP32 bootloader. Ready to erase, or continue if you know erase already completed."
+                    }
+                    append("DETECTED: ESP32 ROM bootloader.")
+                    return@launch
+                }
+                val repl = withContext(Dispatchers.IO) {
+                    runCatching { probeMicroPythonRepl(usbManager, device) { progress -> scope.launch { setInstallerProgress(progress) } } }
+                }
+                installing = false
+                if (repl.isSuccess && repl.getOrThrow().success) {
+                    clearBootloaderCheck()
+                    clearMicroPythonCheck()
+                    installerProgress = 1f
+                    installerProgressNote = "Board is running MicroPython."
+                    installStage = "sensor"
+                    status = "Detected MicroPython REPL. Choose the attached sensor, then upload MethodMesh firmware."
+                    append("DETECTED: MicroPython REPL.")
+                } else {
+                    installerProgress = null
+                    installerProgressNote = ""
+                    val bootloaderMessage = bootloader.exceptionOrNull()?.message ?: bootloader.getOrNull()?.message ?: "no bootloader response"
+                    val replMessage = repl.exceptionOrNull()?.message ?: repl.getOrNull()?.message ?: "no MicroPython response"
+                    status = if (looksLikeEspIdfFirmware(replMessage)) {
+                        flashEraseCompleted = false
+                        installStage = "bootloader"
+                        "Old ESP-IDF/Home Assistant-style firmware is still running. Put the board in bootloader mode and erase/write MicroPython again."
+                    } else {
+                        "Could not detect board state. If you already erased the board, skip to MicroPython write, then put the board in bootloader mode and check again."
+                    }
+                    append("DETECT FAILED: bootloader: ${bootloaderMessage.take(180)} | MicroPython: ${replMessage.take(180)}")
+                }
+            }
+        }
+
+        fun checkMicroPythonForProfileInstall(device: UsbDevice) {
+            if (!usbManager.hasPermission(device)) {
+                status = "USB permission needed before checking MicroPython."
+                requestPermission(device, "micropython_check")
+                return
+            }
+            if (!device.isLikelyEsp32Target()) {
+                status = "Selected USB device is not a recognised Espressif/USB-serial target."
+                return
+            }
+            installing = true
+            installerProgress = 0.02f
+            installerProgressNote = "Checking normal MicroPython REPL only. This step does not use bootloader mode."
+            status = "Checking MicroPython REPL…"
+            log = ""
+            append("Opening normal MicroPython USB device on ${device.deviceName}.")
+            append("If this loops: tap RESET without BOOT, wait for USB to reappear, refresh devices, then retry.")
+            scope.launch {
+                val outcome = withContext(Dispatchers.IO) {
+                    runCatching { probeMicroPythonRepl(usbManager, device) { progress -> scope.launch { setInstallerProgress(progress) } } }
+                        .getOrElse { error -> FirmwareInstallResult(false, device.usbLabel(), error.message ?: error::class.java.simpleName) }
+                }
+                installing = false
+                if (outcome.success) {
+                    clearBootloaderCheck()
+                    microPythonReadyDeviceName = device.deviceName
+                    installerProgress = 1f
+                    installerProgressNote = "MicroPython is ready for profile upload."
+                    installStage = "sensor"
+                    status = "MicroPython detected. Choose the attached sensor, then upload MethodMesh firmware."
+                    append("MICROPYTHON OK: ${outcome.message}")
+                } else {
+                    installerProgress = null
+                    installerProgressNote = ""
+                    status = "MicroPython check failed. Reset normally without BOOT, refresh USB devices, and retry. ${outcome.message}"
+                    append("MICROPYTHON CHECK FAILED: ${outcome.message}")
+                }
+            }
+        }
+
         fun installMainPy(device: UsbDevice) {
             if (!usbManager.hasPermission(device)) {
                 status = "USB permission needed for this MicroPython device. Android may see it as new after flashing."
@@ -117,29 +460,48 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
                 return
             }
             installing = true
+            installerProgress = null
+            installerProgressNote = ""
             result = null
-            status = "Installing bundled MethodMesh main.py…"
-            log = "Opening MicroPython USB REPL on ${device.deviceName}"
+            status = "Uploading MethodMesh firmware for ${selectedSensorProfile.label}…"
+            log = "Opening MicroPython USB REPL on ${device.deviceName}\nAttached sensor: ${selectedSensorProfile.label}"
             scope.launch {
                 val outcome = withContext(Dispatchers.IO) {
                     runCatching {
                         withTimeout(60000L) {
-                            installMainPyFirmware(usbManager, device, mainPy, driverFiles) { progress ->
-                                scope.launch { status = progress }
+                            installMainPyFirmware(
+                                usbManager = usbManager,
+                                device = device,
+                                firmware = mainPy,
+                                driverFiles = driverFiles,
+                                configFiles = listOf(SENSOR_CONFIG_TARGET to selectedSensorConfig())
+                            ) { progress ->
+                                scope.launch { setInstallerProgress(progress) }
                             }
                         }
                     }
                         .getOrElse { error -> FirmwareInstallResult(false, device.usbLabel(), error.message ?: error::class.java.simpleName) }
                 }
                 installing = false
-                status = if (outcome.success) "MethodMesh main.py installed. Reset the board, then run BLE sensor provisioning." else "MethodMesh main.py install failed: ${outcome.message}"
+                installerProgress = if (outcome.success) 1f else installerProgress
+                status = if (outcome.success) "MethodMesh firmware uploaded for ${selectedSensorProfile.label}. Reset the board, then run BLE sensor provisioning." else "Sensor profile upload failed: ${outcome.message}"
+                if (outcome.success) installStage = "done"
+                if (!outcome.success && looksLikeEspIdfFirmware(outcome.message)) {
+                    flashEraseCompleted = false
+                    installStage = "bootloader"
+                    status = "Old ESP-IDF/Home Assistant-style firmware is still running. Return to bootloader, erase flash, then write MicroPython before uploading MethodMesh firmware."
+                }
                 append(if (outcome.success) outcome.message else "FAILED: ${outcome.message}")
                 record(
                     SensorFirmwareInstallOutcome(
                         status = if (outcome.success) "installed" else "failed",
-                        firmwareName = "esp32c3_sensor_node/main.py",
-                        firmwareVersion = "methodmesh-sensor-0.1.1",
-                        firmwareBytes = (mainPy.toByteArray(Charsets.UTF_8).size + driverFiles.sumOf { it.second.toByteArray(Charsets.UTF_8).size }).toString(),
+                        firmwareName = "esp32c3_sensor_node/main.py:${selectedSensorProfile.id}",
+                        firmwareVersion = "methodmesh-sensor-0.1.2",
+                        firmwareBytes = (
+                            mainPy.toByteArray(Charsets.UTF_8).size +
+                                driverFiles.sumOf { it.second.toByteArray(Charsets.UTF_8).size } +
+                                selectedSensorConfig().toByteArray(Charsets.UTF_8).size
+                            ).toString(),
                         usbDevice = device.usbLabel(),
                         error = if (outcome.success) "" else outcome.message
                     )
@@ -156,24 +518,30 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
                 return
             }
             installing = true
+            installerProgress = null
+            installerProgressNote = ""
             result = null
             status = if (cleanErase) "Clean-installing MicroPython to ESP32-C3…" else "Flashing MicroPython to ESP32-C3…"
             log = "Opening ESP32 ROM bootloader on ${device.deviceName}\nIf sync fails: hold BOOT, tap RESET, release BOOT, then try again." +
                 if (cleanErase) "\nClean install will erase the normal 4 MB flash area before writing MicroPython." else ""
             scope.launch {
                 val outcome = withContext(Dispatchers.IO) {
-                    runCatching { flashMicroPythonImage(usbManager, device, microPythonBin, cleanErase = cleanErase) }
+                    runCatching { flashMicroPythonImage(usbManager, device, microPythonFlashImage, cleanErase = cleanErase) { progress -> scope.launch { setInstallerProgress(progress) } } }
                         .getOrElse { error -> FirmwareInstallResult(false, device.usbLabel(), "${error::class.java.simpleName}: ${error.message.orEmpty()}") }
                 }
                 installing = false
+                installerProgress = if (outcome.success) 1f else installerProgress
                 status = if (outcome.success) {
-                    if (cleanErase) "Clean MicroPython install complete. Reset or unplug/replug the board, refresh USB devices, then install MethodMesh main.py."
-                    else "MicroPython installed. Reset or unplug/replug the board, refresh USB devices, then install MethodMesh main.py."
-                } else "MicroPython flash failed."
+                    if (cleanErase) "Clean MicroPython install complete. Reset or unplug/replug the board, refresh USB devices, then install the MethodMesh sensor profile."
+                    else "MicroPython installed. Reset or unplug/replug the board, refresh USB devices, then install the MethodMesh sensor profile."
+                } else "MicroPython flash failed: ${outcome.message}"
                 append(outcome.message)
                 if (outcome.success) {
+                    installStage = "reset"
+                    flashEraseCompleted = false
                     devices = usbDevices(usbManager)
                     selected = null
+                    clearBootloaderCheck()
                 }
                 record(
                     SensorFirmwareInstallOutcome(
@@ -188,9 +556,9 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
-        fun installCompleteFirmware(device: UsbDevice) {
+        fun wipeBoard(device: UsbDevice) {
             if (!usbManager.hasPermission(device)) {
-                requestPermission(device, "complete_firmware")
+                requestPermission(device, "board_wipe")
                 return
             }
             if (!device.isLikelyEsp32Target()) {
@@ -198,27 +566,37 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
                 return
             }
             installing = true
+            installerProgress = null
+            installerProgressNote = ""
             result = null
-            status = "Step 1: clean-installing MicroPython…"
-            log = "Opening ESP32 ROM bootloader on ${device.deviceName}\nThis step writes MicroPython only. After it succeeds, reset or unplug/replug the board, refresh USB devices, then press Upload MethodMesh main.py."
+            status = "Nuking ESP32 boot/app flash…"
+            log = "Opening ESP32 ROM bootloader on ${device.deviceName}\nThis step erases/overwrites the lower 2 MB boot/app/settings region so old firmware cannot start. After it succeeds, keep or return the board in BOOT mode, refresh USB devices, check bootloader again, then write MicroPython."
             scope.launch {
                 val outcome = withContext(Dispatchers.IO) {
-                    runCatching { flashMicroPythonImage(usbManager, device, microPythonBin, cleanErase = true) }
+                    runCatching { eraseEsp32FlashOnly(usbManager, device, bootNukeImage) { progress -> scope.launch { setInstallerProgress(progress) } } }
                         .getOrElse { error -> FirmwareInstallResult(false, device.usbLabel(), "${error::class.java.simpleName}: ${error.message.orEmpty()}") }
                 }
                 installing = false
+                installerProgress = if (outcome.success) 1f else installerProgress
                 status = if (outcome.success) {
-                    "Step 1 complete. Reset or unplug/replug the board normally, refresh USB devices, then press Upload MethodMesh main.py."
+                    "Erase complete. Refresh/reselect the ESP32-C3 in bootloader mode, check bootloader again, then write MicroPython."
                 } else {
-                    "MicroPython install failed."
+                    "ESP32 flash erase failed: ${outcome.message}"
+                }
+                if (outcome.success) {
+                    flashEraseCompleted = true
+                    installStage = "write_micropython"
+                    devices = usbDevices(usbManager)
+                    selected = null
+                    clearBootloaderCheck()
                 }
                 append(outcome.message)
                 record(
                     SensorFirmwareInstallOutcome(
-                        status = if (outcome.success) "installed" else "failed",
-                        firmwareName = "ESP32_GENERIC_C3 MicroPython",
+                        status = if (outcome.success) "erased" else "failed",
+                        firmwareName = "ESP32-C3 flash erase",
                         firmwareVersion = "MicroPython v1.28.0",
-                        firmwareBytes = microPythonBin.size.toString(),
+                        firmwareBytes = "0",
                         usbDevice = device.usbLabel(),
                         error = if (outcome.success) "" else outcome.message
                     )
@@ -233,9 +611,12 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
             if (usbManager.hasPermission(device) && !installing) {
                 status = "USB permission granted. Continuing…"
                 when (pendingAction) {
+                    "detect_state" -> detectBoardState(device)
+                    "micropython_check" -> checkMicroPythonForProfileInstall(device)
+                    "bootloader_check" -> checkBootloader(device)
                     "micropython" -> flashMicroPython(device)
                     "clean_micropython" -> flashMicroPython(device, cleanErase = true)
-                    "complete_firmware" -> installCompleteFirmware(device)
+                    "board_wipe" -> wipeBoard(device)
                     else -> installMainPy(device)
                 }
             }
@@ -248,14 +629,17 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
                     val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java) else @Suppress("DEPRECATION") intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false) && device != null) {
                         when (pendingAction) {
+                            "detect_state" -> detectBoardState(device)
+                            "micropython_check" -> checkMicroPythonForProfileInstall(device)
+                            "bootloader_check" -> checkBootloader(device)
                             "micropython" -> flashMicroPython(device)
                             "clean_micropython" -> flashMicroPython(device, cleanErase = true)
-                            "complete_firmware" -> installCompleteFirmware(device)
+                            "board_wipe" -> wipeBoard(device)
                             else -> installMainPy(device)
                         }
                     } else {
                         installing = false
-                        status = if (pendingAction == "main_py") "USB permission denied for the MicroPython device. If the board just rebooted, unplug/replug it, refresh USB devices, select it again, and retry main.py install." else "USB permission denied."
+                        status = if (pendingAction == "main_py") "USB permission denied for the MicroPython device. If the board just rebooted, unplug/replug it, refresh USB devices, select it again, and retry sensor profile upload." else "USB permission denied."
                     }
                 }
             }
@@ -279,78 +663,342 @@ object SensorFirmwareInstallerCapabilityScreen : CapabilityScreenSpec {
                 result = null
                 devices = usbDevices(usbManager)
                 selected = null
+                clearBootloaderCheck()
+                clearMicroPythonCheck()
+                installStage = initialInstallStage
+                flashEraseCompleted = initialFlashEraseCompleted
                 status = "Device list refreshed. Select the ESP32-C3 board before continuing."
             },
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
             Text("Install the MethodMesh sensor stack to an ESP32-C3 from the phone.", style = MaterialTheme.typography.bodyMedium)
-            Text("Step 1 flashes MicroPython in ESP bootloader mode. Step 2 uploads the bundled MethodMesh main.py after the board has rebooted normally.", style = MaterialTheme.typography.bodySmall)
-            Text("For blank or wiped boards: hold BOOT, tap RESET, release BOOT, then press Step 1. After Step 1 succeeds, reset or unplug/replug without holding BOOT, refresh USB devices, then press Step 2.", style = MaterialTheme.typography.bodySmall)
+            Text(
+                when (installStage) {
+                    "bootloader" -> "Wipe old ESP32 firmware."
+                    "write_micropython" -> "Install the MethodMesh ESP32 runtime."
+                    "reset" -> "Check the MicroPython USB connection."
+                    "sensor" -> "Choose the attached sensor."
+                    "upload" -> "Upload the selected sensor profile."
+                    "done" -> "ESP32 sensor setup complete."
+                    else -> "ESP32 sensor installer."
+                },
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodyMedium
+            )
             Spacer(Modifier.height(10.dp))
             Text("Bundled firmware", fontWeight = FontWeight.SemiBold)
-            Text("$MICROPYTHON_BIN_ASSET · ${microPythonBin.size} bytes", style = MaterialTheme.typography.bodySmall)
-            Text("$MAIN_PY_ASSET · ${mainPy.toByteArray(Charsets.UTF_8).size} bytes", style = MaterialTheme.typography.bodySmall)
+            Text("$MICROPYTHON_BIN_ASSET · ${microPythonBin.size} bytes · board-level precompiled MicroPython image", style = MaterialTheme.typography.bodySmall)
+            Text("${microPythonFlashImage.blocks.size} ready flash block(s) cached in app memory; sensor choice does not rebuild this image.", style = MaterialTheme.typography.bodySmall)
+            Text("$MAIN_PY_ASSET · ${mainPy.toByteArray(Charsets.UTF_8).size} bytes · generic multi-sensor runtime", style = MaterialTheme.typography.bodySmall)
             Text("${driverFiles.size} sensor driver file(s) · ${driverFiles.sumOf { it.second.toByteArray(Charsets.UTF_8).size }} bytes", style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(10.dp))
-            OutlinedButton(
-                onClick = {
-                    devices = usbDevices(usbManager)
-                    selected = null
-                    status = "Found ${devices.size} USB device(s). Select the ESP32-C3 board below."
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Refresh USB devices") }
-            Spacer(Modifier.height(8.dp))
-            if (devices.isEmpty()) {
-                Text("No USB devices found. Connect the ESP32-C3 by USB/OTG, then refresh.", style = MaterialTheme.typography.bodySmall)
+
+            if (installStage == "bootloader") {
+                Text("Put the board into bootloader mode:", fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (flashEraseCompleted) "Flash erase has already completed. Hold BOOT/tap RESET if needed, refresh/select the ESP32-C3, then check bootloader to continue to MicroPython write."
+                    else "Hold BOOT, tap RESET, then release BOOT. Refresh devices and select the ESP32-C3.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        devices = usbDevices(usbManager)
+                        selected = null
+                        clearBootloaderCheck()
+                        clearMicroPythonCheck()
+                        status = "Found ${devices.size} USB device(s). Select the ESP32-C3 board below."
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Refresh USB devices") }
+                Spacer(Modifier.height(8.dp))
+                if (devices.isEmpty()) {
+                    Text("No USB devices found. Connect the ESP32-C3 by USB/OTG, then refresh.", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Text("Select ESP32-C3 bootloader device", fontWeight = FontWeight.SemiBold)
+                }
+                devices.forEach { device ->
+                    OutlinedButton(onClick = { selected = device; clearBootloaderCheck(); clearMicroPythonCheck(); status = "Selected ${device.usbLabel()} ${device.guardLabel()}" }, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (selected == device) "✓ ${device.usbLabel()}" else device.usbLabel())
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { selected?.let { detectBoardState(it) } ?: run { status = "No USB device selected." } },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !installing && selected?.isLikelyEsp32Target() == true
+                ) {
+                    Text(if (installing && status.startsWith("Detecting")) "Detecting…" else "Detect ESP32 state")
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { selected?.let { checkBootloader(it) } ?: run { status = "No USB device selected." } },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !installing && selected?.isLikelyEsp32Target() == true
+                ) {
+                    Text(if (installing && status.startsWith("Checking ESP32")) "Checking bootloader…" else "Confirm bootloader mode")
+                }
+                if (bootloaderCheckSummary.isNotBlank() && bootloaderCheckDeviceName == selected?.deviceName) {
+                    Text("✓ $bootloaderCheckSummary", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                } else {
+                    Text("Flash controls stay locked until this selected device answers the ESP32 ROM bootloader handshake.", style = MaterialTheme.typography.bodySmall)
+                }
+                if (flashEraseCompleted && bootloaderCheckSummary.isNotBlank() && bootloaderCheckDeviceName == selected?.deviceName) {
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = { installStage = "write_micropython"; status = "Ready to write bundled MicroPython image." },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !installing
+                    ) {
+                        Text("Continue to MicroPython write")
+                    }
+                }
+                if (!flashEraseCompleted && selected?.isLikelyEsp32Target() == true) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            flashEraseCompleted = true
+                            installStage = "write_micropython"
+                            status = "Marked erase as already complete. Put/check the board in bootloader mode, then write bundled MicroPython."
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !installing
+                    ) {
+                        Text("I already erased this board — skip to MicroPython write")
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Row {
+                    Checkbox(checked = destructiveConfirmed, onCheckedChange = { destructiveConfirmed = it })
+                    Text("I understand this erases and overwrites the selected ESP32-C3.", style = MaterialTheme.typography.bodySmall)
+                }
+                Button(
+                    onClick = { selected?.let { wipeBoard(it) } ?: run { status = "No USB device selected." } },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !installing &&
+                        destructiveConfirmed &&
+                        selected?.isLikelyEsp32Target() == true &&
+                        bootloaderCheckSummary.isNotBlank() &&
+                        bootloaderCheckDeviceName == selected?.deviceName
+                ) {
+                    Text(if (installing) "Wiping old firmware…" else "Wipe old firmware")
+                }
+            } else if (installStage == "write_micropython") {
+                Text("Write bundled MicroPython image.", fontWeight = FontWeight.SemiBold)
+                Text("Keep the board in bootloader mode. If Android refreshed the USB connection after erase, refresh and select the ESP32-C3 again, then run the bootloader check before writing.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        devices = usbDevices(usbManager)
+                        selected = null
+                        clearBootloaderCheck()
+                        clearMicroPythonCheck()
+                        status = "Found ${devices.size} USB device(s). Select the ESP32-C3 bootloader device again."
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Refresh USB devices") }
+                devices.forEach { device ->
+                    OutlinedButton(onClick = { selected = device; clearBootloaderCheck(); clearMicroPythonCheck(); status = "Selected ${device.usbLabel()} ${device.guardLabel()}" }, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (selected == device) "✓ ${device.usbLabel()}" else device.usbLabel())
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { selected?.let { detectBoardState(it) } ?: run { status = "No USB device selected." } },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !installing && selected?.isLikelyEsp32Target() == true
+                ) {
+                    Text(if (installing && status.startsWith("Detecting")) "Detecting…" else "Detect ESP32 state")
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { selected?.let { checkBootloader(it) } ?: run { status = "No USB device selected." } },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !installing && selected?.isLikelyEsp32Target() == true
+                ) {
+                    Text(if (installing && status.startsWith("Checking ESP32")) "Checking bootloader…" else "Confirm bootloader mode")
+                }
+                if (bootloaderCheckSummary.isNotBlank() && bootloaderCheckDeviceName == selected?.deviceName) {
+                    Text("✓ $bootloaderCheckSummary", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                } else {
+                    Text("MicroPython write stays locked until the selected device answers the ESP32 ROM bootloader handshake.", style = MaterialTheme.typography.bodySmall)
+                }
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { selected?.let { flashMicroPython(it, cleanErase = false) } ?: run { status = "No USB device selected." } },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !installing &&
+                        selected?.isLikelyEsp32Target() == true &&
+                        bootloaderCheckSummary.isNotBlank() &&
+                        bootloaderCheckDeviceName == selected?.deviceName
+                ) {
+                    Text(if (installing) "Installing runtime…" else "Install MethodMesh runtime")
+                }
+                OutlinedButton(onClick = { installStage = "bootloader"; clearBootloaderCheck(); status = "Back to wipe screen." }, modifier = Modifier.fillMaxWidth(), enabled = !installing) {
+                    Text("Back to wipe step")
+                }
+            } else if (installStage == "reset") {
+                Text("Verify MicroPython before sensor upload.", fontWeight = FontWeight.SemiBold)
+                Text("Reset the board normally: tap RESET without holding BOOT, or unplug/replug it. Then refresh/select it and run the MicroPython check. If old Wi‑Fi firmware is still running, the app will send you back to erase/write.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        devices = usbDevices(usbManager)
+                        selected = null
+                        clearMicroPythonCheck()
+                        status = "Found ${devices.size} USB device(s). Select the normal MicroPython USB device."
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Refresh USB devices") }
+                devices.forEach { device ->
+                    OutlinedButton(onClick = { selected = device; clearMicroPythonCheck(); status = "Selected normal device: ${device.usbLabel()}" }, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (selected == device) "✓ ${device.usbLabel()}" else device.usbLabel())
+                    }
+                }
+                Button(
+                    onClick = { selected?.let { checkMicroPythonForProfileInstall(it) } ?: run { status = "Select the normal MicroPython USB device first." } },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = selected != null && !installing
+                ) { Text(if (installing && status.startsWith("Checking MicroPython")) "Checking MicroPython…" else "Check MicroPython connection") }
+            } else if (installStage == "sensor") {
+                Text("Choose the sensor wired to this board.", fontWeight = FontWeight.SemiBold)
+                SENSOR_FIRMWARE_PROFILES.forEach { profile ->
+                    val selectedProfile = profile.id == selectedSensorProfileId
+                    if (selectedProfile) {
+                        Button(onClick = { selectedSensorProfileId = profile.id }, modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.fillMaxWidth()) {
+                                Text("✓ ${profile.label}")
+                                Text(profile.description, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = {
+                                selectedSensorProfileId = profile.id
+                                status = "Selected attached sensor: ${profile.label}."
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(Modifier.fillMaxWidth()) {
+                                Text(profile.label)
+                                Text(profile.description, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Select ESP32-C3 running MicroPython.", fontWeight = FontWeight.SemiBold)
+                Text("The board should be in normal mode, not BOOT mode. If it was just flashed, tap RESET once without BOOT, wait for USB to reappear, then refresh.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        devices = usbDevices(usbManager)
+                        selected = null
+                        clearMicroPythonCheck()
+                        status = "Found ${devices.size} USB device(s). Select the normal MicroPython USB device."
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !installing
+                ) { Text("Refresh USB devices") }
+                devices.forEach { device ->
+                    OutlinedButton(
+                        onClick = { selected = device; clearMicroPythonCheck(); status = "Selected ${device.usbLabel()}" },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !installing
+                    ) {
+                        Text(if (selected == device) "✓ ${device.usbLabel()}" else device.usbLabel())
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { selected?.let { checkMicroPythonForProfileInstall(it) } ?: run { status = "Select the ESP32-C3 normal USB device first." } },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = selected != null && !installing
+                ) { Text(if (installing && status.startsWith("Checking MicroPython")) "Checking MicroPython…" else "Check MicroPython connection") }
+                if (microPythonReadyDeviceName == selected?.deviceName) {
+                    Text("✓ MicroPython connection ready on the selected device.", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                } else {
+                    Text("Upload stays locked until this selected device answers the MicroPython REPL check.", style = MaterialTheme.typography.bodySmall)
+                }
+                Button(
+                    onClick = { installStage = "upload"; status = "Ready to upload MethodMesh firmware for ${selectedSensorProfile.label}." },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = selected != null && microPythonReadyDeviceName == selected?.deviceName && !installing
+                ) { Text("Continue to upload ${selectedSensorProfile.label}") }
+            } else if (installStage == "upload") {
+                Text("Upload ${selectedSensorProfile.label} profile.", fontWeight = FontWeight.SemiBold)
+                Text("This replaces main.py, shared drivers, and the selected sensor config. The board should be in normal MicroPython mode, not BOOT mode.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = { selected?.let { installMainPy(it) } ?: run { status = "No USB device selected. Go back and refresh/select the normal board." } }, modifier = Modifier.fillMaxWidth(), enabled = !installing) {
+                    Text(if (installing) "Uploading sensor profile…" else "Upload sensor profile to board")
+                }
+                OutlinedButton(onClick = { installStage = "sensor"; status = "Choose the attached sensor and normal USB device." }, modifier = Modifier.fillMaxWidth(), enabled = !installing) {
+                    Text("Back to sensor and device selection")
+                }
             } else {
-                Text("Select USB device", fontWeight = FontWeight.SemiBold)
-            }
-            devices.forEach { device ->
-                OutlinedButton(onClick = { selected = device; status = "Selected ${device.usbLabel()} ${device.guardLabel()}" }, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (selected == device) "Selected: ${device.usbLabel()}" else "Use ${device.usbLabel()}")
+                Text("MethodMesh firmware was uploaded. Reset the board, then use BLE sensor provisioning.", fontWeight = FontWeight.SemiBold)
+                OutlinedButton(onClick = { installStage = "bootloader"; flashEraseCompleted = false; result = null; selected = null; status = "Starting a new install." }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Start another install")
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Text(
-                "Usual sequence: choose board → confirm overwrite → Step 1. After flashing succeeds, reset or unplug/replug normally, refresh, choose the board again, then Step 2.",
-                style = MaterialTheme.typography.bodySmall
-            )
-            Spacer(Modifier.height(8.dp))
-            Row {
-                Checkbox(checked = destructiveConfirmed, onCheckedChange = { destructiveConfirmed = it })
-                Text("I understand installation erases and overwrites the selected ESP32-C3.", style = MaterialTheme.typography.bodySmall)
-            }
-            Button(onClick = { selected?.let { installCompleteFirmware(it) } ?: run { status = "No USB device selected." } }, modifier = Modifier.fillMaxWidth(), enabled = !installing && destructiveConfirmed && selected?.isLikelyEsp32Target() == true) {
-                Text(if (installing) "Working…" else "Step 1: install MicroPython")
-            }
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = { selected?.let { installMainPy(it) } ?: run { status = "No USB device selected." } }, modifier = Modifier.fillMaxWidth(), enabled = !installing) {
-                Text(if (installing) "Working…" else "Step 2: upload MethodMesh main.py")
-            }
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = { selected?.let { flashMicroPython(it) } ?: run { status = "No USB device selected." } }, modifier = Modifier.fillMaxWidth(), enabled = !installing && destructiveConfirmed && selected?.isLikelyEsp32Target() == true) {
-                Text(if (installing) "Working…" else "Advanced: install MicroPython only")
-            }
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = { selected?.let { flashMicroPython(it, cleanErase = true) } ?: run { status = "No USB device selected." } }, modifier = Modifier.fillMaxWidth(), enabled = !installing && destructiveConfirmed && selected?.isLikelyEsp32Target() == true) {
-                Text(if (installing) "Working…" else "Advanced: clean install MicroPython only")
-            }
             Text(status, style = MaterialTheme.typography.bodySmall)
+            if (installerProgress != null || installing) {
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { installerProgress ?: 0.1f },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (installerProgressNote.isNotBlank()) {
+                    Text(installerProgressNote, style = MaterialTheme.typography.bodySmall)
+                }
+            }
             if (log.isNotBlank()) {
                 Spacer(Modifier.height(8.dp))
-                Text("Installer log", fontWeight = FontWeight.SemiBold)
-                Text(log, style = MaterialTheme.typography.bodySmall)
+                Text("Installer terminal", fontWeight = FontWeight.SemiBold)
+                Text(
+                    log,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 160.dp, max = 320.dp)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                        .verticalScroll(logScrollState)
+                        .padding(10.dp),
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+                )
             }
             Spacer(Modifier.height(16.dp))
             IntentExampleDropdown(
-                capabilityId = As100SensorFirmwareInstallerMethod.ID,
-                examples = listOf(IntentExample("Install bundled firmware", "Open the USB firmware installer.", "com.example.methodmesh.EXECUTE_METHOD(method_id='sensor_firmware_installer',return_mode='flat')"))
+                capabilityId = capabilityId,
+                examples = esp32FirmwareExamples(capabilityId)
             )
         }
     }
 }
+
+object Esp32BoardWipeCapabilityScreen : CapabilityScreenSpec by SensorFirmwareInstallerCapabilityScreenSpec(
+    capabilityId = As100Esp32BoardWipeMethod.id,
+    title = "Wipe ESP32 board",
+    description = "Erase an ESP32-C3 and check that old firmware is no longer running."
+)
+
+object Esp32RuntimeInstallCapabilityScreen : CapabilityScreenSpec by SensorFirmwareInstallerCapabilityScreenSpec(
+    capabilityId = As100Esp32RuntimeInstallMethod.id,
+    title = "Install MethodMesh ESP32 runtime",
+    description = "Write the bundled board-level MicroPython image to an ESP32-C3.",
+    initialInstallStage = "write_micropython",
+    initialFlashEraseCompleted = true
+)
+
+object Esp32SensorProfileInstallCapabilityScreen : CapabilityScreenSpec by SensorFirmwareInstallerCapabilityScreenSpec(
+    capabilityId = As100Esp32SensorProfileInstallMethod.id,
+    title = "Install ESP32 sensor profile",
+    description = "Install or replace the sensor-specific driver/config on an ESP32-C3 already running MicroPython.",
+    initialInstallStage = "sensor"
+)
 
 private data class FirmwareInstallResult(val success: Boolean, val usbDevice: String, val message: String)
 
@@ -369,50 +1017,106 @@ private fun UsbDevice.isLikelyEsp32Target(): Boolean {
         vid == 0x0403 // FTDI USB serial adapters.
 }
 
+private fun probeEsp32Bootloader(
+    usbManager: UsbManager,
+    device: UsbDevice,
+    onProgress: (String) -> Unit = {}
+): FirmwareInstallResult {
+    if (!device.isLikelyEsp32Target()) {
+        return FirmwareInstallResult(false, device.usbLabel(), "Refusing to probe an unrecognised USB device.")
+    }
+    val serial = openUsbSerial(usbManager, device)
+        ?: return FirmwareInstallResult(false, device.usbLabel(), "USB serial open failed: no bulk USB serial interface was found.")
+    serial.use {
+        it.drain()
+        onProgress("Synchronising with ESP32 ROM bootloader…")
+        Esp32RomBootloader(it).sync(onProgress)
+    }
+    return FirmwareInstallResult(
+        true,
+        device.usbLabel(),
+        "ESP32-C3 ROM bootloader responded on ${device.usbLabel()}."
+    )
+}
+
+private fun eraseEsp32FlashOnly(
+    usbManager: UsbManager,
+    device: UsbDevice,
+    nukeImage: PreparedFlashImage,
+    onProgress: (String) -> Unit = {}
+): FirmwareInstallResult {
+    if (!device.isLikelyEsp32Target()) {
+        return FirmwareInstallResult(false, device.usbLabel(), "Refusing to wipe an unrecognised USB device.")
+    }
+    val serial = openUsbSerial(usbManager, device)
+        ?: return FirmwareInstallResult(false, device.usbLabel(), "USB serial open failed: no bulk USB serial interface was found.")
+    serial.use {
+        it.drain()
+        onProgress("Synchronising with ESP32 ROM bootloader…")
+        val rom = Esp32RomBootloader(it)
+        rom.sync(onProgress)
+        rom.nukeBootAndAppFlash(nukeImage, onProgress)
+        runCatching { rom.finish(reboot = false) }
+    }
+    return FirmwareInstallResult(
+        true,
+        device.usbLabel(),
+        "ESP32 boot/app/settings region was erased and overwritten. Old firmware should no longer be able to start; re-check bootloader before writing the bundled MicroPython image."
+    )
+}
+
+private fun probeMicroPythonRepl(
+    usbManager: UsbManager,
+    device: UsbDevice,
+    onProgress: (String) -> Unit = {}
+): FirmwareInstallResult {
+    onProgress("Checking for MicroPython REPL…")
+    val serial = openManagedMicroPythonSerial(usbManager, device, onProgress)
+        ?: return FirmwareInstallResult(false, device.usbLabel(), "No Android USB serial driver could open this device for the MicroPython REPL.")
+    serial.use {
+        managedReplProbe(it, onProgress)
+    }
+    return FirmwareInstallResult(
+        true,
+        device.usbLabel(),
+        "MicroPython REPL responded on ${device.usbLabel()}."
+    )
+}
+
 private fun installMainPyFirmware(
     usbManager: UsbManager,
     device: UsbDevice,
     firmware: String,
     driverFiles: List<Pair<String, String>> = emptyList(),
+    configFiles: List<Pair<String, String>> = emptyList(),
     onProgress: (String) -> Unit = {}
 ): FirmwareInstallResult {
-    val serial = openMicroPythonSerial(usbManager, device)
+    val serial = openManagedMicroPythonSerial(usbManager, device, onProgress)
         ?: return FirmwareInstallResult(false, device.usbLabel(), "No Android USB serial driver could open this device for the MicroPython REPL.")
     serial.use {
+        managedReplProbe(it, onProgress)
         runCatching {
-            // Native ESP32-C3 USB CDC consoles often stay quiet until the host
-            // asserts DTR. Do this once, without toggling RTS, so we do not
-            // intentionally kick the board back into download/reset mode.
-            it.setTerminalReady()
-            Thread.sleep(250)
-            // For main.py upload, do not toggle DTR/RTS. On many ESP32-C3
-            // boards those lines are wired to reset/boot and can put the chip
-            // back into ROM download mode. Just interrupt any running script
-            // and probe the normal MicroPython REPL.
-            it.write(byteArrayOf(3, 3, 13, 10))
-            Thread.sleep(700)
-        }.onFailure { error -> throw IllegalStateException("MicroPython interrupt failed: ${error.message.orEmpty()}") }
-        runCatching { friendlyReplProbe(it) }
-            .recoverCatching { firstError ->
-                // If the board is still in download mode or the console has not
-                // been woken by Android's USB stack, a gentle normal-mode reset
-                // sometimes brings MicroPython up. This intentionally avoids the
-                // BOOT/download-mode line state used by flashing.
-                it.resetToNormalRun()
-                friendlyReplProbe(it)
-            }
-            .onFailure { error ->
-                throw IllegalStateException(
-                    "MicroPython friendly REPL probe failed: ${error.message.orEmpty()} " +
-                        "If the response is blank, tap RESET once without holding BOOT, unplug/replug the board, refresh USB devices, and retry main.py install."
-                )
-            }
-        runCatching { rawExec(it, "print('MethodMesh MicroPython link ready')", "raw probe") }
+            rawExecExpecting(
+                serial = it,
+                code = "print('__METHODMESH_RAW_READY__')",
+                label = "raw probe",
+                expected = "__METHODMESH_RAW_READY__"
+            )
+        }
             .onFailure { error -> throw IllegalStateException("MicroPython raw REPL probe failed: ${error.message.orEmpty()}") }
+        quietExistingSensorRuntime(it, onProgress)
+        purgeExistingMicroPythonFiles(it, onProgress)
 
         if (driverFiles.isNotEmpty()) {
             onProgress("Preparing sensor driver folder…")
-            runCatching { rawExec(it, "import os\ntry:\n    os.mkdir('sensor_drivers')\nexcept OSError:\n    pass", "create sensor driver folder") }
+            runCatching {
+                rawExecExpecting(
+                    serial = it,
+                    code = "import os\ntry:\n    os.mkdir('sensor_drivers')\nexcept OSError:\n    pass\nprint('__METHODMESH_DRIVER_DIR_OK__')",
+                    label = "create sensor driver folder",
+                    expected = "__METHODMESH_DRIVER_DIR_OK__"
+                )
+            }
                 .onFailure { error -> throw IllegalStateException("Could not prepare sensor_drivers folder: ${error.message.orEmpty()}") }
         }
         driverFiles.forEachIndexed { index, (path, contents) ->
@@ -424,17 +1128,164 @@ private fun installMainPyFirmware(
                 onProgress = onProgress
             )
         }
+        configFiles.forEachIndexed { index, (path, contents) ->
+            uploadPythonFile(
+                serial = it,
+                path = path,
+                contents = contents,
+                label = "sensor configuration ${index + 1}/${configFiles.size}",
+                onProgress = onProgress
+            )
+        }
         uploadPythonFile(
             serial = it,
             path = "main.py",
             contents = firmware,
-            label = "MethodMesh main.py",
+            label = "MethodMesh runtime",
             onProgress = onProgress
         )
-        onProgress("Resetting board after main.py upload…")
+        onProgress("Verifying installed MethodMesh sensor profile…")
+        configFiles.firstOrNull { config -> config.first == SENSOR_CONFIG_TARGET }?.second?.let { expectedConfig ->
+            val expectedProfile = runCatching { JSONObject(expectedConfig).optString("sensor_profile") }.getOrNull().orEmpty()
+            if (expectedProfile.isNotBlank()) {
+                rawExecExpecting(
+                    serial = it,
+                    code = "import json\ncfg=json.loads(open('$SENSOR_CONFIG_TARGET').read())\nprint('__METHODMESH_PROFILE__' + str(cfg.get('sensor_profile','')))",
+                    label = "verify selected sensor profile",
+                    expected = "__METHODMESH_PROFILE__$expectedProfile"
+                )
+            }
+        }
+        onProgress("Resetting board after profile upload…")
         runCatching { rawExec(it, "import machine; machine.reset()", "reset", requirePrompt = false) }
     }
-    return FirmwareInstallResult(true, device.usbLabel(), "Bundled main.py was copied to the board and reset was requested.")
+    return FirmwareInstallResult(true, device.usbLabel(), "MethodMesh runtime, drivers and selected sensor configuration were copied to the board; reset was requested.")
+}
+
+private fun quietExistingSensorRuntime(
+    serial: PythonSerialLink,
+    onProgress: (String) -> Unit
+) {
+    onProgress("Stopping previous sensor firmware before upload…")
+    val code = """
+import gc
+try:
+    import network
+    network.WLAN(network.STA_IF).active(False)
+    network.WLAN(network.AP_IF).active(False)
+except Exception:
+    pass
+try:
+    import bluetooth
+    bluetooth.BLE().active(False)
+except Exception:
+    pass
+try:
+    gc.collect()
+except Exception:
+    pass
+print('__METHODMESH_QUIET_OK__')
+""".trimIndent()
+    rawExecExpecting(
+        serial = serial,
+        code = code,
+        label = "quiet previous firmware",
+        expected = "__METHODMESH_QUIET_OK__"
+    )
+    Thread.sleep(500)
+    serial.drain()
+}
+
+private fun purgeExistingMicroPythonFiles(
+    serial: PythonSerialLink,
+    onProgress: (String) -> Unit
+) {
+    onProgress("Removing old MicroPython startup/config files before upload…")
+    val code = """
+import os
+def rm(path):
+    try:
+        mode = os.stat(path)[0]
+        is_dir = bool(mode & 0x4000)
+    except Exception:
+        return
+    if is_dir:
+        try:
+            for name in os.listdir(path):
+                rm(path + '/' + name)
+        except Exception:
+            pass
+        try:
+            os.rmdir(path)
+        except Exception:
+            pass
+    else:
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+for p in ('main.py','boot.py','methodmesh_sensor_config.json','sensor_drivers'):
+    rm(p)
+print('__METHODMESH_PURGE_OK__')
+""".trimIndent()
+    rawExecExpecting(
+        serial = serial,
+        code = code,
+        label = "purge old MicroPython startup files",
+        expected = "__METHODMESH_PURGE_OK__"
+    )
+    Thread.sleep(300)
+    serial.drain()
+}
+
+private fun openManagedMicroPythonSerial(
+    manager: UsbManager,
+    device: UsbDevice,
+    onProgress: (String) -> Unit
+): PythonSerialLink? {
+    onProgress("Opening MicroPython serial console…")
+    openMicroPythonSerial(manager, device)?.let { return it }
+    onProgress("Default serial driver did not open; trying native USB CDC path…")
+    return openUsbSerial(manager, device)
+}
+
+private fun managedReplProbe(
+    serial: PythonSerialLink,
+    onProgress: (String) -> Unit
+) {
+    val attempts = listOf(
+        "interrupt running script" to {
+            serial.setTerminalReady()
+            serial.interruptRunningScript()
+            friendlyReplProbe(serial, "interrupt")
+        },
+        "soft reset MicroPython" to {
+            serial.softResetMicroPython()
+            friendlyReplProbe(serial, "soft reset")
+        },
+        "quiet raw REPL fallback" to {
+            rawExecExpecting(
+                serial = serial,
+                code = "print('__METHODMESH_FRIENDLY_READY__')",
+                label = "quiet raw probe",
+                expected = "__METHODMESH_FRIENDLY_READY__"
+            )
+        }
+    )
+    val errors = mutableListOf<String>()
+    attempts.forEachIndexed { index, (label, attempt) ->
+        onProgress("MicroPython recovery ${index + 1}/${attempts.size}: $label…")
+        val response = runCatching { attempt() }
+            .onSuccess { return }
+            .onFailure { error -> errors += "$label: ${error.message.orEmpty().ifBlank { error::class.java.simpleName }}" }
+        response.exceptionOrNull()
+        Thread.sleep(350)
+    }
+    throw IllegalStateException(
+        "MicroPython REPL did not respond after managed recovery attempts. " +
+            "Tap RESET once without holding BOOT, wait for Android to rediscover USB, refresh devices, then retry this step. " +
+            "Attempts: ${errors.joinToString(" | ").take(600)}"
+    )
 }
 
 private fun uploadPythonFile(
@@ -445,44 +1296,148 @@ private fun uploadPythonFile(
     onProgress: (String) -> Unit
 ) {
     onProgress("Preparing $label…")
-    runCatching { rawExec(serial, "f=open('$path','wb');f.write(b'');f.close()", "create $path") }
+    runCatching {
+        rawExecExpecting(
+            serial = serial,
+            code = "f=open('$path','wb');f.write(b'');f.close();print('__METHODMESH_CREATE_OK__')",
+            label = "create $path",
+            expected = "__METHODMESH_CREATE_OK__"
+        )
+    }
         .onFailure { error -> throw IllegalStateException("Could not create $path: ${error.message.orEmpty()}") }
-    val chunks = contents.toByteArray(Charsets.UTF_8).toList().chunked(512)
+    val chunks = contents.toByteArray(Charsets.UTF_8).toList().chunked(192)
     chunks.forEachIndexed { index, chunk ->
         onProgress("Writing $label chunk ${index + 1}/${chunks.size}…")
         val literal = chunk.toByteArray().joinToString("", prefix = "b'", postfix = "'") { "\\x%02x".format(it) }
-        runCatching { rawExec(serial, "f=open('$path','ab');f.write($literal);f.close()", "write $path chunk $index") }
-            .onFailure { error -> throw IllegalStateException("$path chunk $index failed: ${error.message.orEmpty()}") }
-        Thread.sleep(25)
+        val marker = "__METHODMESH_WRITE_${index}_OK__"
+        val code = "f=open('$path','ab');f.write($literal);f.close();print('$marker')"
+        val outcome = retryMicroPythonWrite(
+            attempts = 3,
+            onRetry = { retry ->
+                onProgress("Retrying $label chunk ${index + 1}/${chunks.size} ($retry/3)…")
+                serial.interruptRunningScript()
+            }
+        ) {
+            rawExecExpecting(
+                serial = serial,
+                code = code,
+                label = "write $path chunk $index",
+                expected = marker
+            )
+        }
+        outcome.onFailure { error -> throw IllegalStateException("$path chunk $index failed: ${error.message.orEmpty()}") }
+        Thread.sleep(60)
     }
+    runCatching {
+        rawExecExpecting(
+            serial = serial,
+            code = "print('__METHODMESH_SIZE__%d' % len(open('$path','rb').read()))",
+            label = "verify $path size",
+            expected = "__METHODMESH_SIZE__${contents.toByteArray(Charsets.UTF_8).size}"
+        )
+    }.onFailure { error -> throw IllegalStateException("$path size verification failed: ${error.message.orEmpty()}") }
 }
 
-private fun friendlyReplProbe(serial: PythonSerialLink): String {
+private fun retryMicroPythonWrite(
+    attempts: Int,
+    onRetry: (Int) -> Unit,
+    block: () -> String
+): Result<String> {
+    var last: Throwable? = null
+    repeat(attempts) { index ->
+        val result = runCatching { block() }
+        if (result.isSuccess) return result
+        last = result.exceptionOrNull()
+        if (index < attempts - 1) {
+            onRetry(index + 1)
+            Thread.sleep(250L * (index + 1))
+        }
+    }
+    return Result.failure(last ?: IllegalStateException("MicroPython write failed"))
+}
+
+private fun rawExecExpecting(
+    serial: PythonSerialLink,
+    code: String,
+    label: String,
+    expected: String
+): String {
+    val response = StringBuilder(rawExec(serial, code, label, requirePrompt = false, timeoutMs = 6500))
+    val deadline = System.currentTimeMillis() + 9000
+    while (!response.contains(expected) && System.currentTimeMillis() < deadline) {
+        Thread.sleep(180)
+        response.append(serial.readAvailable(500))
+    }
+    val text = response.toString()
+    if (!text.contains(expected)) {
+        throw IllegalStateException("Expected $expected during $label; response was ${text.ifBlank { "<blank>" }.take(360)}")
+    }
+    return text
+}
+
+private fun looksLikeEspIdfFirmware(text: String): Boolean {
+    val lower = text.lowercase()
+    return lower.contains("wifi_esp32") ||
+        lower.contains("[wifi:") ||
+        lower.contains("connecting to network failed") ||
+        lower.contains("association expired") ||
+        lower.contains("found networks")
+}
+
+private fun friendlyReplProbe(serial: PythonSerialLink, label: String = "friendly probe"): String {
     serial.drain()
     serial.setTerminalReady()
     serial.breakIntoRepl()
     serial.write("print('MethodMesh friendly REPL ready')\r\n".toByteArray(Charsets.UTF_8))
-    val response = serial.readAvailable(4500)
+    val response = serial.readAvailable(5500)
     if (!response.contains("MethodMesh friendly REPL ready")) {
+        if (looksLikeEspIdfFirmware(response)) {
+            throw IllegalStateException(
+                "Old ESP-IDF/Home Assistant-style firmware is still running, not MicroPython. " +
+                    "Put the board in ESP32 bootloader mode, erase flash, then write the bundled MicroPython image. " +
+                    "Response was: ${response.ifBlank { "<blank>" }.take(260)}"
+            )
+        }
         throw IllegalStateException(
-            "No friendly REPL echo/print response. Response was: ${response.ifBlank { "<blank>" }.take(220)}"
+            "No friendly REPL echo/print response during $label. Response was: ${response.ifBlank { "<blank>" }.take(220)}"
         )
     }
     return response
 }
 
-private fun rawExec(serial: PythonSerialLink, code: String, label: String, requirePrompt: Boolean = true): String {
-    serial.write(byteArrayOf(3, 3, 13, 10))
-    Thread.sleep(200)
-    serial.drain()
-    serial.write(byteArrayOf(1))
-    Thread.sleep(200)
-    serial.drain()
+private fun rawExec(
+    serial: PythonSerialLink,
+    code: String,
+    label: String,
+    requirePrompt: Boolean = true,
+    timeoutMs: Int = 2500
+): String {
+    enterRawRepl(serial, label)
     serial.write(code.toByteArray(Charsets.UTF_8))
     serial.write(byteArrayOf(4))
-    val response = serial.readAvailable(2500)
+    val response = serial.readAvailable(timeoutMs)
     if (requirePrompt && response.isBlank()) throw IllegalStateException("No response from MicroPython during $label")
     return response
+}
+
+private fun enterRawRepl(serial: PythonSerialLink, label: String) {
+    var last = ""
+    repeat(4) { attempt ->
+        serial.write(byteArrayOf(3, 3, 13, 10))
+        Thread.sleep(450L + attempt * 150L)
+        last = serial.readAvailable(700)
+        serial.write(byteArrayOf(1))
+        Thread.sleep(300)
+        val raw = serial.readAvailable(900)
+        last += raw
+        if (last.contains("raw REPL") || last.contains("raw paste mode") || last.contains(">")) {
+            serial.drain()
+            return
+        }
+    }
+    throw IllegalStateException(
+        "Could not enter MicroPython raw REPL during $label. Last response was ${last.ifBlank { "<blank>" }.take(260)}"
+    )
 }
 
 private fun openMicroPythonSerial(manager: UsbManager, device: UsbDevice): MicroPythonSerialLink? {
@@ -508,58 +1463,83 @@ private fun openMicroPythonSerial(manager: UsbManager, device: UsbDevice): Micro
     }
 }
 
-private fun flashMicroPythonImage(usbManager: UsbManager, device: UsbDevice, image: ByteArray, cleanErase: Boolean = false): FirmwareInstallResult {
+private fun flashMicroPythonImage(
+    usbManager: UsbManager,
+    device: UsbDevice,
+    image: PreparedFlashImage,
+    cleanErase: Boolean = false,
+    onProgress: (String) -> Unit = {}
+): FirmwareInstallResult {
     if (!device.isLikelyEsp32Target()) return FirmwareInstallResult(false, device.usbLabel(), "Refusing to flash an unrecognised USB device.")
-    val serial = openUsbSerial(usbManager, device) ?: return FirmwareInstallResult(false, device.usbLabel(), "USB serial open failed: no bulk USB serial interface was found.")
-    serial.use {
+    var serial: UsbSerialLink? = null
+    try {
+        onProgress("Opening ESP32 USB serial bootloader connection…")
+        serial = openUsbSerial(usbManager, device) ?: return FirmwareInstallResult(false, device.usbLabel(), "USB serial open failed: no bulk USB serial interface was found.")
+        onProgress("Using the selected ESP32 bootloader connection; no automatic reset pulse will be sent.")
+        serial.drain()
+        val rom = Esp32RomBootloader(serial)
+        onProgress("Synchronising with ESP32 ROM bootloader…")
+        runCatching { rom.sync { progress -> onProgress(progress) } }.onFailure { error -> throw IllegalStateException("Bootloader sync failed: ${error.message.orEmpty()}") }
+        if (cleanErase) {
+            onProgress("Clean install requested. Full-chip erase is handled by the separate ESP32 board wipe step; writing MicroPython now.")
+        }
         runCatching {
-            it.setDtrRts(dtr = false, rts = true)
-            Thread.sleep(100)
-            it.setDtrRts(dtr = true, rts = false)
-            Thread.sleep(100)
-            it.setDtrRts(dtr = false, rts = false)
-            Thread.sleep(700)
-            it.drain()
-        }.onFailure { error -> throw IllegalStateException("Bootloader reset sequence failed: ${error.message.orEmpty()}") }
-        val rom = Esp32RomBootloader(it)
-        runCatching { rom.sync() }.onFailure { error -> throw IllegalStateException("Bootloader sync failed: ${error.message.orEmpty()}") }
-        runCatching { rom.flashImage(address = ESP_FLASH_ADDRESS, image = image, cleanEraseBytes = if (cleanErase) ESP_CLEAN_FLASH_BYTES else null) }
+            rom.flashImage(
+                address = ESP_FLASH_ADDRESS,
+                image = image,
+                cleanErase = cleanErase
+            ) { progress -> onProgress(progress) }
+        }
             .onFailure { error -> throw IllegalStateException("Flash write failed: ${error.message.orEmpty()}") }
+        onProgress("Finishing flash and rebooting board…")
         runCatching { rom.finish(reboot = true) }.onFailure { error -> throw IllegalStateException("Flash finish failed: ${error.message.orEmpty()}") }
+    } finally {
+        runCatching { serial?.close() }
     }
     return FirmwareInstallResult(
         true,
         device.usbLabel(),
-        if (cleanErase) "MicroPython v1.28.0 was clean-installed after erasing the normal 4 MB flash area. Reset the board, then install MethodMesh main.py."
-        else "MicroPython v1.28.0 was written at flash address 0. Reset the board, then install MethodMesh main.py."
+        if (cleanErase) "MicroPython v1.28.0 was installed. Reset the board normally, then install the MethodMesh runtime or sensor profile."
+        else "MicroPython v1.28.0 was written at flash address 0. Reset the board normally, then install the MethodMesh runtime or sensor profile."
     )
 }
 
 private class Esp32RomBootloader(private val serial: UsbSerialLink) {
-    fun sync() {
+    fun sync(onProgress: (String) -> Unit = {}) {
         val syncPayload = byteArrayOf(0x07, 0x07, 0x12, 0x20) + ByteArray(32) { 0x55.toByte() }
         var ok = false
-        repeat(16) {
+        repeat(24) { attempt ->
+            if (attempt == 0 || attempt % 4 == 3) onProgress("Synchronising with bootloader (${attempt + 1}/24)…")
             runCatching { command(0x08, syncPayload, 0, 1500) }.onSuccess { ok = true }
             if (ok) return@repeat
             Thread.sleep(250)
         }
-        if (!ok) throw IllegalStateException("ESP32 ROM bootloader did not respond. For a blank/wiped board, hold BOOT, tap RESET, release BOOT, then press Install complete MethodMesh sensor firmware again. If it still times out, unplug/replug while holding BOOT, grant USB permission again, then retry.")
+        if (!ok) throw IllegalStateException("ESP32 ROM bootloader did not respond. For a blank/wiped board, hold BOOT, tap RESET, release BOOT, refresh USB devices, then retry this step. If it still times out, unplug/replug while holding BOOT, grant USB permission again, then retry.")
     }
 
-    fun flashImage(address: Int, image: ByteArray, cleanEraseBytes: Int? = null) {
-        val blocks = ceil(image.size / ESP_FLASH_BLOCK.toDouble()).toInt()
-        val eraseSize = maxOf(blocks * ESP_FLASH_BLOCK, cleanEraseBytes ?: 0)
-        runCatching { command(0x02, le32(eraseSize) + le32(blocks) + le32(ESP_FLASH_BLOCK) + le32(address), 0, if (cleanEraseBytes != null) 30000 else 5000) }
+    fun nukeBootAndAppFlash(image: PreparedFlashImage, onProgress: (String) -> Unit = {}) {
+        onProgress("Nuking ESP32 boot/app flash (${image.sourceBytes / 1024} KB) so old firmware cannot start…")
+        flashImage(ESP_FLASH_ADDRESS, image, cleanErase = false, onProgress = onProgress)
+        Thread.sleep(700)
+    }
+
+    fun flashImage(address: Int, image: PreparedFlashImage, cleanErase: Boolean = false, onProgress: (String) -> Unit = {}) {
+        val blocks = image.blocks.size
+        onProgress(
+            if (cleanErase) "Using bundled MicroPython image after full erase (${image.sourceBytes} byte image; $blocks ready flash block(s))."
+            else "Using bundled MicroPython image (${image.sourceBytes} byte image; $blocks ready flash block(s))."
+        )
+        onProgress("Requesting flash write for $blocks prebuilt MicroPython block(s)…")
+        runCatching { command(0x02, le32(image.eraseSize) + le32(blocks) + le32(ESP_FLASH_BLOCK) + le32(address), 0, 10000) }
             .onFailure { error -> throw IllegalStateException("flash begin failed: ${error.message.orEmpty()}") }
-        for (seq in 0 until blocks) {
-            val start = seq * ESP_FLASH_BLOCK
-            val block = ByteArray(ESP_FLASH_BLOCK) { 0xFF.toByte() }
-            val length = minOf(ESP_FLASH_BLOCK, image.size - start)
-            image.copyInto(block, 0, start, start + length)
-            val payload = le32(ESP_FLASH_BLOCK) + le32(seq) + le32(0) + le32(0) + block
-            runCatching { command(0x03, payload, checksum(block), 5000) }
-                .onFailure { error -> throw IllegalStateException("block $seq/$blocks failed: ${error.message.orEmpty()}") }
+        onProgress("Flash write accepted; sending MicroPython blocks…")
+        image.blocks.forEach { block ->
+            if (block.sequence == 0 || block.sequence == blocks - 1 || block.sequence % 32 == 31) {
+                onProgress("Writing MicroPython block ${block.sequence + 1}/$blocks…")
+            }
+            val payload = le32(ESP_FLASH_BLOCK) + le32(block.sequence) + le32(0) + le32(0) + block.bytes
+            runCatching { command(0x03, payload, block.checksum, 5000) }
+                .onFailure { error -> throw IllegalStateException("block ${block.sequence}/$blocks failed: ${error.message.orEmpty()}") }
         }
     }
 
@@ -609,8 +1589,9 @@ private class Esp32RomBootloader(private val serial: UsbSerialLink) {
         }
     }
 
-    private fun checksum(data: ByteArray): Int = data.fold(0xEF) { acc, byte -> acc xor (byte.toInt() and 0xff) }
 }
+
+private fun espChecksum(data: ByteArray): Int = data.fold(0xEF) { acc, byte -> acc xor (byte.toInt() and 0xff) }
 
 private fun le32(value: Int): ByteArray = byteArrayOf(
     (value and 0xff).toByte(),
@@ -694,7 +1675,8 @@ private interface PythonSerialLink : AutoCloseable {
     fun readAvailable(timeoutMs: Int): String
     fun drain()
     fun setTerminalReady()
-    fun resetToNormalRun()
+    fun interruptRunningScript()
+    fun softResetMicroPython()
     fun breakIntoRepl()
 }
 
@@ -726,35 +1708,28 @@ private class MicroPythonSerialLink(
         runCatching { port.setRTS(false) }
     }
 
-    override fun breakIntoRepl() {
-        // Stop any already-running main.py. If the script is noisy during
-        // startup, send several interrupts and then press Enter to surface >>>.
-        repeat(8) {
+    override fun interruptRunningScript() {
+        repeat(12) {
             write(byteArrayOf(3))
-            Thread.sleep(120)
+            Thread.sleep(100)
         }
         write(byteArrayOf(13, 10))
-        Thread.sleep(500)
+        Thread.sleep(700)
         drain()
     }
 
-    override fun resetToNormalRun() {
-        runCatching { port.setDTR(true) }
-        runCatching { port.setRTS(true) }
-        Thread.sleep(150)
-        runCatching { port.setDTR(true) }
-        runCatching { port.setRTS(false) }
+    override fun softResetMicroPython() {
         setTerminalReady()
-        // Interrupt during boot so MicroPython does not immediately run the old
-        // main.py again. This is the normal recovery path when replacing a
-        // device that already has a long-running script installed.
-        repeat(24) {
-            Thread.sleep(120)
-            runCatching { write(byteArrayOf(3)) }
-        }
-        write(byteArrayOf(13, 10))
-        Thread.sleep(500)
-        drain()
+        interruptRunningScript()
+        write(byteArrayOf(4))
+        Thread.sleep(1800)
+        interruptRunningScript()
+    }
+
+    override fun breakIntoRepl() {
+        // Stop any already-running main.py. If the script is noisy during
+        // startup, send several interrupts and then press Enter to surface >>>.
+        interruptRunningScript()
     }
 
     override fun close() {
@@ -817,31 +1792,26 @@ private class UsbSerialLink(
         connection.controlTransfer(0x21, 0x22, 0x01, controlInterfaceId, null, 0, 500)
     }
 
-    override fun breakIntoRepl() {
-        repeat(8) {
+    override fun interruptRunningScript() {
+        repeat(12) {
             write(byteArrayOf(3))
-            Thread.sleep(120)
+            Thread.sleep(100)
         }
         write(byteArrayOf(13, 10))
-        Thread.sleep(500)
+        Thread.sleep(700)
         drain()
     }
 
-    override fun resetToNormalRun() {
-        // Native ESP32-C3 USB line polarity varies by driver stack. On the
-        // test ESP32-C3, DTR=false + RTS pulse holds the chip in ROM download
-        // mode. DTR=true keeps BOOT deasserted while RTS pulses reset/EN.
-        setDtrRts(dtr = true, rts = true)
-        Thread.sleep(150)
-        setDtrRts(dtr = true, rts = false)
+    override fun softResetMicroPython() {
         setTerminalReady()
-        repeat(24) {
-            Thread.sleep(120)
-            runCatching { write(byteArrayOf(3)) }
-        }
-        write(byteArrayOf(13, 10))
-        Thread.sleep(500)
-        drain()
+        interruptRunningScript()
+        write(byteArrayOf(4))
+        Thread.sleep(1800)
+        interruptRunningScript()
+    }
+
+    override fun breakIntoRepl() {
+        interruptRunningScript()
     }
 
     fun setDtrRts(dtr: Boolean, rts: Boolean) {

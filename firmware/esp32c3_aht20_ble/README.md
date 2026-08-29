@@ -68,7 +68,7 @@ The reading characteristic returns JSON like:
   "methodmesh_sensor_reading_version": "1",
   "device_id": "esp32c3-a1b2c3",
   "device_name": "MethodMesh-Sensor",
-  "firmware_version": "methodmesh-sensor-0.1.1",
+  "firmware_version": "methodmesh-sensor-0.1.2",
   "sensor_id": "aht20_1",
   "sensor_type": "AHT20",
   "sample_time_ms": 123456,
@@ -117,8 +117,11 @@ methodmesh_sensor_config.json
 
 ## App-side expectation
 
-The MethodMesh Android provisioner should eventually provide:
+The MethodMesh Android tools provide:
 
+- wipe an ESP32-C3 that may contain previous firmware;
+- install the bundled MicroPython runtime image;
+- install or replace the selected sensor profile;
 - scan for unprovisioned `MethodMesh-Sensor` nodes;
 - read manifest;
 - select the sensor profile;
@@ -126,5 +129,6 @@ The MethodMesh Android provisioner should eventually provide:
 - read a confirmation sample;
 - save the device profile into the MethodMesh device registry.
 
-The Android app now provides the intended field workflow: install MicroPython,
-upload the bundled MethodMesh Python files, then provision the BLE sensor node.
+The intended field workflow is now split into explicit capabilities:
+`esp32.board_wipe`, `esp32.runtime_install`, `esp32.sensor_profile_install`,
+and then BLE sensor provisioning.

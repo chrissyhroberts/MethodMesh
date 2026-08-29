@@ -30,7 +30,7 @@ except ImportError:
 
 # Adjust these for your ESP32-C3 board if needed. Many ESP32-C3 dev boards use
 # GPIO 8/9 for I2C, but boards vary.
-FIRMWARE_VERSION = "methodmesh-sensor-0.1.1"
+FIRMWARE_VERSION = "methodmesh-sensor-0.1.2"
 DEFAULT_DEVICE_NAME = "MethodMesh-Sensor"
 DEFAULT_DEVICE_ID = "esp32c3-" + "".join("%02x" % b for b in unique_id()[-3:])
 CONFIG_FILE = "methodmesh_sensor_config.json"
