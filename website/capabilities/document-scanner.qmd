@@ -67,3 +67,7 @@ Audit and full JSON payload modes additionally include page count, raw page
 image URIs, the original scanner PDF URI, OCR text file URI, OCR page count,
 scanner mode, gallery import setting, page limit, scan timestamp, and any error
 message.
+
+When searchable PDF output is enabled and creation succeeds, MethodMesh exports
+the searchable PDF in preference to the original scanner PDF. The normal package
+therefore contains one PDF, not duplicate scanner and searchable PDFs.

@@ -292,7 +292,7 @@ private fun handleScanResult(
     }
     if (!runOcr) {
         val searchable = if (returnSearchablePdf) createSearchablePdf(context, copiedPageUris, emptyList(), scanId).orEmpty() else ""
-        complete(baseValues + (DocumentScannerFields.SEARCHABLE_PDF_URI to searchable), true)
+        complete(baseValues.withPreferredSearchablePdf(searchable), true)
         return
     }
     ocrPages(context, copiedPageUris) { pageTexts, error ->
@@ -304,7 +304,7 @@ private fun handleScanResult(
         val textFileUri = if (returnTextFile) createTextFile(context, combinedText, scanId).orEmpty() else ""
         val searchable = if (returnSearchablePdf) createSearchablePdf(context, copiedPageUris, pageTexts, scanId).orEmpty() else ""
         complete(
-            baseValues + mapOf(
+            baseValues.withPreferredSearchablePdf(searchable) + mapOf(
                 DocumentScannerFields.SEARCHABLE_PDF_URI to searchable,
                 DocumentScannerFields.OCR_TEXT to combinedText,
                 DocumentScannerFields.OCR_TEXT_FILE_URI to textFileUri,
@@ -314,6 +314,16 @@ private fun handleScanResult(
         )
     }
 }
+
+private fun Map<String, String>.withPreferredSearchablePdf(searchablePdfUri: String): Map<String, String> =
+    if (searchablePdfUri.isBlank()) {
+        this + (DocumentScannerFields.SEARCHABLE_PDF_URI to searchablePdfUri)
+    } else {
+        this + mapOf(
+            DocumentScannerFields.SCANNER_PDF_URI to "",
+            DocumentScannerFields.SEARCHABLE_PDF_URI to searchablePdfUri
+        )
+    }
 
 private fun ocrPages(context: Context, pageUris: List<String>, done: (List<String>, String?) -> Unit) {
     val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)

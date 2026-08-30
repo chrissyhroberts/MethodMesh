@@ -50,4 +50,4 @@ Audit/full JSON return additionally includes:
 
 ## Notes
 
-ML Kit Document Scanner supplies the capture, crop, alignment and scanner PDF. MethodMesh copies those outputs into its own FileProvider cache before returning them. When OCR is enabled, MethodMesh also builds a PDF that includes the page images plus embedded OCR text and an OCR appendix. This provides a practical searchable document package while retaining the original scanner PDF.
+ML Kit Document Scanner supplies the capture, crop, alignment and scanner PDF. MethodMesh copies page images into its own FileProvider cache before returning them. When searchable PDF output is enabled and creation succeeds, MethodMesh returns/exports the searchable PDF in preference to the original scanner PDF, so callers receive one PDF rather than duplicate PDF attachments. When OCR is enabled, the searchable PDF includes page images plus embedded OCR text and an OCR appendix.
