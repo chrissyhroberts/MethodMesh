@@ -169,7 +169,8 @@ private fun capabilityLifecycle(method: As100Method): CapabilityLifecycle {
     val productionCapabilityIds = setOf(
         "barcode.scan",
         "calibrated_scale",
-        "document.scan"
+        "document.scan",
+        "gps_target_navigator"
     )
     return if (method.id in productionCapabilityIds) CapabilityLifecycle.Production else CapabilityLifecycle.Development
 }
