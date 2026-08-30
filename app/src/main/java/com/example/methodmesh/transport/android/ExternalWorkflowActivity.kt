@@ -47,6 +47,7 @@ import com.example.methodmesh.transport.workflow.ConfirmedWorkflowStep
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
 import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
+import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
 import com.example.methodmesh.ui.theme.MethodMeshTheme
@@ -89,25 +90,35 @@ class ExternalWorkflowActivity : FragmentActivity() {
         if (resultReturned) return
         resultReturned = true
         val combined = combineResults(confirmed.map { it.result })
-        val fields = OutputFormatter.selectedFields(
+        val payloadMode = request.settings["payload_mode"]
+            ?: request.settings["input_payload_mode"]
+            ?: request.settings["return_payload"]
+            ?: request.settings["input_return_payload"]
+            ?: OutputFormatter.PayloadMode.FULL
+        val selectedFields = OutputFormatter.selectedFields(
             result = combined,
             selectors = request.returns,
             graph = ResearchRuntime.session.graph(),
             includeProvenance = true
         )
+        val fields = OutputFormatter.projectFields(selectedFields, payloadMode, combined.status)
         val output = OutputFormatter.format(
             result = combined,
             returnMode = request.returnMode,
             includeProvenance = true,
             selectors = request.returns,
-            graph = ResearchRuntime.session.graph()
+            graph = ResearchRuntime.session.graph(),
+            payloadMode = payloadMode
         )
         val data = Intent().apply {
             putExtra("value", output)
             putExtra("return_mode", request.returnMode.id)
-            putExtra("methodmesh_execution_id", combined.request.id.value)
-            putExtra("methodmesh_status", combined.status.name)
-            putExtra("context_entity_id", request.invocationContext.canonicalEntityId)
+            putExtra("payload_mode", OutputFormatter.PayloadMode.normalize(payloadMode))
+            if (OutputFormatter.PayloadMode.normalize(payloadMode) != OutputFormatter.PayloadMode.CORE) {
+                putExtra("methodmesh_execution_id", combined.request.id.value)
+                putExtra("methodmesh_status", combined.status.name)
+                putExtra("context_entity_id", request.invocationContext.canonicalEntityId)
+            }
             fields.forEach { (key, value) -> putExtra(key, value?.toString()) }
         }
         val binaryUris = fields.filter { (key, value) ->
@@ -253,7 +264,12 @@ private fun CapabilityStepScreen(
         action = action,
         request = request,
         stepNumber = stepNumber,
-        totalSteps = totalSteps
+        totalSteps = totalSteps,
+        completionMode = if (request.settings["methodmesh_native_preset_run"] == "true" || request.settings["input_methodmesh_native_preset_run"] == "true") {
+            CapabilityCompletionMode.ManualConfirmation
+        } else {
+            CapabilityCompletionMode.AutomaticReturn
+        }
     )
     capabilityScreenFor(action).Render(
         context = screenContext,

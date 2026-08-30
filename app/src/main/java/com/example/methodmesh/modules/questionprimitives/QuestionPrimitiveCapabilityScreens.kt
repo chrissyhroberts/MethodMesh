@@ -93,7 +93,7 @@ abstract class QuestionPrimitiveScreen(
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var status by remember { mutableStateOf("Ready.") }
         val intentPresentation = context.presentationMode == CapabilityPresentationMode.IntentLaunch
-        val allowPrefilledAutoReturn = context.startsImmediately &&
+        val allowPrefilledAutoReturn = context.submitsImmediately &&
             !context.request.source.equals("intent_test", ignoreCase = true)
         val selectionQuestion = method.id == QuestionSelectOneMethod.id || method.id == QuestionSelectMultipleMethod.id
         val answerFocusRequester = remember { FocusRequester() }

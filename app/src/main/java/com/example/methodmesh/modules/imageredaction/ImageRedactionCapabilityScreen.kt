@@ -160,7 +160,7 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                 context.request.invocationContext
             )
             status = "Redacted image created. Original image is not returned."
-            if (context.startsImmediately) result?.let(onConfirmed)
+            if (context.submitsImmediately) result?.let(onConfirmed)
         }
 
         CapabilityScreenScaffold(

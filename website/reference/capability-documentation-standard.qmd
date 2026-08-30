@@ -35,10 +35,31 @@ Every guide must include:
 The guide must distinguish:
 
 - manual/debug behaviour from external invocation behaviour;
+- native MethodMesh behaviour from ODK/external caller behaviour;
+- configuration fields from runtime input fields;
 - required inputs from optional inputs;
 - canonical current fields from deprecated fields;
 - successful, cancelled, and failed outcomes;
 - direct work from capability dependencies.
+
+## Required I/O contract
+
+Every capability must document five field classes:
+
+- **Runtime inputs**: user-facing values supplied at execution time, such as question answers, SMS text, translation text, destination text, or picked media. Presets must not permanently store these values unless the capability is explicitly a fixed-message/fixed-value tool.
+- **Configuration inputs**: stable setup choices saved in presets, such as language pair, sensor/device choice, barcode format, camera/source policy, validation regex, or output mode.
+- **Core outputs**: the small set of values most users care about: temperature, humidity, presence, answer, translated text, barcode payload, file name/URI, generated number, etc.
+- **Audit-priority outputs**: ALCOA-relevant fields that are useful as individual return fields when requested, including execution ID, status, timestamps, device identifiers, hashes, selected source, errors and warnings.
+- **Full JSON output**: a single JSON field containing the complete auditable return package. This must be returned only when explicitly requested; it must not be expanded into many individual fields by default.
+
+The default external and native preview behaviour is:
+
+1. run the action;
+2. show/return the core outputs;
+3. optionally include audit-priority fields;
+4. optionally include one full JSON field for complete audit/debug capture.
+
+ODK examples should normally store core outputs in normal fields and, when audit capture is required, store the full JSON in one spare text field.
 
 ## Required XLSForm example
 

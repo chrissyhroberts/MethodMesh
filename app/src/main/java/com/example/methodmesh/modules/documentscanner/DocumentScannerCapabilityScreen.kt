@@ -95,14 +95,14 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
             val execution = As100DocumentScannerMethod.result(request, values, context.request.invocationContext)
             result = execution
             status = if (succeeded) "Document scan complete." else values[DocumentScannerFields.ERROR] ?: "Document scan failed."
-            if (context.startsImmediately && succeeded) onConfirmed(execution)
+            if (context.submitsImmediately && succeeded) onConfirmed(execution)
         }
 
         val scannerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { activityResult ->
             if (activityResult.resultCode != Activity.RESULT_OK) {
                 val values = failureValues(pageLimitText, scannerMode, allowGallery, "Document scan was cancelled.")
                 complete(values, false)
-                if (context.startsImmediately) onCancel()
+                if (context.submitsImmediately) onCancel()
                 return@rememberLauncherForActivityResult
             }
             val scanResult = activityResult.data?.let { GmsDocumentScanningResult.fromActivityResultIntent(it) }

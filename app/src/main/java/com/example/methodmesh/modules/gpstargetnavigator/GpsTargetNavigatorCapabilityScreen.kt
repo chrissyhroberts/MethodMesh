@@ -74,7 +74,7 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
                 settingsState = settings,
                 transport = request.source
             ).withInvocationContext(request.invocationContext)
-            if (context.startsImmediately) {
+            if (context.submitsImmediately) {
                 onConfirmed(execution)
             } else {
                 result = execution

@@ -485,14 +485,11 @@ object SensorProvisionerCapabilityScreen : CapabilityScreenSpec {
             if (result != null) {
                 Text("✓ Provisioning complete. This sensor is saved and ready for sensor.read.", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
             }
-            if (commandResponseJson.isNotBlank() || readingJson.isNotBlank()) {
+            if (readingJson.isNotBlank()) {
                 Spacer(Modifier.height(8.dp))
-                Text("Latest sensor payload", fontWeight = FontWeight.SemiBold)
+                Text("Latest reading", fontWeight = FontWeight.SemiBold)
                 Text(
-                    listOf(
-                        sensorReadingSummary(SensorProvisioningProfiles.normaliseReading(readingJson, installedProfileId())),
-                        commandResponseJson
-                    ).filter(String::isNotBlank).joinToString("\n"),
+                    sensorReadingSummary(SensorProvisioningProfiles.normaliseReading(readingJson, installedProfileId())),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

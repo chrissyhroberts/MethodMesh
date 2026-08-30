@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
@@ -35,13 +36,13 @@ import com.example.methodmesh.transport.workflow.ui.IntentExample
 import com.example.methodmesh.transport.workflow.ui.IntentExampleDropdown
 
 /**
- * Reusable invocation boundary for the QR capability.
+ * Reusable invocation boundary for the barcode capability.
  *
  * Parent capabilities call the returned function instead of embedding QR scanning.
  * The dependency performs camera capture and returns its canonical AS100 result.
  */
 @Composable
-fun rememberQrCapabilityInvocation(
+fun rememberBarcodeCapabilityInvocation(
     context: CapabilityScreenContext,
     sourceLabel: String = "camera_zxing",
     onResult: (ExecutionResult) -> Unit,
@@ -56,18 +57,23 @@ fun rememberQrCapabilityInvocation(
 
     val launcher = rememberLauncherForActivityResult(ScanContract()) { scan ->
         val payload = scan.contents
-        if (payload.isNullOrBlank()) {
+        if (payload.isNullOrEmpty()) {
             currentOnCancel()
         } else {
             val invocationContext = currentContext.request.invocationContext
             val execution = runCatching {
-                As100QrScanMethod.execute(
-                    request = As100QrScanMethod.request(
-                        action = As100QrScanMethod.ID,
-                        context = invocationContext.asMap(As100QrScanMethod.ID) +
+                val method: As100Method = if (currentContext.action.canonicalId == As100QrScanMethod.ID) {
+                    As100QrScanMethod
+                } else {
+                    As100BarcodeScanMethod
+                }
+                method.execute(
+                    request = method.request(
+                        action = method.id,
+                        context = invocationContext.asMap(method.id) +
                             currentContext.action.settings + mapOf(
-                                "qr_payload" to payload,
-                                "qr_source" to currentSourceLabel,
+                                "barcode_payload" to payload,
+                                "barcode_source" to currentSourceLabel,
                                 "barcode_format" to scan.formatName.orEmpty().ifBlank { "UNKNOWN" }
                             )
                     ),
@@ -75,7 +81,7 @@ fun rememberQrCapabilityInvocation(
                     transport = currentContext.request.source
                 ).withInvocationContext(invocationContext)
             }.getOrElse { error ->
-                currentOnError(error.message ?: "QR capture failed.")
+                currentOnError(error.message ?: "Barcode capture failed.")
                 return@rememberLauncherForActivityResult
             }
             currentOnResult(execution)
@@ -95,7 +101,7 @@ fun rememberQrCapabilityInvocation(
                 }
                 setPrompt("Point the camera at a QR, Data Matrix, or barcode")
                 setBeepEnabled(false)
-                setOrientationLocked(false)
+                setOrientationLocked(true)
                 setBarcodeImageEnabled(false)
             }
         )
@@ -110,15 +116,16 @@ internal fun barcodeFormats(raw: String?): Collection<String>? = raw
     ?.takeIf(List<String>::isNotEmpty)
 
 /**
- * Operational QR capability.
+ * Operational barcode capability.
  *
  * External invocation enters capture immediately. The scanner result is converted
  * into the canonical AS100 result and returned without a second confirmation gate.
  */
-object QrScanCapabilityScreen : CapabilityScreenSpec {
-    override val capabilityId: String = As100QrScanMethod.ID
-    override val title: String = "Scan code"
-    override val description: String = "Automatically detect QR, Data Matrix, and common 1D barcode formats."
+private class CodeScanCapabilityScreen(
+    override val capabilityId: String,
+    override val title: String,
+    override val description: String
+) : CapabilityScreenSpec {
 
     @Composable
     override fun Render(
@@ -145,7 +152,7 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
             context.onSettingsChanged(mapOf("barcode_formats" to barcodeFormatsValue))
         }
 
-        val launchScanner = rememberQrCapabilityInvocation(
+        val launchScanner = rememberBarcodeCapabilityInvocation(
             context = scannerContext,
             sourceLabel = "camera_zxing",
             onResult = {
@@ -215,22 +222,22 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
 
                 Spacer(Modifier.height(24.dp))
                 IntentExampleDropdown(
-                    capabilityId = As100QrScanMethod.ID,
+                    capabilityId = capabilityId,
                     examples = listOf(
                         IntentExample(
                             label = "Automatic code detection",
                             description = "Detect QR, Data Matrix, and common 1D barcodes",
-                            intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}')"
+                            intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId')"
                         ),
                         IntentExample(
                             label = "Restricted formats",
                             description = "Accept only Data Matrix and Code 128",
-                            intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}',input_barcode_formats='DATA_MATRIX|CODE_128')"
+                            intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',input_barcode_formats='DATA_MATRIX|CODE_128')"
                         ),
                         IntentExample(
                             label = "With study context",
                             description = "Include study and operator information",
-                            intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='${As100QrScanMethod.ID}',input_study_id='study_01',operator_id='operator_001')"
+                            intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',input_study_id='study_01',operator_id='operator_001')"
                         )
                     )
                 )
@@ -238,6 +245,18 @@ object QrScanCapabilityScreen : CapabilityScreenSpec {
         }
     }
 }
+
+val BarcodeScanCapabilityScreen: CapabilityScreenSpec = CodeScanCapabilityScreen(
+    capabilityId = As100BarcodeScanMethod.ID,
+    title = "Scan barcode",
+    description = "Automatically detect QR, Data Matrix, and common 1D barcode formats."
+)
+
+val LegacyQrScanCapabilityScreen: CapabilityScreenSpec = CodeScanCapabilityScreen(
+    capabilityId = As100QrScanMethod.ID,
+    title = "Scan code (legacy qr.scan)",
+    description = "Deprecated compatibility entry. New integrations should use barcode.scan."
+)
 
 @Composable
 private fun CodeFormatChooser(

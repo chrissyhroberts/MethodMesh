@@ -11,6 +11,7 @@ import android.widget.Toast
 import com.example.methodmesh.core.protocols.CapabilityPreset
 import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
 import com.example.methodmesh.core.protocols.ProtocolOutputMode
+import com.example.methodmesh.core.protocols.ProtocolPayloadMode
 import com.example.methodmesh.platform.externalforms.ExternalFormCatalog
 import com.example.methodmesh.transport.OutputExportRepository
 import kotlinx.coroutines.CoroutineScope
@@ -259,13 +260,15 @@ class SchedulerDispatchActivity : Activity() {
 
     private fun launchPreset(preset: CapabilityPreset) {
         SchedulerRepository.recordEvent(this, intent.getStringExtra("schedule_id").orEmpty(), "preset_started:${preset.name}")
-        launchCapability(preset.methodId, preset.settingsJson)
+        launchCapability(preset.methodId, preset.settingsJson, preset.payloadMode)
     }
 
-    private fun launchCapability(methodId: String, settingsJson: String) {
+    private fun launchCapability(methodId: String, settingsJson: String, payloadMode: String = ProtocolPayloadMode.CORE) {
         startActivityForResult(Intent(this, IntentRouterActivity::class.java).apply {
             action = "com.example.methodmesh.EXECUTE_METHOD"
             putExtra("method_id", methodId)
+            putExtra("input_payload_mode", ProtocolPayloadMode.normalize(payloadMode))
+            putExtra("input_methodmesh_native_preset_run", "true")
             runCatching {
                 val modifiers = JSONObject(settingsJson.ifBlank { "{}" })
                 modifiers.keys().forEach { key ->
@@ -283,7 +286,7 @@ class SchedulerDispatchActivity : Activity() {
     private fun exportReturnedFields(schedule: ResearchSchedule, data: Intent): OutputExportRepository.ExportPackage {
         val extras = data.extras
         val fields = extras?.keySet().orEmpty()
-            .filterNot { it == "value" }
+            .filterNot { it == "value" || it == "return_mode" || it == "payload_mode" }
             .associateWith { key -> extras?.get(key)?.toString() }
         val methodId = fields["methodmesh_method_id"] ?: schedule.targetValue
         val status = fields["methodmesh_status"] ?: "Succeeded"

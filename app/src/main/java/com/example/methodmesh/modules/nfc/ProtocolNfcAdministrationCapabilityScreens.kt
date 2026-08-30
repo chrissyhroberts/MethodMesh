@@ -140,7 +140,7 @@ private fun ProtocolNfcAdministrationContent(
                 result = execution
                 status = execution.observations.lastOrNull()?.values?.get(ProtocolNfcTrackingFields.PROTOCOL_REASON)
                     ?: execution.status.name
-                if (context.startsImmediately) onConfirmed(execution)
+                if (context.submitsImmediately) onConfirmed(execution)
             }
         }
     )

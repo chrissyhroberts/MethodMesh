@@ -72,7 +72,7 @@ object RandomNumberCapabilityScreen : CapabilityScreenSpec {
             val execution = As100RandomNumberMethod.result(request, As100RandomNumberMethod.generate(settings), context.request.invocationContext)
             result = execution
             status = OutputFormatter.fields(execution, false)[RandomNumberFields.STATUS]?.toString().orEmpty().ifBlank { "Generated." }
-            if (context.startsImmediately) onConfirmed(execution)
+            if (context.submitsImmediately) onConfirmed(execution)
         }
 
         LaunchedEffect(context.presentationMode, context.action.settings) {

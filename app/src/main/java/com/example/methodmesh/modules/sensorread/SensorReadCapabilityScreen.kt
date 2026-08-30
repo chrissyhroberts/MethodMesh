@@ -155,9 +155,24 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
             inputs = emptyList()
         )
 
+        fun closeGattAfterRead() {
+            val connection = gatt ?: return
+            handler.postDelayed({
+                runCatching { connection.disconnect() }
+                runCatching { connection.refreshGattCacheQuietly() }
+                runCatching { connection.close() }
+                if (gatt === connection) {
+                    gatt = null
+                    manifestCharacteristic = null
+                    readingCharacteristic = null
+                }
+            }, 250L)
+        }
+
         fun produce(values: Map<String, String>, ok: Boolean) {
             result = As100SensorReadMethod.result(makeRequest(), SensorReadOutcome(values, ok), context.request.invocationContext)
             readInProgress = false
+            closeGattAfterRead()
         }
 
         fun baseValues(okStatus: String = "succeeded"): LinkedHashMap<String, String> {
@@ -284,13 +299,22 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                 override fun onConnectionStateChange(g: BluetoothGatt, statusCode: Int, newState: Int) {
                     handler.post {
                         status = if (newState == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
-                            runCatching { g.requestMtu(517) }
-                            handler.postDelayed({ g.discoverServices() }, 700L)
+                            val mtuRequested = runCatching { g.requestMtu(517) }.getOrDefault(false)
+                            if (!mtuRequested) {
+                                handler.postDelayed({ g.discoverServices() }, 250L)
+                            }
                             "Connected; preparing BLE link for sensor payloads…"
                         } else {
                             if (readInProgress) produce(baseValues("failed") + mapOf(SensorReadFields.ERROR to "Disconnected before read completed (status=$statusCode)."), false)
                             "Disconnected (status=$statusCode)."
                         }
+                    }
+                }
+
+                override fun onMtuChanged(g: BluetoothGatt, mtu: Int, statusCode: Int) {
+                    handler.post {
+                        status = if (statusCode == BluetoothGatt.GATT_SUCCESS) "BLE link ready at MTU $mtu; discovering sensor services…" else "BLE MTU request returned $statusCode; discovering sensor services…"
+                        handler.postDelayed({ g.discoverServices() }, 200L)
                     }
                 }
 
@@ -432,6 +456,8 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
             manifestJson = ""
             sampleValues.clear()
             readInProgress = true
+            manifestCharacteristic = null
+            readingCharacteristic = null
             status = "Connecting to ${item.name}…"
             runCatching { gatt?.refreshGattCacheQuietly() }
             runCatching { gatt?.close() }
@@ -558,10 +584,6 @@ object SensorReadCapabilityScreen : CapabilityScreenSpec {
                         }
                     }
                 }
-            }
-            if (manifestJson.isNotBlank()) {
-                Text("Manifest", fontWeight = FontWeight.SemiBold)
-                Text(manifestJson, style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.height(16.dp))
             IntentExampleDropdown(

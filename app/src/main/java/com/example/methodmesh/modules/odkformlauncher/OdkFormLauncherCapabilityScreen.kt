@@ -134,7 +134,7 @@ object OdkFormLauncherCapabilityScreen : CapabilityScreenSpec {
             result = execution
             pending = null
             status = outcome.status
-            if (context.startsImmediately) onConfirmed(execution)
+            if (context.submitsImmediately) onConfirmed(execution)
         }
 
         fun openForm() {
@@ -176,7 +176,7 @@ object OdkFormLauncherCapabilityScreen : CapabilityScreenSpec {
                     )
                     result = execution
                     status = outcome.error
-                    if (context.startsImmediately) onConfirmed(execution)
+                    if (context.submitsImmediately) onConfirmed(execution)
                 } else {
                     pending = found
                     status = "Opening ${found.name} in ODK Collect…"

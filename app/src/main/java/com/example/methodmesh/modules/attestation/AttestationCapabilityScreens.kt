@@ -209,7 +209,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                 AttestationVerificationMethod.Qr -> {
                     result = null
                     status = "Opening QR verification capability…"
-                    activeDependency = "qr.scan"
+                    activeDependency = "barcode.scan"
                 }
 
                 AttestationVerificationMethod.Nfc -> {
@@ -234,7 +234,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             CapabilityDependencyScreen(
                 capabilityId = dependencyId,
                 parentContext = context,
-                settings = supplied,
+                settings = if (dependencyId == "barcode.scan") supplied + mapOf("barcode_formats" to "QR_CODE") else supplied,
                 onResult = { dependencyResult ->
                     activeDependency = null
                     val fields = OutputFormatter.fields(dependencyResult, includeProvenance = false)

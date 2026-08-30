@@ -96,7 +96,7 @@ object MlKitVisionCapabilityScreen : CapabilityScreenSpec {
             val execution = As100MlKitVisionMethod.result(request, values, context.request.invocationContext)
             result = execution
             status = if (succeeded) "ML Kit analysis complete." else values[MlKitVisionFields.ERROR] ?: "ML Kit analysis failed."
-            if (context.startsImmediately && succeeded) onConfirmed(execution)
+            if (context.submitsImmediately && succeeded) onConfirmed(execution)
         }
 
         fun analyse(uri: Uri) {
@@ -114,13 +114,13 @@ object MlKitVisionCapabilityScreen : CapabilityScreenSpec {
             val uri = pendingPhotoUri
             if (ok && uri != null) analyse(uri) else {
                 status = "Camera capture cancelled."
-                if (context.startsImmediately) onCancel()
+                if (context.submitsImmediately) onCancel()
             }
         }
         val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) analyse(uri) else {
                 status = "Image selection cancelled."
-                if (context.startsImmediately) onCancel()
+                if (context.submitsImmediately) onCancel()
             }
         }
 

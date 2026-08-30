@@ -191,7 +191,7 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                             status = OutputFormatter.fields(execution, false)[NfcProvisionFields.PROVISION_MESSAGE]
                                 ?.toString()
                                 ?: "Provisioning verification finished."
-                            if (context.startsImmediately) onConfirmed(execution)
+                            if (context.submitsImmediately) onConfirmed(execution)
                         }
                     } else if (!writing) {
                         active = false
@@ -254,7 +254,7 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                                 writing = false
                                 status = fields[NfcProvisionFields.PROVISION_MESSAGE]?.toString()
                                     ?: "Provisioning finished."
-                                if (context.startsImmediately) onConfirmed(execution)
+                                if (context.submitsImmediately) onConfirmed(execution)
                             }
                         }
                     }
@@ -416,7 +416,7 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
                 )
                 result = execution
                 status = verified.message
-                if (context.startsImmediately) onConfirmed(execution)
+                if (context.submitsImmediately) onConfirmed(execution)
             }
         }
 

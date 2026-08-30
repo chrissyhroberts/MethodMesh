@@ -12,6 +12,17 @@ import com.example.methodmesh.core.methodmesh.TransformationStatus
  * return selectors.
  */
 object OutputFormatter {
+    object PayloadMode {
+        const val CORE = "CORE"
+        const val AUDIT = "AUDIT"
+        const val FULL = "FULL"
+
+        fun normalize(value: String): String = when (value.trim().uppercase()) {
+            AUDIT -> AUDIT
+            FULL -> FULL
+            else -> CORE
+        }
+    }
 
     /** Compact, caller-facing fields. */
     fun fields(result: ExecutionResult, includeProvenance: Boolean = true): Map<String, Any?> {
@@ -32,6 +43,12 @@ object OutputFormatter {
         return fields
     }
 
+    fun fields(
+        result: ExecutionResult,
+        includeProvenance: Boolean = true,
+        payloadMode: String
+    ): Map<String, Any?> = projectFields(fields(result, includeProvenance), payloadMode, result.status)
+
     fun selectedFields(
         result: ExecutionResult,
         selectors: List<GraphSelector>,
@@ -51,8 +68,79 @@ object OutputFormatter {
         returnMode: ReturnMode,
         includeProvenance: Boolean = true,
         selectors: List<GraphSelector> = emptyList(),
-        graph: ResearchGraph? = null
-    ): String = formatFields(selectedFields(result, selectors, graph, includeProvenance), returnMode)
+        graph: ResearchGraph? = null,
+        payloadMode: String = PayloadMode.FULL
+    ): String = formatFields(
+        projectFields(selectedFields(result, selectors, graph, includeProvenance), payloadMode, result.status),
+        returnMode
+    )
+
+    fun projectFields(
+        fields: Map<String, Any?>,
+        payloadMode: String,
+        status: TransformationStatus? = null
+    ): Map<String, Any?> {
+        return when (PayloadMode.normalize(payloadMode)) {
+            PayloadMode.FULL -> {
+                val projected = linkedMapOf<String, Any?>()
+                projected.putAll(fields.filter { (key, _) -> isCoreField(key) || isFailureHelpField(key) })
+                fields["methodmesh_execution_id"]?.let { projected["methodmesh_execution_id"] = it }
+                fields["methodmesh_status"]?.let { projected["methodmesh_status"] = it }
+                projected["methodmesh_full_json"] = formatFields(fields, ReturnMode.Json)
+                projected
+            }
+            PayloadMode.AUDIT -> fields.filterKeys(::isAuditOrCoreField)
+            else -> fields.filter { (key, _) ->
+                isCoreField(key) || (status != TransformationStatus.Succeeded && isFailureHelpField(key))
+            }
+        }
+    }
+
+    private fun isCoreField(key: String): Boolean {
+        if (key.startsWith("methodmesh_")) return false
+        if (key.startsWith("diagnostic_")) return false
+        if (key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id")) return false
+        if (key.endsWith("_json") || key.endsWith("_payload")) return false
+        if (key.endsWith("_input_text") || key.endsWith("_source_language") || key.endsWith("_target_language")) return false
+        if (key.endsWith("_available_languages") || key.endsWith("_downloaded_models") || key.endsWith("_model_action")) return false
+        if (key.endsWith("_error")) return false
+        if (key.contains("manifest", ignoreCase = true)) return false
+        if (key.contains("trace", ignoreCase = true)) return false
+        if (key.contains("summary", ignoreCase = true)) return false
+        if (key.contains("sha", ignoreCase = true) || key.contains("hash", ignoreCase = true)) return false
+        if (key.contains("uuid", ignoreCase = true) || key.endsWith("_id")) return false
+        if (key.contains("device", ignoreCase = true) || key.contains("address", ignoreCase = true)) return false
+        if (key.contains("requested", ignoreCase = true) || key.contains("actual", ignoreCase = true)) return false
+        if (key.contains("selection", ignoreCase = true) || key.contains("substitution", ignoreCase = true)) return false
+        if (key.contains("duration", ignoreCase = true) || key.contains("interval", ignoreCase = true)) return false
+        if (key.contains("sample_count", ignoreCase = true) || key.contains("mode", ignoreCase = true)) return false
+        if (key.contains("status", ignoreCase = true)) return false
+        if (key.endsWith("_time_iso") || key.endsWith("_at_iso")) return false
+        if (key.startsWith("entity_") || key.startsWith("observation_") || key.startsWith("state_")) return false
+        return true
+    }
+
+    private fun isAuditOrCoreField(key: String): Boolean =
+        isCoreField(key) ||
+            key.startsWith("methodmesh_") ||
+            key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id") ||
+            key.contains("time", ignoreCase = true) ||
+            key.contains("date", ignoreCase = true) ||
+            key.contains("hash", ignoreCase = true) ||
+            key.contains("sha", ignoreCase = true) ||
+            key.contains("uuid", ignoreCase = true) ||
+            key.contains("device", ignoreCase = true) ||
+            key.contains("address", ignoreCase = true) ||
+            key.startsWith("diagnostic_") ||
+            key.contains("warning", ignoreCase = true) ||
+            key.contains("error", ignoreCase = true)
+
+    private fun isFailureHelpField(key: String): Boolean =
+        key.startsWith("methodmesh_") ||
+            key.startsWith("diagnostic_") ||
+            key.contains("status", ignoreCase = true) ||
+            key.contains("warning", ignoreCase = true) ||
+            key.contains("error", ignoreCase = true)
 
     private fun copyContext(result: ExecutionResult, fields: LinkedHashMap<String, Any?>) {
         val subjectId = result.request.context["subject_id"]

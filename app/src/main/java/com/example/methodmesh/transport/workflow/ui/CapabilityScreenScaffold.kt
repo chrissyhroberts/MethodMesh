@@ -1,6 +1,10 @@
 package com.example.methodmesh.transport.workflow.ui
 
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,10 +12,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -27,15 +34,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.OutputExportRepository
+import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
 import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
+import java.io.File
 
 data class CapabilityScreenContext(
     val action: ExternalActionRequest,
@@ -55,7 +67,11 @@ data class CapabilityScreenContext(
     val onSettingsChanged: (Map<String, String>) -> Unit = {}
 ) {
     val isLastStep: Boolean get() = stepNumber >= totalSteps
-    val startsImmediately: Boolean get() = completionMode == CapabilityCompletionMode.AutomaticReturn
+    val startsImmediately: Boolean get() =
+        completionMode == CapabilityCompletionMode.AutomaticReturn ||
+            request.settings["methodmesh_native_preset_run"] == "true" ||
+            request.settings["input_methodmesh_native_preset_run"] == "true"
+    val submitsImmediately: Boolean get() = completionMode == CapabilityCompletionMode.AutomaticReturn
 }
 
 enum class CapabilityCompletionMode {
@@ -110,8 +126,20 @@ fun CapabilityScreenScaffold(
         !context.request.source.equals("intent_test", ignoreCase = true)
     var exportPackage by remember(capturedResult?.request?.id?.value) { mutableStateOf<OutputExportRepository.ExportPackage?>(null) }
     var exportStatus by rememberSaveable(capturedResult?.request?.id?.value) { mutableStateOf<String?>(null) }
+    var shareStatus by rememberSaveable(capturedResult?.request?.id?.value) { mutableStateOf<String?>(null) }
     var showDetails by rememberSaveable { mutableStateOf(false) }
-    var showAllResultFields by rememberSaveable(capturedResult?.request?.id?.value) { mutableStateOf(false) }
+    val userResultPreview = remember(capturedResult?.request?.id?.value, resultPreview) {
+        OutputFormatter.projectFields(resultPreview, OutputFormatter.PayloadMode.CORE, capturedResult?.status)
+    }
+    val resultDetailPreview = remember(capturedResult?.request?.id?.value, resultPreview, userResultPreview) {
+        resultPreview.filterKeys { it !in userResultPreview.keys }
+    }
+    val showResultScreen = capturedResult != null && !automaticReturn && userResultPreview.isNotEmpty()
+    val mediaResultUris = remember(capturedResult?.request?.id?.value, userResultPreview, resultDetailPreview) {
+        (userResultPreview + resultDetailPreview)
+            .filter { (key, value) -> looksLikeShareableMediaUri(key, value?.toString().orEmpty()) }
+            .mapNotNull { (_, value) -> value?.toString()?.let(Uri::parse) }
+    }
 
     // One completion rule for every capability: dashboard/debug captures wait
     // for an explicit Use result; external and dependency captures return as
@@ -173,100 +201,128 @@ fun CapabilityScreenScaffold(
             )
             Spacer(Modifier.height(if (intentPresentation) 24.dp else 18.dp))
 
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(if (intentPresentation) 24.dp else 18.dp),
-                color = if (intentPresentation) {
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            if (showResultScreen) {
+                ClearResultPanel(
+                    fields = userResultPreview,
+                    detailFields = resultDetailPreview,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(if (intentPresentation) 24.dp else 18.dp),
+                    color = if (intentPresentation) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                    }
+                ) {
+                    Column(Modifier.padding(if (intentPresentation) 20.dp else 16.dp)) { content() }
                 }
-            ) {
-                Column(Modifier.padding(if (intentPresentation) 20.dp else 16.dp)) { content() }
             }
 
             Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = if (intentPresentation) Arrangement.Start else Arrangement.End
-            ) {
-                if (canGoBack) {
-                    OutlinedButton(onClick = onBack) { Text("Back") }
-                    Spacer(Modifier.width(8.dp))
-                }
-                OutlinedButton(onClick = onCancel) { Text("Cancel") }
-                if (!intentPresentation) {
-                    Spacer(Modifier.width(8.dp))
-                    if (capturedResult != null) {
-                        OutlinedButton(onClick = onRetry) { Text("Retry") }
-                        Spacer(Modifier.width(8.dp))
-                        if (allowManualExport) {
-                            OutlinedButton(onClick = {
-                                runCatching { OutputExportRepository.exportPackage(appContext, capturedResult) }
+            if (showResultScreen) {
+                Column(Modifier.fillMaxWidth()) {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            runCatching { shareResultText(appContext, userResultPreview) }
+                                .onSuccess { shareStatus = "Sharing result…" }
+                                .onFailure { shareStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
+                        }
+                    ) { Text("Share result") }
+                    if (mediaResultUris.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                runCatching { shareMediaUris(appContext, mediaResultUris) }
+                                    .onSuccess { shareStatus = "Sharing media…" }
+                                    .onFailure { shareStatus = "Media share failed: ${it.message ?: "no media available"}" }
+                            }
+                        ) { Text("Share media") }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onConfirm
+                    ) { Text(if (context.isLastStep) "Submit" else "Continue") }
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (canGoBack) {
+                            OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Back") }
+                        }
+                        OutlinedButton(onClick = onRetry, modifier = Modifier.weight(1f)) { Text("Retry") }
+                        OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                    }
+                    if (allowManualExport) {
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                runCatching { OutputExportRepository.exportPackage(appContext, capturedResult!!) }
                                     .onSuccess {
                                         exportPackage = it
                                         exportStatus = "Exported ${it.summary}"
                                         OutputExportRepository.notifySaved(appContext, it)
                                     }
                                     .onFailure { exportStatus = "Export failed: ${it.message ?: "storage error"}" }
-                            }) { Text("Export") }
+                            }
+                        ) { Text("Save/export full output") }
+                    }
+                    shareStatus?.let {
+                        Text(it, modifier = Modifier.padding(top = 8.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = if (intentPresentation) Arrangement.Start else Arrangement.End
+                ) {
+                    if (canGoBack) {
+                        OutlinedButton(onClick = onBack) { Text("Back") }
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    OutlinedButton(onClick = onCancel) { Text("Cancel") }
+                    if (!intentPresentation) {
+                        Spacer(Modifier.width(8.dp))
+                        if (capturedResult != null) {
+                            OutlinedButton(onClick = onRetry) { Text("Retry") }
                             Spacer(Modifier.width(8.dp))
+                            if (allowManualExport) {
+                                OutlinedButton(onClick = {
+                                    runCatching { OutputExportRepository.exportPackage(appContext, capturedResult) }
+                                        .onSuccess {
+                                            exportPackage = it
+                                            exportStatus = "Exported ${it.summary}"
+                                            OutputExportRepository.notifySaved(appContext, it)
+                                        }
+                                        .onFailure { exportStatus = "Export failed: ${it.message ?: "storage error"}" }
+                                }) { Text("Export") }
+                                Spacer(Modifier.width(8.dp))
+                            }
                         }
-                    }
-                    Button(enabled = capturedResult != null, onClick = onConfirm) {
-                        Text(if (context.isLastStep) "Use result" else "Continue")
-                    }
-                } else if (capturedResult != null && automaticReturn) {
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        "Returning to calling app…",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                } else if (capturedResult != null) {
-                    Spacer(Modifier.width(8.dp))
-                    Button(enabled = true, onClick = onConfirm) {
-                        Text(if (context.isLastStep) "Use result" else "Continue")
+                        Button(enabled = capturedResult != null, onClick = onConfirm) {
+                            Text(if (context.isLastStep) "Submit" else "Continue")
+                        }
+                    } else if (capturedResult != null && automaticReturn) {
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            "Returning to calling app…",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    } else if (capturedResult != null) {
+                        Spacer(Modifier.width(8.dp))
+                        Button(enabled = true, onClick = onConfirm) {
+                            Text(if (context.isLastStep) "Submit" else "Continue")
+                        }
                     }
                 }
             }
 
-            if (!intentPresentation && capturedResult != null && resultPreview.isNotEmpty()) {
-                Spacer(Modifier.height(16.dp))
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text("Captured result", fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(6.dp))
-                        val visibleFields = if (showAllResultFields) resultPreview.entries else resultPreview.entries.take(8)
-                        SelectionContainer {
-                            Column {
-                                visibleFields.forEach { (key, value) ->
-                                    Text(
-                                        "$key = ${value?.toString().orEmpty()}",
-                                        fontFamily = FontFamily.Monospace,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                            }
-                        }
-                        if (resultPreview.size > 8) {
-                            Text(
-                                text = if (showAllResultFields) "▲ Show fewer fields" else "▼ ${resultPreview.size - 8} more fields",
-                                modifier = Modifier
-                                    .clickable { showAllResultFields = !showAllResultFields }
-                                    .padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        }
-                    }
-                }
-            }
             if (exportStatus != null || exportPackage != null) {
                 Spacer(Modifier.height(10.dp))
                 Surface(
@@ -337,4 +393,256 @@ fun CapabilityScreenScaffold(
             }
         }
     }
+}
+
+@Composable
+private fun ClearResultPanel(
+    fields: Map<String, Any?>,
+    detailFields: Map<String, Any?>,
+    modifier: Modifier = Modifier
+) {
+    var showAll by rememberSaveable(fields.hashCode()) { mutableStateOf(false) }
+    var showInput by rememberSaveable(fields.hashCode(), detailFields.hashCode()) { mutableStateOf(false) }
+    var showSettings by rememberSaveable(fields.hashCode(), detailFields.hashCode()) { mutableStateOf(false) }
+    val visibleFields = if (showAll) fields.entries.toList() else fields.entries.take(8)
+    val inputFields = detailFields.filterKeys(::isInputDetailField)
+    val settingsFields = detailFields.filterKeys { !isInputDetailField(it) }
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.42f)
+    ) {
+        Column(
+            Modifier
+                .padding(20.dp)
+                .heightIn(max = 560.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text("Result", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(12.dp))
+            visibleFields.forEach { (key, value) ->
+                ResultField(key = key, value = value)
+                Spacer(Modifier.height(12.dp))
+            }
+            if (fields.size > 8) {
+                Text(
+                    text = if (showAll) "Show less" else "Show ${fields.size - 8} more",
+                    modifier = Modifier
+                        .clickable { showAll = !showAll }
+                        .padding(top = 2.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+            if (inputFields.isNotEmpty()) {
+                ResultDetailsToggle(
+                    title = "Original input",
+                    expanded = showInput,
+                    onToggle = { showInput = !showInput },
+                    fields = inputFields
+                )
+            }
+            if (settingsFields.isNotEmpty()) {
+                ResultDetailsToggle(
+                    title = "Settings and details",
+                    expanded = showSettings,
+                    onToggle = { showSettings = !showSettings },
+                    fields = settingsFields
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResultDetailsToggle(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    fields: Map<String, Any?>
+) {
+    Spacer(Modifier.height(4.dp))
+    Text(
+        text = if (expanded) "▼ $title" else "▶ $title",
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() }
+            .padding(vertical = 8.dp),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary
+    )
+    AnimatedVisibility(expanded) {
+        Column {
+            fields.forEach { (key, value) ->
+                Text(
+                    text = friendlyResultLabel(key),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                SelectionContainer {
+                    Text(
+                        text = value?.toString().orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResultField(key: String, value: Any?) {
+    val valueText = value?.toString().orEmpty()
+    val context = LocalContext.current
+    val bitmap = remember(key, valueText) {
+        if (!looksLikeImageUri(key, valueText)) {
+            null
+        } else {
+            runCatching {
+                context.contentResolver.openInputStream(Uri.parse(valueText))?.use { stream ->
+                    BitmapFactory.decodeStream(stream)
+                }
+            }.getOrNull()
+        }
+    }
+    Text(
+        text = friendlyResultLabel(key),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold
+    )
+    Spacer(Modifier.height(4.dp))
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = friendlyResultLabel(key),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 340.dp),
+            contentScale = ContentScale.Fit
+        )
+        Text(
+            text = valueText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    } else {
+        SelectionContainer {
+            Text(
+                text = valueText,
+                style = if (valueText.length > 120) {
+                    MaterialTheme.typography.bodyLarge
+                } else {
+                    MaterialTheme.typography.headlineSmall
+                }
+            )
+        }
+    }
+}
+
+private fun looksLikeImageUri(key: String, value: String): Boolean {
+    if (!(value.startsWith("content://") || value.startsWith("file://"))) return false
+    val lower = value.lowercase()
+    return key.contains("image", ignoreCase = true) ||
+        lower.endsWith(".jpg") ||
+        lower.endsWith(".jpeg") ||
+        lower.endsWith(".png") ||
+        lower.endsWith(".webp")
+}
+
+private fun isInputDetailField(key: String): Boolean =
+    key.endsWith("_input_text") ||
+        key.contains("_input_", ignoreCase = true) ||
+        key.endsWith("_source_text") ||
+        key.endsWith("_source_uri") ||
+        key.endsWith("_source") ||
+        key.endsWith("_original_text") ||
+        key.endsWith("_original_uri")
+
+private fun shareResultText(context: android.content.Context, fields: Map<String, Any?>) {
+    val text = humanShareText(fields)
+    if (text.isBlank()) throw IllegalStateException("No shareable result text.")
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    context.startActivity(Intent.createChooser(intent, "Share result").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+}
+
+private fun shareMediaUris(context: android.content.Context, uris: List<Uri>) {
+    val shareable = ArrayList(uris.map { shareableUri(context, it) })
+    if (shareable.isEmpty()) throw IllegalStateException("No media available.")
+    val intent = if (shareable.size == 1) {
+        Intent(Intent.ACTION_SEND).apply {
+            type = mediaMimeType(shareable.first().toString())
+            putExtra(Intent.EXTRA_STREAM, shareable.first())
+        }
+    } else {
+        Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+            type = "*/*"
+            putParcelableArrayListExtra(Intent.EXTRA_STREAM, shareable)
+        }
+    }.apply {
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(Intent.createChooser(intent, "Share media").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+}
+
+private fun humanShareText(fields: Map<String, Any?>): String {
+    val textLike = fields.entries
+        .filterNot { (key, value) -> looksLikeShareableMediaUri(key, value?.toString().orEmpty()) }
+        .filterNot { (key, _) -> key.endsWith("_name") || key.endsWith("_filename") }
+    if (textLike.size == 1) return textLike.first().value?.toString().orEmpty()
+    return textLike.joinToString("\n") { (key, value) -> "${friendlyResultLabel(key)}: ${value?.toString().orEmpty()}" }
+}
+
+private fun looksLikeShareableMediaUri(key: String, value: String): Boolean {
+    if (!(value.startsWith("content://") || value.startsWith("file://") || value.startsWith("/"))) return false
+    val lower = value.lowercase()
+    return key.contains("image", ignoreCase = true) ||
+        key.contains("photo", ignoreCase = true) ||
+        key.contains("pdf", ignoreCase = true) ||
+        lower.endsWith(".jpg") ||
+        lower.endsWith(".jpeg") ||
+        lower.endsWith(".png") ||
+        lower.endsWith(".webp") ||
+        lower.endsWith(".pdf")
+}
+
+private fun shareableUri(context: android.content.Context, uri: Uri): Uri {
+    val value = uri.toString()
+    return when {
+        value.startsWith("content://") -> uri
+        value.startsWith("file://") -> File(value.removePrefix("file://")).let { file ->
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        }
+        else -> File(value).let { file ->
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        }
+    }
+}
+
+private fun mediaMimeType(value: String): String = when (value.substringAfterLast('.', "").lowercase()) {
+    "jpg", "jpeg" -> "image/jpeg"
+    "png" -> "image/png"
+    "webp" -> "image/webp"
+    "pdf" -> "application/pdf"
+    else -> "*/*"
+}
+
+private fun friendlyResultLabel(key: String): String {
+    val cleaned = key
+        .removePrefix("methodmesh_")
+        .removePrefix("sensor_")
+        .removePrefix("mlkit_translate_")
+        .removePrefix("image_redaction_")
+        .removePrefix("image_highlight_")
+        .replace("_pct", " %")
+        .replace("_c", " °C")
+        .replace("_cm", " cm")
+        .replace("_uri", "")
+        .replace('_', ' ')
+        .trim()
+    return cleaned.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 }

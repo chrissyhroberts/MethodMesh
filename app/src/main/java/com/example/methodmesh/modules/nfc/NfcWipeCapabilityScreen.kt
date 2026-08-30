@@ -87,7 +87,7 @@ object NfcWipeCapabilityScreen : CapabilityScreenSpec {
                             result = execution
                             val fields = OutputFormatter.fields(execution, false)
                             status = fields[NfcWipeFields.WIPE_MESSAGE]?.toString() ?: "Wipe verification finished."
-                            if (context.startsImmediately) onConfirmed(execution)
+                            if (context.submitsImmediately) onConfirmed(execution)
                         }
                     } else {
                         firstTagUid = uid
@@ -111,7 +111,7 @@ object NfcWipeCapabilityScreen : CapabilityScreenSpec {
                             active = false
                             result = execution
                             status = fields[NfcWipeFields.WIPE_MESSAGE]?.toString() ?: "Wipe finished."
-                            if (context.startsImmediately) onConfirmed(execution)
+                            if (context.submitsImmediately) onConfirmed(execution)
                         }
                     }
                 }

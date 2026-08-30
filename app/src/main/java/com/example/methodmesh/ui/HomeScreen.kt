@@ -9,12 +9,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,18 +24,28 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -63,6 +75,7 @@ import com.example.methodmesh.core.protocols.CapabilityPreset
 import com.example.methodmesh.core.protocols.ProtocolDefinition
 import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
 import com.example.methodmesh.core.protocols.ProtocolOutputMode
+import com.example.methodmesh.core.protocols.ProtocolPayloadMode
 import com.example.methodmesh.core.protocols.ProtocolStep
 import com.example.methodmesh.core.ResearchRuntime
 import com.example.methodmesh.core.methodmesh.ExecutionResult
@@ -71,7 +84,6 @@ import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.core.methodmesh.runtime.As100MethodRegistry
 import com.example.methodmesh.core.methodmesh.runtime.CapabilityConfigurationRegistry
 import com.example.methodmesh.core.methodmesh.withInvocationContext
-import com.example.methodmesh.modules.ModuleExample
 import com.example.methodmesh.modules.MethodMeshModule
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
 import com.example.methodmesh.modules.odkformlauncher.As100OdkFormLauncherMethod
@@ -81,6 +93,7 @@ import com.example.methodmesh.settings.DisplaySettingsScreen
 import com.example.methodmesh.settings.SettingsState
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.OutputExportRepository
+import com.example.methodmesh.modules.sensorread.As100SensorReadMethod
 import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.android.IntentRouterActivity
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
@@ -96,11 +109,66 @@ import com.example.methodmesh.platform.devices.DeviceRegistry
 import com.example.methodmesh.platform.devices.DeviceTransport
 import com.example.methodmesh.platform.devices.RegisteredDevice
 import org.json.JSONObject
+import kotlinx.coroutines.launch
 
 private data class ProtocolStepDraft(
     val presetId: String,
     val outputMode: String = ProtocolOutputMode.SAVE
 )
+
+private enum class CapabilityUiClass {
+    ProtocolPrimitive,
+    WorkbenchTool
+}
+
+private enum class CapabilityLifecycle(val label: String) {
+    Production("Production"),
+    Development("Development")
+}
+
+private enum class DashboardDestination(val label: String) {
+    Dashboard("Dashboard"),
+    Outputs("Outputs"),
+    RunProtocol("Run protocol"),
+    Presets("Preset library"),
+    Protocols("Protocol library"),
+    Scheduler("Scheduler"),
+    Devices("Device registry"),
+    Workbench("Workbench"),
+    Capabilities("Capabilities"),
+    State("Runtime state"),
+    Services("Device services")
+}
+
+private fun capabilityUiClass(method: As100Method, module: MethodMeshModule?): CapabilityUiClass {
+    val id = method.id
+    val moduleId = module?.moduleId.orEmpty()
+    return when {
+        id in setOf(
+            "android_app_inspector",
+            "bluetooth_device_inspector",
+            "sensor_node_provisioner",
+            "esp32.board_wipe",
+            "esp32.runtime_install",
+            "esp32.sensor_profile_install"
+        ) -> CapabilityUiClass.WorkbenchTool
+        moduleId in setOf(
+            "appinspector",
+            "bluetoothinspector",
+            "sensorfirmwareinstaller",
+            "sensorprovisioner"
+        ) -> CapabilityUiClass.WorkbenchTool
+        else -> CapabilityUiClass.ProtocolPrimitive
+    }
+}
+
+private fun capabilityLifecycle(method: As100Method): CapabilityLifecycle {
+    // Promotion is deliberately explicit. New or unreviewed capabilities stay
+    // in Development until their behaviour, ODK contract, docs and examples
+    // have been reviewed together.
+    val productionCapabilityIds = setOf("barcode.scan")
+    return if (method.id in productionCapabilityIds) CapabilityLifecycle.Production else CapabilityLifecycle.Development
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,6 +176,9 @@ fun HomeScreen() {
     val modules = MethodMeshModuleRegistry.all()
     val methods = As100MethodRegistry.all().filterNot { it.id.startsWith("scheduler.") }.distinctBy { it.id }
     val appContext = LocalContext.current
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    var selectedDestination by rememberSaveable { mutableStateOf(DashboardDestination.Dashboard) }
     var schedules by remember { mutableStateOf(SchedulerRepository.all(appContext)) }
     var editingSchedule by remember { mutableStateOf<ResearchSchedule?>(null) }
     var schedulerEditorOpen by remember { mutableStateOf(false) }
@@ -122,64 +193,104 @@ fun HomeScreen() {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("MethodMesh Runtime") }) }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-        ) {
-            item { RuntimeSummaryCard(modules.size, methods.size) }
-            item { OutputFolderCard() }
-            item { RunProtocolCard(protocolLibraryRevision) }
-            item { ProtocolLibraryCard(protocolLibraryRevision) }
-            item {
-                SchedulerCenterCard(
-                    schedules = schedules,
-                    onCreate = { editingSchedule = null; schedulerEditorOpen = true },
-                    onEdit = { editingSchedule = it; schedulerEditorOpen = true },
-                    onChanged = { schedules = SchedulerRepository.all(appContext) },
-                    onExportSchedule = { schedule ->
-                        val payload = com.example.methodmesh.core.scheduling.SchedulerBundle.export(appContext, schedule.id)
-                        appContext.getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("MethodMesh schedule", payload))
-                    },
-                    onAdvancedExport = { schedulerTransferMode = "export" },
-                    onAdvancedImport = { schedulerTransferMode = "import" }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Text("MethodMesh", modifier = Modifier.padding(18.dp), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                DashboardDestination.entries.forEach { destination ->
+                    NavigationDrawerItem(
+                        label = { Text(destination.label) },
+                        selected = selectedDestination == destination,
+                        onClick = {
+                            scope.launch {
+                                selectedDestination = destination
+                                drawerState.close()
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(selectedDestination.label) },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Text("☰", style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
                 )
             }
-            item { DeviceRegistryCard() }
-            if (schedulerEditorOpen) {
-                item {
-                    SchedulerEditorHost(
-                        schedule = editingSchedule,
-                        onDone = { schedules = SchedulerRepository.all(appContext); schedulerEditorOpen = false },
-                        onCancel = { schedulerEditorOpen = false }
-                    )
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+            ) {
+                when (selectedDestination) {
+                    DashboardDestination.Dashboard -> {
+                        item { RuntimeSummaryCard(modules.size, methods.size) }
+                        item { RunProtocolCard(protocolLibraryRevision, expandedByDefault = true) }
+                        item { PresetShortcutsCard(protocolLibraryRevision) }
+                    }
+                    DashboardDestination.Outputs -> item { OutputFolderCard(expandedByDefault = true) }
+                    DashboardDestination.RunProtocol -> item { RunProtocolCard(protocolLibraryRevision, expandedByDefault = true) }
+                    DashboardDestination.Presets -> item { ProtocolLibraryCard(protocolLibraryRevision, showPresets = true, showProtocols = false, expandedByDefault = true) }
+                    DashboardDestination.Protocols -> item { ProtocolLibraryCard(protocolLibraryRevision, showPresets = false, showProtocols = true, expandedByDefault = true) }
+                    DashboardDestination.Scheduler -> {
+                        item {
+                            SchedulerCenterCard(
+                                schedules = schedules,
+                                onCreate = { editingSchedule = null; schedulerEditorOpen = true },
+                                onEdit = { editingSchedule = it; schedulerEditorOpen = true },
+                                onChanged = { schedules = SchedulerRepository.all(appContext) },
+                                onExportSchedule = { schedule ->
+                                    val payload = com.example.methodmesh.core.scheduling.SchedulerBundle.export(appContext, schedule.id)
+                                    appContext.getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("MethodMesh schedule", payload))
+                                },
+                                onAdvancedExport = { schedulerTransferMode = "export" },
+                                onAdvancedImport = { schedulerTransferMode = "import" }
+                            )
+                        }
+                        if (schedulerEditorOpen) {
+                            item {
+                                SchedulerEditorHost(
+                                    schedule = editingSchedule,
+                                    onDone = { schedules = SchedulerRepository.all(appContext); schedulerEditorOpen = false },
+                                    onCancel = { schedulerEditorOpen = false }
+                                )
+                            }
+                        }
+                        schedulerTransferMode?.let { mode ->
+                            item {
+                                val action = ExternalActionRequest(
+                                    requestedId = if (mode == "export") "scheduler.export" else "scheduler.import",
+                                    canonicalId = if (mode == "export") "scheduler.export" else "scheduler.import"
+                                )
+                                val request = ExternalWorkflowRequest(listOf(action), InvocationContext(caller = "dashboard"), emptyList(), ReturnMode.Json, source = "dashboard")
+                                val screen = if (mode == "export") SchedulerExportCapabilityScreen else SchedulerTransferCapabilityScreen
+                                screen.Render(CapabilityScreenContext(action, request, 1, 1), onBack = { schedulerTransferMode = null }, onConfirmed = { schedulerTransferMode = null; schedules = SchedulerRepository.all(appContext) }, onCancel = { schedulerTransferMode = null })
+                            }
+                        }
+                    }
+                    DashboardDestination.Devices -> item { DeviceRegistryCard(expandedByDefault = true) }
+                    DashboardDestination.Workbench -> item { WorkbenchCard(methods, modules, expandedByDefault = true) }
+                    DashboardDestination.Capabilities -> item { CapabilityRegistryCard(methods, modules, expandedByDefault = true, onPresetSaved = { protocolLibraryRevision += 1 }) }
+                    DashboardDestination.State -> item { RuntimeStateCard(expandedByDefault = true) }
+                    DashboardDestination.Services -> item { DeviceServicesCard(expandedByDefault = true) }
                 }
             }
-            schedulerTransferMode?.let { mode ->
-                item {
-                    val action = ExternalActionRequest(
-                        requestedId = if (mode == "export") "scheduler.export" else "scheduler.import",
-                        canonicalId = if (mode == "export") "scheduler.export" else "scheduler.import"
-                    )
-                    val request = ExternalWorkflowRequest(listOf(action), InvocationContext(caller = "dashboard"), emptyList(), ReturnMode.Json, source = "dashboard")
-                    val screen = if (mode == "export") SchedulerExportCapabilityScreen else SchedulerTransferCapabilityScreen
-                    screen.Render(CapabilityScreenContext(action, request, 1, 1), onBack = { schedulerTransferMode = null }, onConfirmed = { schedulerTransferMode = null; schedules = SchedulerRepository.all(appContext) }, onCancel = { schedulerTransferMode = null })
-                }
-            }
-            item { CapabilityRegistryCard(methods, modules, onPresetSaved = { protocolLibraryRevision += 1 }) }
-            item { RuntimeStateCard() }
-            item { DeviceServicesCard() }
         }
     }
 }
 
 @Composable
-private fun OutputFolderCard() {
+private fun OutputFolderCard(expandedByDefault: Boolean = false) {
     val context = LocalContext.current
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(expandedByDefault) }
     var configured by remember { mutableStateOf(OutputExportRepository.configuredFolder(context)) }
     var folderStatus by rememberSaveable { mutableStateOf<String?>(null) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -312,9 +423,9 @@ private fun launchProtocolRun(
 }
 
 @Composable
-private fun RunProtocolCard(revision: Int) {
+private fun RunProtocolCard(revision: Int, expandedByDefault: Boolean = false) {
     val context = LocalContext.current
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(expandedByDefault) }
     val protocols by remember(revision) { mutableStateOf(ProtocolLibraryRepository.protocols(context)) }
     ElevatedCard(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
@@ -364,9 +475,52 @@ private fun RunProtocolCard(revision: Int) {
 }
 
 @Composable
-private fun ProtocolLibraryCard(revision: Int) {
+private fun PresetShortcutsCard(revision: Int) {
     val context = LocalContext.current
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    val presets = remember(revision) { ProtocolLibraryRepository.presets(context) }
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+        elevation = CardDefaults.elevatedCardElevation(2.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Preset shortcuts", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Quick access to saved toolbox actions.", modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(8.dp))
+            if (presets.isEmpty()) {
+                Text("No presets yet. Create one from Capabilities.", style = MaterialTheme.typography.bodySmall)
+            } else {
+                presets.take(6).forEach { preset ->
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                        onClick = {
+                            context.startActivity(Intent(context, SchedulerDispatchActivity::class.java).apply {
+                                action = "com.example.methodmesh.RUN_PRESET"
+                                putExtra("preset_id", preset.id)
+                                putExtra("transient_preset_run", true)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            })
+                        }
+                    ) {
+                        Column(Modifier.fillMaxWidth()) {
+                            Text(preset.name)
+                            Text(preset.methodId, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProtocolLibraryCard(
+    revision: Int,
+    showPresets: Boolean = true,
+    showProtocols: Boolean = true,
+    expandedByDefault: Boolean = false
+) {
+    val context = LocalContext.current
+    var expanded by rememberSaveable { mutableStateOf(expandedByDefault) }
     var presets by remember(revision) { mutableStateOf(ProtocolLibraryRepository.presets(context)) }
     var protocols by remember(revision) { mutableStateOf(ProtocolLibraryRepository.protocols(context)) }
     var archivedProtocols by remember(revision) { mutableStateOf(ProtocolLibraryRepository.archivedProtocols(context)) }
@@ -400,58 +554,77 @@ private fun ProtocolLibraryCard(revision: Int) {
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
+                val title = when {
+                    showPresets && !showProtocols -> "Preset library"
+                    showProtocols && !showPresets -> "Protocol library"
+                    else -> "Presets & protocols"
+                }
                 Text(
-                    if (expanded) "▼ Protocol library" else "▶ Protocol library",
+                    if (expanded) "▼ $title" else "▶ $title",
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Text("${presets.size} presets · ${protocols.size} protocols", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    when {
+                        showPresets && !showProtocols -> "${presets.size} presets"
+                        showProtocols && !showPresets -> "${protocols.size} protocols"
+                        else -> "${presets.size} presets · ${protocols.size} protocols"
+                    },
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
             Text(
-                "Save reusable capability configurations, chain them into protocols, and transport the library between devices.",
+                if (showProtocols && !showPresets) "Chain presets into repeatable runs." else "Saved capability configurations.",
                 modifier = Modifier.padding(top = 6.dp),
                 style = MaterialTheme.typography.bodySmall
             )
             if (expanded) {
                 Spacer(Modifier.height(10.dp))
 
-                Text("Saved presets", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                if (presets.isEmpty()) {
-                    Text("No presets yet. Expand a capability card below, configure it, then press Save as preset.", style = MaterialTheme.typography.bodySmall)
-                } else {
-                    presets.forEach { preset ->
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                            shape = MaterialTheme.shapes.medium
-                        ) {
-                            Column(Modifier.padding(10.dp)) {
-                                Text(preset.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                                Text(preset.methodId, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
-                                Text(
-                                    "${ProtocolLibraryRepository.versionLabel(preset.versionIso)} · updated ${preset.updatedAtIso}",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                                Row(Modifier.fillMaxWidth().padding(top = 6.dp)) {
-                                    Button(onClick = { runPreset(preset) }, modifier = Modifier.weight(1f)) { Text("Run") }
-                                    Spacer(Modifier.width(8.dp))
-                                    OutlinedButton(
-                                        onClick = {
-                                            ProtocolLibraryRepository.removePreset(context, preset.id)
-                                            protocolStepDrafts = protocolStepDrafts.filterNot { it.presetId == preset.id }
-                                            refresh()
-                                            status = "Removed preset: ${preset.name}"
-                                        },
-                                        modifier = Modifier.weight(1f)
-                                    ) { Text("Remove") }
+                if (showPresets) {
+                    Text("Saved presets", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    if (presets.isEmpty()) {
+                        Text("No presets yet. Create one from Capabilities.", style = MaterialTheme.typography.bodySmall)
+                    } else {
+                        presets.forEach { preset ->
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                Column(Modifier.padding(10.dp)) {
+                                    Text(preset.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                    Text(preset.methodId, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
+                                    Text(
+                                        "${ProtocolLibraryRepository.versionLabel(preset.versionIso)} · updated ${preset.updatedAtIso}",
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                    Text(payloadModeLabel(preset.payloadMode), style = MaterialTheme.typography.labelSmall)
+                                    Row(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+                                        Button(onClick = { runPreset(preset) }, modifier = Modifier.weight(1f)) { Text("Run") }
+                                        Spacer(Modifier.width(8.dp))
+                                        OutlinedButton(
+                                            onClick = {
+                                                ProtocolLibraryRepository.removePreset(context, preset.id)
+                                                protocolStepDrafts = protocolStepDrafts.filterNot { it.presetId == preset.id }
+                                                refresh()
+                                                status = "Removed preset: ${preset.name}"
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        ) { Text("Remove") }
+                                    }
                                 }
                             }
                         }
                     }
+                    Spacer(Modifier.height(14.dp))
                 }
 
-                Spacer(Modifier.height(14.dp))
+                if (showProtocols) {
+                Text("Protocol library", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text("Chain presets into repeatable runs.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
                 Text("Create protocol", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Text("Build a chain from saved presets. Press Add step, pick a preset, repeat, then save.", style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(protocolName, { protocolName = it }, label = { Text("Protocol name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
@@ -661,6 +834,7 @@ private fun ProtocolLibraryCard(revision: Int) {
                         }
                     }
                 }
+                }
 
                 Spacer(Modifier.height(14.dp))
                 Text("Transfer library", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -707,43 +881,28 @@ private fun ProtocolOutputModeSelector(
 ) {
     Column(Modifier.fillMaxWidth()) {
         Text("Output handling", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-        Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-            ProtocolOutputModeButton(
-                label = "Save",
-                selected = ProtocolOutputMode.normalize(selected) == ProtocolOutputMode.SAVE,
-                onClick = { onSelected(ProtocolOutputMode.SAVE) },
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(Modifier.width(6.dp))
-            ProtocolOutputModeButton(
-                label = "Don't save",
-                selected = ProtocolOutputMode.normalize(selected) == ProtocolOutputMode.NONE,
-                onClick = { onSelected(ProtocolOutputMode.NONE) },
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(Modifier.width(6.dp))
-            ProtocolOutputModeButton(
-                label = "Share",
-                selected = ProtocolOutputMode.normalize(selected) == ProtocolOutputMode.SHARE,
-                onClick = { onSelected(ProtocolOutputMode.SHARE) },
-                modifier = Modifier.weight(1f)
-            )
-        }
+        OptionRow("Save", ProtocolOutputMode.normalize(selected) == ProtocolOutputMode.SAVE) { onSelected(ProtocolOutputMode.SAVE) }
+        OptionRow("Don't save", ProtocolOutputMode.normalize(selected) == ProtocolOutputMode.NONE) { onSelected(ProtocolOutputMode.NONE) }
+        OptionRow("Share", ProtocolOutputMode.normalize(selected) == ProtocolOutputMode.SHARE) { onSelected(ProtocolOutputMode.SHARE) }
         Text(protocolOutputDescription(selected), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
 @Composable
-private fun ProtocolOutputModeButton(
+private fun OptionRow(
     label: String,
     selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onClick: () -> Unit
 ) {
-    if (selected) {
-        Button(onClick = onClick, modifier = modifier) { Text("✓ $label") }
-    } else {
-        OutlinedButton(onClick = onClick, modifier = modifier) { Text(label) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Text(label, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -757,6 +916,37 @@ private fun protocolOutputDescription(mode: String): String = when (ProtocolOutp
     ProtocolOutputMode.NONE -> "Do not write a MethodMesh output package for this step; useful when ODK/Kobo/Central owns the data."
     ProtocolOutputMode.SHARE -> "Create a MethodMesh package and open Android share for the result."
     else -> "Write this step into the MethodMesh output folder."
+}
+
+@Composable
+private fun PayloadModeSelector(
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Text("Returned payload", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        listOf(
+            ProtocolPayloadMode.CORE to "Core result",
+            ProtocolPayloadMode.AUDIT to "Core + audit",
+            ProtocolPayloadMode.FULL to "Everything"
+        ).forEach { (mode, label) ->
+            val active = ProtocolPayloadMode.normalize(selected) == mode
+            OptionRow(label, active) { onSelected(mode) }
+        }
+        Text(payloadModeDescription(selected), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+private fun payloadModeLabel(mode: String): String = when (ProtocolPayloadMode.normalize(mode)) {
+    ProtocolPayloadMode.AUDIT -> "Returns: core + audit fields"
+    ProtocolPayloadMode.FULL -> "Returns: everything"
+    else -> "Returns: core result only"
+}
+
+private fun payloadModeDescription(mode: String): String = when (ProtocolPayloadMode.normalize(mode)) {
+    ProtocolPayloadMode.AUDIT -> "Return core values plus ALCOA-style IDs, times, device details, hashes and warnings."
+    ProtocolPayloadMode.FULL -> "Return the full capability output, including raw JSON, manifests, traces and success metadata."
+    else -> "Return only the practical answer values, such as readings, answers, selected labels and file names."
 }
 
 @Composable
@@ -861,7 +1051,7 @@ private fun RuntimeSummaryCard(moduleCount: Int, methodCount: Int) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("MethodMesh runtime", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
-                text = "The dashboard now follows the canonical capability registry. Modules register methods, focused screens, RIL bindings and examples once.",
+                text = "Protocol tools, device setup and app integrations.",
                 modifier = Modifier.padding(top = 4.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -876,20 +1066,99 @@ private fun RuntimeSummaryCard(moduleCount: Int, methodCount: Int) {
 
 
 @Composable
+private fun WorkbenchCard(
+    methods: List<As100Method>,
+    modules: List<MethodMeshModule>,
+    expandedByDefault: Boolean = false
+) {
+    var expanded by rememberSaveable { mutableStateOf(expandedByDefault) }
+    val screenMap = MethodMeshModuleRegistry.capabilityScreens().associateBy { it.capabilityId }
+    val moduleByMethod = modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
+    val workbenchMethods = methods.filter { method ->
+        capabilityUiClass(method, moduleByMethod[method.id]) == CapabilityUiClass.WorkbenchTool
+    }
+
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        elevation = CardDefaults.elevatedCardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (expanded) "▼ Workbench" else "▶ Workbench",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(workbenchMethods.size.toString(), style = MaterialTheme.typography.titleMedium)
+            }
+            Text(
+                text = "Set up hardware, inspect apps and check Bluetooth devices.",
+                modifier = Modifier.padding(top = 6.dp),
+                style = MaterialTheme.typography.bodySmall
+            )
+            if (expanded) {
+                workbenchMethods.sortedBy { it.id }
+                    .groupBy { moduleByMethod[it.id]?.displayName ?: "Other" }
+                    .toSortedMap()
+                    .forEach { (moduleName, moduleMethods) ->
+                        var moduleExpanded by rememberSaveable("Workbench:$moduleName") { mutableStateOf(false) }
+                        Column(Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable { moduleExpanded = !moduleExpanded },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    if (moduleExpanded) "▼ $moduleName" else "▶ $moduleName",
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(moduleMethods.size.toString(), style = MaterialTheme.typography.labelMedium)
+                            }
+                            if (moduleExpanded) moduleMethods.forEach { method ->
+                                CapabilityCard(
+                                    method = method,
+                                    module = moduleByMethod[method.id],
+                                    screen = screenMap[method.id],
+                                    uiClass = CapabilityUiClass.WorkbenchTool,
+                                    onPresetSaved = {}
+                                )
+                            }
+                        }
+                    }
+            }
+        }
+    }
+}
+
+@Composable
 private fun CapabilityRegistryCard(
     methods: List<As100Method>,
     modules: List<MethodMeshModule>,
+    expandedByDefault: Boolean = false,
     onPresetSaved: () -> Unit
 ) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(expandedByDefault) }
     var query by rememberSaveable { mutableStateOf("") }
     val screenMap = MethodMeshModuleRegistry.capabilityScreens().associateBy { it.capabilityId }
     val moduleByMethod = modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
     val filteredMethods = methods.filter { method ->
         val moduleName = moduleByMethod[method.id]?.displayName.orEmpty()
-        query.isBlank() || listOf(method.id, method.descriptor.name, method.descriptor.description.orEmpty(), moduleName)
-            .any { it.contains(query.trim(), ignoreCase = true) }
+        capabilityUiClass(method, moduleByMethod[method.id]) == CapabilityUiClass.ProtocolPrimitive &&
+            (query.isBlank() || listOf(method.id, method.descriptor.name, method.descriptor.description.orEmpty(), moduleName)
+                .any { it.contains(query.trim(), ignoreCase = true) })
     }
+    val protocolCount = methods.count { method -> capabilityUiClass(method, moduleByMethod[method.id]) == CapabilityUiClass.ProtocolPrimitive }
+    val productionMethods = filteredMethods.filter { capabilityLifecycle(it) == CapabilityLifecycle.Production }
+    val developmentMethods = filteredMethods.filter { capabilityLifecycle(it) == CapabilityLifecycle.Development }
 
     ElevatedCard(
         modifier = Modifier
@@ -912,7 +1181,7 @@ private fun CapabilityRegistryCard(
                 Text(methods.size.toString(), style = MaterialTheme.typography.titleMedium)
             }
             Text(
-                text = "This is the single source of truth for dashboard execution: one row per canonical AS method, including DCE/choice experiment capabilities. Focused screens render in-place here rather than in a separate debug runner.",
+                text = "Build, test and save reusable MethodMesh actions.",
                 modifier = Modifier.padding(top = 6.dp),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -928,40 +1197,29 @@ private fun CapabilityRegistryCard(
                     placeholder = { Text("Search by name, method ID, or module") }
                 )
                 Text(
-                    "Showing ${filteredMethods.size} of ${methods.size}",
+                    "Showing ${filteredMethods.size} of $protocolCount",
                     modifier = Modifier.padding(top = 6.dp),
                     style = MaterialTheme.typography.labelSmall
                 )
-                filteredMethods.sortedBy { it.id }
-                    .groupBy { moduleByMethod[it.id]?.displayName ?: "Other methods" }
-                    .toSortedMap()
-                    .forEach { (moduleName, moduleMethods) ->
-                        // Keep the dashboard compact on entry; expand a module when its
-                        // capabilities are needed rather than opening every subtree.
-                        var moduleExpanded by rememberSaveable(moduleName) { mutableStateOf(false) }
-                        Column(Modifier.fillMaxWidth().padding(top = 12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().clickable { moduleExpanded = !moduleExpanded },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    if (moduleExpanded) "▼ $moduleName" else "▶ $moduleName",
-                                    modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(moduleMethods.size.toString(), style = MaterialTheme.typography.labelMedium)
-                            }
-                            if (moduleExpanded) moduleMethods.forEach { method ->
-                                CapabilityCard(
-                                    method = method,
-                                    module = moduleByMethod[method.id],
-                                    screen = screenMap[method.id],
-                                    onPresetSaved = onPresetSaved
-                                )
-                            }
-                        }
-                    }
+                CapabilityMethodSection(
+                    title = "Production",
+                    subtitle = "Reviewed, tested, documented and ready for protocols/ODK use.",
+                    methods = productionMethods,
+                    moduleByMethod = moduleByMethod,
+                    screenMap = screenMap,
+                    uiClass = CapabilityUiClass.ProtocolPrimitive,
+                    onPresetSaved = onPresetSaved
+                )
+                CapabilityMethodSection(
+                    title = "Development",
+                    subtitle = "Unreviewed or still being tuned. Everything starts here until promoted.",
+                    methods = developmentMethods,
+                    moduleByMethod = moduleByMethod,
+                    screenMap = screenMap,
+                    uiClass = CapabilityUiClass.ProtocolPrimitive,
+                    onPresetSaved = onPresetSaved,
+                    expandedByDefault = true
+                )
                 if (filteredMethods.isEmpty()) {
                     Text("No capabilities match this search.", modifier = Modifier.padding(top = 12.dp))
                 }
@@ -971,10 +1229,74 @@ private fun CapabilityRegistryCard(
 }
 
 @Composable
+private fun CapabilityMethodSection(
+    title: String,
+    subtitle: String,
+    methods: List<As100Method>,
+    moduleByMethod: Map<String, MethodMeshModule>,
+    screenMap: Map<String, CapabilityScreenSpec>,
+    uiClass: CapabilityUiClass,
+    onPresetSaved: () -> Unit,
+    expandedByDefault: Boolean = uiClass == CapabilityUiClass.ProtocolPrimitive
+) {
+    var sectionExpanded by rememberSaveable(title) { mutableStateOf(expandedByDefault) }
+    Column(Modifier.fillMaxWidth().padding(top = 12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable { sectionExpanded = !sectionExpanded },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                if (sectionExpanded) "▼ $title" else "▶ $title",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(methods.size.toString(), style = MaterialTheme.typography.labelMedium)
+        }
+        Text(subtitle, modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodySmall)
+        if (sectionExpanded) {
+            if (methods.isEmpty()) {
+                Text("No matching items in this section.", modifier = Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodySmall)
+            }
+            methods.sortedBy { it.id }
+                .groupBy { moduleByMethod[it.id]?.displayName ?: "Other methods" }
+                .toSortedMap()
+                .forEach { (moduleName, moduleMethods) ->
+                    var moduleExpanded by rememberSaveable("$title:$moduleName") { mutableStateOf(false) }
+                    Column(Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clickable { moduleExpanded = !moduleExpanded },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                if (moduleExpanded) "▼ $moduleName" else "▶ $moduleName",
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(moduleMethods.size.toString(), style = MaterialTheme.typography.labelMedium)
+                        }
+                        if (moduleExpanded) moduleMethods.forEach { method ->
+                            CapabilityCard(
+                                method = method,
+                                module = moduleByMethod[method.id],
+                                screen = screenMap[method.id],
+                                uiClass = uiClass,
+                                onPresetSaved = onPresetSaved
+                            )
+                        }
+                    }
+                }
+        }
+    }
+}
+
+@Composable
 private fun CapabilityCard(
     method: As100Method,
     module: MethodMeshModule?,
     screen: CapabilityScreenSpec?,
+    uiClass: CapabilityUiClass,
     onPresetSaved: () -> Unit
 ) {
     val context = LocalContext.current
@@ -986,8 +1308,10 @@ private fun CapabilityCard(
     var presetDialogOpen by rememberSaveable("${method.id}:presetDialog") { mutableStateOf(false) }
     var presetStatus by rememberSaveable("${method.id}:presetStatus") { mutableStateOf<String?>(null) }
     var intentCopyStatus by rememberSaveable("${method.id}:intentCopyStatus") { mutableStateOf<String?>(null) }
+    var returnPayloadMode by rememberSaveable("${method.id}:returnPayloadMode") { mutableStateOf(ProtocolPayloadMode.CORE) }
     val settingSchema = remember(method.id) { CapabilityConfigurationRegistry.settingsFor(method.id) }
     val settingsState = remember(method.id) { SettingsState(settingSchema) }
+    val isProtocolPrimitive = uiClass == CapabilityUiClass.ProtocolPrimitive
     fun acceptResult(result: ExecutionResult, saveOutput: Boolean) {
         lastResult = result
         lastResultStatus = if (saveOutput) {
@@ -1035,20 +1359,29 @@ private fun CapabilityCard(
                 onClick = { quickTestOpen = true },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("▶ Test")
+                Text(if (isProtocolPrimitive) "Test" else "Open tool")
             }
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = { quickTestSaveOpen = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Test and save")
+            if (isProtocolPrimitive) {
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { quickTestSaveOpen = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Test and save")
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { presetDialogOpen = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Save as preset")
+                }
             }
             lastResult?.let { ResultPreview(it, lastResultStatus) }
 
             if (expanded) {
                 Spacer(Modifier.height(8.dp))
-                CapabilityOutputsSection(method, module)
+                CapabilityOutputsSection(method)
                 if (screen == null) {
                     CollapsibleCapabilitySection(
                         title = "Settings",
@@ -1072,87 +1405,90 @@ private fun CapabilityCard(
                         Column(Modifier.padding(10.dp)) {
                             Text("Configuration", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                             Text(
-                                "This capability has its own configuration screen. Press Test to open the authoritative controls.",
+                                "Use Test to configure and preview.",
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
                 }
-                CapabilityExamplesSection(method, module)
-                Spacer(Modifier.height(8.dp))
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Column(Modifier.padding(10.dp)) {
-                        Text("Configuration actions", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                        Text(
-                            if (screen == null) "The generic settings above define both the in-app test and the ODK intent call."
-                            else "Bespoke capability controls are authoritative. Open Test, configure the screen, then save or copy from the captured settings.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = { presetDialogOpen = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Save as preset")
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = {
-                                val intentText = odkIntentFromSettings(method.id, settingsState.asMap())
-                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText("MethodMesh ODK intent", intentText))
-                                intentCopyStatus = "Copied ODK intent for ${method.id}."
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Copy ODK intent")
-                        }
-                        if (lastResult != null) {
-                            Spacer(Modifier.height(8.dp))
+                if (isProtocolPrimitive) {
+                    Spacer(Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.18f),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column(Modifier.padding(10.dp)) {
+                            CollapsibleCapabilitySection(
+                                title = "Return payload",
+                                subtitle = when (ProtocolPayloadMode.normalize(returnPayloadMode)) {
+                                    ProtocolPayloadMode.AUDIT -> "core + audit"
+                                    ProtocolPayloadMode.FULL -> "everything"
+                                    else -> "core"
+                                }
+                            ) {
+                                PayloadModeSelector(
+                                    selected = returnPayloadMode,
+                                    onSelected = { returnPayloadMode = it }
+                                )
+                            }
                             OutlinedButton(
                                 onClick = {
-                                    lastResult = null
-                                    lastResultStatus = null
+                                    val intentText = odkIntentFromSettings(method.id, settingsState.asMap(), returnPayloadMode)
+                                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                    clipboard.setPrimaryClip(ClipData.newPlainText("MethodMesh ODK intent", intentText))
+                                    intentCopyStatus = "Copied ODK intent for ${method.id}."
                                 },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                             ) {
-                                Text("Clear last confirmed result")
+                                Text("Copy ODK intent")
+                            }
+                            if (lastResult != null) {
+                                OutlinedButton(
+                                    onClick = {
+                                        lastResult = null
+                                        lastResultStatus = null
+                                    },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                                ) {
+                                    Text("Clear last result")
+                                }
                             }
                         }
                     }
                 }
-                presetStatus?.let {
-                    Text(it, modifier = Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
-                }
                 intentCopyStatus?.let {
                     Text(it, modifier = Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
                 }
-                if (presetDialogOpen) {
-                    SavePresetDialog(
-                        defaultName = defaultPresetName(method.id),
-                        methodId = method.id,
-                        settingsJson = settingsJsonFromMap(settingsState.asMap()),
-                        onDismiss = { presetDialogOpen = false },
-                        onSave = { name ->
-                            val saved = ProtocolLibraryRepository.savePreset(
-                                context,
-                                CapabilityPreset(
-                                    name = name,
-                                    methodId = method.id,
-                                    settingsJson = settingsJsonFromMap(settingsState.asMap()),
-                                    description = method.descriptor.description.orEmpty()
-                                )
+            }
+            presetStatus?.let {
+                Text(it, modifier = Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
+            }
+            if (presetDialogOpen) {
+                val presetSettings = presetEditableSettingsFor(method.id, settingsState.asMap())
+                SavePresetDialog(
+                    defaultName = defaultPresetName(method.id),
+                    methodId = method.id,
+                    initialSettings = presetSettings,
+                    defaultPayloadMode = returnPayloadMode,
+                    onDismiss = { presetDialogOpen = false },
+                    onSave = { name, payloadMode, savedSettings ->
+                        returnPayloadMode = payloadMode
+                        val saved = ProtocolLibraryRepository.savePreset(
+                            context,
+                            CapabilityPreset(
+                                name = name,
+                                methodId = method.id,
+                                settingsJson = settingsJsonFromMap(savedSettings),
+                                payloadMode = payloadMode,
+                                description = method.descriptor.description.orEmpty()
                             )
-                            presetDialogOpen = false
-                            presetStatus = "Saved preset: ${saved.name} (${ProtocolLibraryRepository.versionLabel(saved.versionIso)})."
-                            onPresetSaved()
-                        }
-                    )
-                }
+                        )
+                        presetDialogOpen = false
+                        presetStatus = "Saved preset: ${saved.name} (${ProtocolLibraryRepository.versionLabel(saved.versionIso)})."
+                        onPresetSaved()
+                    }
+                )
             }
             if (quickTestOpen) {
                 FullScreenCapabilityDialog(onDismiss = { quickTestOpen = false }) {
@@ -1251,63 +1587,75 @@ private fun CollapsibleCapabilitySection(
 }
 
 @Composable
-private fun CapabilityOutputsSection(method: As100Method, module: MethodMeshModule?) {
-    val bindings = module?.rilBindings().orEmpty().filter { it.actionId == method.id }
+private fun CapabilityOutputsSection(method: As100Method) {
     CollapsibleCapabilitySection(
-        title = "Outputs and RIL",
+        title = "Outputs",
         subtitle = "${method.descriptor.outputs.size} output${if (method.descriptor.outputs.size == 1) "" else "s"}"
     ) {
-        Text("Outputs", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
         Text(method.descriptor.outputs.joinToString().ifBlank { "none declared" }, style = MaterialTheme.typography.bodySmall)
-        Spacer(Modifier.height(6.dp))
-        Text("Graph outputs", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
-        Text(method.descriptor.graphOutputs.joinToString().ifBlank { "none declared" }, style = MaterialTheme.typography.bodySmall)
-        if (bindings.isNotEmpty()) {
-            Spacer(Modifier.height(6.dp))
-            Text("RIL phrases", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
-            bindings.forEach { binding ->
-                Text("• ${binding.phrase}", style = MaterialTheme.typography.bodySmall)
-            }
-        }
     }
-}
-
-@Composable
-private fun CapabilityExamplesSection(method: As100Method, module: MethodMeshModule?) {
-    val bindings = module?.rilBindings().orEmpty().filter { it.actionId == method.id }
-    val examples = module?.examples().orEmpty().filter { example ->
-        bindings.any { binding -> example.ril.contains(binding.phrase) || example.ril.contains(method.id) }
-    }
-    CollapsibleCapabilitySection(
-        title = "Examples",
-        subtitle = "${examples.size} available"
-    ) {
-        if (examples.isEmpty()) {
-            Text("No module examples registered for this capability.", style = MaterialTheme.typography.bodySmall)
-        }
-        examples.take(3).forEach { ExampleSummary(it) }
-    }
-}
-
-@Composable
-private fun ExampleSummary(example: ModuleExample) {
-    Text(example.title, modifier = Modifier.padding(top = 4.dp), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
-    Text(example.ril, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
-    if (example.notes.isNotBlank()) Text(example.notes, style = MaterialTheme.typography.labelSmall)
 }
 
 @Composable
 private fun SavePresetDialog(
     defaultName: String,
     methodId: String,
-    settingsJson: String,
+    initialSettings: Map<String, Any>,
+    defaultPayloadMode: String,
     onDismiss: () -> Unit,
-    onSave: (String) -> Unit
+    onSave: (String, String, Map<String, Any>) -> Unit
 ) {
     var name by rememberSaveable(methodId) { mutableStateOf(defaultName) }
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = MaterialTheme.shapes.large, tonalElevation = 6.dp) {
-            Column(Modifier.padding(18.dp)) {
+    var payloadMode by rememberSaveable(methodId) { mutableStateOf(ProtocolPayloadMode.normalize(defaultPayloadMode)) }
+    val fieldSpecs = remember(methodId, initialSettings) { presetFieldSpecs(methodId, initialSettings) }
+    val editableValues = remember(methodId, initialSettings) {
+        mutableStateMapOf<String, String>().apply {
+            fieldSpecs.forEach { spec -> put(spec.key, initialSettings[spec.key]?.toString() ?: spec.defaultValue) }
+            initialSettings.forEach { (key, value) -> putIfAbsent(key, value.toString()) }
+        }
+    }
+    val fixedFlags = remember(methodId, initialSettings) {
+        mutableStateMapOf<String, Boolean>().apply {
+            fieldSpecs.forEach { spec ->
+                val current = editableValues[spec.key].orEmpty()
+                put(spec.key, spec.defaultFixed || current.isNotBlank() && !spec.runtimeInput)
+            }
+        }
+    }
+
+    fun selectedSettings(): Map<String, Any> {
+        if (fieldSpecs.isEmpty()) return presetSettingsFor(methodId, editableValues.toMap())
+        val selected = linkedMapOf<String, Any>()
+        val runtimeFields = mutableListOf<String>()
+        fieldSpecs.forEach { spec ->
+            if (fixedFlags[spec.key] == true) {
+                val value = editableValues[spec.key].orEmpty()
+                if (value.isNotBlank()) selected[spec.key] = value
+            } else {
+                runtimeFields += spec.key
+            }
+        }
+        initialSettings.forEach { (key, value) ->
+            if (fieldSpecs.none { it.key == key } && value.toString().isNotBlank()) selected[key] = value
+        }
+        if (runtimeFields.isNotEmpty()) selected["methodmesh_runtime_fields"] = runtimeFields.joinToString(",")
+        return selected
+    }
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+                .heightIn(max = 720.dp),
+            shape = MaterialTheme.shapes.large,
+            tonalElevation = 6.dp
+        ) {
+            Column(
+                Modifier
+                    .padding(18.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
                 Text("Save capability preset", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(methodId, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
                 Spacer(Modifier.height(8.dp))
@@ -1319,16 +1667,36 @@ private fun SavePresetDialog(
                     singleLine = true
                 )
                 Spacer(Modifier.height(8.dp))
-                Text("Settings to save", style = MaterialTheme.typography.labelLarge)
+                PayloadModeSelector(
+                    selected = payloadMode,
+                    onSelected = { payloadMode = it }
+                )
+                Spacer(Modifier.height(8.dp))
+                Text("Preset fields", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                if (fieldSpecs.isEmpty()) {
+                    Text("No editable preset fields for this capability.", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    fieldSpecs.forEach { spec ->
+                        PresetFieldRow(
+                            spec = spec,
+                            value = editableValues[spec.key].orEmpty(),
+                            fixed = fixedFlags[spec.key] == true,
+                            onValueChanged = { editableValues[spec.key] = it },
+                            onFixedChanged = { fixedFlags[spec.key] = it }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Saved settings preview", style = MaterialTheme.typography.labelLarge)
                 SelectionContainer {
-                    Text(settingsJson, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                    Text(settingsJsonFromMap(selectedSettings()), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth()) {
                     OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
                     Button(
-                        onClick = { if (name.isNotBlank()) onSave(name.trim()) },
+                        onClick = { if (name.isNotBlank()) onSave(name.trim(), ProtocolPayloadMode.normalize(payloadMode), selectedSettings()) },
                         modifier = Modifier.weight(1f),
                         enabled = name.isNotBlank()
                     ) { Text("Save") }
@@ -1338,8 +1706,200 @@ private fun SavePresetDialog(
     }
 }
 
+private data class PresetFieldSpec(
+    val key: String,
+    val label: String,
+    val defaultValue: String = "",
+    val runtimeInput: Boolean = false,
+    val defaultFixed: Boolean = !runtimeInput,
+    val multiChoices: List<PresetChoiceSpec> = emptyList()
+)
+
+private data class PresetChoiceSpec(
+    val value: String,
+    val label: String
+)
+
+@Composable
+private fun PresetFieldRow(
+    spec: PresetFieldSpec,
+    value: String,
+    fixed: Boolean,
+    onValueChanged: (String) -> Unit,
+    onFixedChanged: (Boolean) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(Modifier.padding(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = fixed, onCheckedChange = onFixedChanged)
+                Column(Modifier.weight(1f)) {
+                    Text(spec.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (fixed) "Fixed in preset" else "Ask at runtime / supplied by ODK",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+            if (spec.multiChoices.isNotEmpty()) {
+                PresetMultiChoiceField(
+                    spec = spec,
+                    value = value,
+                    enabled = fixed,
+                    onValueChanged = onValueChanged
+                )
+            } else {
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = onValueChanged,
+                    label = { Text(if (fixed) "Saved value" else "Optional test/default value") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = if (spec.key.contains("message") || spec.key.contains("text")) 2 else 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PresetMultiChoiceField(
+    spec: PresetFieldSpec,
+    value: String,
+    enabled: Boolean,
+    onValueChanged: (String) -> Unit
+) {
+    val selected = value
+        .split('|', ',', ';')
+        .map { it.trim().uppercase() }
+        .filter(String::isNotBlank)
+        .toSet()
+    val automatic = selected.isEmpty()
+
+    Column(Modifier.fillMaxWidth().padding(start = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = automatic,
+                enabled = enabled,
+                onCheckedChange = { checked ->
+                    if (checked) {
+                        onValueChanged("")
+                    } else {
+                        onValueChanged(spec.multiChoices.firstOrNull()?.value.orEmpty())
+                    }
+                }
+            )
+            Text("Automatic detection", style = MaterialTheme.typography.bodyMedium)
+        }
+        Text(
+            if (automatic) "All supported formats will be accepted." else "Only checked formats will be accepted.",
+            style = MaterialTheme.typography.labelSmall
+        )
+        Spacer(Modifier.height(6.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            spec.multiChoices.forEach { choice ->
+                val checked = choice.value in selected
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = checked,
+                        enabled = enabled && !automatic,
+                        onCheckedChange = { nowChecked ->
+                            val next = selected.toMutableSet()
+                            if (nowChecked) next += choice.value else next -= choice.value
+                            onValueChanged(next.joinToString("|"))
+                        }
+                    )
+                    Text(choice.label, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+    }
+}
+
 private fun defaultPresetName(methodId: String): String =
     "capability_${methodId.replace(Regex("[^A-Za-z0-9]+"), "_").trim('_')}_v1"
+
+private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<PresetFieldSpec> {
+    fun current(key: String, fallback: String = "") = values[key]?.toString() ?: fallback
+    return when (methodId) {
+        "sms.send" -> listOf(
+            PresetFieldSpec("sms_phone", "Phone number", current("sms_phone"), runtimeInput = true),
+            PresetFieldSpec("sms_message", "Message", current("sms_message"), runtimeInput = true)
+        )
+        "mlkit.translate" -> listOf(
+            PresetFieldSpec("source_language", "Source language", current("source_language", "en"), runtimeInput = true, defaultFixed = true),
+            PresetFieldSpec("target_language", "Target language", current("target_language", "fr"), runtimeInput = true, defaultFixed = true),
+            PresetFieldSpec("input_text", "Text to translate", current("input_text"), runtimeInput = true),
+            PresetFieldSpec("model_action", "Action", current("model_action", "translate"), runtimeInput = false)
+        )
+        "barcode.scan", "qr.scan" -> listOf(
+            PresetFieldSpec(
+                key = "barcode_formats",
+                label = "Accepted code formats",
+                defaultValue = current("barcode_formats"),
+                runtimeInput = false,
+                defaultFixed = true,
+                multiChoices = listOf(
+                    PresetChoiceSpec("QR_CODE", "QR code"),
+                    PresetChoiceSpec("DATA_MATRIX", "Data Matrix"),
+                    PresetChoiceSpec("CODE_128", "Code 128"),
+                    PresetChoiceSpec("CODE_39", "Code 39"),
+                    PresetChoiceSpec("EAN_13", "EAN-13"),
+                    PresetChoiceSpec("EAN_8", "EAN-8"),
+                    PresetChoiceSpec("UPC_A", "UPC-A"),
+                    PresetChoiceSpec("UPC_E", "UPC-E")
+                )
+            )
+        )
+        else -> values.keys.sorted().map { key ->
+            PresetFieldSpec(
+                key = key,
+                label = key.replace('_', ' '),
+                defaultValue = values[key]?.toString().orEmpty(),
+                runtimeInput = key in runtimeInputKeysFor(methodId) || key.removePrefix("input_") in runtimeInputKeysFor(methodId)
+            )
+        }
+    }
+}
+
+private fun presetEditableSettingsFor(methodId: String, values: Map<String, Any>): Map<String, Any> = when (methodId) {
+    "mlkit.translate" -> mapOf(
+        "source_language" to "en",
+        "target_language" to "fr",
+        "model_action" to "translate",
+        "input_text" to ""
+    ) + values
+    "sms.send" -> mapOf(
+        "sms_phone" to "",
+        "sms_message" to ""
+    ) + values
+    else -> values
+}
+
+private fun presetSettingsFor(methodId: String, values: Map<String, Any>): Map<String, Any> {
+    val withDefaults = when (methodId) {
+        "mlkit.translate" -> mapOf(
+            "source_language" to "en",
+            "target_language" to "fr",
+            "model_action" to "translate"
+        ) + values
+        else -> values
+    }
+    val variableKeys = runtimeInputKeysFor(methodId)
+    return withDefaults.filterKeys { key -> key !in variableKeys && key.removePrefix("input_") !in variableKeys }
+        .filterValues { value -> value.toString().isNotBlank() }
+}
+
+private fun runtimeInputKeysFor(methodId: String): Set<String> = when (methodId) {
+    "mlkit.translate" -> setOf("input_text", "text", "mlkit_translate_input_text")
+    "sms.send" -> setOf("sms_message", "message")
+    "question.text" -> setOf("answer", "response", "value", "text_answer")
+    "question.number" -> setOf("answer", "response", "value", "number_answer")
+    "question.select_one", "question.select_multiple" -> setOf("answer", "response", "selected", "value")
+    else -> setOf("answer", "response", "selected", "value")
+}
 
 private fun settingsJsonFromMap(values: Map<String, Any>): String =
     JSONObject().apply { values.toSortedMap().forEach { (key, value) -> put(key, value) } }.toString()
@@ -1351,7 +1911,7 @@ private fun settingsMapFromJson(json: String): Map<String, String> = runCatching
     }
 }.getOrDefault(emptyMap())
 
-private fun odkIntentFromSettings(methodId: String, settings: Map<String, Any>): String {
+private fun odkIntentFromSettings(methodId: String, settings: Map<String, Any>, payloadMode: String): String {
     val parameters = mutableListOf("method_id=${quoteIntentValue(methodId)}")
     settings.toSortedMap().forEach { (key, value) ->
         val stringValue = value.toString()
@@ -1360,6 +1920,7 @@ private fun odkIntentFromSettings(methodId: String, settings: Map<String, Any>):
             parameters += "$intentKey=${quoteIntentValue(stringValue)}"
         }
     }
+    parameters += "input_payload_mode=${quoteIntentValue(ProtocolPayloadMode.normalize(payloadMode))}"
     parameters += "return_mode='flat'"
     return "com.example.methodmesh.EXECUTE_METHOD(${parameters.joinToString(",")})"
 }
@@ -1462,7 +2023,7 @@ private fun GenericDashboardRunner(
 
 @Composable
 private fun ResultPreview(result: ExecutionResult, statusNote: String?) {
-    val fields = OutputFormatter.fields(result, includeProvenance = false)
+    val fields = OutputFormatter.fields(result, includeProvenance = false, payloadMode = OutputFormatter.PayloadMode.CORE)
     var expanded by rememberSaveable(result.request.id.value) { mutableStateOf(false) }
     Spacer(Modifier.height(8.dp))
     Surface(
@@ -1570,8 +2131,8 @@ private fun String.looksLikeImageReference(): Boolean {
 }
 
 @Composable
-private fun RuntimeStateCard() {
-    var expanded by rememberSaveable { mutableStateOf(false) }
+private fun RuntimeStateCard(expandedByDefault: Boolean = false) {
+    var expanded by rememberSaveable { mutableStateOf(expandedByDefault) }
     val graph = ResearchRuntime.session.graph()
     ElevatedCard(
         modifier = Modifier
@@ -1608,8 +2169,8 @@ private fun RuntimeStateCard() {
 }
 
 @Composable
-private fun DeviceServicesCard() {
-    var displayExpanded by rememberSaveable { mutableStateOf(false) }
+private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
+    var displayExpanded by rememberSaveable { mutableStateOf(expandedByDefault) }
     var calibrationExpanded by rememberSaveable { mutableStateOf(false) }
     var signalsExpanded by rememberSaveable { mutableStateOf(false) }
 
@@ -1667,9 +2228,9 @@ private fun DeviceServicesCard() {
 }
 
 @Composable
-private fun DeviceRegistryCard() {
+private fun DeviceRegistryCard(expandedByDefault: Boolean = false) {
     val context = LocalContext.current
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(expandedByDefault) }
     var devices by remember { mutableStateOf(DeviceRegistry.all(context)) }
     var editorOpen by remember { mutableStateOf(false) }
     var editingId by remember { mutableStateOf("") }
@@ -1678,6 +2239,8 @@ private fun DeviceRegistryCard() {
     var address by remember { mutableStateOf("") }
     var profile by remember { mutableStateOf("") }
     var credentialsRef by remember { mutableStateOf("") }
+    var liveReadDevice by remember { mutableStateOf<RegisteredDevice?>(null) }
+    var liveReadResult by remember { mutableStateOf<ExecutionResult?>(null) }
 
     fun refresh() { devices = DeviceRegistry.all(context) }
     fun openEditor(device: RegisteredDevice?) {
@@ -1687,7 +2250,12 @@ private fun DeviceRegistryCard() {
 
     ElevatedCard(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), elevation = CardDefaults.elevatedCardElevation(2.dp)) {
         Column(Modifier.padding(16.dp)) {
-            Column(Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
+            Column(
+                Modifier.fillMaxWidth().clickable {
+                    if (!expanded) refresh()
+                    expanded = !expanded
+                }
+            ) {
                 Text(if (expanded) "▼ Device registry" else "▶ Device registry", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text("Saved Bluetooth, Wi-Fi, USB, and other device profiles.", style = MaterialTheme.typography.bodySmall)
             }
@@ -1702,6 +2270,10 @@ private fun DeviceRegistryCard() {
                             Text(if (!device.enabled) "Disabled" else if (device.paused) "Paused" else "Enabled", style = MaterialTheme.typography.labelMedium)
                             if (device.lastError.isNotBlank()) Text("Last error: ${device.lastError}", style = MaterialTheme.typography.bodySmall)
                             Row(Modifier.fillMaxWidth()) {
+                                if (device.canReadAsSensor()) {
+                                    OutlinedButton(onClick = { liveReadDevice = device; liveReadResult = null }) { Text("Read") }
+                                    Spacer(Modifier.padding(3.dp))
+                                }
                                 OutlinedButton(onClick = { DeviceRegistry.setPaused(context, device.id, !device.paused); refresh() }) { Text(if (device.paused) "Resume" else "Pause") }
                                 Spacer(Modifier.padding(3.dp))
                                 OutlinedButton(onClick = { openEditor(device) }) { Text("Edit") }
@@ -1711,8 +2283,40 @@ private fun DeviceRegistryCard() {
                         }
                     }
                 }
-                Button(onClick = { openEditor(null) }, Modifier.fillMaxWidth()) { Text("Add device profile") }
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                    OutlinedButton(onClick = { refresh() }, modifier = Modifier.weight(1f)) { Text("Refresh") }
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = { openEditor(null) }, modifier = Modifier.weight(1f)) { Text("Add device") }
+                }
             }
+        }
+    }
+
+    liveReadDevice?.let { device ->
+        val method = As100MethodRegistry.all().firstOrNull { it.id == As100SensorReadMethod.ID }
+        val screen = MethodMeshModuleRegistry.screenFor(As100SensorReadMethod.ID)
+        if (method != null && screen != null) {
+            FullScreenCapabilityDialog(onDismiss = { liveReadDevice = null }) {
+                Text("Live reading", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(device.name.ifBlank { device.id }, style = MaterialTheme.typography.bodyMedium)
+                liveReadResult?.let { ResultPreview(it, "Latest sensor reading.") }
+                DashboardCapabilityRunner(
+                    method = method,
+                    screen = screen,
+                    saveOutput = false,
+                    settingsJson = settingsJsonFromMap(
+                        mapOf(
+                            "device_id" to device.id,
+                            "sensor_read_mode" to "single",
+                            "device_match_policy" to "fallback"
+                        )
+                    ),
+                    onConfirmed = { result -> liveReadResult = result },
+                    onCancel = { liveReadDevice = null }
+                )
+            }
+        } else {
+            liveReadDevice = null
         }
     }
 
@@ -1737,4 +2341,14 @@ private fun DeviceRegistryCard() {
             }
         }
     }
+}
+
+private fun RegisteredDevice.canReadAsSensor(): Boolean {
+    val haystack = listOf(id, name, profile, address).joinToString(" ").lowercase()
+    return transport == DeviceTransport.BLE && (
+        haystack.contains("sensor") ||
+            haystack.contains("aht20") ||
+            haystack.contains("ld2410") ||
+            haystack.contains("methodmesh")
+        )
 }

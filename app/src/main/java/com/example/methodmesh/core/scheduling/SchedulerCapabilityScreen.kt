@@ -152,7 +152,7 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
             }
             if (Build.VERSION.SDK_INT >= 33 && androidContext is Activity) androidContext.requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 7401)
             val execution = As100SchedulerMethod.result(As100SchedulerMethod.request(capabilityId, context.request.invocationContext.asMap(capabilityId) + context.action.settings), SchedulerOutcome(schedules.first(), "created"), context.request.invocationContext)
-            if (context.startsImmediately) onConfirmed(execution) else result = execution
+            if (context.submitsImmediately) onConfirmed(execution) else result = execution
             status = "${schedules.size} schedule(s) created. Next run: ${runCatching { schedules.first().nextOccurrence() }.getOrElse { "unavailable" }}"
         }
 

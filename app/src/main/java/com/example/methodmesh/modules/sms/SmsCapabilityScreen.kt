@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,9 +52,17 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
         val supplied = remember(context.request.settings, context.action.settings, context.request.invocationContext) {
             context.request.invocationContext.asMap(context.action.canonicalId) + context.request.settings + context.action.settings
         }
-        val phone = supplied.firstPresent("sms_phone", "input_sms_phone", "phone", "input_phone", "recipient_phone")
-        val message = supplied.firstPresent("sms_message", "input_sms_message", "message", "input_message", "sms_message_template", "input_sms_message_template")
-        var status by rememberSaveable { mutableStateOf("Ready to send SMS.") }
+        val runtimeFields = supplied.firstPresent("methodmesh_runtime_fields", "input_methodmesh_runtime_fields")
+            .split(',')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toSet()
+        val nativePresetRun = supplied.firstPresent("methodmesh_native_preset_run", "input_methodmesh_native_preset_run") == "true"
+        var phone by rememberSaveable { mutableStateOf(supplied.firstPresent("sms_phone", "input_sms_phone", "phone", "input_phone", "recipient_phone")) }
+        var message by rememberSaveable { mutableStateOf(supplied.firstPresent("sms_message", "input_sms_message", "message", "input_message", "sms_message_template", "input_sms_message_template")) }
+        val needsRuntimePhone = phone.isBlank() || "sms_phone" in runtimeFields || "phone" in runtimeFields
+        val needsRuntimeMessage = message.isBlank() || "sms_message" in runtimeFields || "message" in runtimeFields
+        var status by rememberSaveable { mutableStateOf(if (needsRuntimePhone || needsRuntimeMessage) "Enter SMS details." else "Ready to send SMS.") }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var requestedByPermission by remember { mutableStateOf(false) }
         var autoAttempted by rememberSaveable { mutableStateOf(false) }
@@ -130,8 +139,9 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
                 sendNow()
             }
         }
-        LaunchedEffect(context.startsImmediately) {
-            if (context.startsImmediately && !autoAttempted) {
+        LaunchedEffect(context.startsImmediately, nativePresetRun, needsRuntimePhone, needsRuntimeMessage) {
+            val shouldAutoSend = context.startsImmediately || (nativePresetRun && !needsRuntimePhone && !needsRuntimeMessage)
+            if (shouldAutoSend && !autoAttempted && !needsRuntimePhone && !needsRuntimeMessage) {
                 autoAttempted = true
                 sendNow()
             }
@@ -149,12 +159,29 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
-            Text("Message preview", fontWeight = FontWeight.SemiBold)
-            Text(finalMessage(), style = MaterialTheme.typography.bodyMedium)
+            if (needsRuntimePhone || needsRuntimeMessage) {
+                Text("Enter SMS details.", fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(8.dp))
+            }
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { phone = it },
+                label = { Text("Phone number") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = message,
+                onValueChange = { message = it },
+                label = { Text("Message") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
+            )
             Spacer(Modifier.height(10.dp))
             Text("Recipient: ${phone.ifBlank { "not configured" }}", style = MaterialTheme.typography.bodySmall)
             Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
-            Button({ sendNow() }, Modifier.fillMaxWidth()) { Text(if (result == null) "Send SMS" else "Send again") }
+            Button({ sendNow() }, Modifier.fillMaxWidth(), enabled = phone.isNotBlank() && message.isNotBlank()) { Text(if (result == null) "Send SMS" else "Send again") }
         }
     }
 }

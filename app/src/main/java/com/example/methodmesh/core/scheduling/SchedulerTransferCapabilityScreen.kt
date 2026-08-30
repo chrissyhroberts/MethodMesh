@@ -75,13 +75,14 @@ object SchedulerTransferCapabilityScreen : CapabilityScreenSpec {
                 SchedulerTransferResults.failure(context, As100SchedulerImportMethod.id, status)
             }
             activeTransport = ""
-            if (context.startsImmediately) result?.let(onConfirmed)
+            if (context.submitsImmediately) result?.let(onConfirmed)
         }
         if (activeTransport == "QR" || activeTransport == "NFC") {
-            val dependency = if (activeTransport == "QR") "qr.scan" else "nfc_tag_read"
+            val dependency = if (activeTransport == "QR") "barcode.scan" else "nfc_tag_read"
             CapabilityDependencyScreen(dependency, context, onResult = { dependencyResult ->
                 val fields = OutputFormatter.fields(dependencyResult, includeProvenance = false)
-                val payload = fields["qr_payload"]?.toString()
+                val payload = fields["barcode_payload"]?.toString()
+                    ?: fields["qr_payload"]?.toString()
                     ?: fields["ndef_text"]?.toString()
                     ?: fields["ndef_first_payload_utf8"]?.toString().orEmpty()
                 if (payload.isBlank()) status = "The $activeTransport result did not contain a schedule bundle." else importPayload(payload)
@@ -143,7 +144,7 @@ object SchedulerExportCapabilityScreen : CapabilityScreenSpec {
             result = SchedulerTransferResults.export(context, bundle, compact).also { }
             // Keep the payload available to the manual transfer controls below.
             // The result remains the canonical RIL return value.
-            if (context.startsImmediately) result?.let(onConfirmed)
+            if (context.submitsImmediately) result?.let(onConfirmed)
         }
         CapabilityScreenScaffold(title, capabilityId, context, context.stepNumber > 1, result, result?.let { OutputFormatter.fields(it, false) }.orEmpty(), onBack, {}, { result?.let(onConfirmed) }, onCancel) {
             Text("Schedule bundle ready. Use the returned payload with QR or NFC transport.")
