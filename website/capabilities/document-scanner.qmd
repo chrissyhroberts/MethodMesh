@@ -2,16 +2,17 @@
 title: "Document scanner"
 ---
 
-::: {.status-box .status-partial}
-**Status: Implemented; XLSForm example pending**
+::: {.status-box .status-complete}
+**Status: Production**
 
-This status is based on the supplied project documentation and example XLSForms. It is not a formal validation claim.
+Reviewed for MethodMesh native use and ODK intent launch. This is a production
+capability, not a formal validation claim.
 :::
 
 
 ## Purpose
 
-Capture document pages and return PDF and/or image outputs.
+Capture paper pages, crop/align them, and return a searchable PDF plus OCR text.
 
 ## Capability IDs
 
@@ -38,17 +39,31 @@ Add a current capability dashboard or execution screenshot at:
 
 ## Supported XLSForm calls
 
-_No XLSForm call was available in the supplied examples. Use the intent examples in the detailed reference below until a complete workbook is added._
+``` text
+com.example.methodmesh.EXECUTE_METHOD(method_id='document.scan',input_page_limit='10',input_scanner_mode='full',input_run_ocr='true',input_return_searchable_pdf='true',input_return_text_file='true',return_mode='flat')
+```
 
 
 ## Inputs observed in supplied examples
 
-_None documented in the supplied material._
+Useful inputs:
+
+- `input_page_limit`: maximum pages to scan.
+- `input_scanner_mode`: `full`, `base_with_filter`, or `base`.
+- `input_allow_gallery_import`: allow picking existing page images.
+- `input_run_ocr`: extract printed text from pages.
+- `input_return_searchable_pdf`: create a PDF containing page images and OCR text.
+- `input_return_text_file`: also attach OCR text as a `.txt` file.
 
 
 ## Expected returned fields
 
-Return fields are documented from the specific XLSForm execution group only.
+Core return:
 
-The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.
+- `document_scan_searchable_pdf_uri`
+- `document_scan_ocr_text`
 
+Audit and full JSON payload modes additionally include page count, raw page
+image URIs, the original scanner PDF URI, OCR text file URI, OCR page count,
+scanner mode, gallery import setting, page limit, scan timestamp, and any error
+message.

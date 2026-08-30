@@ -22,19 +22,24 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='document.scan',input_page_limit
 
 - `input_page_limit`: maximum pages to scan.
 - `input_scanner_mode`: `full`, `base_with_filter`, or `base`.
-- `input_allow_gallery_import`: allow existing images to be imported.
-- `input_run_ocr`: run OCR over page images.
-- `input_return_searchable_pdf`: create a MethodMesh PDF containing page images and OCR text.
-- `input_return_text_file`: return OCR text as a `.txt` attachment.
+- `input_allow_gallery_import`: allow existing page images to be imported instead of capturing every page with the camera.
+- `input_run_ocr`: read printed text from each scanned page on device.
+- `input_return_searchable_pdf`: create a PDF attachment containing the scanned pages and OCR text.
+- `input_return_text_file`: also attach OCR text as a plain `.txt` file.
 
 ## Outputs
+
+Core return:
+
+- `document_scan_searchable_pdf_uri`
+- `document_scan_ocr_text`
+
+Audit/full JSON return additionally includes:
 
 - `document_scan_status`
 - `document_scan_page_count`
 - `document_scan_page_image_uris_json`
 - `document_scan_pdf_uri`
-- `document_scan_searchable_pdf_uri`
-- `document_scan_ocr_text`
 - `document_scan_ocr_text_file_uri`
 - `document_scan_ocr_page_count`
 - `document_scan_mode`

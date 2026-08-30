@@ -101,6 +101,7 @@ object OutputFormatter {
         if (key.startsWith("diagnostic_")) return false
         if (key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id")) return false
         if (key in calibratedScaleAuditFields) return false
+        if (key in documentScanAuditFields) return false
         if (key.endsWith("_json") || key.endsWith("_payload")) return false
         if (key.endsWith("_input_text") || key.endsWith("_source_language") || key.endsWith("_target_language")) return false
         if (key.endsWith("_available_languages") || key.endsWith("_downloaded_models") || key.endsWith("_model_action")) return false
@@ -124,6 +125,7 @@ object OutputFormatter {
     private fun isAuditOrCoreField(key: String): Boolean =
         isCoreField(key) ||
             key in calibratedScaleAuditFields ||
+            key in documentScanAuditFields ||
             key.startsWith("methodmesh_") ||
             key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id") ||
             key.contains("time", ignoreCase = true) ||
@@ -152,6 +154,20 @@ object OutputFormatter {
         "scale_length_dp",
         "dp_per_mm",
         "vertical_mode"
+    )
+
+    private val documentScanAuditFields = setOf(
+        "document_scan_status",
+        "document_scan_page_count",
+        "document_scan_page_image_uris_json",
+        "document_scan_pdf_uri",
+        "document_scan_ocr_text_file_uri",
+        "document_scan_ocr_page_count",
+        "document_scan_mode",
+        "document_scan_gallery_import_allowed",
+        "document_scan_page_limit",
+        "document_scan_time_iso",
+        "document_scan_error"
     )
 
     private fun copyContext(result: ExecutionResult, fields: LinkedHashMap<String, Any?>) {

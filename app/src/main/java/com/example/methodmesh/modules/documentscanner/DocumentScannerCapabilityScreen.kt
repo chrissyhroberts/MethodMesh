@@ -12,12 +12,14 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -29,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -158,7 +161,7 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
-            Text("Scan one or more paper pages. ML Kit handles page detection, crop and alignment; MethodMesh copies the outputs and can OCR them.", style = MaterialTheme.typography.bodyMedium)
+            Text("Scan paper pages, straighten them, and return a searchable PDF plus extracted text.", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = pageLimitText,
@@ -168,18 +171,30 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
                 singleLine = true
             )
             ScannerModeChooser(scannerMode = scannerMode, onScannerModeSelected = { scannerMode = it })
-            OutlinedButton(onClick = { allowGallery = !allowGallery }, modifier = Modifier.fillMaxWidth()) {
-                Text("Gallery import: ${if (allowGallery) "on" else "off"}")
-            }
-            OutlinedButton(onClick = { runOcr = !runOcr }, modifier = Modifier.fillMaxWidth()) {
-                Text("OCR: ${if (runOcr) "on" else "off"}")
-            }
-            OutlinedButton(onClick = { returnSearchablePdf = !returnSearchablePdf }, modifier = Modifier.fillMaxWidth()) {
-                Text("Searchable PDF: ${if (returnSearchablePdf) "on" else "off"}")
-            }
-            OutlinedButton(onClick = { returnTextFile = !returnTextFile }, modifier = Modifier.fillMaxWidth()) {
-                Text("OCR text file: ${if (returnTextFile) "on" else "off"}")
-            }
+            DocumentScannerToggle(
+                checked = allowGallery,
+                onCheckedChange = { allowGallery = it },
+                label = "Allow gallery import",
+                description = "Permit choosing existing page images as well as using the camera."
+            )
+            DocumentScannerToggle(
+                checked = runOcr,
+                onCheckedChange = { runOcr = it },
+                label = "OCR",
+                description = "Read printed text from each page on device."
+            )
+            DocumentScannerToggle(
+                checked = returnSearchablePdf,
+                onCheckedChange = { returnSearchablePdf = it },
+                label = "Searchable PDF",
+                description = "Create a PDF attachment containing the scanned pages and OCR text."
+            )
+            DocumentScannerToggle(
+                checked = returnTextFile,
+                onCheckedChange = { returnTextFile = it },
+                label = "OCR text file",
+                description = "Also attach the extracted text as a plain .txt file."
+            )
             Spacer(Modifier.height(8.dp))
             Text(
                 "Configured: up to ${pageLimitText.toIntOrNull()?.coerceIn(1, 50) ?: 10} page(s), mode $scannerMode, OCR ${if (runOcr) "on" else "off"}, searchable PDF ${if (returnSearchablePdf) "on" else "off"}.",
@@ -190,6 +205,25 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
                 Text(if (result == null) "Open document scanner" else "Scan again")
             }
             Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
+        }
+    }
+}
+
+@Composable
+private fun DocumentScannerToggle(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    label: String,
+    description: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.labelLarge)
+            Text(description, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
