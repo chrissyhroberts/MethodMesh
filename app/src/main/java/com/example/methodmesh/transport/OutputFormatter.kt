@@ -100,6 +100,7 @@ object OutputFormatter {
         if (key.startsWith("methodmesh_")) return false
         if (key.startsWith("diagnostic_")) return false
         if (key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id")) return false
+        if (key in calibratedScaleAuditFields) return false
         if (key.endsWith("_json") || key.endsWith("_payload")) return false
         if (key.endsWith("_input_text") || key.endsWith("_source_language") || key.endsWith("_target_language")) return false
         if (key.endsWith("_available_languages") || key.endsWith("_downloaded_models") || key.endsWith("_model_action")) return false
@@ -122,6 +123,7 @@ object OutputFormatter {
 
     private fun isAuditOrCoreField(key: String): Boolean =
         isCoreField(key) ||
+            key in calibratedScaleAuditFields ||
             key.startsWith("methodmesh_") ||
             key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id") ||
             key.contains("time", ignoreCase = true) ||
@@ -141,6 +143,16 @@ object OutputFormatter {
             key.contains("status", ignoreCase = true) ||
             key.contains("warning", ignoreCase = true) ||
             key.contains("error", ignoreCase = true)
+
+    private val calibratedScaleAuditFields = setOf(
+        "minimum",
+        "maximum",
+        "use_range",
+        "scale_length_mm",
+        "scale_length_dp",
+        "dp_per_mm",
+        "vertical_mode"
+    )
 
     private fun copyContext(result: ExecutionResult, fields: LinkedHashMap<String, Any?>) {
         val subjectId = result.request.context["subject_id"]

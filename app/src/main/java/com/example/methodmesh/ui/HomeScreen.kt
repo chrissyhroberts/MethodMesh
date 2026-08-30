@@ -166,7 +166,10 @@ private fun capabilityLifecycle(method: As100Method): CapabilityLifecycle {
     // Promotion is deliberately explicit. New or unreviewed capabilities stay
     // in Development until their behaviour, ODK contract, docs and examples
     // have been reviewed together.
-    val productionCapabilityIds = setOf("barcode.scan")
+    val productionCapabilityIds = setOf(
+        "barcode.scan",
+        "calibrated_scale"
+    )
     return if (method.id in productionCapabilityIds) CapabilityLifecycle.Production else CapabilityLifecycle.Development
 }
 

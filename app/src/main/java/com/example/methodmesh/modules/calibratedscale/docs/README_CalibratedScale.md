@@ -44,10 +44,16 @@ configuration fields such as orientation, physical length, or range mode.
 
 ## Outputs
 
-Scalar mode returns `value`; range mode returns `lower_value` and `upper_value`.
-The unused alternative is omitted rather than populated with a default.
-Both modes return `minimum`, `maximum`, `use_range`, `scale_length_mm`,
-`scale_length_dp`, `dp_per_mm`, and `vertical_mode`.
+Core return is deliberately small:
+
+- scalar mode returns `value`
+- range mode returns `lower_value` and `upper_value`
+
+The unused alternative is omitted rather than populated with a default. Audit
+and full JSON returns include `minimum`, `maximum`, `use_range`,
+`scale_length_mm`, `scale_length_dp`, `dp_per_mm`, and `vertical_mode`, so the
+selected value can be interpreted against the configured range and physical
+screen calibration.
 
 The live current-value label always shows decimal precision (`5.0`, `5.4`, or
 `0.25` for a 0–1 scale) so the interaction is visibly continuous.
@@ -62,4 +68,5 @@ Each workbook is independently importable:
 - [`example_odk_calibrated_scale_Vertical.xlsx`](example_odk_calibrated_scale_Vertical.xlsx) — calibrated 50 mm vertical scale.
 
 All four send a caller-defined prompt, wait for substantive marker movement,
-and return the selected measurement plus physical calibration evidence.
+and return the selected measurement. Use audit/full payload mode when the form
+also needs the physical calibration evidence as a JSON field.
