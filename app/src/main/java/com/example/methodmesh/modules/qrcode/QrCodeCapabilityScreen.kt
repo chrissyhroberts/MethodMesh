@@ -62,11 +62,7 @@ fun rememberBarcodeCapabilityInvocation(
         } else {
             val invocationContext = currentContext.request.invocationContext
             val execution = runCatching {
-                val method: As100Method = if (currentContext.action.canonicalId == As100QrScanMethod.ID) {
-                    As100QrScanMethod
-                } else {
-                    As100BarcodeScanMethod
-                }
+                val method: As100Method = As100BarcodeScanMethod
                 method.execute(
                     request = method.request(
                         action = method.id,
@@ -109,7 +105,7 @@ fun rememberBarcodeCapabilityInvocation(
 }
 
 internal fun barcodeFormats(raw: String?): Collection<String>? = raw
-    ?.split('|', ',', ';')
+    ?.split(Regex("[|,;\\s]+"))
     ?.map { it.trim().uppercase() }
     ?.filter(String::isNotBlank)
     ?.distinct()
@@ -250,12 +246,6 @@ val BarcodeScanCapabilityScreen: CapabilityScreenSpec = CodeScanCapabilityScreen
     capabilityId = As100BarcodeScanMethod.ID,
     title = "Scan barcode",
     description = "Automatically detect QR, Data Matrix, and common 1D barcode formats."
-)
-
-val LegacyQrScanCapabilityScreen: CapabilityScreenSpec = CodeScanCapabilityScreen(
-    capabilityId = As100QrScanMethod.ID,
-    title = "Scan code (legacy qr.scan)",
-    description = "Deprecated compatibility entry. New integrations should use barcode.scan."
 )
 
 @Composable

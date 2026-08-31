@@ -82,7 +82,6 @@ object SchedulerTransferCapabilityScreen : CapabilityScreenSpec {
             CapabilityDependencyScreen(dependency, context, onResult = { dependencyResult ->
                 val fields = OutputFormatter.fields(dependencyResult, includeProvenance = false)
                 val payload = fields["barcode_payload"]?.toString()
-                    ?: fields["qr_payload"]?.toString()
                     ?: fields["ndef_text"]?.toString()
                     ?: fields["ndef_first_payload_utf8"]?.toString().orEmpty()
                 if (payload.isBlank()) status = "The $activeTransport result did not contain a schedule bundle." else importPayload(payload)

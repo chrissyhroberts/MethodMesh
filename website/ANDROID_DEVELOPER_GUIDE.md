@@ -27,7 +27,7 @@ Each capability implements `MethodMeshModule` and may expose:
 
 Modules are discovered from standalone `*Module` objects under the modules package. The runtime does not maintain a capability-specific central registry: adding a module, its screen, or its documentation should not require edits to core infrastructure.
 
-Capabilities may invoke other capabilities through their public invocation boundary. They must consume canonical results and must not copy a dependency's implementation. For example, QR-backed attestation invokes `qr.scan` and consumes its returned evidence.
+Capabilities may invoke other capabilities through their public invocation boundary. They must consume canonical results and must not copy a dependency's implementation. For example, code-backed attestation invokes `barcode.scan` and consumes its returned evidence.
 
 ## Canonical execution
 

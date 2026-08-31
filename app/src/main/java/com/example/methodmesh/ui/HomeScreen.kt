@@ -1915,7 +1915,7 @@ private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<P
             PresetFieldSpec("input_text", "Text to translate", current("input_text"), runtimeInput = true),
             PresetFieldSpec("model_action", "Action", current("model_action", "translate"), runtimeInput = false)
         )
-        "barcode.scan", "qr.scan" -> listOf(
+        "barcode.scan" -> listOf(
             PresetFieldSpec(
                 key = "barcode_formats",
                 label = "Accepted code formats",

@@ -158,7 +158,7 @@ Run a saved, typed Android intent command against an installed provider applicat
 ::: {.g-col-12 .g-col-md-6}
 ### [Automatic code scanner](qr-code.qmd)
 
-`qr.scan`
+`barcode.scan`
 
 **Documented and demonstrated**
 

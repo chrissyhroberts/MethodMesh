@@ -126,7 +126,6 @@ object OutputFormatter {
 
     private val headlineCoreFields = setOf(
         "barcode_payload",
-        "qr_payload",
         "plus_code"
     )
 

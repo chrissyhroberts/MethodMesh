@@ -590,7 +590,7 @@ private fun shareMediaUris(context: android.content.Context, uris: List<Uri>) {
 }
 
 private fun humanShareText(fields: Map<String, Any?>): String {
-    listOf("barcode_payload", "qr_payload", "plus_code").forEach { key ->
+    listOf("barcode_payload", "plus_code").forEach { key ->
         fields[key]?.toString()?.takeIf { it.isNotBlank() }?.let { return it }
     }
     val textLike = fields.entries

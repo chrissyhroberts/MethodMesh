@@ -4,7 +4,7 @@ Camera-based automatic detection of QR, Data Matrix, PDF417, Aztec, and common 1
 
 ## Capabilities
 
-### `qr.scan`
+### `barcode.scan`
 
 Opens the camera scanner, detects the code format, hashes the decoded payload, and returns canonical evidence. Despite the historical method identifier, format detection is not restricted to QR.
 
@@ -15,13 +15,13 @@ Other capabilities invoke this scanner through the generic dependency boundary r
 Automatic format detection:
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='qr.scan')
+com.example.methodmesh.EXECUTE_METHOD(method_id='barcode.scan',return_mode='flat')
 ```
 
 Restricted formats:
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='qr.scan',input_barcode_formats='DATA_MATRIX|CODE_128')
+com.example.methodmesh.EXECUTE_METHOD(method_id='barcode.scan',input_barcode_formats='DATA_MATRIX|CODE_128',return_mode='flat')
 ```
 
 ## Inputs
@@ -33,10 +33,10 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='qr.scan',input_barcode_formats=
 
 ## Outputs
 
-`qr_payload`, `qr_payload_hash`, `barcode_format`, `qr_scan_time_iso`, and `qr_source`.
+`barcode_payload`, `barcode_payload_kind`, `barcode_payload_url`, `barcode_format`, `barcode_payload_sha256`, `verification_evidence_format`, `verification_evidence_hash`, `barcode_scan_time_iso`, and `barcode_source`.
 
 The payload remains read-only inside MethodMesh; its SHA-256 hash provides an integrity check.
 
 ## ODK example
 
-[`example_odk_qr.scan.xlsx`](example_odk_qr.scan.xlsx) launches automatic scanning and stores the decoded payload, hash, detected format, capture time, and source.
+[`example_odk_barcode.scan.xlsx`](example_odk_barcode.scan.xlsx) launches automatic scanning and stores the decoded payload, detected format, capture time, and hidden audit/hash fields.

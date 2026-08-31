@@ -15,7 +15,7 @@ Scan QR codes and supported barcode formats and return the decoded payload and d
 
 ## Capability IDs
 
-- `qr.scan`
+- `barcode.scan`
 
 ## Requirements
 
@@ -38,10 +38,10 @@ Add a current capability dashboard or execution screenshot at:
 ## Supported XLSForm calls
 
 
-**From `example_odk_qr.scan.xlsx`:**
+**From `example_odk_barcode.scan.xlsx`:**
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='qr.scan')
+com.example.methodmesh.EXECUTE_METHOD(method_id='barcode.scan',input_barcode_formats=${barcode_formats_input},return_mode='flat')
 ```
 
 
@@ -55,4 +55,3 @@ _None documented in the supplied material._
 Return fields are documented from the specific XLSForm execution group only.
 
 The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.
-

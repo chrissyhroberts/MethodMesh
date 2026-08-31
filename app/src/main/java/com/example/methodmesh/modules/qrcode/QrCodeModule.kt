@@ -10,7 +10,7 @@ object QrCodeModule : MethodMeshModule {
     override val displayName: String = "Automatic code scanner"
     override val summary: String = "Automatically capture QR, Data Matrix, and common 1D barcode evidence."
 
-    override fun as100Methods() = listOf(As100BarcodeScanMethod, As100QrScanMethod)
+    override fun as100Methods() = listOf(As100BarcodeScanMethod)
 
     override fun rilBindings() = listOf(
         RilBinding("scan qr", As100BarcodeScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
@@ -22,7 +22,7 @@ object QrCodeModule : MethodMeshModule {
         RilBinding("scan data matrix", As100BarcodeScanMethod.ID, "Capture a Data Matrix code")
     )
 
-    override fun capabilityScreens() = listOf(BarcodeScanCapabilityScreen, LegacyQrScanCapabilityScreen)
+    override fun capabilityScreens() = listOf(BarcodeScanCapabilityScreen)
 
     private val scannerSettings = listOf(
         MethodSetting.ChoiceSetting(
@@ -43,8 +43,7 @@ object QrCodeModule : MethodMeshModule {
     )
 
     override fun capabilitySettings() = mapOf(
-        As100BarcodeScanMethod.ID to scannerSettings,
-        As100QrScanMethod.ID to scannerSettings
+        As100BarcodeScanMethod.ID to scannerSettings
     )
 
     override fun examples() = listOf(
