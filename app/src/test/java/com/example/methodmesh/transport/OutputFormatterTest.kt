@@ -111,6 +111,23 @@ class OutputFormatterTest {
         assertEquals("timeout", fields["diagnostic_reason"])
     }
 
+    @Test
+    fun `core projection keeps redacted image uri without redaction metadata`() {
+        val fields = mapOf(
+            "redacted_image_uri" to "content://com.example.methodmesh/redacted.jpg",
+            "redacted_image_name" to "redacted.jpg",
+            "redaction_mask_json" to "[\"r1c1\"]",
+            "redaction_grid_rows" to "10",
+            "redaction_grid_columns" to "10",
+            "redaction_style" to "black",
+            "image_redaction_status" to "succeeded"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.CORE, TransformationStatus.Succeeded)
+
+        assertEquals(mapOf("redacted_image_uri" to "content://com.example.methodmesh/redacted.jpg"), projected)
+    }
+
     // ── OutputFormatter.format – ReturnMode formatting ───────────────────────
 
     @Test
@@ -125,7 +142,12 @@ class OutputFormatterTest {
     @Test
     fun `Fields format produces key=value lines`() {
         val result = makeResult(methodId = As100NfcReadMethod.ID)
-        val output = OutputFormatter.format(result, ReturnMode.Fields, includeProvenance = false)
+        val output = OutputFormatter.format(
+            result,
+            ReturnMode.Fields,
+            includeProvenance = false,
+            payloadMode = OutputFormatter.PayloadMode.CORE
+        )
         assertTrue("each line has =", output.lines().filter { it.isNotBlank() }.all { "=" in it })
     }
 

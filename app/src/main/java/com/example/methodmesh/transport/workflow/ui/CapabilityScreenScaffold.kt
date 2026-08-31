@@ -227,12 +227,18 @@ fun CapabilityScreenScaffold(
                     Button(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            runCatching { shareResultText(appContext, userResultPreview) }
+                            runCatching {
+                                if (mediaResultUris.isNotEmpty()) {
+                                    shareMediaUris(appContext, mediaResultUris)
+                                } else {
+                                    shareResultText(appContext, userResultPreview)
+                                }
+                            }
                                 .onSuccess { shareStatus = "Sharing result…" }
                                 .onFailure { shareStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
                         }
-                    ) { Text("Share result") }
-                    if (mediaResultUris.isNotEmpty()) {
+                    ) { Text(if (mediaResultUris.isNotEmpty()) "Share image" else "Share result") }
+                    if (mediaResultUris.size > 1) {
                         Spacer(Modifier.height(8.dp))
                         OutlinedButton(
                             modifier = Modifier.fillMaxWidth(),

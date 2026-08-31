@@ -1934,6 +1934,46 @@ private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<P
                 )
             )
         )
+        "image.redact" -> listOf(
+            PresetFieldSpec(
+                key = "input_source",
+                label = "Image source",
+                defaultValue = current("input_source", "camera"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = listOf(
+                    PresetChoiceSpec("camera", "Camera"),
+                    PresetChoiceSpec("file_picker", "Pick image")
+                )
+            ),
+            PresetFieldSpec(
+                key = "grid_rows",
+                label = "Grid rows",
+                defaultValue = current("grid_rows", "10"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = redactionGridChoices()
+            ),
+            PresetFieldSpec(
+                key = "grid_columns",
+                label = "Grid columns",
+                defaultValue = current("grid_columns", "10"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = redactionGridChoices()
+            ),
+            PresetFieldSpec(
+                key = "redaction_style",
+                label = "Mask style",
+                defaultValue = current("redaction_style", "black"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = listOf(
+                    PresetChoiceSpec("black", "Black"),
+                    PresetChoiceSpec("white", "White")
+                )
+            )
+        )
         "gps_target_navigator" -> listOf(
             PresetFieldSpec("arrival_radius_m", "Arrival radius (m)", current("arrival_radius_m", "10"), runtimeInput = false, defaultFixed = true),
             PresetFieldSpec("show_ar_camera", "Open AR camera", current("show_ar_camera", "true"), runtimeInput = false, defaultFixed = true),
@@ -1953,6 +1993,11 @@ private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<P
         }
     }
 }
+
+private fun redactionGridChoices(): List<PresetChoiceSpec> =
+    listOf("6", "8", "10", "12", "16", "20", "25", "50").map { value ->
+        PresetChoiceSpec(value, value)
+    }
 
 private fun presetEditableSettingsFor(methodId: String, values: Map<String, Any>): Map<String, Any> = when (methodId) {
     "admin_fingerprint_confirmation" -> mapOf(

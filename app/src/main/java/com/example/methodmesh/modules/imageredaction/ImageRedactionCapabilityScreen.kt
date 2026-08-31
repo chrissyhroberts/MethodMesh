@@ -4,7 +4,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas as AndroidCanvas
 import android.graphics.Color as AndroidColor
+import android.graphics.Matrix
 import android.graphics.Paint
+import android.media.ExifInterface
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,9 +28,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -82,29 +86,84 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                 }
             }
         }
-        var sourceUri by remember { mutableStateOf<Uri?>(null) }
+        var sourceUriString by rememberSaveable { mutableStateOf<String?>(null) }
         var bitmap by remember { mutableStateOf<Bitmap?>(null) }
-        var selected by remember { mutableStateOf(setOf<String>()) }
-        var result by remember { mutableStateOf<ExecutionResult?>(null) }
-        var status by remember { mutableStateOf("Choose or capture an image, then mark regions to remove.") }
-        var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+        var selectedValue by rememberSaveable { mutableStateOf("") }
+        val selected = remember(selectedValue) { selectedValue.split('|').filter(String::isNotBlank).toSet() }
+        var redactedImageUri by rememberSaveable { mutableStateOf<String?>(null) }
+        var redactedImageName by rememberSaveable { mutableStateOf<String?>(null) }
+        var redactionMaskJson by rememberSaveable { mutableStateOf<String?>(null) }
+        var redactionCellCount by rememberSaveable { mutableStateOf<String?>(null) }
+        var redactionRows by rememberSaveable { mutableStateOf<String?>(null) }
+        var redactionColumns by rememberSaveable { mutableStateOf<String?>(null) }
+        var redactionStyle by rememberSaveable { mutableStateOf<String?>(null) }
+        var redactionSource by rememberSaveable { mutableStateOf<String?>(null) }
+        var redactionTimeIso by rememberSaveable { mutableStateOf<String?>(null) }
+        var status by rememberSaveable { mutableStateOf("Choose or capture an image, then mark regions to remove.") }
+        var pendingCameraUriString by rememberSaveable { mutableStateOf<String?>(null) }
+        val result = remember(
+            redactedImageUri,
+            redactedImageName,
+            redactionMaskJson,
+            redactionCellCount,
+            redactionRows,
+            redactionColumns,
+            redactionStyle,
+            redactionSource,
+            redactionTimeIso
+        ) {
+            val uri = redactedImageUri
+            if (uri.isNullOrBlank()) {
+                null
+            } else {
+                val values = linkedMapOf(
+                    ImageRedactionFields.STATUS to "succeeded",
+                    ImageRedactionFields.REDACTED_IMAGE_URI to uri,
+                    ImageRedactionFields.REDACTED_IMAGE_NAME to redactedImageName.orEmpty(),
+                    ImageRedactionFields.MASK_JSON to redactionMaskJson.orEmpty(),
+                    ImageRedactionFields.SELECTED_CELLS to redactionCellCount.orEmpty(),
+                    ImageRedactionFields.GRID_ROWS to redactionRows.orEmpty(),
+                    ImageRedactionFields.GRID_COLUMNS to redactionColumns.orEmpty(),
+                    ImageRedactionFields.STYLE to redactionStyle.orEmpty(),
+                    ImageRedactionFields.SOURCE to redactionSource.orEmpty(),
+                    ImageRedactionFields.CREATED_TIME_ISO to redactionTimeIso.orEmpty(),
+                    ImageRedactionFields.ERROR to ""
+                )
+                As100ImageRedactionMethod.result(
+                    As100ImageRedactionMethod.request(capabilityId, context.request.invocationContext.asMap(capabilityId) + values),
+                    values,
+                    context.request.invocationContext
+                )
+            }
+        }
 
         fun load(uri: Uri) {
             runCatching {
-                appContext.contentResolver.openInputStream(uri)?.use {
-                    BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply {
-                        inPreferredConfig = Bitmap.Config.ARGB_8888
-                    })
-                }
+                decodeOrientedBitmap(appContext, uri)
                     ?: error("Could not decode image")
             }.onSuccess {
-                sourceUri = uri
+                sourceUriString = uri.toString()
                 bitmap = it
-                selected = emptySet()
-                result = null
+                selectedValue = ""
+                redactedImageUri = null
+                redactedImageName = null
+                redactionMaskJson = null
+                redactionCellCount = null
+                redactionRows = null
+                redactionColumns = null
+                redactionStyle = null
+                redactionSource = null
+                redactionTimeIso = null
                 status = "Image loaded. Tap or swipe cells to toggle redaction."
             }.onFailure {
                 status = "Image load failed: ${it.message ?: "unknown error"}"
+            }
+        }
+
+        LaunchedEffect(sourceUriString) {
+            if (bitmap == null && !sourceUriString.isNullOrBlank()) {
+                runCatching { decodeOrientedBitmap(appContext, Uri.parse(sourceUriString)) }
+                    .onSuccess { bitmap = it }
             }
         }
 
@@ -112,14 +171,14 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
             uri?.let(::load)
         }
         val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
-            val uri = pendingCameraUri
+            val uri = pendingCameraUriString?.let(Uri::parse)
             if (ok && uri != null) load(uri) else status = "Camera capture cancelled."
         }
 
         fun startCamera() {
             val file = File(appContext.cacheDir, "methodmesh-redaction-source-${System.currentTimeMillis()}.jpg")
             val uri = FileProvider.getUriForFile(appContext, "${appContext.packageName}.fileprovider", file)
-            pendingCameraUri = uri
+            pendingCameraUriString = uri.toString()
             camera.launch(uri)
         }
 
@@ -141,26 +200,40 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
             val file = File(appContext.cacheDir, "methodmesh-redacted-${System.currentTimeMillis()}.jpg")
             file.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, 95, it) }
             val uri = FileProvider.getUriForFile(appContext, "${appContext.packageName}.fileprovider", file).toString()
+            val maskJson = JSONArray(selected.toList().sorted()).toString()
+            val createdAt = Instant.now().toString()
             val values = linkedMapOf(
                 ImageRedactionFields.STATUS to "succeeded",
                 ImageRedactionFields.REDACTED_IMAGE_URI to uri,
                 ImageRedactionFields.REDACTED_IMAGE_NAME to file.name,
-                ImageRedactionFields.MASK_JSON to JSONArray(selected.toList().sorted()).toString(),
+                ImageRedactionFields.MASK_JSON to maskJson,
                 ImageRedactionFields.SELECTED_CELLS to selected.size.toString(),
                 ImageRedactionFields.GRID_ROWS to rows.toString(),
                 ImageRedactionFields.GRID_COLUMNS to cols.toString(),
                 ImageRedactionFields.STYLE to settings.getString("redaction_style"),
                 ImageRedactionFields.SOURCE to settings.getString("input_source"),
-                ImageRedactionFields.CREATED_TIME_ISO to Instant.now().toString(),
+                ImageRedactionFields.CREATED_TIME_ISO to createdAt,
                 ImageRedactionFields.ERROR to ""
             )
-            result = As100ImageRedactionMethod.result(
-                As100ImageRedactionMethod.request(capabilityId, context.request.invocationContext.asMap(capabilityId) + values),
-                values,
-                context.request.invocationContext
-            )
+            redactedImageUri = uri
+            redactedImageName = file.name
+            redactionMaskJson = maskJson
+            redactionCellCount = selected.size.toString()
+            redactionRows = rows.toString()
+            redactionColumns = cols.toString()
+            redactionStyle = settings.getString("redaction_style")
+            redactionSource = settings.getString("input_source")
+            redactionTimeIso = createdAt
             status = "Redacted image created. Original image is not returned."
-            if (context.submitsImmediately) result?.let(onConfirmed)
+            if (context.submitsImmediately) {
+                onConfirmed(
+                    As100ImageRedactionMethod.result(
+                        As100ImageRedactionMethod.request(capabilityId, context.request.invocationContext.asMap(capabilityId) + values),
+                        values,
+                        context.request.invocationContext
+                    )
+                )
+            }
         }
 
         CapabilityScreenScaffold(
@@ -171,7 +244,21 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
             capturedResult = result,
             resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
             onBack = onBack,
-            onRetry = { bitmap = null; selected = emptySet(); result = null; status = "Choose or capture an image, then mark regions to remove." },
+            onRetry = {
+                bitmap = null
+                sourceUriString = null
+                selectedValue = ""
+                redactedImageUri = null
+                redactedImageName = null
+                redactionMaskJson = null
+                redactionCellCount = null
+                redactionRows = null
+                redactionColumns = null
+                redactionStyle = null
+                redactionSource = null
+                redactionTimeIso = null
+                status = "Choose or capture an image, then mark regions to remove."
+            },
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
@@ -203,7 +290,9 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                 Text("Mask style: ${settings.getString("redaction_style")}")
             }
             bitmap?.let { image ->
-                RedactionGrid(image, settings.getInt("grid_rows").coerceIn(1, 50), settings.getInt("grid_columns").coerceIn(1, 50), selected) { selected = it }
+                RedactionGrid(image, settings.getInt("grid_rows").coerceIn(1, 50), settings.getInt("grid_columns").coerceIn(1, 50), selected) {
+                    selectedValue = it.toList().sorted().joinToString("|")
+                }
                 Button(onClick = ::finish, enabled = selected.isNotEmpty(), modifier = Modifier.fillMaxWidth()) { Text("Create redacted image") }
             }
             Spacer(Modifier.height(12.dp))
@@ -216,6 +305,40 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
             )
         }
     }
+}
+
+private fun decodeOrientedBitmap(context: android.content.Context, uri: Uri): Bitmap? {
+    val options = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }
+    val bitmap = context.contentResolver.openInputStream(uri)?.use { stream ->
+        BitmapFactory.decodeStream(stream, null, options)
+    } ?: return null
+    val orientation = runCatching {
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            ExifInterface(stream).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+        } ?: ExifInterface.ORIENTATION_NORMAL
+    }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+    return bitmap.orientedByExif(orientation)
+}
+
+private fun Bitmap.orientedByExif(orientation: Int): Bitmap {
+    val matrix = Matrix()
+    when (orientation) {
+        ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+        ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+        ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.preScale(-1f, 1f)
+        ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.preScale(1f, -1f)
+        ExifInterface.ORIENTATION_TRANSPOSE -> {
+            matrix.postRotate(90f)
+            matrix.preScale(-1f, 1f)
+        }
+        ExifInterface.ORIENTATION_TRANSVERSE -> {
+            matrix.postRotate(270f)
+            matrix.preScale(-1f, 1f)
+        }
+        else -> return this
+    }
+    return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
 }
 
 @Composable
