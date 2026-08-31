@@ -590,6 +590,9 @@ private fun shareMediaUris(context: android.content.Context, uris: List<Uri>) {
 }
 
 private fun humanShareText(fields: Map<String, Any?>): String {
+    listOf("barcode_payload", "qr_payload", "plus_code").forEach { key ->
+        fields[key]?.toString()?.takeIf { it.isNotBlank() }?.let { return it }
+    }
     val textLike = fields.entries
         .filterNot { (key, value) -> looksLikeShareableMediaUri(key, value?.toString().orEmpty()) }
         .filterNot { (key, _) -> key.endsWith("_name") || key.endsWith("_filename") }

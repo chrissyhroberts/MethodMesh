@@ -97,6 +97,7 @@ object OutputFormatter {
     }
 
     private fun isCoreField(key: String): Boolean {
+        if (key in headlineCoreFields) return true
         if (key.startsWith("methodmesh_")) return false
         if (key.startsWith("diagnostic_")) return false
         if (key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id")) return false
@@ -122,6 +123,12 @@ object OutputFormatter {
         if (key.startsWith("entity_") || key.startsWith("observation_") || key.startsWith("state_")) return false
         return true
     }
+
+    private val headlineCoreFields = setOf(
+        "barcode_payload",
+        "qr_payload",
+        "plus_code"
+    )
 
     private fun isAuditOrCoreField(key: String): Boolean =
         isCoreField(key) ||
