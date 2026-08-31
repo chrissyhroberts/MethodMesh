@@ -167,6 +167,7 @@ private fun capabilityLifecycle(method: As100Method): CapabilityLifecycle {
     // in Development until their behaviour, ODK contract, docs and examples
     // have been reviewed together.
     val productionCapabilityIds = setOf(
+        "admin_fingerprint_confirmation",
         "barcode.scan",
         "calibrated_scale",
         "document.scan",
@@ -1717,12 +1718,14 @@ private data class PresetFieldSpec(
     val defaultValue: String = "",
     val runtimeInput: Boolean = false,
     val defaultFixed: Boolean = !runtimeInput,
+    val singleChoices: List<PresetChoiceSpec> = emptyList(),
     val multiChoices: List<PresetChoiceSpec> = emptyList()
 )
 
 private data class PresetChoiceSpec(
     val value: String,
-    val label: String
+    val label: String,
+    val description: String = ""
 )
 
 @Composable
@@ -1749,7 +1752,14 @@ private fun PresetFieldRow(
                     )
                 }
             }
-            if (spec.multiChoices.isNotEmpty()) {
+            if (spec.singleChoices.isNotEmpty()) {
+                PresetSingleChoiceField(
+                    spec = spec,
+                    value = value,
+                    enabled = fixed,
+                    onValueChanged = onValueChanged
+                )
+            } else if (spec.multiChoices.isNotEmpty()) {
                 PresetMultiChoiceField(
                     spec = spec,
                     value = value,
@@ -1764,6 +1774,39 @@ private fun PresetFieldRow(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = if (spec.key.contains("message") || spec.key.contains("text")) 2 else 1
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PresetSingleChoiceField(
+    spec: PresetFieldSpec,
+    value: String,
+    enabled: Boolean,
+    onValueChanged: (String) -> Unit
+) {
+    val selected = value.ifBlank { spec.defaultValue }
+    Column(Modifier.fillMaxWidth().padding(start = 6.dp)) {
+        spec.singleChoices.forEach { choice ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = enabled) { onValueChanged(choice.value) }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(
+                    selected = selected == choice.value,
+                    enabled = enabled,
+                    onClick = { onValueChanged(choice.value) }
+                )
+                Column(Modifier.padding(start = 6.dp)) {
+                    Text(choice.label, style = MaterialTheme.typography.bodyMedium)
+                    if (choice.description.isNotBlank()) {
+                        Text(choice.description, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
             }
         }
     }
@@ -1829,6 +1872,39 @@ private fun defaultPresetName(methodId: String): String =
 private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<PresetFieldSpec> {
     fun current(key: String, fallback: String = "") = values[key]?.toString() ?: fallback
     return when (methodId) {
+        "admin_fingerprint_confirmation" -> listOf(
+            PresetFieldSpec(
+                key = "authentication_method",
+                label = "Authentication method",
+                defaultValue = current("authentication_method", "biometric_or_device_credential"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = listOf(
+                    PresetChoiceSpec(
+                        "biometric",
+                        "Biometric",
+                        "Require an enrolled fingerprint, face, or other Android biometric."
+                    ),
+                    PresetChoiceSpec(
+                        "device_credential",
+                        "PIN, pattern or password",
+                        "Require the device credential configured in Android settings."
+                    ),
+                    PresetChoiceSpec(
+                        "biometric_or_device_credential",
+                        "Biometric or device credential",
+                        "Allow either local authentication route."
+                    )
+                )
+            ),
+            PresetFieldSpec(
+                "confirmation_reason",
+                "Confirmation reason",
+                current("confirmation_reason", "local_access_authorisation"),
+                runtimeInput = false,
+                defaultFixed = true
+            )
+        )
         "sms.send" -> listOf(
             PresetFieldSpec("sms_phone", "Phone number", current("sms_phone"), runtimeInput = true),
             PresetFieldSpec("sms_message", "Message", current("sms_message"), runtimeInput = true)
@@ -1879,6 +1955,10 @@ private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<P
 }
 
 private fun presetEditableSettingsFor(methodId: String, values: Map<String, Any>): Map<String, Any> = when (methodId) {
+    "admin_fingerprint_confirmation" -> mapOf(
+        "authentication_method" to "biometric_or_device_credential",
+        "confirmation_reason" to "local_access_authorisation"
+    ) + values
     "mlkit.translate" -> mapOf(
         "source_language" to "en",
         "target_language" to "fr",

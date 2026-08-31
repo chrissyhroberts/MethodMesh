@@ -31,7 +31,7 @@ This is not an identity attestation but can be used to prevent unauthorised user
 **From `example_odk_admin_fingerprint_confirmation.xlsx`:**
 
 ``` text
-com.example.methodmesh.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',input_authentication_method=${authentication_method})
+com.example.methodmesh.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',input_authentication_method=${authentication_method},return_mode='flat')
 ```
 
 ## Inputs observed in supplied examples

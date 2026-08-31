@@ -90,7 +90,7 @@ object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
                 applyParameters(state, settingsSpec, action.settings)
             }
         }
-        val requestedMode = action.settings["authentication_method"]
+        val requestedMode = action.settings["authentication_method"] ?: action.settings["input_authentication_method"]
         var mode by remember(action.settings) {
             mutableStateOf(LocalAuthenticationMode.parse(requestedMode) ?: LocalAuthenticationMode.Biometric)
         }
@@ -240,7 +240,7 @@ object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
 
     private fun applyParameters(settingsState: SettingsState, settings: List<MethodSetting>, parameters: Map<String, String>) {
         settings.forEach { setting ->
-            val raw = parameters[setting.id] ?: return@forEach
+            val raw = parameters[setting.id] ?: parameters["input_${setting.id}"] ?: return@forEach
             when (setting) {
                 is MethodSetting.BooleanSetting -> settingsState.setBoolean(setting.id, raw.toBooleanStrictOrNull() ?: (raw == "1"))
                 is MethodSetting.IntSetting -> raw.toIntOrNull()?.let { settingsState.setInt(setting.id, it) }

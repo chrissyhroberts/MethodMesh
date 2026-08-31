@@ -15,7 +15,7 @@ An example demonstrates the current call shape; it is not automatically a valida
 `admin_fingerprint_confirmation`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',input_authentication_method=${authentication_method})
+com.example.methodmesh.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',input_authentication_method=${authentication_method},return_mode='flat')
 ```
 
 ### [example_odk_android_app_inspector.xlsx](example_odk_android_app_inspector.xlsx)
