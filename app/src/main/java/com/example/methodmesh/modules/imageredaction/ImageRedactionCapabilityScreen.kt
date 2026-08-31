@@ -79,9 +79,12 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
             }.also { state ->
                 val definitions = ImageRedactionModule.capabilitySettings()[capabilityId].orEmpty().associateBy { it.id }
                 context.action.settings.forEach { (key, value) ->
-                    when (definitions[key]) {
-                        is MethodSetting.IntSetting -> value.toIntOrNull()?.let { state.setInt(key, it) }
-                        else -> state.setString(key, value)
+                    val canonicalKey = listOf(key, key.removePrefix("input_"))
+                        .firstOrNull { it in definitions }
+                        ?: key
+                    when (definitions[canonicalKey]) {
+                        is MethodSetting.IntSetting -> value.toIntOrNull()?.let { state.setInt(canonicalKey, it) }
+                        else -> state.setString(canonicalKey, value)
                     }
                 }
             }
@@ -101,6 +104,7 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
         var redactionTimeIso by rememberSaveable { mutableStateOf<String?>(null) }
         var status by rememberSaveable { mutableStateOf("Choose or capture an image, then mark regions to remove.") }
         var pendingCameraUriString by rememberSaveable { mutableStateOf<String?>(null) }
+        var captureStarted by rememberSaveable { mutableStateOf(false) }
         val result = remember(
             redactedImageUri,
             redactedImageName,
@@ -182,6 +186,26 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
             camera.launch(uri)
         }
 
+        fun startConfiguredSource() {
+            captureStarted = true
+            when (settings.getString("input_source")) {
+                "file_picker" -> {
+                    status = "Choose an image to redact."
+                    picker.launch("image/*")
+                }
+                else -> {
+                    status = "Opening camera…"
+                    startCamera()
+                }
+            }
+        }
+
+        LaunchedEffect(context.startsImmediately) {
+            if (context.startsImmediately && !captureStarted && bitmap == null && result == null) {
+                startConfiguredSource()
+            }
+        }
+
         fun finish() {
             val source = bitmap ?: return
             val rows = settings.getInt("grid_rows").coerceIn(1, 50)
@@ -257,37 +281,41 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                 redactionStyle = null
                 redactionSource = null
                 redactionTimeIso = null
+                captureStarted = false
                 status = "Choose or capture an image, then mark regions to remove."
+                if (context.startsImmediately) startConfiguredSource()
             },
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
             Text(status, style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth()) {
-                Button(onClick = { settings.setString("input_source", "camera"); startCamera() }, modifier = Modifier.weight(1f)) { Text("Camera") }
-                Spacer(Modifier.padding(4.dp))
-                OutlinedButton(onClick = { settings.setString("input_source", "file_picker"); picker.launch("image/*") }, modifier = Modifier.weight(1f)) { Text("Pick image") }
-            }
-            Row(Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = settings.getInt("grid_rows").toString(),
-                    onValueChange = { it.toIntOrNull()?.let { value -> settings.setInt("grid_rows", value.coerceIn(1, 50)) } },
-                    label = { Text("Rows") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-                Spacer(Modifier.padding(4.dp))
-                OutlinedTextField(
-                    value = settings.getInt("grid_columns").toString(),
-                    onValueChange = { it.toIntOrNull()?.let { value -> settings.setInt("grid_columns", value.coerceIn(1, 50)) } },
-                    label = { Text("Columns") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-            }
-            OutlinedButton(onClick = { settings.setString("redaction_style", if (settings.getString("redaction_style") == "black") "white" else "black") }, modifier = Modifier.fillMaxWidth()) {
-                Text("Mask style: ${settings.getString("redaction_style")}")
+            if (!context.startsImmediately) {
+                Row(Modifier.fillMaxWidth()) {
+                    Button(onClick = { settings.setString("input_source", "camera"); startCamera() }, modifier = Modifier.weight(1f)) { Text("Camera") }
+                    Spacer(Modifier.padding(4.dp))
+                    OutlinedButton(onClick = { settings.setString("input_source", "file_picker"); picker.launch("image/*") }, modifier = Modifier.weight(1f)) { Text("Pick image") }
+                }
+                Row(Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = settings.getInt("grid_rows").toString(),
+                        onValueChange = { it.toIntOrNull()?.let { value -> settings.setInt("grid_rows", value.coerceIn(1, 50)) } },
+                        label = { Text("Rows") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    Spacer(Modifier.padding(4.dp))
+                    OutlinedTextField(
+                        value = settings.getInt("grid_columns").toString(),
+                        onValueChange = { it.toIntOrNull()?.let { value -> settings.setInt("grid_columns", value.coerceIn(1, 50)) } },
+                        label = { Text("Columns") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                }
+                OutlinedButton(onClick = { settings.setString("redaction_style", if (settings.getString("redaction_style") == "black") "white" else "black") }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Mask style: ${settings.getString("redaction_style")}")
+                }
             }
             bitmap?.let { image ->
                 RedactionGrid(image, settings.getInt("grid_rows").coerceIn(1, 50), settings.getInt("grid_columns").coerceIn(1, 50), selected) {

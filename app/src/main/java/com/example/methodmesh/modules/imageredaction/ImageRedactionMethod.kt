@@ -49,7 +49,10 @@ object As100ImageRedactionMethod : As100Method {
         description = "Apply an irreversible grid mask and return a redacted image attachment.",
         outputs = ImageRedactionFields.outputs,
         graphOutputs = listOf("image.redacted"),
-        parameters = mapOf("category" to "Image")
+        parameters = mapOf(
+            "category" to "Image",
+            "status" to "Production"
+        )
     )
     override val contract = MethodContract(
         method = ref,

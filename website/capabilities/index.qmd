@@ -200,7 +200,7 @@ Capture a ruler-calibrated photograph, select grid regions, and return original 
 
 `image.redact`
 
-**Implemented and documented**
+**Production**
 
 Capture or pick an image, mask selected grid cells, and return only the redacted image plus mask metadata.
 :::

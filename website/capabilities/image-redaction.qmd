@@ -3,9 +3,9 @@ title: "Image redaction"
 ---
 
 ::: {.status-box .status-complete}
-**Status: Implemented and documented**
+**Status: Production**
 
-This capability is intended for removing visible identifying or sensitive regions before an image leaves MethodMesh.
+Reviewed for MethodMesh native use and ODK intent launch. This capability is intended for removing visible identifying or sensitive regions before an image leaves MethodMesh.
 :::
 
 ## Purpose
@@ -41,13 +41,15 @@ The distinction is:
 ### Redact a new camera image
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='image.redact',input_source='camera',input_grid_rows='10',input_grid_columns='10',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='image.redact',input_source='camera',input_grid_rows='10',input_grid_columns='10',input_redaction_style='black',input_payload_mode='FULL',return_mode='flat')
 ```
+
+The production XLSForm example uses `input_payload_mode='FULL'` so the caller receives the redacted image URI plus `methodmesh_full_json` audit metadata.
 
 ### Redact a picked image
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='image.redact',input_source='file_picker',input_grid_rows='12',input_grid_columns='12',input_redaction_style='black',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='image.redact',input_source='file_picker',input_grid_rows='12',input_grid_columns='12',input_redaction_style='black',input_payload_mode='FULL',return_mode='flat')
 ```
 
 ## Returned fields
@@ -58,19 +60,20 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='image.redact',input_source='fil
 | `redacted_image_uri` | Returned image attachment URI. |
 | `redacted_image_name` | Suggested attachment filename. |
 | `redaction_mask_json` | Selected grid cells. |
-| `redaction_selected_cells` | Number of selected cells. |
+| `redacted_cells` | Number of selected cells. |
 | `redaction_grid_rows` | Grid rows used. |
 | `redaction_grid_columns` | Grid columns used. |
 | `redaction_style` | Mask colour used. |
 | `redaction_input_source` | Camera or file picker. |
 | `redaction_created_time_iso` | Redaction creation time. |
 | `image_redaction_error` | Error message, if any. |
+| `methodmesh_full_json` | Full audit JSON when requested with full payload mode. |
 
 ## Geometry behaviour
 
 The redaction grid is aligned to the displayed image bounds, not to the surrounding panel. This matters when the image aspect ratio does not match the available screen area: blank padding around the image is ignored, and cell selection maps to the actual image pixels.
 
-MethodMesh does not intentionally rotate the image before the operator marks the redaction region. The editing surface should therefore reflect the image geometry being redacted.
+Camera captures are decoded with EXIF orientation before display so portrait and landscape photos should appear in the orientation in which they were taken. Picked images use the same orientation-aware loading path.
 
 ## Direct MethodMesh use
 
@@ -81,6 +84,12 @@ From the dashboard, use:
 - the last-result preview to confirm the returned redacted image visually.
 
 Saved output packages contain one canonical JSON file plus the returned redacted image attachment.
+
+Native sharing is media-first: sharing from the result screen sends only the redacted image. The JSON remains available through save/export and through ODK full-payload returns.
+
+## ODK example
+
+- [`example_odk_image.redact.xlsx`](../examples/example_odk_image.redact.xlsx)
 
 ## Limitations
 
