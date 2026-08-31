@@ -25,15 +25,16 @@ automatically to the calling app. Manual/debug launches retain the separate
 ## Android intent
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='gps_target_navigator',input_target_name='Clinic',input_target_latitude='-1.28',input_target_longitude='36.81',input_arrival_radius_m='50',input_show_ar_camera='true')
+com.example.methodmesh.EXECUTE_METHOD(method_id='gps_target_navigator',input_target_name='Clinic',input_target_plus_code='6GCRPR6C+24',input_arrival_radius_m='50',input_show_ar_camera='true')
 ```
 
 ## Inputs
 
 | Input | Required | Description |
 |---|---:|---|
-| `target_latitude` | Yes | Decimal latitude from −90 to 90. |
-| `target_longitude` | Yes | Decimal longitude from −180 to 180. |
+| `target_plus_code` | Conditional | Full Plus Code destination. Use this instead of coordinates when available. |
+| `target_latitude` | Conditional | Decimal latitude from −90 to 90. Required when no Plus Code is supplied. |
+| `target_longitude` | Conditional | Decimal longitude from −180 to 180. Required when no Plus Code is supplied. |
 | `arrival_radius_m` | Yes | Arrival threshold in metres. |
 | `target_name` | No | User-facing target label. |
 | `show_current_location`, `show_bearing`, `show_distance` | No | Display controls. |
@@ -48,4 +49,4 @@ Refusing camera permission does not prevent compass navigation.
 
 ## ODK example
 
-[`example_odk_gps_target_navigator.xlsx`](example_odk_gps_target_navigator.xlsx) accepts target coordinates and an arrival radius, launches navigation, and receives the resulting location fields.
+[`example_odk_gps_target_navigator.xlsx`](example_odk_gps_target_navigator.xlsx) accepts either a full Plus Code or target coordinates plus an arrival radius, launches navigation, and receives the resulting location fields.

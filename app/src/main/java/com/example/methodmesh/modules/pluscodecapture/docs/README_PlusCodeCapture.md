@@ -49,10 +49,10 @@ ODK calls should pass fixed configuration values and receive the selected locati
 Example intent:
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='plus_code.capture',input_code_length='10',input_gps_average_seconds='10',input_basemap_mode='auto',input_grid_span_cells='129',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='plus_code.capture',input_code_length=${code_length_input},input_gps_average_seconds=${gps_average_seconds_input},input_basemap_mode=${basemap_mode_input},input_grid_span_cells=${grid_span_cells_input},return_mode='flat')
 ```
 
-The example workbook is [`example_odk_plus_code.capture.xlsx`](example_odk_plus_code.capture.xlsx).
+The example workbook is [`example_odk_plus_code.capture.xlsx`](example_odk_plus_code.capture.xlsx). It exposes grid precision, GPS averaging time, basemap mode, and starting zoom as XLSForm choices.
 
 ## Outputs
 

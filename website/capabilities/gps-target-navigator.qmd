@@ -42,7 +42,7 @@ Add a current capability dashboard or execution screenshot at:
 **From `example_odk_gps_target_navigator.xlsx`:**
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='gps_target_navigator',input_target_latitude=${target_latitude_input},input_target_longitude=${target_longitude_input},input_arrival_radius_m=${arrival_radius_input})
+com.example.methodmesh.EXECUTE_METHOD(method_id='gps_target_navigator',input_target_name=${target_name_input},input_target_plus_code=${target_plus_code_input},input_target_latitude=${target_latitude_input},input_target_longitude=${target_longitude_input},input_arrival_radius_m=${arrival_radius_input},return_mode='flat')
 ```
 
 
@@ -50,6 +50,9 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='gps_target_navigator',input_tar
 
 | Field | Label | XLSForm type |
 |---|---|---|
+| destination_mode | Destination format | select_one destination_mode |
+| target_name_input | Target name | text |
+| target_plus_code_input | Target Plus Code | text |
 | target_latitude_input | Target latitude | decimal |
 | target_longitude_input | Target longitude | decimal |
 | arrival_radius_input | Arrival radius (metres) | decimal |
@@ -60,4 +63,3 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='gps_target_navigator',input_tar
 Return fields are documented from the specific XLSForm execution group only.
 
 The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.
-
