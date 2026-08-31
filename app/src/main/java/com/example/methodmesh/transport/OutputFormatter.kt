@@ -102,6 +102,7 @@ object OutputFormatter {
         if (key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id")) return false
         if (key in calibratedScaleAuditFields) return false
         if (key in documentScanAuditFields) return false
+        if (key in plusCodeAuditFields) return false
         if (key.endsWith("_json") || key.endsWith("_payload")) return false
         if (key.endsWith("_input_text") || key.endsWith("_source_language") || key.endsWith("_target_language")) return false
         if (key.endsWith("_available_languages") || key.endsWith("_downloaded_models") || key.endsWith("_model_action")) return false
@@ -126,6 +127,7 @@ object OutputFormatter {
         isCoreField(key) ||
             key in calibratedScaleAuditFields ||
             key in documentScanAuditFields ||
+            key in plusCodeAuditFields ||
             key.startsWith("methodmesh_") ||
             key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id") ||
             key.contains("time", ignoreCase = true) ||
@@ -168,6 +170,20 @@ object OutputFormatter {
         "document_scan_page_limit",
         "document_scan_time_iso",
         "document_scan_error"
+    )
+
+    private val plusCodeAuditFields = setOf(
+        "plus_code_status",
+        "plus_code_length",
+        "plus_code_gps_latitude",
+        "plus_code_gps_longitude",
+        "plus_code_gps_accuracy_m",
+        "plus_code_gps_fix_count",
+        "plus_code_basemap_mode",
+        "plus_code_basemap_actual_source",
+        "plus_code_selected_time_iso",
+        "plus_code_audit_json",
+        "plus_code_error"
     )
 
     private fun copyContext(result: ExecutionResult, fields: LinkedHashMap<String, Any?>) {
