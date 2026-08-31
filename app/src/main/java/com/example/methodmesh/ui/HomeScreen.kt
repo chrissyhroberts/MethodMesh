@@ -1858,6 +1858,15 @@ private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<P
                 )
             )
         )
+        "gps_target_navigator" -> listOf(
+            PresetFieldSpec("arrival_radius_m", "Arrival radius (m)", current("arrival_radius_m", "10"), runtimeInput = false, defaultFixed = true),
+            PresetFieldSpec("show_ar_camera", "Open AR camera", current("show_ar_camera", "true"), runtimeInput = false, defaultFixed = true),
+            PresetFieldSpec("show_distance", "Show distance", current("show_distance", "true"), runtimeInput = false, defaultFixed = true),
+            PresetFieldSpec("show_bearing", "Show bearing", current("show_bearing", "true"), runtimeInput = false, defaultFixed = true),
+            PresetFieldSpec("target_plus_code", "Destination Plus Code", "", runtimeInput = true),
+            PresetFieldSpec("target_latitude", "Destination latitude", "", runtimeInput = true),
+            PresetFieldSpec("target_longitude", "Destination longitude", "", runtimeInput = true)
+        )
         else -> values.keys.sorted().map { key ->
             PresetFieldSpec(
                 key = key,
@@ -1880,6 +1889,32 @@ private fun presetEditableSettingsFor(methodId: String, values: Map<String, Any>
         "sms_phone" to "",
         "sms_message" to ""
     ) + values
+    "gps_target_navigator" -> mapOf(
+        "arrival_radius_m" to "10",
+        "show_ar_camera" to "true",
+        "show_distance" to "true",
+        "show_bearing" to "true",
+        "target_plus_code" to "",
+        "target_latitude" to "",
+        "target_longitude" to ""
+    ) + values.filterKeys { key ->
+        key !in setOf(
+            "target_name",
+            "target_latitude",
+            "target_longitude",
+            "current_latitude",
+            "current_longitude",
+            "accuracy_m",
+            "distance_m",
+            "bearing_deg",
+            "heading_deg",
+            "relative_bearing_deg",
+            "arrived",
+            "timestamp_ms",
+            "update_count",
+            "status"
+        )
+    }
     else -> values
 }
 
@@ -1900,6 +1935,7 @@ private fun presetSettingsFor(methodId: String, values: Map<String, Any>): Map<S
 private fun runtimeInputKeysFor(methodId: String): Set<String> = when (methodId) {
     "mlkit.translate" -> setOf("input_text", "text", "mlkit_translate_input_text")
     "sms.send" -> setOf("sms_message", "message")
+    "gps_target_navigator" -> setOf("target_plus_code", "plus_code", "target_latitude", "target_longitude", "latitude", "longitude", "lat", "lon", "lng")
     "question.text" -> setOf("answer", "response", "value", "text_answer")
     "question.number" -> setOf("answer", "response", "value", "number_answer")
     "question.select_one", "question.select_multiple" -> setOf("answer", "response", "selected", "value")
