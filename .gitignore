@@ -66,3 +66,11 @@ _site/
 
 # website/  <-- DO NOT IGNORE
 # docs/     <-- DO NOT IGNORE
+
+# Locally maintained documentation videos.
+docs/assets/screenshots/scheduled_event_chain.mp4
+docs/assets/screenshots/sensor_video.mp4
+docs/assets/screenshots/signed_attestation_video.mp4
+website/assets/screenshots/scheduled_event_chain.mp4
+website/assets/screenshots/sensor_video.mp4
+website/assets/screenshots/signed_attestation_video.mp4
