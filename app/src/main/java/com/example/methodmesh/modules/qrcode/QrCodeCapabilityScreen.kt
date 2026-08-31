@@ -34,6 +34,7 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import com.example.methodmesh.transport.workflow.ui.IntentExample
 import com.example.methodmesh.transport.workflow.ui.IntentExampleDropdown
+import java.time.Instant
 
 /**
  * Reusable invocation boundary for the barcode capability.
@@ -60,22 +61,14 @@ fun rememberBarcodeCapabilityInvocation(
         if (payload.isNullOrEmpty()) {
             currentOnCancel()
         } else {
-            val invocationContext = currentContext.request.invocationContext
             val execution = runCatching {
-                val method: As100Method = As100BarcodeScanMethod
-                method.execute(
-                    request = method.request(
-                        action = method.id,
-                        context = invocationContext.asMap(method.id) +
-                            currentContext.action.settings + mapOf(
-                                "barcode_payload" to payload,
-                                "barcode_source" to currentSourceLabel,
-                                "barcode_format" to scan.formatName.orEmpty().ifBlank { "UNKNOWN" }
-                            )
-                    ),
-                    settingsState = null,
-                    transport = currentContext.request.source
-                ).withInvocationContext(invocationContext)
+                buildBarcodeScanResult(
+                    context = currentContext,
+                    payload = payload,
+                    sourceLabel = currentSourceLabel,
+                    formatName = scan.formatName.orEmpty().ifBlank { "UNKNOWN" },
+                    scanTimeIso = Instant.now().toString()
+                )
             }.getOrElse { error ->
                 currentOnError(error.message ?: "Barcode capture failed.")
                 return@rememberLauncherForActivityResult
@@ -138,11 +131,37 @@ private class CodeScanCapabilityScreen(
         var barcodeFormatsValue by rememberSaveable {
             mutableStateOf(context.action.settings["barcode_formats"] ?: context.action.settings["input_barcode_formats"] ?: "")
         }
-        var status by remember { mutableStateOf("Opening camera…") }
-        var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Opening camera…") }
+        var capturedPayload by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        var capturedFormat by rememberSaveable(context.action.canonicalId) { mutableStateOf("UNKNOWN") }
+        var capturedSource by rememberSaveable(context.action.canonicalId) { mutableStateOf("camera_zxing") }
+        var capturedScanTime by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
         val scannerContext = context.copy(
             action = context.action.copy(settings = context.action.settings + mapOf("barcode_formats" to barcodeFormatsValue))
         )
+        val result = remember(
+            scannerContext.action.canonicalId,
+            scannerContext.action.settings,
+            scannerContext.request.source,
+            capturedPayload,
+            capturedFormat,
+            capturedSource,
+            capturedScanTime
+        ) {
+            val payload = capturedPayload
+            val scanTime = capturedScanTime
+            if (payload.isNullOrEmpty() || scanTime.isNullOrEmpty()) {
+                null
+            } else {
+                buildBarcodeScanResult(
+                    context = scannerContext,
+                    payload = payload,
+                    sourceLabel = capturedSource,
+                    formatName = capturedFormat,
+                    scanTimeIso = scanTime
+                )
+            }
+        }
 
         LaunchedEffect(barcodeFormatsValue) {
             context.onSettingsChanged(mapOf("barcode_formats" to barcodeFormatsValue))
@@ -155,7 +174,11 @@ private class CodeScanCapabilityScreen(
                 scanFinished = true
                 launched = true
                 status = "Code captured."
-                result = it
+                val fields = it.observations.firstOrNull()?.values.orEmpty()
+                capturedPayload = fields["barcode_payload"]
+                capturedFormat = fields["barcode_format"].orEmpty().ifBlank { "UNKNOWN" }
+                capturedSource = fields["barcode_source"].orEmpty().ifBlank { "camera_zxing" }
+                capturedScanTime = fields["barcode_scan_time_iso"].orEmpty().ifBlank { Instant.now().toString() }
             },
             onCancel = {
                 scanFinished = true
@@ -185,7 +208,10 @@ private class CodeScanCapabilityScreen(
             onRetry = {
                 launched = true
                 scanFinished = false
-                result = null
+                capturedPayload = null
+                capturedFormat = "UNKNOWN"
+                capturedSource = "camera_zxing"
+                capturedScanTime = null
                 status = "Point the camera at a QR, Data Matrix, or barcode."
                 launchScanner()
             },
@@ -211,7 +237,10 @@ private class CodeScanCapabilityScreen(
                 Button(onClick = {
                     launched = true
                     scanFinished = false
-                    result = null
+                    capturedPayload = null
+                    capturedFormat = "UNKNOWN"
+                    capturedSource = "camera_zxing"
+                    capturedScanTime = null
                     status = "Point the camera at a QR, Data Matrix, or barcode."
                     launchScanner()
                 }) { Text(if (result == null) "Open scanner" else "Scan again") }
@@ -240,6 +269,31 @@ private class CodeScanCapabilityScreen(
             }
         }
     }
+}
+
+private fun buildBarcodeScanResult(
+    context: CapabilityScreenContext,
+    payload: String,
+    sourceLabel: String,
+    formatName: String,
+    scanTimeIso: String
+): ExecutionResult {
+    val invocationContext = context.request.invocationContext
+    val method: As100Method = As100BarcodeScanMethod
+    return method.execute(
+        request = method.request(
+            action = method.id,
+            context = invocationContext.asMap(method.id) +
+                context.action.settings + mapOf(
+                    "barcode_payload" to payload,
+                    "barcode_source" to sourceLabel,
+                    "barcode_format" to formatName.ifBlank { "UNKNOWN" },
+                    "barcode_scan_time_iso" to scanTimeIso
+                )
+        ),
+        settingsState = null,
+        transport = context.request.source
+    ).withInvocationContext(invocationContext)
 }
 
 val BarcodeScanCapabilityScreen: CapabilityScreenSpec = CodeScanCapabilityScreen(

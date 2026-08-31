@@ -103,7 +103,8 @@ private object BarcodeScanExecution {
                 diagnostics = mapOf("reason" to "Barcode decoding did not produce a payload.")
             )
         }
-        val scanTime = Instant.ofEpochMilli(System.currentTimeMillis()).toString()
+        val scanTime = c["barcode_scan_time_iso"].orEmpty()
+            .ifBlank { Instant.ofEpochMilli(System.currentTimeMillis()).toString() }
         val payloadHash = Digests.sha256Hex(payload)
         val url = BarcodePayloadSemantics.safeHttpUrl(payload)
         val values = linkedMapOf<String, String>().apply {
