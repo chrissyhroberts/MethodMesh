@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -64,6 +66,7 @@ import com.google.mlkit.nl.translate.TranslateRemoteModel
 import com.google.mlkit.nl.translate.TranslatorOptions
 import java.time.Instant
 import java.util.Locale
+import kotlinx.coroutines.delay
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -101,6 +104,8 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
         var downloadedModelCodes by rememberSaveable { mutableStateOf("") }
         var modelStatus by rememberSaveable { mutableStateOf("Checking language packs…") }
         var busyLanguageCode by rememberSaveable { mutableStateOf<String?>(null) }
+        var busyLanguageSeconds by rememberSaveable { mutableStateOf(0) }
+        var modelDebugLog by rememberSaveable { mutableStateOf(timestampedLog("Opened conversation language check.")) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var ttsReady by remember { mutableStateOf(false) }
         val supportedLanguageCodes = remember { MlKitLanguageCatalog.supportedCodes() }
@@ -154,6 +159,7 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
 
         fun refreshLanguagePacks() {
             modelStatus = "Checking language packs…"
+            modelDebugLog = prependDebugLog(modelDebugLog, "Refresh requested.")
             RemoteModelManager.getInstance()
                 .getDownloadedModels(TranslateRemoteModel::class.java)
                 .addOnSuccessListener { models ->
@@ -163,9 +169,11 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                     } else {
                         "Language packs ready."
                     }
+                    modelDebugLog = prependDebugLog(modelDebugLog, "Downloaded models: ${downloadedModelCodes.ifBlank { "none" }}")
                 }
                 .addOnFailureListener { error ->
                     modelStatus = "Could not check language packs: ${error.message.orEmpty()}"
+                    modelDebugLog = prependDebugLog(modelDebugLog, "Refresh failed: ${error.message.orEmpty().ifBlank { error.javaClass.simpleName }}")
                 }
         }
 
@@ -175,22 +183,37 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                 return
             }
             busyLanguageCode = code
+            busyLanguageSeconds = 0
             modelStatus = "Downloading ${languageLabel(code)}…"
+            val model = TranslateRemoteModel.Builder(code).build()
+            modelDebugLog = prependDebugLog(modelDebugLog, "Download started via RemoteModelManager: ${languageLabel(code)}.")
             RemoteModelManager.getInstance()
-                .download(TranslateRemoteModel.Builder(code).build(), DownloadConditions.Builder().build())
+                .download(model, DownloadConditions.Builder().build())
                 .addOnSuccessListener {
                     busyLanguageCode = null
                     modelStatus = "${languageLabel(code)} downloaded."
+                    modelDebugLog = prependDebugLog(modelDebugLog, "Download callback succeeded: ${languageLabel(code)}.")
                     refreshLanguagePacks()
                 }
                 .addOnFailureListener { error ->
                     busyLanguageCode = null
                     modelStatus = "Download failed for ${languageLabel(code)}: ${error.message.orEmpty()}"
+                    modelDebugLog = prependDebugLog(modelDebugLog, "Download failed for ${languageLabel(code)}: ${error.message.orEmpty().ifBlank { error.javaClass.simpleName }}")
                 }
         }
 
         LaunchedEffect(languageA, languageB, conversationOpen) {
             if (conversationOpen) refreshLanguagePacks()
+        }
+        LaunchedEffect(busyLanguageCode) {
+            val active = busyLanguageCode ?: return@LaunchedEffect
+            while (busyLanguageCode == active) {
+                delay(1000)
+                busyLanguageSeconds += 1
+                if (busyLanguageSeconds > 0 && busyLanguageSeconds % 10 == 0) {
+                    modelDebugLog = prependDebugLog(modelDebugLog, "Still waiting for ${languageLabel(active)} download callback at ${busyLanguageSeconds}s.")
+                }
+            }
         }
 
         fun finishConversation(state: String = "succeeded", error: String = "") {
@@ -420,9 +443,11 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                             textB = latestTextB,
                             status = status,
                             modelStatus = modelStatus,
+                            modelDebugLog = modelDebugLog,
                             missingLanguages = missingTranslationLanguages,
                             unsupportedLanguages = unsupportedTranslationLanguages,
                             busyLanguageCode = busyLanguageCode,
+                            busyLanguageSeconds = busyLanguageSeconds,
                             operatorFacing = operatorFacing,
                             spokenOutput = spokenOutput,
                             hasTurns = turns(turnsJson).isNotEmpty(),
@@ -470,9 +495,11 @@ private fun ConversationSharedSurface(
     textB: String,
     status: String,
     modelStatus: String,
+    modelDebugLog: String,
     missingLanguages: List<String>,
     unsupportedLanguages: List<String>,
     busyLanguageCode: String?,
+    busyLanguageSeconds: Int,
     operatorFacing: Boolean,
     spokenOutput: Boolean,
     hasTurns: Boolean,
@@ -530,9 +557,11 @@ private fun ConversationSharedSurface(
                 Spacer(Modifier.height(6.dp))
                 MissingLanguagePackPanel(
                     modelStatus = modelStatus,
+                    modelDebugLog = modelDebugLog,
                     missingLanguages = missingLanguages,
                     unsupportedLanguages = unsupportedLanguages,
                     busyLanguageCode = busyLanguageCode,
+                    busyLanguageSeconds = busyLanguageSeconds,
                     onDownloadLanguage = onDownloadLanguage,
                     onRefreshLanguagePacks = onRefreshLanguagePacks
                 )
@@ -639,9 +668,11 @@ private fun ConversationPersonPanel(
 @Composable
 private fun MissingLanguagePackPanel(
     modelStatus: String,
+    modelDebugLog: String,
     missingLanguages: List<String>,
     unsupportedLanguages: List<String>,
     busyLanguageCode: String?,
+    busyLanguageSeconds: Int,
     onDownloadLanguage: (String) -> Unit,
     onRefreshLanguagePacks: () -> Unit
 ) {
@@ -654,6 +685,7 @@ private fun MissingLanguagePackPanel(
         Column(Modifier.fillMaxWidth().padding(10.dp)) {
             Text("Language pack needed", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(4.dp))
+            Text("Translation is powered by Google ML Kit.", style = MaterialTheme.typography.bodySmall)
             if (missingLanguages.isNotEmpty()) {
                 Text("Download ${missingLanguages.joinToString { languageLabel(it) }} to translate this conversation.", style = MaterialTheme.typography.bodySmall)
             }
@@ -669,9 +701,13 @@ private fun MissingLanguagePackPanel(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Downloading ${languageLabel(code)}. Keep this screen open.",
+                    "Downloading ${languageLabel(code)} · ${busyLanguageSeconds}s elapsed. Keep this screen open.",
                     style = MaterialTheme.typography.bodySmall
                 )
+            }
+            Spacer(Modifier.height(8.dp))
+            SelectionContainer {
+                Text("Download log\n$modelDebugLog", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
             }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -815,6 +851,15 @@ private fun missingLanguageStatus(missing: List<String>, unsupported: List<Strin
         else -> "Language packs ready."
     }
 }
+
+private fun timestampedLog(message: String): String =
+    "${Instant.now()}  $message"
+
+private fun prependDebugLog(existing: String, message: String): String =
+    (timestampedLog(message) + "\n" + existing)
+        .lineSequence()
+        .take(30)
+        .joinToString("\n")
 
 private fun defaultButtonLabel(language: String): String = when (language) {
     "es" -> "Habla"

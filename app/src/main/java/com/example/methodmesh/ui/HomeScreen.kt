@@ -119,6 +119,8 @@ import com.example.methodmesh.platform.devices.DeviceRegistry
 import com.example.methodmesh.platform.devices.DeviceTransport
 import com.example.methodmesh.platform.devices.RegisteredDevice
 import org.json.JSONObject
+import java.time.Instant
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private data class ProtocolStepDraft(
@@ -3112,55 +3114,84 @@ private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
 private fun MlKitLanguagePacksScreen() {
     var downloadedCodes by rememberSaveable { mutableStateOf("") }
     var busyCode by rememberSaveable { mutableStateOf<String?>(null) }
+    var busySeconds by rememberSaveable { mutableStateOf(0) }
     var status by rememberSaveable { mutableStateOf("Checking language packs…") }
+    var debugLog by rememberSaveable { mutableStateOf(timestampedLog("Opened language packs.")) }
     val supportedCodes = remember { MlKitLanguageCatalog.supportedCodes() }
     val allLanguages = remember { MlKitLanguageCatalog.allKnownLanguages() }
 
+    fun log(message: String) {
+        debugLog = (timestampedLog(message) + "\n" + debugLog)
+            .lineSequence()
+            .take(30)
+            .joinToString("\n")
+    }
+
     fun refresh() {
+        log("Refresh requested.")
         RemoteModelManager.getInstance()
             .getDownloadedModels(TranslateRemoteModel::class.java)
             .addOnSuccessListener { models ->
                 downloadedCodes = models.mapNotNull { it.language }.sorted().joinToString(",")
                 status = if (downloadedCodes.isBlank()) "No language packs downloaded." else "Language packs ready."
+                log("Downloaded models: ${downloadedCodes.ifBlank { "none" }}")
             }
             .addOnFailureListener { error ->
                 status = "Could not check language packs: ${error.message.orEmpty()}"
+                log("Refresh failed: ${error.message.orEmpty().ifBlank { error.javaClass.simpleName }}")
             }
     }
 
     fun download(code: String) {
         busyCode = code
+        busySeconds = 0
         status = "Downloading ${MlKitLanguageCatalog.label(code)}…"
+        val model = TranslateRemoteModel.Builder(code).build()
+        log("Download started via RemoteModelManager: ${MlKitLanguageCatalog.label(code)}.")
         RemoteModelManager.getInstance()
-            .download(TranslateRemoteModel.Builder(code).build(), DownloadConditions.Builder().build())
+            .download(model, DownloadConditions.Builder().build())
             .addOnSuccessListener {
                 busyCode = null
                 status = "${MlKitLanguageCatalog.label(code)} downloaded."
+                log("Download callback succeeded for ${MlKitLanguageCatalog.label(code)}.")
                 refresh()
             }
             .addOnFailureListener { error ->
                 busyCode = null
                 status = "Download failed for ${MlKitLanguageCatalog.label(code)}: ${error.message.orEmpty()}"
+                log("Download failed for ${MlKitLanguageCatalog.label(code)}: ${error.message.orEmpty().ifBlank { error.javaClass.simpleName }}")
             }
     }
 
     fun delete(code: String) {
         busyCode = code
+        busySeconds = 0
         status = "Removing ${MlKitLanguageCatalog.label(code)}…"
+        log("Remove started: ${MlKitLanguageCatalog.label(code)}.")
         RemoteModelManager.getInstance()
             .deleteDownloadedModel(TranslateRemoteModel.Builder(code).build())
             .addOnSuccessListener {
                 busyCode = null
                 status = "${MlKitLanguageCatalog.label(code)} removed."
+                log("Remove callback succeeded: ${MlKitLanguageCatalog.label(code)}.")
                 refresh()
             }
             .addOnFailureListener { error ->
                 busyCode = null
                 status = "Remove failed for ${MlKitLanguageCatalog.label(code)}: ${error.message.orEmpty()}"
+                log("Remove failed for ${MlKitLanguageCatalog.label(code)}: ${error.message.orEmpty().ifBlank { error.javaClass.simpleName }}")
             }
     }
 
     LaunchedEffect(Unit) { refresh() }
+    LaunchedEffect(busyCode) {
+        val active = busyCode ?: return@LaunchedEffect
+        while (busyCode == active) {
+            delay(1000)
+            busySeconds += 1
+            if (busySeconds > 0 && busySeconds % 10 == 0) log("Still waiting for ${MlKitLanguageCatalog.label(active)} download/remove callback at ${busySeconds}s.")
+        }
+    }
 
     val downloaded = downloadedCodes.split(',').map { it.trim() }.filter { it.isNotBlank() }.toSet()
     val downloadedLanguages = allLanguages.filter { it.code in downloaded }
@@ -3169,7 +3200,7 @@ private fun MlKitLanguagePacksScreen() {
 
     Column(Modifier.fillMaxWidth()) {
         Text(
-            "Shared by ML Kit translation capabilities. Download before going off-grid.",
+            "Shared by ML Kit translation capabilities. Translation is powered by Google ML Kit. Download before going off-grid.",
             style = MaterialTheme.typography.bodySmall
         )
         Spacer(Modifier.height(8.dp))
@@ -3181,9 +3212,13 @@ private fun MlKitLanguagePacksScreen() {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(4.dp))
             Text(
-                "Downloading ${MlKitLanguageCatalog.label(code)}. Keep this screen open.",
+                "Downloading ${MlKitLanguageCatalog.label(code)} · ${busySeconds}s elapsed. Keep this screen open.",
                 style = MaterialTheme.typography.bodySmall
             )
+        }
+        Spacer(Modifier.height(8.dp))
+        SelectionContainer {
+            Text("Download log\n$debugLog", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
         }
         Spacer(Modifier.height(10.dp))
         Text("Downloaded", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -3369,3 +3404,6 @@ private fun RegisteredDevice.canReadAsSensor(): Boolean {
             haystack.contains("methodmesh")
         )
 }
+
+private fun timestampedLog(message: String): String =
+    "${Instant.now()}  $message"

@@ -224,7 +224,7 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
             onCancel = onCancel
         ) {
             Text(
-                if (needsRuntimeText) "Enter text to translate." else "Translation runs on device.",
+                if (needsRuntimeText) "Enter text to translate. Powered by Google ML Kit." else "Translation runs on device. Powered by Google ML Kit.",
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(Modifier.height(10.dp))
