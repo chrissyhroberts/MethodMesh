@@ -151,6 +151,50 @@ class OutputFormatterTest {
         )
     }
 
+    @Test
+    fun `core projection keeps calibrated scale value without calibration metadata`() {
+        val fields = mapOf(
+            "value" to "43.5",
+            "minimum" to "0",
+            "maximum" to "100",
+            "use_range" to "false",
+            "scale_length_mm" to "50",
+            "scale_length_dp" to "157.5",
+            "dp_per_mm" to "3.15",
+            "vertical_mode" to "false"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.CORE, TransformationStatus.Succeeded)
+
+        assertEquals(mapOf("value" to "43.5"), projected)
+    }
+
+    @Test
+    fun `full projection keeps calibrated scale result plus metadata json`() {
+        val fields = mapOf(
+            "lower_value" to "21.0",
+            "upper_value" to "64.0",
+            "minimum" to "0",
+            "maximum" to "100",
+            "use_range" to "true",
+            "scale_length_mm" to "50",
+            "dp_per_mm" to "3.15",
+            "methodmesh_execution_id" to "exec-1",
+            "methodmesh_status" to "Succeeded"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.FULL, TransformationStatus.Succeeded)
+
+        assertEquals("21.0", projected["lower_value"])
+        assertEquals("64.0", projected["upper_value"])
+        assertEquals("exec-1", projected["methodmesh_execution_id"])
+        val fullJson = projected["methodmesh_full_json"].toString()
+        assertTrue(fullJson.contains("dp_per_mm"))
+        assertTrue(fullJson.contains("3.15"))
+        assertFalse(projected.containsKey("minimum"))
+        assertFalse(projected.containsKey("maximum"))
+    }
+
     // ── OutputFormatter.format – ReturnMode formatting ───────────────────────
 
     @Test

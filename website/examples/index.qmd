@@ -115,7 +115,7 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='bluetooth_print')
 `calibrated_scale`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_payload_mode='FULL',return_mode='flat')
 ```
 
 ### [example_odk_calibrated_scale_MinMax.xlsx](example_odk_calibrated_scale_MinMax.xlsx)
@@ -125,7 +125,7 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt=
 `calibrated_scale`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_minimum='0',input_maximum='10',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_minimum='0',input_maximum='10',input_payload_mode='FULL',return_mode='flat')
 ```
 
 ### [example_odk_calibrated_scale_Range.xlsx](example_odk_calibrated_scale_Range.xlsx)
@@ -135,7 +135,7 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt=
 `calibrated_scale`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_use_range='true',input_lower_label='Least pain',input_upper_label='Worst pain',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_use_range='true',input_lower_label='Least pain',input_upper_label='Worst pain',input_payload_mode='FULL',return_mode='flat')
 ```
 
 ### [example_odk_calibrated_scale_Vertical.xlsx](example_odk_calibrated_scale_Vertical.xlsx)
@@ -145,7 +145,7 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt=
 `calibrated_scale`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_vertical_mode='true',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_vertical_mode='true',input_payload_mode='FULL',return_mode='flat')
 ```
 
 ### [example_odk_dce.conjoint.xlsx](example_odk_dce.conjoint.xlsx)

@@ -1934,6 +1934,90 @@ private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<P
                 )
             )
         )
+        "calibrated_scale" -> listOf(
+            PresetFieldSpec(
+                key = "prompt",
+                label = "Question prompt",
+                defaultValue = current("prompt", "Rate this item"),
+                runtimeInput = false,
+                defaultFixed = true
+            ),
+            PresetFieldSpec(
+                key = "hint",
+                label = "Participant hint",
+                defaultValue = current("hint", ""),
+                runtimeInput = false,
+                defaultFixed = true
+            ),
+            PresetFieldSpec(
+                key = "vas_length_mm",
+                label = "Scale length",
+                defaultValue = current("vas_length_mm", current("scale_length_mm", "50")),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = listOf("40", "50", "75", "100", "150", "200").map { PresetChoiceSpec(it, "$it mm") }
+            ),
+            PresetFieldSpec(
+                key = "minimum",
+                label = "Minimum value",
+                defaultValue = current("minimum", "0"),
+                runtimeInput = false,
+                defaultFixed = true
+            ),
+            PresetFieldSpec(
+                key = "maximum",
+                label = "Maximum value",
+                defaultValue = current("maximum", "100"),
+                runtimeInput = false,
+                defaultFixed = true
+            ),
+            PresetFieldSpec(
+                key = "use_range",
+                label = "Two-scale range",
+                defaultValue = current("use_range", "false"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            ),
+            PresetFieldSpec(
+                key = "lower_label",
+                label = "Lower scale label",
+                defaultValue = current("lower_label", "Lower"),
+                runtimeInput = false,
+                defaultFixed = true
+            ),
+            PresetFieldSpec(
+                key = "upper_label",
+                label = "Upper scale label",
+                defaultValue = current("upper_label", "Upper"),
+                runtimeInput = false,
+                defaultFixed = true
+            ),
+            PresetFieldSpec(
+                key = "vertical_mode",
+                label = "Vertical scale",
+                defaultValue = current("vertical_mode", "false"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            ),
+            PresetFieldSpec(
+                key = "show_endpoint_labels",
+                label = "Endpoint labels",
+                defaultValue = current("show_endpoint_labels", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            ),
+            PresetFieldSpec(
+                key = "show_current_score",
+                label = "Live score",
+                defaultValue = current("show_current_score", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            )
+        )
         "image.redact" -> listOf(
             PresetFieldSpec(
                 key = "input_source",
@@ -2073,6 +2157,36 @@ private fun presetEditableSettingsFor(methodId: String, values: Map<String, Any>
         "sms_phone" to "",
         "sms_message" to ""
     ) + values
+    "calibrated_scale" -> {
+        val allowed = setOf(
+            "prompt",
+            "hint",
+            "vas_length_mm",
+            "minimum",
+            "maximum",
+            "use_range",
+            "lower_label",
+            "upper_label",
+            "vertical_mode",
+            "show_endpoint_labels",
+            "show_current_score"
+        )
+        val cleanedValues = values.filterKeys { it in allowed }
+        val scaleLength = values["vas_length_mm"] ?: values["scale_length_mm"] ?: "50"
+        mapOf(
+            "prompt" to "Rate this item",
+            "hint" to "",
+            "vas_length_mm" to scaleLength,
+            "minimum" to (values["minimum"] ?: "0"),
+            "maximum" to (values["maximum"] ?: "100"),
+            "use_range" to (values["use_range"] ?: "false"),
+            "lower_label" to (values["lower_label"] ?: "Lower"),
+            "upper_label" to (values["upper_label"] ?: "Upper"),
+            "vertical_mode" to (values["vertical_mode"] ?: "false"),
+            "show_endpoint_labels" to (values["show_endpoint_labels"] ?: "true"),
+            "show_current_score" to (values["show_current_score"] ?: "true")
+        ) + cleanedValues
+    }
     "gps_target_navigator" -> mapOf(
         "arrival_radius_m" to "10",
         "show_ar_camera" to "true",

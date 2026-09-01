@@ -32,6 +32,7 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.transport.workflow.ui.IntentExample
 import com.example.methodmesh.transport.workflow.ui.IntentExampleDropdown
+import org.json.JSONObject
 
 object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId: String = As100CalibratedScaleMethod.ID
@@ -56,46 +57,76 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
                 applyParameters(state, interaction.settings, action.settings)
             }
         }
+        var resultContextJson by rememberSaveable(action.canonicalId) { mutableStateOf<String?>(null) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
-        var status by remember { mutableStateOf("Ready to measure.") }
-        var touchedValues by remember { mutableStateOf(emptySet<String>()) }
+        var status by rememberSaveable(action.canonicalId) { mutableStateOf("Ready to measure.") }
+        var touchedValuesText by rememberSaveable(action.canonicalId) { mutableStateOf("") }
+        val touchedValues = remember(touchedValuesText) {
+            touchedValuesText.split('|').map(String::trim).filter(String::isNotBlank).toSet()
+        }
         var vasLengthText by rememberSaveable(action.settings) { mutableStateOf(settings.getFloat("vas_length_mm").formatConfigNumber()) }
         var minimumText by rememberSaveable(action.settings) { mutableStateOf(settings.getFloat("minimum").formatConfigNumber()) }
         var maximumText by rememberSaveable(action.settings) { mutableStateOf(settings.getFloat("maximum").formatConfigNumber()) }
 
-        fun captureValue(): ExecutionResult {
+        fun setTouchedValues(values: Set<String>) {
+            touchedValuesText = values.sorted().joinToString("|")
+        }
+
+        fun measurementContextValues(): Map<String, String> = mapOf(
+            "value" to settings.getFloat("value").toString(),
+            "minimum" to settings.getFloat("minimum").toString(),
+            "maximum" to settings.getFloat("maximum").toString(),
+            "use_range" to settings.getBoolean("use_range").toString(),
+            "lower_value" to settings.getFloat("lower_value").toString(),
+            "upper_value" to settings.getFloat("upper_value").toString(),
+            "vas_length_mm" to settings.getFloat("vas_length_mm").toString(),
+            "vertical_mode" to settings.getBoolean("vertical_mode").toString()
+        )
+
+        fun buildResult(contextValues: Map<String, String>): ExecutionResult {
+            val executionSettings = SettingsState(interaction.settings) { _, _ -> }
+            applyParameters(executionSettings, interaction.settings, action.settings)
+            applyParameters(executionSettings, interaction.settings, contextValues)
             val execution = As100CalibratedScaleMethod.execute(
                 request = As100CalibratedScaleMethod.request(
                     action = action.canonicalId,
-                    context = request.invocationContext.asMap(action.canonicalId) + mapOf(
-                        "value" to settings.getFloat("value").toString(),
-                        "minimum" to settings.getFloat("minimum").toString(),
-                        "maximum" to settings.getFloat("maximum").toString(),
-                        "use_range" to settings.getBoolean("use_range").toString(),
-                        "lower_value" to settings.getFloat("lower_value").toString(),
-                        "upper_value" to settings.getFloat("upper_value").toString(),
-                        "vas_length_mm" to settings.getFloat("vas_length_mm").toString(),
-                        "vertical_mode" to settings.getBoolean("vertical_mode").toString()
-                    )
+                    context = request.invocationContext.asMap(action.canonicalId) + contextValues
                 ),
-                settingsState = settings,
+                settingsState = executionSettings,
                 transport = request.source
             ).withInvocationContext(request.invocationContext)
+            return execution
+        }
+
+        val restoredResult = remember(resultContextJson, action.settings, request.source) {
+            resultContextJson
+                ?.let(::calibratedScaleContextFromJson)
+                ?.let(::buildResult)
+        }
+        val capturedResult = result ?: restoredResult
+
+        fun captureValue(): ExecutionResult {
+            val contextValues = measurementContextValues()
+            val execution = buildResult(contextValues)
             result = execution
+            resultContextJson = calibratedScaleContextToJson(contextValues)
             status = "Measurement captured."
             return execution
         }
 
-        if (context.startsImmediately) {
+        if (context.startsImmediately && capturedResult == null) {
             FocusedCalibratedScaleCapture(
                 interaction = interaction,
                 settings = settings,
                 touchedValues = touchedValues,
                 onValueChanged = { valueId ->
-                    touchedValues = touchedValues + valueId
+                    setTouchedValues(touchedValues + valueId)
                 },
                 onUseMeasurement = {
-                    onConfirmed(captureValue())
+                    val execution = captureValue()
+                    if (context.submitsImmediately) {
+                        onConfirmed(execution)
+                    }
                 },
                 onCancel = onCancel
             )
@@ -107,15 +138,16 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
             capabilityId = action.canonicalId,
             context = context,
             canGoBack = context.stepNumber > 1,
-            capturedResult = result,
-            resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
+            capturedResult = capturedResult,
+            resultPreview = capturedResult?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
             onBack = onBack,
             onRetry = {
                 result = null
-                touchedValues = emptySet()
+                resultContextJson = null
+                setTouchedValues(emptySet())
                 status = "Ready to measure."
             },
-            onConfirm = { result?.let(onConfirmed) },
+            onConfirm = { capturedResult?.let(onConfirmed) },
             onCancel = onCancel
         ) {
             Text(status)
@@ -269,8 +301,9 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
             Text("Scale Preview", modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
             interaction.Render(settings) { valueId ->
-                touchedValues = touchedValues + valueId
+                setTouchedValues(touchedValues + valueId)
                 result = null
+                resultContextJson = null
                 status = "Selection changed. Capture when ready."
             }
             Spacer(Modifier.height(10.dp))
@@ -328,7 +361,7 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
 
     private fun applyParameters(settingsState: SettingsState, settings: List<MethodSetting>, parameters: Map<String, String>) {
         settings.forEach { setting ->
-            val raw = parameters[setting.id] ?: return@forEach
+            val raw = parameters[setting.id] ?: parameters["input_${setting.id}"] ?: return@forEach
             when (setting) {
                 is MethodSetting.BooleanSetting -> settingsState.setBoolean(setting.id, raw.toBooleanStrictOrNull() ?: (raw == "1"))
                 is MethodSetting.IntSetting -> raw.toIntOrNull()?.let { settingsState.setInt(setting.id, it) }
@@ -339,6 +372,16 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
         }
     }
 }
+
+private fun calibratedScaleContextToJson(values: Map<String, String>): String =
+    JSONObject().apply { values.toSortedMap().forEach { (key, value) -> put(key, value) } }.toString()
+
+private fun calibratedScaleContextFromJson(json: String): Map<String, String> = runCatching {
+    val root = JSONObject(json.ifBlank { "{}" })
+    buildMap {
+        root.keys().forEach { key -> put(key, root.optString(key)) }
+    }
+}.getOrDefault(emptyMap())
 
 private fun Float.formatConfigNumber(): String =
     if (this % 1f == 0f) toInt().toString() else toString()

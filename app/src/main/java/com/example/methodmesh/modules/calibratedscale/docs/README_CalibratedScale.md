@@ -23,7 +23,7 @@ Horizontal lines retain their calibrated size and scroll when wider than the dis
 ## Android intent
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_payload_mode='FULL',return_mode='flat')
 ```
 
 The ODK examples keep static configuration in `body::intent` under the
@@ -49,11 +49,13 @@ Core return is deliberately small:
 - scalar mode returns `value`
 - range mode returns `lower_value` and `upper_value`
 
-The unused alternative is omitted rather than populated with a default. Audit
-and full JSON returns include `minimum`, `maximum`, `use_range`,
+The unused alternative is omitted rather than populated with a default. The
+ODK examples request `input_payload_mode='FULL'`, so the form receives the
+selected value(s), MethodMesh status identifiers, and `methodmesh_full_json`.
+That background JSON contains `minimum`, `maximum`, `use_range`,
 `scale_length_mm`, `scale_length_dp`, `dp_per_mm`, and `vertical_mode`, so the
 selected value can be interpreted against the configured range and physical
-screen calibration.
+screen calibration without cluttering the form with extra visible columns.
 
 The live current-value label always shows decimal precision (`5.0`, `5.4`, or
 `0.25` for a 0–1 scale) so the interaction is visibly continuous.
@@ -68,5 +70,5 @@ Each workbook is independently importable:
 - [`example_odk_calibrated_scale_Vertical.xlsx`](example_odk_calibrated_scale_Vertical.xlsx) — calibrated 50 mm vertical scale.
 
 All four send a caller-defined prompt, wait for substantive marker movement,
-and return the selected measurement. Use audit/full payload mode when the form
-also needs the physical calibration evidence as a JSON field.
+and return the selected measurement plus `methodmesh_full_json` for background
+metadata/audit storage.
