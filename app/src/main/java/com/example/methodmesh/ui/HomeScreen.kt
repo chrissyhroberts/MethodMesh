@@ -171,7 +171,8 @@ private fun capabilityLifecycle(method: As100Method): CapabilityLifecycle {
         "barcode.scan",
         "calibrated_scale",
         "document.scan",
-        "gps_target_navigator"
+        "gps_target_navigator",
+        "plus_code.capture"
     )
     return if (method.id in productionCapabilityIds) CapabilityLifecycle.Production else CapabilityLifecycle.Development
 }
@@ -2154,6 +2155,59 @@ private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<P
                 singleChoices = yesNoChoices()
             )
         )
+        "plus_code.capture" -> listOf(
+            PresetFieldSpec(
+                key = "code_length",
+                label = "Grid precision",
+                defaultValue = current("code_length", "10"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = listOf(
+                    PresetChoiceSpec("8", "8-digit"),
+                    PresetChoiceSpec("10", "10-digit")
+                )
+            ),
+            PresetFieldSpec(
+                key = "gps_average_seconds",
+                label = "GPS averaging",
+                defaultValue = current("gps_average_seconds", "10"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = listOf("5", "10", "20").map { PresetChoiceSpec(it, "${it}s") }
+            ),
+            PresetFieldSpec(
+                key = "basemap_mode",
+                label = "Map view",
+                defaultValue = current("basemap_mode", "auto"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = listOf(
+                    PresetChoiceSpec("auto", "Street"),
+                    PresetChoiceSpec("satellite", "Satellite"),
+                    PresetChoiceSpec("blank", "Grid only")
+                )
+            ),
+            PresetFieldSpec(
+                key = "grid_span_cells",
+                label = "Starting zoom",
+                defaultValue = current("grid_span_cells", "129"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = listOf(
+                    PresetChoiceSpec("5", "Near"),
+                    PresetChoiceSpec("33", "Field"),
+                    PresetChoiceSpec("129", "Area")
+                )
+            ),
+            PresetFieldSpec(
+                key = "allow_online_tiles",
+                label = "Online map tiles",
+                defaultValue = current("allow_online_tiles", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            )
+        )
         else -> values.keys.sorted().map { key ->
             PresetFieldSpec(
                 key = key,
@@ -2246,6 +2300,22 @@ private fun presetEditableSettingsFor(methodId: String, values: Map<String, Any>
             "status"
         )
     }
+    "plus_code.capture" -> {
+        val allowed = setOf(
+            "code_length",
+            "gps_average_seconds",
+            "basemap_mode",
+            "grid_span_cells",
+            "allow_online_tiles"
+        )
+        mapOf(
+            "code_length" to (values["code_length"] ?: "10"),
+            "gps_average_seconds" to (values["gps_average_seconds"] ?: "10"),
+            "basemap_mode" to (values["basemap_mode"] ?: "auto"),
+            "grid_span_cells" to (values["grid_span_cells"] ?: "129"),
+            "allow_online_tiles" to (values["allow_online_tiles"] ?: "true")
+        ) + values.filterKeys { it in allowed }
+    }
     else -> values
 }
 
@@ -2267,6 +2337,7 @@ private fun runtimeInputKeysFor(methodId: String): Set<String> = when (methodId)
     "mlkit.translate" -> setOf("input_text", "text", "mlkit_translate_input_text")
     "sms.send" -> setOf("sms_message", "message")
     "gps_target_navigator" -> setOf("target_plus_code", "plus_code", "target_latitude", "target_longitude", "latitude", "longitude", "lat", "lon", "lng")
+    "plus_code.capture" -> emptySet()
     "question.text" -> setOf("answer", "response", "value", "text_answer")
     "question.number" -> setOf("answer", "response", "value", "number_answer")
     "question.select_one", "question.select_multiple" -> setOf("answer", "response", "selected", "value")

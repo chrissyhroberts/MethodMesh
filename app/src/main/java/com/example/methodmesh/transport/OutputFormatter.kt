@@ -184,6 +184,8 @@ object OutputFormatter {
     private val plusCodeAuditFields = setOf(
         "plus_code_status",
         "plus_code_length",
+        "plus_code_centroid_latitude",
+        "plus_code_centroid_longitude",
         "plus_code_gps_latitude",
         "plus_code_gps_longitude",
         "plus_code_gps_accuracy_m",

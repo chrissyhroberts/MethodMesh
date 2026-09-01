@@ -106,6 +106,16 @@ Guide a user toward target coordinates using distance, bearing and an optional a
 :::
 
 ::: {.g-col-12 .g-col-md-6}
+### Plus Code capture
+
+`plus_code.capture`
+
+**Production**
+
+Capture a full offline-calculable Open Location Code from GPS plus a user-selected map/grid cell.
+:::
+
+::: {.g-col-12 .g-col-md-6}
 ### [ML Kit language translation](mlkit-translate.qmd)
 
 `mlkit.translate`

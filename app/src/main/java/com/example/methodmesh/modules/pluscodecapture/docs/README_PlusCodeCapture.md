@@ -49,10 +49,10 @@ ODK calls should pass fixed configuration values and receive the selected locati
 Example intent:
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='plus_code.capture',input_code_length=${code_length_input},input_gps_average_seconds=${gps_average_seconds_input},input_basemap_mode=${basemap_mode_input},input_grid_span_cells=${grid_span_cells_input},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='plus_code.capture',input_code_length=${code_length_input},input_gps_average_seconds=${gps_average_seconds_input},input_basemap_mode=${basemap_mode_input},input_grid_span_cells=${grid_span_cells_input},input_payload_mode='FULL',return_mode='flat')
 ```
 
-The example workbook is [`example_odk_plus_code.capture.xlsx`](example_odk_plus_code.capture.xlsx). It exposes grid precision, GPS averaging time, basemap mode, and starting zoom as XLSForm choices.
+The example workbook is [`example_odk_plus_code.capture.xlsx`](example_odk_plus_code.capture.xlsx). It exposes grid precision, GPS averaging time, basemap mode, and starting zoom as XLSForm choices. It returns the full Plus Code as the main field plus `methodmesh_full_json` for background metadata/audit storage.
 
 ## Outputs
 
@@ -60,7 +60,7 @@ Main result:
 
 - `plus_code`
 
-Useful location fields:
+Background JSON fields:
 
 - `plus_code_centroid_latitude`
 - `plus_code_centroid_longitude`
@@ -80,6 +80,8 @@ Audit/configuration fields:
 - `plus_code_error`
 
 The audit JSON contains the selected cell bounding box, selected centroid, GPS fix metadata, basemap mode/source, timestamp, and status.
+
+Native sharing sends only the selected Plus Code.
 
 ## Precision
 

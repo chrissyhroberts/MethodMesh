@@ -61,6 +61,7 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import java.time.Instant
+import org.json.JSONObject
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
@@ -93,7 +94,22 @@ object PlusCodeCaptureCapabilityScreen : CapabilityScreenSpec {
         }
         var allowOnlineTiles by rememberSaveable { mutableStateOf((context.action.settings["allow_online_tiles"] ?: context.action.settings["input_allow_online_tiles"])?.toBooleanStrictOrNull() ?: true) }
         var hasLocationPermission by remember { mutableStateOf(hasLocationPermission(androidContext)) }
-        var latestLocation by remember { mutableStateOf<Location?>(null) }
+        var latestGpsLatitude by rememberSaveable { mutableStateOf((context.action.settings["gps_latitude"] ?: context.action.settings["input_gps_latitude"]).orEmpty()) }
+        var latestGpsLongitude by rememberSaveable { mutableStateOf((context.action.settings["gps_longitude"] ?: context.action.settings["input_gps_longitude"]).orEmpty()) }
+        var latestGpsAccuracy by rememberSaveable { mutableStateOf((context.action.settings["gps_accuracy_m"] ?: context.action.settings["input_gps_accuracy_m"]).orEmpty()) }
+        val latestLocation = remember(latestGpsLatitude, latestGpsLongitude, latestGpsAccuracy) {
+            val latitude = latestGpsLatitude.toDoubleOrNull()
+            val longitude = latestGpsLongitude.toDoubleOrNull()
+            if (latitude == null || longitude == null) {
+                null
+            } else {
+                Location("methodmesh.plus_code").apply {
+                    this.latitude = latitude
+                    this.longitude = longitude
+                    latestGpsAccuracy.toFloatOrNull()?.let { accuracy = it }
+                }
+            }
+        }
         var centerLatitude by rememberSaveable { mutableStateOf((context.action.settings["selected_latitude"] ?: context.action.settings["gps_latitude"])?.toDoubleOrNull() ?: 0.0) }
         var centerLongitude by rememberSaveable { mutableStateOf((context.action.settings["selected_longitude"] ?: context.action.settings["gps_longitude"])?.toDoubleOrNull() ?: 0.0) }
         var selectedLatitude by rememberSaveable { mutableStateOf(centerLatitude) }
@@ -103,19 +119,42 @@ object PlusCodeCaptureCapabilityScreen : CapabilityScreenSpec {
         val selectedCell by remember(selectedLatitude, selectedLongitude, codeLength) {
             derivedStateOf { OpenLocationCode.cellFor(selectedLatitude, selectedLongitude, codeLength) }
         }
-        var status by remember { mutableStateOf("Ready. Acquire GPS, then tap the intended grid cell.") }
+        var status by rememberSaveable { mutableStateOf("Ready. Acquire GPS, then tap the intended grid cell.") }
+        var resultValuesJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var fixCount by rememberSaveable { mutableIntStateOf(0) }
-        var averaging by remember { mutableStateOf(false) }
-        var selectorOpen by remember { mutableStateOf(false) }
+        var averaging by rememberSaveable { mutableStateOf(false) }
+        var selectorOpen by rememberSaveable { mutableStateOf(false) }
         val effectiveAllowOnlineTiles = basemapMode == "auto" || basemapMode == "satellite" || allowOnlineTiles
         var immediateLaunchStarted by rememberSaveable { mutableStateOf(false) }
+        val restoredResult = remember(resultValuesJson) {
+            resultValuesJson
+                ?.let(::plusCodeValuesFromJson)
+                ?.let { values ->
+                    As100PlusCodeCaptureMethod.result(
+                        request = As100PlusCodeCaptureMethod.request(
+                            action = As100PlusCodeCaptureMethod.ID,
+                            context = context.request.invocationContext.asMap(As100PlusCodeCaptureMethod.ID) + context.action.settings + values
+                        ),
+                        values = values,
+                        invocation = context.request.invocationContext
+                    )
+                }
+        }
+        val capturedResult = result ?: restoredResult
 
         val permissionLauncher = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) {
             hasLocationPermission = hasLocationPermission(androidContext)
             status = if (hasLocationPermission) "Location permission granted." else "Location permission is needed for GPS capture."
+        }
+
+        fun startGpsRefresh(openSelector: Boolean = false) {
+            followGpsFixes = true
+            averaging = true
+            if (openSelector) selectorOpen = true
+            status = "Refreshing GPS…"
         }
 
         LaunchedEffect(codeLength, gpsAverageSeconds, basemapMode, effectiveAllowOnlineTiles, gridSpanCells) {
@@ -136,9 +175,7 @@ object PlusCodeCaptureCapabilityScreen : CapabilityScreenSpec {
                     permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
                 } else {
                     immediateLaunchStarted = true
-                    averaging = true
-                    selectorOpen = true
-                    status = "Acquiring GPS…"
+                    startGpsRefresh(openSelector = true)
                 }
             }
         }
@@ -184,6 +221,8 @@ object PlusCodeCaptureCapabilityScreen : CapabilityScreenSpec {
                 invocation = context.request.invocationContext
             )
             result = execution
+            resultValuesJson = plusCodeValuesToJson(OutputFormatter.fields(execution, includeProvenance = false)
+                .filterKeys { it !in setOf("methodmesh_execution_id", "methodmesh_method_id", "methodmesh_status") })
             if (context.submitsImmediately) onConfirmed(execution)
             return execution
         }
@@ -193,11 +232,14 @@ object PlusCodeCaptureCapabilityScreen : CapabilityScreenSpec {
             capabilityId = capabilityId,
             context = context,
             canGoBack = context.stepNumber > 1,
-            capturedResult = result,
-            resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
+            capturedResult = capturedResult,
+            resultPreview = capturedResult?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
             onBack = onBack,
-            onRetry = { result = null },
-            onConfirm = { result?.let(onConfirmed) },
+            onRetry = {
+                result = null
+                resultValuesJson = null
+            },
+            onConfirm = { capturedResult?.let(onConfirmed) },
             onCancel = onCancel
         ) {
             if (context.startsImmediately) {
@@ -235,10 +277,7 @@ object PlusCodeCaptureCapabilityScreen : CapabilityScreenSpec {
                     Button(
                         modifier = Modifier.weight(1f),
                         enabled = !averaging,
-                        onClick = {
-                            averaging = true
-                            status = "Averaging GPS for $gpsAverageSeconds seconds…"
-                        }
+                        onClick = { startGpsRefresh() }
                     ) { Text(if (averaging) "Averaging…" else "Acquire GPS") }
                     OutlinedButton(
                         modifier = Modifier.weight(1f),
@@ -251,7 +290,9 @@ object PlusCodeCaptureCapabilityScreen : CapabilityScreenSpec {
                 enabled = averaging && hasLocationPermission,
                 durationSeconds = gpsAverageSeconds,
                 onFix = { location, count ->
-                    latestLocation = location
+                    latestGpsLatitude = location.latitude.formatCoordinate()
+                    latestGpsLongitude = location.longitude.formatCoordinate()
+                    latestGpsAccuracy = location.takeIf { it.hasAccuracy() }?.accuracy?.toDouble()?.formatNumber().orEmpty()
                     fixCount = count
                     if (followGpsFixes) {
                         val gpsCell = OpenLocationCode.cellFor(location.latitude, location.longitude, codeLength)
@@ -323,6 +364,8 @@ object PlusCodeCaptureCapabilityScreen : CapabilityScreenSpec {
                 allowOnlineTiles = effectiveAllowOnlineTiles,
                 onBasemapModeChange = { basemapMode = it },
                 onZoomChange = { gridSpanCells = it },
+                gpsRefreshRunning = averaging,
+                onRefreshGps = { startGpsRefresh(openSelector = true) },
                 onMapCenterChanged = { latitude, longitude ->
                     followGpsFixes = false
                     centerLatitude = latitude
@@ -343,6 +386,16 @@ object PlusCodeCaptureCapabilityScreen : CapabilityScreenSpec {
         }
     }
 }
+
+private fun plusCodeValuesToJson(values: Map<String, Any?>): String =
+    JSONObject().apply { values.toSortedMap().forEach { (key, value) -> put(key, value?.toString().orEmpty()) } }.toString()
+
+private fun plusCodeValuesFromJson(json: String): Map<String, String> = runCatching {
+    val root = JSONObject(json.ifBlank { "{}" })
+    buildMap {
+        root.keys().forEach { key -> put(key, root.optString(key)) }
+    }
+}.getOrDefault(emptyMap())
 
 private const val OPENFREEMAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty"
 private const val MIN_GRID_SPAN_CELLS = 5
@@ -473,6 +526,8 @@ private fun FullscreenPlusCodeSelector(
     allowOnlineTiles: Boolean,
     onBasemapModeChange: (String) -> Unit,
     onZoomChange: (Int) -> Unit,
+    gpsRefreshRunning: Boolean,
+    onRefreshGps: () -> Unit,
     onMapCenterChanged: (Double, Double) -> Unit,
     onCellSelected: (PlusCodeArea) -> Unit,
     onClose: () -> Unit
@@ -599,11 +654,18 @@ private fun FullscreenPlusCodeSelector(
                     OutlinedButton(onClick = ::zoomIn, modifier = Modifier.weight(1f).height(38.dp)) { Text("+") }
                 }
                 Spacer(Modifier.height(6.dp))
-                OutlinedButton(
-                    onClick = ::centreOnGps,
-                    enabled = gpsLocation != null,
-                    modifier = Modifier.fillMaxWidth().height(38.dp)
-                ) { Text("Centre on GPS") }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = ::centreOnGps,
+                        enabled = gpsLocation != null,
+                        modifier = Modifier.weight(1f).height(38.dp)
+                    ) { Text("Centre on GPS") }
+                    OutlinedButton(
+                        onClick = onRefreshGps,
+                        enabled = !gpsRefreshRunning,
+                        modifier = Modifier.weight(1f).height(38.dp)
+                    ) { Text(if (gpsRefreshRunning) "Refreshing…" else "Refresh GPS") }
+                }
                 Spacer(Modifier.height(6.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     MovementPad(

@@ -195,6 +195,43 @@ class OutputFormatterTest {
         assertFalse(projected.containsKey("maximum"))
     }
 
+    @Test
+    fun `core projection keeps only plus code from plus code capture`() {
+        val fields = mapOf(
+            "plus_code" to "9C4X3WHR+4R",
+            "plus_code_centroid_latitude" to "52.0775313",
+            "plus_code_centroid_longitude" to "-0.0579969",
+            "plus_code_gps_latitude" to "52.0777679",
+            "plus_code_gps_longitude" to "-0.0579428",
+            "plus_code_gps_accuracy_m" to "12",
+            "plus_code_basemap_mode" to "satellite",
+            "plus_code_audit_json" to "{\"plus_code\":\"9C4X3WHR+4R\"}"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.CORE, TransformationStatus.Succeeded)
+
+        assertEquals(mapOf("plus_code" to "9C4X3WHR+4R"), projected)
+    }
+
+    @Test
+    fun `full projection keeps plus code and background json`() {
+        val fields = mapOf(
+            "plus_code" to "9C4X3WHR+4R",
+            "plus_code_centroid_latitude" to "52.0775313",
+            "plus_code_centroid_longitude" to "-0.0579969",
+            "plus_code_gps_accuracy_m" to "12",
+            "methodmesh_execution_id" to "exec-plus",
+            "methodmesh_status" to "Succeeded"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.FULL, TransformationStatus.Succeeded)
+
+        assertEquals("9C4X3WHR+4R", projected["plus_code"])
+        assertEquals("exec-plus", projected["methodmesh_execution_id"])
+        assertTrue(projected["methodmesh_full_json"].toString().contains("plus_code_centroid_latitude"))
+        assertFalse(projected.containsKey("plus_code_centroid_latitude"))
+    }
+
     // ── OutputFormatter.format – ReturnMode formatting ───────────────────────
 
     @Test
