@@ -9,16 +9,20 @@ import android.speech.tts.TextToSpeech
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -36,11 +40,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.modules.mlkittranslate.MlKitLanguageCatalog
@@ -80,6 +88,10 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
         var listeningSide by rememberSaveable { mutableStateOf<String?>(null) }
         var latestTranslated by rememberSaveable { mutableStateOf("") }
         var latestOriginal by rememberSaveable { mutableStateOf("") }
+        var latestTextA by rememberSaveable { mutableStateOf("") }
+        var latestTextB by rememberSaveable { mutableStateOf("") }
+        var operatorFacing by rememberSaveable { mutableStateOf(false) }
+        var conversationOpen by rememberSaveable(context.action.canonicalId) { mutableStateOf(context.startsImmediately) }
         var turnsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("[]") }
         var startedAt by rememberSaveable(context.action.canonicalId) { mutableStateOf(Instant.now().toString()) }
         var resultValuesJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
@@ -149,6 +161,7 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
             result = execution
             resultValuesJson = conversationValuesToJson(values)
             status = if (state == "succeeded") "Conversation ready to share." else error.ifBlank { "Conversation failed." }
+            conversationOpen = false
             if (context.submitsImmediately && state == "succeeded") onConfirmed(execution)
         }
 
@@ -174,6 +187,13 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
             turnsJson = appendTurn(turnsJson, turn)
             latestOriginal = original
             latestTranslated = translated
+            if (side == "a") {
+                latestTextA = original
+                latestTextB = translated
+            } else {
+                latestTextA = translated
+                latestTextB = original
+            }
             status = "Translated."
             speak(translated, target)
         }
@@ -266,6 +286,9 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                 turnsJson = "[]"
                 latestOriginal = ""
                 latestTranslated = ""
+                latestTextA = ""
+                latestTextB = ""
+                conversationOpen = context.startsImmediately
                 startedAt = Instant.now().toString()
                 status = "Conversation cleared."
             },
@@ -283,37 +306,16 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                     ToggleRow("Speak translations aloud", spokenOutput) { spokenOutput = it }
                     ToggleRow("Prefer offline speech recognition", preferOffline) { preferOffline = it }
                     Spacer(Modifier.height(12.dp))
-                }
-                if (latestTranslated.isNotBlank()) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.large,
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                    Button(
+                        onClick = { conversationOpen = true },
+                        modifier = Modifier.fillMaxWidth().height(58.dp)
                     ) {
-                        Column(Modifier.padding(18.dp)) {
-                            Text(latestTranslated, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(8.dp))
-                            Text("Original: $latestOriginal", style = MaterialTheme.typography.bodyMedium)
-                        }
+                        Text("Start conversation")
                     }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(8.dp))
+                    Text(status, style = MaterialTheme.typography.bodySmall)
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(onClick = { listen("a") }, modifier = Modifier.weight(1f).height(72.dp)) {
-                        Text(labelA.ifBlank { languageLabel(languageA) }, textAlign = TextAlign.Center)
-                    }
-                    Button(onClick = { listen("b") }, modifier = Modifier.weight(1f).height(72.dp)) {
-                        Text(labelB.ifBlank { languageLabel(languageB) }, textAlign = TextAlign.Center)
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                OutlinedButton(
-                    onClick = { finishConversation() },
-                    enabled = turns(turnsJson).isNotEmpty(),
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("End conversation") }
                 Spacer(Modifier.height(8.dp))
-                Text(status, style = MaterialTheme.typography.bodySmall)
                 val transcript = transcriptFromTurns(turnsJson)
                 if (transcript.isNotBlank()) {
                     Spacer(Modifier.height(12.dp))
@@ -325,6 +327,52 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                             Text("Transcript", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                             Spacer(Modifier.height(8.dp))
                             Text(transcript, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (capturedResult == null && conversationOpen) {
+            Dialog(
+                onDismissRequest = { if (!context.startsImmediately) conversationOpen = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        ConversationSharedSurface(
+                            languageA = languageA,
+                            languageB = languageB,
+                            labelA = labelA,
+                            labelB = labelB,
+                            textA = latestTextA,
+                            textB = latestTextB,
+                            status = status,
+                            operatorFacing = operatorFacing,
+                            spokenOutput = spokenOutput,
+                            hasTurns = turns(turnsJson).isNotEmpty(),
+                            onOperatorFacingChanged = { operatorFacing = it },
+                            onListenA = { listen("a") },
+                            onListenB = { listen("b") },
+                            onReplayA = { speak(latestTextA, languageA) },
+                            onReplayB = { speak(latestTextB, languageB) },
+                            onEnd = { finishConversation() }
+                        )
+                        if (!context.startsImmediately) {
+                            OutlinedButton(
+                                onClick = { conversationOpen = false },
+                                modifier = Modifier.fillMaxWidth().height(44.dp).padding(top = 6.dp)
+                            ) {
+                                Text("Back to setup")
+                            }
                         }
                     }
                 }
@@ -342,6 +390,160 @@ private data class ConversationTurn(
     val translatedText: String,
     val timeIso: String
 )
+
+@Composable
+private fun ConversationSharedSurface(
+    languageA: String,
+    languageB: String,
+    labelA: String,
+    labelB: String,
+    textA: String,
+    textB: String,
+    status: String,
+    operatorFacing: Boolean,
+    spokenOutput: Boolean,
+    hasTurns: Boolean,
+    onOperatorFacingChanged: (Boolean) -> Unit,
+    onListenA: () -> Unit,
+    onListenB: () -> Unit,
+    onReplayA: () -> Unit,
+    onReplayB: () -> Unit,
+    onEnd: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxSize(),
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.large
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            ConversationPersonPanel(
+                language = languageB,
+                buttonLabel = labelB.ifBlank { languageLabel(languageB) },
+                text = textB.ifBlank { "Ready for ${languageLabel(languageB)}" },
+                rotated = !operatorFacing,
+                spokenOutput = spokenOutput,
+                modifier = Modifier.weight(1f),
+                onListen = onListenB,
+                onReplay = onReplayB
+            )
+            Spacer(Modifier.height(6.dp))
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(status, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                    Text("Operator view", style = MaterialTheme.typography.labelSmall)
+                    Spacer(Modifier.width(6.dp))
+                    Switch(checked = operatorFacing, onCheckedChange = onOperatorFacingChanged)
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            ConversationPersonPanel(
+                language = languageA,
+                buttonLabel = labelA.ifBlank { languageLabel(languageA) },
+                text = textA.ifBlank { "Ready for ${languageLabel(languageA)}" },
+                rotated = false,
+                spokenOutput = spokenOutput,
+                modifier = Modifier.weight(1f),
+                onListen = onListenA,
+                onReplay = onReplayA
+            )
+            Spacer(Modifier.height(6.dp))
+            Button(
+                onClick = onEnd,
+                enabled = hasTurns,
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Text("End conversation")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConversationPersonPanel(
+    language: String,
+    buttonLabel: String,
+    text: String,
+    rotated: Boolean,
+    spokenOutput: Boolean,
+    modifier: Modifier = Modifier,
+    onListen: () -> Unit,
+    onReplay: () -> Unit
+) {
+    val rotateModifier = if (rotated) Modifier.rotate(180f) else Modifier
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(rotateModifier),
+        color = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        shape = MaterialTheme.shapes.large
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = onListen,
+                    modifier = Modifier.weight(1f).height(42.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text(buttonLabel.uppercase(Locale.ROOT), textAlign = TextAlign.Center)
+                }
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = onReplay,
+                    enabled = spokenOutput && !text.startsWith("Ready for"),
+                    modifier = Modifier.height(42.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Replay")
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = text,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Text(languageLabel(language), modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
 
 @Composable
 private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {

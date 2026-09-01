@@ -38,6 +38,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -246,7 +247,13 @@ fun HomeScreen() {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(selectedDestination.label) },
+                    title = {
+                        if (selectedDestination == DashboardDestination.Dashboard) {
+                            Text("")
+                        } else {
+                            Text(selectedDestination.label)
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background,
                         titleContentColor = MaterialTheme.colorScheme.onBackground,
@@ -270,6 +277,13 @@ fun HomeScreen() {
                 when (selectedDestination) {
                     DashboardDestination.Dashboard -> {
                         item { RuntimeSummaryCard(modules.size, methods.size) }
+                        item {
+                            ActiveSchedulesCard(
+                                schedules = schedules,
+                                onChanged = { schedules = SchedulerRepository.all(appContext) },
+                                onOpenScheduler = { selectedDestination = DashboardDestination.Scheduler }
+                            )
+                        }
                         item { FindCapabilityCard(methods, modules) }
                         item { RunProtocolCard(protocolLibraryRevision, expandedByDefault = true) }
                         item { FindPresetCard(protocolLibraryRevision) }
@@ -472,6 +486,100 @@ private fun runPresetFromDashboard(
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     })
 }
+
+@Composable
+private fun ActiveSchedulesCard(
+    schedules: List<ResearchSchedule>,
+    onChanged: () -> Unit,
+    onOpenScheduler: () -> Unit
+) {
+    val context = LocalContext.current
+    val scheduleGroups = remember(schedules) {
+        schedules
+            .sortedWith(compareBy<ResearchSchedule> { it.chainId.ifBlank { it.id } }.thenBy { it.chainOrder })
+            .groupBy { it.chainId.ifBlank { it.id } }
+            .values
+            .map { it.sortedBy { schedule -> schedule.chainOrder } }
+            .sortedWith(compareByDescending<List<ResearchSchedule>> { it.firstOrNull()?.enabled == true }.thenBy { it.firstOrNull()?.name.orEmpty() })
+    }
+
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Active schedules", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (schedules.isEmpty()) "No scheduled tasks yet." else "${scheduleGroups.count { it.firstOrNull()?.enabled == true }} running · ${scheduleGroups.size} total",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                OutlinedButton(onClick = onOpenScheduler) {
+                    Text(if (schedules.isEmpty()) "Create" else "Manage")
+                }
+            }
+            if (scheduleGroups.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                scheduleGroups.take(5).forEach { group ->
+                    val schedule = group.first()
+                    val running = schedule.enabled
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                        color = if (running) {
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f)
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                        },
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    if (group.size > 1) schedule.name.removeSuffix(" 1") else schedule.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    "${if (running) "Running" else "Paused"} · ${scheduleTimingLabel(schedule)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (running) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    if (group.size > 1) "${group.size}-step chain" else "${schedule.target}: ${schedule.targetValue}",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                            Switch(
+                                checked = running,
+                                onCheckedChange = {
+                                    SchedulerRepository.setChainEnabled(context, schedule, it)
+                                    onChanged()
+                                }
+                            )
+                        }
+                    }
+                }
+                if (scheduleGroups.size > 5) {
+                    Text(
+                        "+ ${scheduleGroups.size - 5} more in Scheduler",
+                        modifier = Modifier.padding(top = 8.dp),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun scheduleTimingLabel(schedule: ResearchSchedule): String =
+    schedule.cronExpression.takeIf { it.isNotBlank() }?.let { "cron $it" }
+        ?: "${schedule.frequency.name.lowercase().replaceFirstChar { it.titlecase() }} ${"%02d:%02d".format(schedule.hour, schedule.minute)}"
 
 @Composable
 private fun RunProtocolCard(revision: Int, expandedByDefault: Boolean = false) {
