@@ -255,7 +255,7 @@ fun HomeScreen() {
                     ),
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Text("☰", style = MaterialTheme.typography.titleLarge)
+                            MethodMeshMark(size = 34.dp)
                         }
                     }
                 )
@@ -270,7 +270,9 @@ fun HomeScreen() {
                 when (selectedDestination) {
                     DashboardDestination.Dashboard -> {
                         item { RuntimeSummaryCard(modules.size, methods.size) }
+                        item { FindCapabilityCard(methods, modules) }
                         item { RunProtocolCard(protocolLibraryRevision, expandedByDefault = true) }
+                        item { FindPresetCard(protocolLibraryRevision) }
                         item { PresetShortcutsCard(protocolLibraryRevision) }
                     }
                     DashboardDestination.Outputs -> item { OutputFolderCard(expandedByDefault = true) }
@@ -459,6 +461,18 @@ private fun launchProtocolRun(
     )
 }
 
+private fun runPresetFromDashboard(
+    context: android.content.Context,
+    preset: CapabilityPreset
+) {
+    context.startActivity(Intent(context, SchedulerDispatchActivity::class.java).apply {
+        action = "com.example.methodmesh.RUN_PRESET"
+        putExtra("preset_id", preset.id)
+        putExtra("transient_preset_run", true)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    })
+}
+
 @Composable
 private fun RunProtocolCard(revision: Int, expandedByDefault: Boolean = false) {
     val context = LocalContext.current
@@ -512,6 +526,155 @@ private fun RunProtocolCard(revision: Int, expandedByDefault: Boolean = false) {
 }
 
 @Composable
+private fun FindCapabilityCard(
+    methods: List<As100Method>,
+    modules: List<MethodMeshModule>
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    var selectedCapabilityId by rememberSaveable { mutableStateOf<String?>(null) }
+    val screenMap = remember { MethodMeshModuleRegistry.capabilityScreens().associateBy { it.capabilityId } }
+    val moduleByMethod = remember(modules) {
+        modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
+    }
+    val searchableMethods = remember(methods, modules) {
+        methods
+            .filter { method ->
+                val uiClass = capabilityUiClass(method, moduleByMethod[method.id])
+                uiClass == CapabilityUiClass.ProtocolPrimitive || uiClass == CapabilityUiClass.WorkbenchTool
+            }
+            .sortedWith(compareBy<As100Method> { capabilityLifecycle(it) != CapabilityLifecycle.Production }.thenBy { it.descriptor.name })
+    }
+    val trimmedQuery = query.trim()
+    val matches = remember(searchableMethods, trimmedQuery) {
+        if (trimmedQuery.isBlank()) emptyList() else searchableMethods.filter { method ->
+            val moduleName = moduleByMethod[method.id]?.displayName.orEmpty()
+            listOf(method.descriptor.name, method.id, method.descriptor.description.orEmpty(), moduleName)
+                .any { it.contains(trimmedQuery, ignoreCase = true) }
+        }.take(8)
+    }
+    val selectedMethod = selectedCapabilityId?.let { id -> searchableMethods.firstOrNull { it.id == id } }
+
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Find a capability", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                singleLine = true,
+                placeholder = { Text("Barcode, translate, GPS, document…") }
+            )
+            if (trimmedQuery.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                if (matches.isEmpty()) {
+                    Text("No matching capabilities.", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    matches.forEach { method ->
+                        val module = moduleByMethod[method.id]
+                        val uiClass = capabilityUiClass(method, module)
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 6.dp)
+                                .clickable { selectedCapabilityId = method.id },
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Column(Modifier.padding(10.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        method.descriptor.name,
+                                        modifier = Modifier.weight(1f),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        when (uiClass) {
+                                            CapabilityUiClass.WorkbenchTool -> "Workbench"
+                                            CapabilityUiClass.ProtocolPrimitive -> capabilityLifecycle(method).label
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Text(method.id, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
+                                module?.displayName?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    selectedMethod?.let { method ->
+        FullScreenCapabilityDialog(onDismiss = { selectedCapabilityId = null }) {
+            DashboardCapabilityRunner(
+                method = method,
+                screen = screenMap[method.id],
+                saveOutput = false,
+                settingsJson = "{}",
+                onConfirmed = { selectedCapabilityId = null },
+                onCancel = { selectedCapabilityId = null }
+            )
+        }
+    }
+}
+
+@Composable
+private fun FindPresetCard(revision: Int) {
+    val context = LocalContext.current
+    var query by rememberSaveable { mutableStateOf("") }
+    val presets = remember(revision) { ProtocolLibraryRepository.presets(context) }
+    val trimmedQuery = query.trim()
+    val matches = remember(presets, trimmedQuery) {
+        if (trimmedQuery.isBlank()) emptyList() else presets.filter { preset ->
+            listOf(preset.name, preset.methodId, preset.description, preset.settingsJson)
+                .any { it.contains(trimmedQuery, ignoreCase = true) }
+        }.take(8)
+    }
+
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Find a preset", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                singleLine = true,
+                placeholder = { Text("Search saved toolbox actions") }
+            )
+            if (trimmedQuery.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                when {
+                    presets.isEmpty() -> Text("No presets yet.", style = MaterialTheme.typography.bodySmall)
+                    matches.isEmpty() -> Text("No matching presets.", style = MaterialTheme.typography.bodySmall)
+                    else -> matches.forEach { preset ->
+                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                            onClick = { runPresetFromDashboard(context, preset) }
+                        ) {
+                            Column(Modifier.fillMaxWidth()) {
+                                Text(preset.name)
+                                Text(preset.methodId, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun PresetShortcutsCard(revision: Int) {
     val context = LocalContext.current
     val presets = remember(revision) { ProtocolLibraryRepository.presets(context) }
@@ -529,14 +692,7 @@ private fun PresetShortcutsCard(revision: Int) {
                 presets.take(6).forEach { preset ->
                     OutlinedButton(
                         modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                        onClick = {
-                            context.startActivity(Intent(context, SchedulerDispatchActivity::class.java).apply {
-                                action = "com.example.methodmesh.RUN_PRESET"
-                                putExtra("preset_id", preset.id)
-                                putExtra("transient_preset_run", true)
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            })
-                        }
+                        onClick = { runPresetFromDashboard(context, preset) }
                     ) {
                         Column(Modifier.fillMaxWidth()) {
                             Text(preset.name)
