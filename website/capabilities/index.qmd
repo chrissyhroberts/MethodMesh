@@ -116,6 +116,16 @@ Capture a full offline-calculable Open Location Code from GPS plus a user-select
 :::
 
 ::: {.g-col-12 .g-col-md-6}
+### Conversation translator
+
+`conversation.translate`
+
+**Production**
+
+Run an offline-first bilingual conversation translator with speech transcription, ML Kit translation, optional spoken output and a shareable transcript.
+:::
+
+::: {.g-col-12 .g-col-md-6}
 ### [ML Kit language translation](mlkit-translate.qmd)
 
 `mlkit.translate`

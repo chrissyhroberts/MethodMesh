@@ -153,8 +153,8 @@ fun CapabilityScreenScaffold(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(if (intentPresentation) 28.dp else 24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (intentPresentation) 0.dp else 5.dp),
+        shape = RoundedCornerShape(if (intentPresentation) 20.dp else 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (intentPresentation) {
                 MaterialTheme.colorScheme.background
@@ -171,7 +171,7 @@ fun CapabilityScreenScaffold(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(50),
-                        color = MaterialTheme.colorScheme.secondaryContainer
+                        color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
                             text = "Step ${context.stepNumber} of ${context.totalSteps}",
@@ -210,11 +210,11 @@ fun CapabilityScreenScaffold(
             } else {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(if (intentPresentation) 24.dp else 18.dp),
+                    shape = RoundedCornerShape(if (intentPresentation) 18.dp else 14.dp),
                     color = if (intentPresentation) {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
+                        MaterialTheme.colorScheme.surface
                     } else {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
                     }
                 ) {
                     Column(Modifier.padding(if (intentPresentation) 20.dp else 16.dp)) { content() }
@@ -416,7 +416,7 @@ private fun ClearResultPanel(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.42f)
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
     ) {
         Column(
             Modifier

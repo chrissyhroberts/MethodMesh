@@ -2,6 +2,48 @@
 title: "Release notes"
 ---
 
+## Source: `RELEASE_NOTES_v2.2.3.md`
+
+MethodMesh v2.2.3 promotes the live conversation translator to production and applies the MethodMesh visual identity refresh across the Android app shell.
+
+## Highlights
+
+### Conversation translator promoted
+
+`conversation.translate` is now marked as a production capability.
+
+- The translator supports any ML Kit language pair available on the device.
+- Native runs use two independent speaker buttons, so either participant can speak multiple times in a row.
+- Each turn captures original speech text, translated text and direction.
+- Optional spoken output can read the translation aloud.
+- Native sharing sends the conversation transcript as the main result.
+- ODK/XLSForm calls return the transcript plus `methodmesh_full_json` for audit metadata.
+- Shared ML Kit language packs are managed from **Settings**.
+
+### Visual identity refresh
+
+- The Android app now uses the MethodMesh paper/ink/green palette.
+- Home, drawer and capability screens use the new MethodMesh mark and cleaner card surfaces.
+- Typography and spacing have been tightened to make the app feel more deliberate and less homemade.
+- The adaptive launcher icon has been resized so the mark breathes inside circular Android launchers.
+
+## Validation
+
+Built and checked with:
+
+```text
+./gradlew testDebugUnitTest --tests com.example.methodmesh.modules.conversationtranslate.ConversationTranslateOdkFormContractTest --tests com.example.methodmesh.transport.OutputFormatterTest
+./gradlew :app:assembleDebug
+```
+
+Result:
+
+```text
+BUILD SUCCESSFUL
+```
+
+---
+
 ## Source: `RELEASE_NOTES_v2.2.2.md`
 
 MethodMesh v2.2.2 promotes Plus Code capture to production. This release hardens the offline-calculable Open Location Code workflow for field use: GPS starts automatically, the map/grid selector is usable from presets, native sharing returns only the selected Plus Code, and ODK/XLSForm integrations receive the main code plus background audit JSON.

@@ -1,62 +1,91 @@
 package com.example.methodmesh.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import com.example.methodmesh.settings.DisplaySettingsRepository
 
+private val ColorCompatDarkSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF4A423D)
+
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = MethodMeshGreen,
+    onPrimary = MethodMeshDarkInk,
+    primaryContainer = MethodMeshSoftGreen,
+    onPrimaryContainer = MethodMeshInk,
+    secondary = MethodMeshDarkSecondaryInk,
+    onSecondary = MethodMeshDarkSurface,
+    secondaryContainer = MethodMeshDarkPanel,
+    onSecondaryContainer = MethodMeshDarkInk,
+    tertiary = MethodMeshGreen,
+    onTertiary = MethodMeshDarkInk,
+    tertiaryContainer = MethodMeshDarkPanel,
+    onTertiaryContainer = MethodMeshDarkInk,
+    background = MethodMeshDarkSurface,
+    onBackground = MethodMeshDarkInk,
+    surface = MethodMeshDarkPanel,
+    onSurface = MethodMeshDarkInk,
+    surfaceVariant = ColorCompatDarkSurfaceVariant,
+    onSurfaceVariant = MethodMeshDarkSecondaryInk,
+    outline = MethodMeshDarkOutline,
+    outlineVariant = MethodMeshDarkOutline,
+    error = androidx.compose.ui.graphics.Color(0xFFB86B5D),
+    onError = MethodMeshDarkInk
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = MethodMeshGreen,
+    onPrimary = MethodMeshSurface,
+    primaryContainer = MethodMeshSoftGreen,
+    onPrimaryContainer = MethodMeshInk,
+    secondary = MethodMeshSecondaryInk,
+    onSecondary = MethodMeshSurface,
+    secondaryContainer = MethodMeshSelectedSurface,
+    onSecondaryContainer = MethodMeshInk,
+    tertiary = MethodMeshGreen,
+    onTertiary = MethodMeshSurface,
+    tertiaryContainer = MethodMeshSoftGreen,
+    onTertiaryContainer = MethodMeshInk,
+    background = MethodMeshPaper,
+    onBackground = MethodMeshInk,
+    surface = MethodMeshSurface,
+    onSurface = MethodMeshInk,
+    surfaceVariant = MethodMeshSelectedSurface,
+    onSurfaceVariant = MethodMeshSecondaryInk,
+    outline = MethodMeshOutline,
+    outlineVariant = MethodMeshOutline,
+    error = androidx.compose.ui.graphics.Color(0xFF9B4E3F),
+    onError = MethodMeshSurface
+)
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val MethodMeshShapes = Shapes(
+    extraSmall = RoundedCornerShape(6.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(20.dp)
 )
 
 @Composable
 fun MethodMeshTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val textScale = DisplaySettingsRepository.settings.value.textScale
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography.scaled(textScale),
+        shapes = MethodMeshShapes,
         content = content
     )
 }

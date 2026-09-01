@@ -40,6 +40,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -106,6 +107,7 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.ui.components.SettingsRenderer
+import com.example.methodmesh.ui.components.MethodMeshMark
 import com.example.methodmesh.ui.sensors.SensorDashboard
 import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.common.model.RemoteModelManager
@@ -177,7 +179,8 @@ private fun capabilityLifecycle(method: As100Method): CapabilityLifecycle {
         "calibrated_scale",
         "document.scan",
         "gps_target_navigator",
-        "plus_code.capture"
+        "plus_code.capture",
+        "conversation.translate"
     )
     return if (method.id in productionCapabilityIds) CapabilityLifecycle.Production else CapabilityLifecycle.Development
 }
@@ -208,8 +211,23 @@ fun HomeScreen() {
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
-                Text("MethodMesh", modifier = Modifier.padding(18.dp), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            ModalDrawerSheet(
+                drawerContainerColor = MaterialTheme.colorScheme.surface,
+                drawerContentColor = MaterialTheme.colorScheme.onSurface
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    MethodMeshMark(size = 46.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text("MethodMesh", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Do Stuff", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
                 DashboardDestination.entries.forEach { destination ->
                     NavigationDrawerItem(
                         label = { Text(destination.label) },
@@ -229,13 +247,20 @@ fun HomeScreen() {
             topBar = {
                 TopAppBar(
                     title = { Text(selectedDestination.label) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                        actionIconContentColor = MaterialTheme.colorScheme.onBackground
+                    ),
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Text("☰", style = MaterialTheme.typography.titleLarge)
                         }
                     }
                 )
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.background
         ) { padding ->
             LazyColumn(
                 modifier = Modifier
@@ -1057,21 +1082,30 @@ private fun RuntimeSummaryCard(moduleCount: Int, methodCount: Int) {
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        elevation = CardDefaults.elevatedCardElevation(2.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("MethodMesh runtime", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(
-                text = "Protocol tools, device setup and app integrations.",
-                modifier = Modifier.padding(top = 4.dp),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                text = "Modules: $moduleCount • canonical methods: $methodCount",
-                modifier = Modifier.padding(top = 8.dp),
-                style = MaterialTheme.typography.labelMedium
-            )
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                MethodMeshMark(size = 58.dp)
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text("MethodMesh", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text("Do Stuff", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+            Text("A practical toolkit for doing stuff you need to do.", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primaryContainer) {
+                    Text("$methodCount methods", modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), style = MaterialTheme.typography.labelLarge)
+                }
+                Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
+                    Text("$moduleCount modules", modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), style = MaterialTheme.typography.labelLarge)
+                }
+            }
         }
     }
 }

@@ -4,15 +4,13 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <!-- MethodMesh mark: separate rounded bars, one active green component. -->
     <path
-        android:fillColor="#302A28"
+        android:fillColor="#000000"
         android:pathData="M32,38h44a5,5 0,0 1,5 5a5,5 0,0 1,-5 5h-44a5,5 0,0 1,-5 -5a5,5 0,0 1,5 -5z" />
     <path
-        android:fillColor="#477C78"
+        android:fillColor="#000000"
         android:pathData="M41,53h35a5,5 0,0 1,5 5a5,5 0,0 1,-5 5h-35a5,5 0,0 1,-5 -5a5,5 0,0 1,5 -5z" />
     <path
-        android:fillColor="#B8AFA8"
+        android:fillColor="#000000"
         android:pathData="M54,68h22a5,5 0,0 1,5 5a5,5 0,0 1,-5 5h-22a5,5 0,0 1,-5 -5a5,5 0,0 1,5 -5z" />
 </vector>

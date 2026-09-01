@@ -69,7 +69,7 @@ object As100ConversationTranslateMethod : As100Method {
         graphOutputs = listOf("conversation.translate"),
         parameters = mapOf(
             "category" to "Audio",
-            "status" to "Development",
+            "status" to "Production",
             "offline" to "requires downloaded speech and translation models"
         )
     )
