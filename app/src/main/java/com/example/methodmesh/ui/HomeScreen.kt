@@ -3,6 +3,8 @@ package com.example.methodmesh.ui
 import android.content.Intent
 import android.content.ClipData
 import android.graphics.BitmapFactory
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -3112,6 +3114,7 @@ private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
 
 @Composable
 private fun MlKitLanguagePacksScreen() {
+    val context = LocalContext.current
     var downloadedCodes by rememberSaveable { mutableStateOf("") }
     var busyCode by rememberSaveable { mutableStateOf<String?>(null) }
     var busySeconds by rememberSaveable { mutableStateOf(0) }
@@ -3128,7 +3131,7 @@ private fun MlKitLanguagePacksScreen() {
     }
 
     fun refresh() {
-        log("Refresh requested.")
+        log("Refresh requested. ${languagePackConnectivityStatus(context)}")
         RemoteModelManager.getInstance()
             .getDownloadedModels(TranslateRemoteModel::class.java)
             .addOnSuccessListener { models ->
@@ -3147,7 +3150,7 @@ private fun MlKitLanguagePacksScreen() {
         busySeconds = 0
         status = "Downloading ${MlKitLanguageCatalog.label(code)}…"
         val model = TranslateRemoteModel.Builder(code).build()
-        log("Download started via RemoteModelManager: ${MlKitLanguageCatalog.label(code)}.")
+        log("Download started via RemoteModelManager: ${MlKitLanguageCatalog.label(code)}. ${languagePackConnectivityStatus(context)}")
         RemoteModelManager.getInstance()
             .download(model, DownloadConditions.Builder().build())
             .addOnSuccessListener {
@@ -3189,7 +3192,14 @@ private fun MlKitLanguagePacksScreen() {
         while (busyCode == active) {
             delay(1000)
             busySeconds += 1
-            if (busySeconds > 0 && busySeconds % 10 == 0) log("Still waiting for ${MlKitLanguageCatalog.label(active)} download/remove callback at ${busySeconds}s.")
+            if (busySeconds > 0 && busySeconds % 10 == 0) {
+                val diagnosis = if (busySeconds >= 120) {
+                    "Likely blocked by network, Google Play Services, or model delivery."
+                } else {
+                    "Waiting for ML Kit callback."
+                }
+                log("Still waiting for ${MlKitLanguageCatalog.label(active)} download/remove callback at ${busySeconds}s. $diagnosis ${languagePackConnectivityStatus(context)}")
+            }
         }
     }
 
@@ -3215,6 +3225,13 @@ private fun MlKitLanguagePacksScreen() {
                 "Downloading ${MlKitLanguageCatalog.label(code)} · ${busySeconds}s elapsed. Keep this screen open.",
                 style = MaterialTheme.typography.bodySmall
             )
+            if (busySeconds >= 120) {
+                Text(
+                    "No ML Kit callback after 2 minutes. This usually means the device cannot reach Google’s model delivery service, or Google Play Services is unavailable/stuck.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
         }
         Spacer(Modifier.height(8.dp))
         SelectionContainer {
@@ -3407,3 +3424,23 @@ private fun RegisteredDevice.canReadAsSensor(): Boolean {
 
 private fun timestampedLog(message: String): String =
     "${Instant.now()}  $message"
+
+private fun languagePackConnectivityStatus(context: android.content.Context): String {
+    val connectivity = context.getSystemService(ConnectivityManager::class.java)
+    val network = connectivity?.activeNetwork
+    val capabilities = network?.let { connectivity.getNetworkCapabilities(it) }
+    val hasInternet = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+    val validated = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+    val transport = when {
+        capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true -> "wifi"
+        capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> "cellular"
+        capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true -> "ethernet"
+        capabilities != null -> "other"
+        else -> "none"
+    }
+    val playServices = runCatching {
+        val info = context.packageManager.getPackageInfo("com.google.android.gms", 0)
+        "play_services=${info.versionName ?: info.longVersionCode.toString()}"
+    }.getOrDefault("play_services=not_found")
+    return "network=$transport internet=$hasInternet validated=$validated $playServices"
+}
