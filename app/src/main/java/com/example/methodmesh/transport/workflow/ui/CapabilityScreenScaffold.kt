@@ -42,7 +42,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputExportRepository
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
@@ -122,6 +124,14 @@ fun CapabilityScreenScaffold(
     val appContext = LocalContext.current
     val intentPresentation = context.presentationMode == CapabilityPresentationMode.IntentLaunch
     val automaticReturn = context.completionMode == CapabilityCompletionMode.AutomaticReturn
+    val nativePresetRun = intentPresentation && !automaticReturn &&
+        (context.request.settings["methodmesh_native_preset_run"] == "true" ||
+            context.request.settings["input_methodmesh_native_preset_run"] == "true")
+    val presetResultAction = PresetResultAction.normalize(
+        context.request.settings["methodmesh_preset_result_action"]
+            ?: context.request.settings["input_methodmesh_preset_result_action"]
+            ?: PresetResultAction.HOME
+    )
     val allowManualExport = !context.request.source.equals("dashboard", ignoreCase = true) &&
         !context.request.source.equals("intent_test", ignoreCase = true)
     var exportPackage by remember(capturedResult?.request?.id?.value) { mutableStateOf<OutputExportRepository.ExportPackage?>(null) }
@@ -139,6 +149,37 @@ fun CapabilityScreenScaffold(
         (userResultPreview + resultDetailPreview)
             .filter { (key, value) -> looksLikeShareableMediaUri(key, value?.toString().orEmpty()) }
             .mapNotNull { (_, value) -> value?.toString()?.let(Uri::parse) }
+    }
+    fun finishNativePreset() {
+        if (presetResultAction == PresetResultAction.SAVE) {
+            runCatching { capturedResult?.let { OutputExportRepository.exportPackage(appContext, it) } }
+                .onSuccess {
+                    if (it != null) {
+                        exportPackage = it
+                        exportStatus = "Exported ${it.summary}"
+                        OutputExportRepository.notifySaved(appContext, it)
+                    }
+                }
+                .onFailure { exportStatus = "Export failed: ${it.message ?: "storage error"}" }
+            onConfirm()
+            return
+        }
+        appContext.startActivity(
+            Intent(appContext, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        )
+    }
+    val finishButtonLabel = if (nativePresetRun && context.isLastStep) {
+        when (presetResultAction) {
+            PresetResultAction.SAVE -> "Save and finish"
+            PresetResultAction.SHARE -> "Home"
+            else -> "Home"
+        }
+    } else if (context.isLastStep) {
+        "Submit"
+    } else {
+        "Continue"
     }
 
     // One completion rule for every capability: dashboard/debug captures wait
@@ -250,10 +291,18 @@ fun CapabilityScreenScaffold(
                         ) { Text("Share media") }
                     }
                     Spacer(Modifier.height(8.dp))
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = onConfirm
-                    ) { Text(if (context.isLastStep) "Submit" else "Continue") }
+                    if (nativePresetRun && context.isLastStep) {
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { finishNativePreset() }
+                        ) { Text(finishButtonLabel) }
+                        Spacer(Modifier.height(8.dp))
+                    } else {
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = onConfirm
+                        ) { Text(finishButtonLabel) }
+                    }
                     Spacer(Modifier.height(8.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (canGoBack) {

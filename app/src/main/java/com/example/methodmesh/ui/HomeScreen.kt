@@ -80,6 +80,7 @@ import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
 import com.example.methodmesh.core.protocols.ProtocolOutputMode
 import com.example.methodmesh.core.protocols.ProtocolPayloadMode
 import com.example.methodmesh.core.protocols.ProtocolStep
+import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.core.ResearchRuntime
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.InvocationContext
@@ -483,6 +484,7 @@ private fun runPresetFromDashboard(
         action = "com.example.methodmesh.RUN_PRESET"
         putExtra("preset_id", preset.id)
         putExtra("transient_preset_run", true)
+        putExtra("suppress_output", true)
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     })
 }
@@ -773,6 +775,7 @@ private fun FindPresetCard(revision: Int) {
                             Column(Modifier.fillMaxWidth()) {
                                 Text(preset.name)
                                 Text(preset.methodId, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
+                                Text(presetResultActionLabel(preset.resultAction), style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -805,6 +808,7 @@ private fun PresetShortcutsCard(revision: Int) {
                         Column(Modifier.fillMaxWidth()) {
                             Text(preset.name)
                             Text(preset.methodId, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
+                            Text(presetResultActionLabel(preset.resultAction), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -845,6 +849,7 @@ private fun ProtocolLibraryCard(
             action = "com.example.methodmesh.RUN_PRESET"
             putExtra("preset_id", preset.id)
             putExtra("transient_preset_run", true)
+            putExtra("suppress_output", true)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
     }
@@ -902,6 +907,7 @@ private fun ProtocolLibraryCard(
                                         style = MaterialTheme.typography.labelSmall
                                     )
                                     Text(payloadModeLabel(preset.payloadMode), style = MaterialTheme.typography.labelSmall)
+                                    Text(presetResultActionLabel(preset.resultAction), style = MaterialTheme.typography.labelSmall)
                                     Row(Modifier.fillMaxWidth().padding(top = 6.dp)) {
                                         Button(onClick = { runPreset(preset) }, modifier = Modifier.weight(1f)) { Text("Run") }
                                         Spacer(Modifier.width(8.dp))
@@ -1248,6 +1254,32 @@ private fun payloadModeDescription(mode: String): String = when (ProtocolPayload
     ProtocolPayloadMode.AUDIT -> "Return core values plus ALCOA-style IDs, times, device details, hashes and warnings."
     ProtocolPayloadMode.FULL -> "Return the full capability output, including raw JSON, manifests, traces and success metadata."
     else -> "Return only the practical answer values, such as readings, answers, selected labels and file names."
+}
+
+@Composable
+private fun PresetResultActionSelector(
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Text("After result", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        OptionRow("Home", PresetResultAction.normalize(selected) == PresetResultAction.HOME) { onSelected(PresetResultAction.HOME) }
+        OptionRow("Share", PresetResultAction.normalize(selected) == PresetResultAction.SHARE) { onSelected(PresetResultAction.SHARE) }
+        OptionRow("Save", PresetResultAction.normalize(selected) == PresetResultAction.SAVE) { onSelected(PresetResultAction.SAVE) }
+        Text(presetResultActionDescription(selected), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+private fun presetResultActionLabel(action: String): String = when (PresetResultAction.normalize(action)) {
+    PresetResultAction.SHARE -> "After result: share"
+    PresetResultAction.SAVE -> "After result: save"
+    else -> "After result: home"
+}
+
+private fun presetResultActionDescription(action: String): String = when (PresetResultAction.normalize(action)) {
+    PresetResultAction.SHARE -> "Open Android share for the core result when the preset finishes."
+    PresetResultAction.SAVE -> "Save a MethodMesh output package when the preset finishes."
+    else -> "Return to MethodMesh without saving when the preset finishes."
 }
 
 @Composable
@@ -1782,7 +1814,7 @@ private fun CapabilityCard(
                     initialSettings = presetSettings,
                     defaultPayloadMode = returnPayloadMode,
                     onDismiss = { presetDialogOpen = false },
-                    onSave = { name, payloadMode, savedSettings ->
+                    onSave = { name, payloadMode, resultAction, savedSettings ->
                         returnPayloadMode = payloadMode
                         val saved = ProtocolLibraryRepository.savePreset(
                             context,
@@ -1791,6 +1823,7 @@ private fun CapabilityCard(
                                 methodId = method.id,
                                 settingsJson = settingsJsonFromMap(savedSettings),
                                 payloadMode = payloadMode,
+                                resultAction = resultAction,
                                 description = method.descriptor.description.orEmpty()
                             )
                         )
@@ -1913,10 +1946,11 @@ private fun SavePresetDialog(
     initialSettings: Map<String, Any>,
     defaultPayloadMode: String,
     onDismiss: () -> Unit,
-    onSave: (String, String, Map<String, Any>) -> Unit
+    onSave: (String, String, String, Map<String, Any>) -> Unit
 ) {
     var name by rememberSaveable(methodId) { mutableStateOf(defaultName) }
     var payloadMode by rememberSaveable(methodId) { mutableStateOf(ProtocolPayloadMode.normalize(defaultPayloadMode)) }
+    var resultAction by rememberSaveable(methodId) { mutableStateOf(PresetResultAction.HOME) }
     val fieldSpecs = remember(methodId, initialSettings) { presetFieldSpecs(methodId, initialSettings) }
     val editableValues = remember(methodId, initialSettings) {
         mutableStateMapOf<String, String>().apply {
@@ -1982,6 +2016,11 @@ private fun SavePresetDialog(
                     onSelected = { payloadMode = it }
                 )
                 Spacer(Modifier.height(8.dp))
+                PresetResultActionSelector(
+                    selected = resultAction,
+                    onSelected = { resultAction = it }
+                )
+                Spacer(Modifier.height(8.dp))
                 Text("Preset fields", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 if (fieldSpecs.isEmpty()) {
                     Text("No editable preset fields for this capability.", style = MaterialTheme.typography.bodySmall)
@@ -2006,7 +2045,16 @@ private fun SavePresetDialog(
                     OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
                     Button(
-                        onClick = { if (name.isNotBlank()) onSave(name.trim(), ProtocolPayloadMode.normalize(payloadMode), selectedSettings()) },
+                        onClick = {
+                            if (name.isNotBlank()) {
+                                onSave(
+                                    name.trim(),
+                                    ProtocolPayloadMode.normalize(payloadMode),
+                                    PresetResultAction.normalize(resultAction),
+                                    selectedSettings()
+                                )
+                            }
+                        },
                         modifier = Modifier.weight(1f),
                         enabled = name.isNotBlank()
                     ) { Text("Save") }

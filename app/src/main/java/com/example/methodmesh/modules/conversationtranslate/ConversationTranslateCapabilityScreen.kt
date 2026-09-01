@@ -57,7 +57,9 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.google.mlkit.common.model.DownloadConditions
+import com.google.mlkit.common.model.RemoteModelManager
 import com.google.mlkit.nl.translate.Translation
+import com.google.mlkit.nl.translate.TranslateRemoteModel
 import com.google.mlkit.nl.translate.TranslatorOptions
 import java.time.Instant
 import java.util.Locale
@@ -95,8 +97,19 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
         var turnsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("[]") }
         var startedAt by rememberSaveable(context.action.canonicalId) { mutableStateOf(Instant.now().toString()) }
         var resultValuesJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        var downloadedModelCodes by rememberSaveable { mutableStateOf("") }
+        var modelStatus by rememberSaveable { mutableStateOf("Checking language packs…") }
+        var busyLanguageCode by rememberSaveable { mutableStateOf<String?>(null) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var ttsReady by remember { mutableStateOf(false) }
+        val supportedLanguageCodes = remember { MlKitLanguageCatalog.supportedCodes() }
+        val downloadedLanguages = remember(downloadedModelCodes) {
+            downloadedModelCodes.split(',').map { it.trim() }.filter { it.isNotBlank() }.toSet()
+        }
+        val requiredTranslationLanguages = remember(languageA, languageB) { listOf(languageA, languageB).distinct() }
+        val unsupportedTranslationLanguages = requiredTranslationLanguages.filter { it !in supportedLanguageCodes }
+        val missingTranslationLanguages = requiredTranslationLanguages.filter { it in supportedLanguageCodes && it !in downloadedLanguages }
+        val canTranslateConversation = missingTranslationLanguages.isEmpty() && unsupportedTranslationLanguages.isEmpty()
         val tts = remember {
             TextToSpeech(androidContext.applicationContext) { state ->
                 ttsReady = state == TextToSpeech.SUCCESS
@@ -136,6 +149,47 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                     "prefer_offline" to preferOffline.toString()
                 )
             )
+        }
+
+        fun refreshLanguagePacks() {
+            modelStatus = "Checking language packs…"
+            RemoteModelManager.getInstance()
+                .getDownloadedModels(TranslateRemoteModel::class.java)
+                .addOnSuccessListener { models ->
+                    downloadedModelCodes = models.mapNotNull { it.language }.sorted().joinToString(",")
+                    modelStatus = if (downloadedModelCodes.isBlank()) {
+                        "No language packs downloaded."
+                    } else {
+                        "Language packs ready."
+                    }
+                }
+                .addOnFailureListener { error ->
+                    modelStatus = "Could not check language packs: ${error.message.orEmpty()}"
+                }
+        }
+
+        fun downloadLanguagePack(code: String) {
+            if (code !in supportedLanguageCodes) {
+                modelStatus = "${languageLabel(code)} is not available in ML Kit on this device."
+                return
+            }
+            busyLanguageCode = code
+            modelStatus = "Downloading ${languageLabel(code)}…"
+            RemoteModelManager.getInstance()
+                .download(TranslateRemoteModel.Builder(code).build(), DownloadConditions.Builder().build())
+                .addOnSuccessListener {
+                    busyLanguageCode = null
+                    modelStatus = "${languageLabel(code)} downloaded."
+                    refreshLanguagePacks()
+                }
+                .addOnFailureListener { error ->
+                    busyLanguageCode = null
+                    modelStatus = "Download failed for ${languageLabel(code)}: ${error.message.orEmpty()}"
+                }
+        }
+
+        LaunchedEffect(languageA, languageB, conversationOpen) {
+            if (conversationOpen) refreshLanguagePacks()
         }
 
         fun finishConversation(state: String = "succeeded", error: String = "") {
@@ -205,6 +259,10 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                 status = "No speech detected."
                 return
             }
+            if (!canTranslateConversation) {
+                status = missingLanguageStatus(missingTranslationLanguages, unsupportedTranslationLanguages)
+                return
+            }
             status = "Translating…"
             val translator = Translation.getClient(
                 TranslatorOptions.Builder()
@@ -257,6 +315,10 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
             }
             result = null
             resultValuesJson = null
+            if (!canTranslateConversation) {
+                status = missingLanguageStatus(missingTranslationLanguages, unsupportedTranslationLanguages)
+                return
+            }
             val source = if (side == "a") languageA else languageB
             val prompt = "${if (side == "a") labelA else labelB}: speak now"
             listeningSide = side
@@ -356,10 +418,16 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                             textA = latestTextA,
                             textB = latestTextB,
                             status = status,
+                            modelStatus = modelStatus,
+                            missingLanguages = missingTranslationLanguages,
+                            unsupportedLanguages = unsupportedTranslationLanguages,
+                            busyLanguageCode = busyLanguageCode,
                             operatorFacing = operatorFacing,
                             spokenOutput = spokenOutput,
                             hasTurns = turns(turnsJson).isNotEmpty(),
                             onOperatorFacingChanged = { operatorFacing = it },
+                            onDownloadLanguage = ::downloadLanguagePack,
+                            onRefreshLanguagePacks = ::refreshLanguagePacks,
                             onListenA = { listen("a") },
                             onListenB = { listen("b") },
                             onReplayA = { speak(latestTextA, languageA) },
@@ -400,16 +468,23 @@ private fun ConversationSharedSurface(
     textA: String,
     textB: String,
     status: String,
+    modelStatus: String,
+    missingLanguages: List<String>,
+    unsupportedLanguages: List<String>,
+    busyLanguageCode: String?,
     operatorFacing: Boolean,
     spokenOutput: Boolean,
     hasTurns: Boolean,
     onOperatorFacingChanged: (Boolean) -> Unit,
+    onDownloadLanguage: (String) -> Unit,
+    onRefreshLanguagePacks: () -> Unit,
     onListenA: () -> Unit,
     onListenB: () -> Unit,
     onReplayA: () -> Unit,
     onReplayB: () -> Unit,
     onEnd: () -> Unit
 ) {
+    val canListen = missingLanguages.isEmpty() && unsupportedLanguages.isEmpty() && busyLanguageCode == null
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -429,6 +504,7 @@ private fun ConversationSharedSurface(
                 text = textB.ifBlank { "Ready for ${languageLabel(languageB)}" },
                 rotated = !operatorFacing,
                 spokenOutput = spokenOutput,
+                listenEnabled = canListen,
                 modifier = Modifier.weight(1f),
                 onListen = onListenB,
                 onReplay = onReplayB
@@ -449,6 +525,17 @@ private fun ConversationSharedSurface(
                     Switch(checked = operatorFacing, onCheckedChange = onOperatorFacingChanged)
                 }
             }
+            if (!canListen) {
+                Spacer(Modifier.height(6.dp))
+                MissingLanguagePackPanel(
+                    modelStatus = modelStatus,
+                    missingLanguages = missingLanguages,
+                    unsupportedLanguages = unsupportedLanguages,
+                    busyLanguageCode = busyLanguageCode,
+                    onDownloadLanguage = onDownloadLanguage,
+                    onRefreshLanguagePacks = onRefreshLanguagePacks
+                )
+            }
             Spacer(Modifier.height(6.dp))
             ConversationPersonPanel(
                 language = languageA,
@@ -456,6 +543,7 @@ private fun ConversationSharedSurface(
                 text = textA.ifBlank { "Ready for ${languageLabel(languageA)}" },
                 rotated = false,
                 spokenOutput = spokenOutput,
+                listenEnabled = canListen,
                 modifier = Modifier.weight(1f),
                 onListen = onListenA,
                 onReplay = onReplayA
@@ -479,6 +567,7 @@ private fun ConversationPersonPanel(
     text: String,
     rotated: Boolean,
     spokenOutput: Boolean,
+    listenEnabled: Boolean,
     modifier: Modifier = Modifier,
     onListen: () -> Unit,
     onReplay: () -> Unit
@@ -502,6 +591,7 @@ private fun ConversationPersonPanel(
             ) {
                 Button(
                     onClick = onListen,
+                    enabled = listenEnabled,
                     modifier = Modifier.weight(1f).height(42.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surface,
@@ -541,6 +631,63 @@ private fun ConversationPersonPanel(
                 )
             }
             Text(languageLabel(language), modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun MissingLanguagePackPanel(
+    modelStatus: String,
+    missingLanguages: List<String>,
+    unsupportedLanguages: List<String>,
+    busyLanguageCode: String?,
+    onDownloadLanguage: (String) -> Unit,
+    onRefreshLanguagePacks: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.64f),
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(Modifier.fillMaxWidth().padding(10.dp)) {
+            Text("Language pack needed", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(4.dp))
+            if (missingLanguages.isNotEmpty()) {
+                Text("Download ${missingLanguages.joinToString { languageLabel(it) }} to translate this conversation.", style = MaterialTheme.typography.bodySmall)
+            }
+            if (unsupportedLanguages.isNotEmpty()) {
+                Text("Not available on this device: ${unsupportedLanguages.joinToString { languageLabel(it) }}.", style = MaterialTheme.typography.bodySmall)
+            }
+            if (modelStatus.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(modelStatus, style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                missingLanguages.take(2).forEach { code ->
+                    Button(
+                        onClick = { onDownloadLanguage(code) },
+                        enabled = busyLanguageCode == null,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(if (busyLanguageCode == code) "Downloading…" else "Download ${MlKitLanguageCatalog.info(code).name}")
+                    }
+                }
+                if (missingLanguages.isEmpty()) {
+                    OutlinedButton(onClick = onRefreshLanguagePacks, modifier = Modifier.weight(1f)) { Text("Refresh") }
+                }
+            }
+            if (missingLanguages.isNotEmpty()) {
+                Spacer(Modifier.height(6.dp))
+                OutlinedButton(
+                    onClick = onRefreshLanguagePacks,
+                    enabled = busyLanguageCode == null,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Refresh language packs")
+                }
+            }
         }
     }
 }
@@ -648,6 +795,16 @@ private fun conversationValuesFromJson(json: String): Map<String, String> = runC
 }.getOrDefault(emptyMap())
 
 private fun languageLabel(code: String): String = MlKitLanguageCatalog.label(code)
+
+private fun missingLanguageStatus(missing: List<String>, unsupported: List<String>): String {
+    val needed = missing.joinToString { languageLabel(it) }
+    val unavailable = unsupported.joinToString { languageLabel(it) }
+    return when {
+        unavailable.isNotBlank() -> "Language not available on this device: $unavailable"
+        needed.isNotBlank() -> "Download language pack: $needed"
+        else -> "Language packs ready."
+    }
+}
 
 private fun defaultButtonLabel(language: String): String = when (language) {
     "es" -> "Habla"

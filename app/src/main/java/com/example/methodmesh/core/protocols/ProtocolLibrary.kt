@@ -16,6 +16,7 @@ data class CapabilityPreset(
     val methodId: String,
     val settingsJson: String = "{}",
     val payloadMode: String = ProtocolPayloadMode.CORE,
+    val resultAction: String = PresetResultAction.HOME,
     val description: String = "",
     val createdAtIso: String = Instant.now().toString(),
     val updatedAtIso: String = Instant.now().toString(),
@@ -51,6 +52,18 @@ object ProtocolPayloadMode {
         AUDIT -> AUDIT
         FULL -> FULL
         else -> CORE
+    }
+}
+
+object PresetResultAction {
+    const val HOME = "HOME"
+    const val SHARE = "SHARE"
+    const val SAVE = "SAVE"
+
+    fun normalize(value: String): String = when (value.trim().uppercase(Locale.ROOT)) {
+        SHARE -> SHARE
+        SAVE -> SAVE
+        else -> HOME
     }
 }
 
@@ -216,6 +229,7 @@ object ProtocolLibraryRepository {
         put("method_id", preset.methodId)
         put("settings_json", preset.settingsJson.ifBlank { "{}" })
         put("payload_mode", ProtocolPayloadMode.normalize(preset.payloadMode))
+        put("result_action", PresetResultAction.normalize(preset.resultAction))
         put("description", preset.description)
         put("created_at_iso", preset.createdAtIso)
         put("updated_at_iso", preset.updatedAtIso)
@@ -229,6 +243,7 @@ object ProtocolLibraryRepository {
         methodId = o.optString("method_id"),
         settingsJson = o.optString("settings_json", "{}"),
         payloadMode = ProtocolPayloadMode.normalize(o.optString("payload_mode", ProtocolPayloadMode.CORE)),
+        resultAction = PresetResultAction.normalize(o.optString("result_action", PresetResultAction.HOME)),
         description = o.optString("description"),
         createdAtIso = o.optString("created_at_iso", Instant.now().toString()),
         updatedAtIso = o.optString("updated_at_iso", Instant.now().toString()),

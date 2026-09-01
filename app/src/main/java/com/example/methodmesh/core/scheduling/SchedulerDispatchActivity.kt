@@ -12,6 +12,7 @@ import com.example.methodmesh.core.protocols.CapabilityPreset
 import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
 import com.example.methodmesh.core.protocols.ProtocolOutputMode
 import com.example.methodmesh.core.protocols.ProtocolPayloadMode
+import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.platform.externalforms.ExternalFormCatalog
 import com.example.methodmesh.transport.OutputExportRepository
 import kotlinx.coroutines.CoroutineScope
@@ -260,15 +261,21 @@ class SchedulerDispatchActivity : Activity() {
 
     private fun launchPreset(preset: CapabilityPreset) {
         SchedulerRepository.recordEvent(this, intent.getStringExtra("schedule_id").orEmpty(), "preset_started:${preset.name}")
-        launchCapability(preset.methodId, preset.settingsJson, preset.payloadMode)
+        launchCapability(preset.methodId, preset.settingsJson, preset.payloadMode, preset.resultAction)
     }
 
-    private fun launchCapability(methodId: String, settingsJson: String, payloadMode: String = ProtocolPayloadMode.CORE) {
+    private fun launchCapability(
+        methodId: String,
+        settingsJson: String,
+        payloadMode: String = ProtocolPayloadMode.CORE,
+        presetResultAction: String = PresetResultAction.HOME
+    ) {
         startActivityForResult(Intent(this, IntentRouterActivity::class.java).apply {
             action = "com.example.methodmesh.EXECUTE_METHOD"
             putExtra("method_id", methodId)
             putExtra("input_payload_mode", ProtocolPayloadMode.normalize(payloadMode))
             putExtra("input_methodmesh_native_preset_run", "true")
+            putExtra("input_methodmesh_preset_result_action", PresetResultAction.normalize(presetResultAction))
             runCatching {
                 val modifiers = JSONObject(settingsJson.ifBlank { "{}" })
                 modifiers.keys().forEach { key ->
