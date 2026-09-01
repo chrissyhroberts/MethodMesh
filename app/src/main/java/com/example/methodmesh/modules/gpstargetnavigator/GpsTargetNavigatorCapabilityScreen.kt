@@ -38,6 +38,7 @@ import com.example.methodmesh.transport.workflow.ui.IntentExampleDropdown
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
+import org.json.JSONObject
 
 object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId: String = As100LocateTargetMethod.ID
@@ -62,6 +63,7 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
                 context.onSettingsChanged(mapOf(key to value.toString()))
             }.also { applyParameters(it, interaction.settings, action.settings) }
         }
+        var resultFieldsJson by rememberSaveable(action.canonicalId) { mutableStateOf<String?>(null) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var destinationSubmitted by rememberSaveable(action.settings) {
             mutableStateOf(!nativePresetRun)
@@ -69,19 +71,34 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
         var plusCodeText by rememberSaveable(action.settings) {
             mutableStateOf(action.settings["target_plus_code"] ?: action.settings["input_target_plus_code"].orEmpty())
         }
-        var targetLatitudeText by remember(settings) {
+        var targetLatitudeText by rememberSaveable(action.settings) {
             mutableStateOf(settings.getFloat("target_latitude").takeIf { it != 0f }?.toString().orEmpty())
         }
-        var targetLongitudeText by remember(settings) {
+        var targetLongitudeText by rememberSaveable(action.settings) {
             mutableStateOf(settings.getFloat("target_longitude").takeIf { it != 0f }?.toString().orEmpty())
         }
-        var targetNameText by remember(settings) {
+        var targetNameText by rememberSaveable(action.settings) {
             mutableStateOf(settings.getString("target_name").ifBlank { "Target location" })
         }
-        var arrivalRadiusText by remember(settings) {
+        var arrivalRadiusText by rememberSaveable(action.settings) {
             mutableStateOf(settings.getFloat("arrival_radius_m").toString())
         }
-        var targetStatus by remember { mutableStateOf("") }
+        var targetStatus by rememberSaveable(action.canonicalId) { mutableStateOf("") }
+
+        val restoredResult = remember(resultFieldsJson) {
+            resultFieldsJson
+                ?.let(::gpsNavigatorFieldsFromJson)
+                ?.let { As100LocateTargetMethod.navigationOutcomeResult(it) }
+                ?.withInvocationContext(request.invocationContext)
+        }
+        val capturedResult = result ?: restoredResult
+
+        fun storeResult(execution: ExecutionResult): ExecutionResult {
+            val withContext = execution.withInvocationContext(request.invocationContext)
+            result = withContext
+            resultFieldsJson = gpsNavigatorFieldsToJson(OutputFormatter.fields(withContext, includeProvenance = false))
+            return withContext
+        }
 
         fun submitDestination(): Boolean {
             val targetName = targetNameText.trim().ifBlank { "Target location" }
@@ -131,7 +148,7 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
             if (context.submitsImmediately) {
                 onConfirmed(execution)
             } else {
-                result = execution
+                storeResult(execution)
             }
             return execution
         }
@@ -141,11 +158,14 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
             capabilityId = action.canonicalId,
             context = context,
             canGoBack = context.stepNumber > 1,
-            capturedResult = result,
-            resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
+            capturedResult = capturedResult,
+            resultPreview = capturedResult?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
             onBack = onBack,
-            onRetry = { result = null },
-            onConfirm = { result?.let(onConfirmed) },
+            onRetry = {
+                result = null
+                resultFieldsJson = null
+            },
+            onConfirm = { capturedResult?.let(onConfirmed) },
             onCancel = onCancel
         ) {
             val navigationStartsImmediately = context.submitsImmediately ||
@@ -257,13 +277,19 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
                 interaction.Render(
                     settingsState = settings,
                     startsImmediately = navigationStartsImmediately,
-                    onNavigationSaved = { captureResult() }
+                    onNavigationSaved = { execution ->
+                        if (context.submitsImmediately) {
+                            onConfirmed(execution.withInvocationContext(request.invocationContext))
+                        } else {
+                            storeResult(execution)
+                        }
+                    }
                 )
             }
 
             if (!context.startsImmediately) {
                 Spacer(Modifier.height(10.dp))
-                if (result != null) {
+                if (capturedResult != null) {
                     Text("Saved navigation result is ready. Use result to confirm it.")
                 }
             }
@@ -293,6 +319,16 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
             }
         }
     }
+
+    private fun gpsNavigatorFieldsToJson(values: Map<String, Any?>): String =
+        JSONObject().apply { values.toSortedMap().forEach { (key, value) -> put(key, value?.toString().orEmpty()) } }.toString()
+
+    private fun gpsNavigatorFieldsFromJson(json: String): Map<String, Any?> = runCatching {
+        val root = JSONObject(json.ifBlank { "{}" })
+        buildMap<String, Any?> {
+            root.keys().forEach { key -> put(key, root.optString(key)) }
+        }
+    }.getOrDefault(emptyMap())
 
     private fun applyParameters(settingsState: SettingsState, settings: List<MethodSetting>, parameters: Map<String, String>) {
         val targetPlusCode = parameters["target_plus_code"]

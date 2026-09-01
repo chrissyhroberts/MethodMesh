@@ -2113,13 +2113,46 @@ private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<P
             )
         )
         "gps_target_navigator" -> listOf(
-            PresetFieldSpec("arrival_radius_m", "Arrival radius (m)", current("arrival_radius_m", "10"), runtimeInput = false, defaultFixed = true),
-            PresetFieldSpec("show_ar_camera", "Open AR camera", current("show_ar_camera", "true"), runtimeInput = false, defaultFixed = true),
-            PresetFieldSpec("show_distance", "Show distance", current("show_distance", "true"), runtimeInput = false, defaultFixed = true),
-            PresetFieldSpec("show_bearing", "Show bearing", current("show_bearing", "true"), runtimeInput = false, defaultFixed = true),
-            PresetFieldSpec("target_plus_code", "Destination Plus Code", "", runtimeInput = true),
-            PresetFieldSpec("target_latitude", "Destination latitude", "", runtimeInput = true),
-            PresetFieldSpec("target_longitude", "Destination longitude", "", runtimeInput = true)
+            PresetFieldSpec(
+                key = "arrival_radius_m",
+                label = "Arrival radius",
+                defaultValue = current("arrival_radius_m", "10"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = listOf("5", "10", "25", "50", "100", "250", "500").map { PresetChoiceSpec(it, "$it m") }
+            ),
+            PresetFieldSpec(
+                key = "show_ar_camera",
+                label = "AR camera",
+                defaultValue = current("show_ar_camera", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            ),
+            PresetFieldSpec(
+                key = "show_distance",
+                label = "Distance display",
+                defaultValue = current("show_distance", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            ),
+            PresetFieldSpec(
+                key = "show_bearing",
+                label = "Bearing display",
+                defaultValue = current("show_bearing", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            ),
+            PresetFieldSpec(
+                key = "show_current_location",
+                label = "Current coordinates",
+                defaultValue = current("show_current_location", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            )
         )
         else -> values.keys.sorted().map { key ->
             PresetFieldSpec(

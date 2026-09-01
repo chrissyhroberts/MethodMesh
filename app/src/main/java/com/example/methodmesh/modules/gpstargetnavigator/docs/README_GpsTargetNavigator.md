@@ -25,7 +25,7 @@ automatically to the calling app. Manual/debug launches retain the separate
 ## Android intent
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='gps_target_navigator',input_target_name='Clinic',input_target_plus_code='6GCRPR6C+24',input_arrival_radius_m='50',input_show_ar_camera='true')
+com.example.methodmesh.EXECUTE_METHOD(method_id='gps_target_navigator',input_target_name='Clinic',input_target_plus_code='6GCRPR6C+24',input_arrival_radius_m='50',input_show_ar_camera='true',input_payload_mode='FULL',return_mode='flat')
 ```
 
 ## Inputs
@@ -47,6 +47,10 @@ Refusing camera permission does not prevent compass navigation.
 
 `target_name`, target and current coordinates, `accuracy_m`, `distance_m`, `bearing_deg`, `heading_deg`, `relative_bearing_deg`, `arrived`, `timestamp_ms`, `update_count`, and `status`. Saved outcomes also include navigation timing and trace evidence.
 
+For ODK/XLSForm use, the supplied example requests `input_payload_mode='FULL'`.
+The form receives the useful navigation fields directly plus
+`methodmesh_full_json` for the complete metadata/audit payload.
+
 ## ODK example
 
-[`example_odk_gps_target_navigator.xlsx`](example_odk_gps_target_navigator.xlsx) accepts either a full Plus Code or target coordinates plus an arrival radius, launches navigation, and receives the resulting location fields.
+[`example_odk_gps_target_navigator.xlsx`](example_odk_gps_target_navigator.xlsx) accepts either a full Plus Code or target coordinates plus an arrival radius, launches navigation, and receives the resulting location fields plus `methodmesh_full_json`.

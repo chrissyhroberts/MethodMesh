@@ -266,7 +266,7 @@ object As100LocateTargetMethod : As100Method {
             )
     }
 
-    fun recordNavigationOutcome(fields: Map<String, Any?>): ExecutionResult {
+    fun navigationOutcomeResult(fields: Map<String, Any?>): ExecutionResult {
         val request = request(action = ID, context = emptyMap())
         val provenance = ProvenanceContext(
             provider = "methodmesh.presentation.gps_target_navigator",
@@ -292,7 +292,11 @@ object As100LocateTargetMethod : As100Method {
             status = TransformationStatus.Succeeded,
             observations = listOf(observation),
             transformations = listOf(transformation)
-        ).also { ResearchRuntime.session.record(it) }
+        )
+    }
+
+    fun recordNavigationOutcome(fields: Map<String, Any?>): ExecutionResult {
+        return navigationOutcomeResult(fields).also { ResearchRuntime.session.record(it) }
     }
 
     private fun calculateOutputFields(

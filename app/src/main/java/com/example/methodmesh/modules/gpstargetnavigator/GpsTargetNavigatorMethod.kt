@@ -50,6 +50,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.methodmesh.core.ResearchRuntime
+import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.platform.camera.LiveCameraPreview
 import com.example.methodmesh.settings.MethodSetting
 import com.example.methodmesh.settings.SettingsState
@@ -133,7 +134,7 @@ class GpsTargetNavigatorInteraction {
     fun Render(
         settingsState: SettingsState,
         startsImmediately: Boolean = false,
-        onNavigationSaved: () -> Unit = {}
+        onNavigationSaved: (ExecutionResult) -> Unit = {}
     ) {
         val context = LocalContext.current
         var hasLocationPermission by remember {
@@ -435,7 +436,7 @@ class GpsTargetNavigatorInteraction {
                             endedAtMs = now
                             lifecycleState = NavigationLifecycle.Completed
                             settingsState.setString("status", "arrived")
-                            As100LocateTargetMethod.recordNavigationOutcome(
+                            val outcome = As100LocateTargetMethod.recordNavigationOutcome(
                                 buildNavigationOutcomeFields(
                                     settingsState = settingsState,
                                     status = "arrived",
@@ -445,7 +446,7 @@ class GpsTargetNavigatorInteraction {
                                 )
                             )
                             statusText = "Navigation result saved."
-                            onNavigationSaved()
+                            onNavigationSaved(outcome)
                         }
                     ) {
                         Text("Save navigation result")

@@ -205,7 +205,7 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='dce.ranking',input_rounds='3',i
 `gps_target_navigator`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='gps_target_navigator',input_target_name=${target_name_input},input_target_plus_code=${target_plus_code_input},input_target_latitude=${target_latitude_input},input_target_longitude=${target_longitude_input},input_arrival_radius_m=${arrival_radius_input},return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='gps_target_navigator',input_target_name=${target_name_input},input_target_plus_code=${target_plus_code_input},input_target_latitude=${target_latitude_input},input_target_longitude=${target_longitude_input},input_arrival_radius_m=${arrival_radius_input},input_payload_mode='FULL',return_mode='flat')
 ```
 
 ### [example_odk_plus_code.capture.xlsx](example_odk_plus_code.capture.xlsx)
