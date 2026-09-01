@@ -27,6 +27,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -662,6 +663,15 @@ private fun MissingLanguagePackPanel(
             if (modelStatus.isNotBlank()) {
                 Spacer(Modifier.height(4.dp))
                 Text(modelStatus, style = MaterialTheme.typography.bodySmall)
+            }
+            busyLanguageCode?.let { code ->
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Downloading ${languageLabel(code)}. Keep this screen open.",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {

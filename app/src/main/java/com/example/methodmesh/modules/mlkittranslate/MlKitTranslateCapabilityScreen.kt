@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -75,6 +76,7 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
         var targetMenuOpen by rememberSaveable { mutableStateOf(false) }
         var status by rememberSaveable { mutableStateOf(if (needsRuntimeText) "Enter text to translate." else "Ready.") }
         var downloaded by rememberSaveable { mutableStateOf("") }
+        var busyModelCode by rememberSaveable { mutableStateOf<String?>(null) }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
@@ -131,29 +133,35 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun download(code: String) {
-            status = "Downloading $code model…"
+            busyModelCode = code
+            status = "Downloading ${languageLabel(code)}…"
             val model = TranslateRemoteModel.Builder(code).build()
             RemoteModelManager.getInstance()
                 .download(model, DownloadConditions.Builder().build())
                 .addOnSuccessListener {
+                    busyModelCode = null
                     refreshModels()
                     complete(values("download"), true)
                 }
                 .addOnFailureListener { error ->
+                    busyModelCode = null
                     complete(values("download", error = "Download failed: ${error.message.orEmpty()}", state = "failed"), false)
                 }
         }
 
         fun delete(code: String) {
+            busyModelCode = code
             status = "Removing $code model…"
             val model = TranslateRemoteModel.Builder(code).build()
             RemoteModelManager.getInstance()
                 .deleteDownloadedModel(model)
                 .addOnSuccessListener {
+                    busyModelCode = null
                     refreshModels()
                     complete(values("delete"), true)
                 }
                 .addOnFailureListener { error ->
+                    busyModelCode = null
                     complete(values("delete", error = "Delete failed: ${error.message.orEmpty()}", state = "failed"), false)
                 }
         }
@@ -247,6 +255,12 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
                 }
             }
             Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
+            busyModelCode?.let { code ->
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(4.dp))
+                Text("Working on ${languageLabel(code)}. Keep this screen open.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+            }
             result?.let { execution ->
                 val translated = OutputFormatter.fields(
                     execution,
