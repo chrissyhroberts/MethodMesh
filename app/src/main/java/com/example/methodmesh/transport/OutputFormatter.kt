@@ -104,6 +104,7 @@ object OutputFormatter {
         if (key in calibratedScaleAuditFields) return false
         if (key in documentScanAuditFields) return false
         if (key in plusCodeAuditFields) return false
+        if (key in conversationTranslateAuditFields) return false
         if (key in imageRedactionAuditFields) return false
         if (key.endsWith("_json") || key.endsWith("_payload")) return false
         if (key.endsWith("_input_text") || key.endsWith("_source_language") || key.endsWith("_target_language")) return false
@@ -128,7 +129,8 @@ object OutputFormatter {
     private val headlineCoreFields = setOf(
         "barcode_payload",
         "plus_code",
-        "redacted_image_uri"
+        "redacted_image_uri",
+        "conversation_transcript"
     )
 
     private fun isAuditOrCoreField(key: String): Boolean =
@@ -136,6 +138,7 @@ object OutputFormatter {
             key in calibratedScaleAuditFields ||
             key in documentScanAuditFields ||
             key in plusCodeAuditFields ||
+            key in conversationTranslateAuditFields ||
             key in imageRedactionAuditFields ||
             key.startsWith("methodmesh_") ||
             key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id") ||
@@ -195,6 +198,21 @@ object OutputFormatter {
         "plus_code_selected_time_iso",
         "plus_code_audit_json",
         "plus_code_error"
+    )
+
+    private val conversationTranslateAuditFields = setOf(
+        "conversation_turns_json",
+        "conversation_language_a",
+        "conversation_language_b",
+        "conversation_label_a",
+        "conversation_label_b",
+        "conversation_spoken_output",
+        "conversation_prefer_offline",
+        "conversation_turn_count",
+        "conversation_started_time_iso",
+        "conversation_finished_time_iso",
+        "conversation_status",
+        "conversation_error"
     )
 
     private val imageRedactionAuditFields = setOf(

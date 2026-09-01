@@ -43,6 +43,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -86,6 +87,7 @@ import com.example.methodmesh.core.methodmesh.runtime.CapabilityConfigurationReg
 import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.modules.MethodMeshModule
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
+import com.example.methodmesh.modules.mlkittranslate.MlKitLanguageCatalog
 import com.example.methodmesh.modules.odkformlauncher.As100OdkFormLauncherMethod
 import com.example.methodmesh.platform.externalforms.ExternalFormCatalog
 import com.example.methodmesh.platform.externalforms.ExternalProjectRegistry
@@ -105,6 +107,9 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.ui.components.SettingsRenderer
 import com.example.methodmesh.ui.sensors.SensorDashboard
+import com.google.mlkit.common.model.DownloadConditions
+import com.google.mlkit.common.model.RemoteModelManager
+import com.google.mlkit.nl.translate.TranslateRemoteModel
 import com.example.methodmesh.platform.devices.DeviceRegistry
 import com.example.methodmesh.platform.devices.DeviceTransport
 import com.example.methodmesh.platform.devices.RegisteredDevice
@@ -137,7 +142,7 @@ private enum class DashboardDestination(val label: String) {
     Workbench("Workbench"),
     Capabilities("Capabilities"),
     State("Runtime state"),
-    Services("Device services")
+    Services("Settings")
 }
 
 private fun capabilityUiClass(method: As100Method, module: MethodMeshModule?): CapabilityUiClass {
@@ -1916,6 +1921,54 @@ private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<P
             PresetFieldSpec("input_text", "Text to translate", current("input_text"), runtimeInput = true),
             PresetFieldSpec("model_action", "Action", current("model_action", "translate"), runtimeInput = false)
         )
+        "conversation.translate" -> listOf(
+            PresetFieldSpec(
+                key = "language_a",
+                label = "First language",
+                defaultValue = current("language_a", "en"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = conversationLanguageChoices()
+            ),
+            PresetFieldSpec(
+                key = "language_b",
+                label = "Second language",
+                defaultValue = current("language_b", "es"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = conversationLanguageChoices()
+            ),
+            PresetFieldSpec(
+                key = "label_a",
+                label = "First button label",
+                defaultValue = current("label_a", "Speak"),
+                runtimeInput = false,
+                defaultFixed = true
+            ),
+            PresetFieldSpec(
+                key = "label_b",
+                label = "Second button label",
+                defaultValue = current("label_b", "Habla"),
+                runtimeInput = false,
+                defaultFixed = true
+            ),
+            PresetFieldSpec(
+                key = "spoken_output",
+                label = "Speak translations aloud",
+                defaultValue = current("spoken_output", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            ),
+            PresetFieldSpec(
+                key = "prefer_offline",
+                label = "Prefer offline speech recognition",
+                defaultValue = current("prefer_offline", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            )
+        )
         "barcode.scan" -> listOf(
             PresetFieldSpec(
                 key = "barcode_formats",
@@ -2229,6 +2282,12 @@ private fun yesNoChoices(): List<PresetChoiceSpec> = listOf(
     PresetChoiceSpec("false", "No")
 )
 
+private fun conversationLanguageChoices(): List<PresetChoiceSpec> = listOf(
+    *MlKitLanguageCatalog.supportedLanguages()
+        .map { PresetChoiceSpec(it.code, it.label) }
+        .toTypedArray()
+)
+
 private fun presetEditableSettingsFor(methodId: String, values: Map<String, Any>): Map<String, Any> = when (methodId) {
     "admin_fingerprint_confirmation" -> mapOf(
         "authentication_method" to "biometric_or_device_credential",
@@ -2244,6 +2303,24 @@ private fun presetEditableSettingsFor(methodId: String, values: Map<String, Any>
         "sms_phone" to "",
         "sms_message" to ""
     ) + values
+    "conversation.translate" -> {
+        val allowed = setOf(
+            "language_a",
+            "language_b",
+            "label_a",
+            "label_b",
+            "spoken_output",
+            "prefer_offline"
+        )
+        mapOf(
+            "language_a" to (values["language_a"] ?: "en"),
+            "language_b" to (values["language_b"] ?: "es"),
+            "label_a" to (values["label_a"] ?: "Speak"),
+            "label_b" to (values["label_b"] ?: "Habla"),
+            "spoken_output" to (values["spoken_output"] ?: "true"),
+            "prefer_offline" to (values["prefer_offline"] ?: "true")
+        ) + values.filterKeys { it in allowed }
+    }
     "calibrated_scale" -> {
         val allowed = setOf(
             "prompt",
@@ -2338,6 +2415,7 @@ private fun runtimeInputKeysFor(methodId: String): Set<String> = when (methodId)
     "sms.send" -> setOf("sms_message", "message")
     "gps_target_navigator" -> setOf("target_plus_code", "plus_code", "target_latitude", "target_longitude", "latitude", "longitude", "lat", "lon", "lng")
     "plus_code.capture" -> emptySet()
+    "conversation.translate" -> emptySet()
     "question.text" -> setOf("answer", "response", "value", "text_answer")
     "question.number" -> setOf("answer", "response", "value", "number_answer")
     "question.select_one", "question.select_multiple" -> setOf("answer", "response", "selected", "value")
@@ -2614,6 +2692,7 @@ private fun RuntimeStateCard(expandedByDefault: Boolean = false) {
 @Composable
 private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
     var displayExpanded by rememberSaveable { mutableStateOf(expandedByDefault) }
+    var languageExpanded by rememberSaveable { mutableStateOf(expandedByDefault) }
     var calibrationExpanded by rememberSaveable { mutableStateOf(false) }
     var signalsExpanded by rememberSaveable { mutableStateOf(false) }
 
@@ -2624,9 +2703,9 @@ private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
         elevation = CardDefaults.elevatedCardElevation(2.dp)
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text("Device services", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
-                "Signal-source independent services used by capabilities.",
+                "Shared device settings and services used by capabilities.",
                 modifier = Modifier.padding(top = 4.dp),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -2641,6 +2720,18 @@ private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
             if (displayExpanded) {
                 Spacer(Modifier.height(8.dp))
                 DisplaySettingsScreen()
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .clickable { languageExpanded = !languageExpanded }
+            ) {
+                Text(if (languageExpanded) "▼ Language packs" else "▶ Language packs", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+            }
+            if (languageExpanded) {
+                Spacer(Modifier.height(8.dp))
+                MlKitLanguagePacksScreen()
             }
             Row(
                 modifier = Modifier
@@ -2666,6 +2757,133 @@ private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
                 Spacer(Modifier.height(8.dp))
                 SensorDashboard()
             }
+        }
+    }
+}
+
+@Composable
+private fun MlKitLanguagePacksScreen() {
+    var downloadedCodes by rememberSaveable { mutableStateOf("") }
+    var busyCode by rememberSaveable { mutableStateOf<String?>(null) }
+    var status by rememberSaveable { mutableStateOf("Checking language packs…") }
+    val supportedCodes = remember { MlKitLanguageCatalog.supportedCodes() }
+    val allLanguages = remember { MlKitLanguageCatalog.allKnownLanguages() }
+
+    fun refresh() {
+        RemoteModelManager.getInstance()
+            .getDownloadedModels(TranslateRemoteModel::class.java)
+            .addOnSuccessListener { models ->
+                downloadedCodes = models.mapNotNull { it.language }.sorted().joinToString(",")
+                status = if (downloadedCodes.isBlank()) "No language packs downloaded." else "Language packs ready."
+            }
+            .addOnFailureListener { error ->
+                status = "Could not check language packs: ${error.message.orEmpty()}"
+            }
+    }
+
+    fun download(code: String) {
+        busyCode = code
+        status = "Downloading ${MlKitLanguageCatalog.label(code)}…"
+        RemoteModelManager.getInstance()
+            .download(TranslateRemoteModel.Builder(code).build(), DownloadConditions.Builder().build())
+            .addOnSuccessListener {
+                busyCode = null
+                status = "${MlKitLanguageCatalog.label(code)} downloaded."
+                refresh()
+            }
+            .addOnFailureListener { error ->
+                busyCode = null
+                status = "Download failed for ${MlKitLanguageCatalog.label(code)}: ${error.message.orEmpty()}"
+            }
+    }
+
+    fun delete(code: String) {
+        busyCode = code
+        status = "Removing ${MlKitLanguageCatalog.label(code)}…"
+        RemoteModelManager.getInstance()
+            .deleteDownloadedModel(TranslateRemoteModel.Builder(code).build())
+            .addOnSuccessListener {
+                busyCode = null
+                status = "${MlKitLanguageCatalog.label(code)} removed."
+                refresh()
+            }
+            .addOnFailureListener { error ->
+                busyCode = null
+                status = "Remove failed for ${MlKitLanguageCatalog.label(code)}: ${error.message.orEmpty()}"
+            }
+    }
+
+    LaunchedEffect(Unit) { refresh() }
+
+    val downloaded = downloadedCodes.split(',').map { it.trim() }.filter { it.isNotBlank() }.toSet()
+    val downloadedLanguages = allLanguages.filter { it.code in downloaded }
+    val availableLanguages = allLanguages.filter { it.code !in downloaded && it.code in supportedCodes }
+    val unsupportedLanguages = allLanguages.filter { it.code !in supportedCodes }
+
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            "Shared by ML Kit translation capabilities. Download before going off-grid.",
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = ::refresh, modifier = Modifier.fillMaxWidth()) { Text("Refresh language packs") }
+        Spacer(Modifier.height(8.dp))
+        Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(10.dp))
+        Text("Downloaded", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        if (downloadedLanguages.isEmpty()) {
+            Text("None yet.", style = MaterialTheme.typography.bodySmall)
+        } else {
+            downloadedLanguages.forEach { language ->
+                LanguagePackRow(
+                    label = "${language.label} · stored",
+                    action = if (busyCode == language.code) "…" else "🗑",
+                    enabled = busyCode == null,
+                    onAction = { delete(language.code) }
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Text("Tap to download", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        availableLanguages.forEach { language ->
+            LanguagePackRow(
+                label = language.label,
+                action = if (busyCode == language.code) "…" else "↓",
+                enabled = busyCode == null,
+                onAction = { download(language.code) }
+            )
+        }
+        if (unsupportedLanguages.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            Text("Not available in ML Kit on this device", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            unsupportedLanguages.forEach { language ->
+                LanguagePackRow(
+                    label = language.label,
+                    action = "—",
+                    enabled = false,
+                    onAction = {}
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguagePackRow(
+    label: String,
+    action: String,
+    enabled: Boolean,
+    onAction: () -> Unit
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        OutlinedButton(onClick = onAction, enabled = enabled, modifier = Modifier.width(64.dp)) {
+            Text(action)
         }
     }
 }

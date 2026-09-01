@@ -294,26 +294,8 @@ private fun LanguagePicker(label: String, selected: String, expanded: Boolean, s
 }
 
 private fun mlKitLanguages(): List<String> =
-    runCatching { TranslateLanguage.getAllLanguages().sorted() }.getOrElse { commonMlKitLanguageCodes }
+    MlKitLanguageCatalog.supportedLanguages().map { it.code }
 
 private fun availableLanguagesText(): String = mlKitLanguages().joinToString(",")
 
-private fun languageLabel(code: String): String = "$code${languageName(code)?.let { " · $it" }.orEmpty()}"
-
-private fun languageName(code: String): String? = when (code) {
-    "en" -> "English"
-    "fr" -> "French"
-    "es" -> "Spanish"
-    "pt" -> "Portuguese"
-    "de" -> "German"
-    "it" -> "Italian"
-    "ar" -> "Arabic"
-    "hi" -> "Hindi"
-    "sw" -> "Swahili"
-    "zh" -> "Chinese"
-    "ja" -> "Japanese"
-    "ko" -> "Korean"
-    "ru" -> "Russian"
-    "uk" -> "Ukrainian"
-    else -> null
-}
+private fun languageLabel(code: String): String = MlKitLanguageCatalog.label(code)

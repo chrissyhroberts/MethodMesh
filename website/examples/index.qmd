@@ -198,6 +198,16 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='dce.points',input_points='100',
 com.example.methodmesh.EXECUTE_METHOD(method_id='dce.ranking',input_rounds='3',input64_items='Q2xpbmljIEEKQ2xpbmljIEIKQ2xpbmljIEMKQ2xpbmljIEQ',input_seed='participant_001',return_mode='flat')
 ```
 
+### [example_odk_conversation.translate.xlsx](example_odk_conversation.translate.xlsx)
+
+**example_odk_conversation.translate**
+
+`conversation.translate`
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='conversation.translate',input_language_a=${language_a_input},input_language_b=${language_b_input},input_spoken_output=${spoken_output_input},input_prefer_offline=${prefer_offline_input},input_payload_mode='FULL',return_mode='flat')
+```
+
 ### [example_odk_gps_target_navigator.xlsx](example_odk_gps_target_navigator.xlsx)
 
 **example_odk_gps_target_navigator**

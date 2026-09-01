@@ -232,6 +232,42 @@ class OutputFormatterTest {
         assertFalse(projected.containsKey("plus_code_centroid_latitude"))
     }
 
+    @Test
+    fun `conversation translation core projection keeps only transcript`() {
+        val fields = mapOf(
+            "conversation_transcript" to "Speak (en): hello\nes · Spanish: hola",
+            "conversation_turns_json" to """[{"original_text":"hello","translated_text":"hola"}]""",
+            "conversation_language_a" to "en",
+            "conversation_language_b" to "es",
+            "conversation_spoken_output" to "true",
+            "conversation_turn_count" to "1",
+            "conversation_status" to "succeeded"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.CORE, TransformationStatus.Succeeded)
+
+        assertEquals(mapOf("conversation_transcript" to "Speak (en): hello\nes · Spanish: hola"), projected)
+    }
+
+    @Test
+    fun `conversation translation full projection keeps transcript and background json`() {
+        val fields = mapOf(
+            "conversation_transcript" to "Speak (en): hello\nes · Spanish: hola",
+            "conversation_turns_json" to """[{"original_text":"hello","translated_text":"hola"}]""",
+            "conversation_language_a" to "en",
+            "conversation_language_b" to "es",
+            "methodmesh_execution_id" to "exec-conversation",
+            "methodmesh_status" to "Succeeded"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.FULL, TransformationStatus.Succeeded)
+
+        assertEquals("Speak (en): hello\nes · Spanish: hola", projected["conversation_transcript"])
+        assertEquals("exec-conversation", projected["methodmesh_execution_id"])
+        assertTrue(projected["methodmesh_full_json"].toString().contains("conversation_turns_json"))
+        assertFalse(projected.containsKey("conversation_turns_json"))
+    }
+
     // ── OutputFormatter.format – ReturnMode formatting ───────────────────────
 
     @Test
