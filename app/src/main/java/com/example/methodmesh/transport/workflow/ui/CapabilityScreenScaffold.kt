@@ -237,7 +237,7 @@ fun CapabilityScreenScaffold(
                                 .onSuccess { shareStatus = "Sharing result…" }
                                 .onFailure { shareStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
                         }
-                    ) { Text(if (mediaResultUris.isNotEmpty()) "Share image" else "Share result") }
+                    ) { Text(if (mediaResultUris.isNotEmpty()) shareMediaLabel(mediaResultUris) else "Share result") }
                     if (mediaResultUris.size > 1) {
                         Spacer(Modifier.height(8.dp))
                         OutlinedButton(
@@ -593,6 +593,16 @@ private fun shareMediaUris(context: android.content.Context, uris: List<Uri>) {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     context.startActivity(Intent.createChooser(intent, "Share media").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+}
+
+private fun shareMediaLabel(uris: List<Uri>): String {
+    if (uris.size > 1) return "Share files"
+    val value = uris.firstOrNull()?.toString().orEmpty().lowercase()
+    return when {
+        value.endsWith(".pdf") || value.contains("pdf") -> "Share document"
+        value.endsWith(".jpg") || value.endsWith(".jpeg") || value.endsWith(".png") || value.endsWith(".webp") || value.contains("image") -> "Share image"
+        else -> "Share file"
+    }
 }
 
 private fun humanShareText(fields: Map<String, Any?>): String {

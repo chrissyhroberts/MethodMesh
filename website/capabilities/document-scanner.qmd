@@ -40,7 +40,7 @@ Add a current capability dashboard or execution screenshot at:
 ## Supported XLSForm calls
 
 ``` text
-com.example.methodmesh.EXECUTE_METHOD(method_id='document.scan',input_page_limit='10',input_scanner_mode='full',input_run_ocr='true',input_return_searchable_pdf='true',input_return_text_file='true',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='document.scan',input_page_limit='10',input_scanner_mode='full',input_allow_gallery_import='true',input_run_ocr='true',input_return_searchable_pdf='true',input_return_text_file='true',input_payload_mode='FULL',return_mode='flat')
 ```
 
 
@@ -62,8 +62,10 @@ Core return:
 
 - `document_scan_searchable_pdf_uri`
 - `document_scan_ocr_text`
+- `document_scan_pdf_uri` when searchable PDF output is disabled or unavailable
 
-Audit and full JSON payload modes additionally include page count, raw page
+Audit and full JSON payload modes additionally include `methodmesh_full_json`,
+page count, raw page
 image URIs, the original scanner PDF URI, OCR text file URI, OCR page count,
 scanner mode, gallery import setting, page limit, scan timestamp, and any error
 message.
@@ -71,3 +73,14 @@ message.
 When searchable PDF output is enabled and creation succeeds, MethodMesh exports
 the searchable PDF in preference to the original scanner PDF. The normal package
 therefore contains one PDF, not duplicate scanner and searchable PDFs.
+
+Native preset/intent runs inherit saved scan settings, open the scanner
+immediately, and hide setup controls. The completed document payload is restored
+after Android orientation changes.
+
+Native sharing is document-first: sharing from the result screen sends the
+returned PDF/document media rather than a block of metadata text.
+
+## ODK example
+
+- [`example_odk_document.scan.xlsx`](../examples/example_odk_document.scan.xlsx)

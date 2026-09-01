@@ -48,6 +48,7 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.time.Instant
 import kotlin.math.min
@@ -73,7 +74,19 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
         var returnTextFile by rememberSaveable { mutableStateOf((context.action.settings["return_text_file"] ?: context.action.settings["input_return_text_file"] ?: "true").equals("true", true)) }
         var status by rememberSaveable { mutableStateOf("Ready to scan a paper document.") }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
-        var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        var resultFieldsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val resultValues = remember(resultFieldsJson) { resultFieldsJson?.let(::documentScannerValuesFromJson) }
+        val result = remember(resultValues, context.request.invocationContext) {
+            resultValues?.let { values ->
+                val request = As100DocumentScannerMethod.request(
+                    action = As100DocumentScannerMethod.ID,
+                    context = context.request.invocationContext.asMap(As100DocumentScannerMethod.ID) + context.action.settings,
+                    signals = emptyList(),
+                    inputs = emptyList()
+                )
+                As100DocumentScannerMethod.result(request, values, context.request.invocationContext)
+            }
+        }
 
         LaunchedEffect(pageLimitText, scannerMode, allowGallery, runOcr, returnSearchablePdf, returnTextFile) {
             context.onSettingsChanged(
@@ -96,7 +109,7 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
                 inputs = emptyList()
             )
             val execution = As100DocumentScannerMethod.result(request, values, context.request.invocationContext)
-            result = execution
+            resultFieldsJson = documentScannerValuesJson(values)
             status = if (succeeded) "Document scan complete." else values[DocumentScannerFields.ERROR] ?: "Document scan failed."
             if (context.submitsImmediately && succeeded) onConfirmed(execution)
         }
@@ -118,7 +131,7 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun start() {
-            result = null
+            resultFieldsJson = null
             val activity = appContext.findActivity()
             if (activity == null) {
                 complete(failureValues(pageLimitText, scannerMode, allowGallery, "No Android activity was available to launch the scanner."), false)
@@ -142,8 +155,8 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
                 }
         }
 
-        LaunchedEffect(context.presentationMode, context.action.settings) {
-            if (context.presentationMode == com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode.IntentLaunch && !launched) {
+        LaunchedEffect(context.startsImmediately, context.action.settings) {
+            if (context.startsImmediately && !launched && result == null) {
                 launched = true
                 start()
             }
@@ -157,57 +170,78 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
             capturedResult = result,
             resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
             onBack = onBack,
-            onRetry = { start() },
+            onRetry = {
+                launched = true
+                start()
+            },
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
             Text("Scan paper pages, straighten them, and return a searchable PDF plus extracted text.", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = pageLimitText,
-                onValueChange = { pageLimitText = it.filter(Char::isDigit).take(2) },
-                label = { Text("Maximum pages") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-            ScannerModeChooser(scannerMode = scannerMode, onScannerModeSelected = { scannerMode = it })
-            DocumentScannerToggle(
-                checked = allowGallery,
-                onCheckedChange = { allowGallery = it },
-                label = "Allow gallery import",
-                description = "Permit choosing existing page images as well as using the camera."
-            )
-            DocumentScannerToggle(
-                checked = runOcr,
-                onCheckedChange = { runOcr = it },
-                label = "OCR",
-                description = "Read printed text from each page on device."
-            )
-            DocumentScannerToggle(
-                checked = returnSearchablePdf,
-                onCheckedChange = { returnSearchablePdf = it },
-                label = "Searchable PDF",
-                description = "Create a PDF attachment containing the scanned pages and OCR text."
-            )
-            DocumentScannerToggle(
-                checked = returnTextFile,
-                onCheckedChange = { returnTextFile = it },
-                label = "OCR text file",
-                description = "Also attach the extracted text as a plain .txt file."
-            )
-            Spacer(Modifier.height(8.dp))
+            if (!context.startsImmediately) {
+                OutlinedTextField(
+                    value = pageLimitText,
+                    onValueChange = { pageLimitText = it.filter(Char::isDigit).take(2) },
+                    label = { Text("Maximum pages") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                ScannerModeChooser(scannerMode = scannerMode, onScannerModeSelected = { scannerMode = it })
+                DocumentScannerToggle(
+                    checked = allowGallery,
+                    onCheckedChange = { allowGallery = it },
+                    label = "Allow gallery import",
+                    description = "Permit choosing existing page images as well as using the camera."
+                )
+                DocumentScannerToggle(
+                    checked = runOcr,
+                    onCheckedChange = { runOcr = it },
+                    label = "OCR",
+                    description = "Read printed text from each page on device."
+                )
+                DocumentScannerToggle(
+                    checked = returnSearchablePdf,
+                    onCheckedChange = { returnSearchablePdf = it },
+                    label = "Searchable PDF",
+                    description = "Create a PDF attachment containing the scanned pages and OCR text."
+                )
+                DocumentScannerToggle(
+                    checked = returnTextFile,
+                    onCheckedChange = { returnTextFile = it },
+                    label = "OCR text file",
+                    description = "Also attach the extracted text as a plain .txt file."
+                )
+                Spacer(Modifier.height(8.dp))
+            }
             Text(
                 "Configured: up to ${pageLimitText.toIntOrNull()?.coerceIn(1, 50) ?: 10} page(s), mode $scannerMode, OCR ${if (runOcr) "on" else "off"}, searchable PDF ${if (returnSearchablePdf) "on" else "off"}.",
                 style = MaterialTheme.typography.bodySmall
             )
             Spacer(Modifier.height(12.dp))
-            Button(onClick = { start() }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (result == null) "Open document scanner" else "Scan again")
+            if (!context.startsImmediately || result != null) {
+                Button(onClick = {
+                    launched = true
+                    start()
+                }, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (result == null) "Open document scanner" else "Scan again")
+                }
             }
             Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
         }
     }
 }
+
+private fun documentScannerValuesJson(values: Map<String, String>): String =
+    JSONObject().apply {
+        values.forEach { (key, value) -> put(key, value) }
+    }.toString()
+
+private fun documentScannerValuesFromJson(json: String): Map<String, String> =
+    runCatching {
+        val root = JSONObject(json)
+        root.keys().asSequence().associateWith { key -> root.optString(key) }
+    }.getOrElse { emptyMap() }
 
 @Composable
 private fun DocumentScannerToggle(

@@ -1974,6 +1974,60 @@ private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<P
                 )
             )
         )
+        "document.scan" -> listOf(
+            PresetFieldSpec(
+                key = "page_limit",
+                label = "Maximum pages",
+                defaultValue = current("page_limit", "10"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = listOf("1", "2", "3", "5", "10", "20", "50").map { PresetChoiceSpec(it, it) }
+            ),
+            PresetFieldSpec(
+                key = "scanner_mode",
+                label = "Scanner mode",
+                defaultValue = current("scanner_mode", "full"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = listOf(
+                    PresetChoiceSpec("full", "Full scanner", "Best default: crop, filter, and cleanup tools."),
+                    PresetChoiceSpec("base_with_filter", "Basic + filters", "Simpler scan flow with image filters."),
+                    PresetChoiceSpec("base", "Basic", "Fastest scan flow.")
+                )
+            ),
+            PresetFieldSpec(
+                key = "allow_gallery_import",
+                label = "Gallery import",
+                defaultValue = current("allow_gallery_import", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            ),
+            PresetFieldSpec(
+                key = "run_ocr",
+                label = "OCR",
+                defaultValue = current("run_ocr", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            ),
+            PresetFieldSpec(
+                key = "return_searchable_pdf",
+                label = "Searchable PDF",
+                defaultValue = current("return_searchable_pdf", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            ),
+            PresetFieldSpec(
+                key = "return_text_file",
+                label = "OCR text file",
+                defaultValue = current("return_text_file", "true"),
+                runtimeInput = false,
+                defaultFixed = true,
+                singleChoices = yesNoChoices()
+            )
+        )
         "gps_target_navigator" -> listOf(
             PresetFieldSpec("arrival_radius_m", "Arrival radius (m)", current("arrival_radius_m", "10"), runtimeInput = false, defaultFixed = true),
             PresetFieldSpec("show_ar_camera", "Open AR camera", current("show_ar_camera", "true"), runtimeInput = false, defaultFixed = true),
@@ -1998,6 +2052,11 @@ private fun redactionGridChoices(): List<PresetChoiceSpec> =
     listOf("6", "8", "10", "12", "16", "20", "25", "50").map { value ->
         PresetChoiceSpec(value, value)
     }
+
+private fun yesNoChoices(): List<PresetChoiceSpec> = listOf(
+    PresetChoiceSpec("true", "Yes"),
+    PresetChoiceSpec("false", "No")
+)
 
 private fun presetEditableSettingsFor(methodId: String, values: Map<String, Any>): Map<String, Any> = when (methodId) {
     "admin_fingerprint_confirmation" -> mapOf(

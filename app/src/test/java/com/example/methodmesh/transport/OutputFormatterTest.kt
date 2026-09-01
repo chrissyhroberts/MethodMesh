@@ -128,6 +128,29 @@ class OutputFormatterTest {
         assertEquals(mapOf("redacted_image_uri" to "content://com.example.methodmesh/redacted.jpg"), projected)
     }
 
+    @Test
+    fun `core projection keeps document scan media and text without scanner metadata`() {
+        val fields = mapOf(
+            "document_scan_searchable_pdf_uri" to "content://com.example.methodmesh/document.pdf",
+            "document_scan_ocr_text" to "Page 1\nHello",
+            "document_scan_page_count" to "1",
+            "document_scan_mode" to "full",
+            "document_scan_gallery_import_allowed" to "true",
+            "document_scan_page_limit" to "10",
+            "document_scan_time_iso" to "2026-09-01T00:00:00Z"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.CORE, TransformationStatus.Succeeded)
+
+        assertEquals(
+            mapOf(
+                "document_scan_searchable_pdf_uri" to "content://com.example.methodmesh/document.pdf",
+                "document_scan_ocr_text" to "Page 1\nHello"
+            ),
+            projected
+        )
+    }
+
     // ── OutputFormatter.format – ReturnMode formatting ───────────────────────
 
     @Test

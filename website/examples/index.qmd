@@ -308,6 +308,16 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='protocol_nfc_complete',input_pr
 com.example.methodmesh.EXECUTE_METHOD(method_id='barcode.scan',input_barcode_formats=${barcode_formats_input},return_mode='flat')
 ```
 
+### [example_odk_document.scan.xlsx](example_odk_document.scan.xlsx)
+
+**document.scan**
+
+`document.scan`
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='document.scan',input_page_limit='10',input_scanner_mode='full',input_allow_gallery_import='true',input_run_ocr='true',input_return_searchable_pdf='true',input_return_text_file='true',input_payload_mode='FULL',return_mode='flat')
+```
+
 ### [example_odk_image.redact.xlsx](example_odk_image.redact.xlsx)
 
 **image.redact**
