@@ -69,5 +69,6 @@ fun MethodSetting.defaultValue(): Any {
         is MethodSetting.FloatSetting -> defaultValue
         is MethodSetting.TextSetting -> defaultValue
         is MethodSetting.ChoiceSetting -> defaultValue
+        is MethodSetting.MultiChoiceSetting -> defaultValue
     }
 }

@@ -59,18 +59,18 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
         var text by rememberSaveable { mutableStateOf(context.action.settings["input_text"] ?: context.action.settings["input_input_text"] ?: "") }
         val action = context.action.settings["model_action"] ?: context.action.settings["input_model_action"] ?: "translate"
         val modelLanguage = context.action.settings["model_language"] ?: context.action.settings["input_model_language"]
-        val runtimeFields = (context.action.settings["methodmesh_runtime_fields"] ?: context.action.settings["input_methodmesh_runtime_fields"]).orEmpty()
-            .split(',')
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-            .toSet()
-        val nativePresetRun = (context.action.settings["methodmesh_native_preset_run"] ?: context.action.settings["input_methodmesh_native_preset_run"]) == "true"
         val hasSuppliedText = remember(context.action.settings, context.request.settings) {
             listOf("input_text", "input_input_text", "text")
                 .any { key -> context.action.settings[key].orEmpty().isNotBlank() || context.request.settings[key].orEmpty().isNotBlank() }
         }
-        val needsRuntimeText = action == "translate" && (text.isBlank() || "input_text" in runtimeFields || "text" in runtimeFields)
-        val needsRuntimeLanguages = "source_language" in runtimeFields || "target_language" in runtimeFields
+        val needsRuntimeText = action == "translate" && (
+            text.isBlank() ||
+                context.settingIsRuntimeInput("input_text") ||
+                context.settingIsRuntimeInput("text")
+            )
+        val needsRuntimeSource = context.settingIsRuntimeInput("source_language")
+        val needsRuntimeTarget = context.settingIsRuntimeInput("target_language")
+        val needsRuntimeLanguages = needsRuntimeSource || needsRuntimeTarget
         val compactInputOnly = context.presentationMode == CapabilityPresentationMode.IntentLaunch && needsRuntimeText && !needsRuntimeLanguages
         var sourceMenuOpen by rememberSaveable { mutableStateOf(false) }
         var targetMenuOpen by rememberSaveable { mutableStateOf(false) }
@@ -196,8 +196,8 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
                 }
         }
 
-        LaunchedEffect(context.startsImmediately, nativePresetRun, hasSuppliedText, needsRuntimeText, needsRuntimeLanguages) {
-            val shouldAutoRun = context.startsImmediately || (nativePresetRun && !needsRuntimeText && !needsRuntimeLanguages)
+        LaunchedEffect(context.startsImmediately, context.isNativePresetRun, hasSuppliedText, needsRuntimeText, needsRuntimeLanguages) {
+            val shouldAutoRun = context.startsImmediately || (context.isNativePresetRun && !needsRuntimeText && !needsRuntimeLanguages)
             if (shouldAutoRun && !launched && (!needsRuntimeText || hasSuppliedText)) {
                 launched = true
                 when (action) {
@@ -229,16 +229,22 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
             )
             Spacer(Modifier.height(10.dp))
             if (!compactInputOnly || needsRuntimeLanguages) {
+                if (needsRuntimeSource || !context.isNativePresetRun) {
                 LanguagePicker("Source language", source, sourceMenuOpen, { sourceMenuOpen = it }) { source = it }
                 Spacer(Modifier.height(8.dp))
+                }
+                if (needsRuntimeTarget || !context.isNativePresetRun) {
                 LanguagePicker("Target language", target, targetMenuOpen, { targetMenuOpen = it }) { target = it }
                 Spacer(Modifier.height(8.dp))
+                }
             } else {
                 Text("${languageLabel(source)} → ${languageLabel(target)}", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
             }
-            OutlinedTextField(value = text, onValueChange = { text = it }, label = { Text("Text to translate") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-            Spacer(Modifier.height(10.dp))
+            if (needsRuntimeText || !context.isNativePresetRun) {
+                OutlinedTextField(value = text, onValueChange = { text = it }, label = { Text("Text to translate") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                Spacer(Modifier.height(10.dp))
+            }
             Row(Modifier.fillMaxWidth()) {
                 Button(onClick = { translate() }, modifier = Modifier.weight(1f), enabled = text.isNotBlank()) { Text("Translate") }
             }

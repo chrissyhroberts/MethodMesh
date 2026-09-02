@@ -30,7 +30,7 @@ except ImportError:
 
 # Adjust these for your ESP32-C3 board if needed. Many ESP32-C3 dev boards use
 # GPIO 8/9 for I2C, but boards vary.
-FIRMWARE_VERSION = "methodmesh-sensor-0.1.6"
+FIRMWARE_VERSION = "methodmesh-sensor-0.1.7"
 DEFAULT_DEVICE_NAME = "MethodMesh-Sensor"
 DEFAULT_DEVICE_ID = "esp32c3-" + "".join("%02x" % b for b in unique_id()[-3:])
 CONFIG_FILE = "methodmesh_sensor_config.json"
@@ -40,7 +40,7 @@ I2C_SDA_PIN = 8
 I2C_SCL_PIN = 9
 I2C_FREQUENCY = 100000
 LD2410C_UART_ID = 1
-LD2410C_TX_PIN = 21
+LD2410C_TX_PIN = 5
 LD2410C_RX_PIN = 4
 LD2410C_BAUD = 256000
 DEFAULT_SAMPLE_INTERVAL_MS = 5000

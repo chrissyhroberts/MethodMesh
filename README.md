@@ -1,253 +1,235 @@
 # MethodMesh
 
-> **An open architecture for scientific knowledge, interoperable research methods and reusable digital research infrastructure.**
+**Do Stuff.**
 
-MethodMesh is an open, modular architecture for designing, executing and preserving scientific research.
+MethodMesh is an offline-first Android toolbox for fieldwork, research workflows and practical device services. It lets a phone run useful local capabilities — scanning documents, reading barcodes, navigating to targets, translating conversations, capturing Plus Codes, redacting images, checking local authentication, reading sensors, printing, and more — while still returning structured outputs to systems such as ODK Collect.
 
-It separates scientific knowledge from software implementation, allowing methods, applications and services to evolve independently while remaining interoperable.
+The project has two jobs:
 
-Rather than replacing existing research software, MethodMesh provides a common conceptual model and execution architecture that can be embedded within existing ecosystems such as ODK, KoBoToolbox, REDCap and custom research applications.
+- Make common field tasks simple when used directly as a native Android toolbox.
+- Provide a clean capability runtime that ODK/XLSForm, protocols and presets can call without each integration having to reinvent the app.
 
-MethodMesh is designed around a simple principle:
-
-> **Research should outlive the software used to perform it.**
-
----
-
-# Vision
-
-Research software has traditionally been built as isolated applications that combine user interface, workflow, storage and scientific logic into a single system.
-
-MethodMesh instead treats research as a collection of interoperable concepts:
-
-- things being studied;
-- scientific observations;
-- evidence-supported assertions;
-- repeatable methods;
-- declarative intent.
-
-Applications become interchangeable views onto a shared knowledge architecture rather than isolated data silos.
+The short version: MethodMesh tries to give users the beef, not the salad. Native runs show and share the main result. ODK-style calls receive the main result plus a structured JSON audit payload in the background.
 
 ---
 
-# Architecture
+## Current shape of the app
 
-MethodMesh is organised into complementary layers.
+MethodMesh is organised around a few top-level areas.
+
+- **Dashboard** — shortcuts, recent activity, active schedules and the main “find a capability / find a preset” entry point.
+- **Presets** — saved capability setups. Presets can hard-code some settings and ask for others at runtime.
+- **Protocols** — chained field workflows and scheduled actions.
+- **Capabilities** — production-ready primitives for real use.
+- **Workbench** — development, hardware, inspector and diagnostic tools.
+- **Device registry** — known local devices and sensor nodes.
+- **Settings** — shared services such as ML Kit language packs, output storage and app preferences.
+
+The UI is deliberately being pushed toward a simple rule:
+
+> Configure it once, test it in the same screen, save it as a preset if useful, and show only the result when it runs.
+
+---
+
+## Production capabilities
+
+The currently polished production set is:
+
+| Capability | Method ID | Main native result |
+| --- | --- | --- |
+| Barcode scanner | `qr.scan` | Decoded barcode or QR payload |
+| Calibrated scale | `calibrated_scale` | Selected value or range |
+| Document scanner | `document.scan` | PDF/searchable PDF and extracted text |
+| GPS target navigator | `gps_target_navigator` | Arrival/navigation result |
+| Plus Code capture | `plus_code.capture` | Full global Plus Code |
+| Image redaction | `image.redact` | Redacted image |
+| Local device authentication | `admin_fingerprint_confirmation` | Authentication result |
+| Conversation translator | `conversation.translate` | Conversation transcript and translated speech |
+
+Production capabilities are expected to meet the same four checks:
+
+1. Native runs preserve their result across orientation changes.
+2. Preset setup uses appropriate controls such as toggles, checkboxes and dropdowns, not raw text boxes unless free text is genuinely needed.
+3. Presets honour fixed settings and only ask for runtime inputs.
+4. Sharing returns the main useful result, while ODK/XLSForm returns the main result plus JSON metadata.
+
+Other modules may exist in development or workbench areas while they are being reviewed.
+
+---
+
+## Presets, runtime inputs and ODK calls
+
+Every capability declares its own settings and outputs. The shared UI renders those settings generically; it does not hard-code knowledge about individual capabilities.
+
+Preset creation follows this workflow:
+
+1. Open a capability.
+2. Configure and test it in the normal capability screen.
+3. Save the current setup as a preset.
+4. Choose which settings are fixed in the preset and which should be asked at runtime.
+5. Name the preset.
+
+When a preset runs natively, fixed settings are hidden. Runtime inputs appear first, then the action runs and presents a clear result screen. The result screen supports sharing, saving/exporting when wanted, retrying, or returning home.
+
+When called from ODK or another external workflow, the caller supplies its own values and receives structured outputs through the MethodMesh intent boundary. The normal pattern is:
+
+- one or more main output fields for the thing the user actually cares about;
+- an optional JSON field containing audit metadata, configuration, provenance and supporting values;
+- media attachments when the result is a file, image, PDF or similar.
+
+---
+
+## Offline-first field use
+
+MethodMesh is designed for field conditions where network access may be absent, expensive or unreliable.
+
+Examples:
+
+- **Plus Code capture** calculates Open Location Code locally. Online map tiles can help the user identify buildings, but the code itself does not require Google APIs, geocoding or a lookup service.
+- **ML Kit translation and conversation translation** use downloaded on-device language packs. Shared language packs are managed in Settings.
+- **Document scanner and image redaction** work as local phone tasks and return local files.
+- **GPS navigator** runs against latitude/longitude or Plus Code targets and includes an AR camera guidance view.
+- **BLE sensor tools** support MethodMesh ESP32 sensor images, provisioning, live reads and diagnostics.
+
+Online services may be used where they improve the user experience, such as online map tiles, but capability logic should remain as local and deterministic as practical.
+
+---
+
+## Capabilities and the “golden rule”
+
+Capabilities own their own behaviour.
+
+The core app provides:
+
+- capability discovery;
+- generic configuration rendering;
+- preset creation and runtime handling;
+- result presentation;
+- scheduling/protocol orchestration;
+- ODK-style intent execution;
+- shared services such as language packs and storage.
+
+The core UI should not need to know that a particular capability is a barcode scanner, document scanner, translator, printer or sensor reader. A capability declares settings, outputs and screens; the shared runtime renders and executes them.
+
+This keeps MethodMesh modular enough that new capabilities can be added without turning the dashboard into a pile of special cases.
+
+---
+
+## Workbench and development tools
+
+Workbench contains tools that are useful for building, debugging and integrating with hardware or other Android apps, but are not usually things a field user would save as a research preset.
+
+Examples include:
+
+- ESP32 sensor firmware installation and diagnostics;
+- Bluetooth device inspection;
+- Android app inspection;
+- sensor provisioning and live sensor read tools;
+- development capabilities that are not yet promoted to production.
+
+Workbench tools may be powerful and practical, but they are separated from production capabilities because their purpose is different.
+
+---
+
+## ODK and XLSForm integration
+
+MethodMesh capabilities can be called from XLSForms through Android intents. Example forms live with the capability documentation under each module’s `docs` folder.
+
+The intended XLSForm pattern is:
+
+- call the MethodMesh capability through a grouped intent section;
+- pass form values into MethodMesh where needed;
+- receive the main result into normal ODK fields;
+- receive the full MethodMesh JSON payload into a spare audit field when desired;
+- receive media files as attachments where the capability produces images, PDFs or other files.
+
+The capability-specific guide should document:
+
+- method ID;
+- user-facing purpose;
+- settings;
+- runtime inputs;
+- returned fields;
+- ALCOA/audit fields;
+- example ODK/XLSForm usage;
+- native run behaviour.
+
+The common documentation rules are in `docs/CAPABILITY_DOCUMENTATION_STANDARD.md`.
+
+---
+
+## Repository layout
 
 ```text
-Research Philosophy
-        │
-Conceptual Model
-        │
-Registry Specifications
-        │
-Architecture Standard
-        │
-JSON Object Model
-        │
-Research Intent Language (RIL)
-        │
-Applications • Services • Methods
-        │
-Android • iOS • Desktop • Web • Server • Embedded
+app/
+  src/main/java/com/example/methodmesh/
+    core/                 Shared runtime, scheduling and workflow code
+    modules/              Capability modules
+    settings/             Shared settings and capability setting metadata
+    transport/            Intent/workflow transport and result handling
+    ui/                   Dashboard, navigation and shared UI
+  src/main/assets/
+    firmware/             Bundled ESP32 firmware assets
+
+firmware/
+  esp32c3_aht20_ble/      MicroPython firmware source and sensor images
+
+docs/                     Cross-project documentation standards
+
+scripts/                  Utility scripts
 ```
 
-Each layer has a distinct responsibility and evolves independently.
+Each module should keep its implementation, documentation and example forms close together.
 
 ---
 
-# Knowledge Model
+## Build and test
 
-Scientific knowledge is represented using a small number of core concepts.
+From the repository root:
 
-```text
-Intent
-    │
-requests
-    ▼
-Method
-    │
-produces
-    ▼
-Observation
-    │
-may support
-    ▼
-Assertion
-    │
-describes
-    ▼
-Entity
+```bash
+./gradlew :app:assembleDebug
 ```
 
-This separation enables reproducible methods, interoperable applications and long-term preservation of scientific knowledge independently of software implementation.
+For the broader local test pass:
 
----
-
-# Current Focus
-
-The conceptual architecture of MethodMesh is now considered sufficiently stable for implementation.
-
-Current development focuses on validating the architecture through working reference implementations rather than further redesign of the core knowledge model.
-
-Immediate priorities are:
-
-- JSON Object Model
-- MethodMesh Orchestrator
-- Device Services
-- Native Methods
-- Android interoperability discovery and reusable integration definitions
-- Bluetooth device discovery and endpoint assay
-- Android reference implementation
-- Research Intent Language (RIL)
-
-The objective of this phase is to demonstrate that the architecture can support complete research workflows from protocol definition through data collection, analysis and reporting.
-
----
-
-# Roadmap
-
-## Phase 1 — Foundation ✅
-
-- Philosophy
-- Conceptual Model
-- Registry Specifications
-- Architecture Standard
-- JSON Object Model
-
-## Phase 2 — Reference Implementation (Current)
-
-- Orchestrator
-- Device Services
-- Native Methods
-- Android Runtime
-- Intent execution
-
-## Phase 3 — Proof of Architecture
-
-Demonstrate that MethodMesh can:
-
-1. Represent a complete research design.
-2. Represent a complete research protocol.
-3. Create, analyse and interpret a study dataset using only the MethodMesh graph.
-
-Successful completion of these milestones will provide the first end-to-end validation of the MethodMesh architecture.
-
----
-
-# Repository Structure
-
-## Foundation
-
-- Philosophy
-- Conceptual Model
-
-## Registry Specifications
-
-- Entity Registry
-- Observation Registry
-- Assertion Registry
-- Intent Registry
-- Trait Registry
-
-## Architecture
-
-- Architecture Standard
-- JSON Object Model
-
-## Interoperability
-
-- Research Intent Language
-- Core Verbs
-
-## Reference Implementation
-
-- Android Runtime
-- Orchestrator
-- Device Services
-- Native Methods
-
-## Capability modules
-
-Each standalone module under `app/src/main/java/com/example/methodmesh/modules/` owns both its implementation and its integration documentation. Its `docs` folder contains a module-named implementation guide and a working example ODK XLSForm. See [Capability documentation standard](docs/CAPABILITY_DOCUMENTATION_STANDARD.md).
-
-The Android app inspector is a deliberately conservative interoperability tool. It lists installed launchable applications, inspects exported components, probes common public intent filters, targets exported activities explicitly, captures returned data, and can save a tested package/component/action/URI/extras combination as a local integration definition. It does not bypass non-exported components, permissions, authentication, or undocumented application internals. An app may expose more useful behavior than Android can discover generically; in that case the inspector is a test harness for combinations found in the app's documentation, source, or other authoritative references.
-
-The Bluetooth device inspector applies the same pattern to nearby hardware: it scans BLE devices, connects to a selected device, enumerates GATT services and characteristics, reads endpoints or listens for notifications on request, identifies paired classic-Bluetooth serial candidates, and saves discovered profiles into the device registry. It is limited to normal Android Bluetooth permissions and explicit user-selected interactions.
-
-## Current XLSForm capabilities
-
-The Android reference implementation currently exposes the following standalone capabilities to ODK Collect, KoboToolbox-compatible callers, scheduled workflows, and other RIL clients. Each is invoked through the common `com.example.methodmesh.EXECUTE_METHOD(...)` intent boundary; the module owns its settings, UI, outputs, and example form.
-
-- **Calibrated scale** (`calibrated_scale`) — presents a physically calibrated horizontal or vertical continuum, including single-value, minimum/maximum, and range modes. It returns selected values with the configured prompt, hint, labels, and measurement metadata.
-- **SVG polygon selector** (`svg.select`) — loads a named SVG from app storage and supports single selection, multi-selection, or strict ordered polygon selection with timestamped audit events and backstep-only removal.
-- **Scaled photo selector** (`scaled_photo.capture`) — captures a ruler-calibrated original photograph, optionally applies a configurable grid for region selection, and returns the original image, annotated image, and separate grid-selection data.
-- **Image redaction** (`image.redact`) — captures or picks an image, lets the operator mask selected grid cells, and returns only the redacted image plus mask metadata for export or ODK attachment.
-- **Discrete choice experiments** — provides five reusable study tasks: pairwise comparison (`dce.pairwise`), MaxDiff/best-worst (`dce.maxdiff`), ranking (`dce.ranking`), points allocation (`dce.points`), and conjoint selection (`dce.conjoint`). Rounds, items, classes, profiles, points, and seeds can be supplied by the form or caller.
-- **GPS target navigation** (`gps_target_navigator`) — guides a participant or operator toward a latitude/longitude target, reporting location, bearing, distance, arrival status, and optional camera-based AR guidance.
-- **NFC tag read** (`nfc_tag_read`) — reads arbitrary NDEF records and tag metadata, including UID, technology, capacity, writability, text/URI records, and raw record JSON.
-- **NFC tag write** (`nfc_tag_write`) — writes caller-supplied text, URI, JSON, or other NDEF content with explicit replace or blank-only policy and read-back verification.
-- **NFC tag wipe** (`nfc_tag_wipe`) — removes user NDEF content from a tag and reports the resulting tag state.
-- **NFC credential provisioning** (`nfc_credential_provisioning`) — creates a portable PIN-protected field-team credential, writes it to NFC, and verifies the write on a confirmation tap without returning the secret.
-- **NFC credential verification** (`nfc_credential_verification`) — reads a portable NFC credential, requests its PIN, verifies the issuer signature and credential integrity, and returns a compact verification result.
-- **Protocol NFC tracking and administration** (`protocol_nfc_provision`, `protocol_nfc_check`, `protocol_nfc_complete`, `protocol_nfc_reconstruct`, `protocol_nfc_override`) — keeps a compact, offline protocol-progress receipt on a participant card. Recruitment can provision a configurable protocol definition, forms can check eligibility before starting and mark a step complete after submission, and authorised staff can reconstruct a lost card or apply a justified flag/bit override. Definitions can be loaded from a JSON file or built in the UI; the card stores only compact state and the definition hash. Unrelated NDEF records, including credentials, are preserved.
-- **Automatic code scanner** (`qr.scan`) — captures QR, Data Matrix, and supported one-dimensional barcodes with automatic format detection, returning the decoded payload, format, and evidence hash. The historical method ID remains `qr.scan` so existing forms and chained attestation calls keep working.
-- **ML Kit vision** (`mlkit.vision.analyze`) — captures or selects an image and runs on-device OCR and/or barcode detection using ML Kit. It can return recognised text, barcode payloads, a PDF rendition of the scanned image, and an OCR text-file attachment.
-- **Document scanner** (`document.scan`) — opens ML Kit Document Scanner to capture, crop, align, and package paper pages. It returns the scanner PDF, copied page images, OCR text, a text attachment, and a MethodMesh searchable PDF package.
-- **ML Kit translation** (`mlkit.translate`) — lists available translation languages, manages downloaded on-device language models, and translates caller-supplied text locally once the required models are installed.
-- **Speech transcription** (`speech.transcribe`) — opens Android speech recognition, optionally requests offline recognition, and returns the best transcript plus alternative recognitions.
-- **Random number generator** (`random.number.generate`) — generates secure or fixed-seed random numbers with count, minimum, maximum and step controls. It is intended as a foundation for later block randomisation and allocation tools.
-- **Question primitives** (`question.text`, `question.number`, `question.select_one`, `question.select_multiple`) — provides native MethodMesh building blocks for text, numeric, single-choice and multiple-choice questions. Each primitive supports prompt, hint, required status, regex validation and a constraint message; number questions add min/max bounds and choice questions add reusable option lists. These are intended for MethodMesh-native protocols that do not need a full XLSForm.
-- **Traceable attestation** (`attestation.create`) — creates a device-signed, hash-chained event attestation. It can invoke fingerprint/device credential, QR, NFC, or study-password verification and can optionally obtain an RFC 3161 trusted timestamp.
-- **Attestation chain anchor** (`attestation.anchor_bundle`) — exports the current chain head and signed public evidence for an independent ODK/server receipt or nightly study anchor.
-- **Local device authentication** (`admin_fingerprint_confirmation`) — performs standalone biometric, PIN, pattern, password, or combined device-credential authentication for access control; unlike formal attestation, it does not claim to prove a research event.
-- **ODK form launcher** (`odk_form_launcher`) — discovers stored ODK/Kobo projects and forms, lets the operator select the correct project/form, and opens the selected form in the appropriate collection app.
-- **SMS sender** (`sms.send`) — sends a caller-supplied message to a caller-supplied phone number, returning send status, message hash, SMS part count, and sent time. XLSForms can construct the message text themselves and pass only the final phone number and message to MethodMesh.
-- **Android app inspector** (`android_app_inspector`) — lists installed applications and exported public components, tests documented or user-supplied intent actions, captures returned data, and saves tested integration definitions. It does not bypass permissions or private components.
-- **Bluetooth device inspector** (`bluetooth_device_inspector`) — scans nearby BLE devices, discovers and groups GATT services, reads endpoints, samples readable characteristics, subscribes to notification streams through CCCD, decodes printable values, and saves profiles to the device registry.
-- **Spatial geometry** (`tree_height_measurement`, `slope_inclination_measurement`, `geometry_distance_estimation`) — uses phone orientation sensors and supplied field references to estimate object height, slope/grade, and distance from angular size, with formulas and sensor provenance returned for audit.
-
-For implementation details, intent examples, input settings, output fields, and an example XLSForm, open the capability-specific guide in each module's `docs` folder. The naming and packaging rules are defined in [Capability documentation standard](docs/CAPABILITY_DOCUMENTATION_STANDARD.md).
-
-When a capability is run directly from the MethodMesh dashboard, the shared result panel also provides **Export**. It writes a timestamped output folder containing one canonical JSON package plus any returned attachments into `Documents/MethodMesh/outputs` by default, or into a folder selected under the global Output storage panel. Every export has a `methodmesh_submission_id` UUID that appears in the folder/filename and inside the JSON text; protocol runs keep the same UUID across all steps so the JSON can act as the key submission record. The canonical JSON always contains a `steps` array, even for a single capability run, and attachment filenames include the same submission UUID so media remain linked when copied or archived.
-
-Direct dashboard testing is separated from real output capture. Capability cards provide **Test** for a no-save dry run, **Test and save** for a full output package including media attachments, and a persistent **Last confirmed result** preview so operators can inspect returned fields and image thumbnails before using a workflow in anger. User-facing intent previews now use the same fullscreen presentation path as external callers, while settings, examples and technical outputs remain collapsed by default.
-
-The runtime also has global display-accessibility controls. Text scaling can be adjusted from the dashboard, with the default tuned upward for field readability. The dashboard action layout avoids narrow horizontal button rows so larger text does not collide or wrap into unusable controls.
-
-## Scheduler and task orchestration
-
-MethodMesh also includes a core scheduler for organising recurring field tasks. Schedules use five-field cron expressions and can run hourly, daily, weekly, monthly, or on any other supported cron pattern. A scheduled item may launch an XLSForm in ODK Collect or Kobo Collect, open a web form, invoke a MethodMesh capability directly, or publish capability output to a reusable destination such as the clipboard. Tasks can be chained so several actions run as one workflow, with configurable ordering, retries, retry windows, custom notifications, pause/resume controls, and completion tracking. The scheduler is part of the runtime workflow layer rather than a study-specific capability: future action types can be added without changing the scheduling model. Schedule chains can also be exported and imported as integrity-checked bundles through text, files, QR, or NFC.
-
-Build and test the Android reference implementation with:
-
-```text
+```bash
 ./gradlew testDebugUnitTest assembleDebug
 ```
 
----
+ESP32 sensor image changes require rebuilding the firmware images before flashing devices:
 
-# Design Principles
-
-MethodMesh is:
-
-- Knowledge-first
-- Registry-driven
-- Service-oriented
-- Technology-independent
-- Extensible
-- Interoperable
-- Open by design
+```bash
+python3 firmware/esp32c3_aht20_ble/build_sensor_images.py
+```
 
 ---
 
-# Licence
+## Attribution and third-party services
 
-MethodMesh is an open project intended to support reusable scientific infrastructure across disciplines, organisations and platforms.
-### Using the scheduler
+MethodMesh uses a mixture of Android platform services, open standards and third-party libraries/services.
 
-Open **Scheduler** on the MethodMesh home screen and choose **Create schedule**. Give the schedule a name, then configure each action in order: an XLSForm, web form, direct MethodMesh capability, or reusable output such as clipboard. XLSForm actions use the discovered project/form list; web-form actions use a URL; capability actions expose the selected capability's normal settings. Add further actions to create a chain; they run in displayed order after the preceding action succeeds.
+Important examples include:
 
-Schedules use five cron fields: minute, hour, day of month, month, weekday. Examples are `0 9 * * *` (daily at 09:00), `0 * * * *` (hourly), `*/5 * * * *` (every five minutes), and `0 9 * * 1` (every Monday at 09:00). Configure notification text, retries, retry interval, and retry window before saving. Use **Test** to run immediately, or pause/resume the schedule from its central card.
+- Google ML Kit for on-device language, vision and document-scanning features;
+- Open Location Code / Plus Codes for offline location identifiers;
+- OpenFreeMap and Esri World Imagery as optional online map tile sources where enabled;
+- ZXing/ML Kit barcode support depending on capability path;
+- Android Bluetooth, NFC, camera, biometric and speech-recognition APIs.
 
-Scheduled notifications launch the configured action directly; ODK/Kobo forms return to the scheduled workflow and chained actions continue automatically. Schedules can be edited, removed, or exported individually. Export supports copying, saving, sharing, and QR; import accepts pasted text or QR/NFC data and adds schedules without replacing unrelated schedules.
+Modules that depend on external services or libraries should document their attribution, licensing and network/offline behaviour in their own `docs` folder.
+
+---
+
+## Status
+
+MethodMesh is an active Android reference implementation. The architecture is intentionally modular and still evolving, but the production capabilities listed above are the current “works and tested” set.
+
+Near-term work includes:
+
+- capability grouping by task type, such as location, language, documents, messaging and devices;
+- Android home-screen widgets for presets, protocols and schedule toggles;
+- central offline map/tile management;
+- additional ML Kit capabilities such as entity extraction, image labelling, pose detection and summarisation;
+- continued review of development capabilities before promotion to production.
+

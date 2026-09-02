@@ -13,6 +13,10 @@ class LD2410C:
         "stationary_distance_cm",
         "stationary_energy",
         "detection_distance_cm",
+        "radar_frame_sequence",
+        "radar_frame_length",
+        "radar_decode_offset",
+        "radar_prefix_hex",
     ]
 
     FRAME_HEADER = b"\xf4\xf3\xf2\xf1"
@@ -22,6 +26,7 @@ class LD2410C:
         self.uart = uart
         self.present = True
         self._buffer = b""
+        self._frame_sequence = 0
 
     def manifest(self, error=""):
         return {
@@ -39,6 +44,7 @@ class LD2410C:
         frame = self._read_frame()
         if frame is None:
             raise OSError("No LD2410C report frame received")
+        self._frame_sequence += 1
         return self._decode_target_frame(frame)
 
     def _read_frame(self, timeout_ms=1200):
@@ -75,24 +81,40 @@ class LD2410C:
         return payload
 
     def _decode_target_frame(self, payload):
-        # Common LD2410 report frames contain target data at the start of the
-        # payload. Some firmware modes prefix a frame type byte; accept both.
+        prefix_hex = "".join("%02x" % byte for byte in payload[:16])
+
         data = payload
-        # Normal LD2410C engineering report payloads begin with 02 aa, then the
-        # target data bytes. Older drafts of this driver stripped only one byte,
-        # causing 0xaa to be decoded as the target state.
+        decode_offset = 0
+
         if len(data) >= 11 and data[0] == 0x02 and data[1] == 0xaa:
             data = data[2:]
+            decode_offset = 2
         elif len(data) >= 10 and data[0] in (0x01, 0x02, 0xaa):
             data = data[1:]
+            decode_offset = 1
+
         if len(data) < 9:
             raise OSError("LD2410C frame too short")
+
         state = data[0]
         moving_distance = data[1] | (data[2] << 8)
         moving_energy = data[3]
         stationary_distance = data[4] | (data[5] << 8)
         stationary_energy = data[6]
         detection_distance = data[7] | (data[8] << 8)
+
+        print(
+            "LD2410C frame",
+            self._frame_sequence,
+            "len", len(payload),
+            "offset", decode_offset,
+            "prefix", prefix_hex,
+            "state", state,
+            "move", moving_distance, moving_energy,
+            "still", stationary_distance, stationary_energy,
+            "detect", detection_distance,
+        )
+
         return {
             "sensor_id": self.sensor_id,
             "sensor_type": self.sensor_type,
@@ -103,4 +125,8 @@ class LD2410C:
             "stationary_distance_cm": stationary_distance,
             "stationary_energy": stationary_energy,
             "detection_distance_cm": detection_distance,
+            "radar_frame_sequence": self._frame_sequence,
+            "radar_frame_length": len(payload),
+            "radar_decode_offset": decode_offset,
+            "radar_prefix_hex": prefix_hex,
         }

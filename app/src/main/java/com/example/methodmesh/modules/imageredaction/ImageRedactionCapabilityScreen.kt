@@ -105,6 +105,12 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
         var status by rememberSaveable { mutableStateOf("Choose or capture an image, then mark regions to remove.") }
         var pendingCameraUriString by rememberSaveable { mutableStateOf<String?>(null) }
         var captureStarted by rememberSaveable { mutableStateOf(false) }
+        val runtimeSettingsVisible = listOf(
+            "input_source",
+            "grid_rows",
+            "grid_columns",
+            "redaction_style"
+        ).any(context::settingIsRuntimeInput)
         val result = remember(
             redactedImageUri,
             redactedImageName,
@@ -200,8 +206,8 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
-        LaunchedEffect(context.startsImmediately) {
-            if (context.startsImmediately && !captureStarted && bitmap == null && result == null) {
+        LaunchedEffect(context.startsImmediately, runtimeSettingsVisible) {
+            if (context.startsImmediately && !runtimeSettingsVisible && !captureStarted && bitmap == null && result == null) {
                 startConfiguredSource()
             }
         }
@@ -283,20 +289,24 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                 redactionTimeIso = null
                 captureStarted = false
                 status = "Choose or capture an image, then mark regions to remove."
-                if (context.startsImmediately) startConfiguredSource()
+                if (context.startsImmediately && !runtimeSettingsVisible) startConfiguredSource()
             },
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
             Text(status, style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
-            if (!context.startsImmediately) {
+            if (!context.startsImmediately || runtimeSettingsVisible) {
+                if (!context.settingIsFixedInNativePreset("input_source")) {
                 Row(Modifier.fillMaxWidth()) {
                     Button(onClick = { settings.setString("input_source", "camera"); startCamera() }, modifier = Modifier.weight(1f)) { Text("Camera") }
                     Spacer(Modifier.padding(4.dp))
                     OutlinedButton(onClick = { settings.setString("input_source", "file_picker"); picker.launch("image/*") }, modifier = Modifier.weight(1f)) { Text("Pick image") }
                 }
+                }
+                if (!context.settingIsFixedInNativePreset("grid_rows") || !context.settingIsFixedInNativePreset("grid_columns")) {
                 Row(Modifier.fillMaxWidth()) {
+                    if (!context.settingIsFixedInNativePreset("grid_rows")) {
                     OutlinedTextField(
                         value = settings.getInt("grid_rows").toString(),
                         onValueChange = { it.toIntOrNull()?.let { value -> settings.setInt("grid_rows", value.coerceIn(1, 50)) } },
@@ -304,7 +314,11 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
+                    }
+                    if (!context.settingIsFixedInNativePreset("grid_rows") && !context.settingIsFixedInNativePreset("grid_columns")) {
                     Spacer(Modifier.padding(4.dp))
+                    }
+                    if (!context.settingIsFixedInNativePreset("grid_columns")) {
                     OutlinedTextField(
                         value = settings.getInt("grid_columns").toString(),
                         onValueChange = { it.toIntOrNull()?.let { value -> settings.setInt("grid_columns", value.coerceIn(1, 50)) } },
@@ -312,9 +326,19 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
+                    }
                 }
+                }
+                if (!context.settingIsFixedInNativePreset("redaction_style")) {
                 OutlinedButton(onClick = { settings.setString("redaction_style", if (settings.getString("redaction_style") == "black") "white" else "black") }, modifier = Modifier.fillMaxWidth()) {
                     Text("Mask style: ${settings.getString("redaction_style")}")
+                }
+                }
+                if (context.startsImmediately && runtimeSettingsVisible && bitmap == null && context.settingIsFixedInNativePreset("input_source")) {
+                    Button(onClick = {
+                        captureStarted = true
+                        startConfiguredSource()
+                    }, modifier = Modifier.fillMaxWidth()) { Text("Open image") }
                 }
             }
             bitmap?.let { image ->

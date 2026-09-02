@@ -55,8 +55,7 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
         val action = context.action
         val request = context.request
         val androidContext = LocalContext.current
-        val nativePresetRun = action.settings["methodmesh_native_preset_run"] == "true" ||
-            action.settings["input_methodmesh_native_preset_run"] == "true"
+        val nativePresetRun = context.isNativePresetRun
         val interaction = remember { GpsTargetNavigatorInteraction() }
         val settings = remember(action.settings) {
             SettingsState(interaction.settings) { key, value ->
@@ -65,8 +64,19 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
         }
         var resultFieldsJson by rememberSaveable(action.canonicalId) { mutableStateOf<String?>(null) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        val hasConfiguredTarget = settings.getFloat("target_latitude") != 0f ||
+            settings.getFloat("target_longitude") != 0f ||
+            action.settings["target_plus_code"].orEmpty().isNotBlank() ||
+            action.settings["input_target_plus_code"].orEmpty().isNotBlank()
+        val destinationHasRuntimeSettings = listOf(
+            "target_plus_code",
+            "target_name",
+            "target_latitude",
+            "target_longitude",
+            "arrival_radius_m"
+        ).any(context::settingIsRuntimeInput)
         var destinationSubmitted by rememberSaveable(action.settings) {
-            mutableStateOf(!nativePresetRun)
+            mutableStateOf(!nativePresetRun || (!destinationHasRuntimeSettings && hasConfiguredTarget))
         }
         var plusCodeText by rememberSaveable(action.settings) {
             mutableStateOf(action.settings["target_plus_code"] ?: action.settings["input_target_plus_code"].orEmpty())
@@ -183,6 +193,7 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
             Spacer(Modifier.height(10.dp))
 
             if (!context.submitsImmediately && (!nativePresetRun || !destinationSubmitted)) {
+                if (!context.settingIsFixedInNativePreset("target_plus_code")) {
                 OutlinedTextField(
                     value = plusCodeText,
                     onValueChange = { plusCodeText = it.uppercase() },
@@ -192,6 +203,8 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
                     singleLine = true
                 )
                 Spacer(Modifier.height(8.dp))
+                }
+                if (!context.settingIsFixedInNativePreset("target_name")) {
                 OutlinedTextField(
                     value = targetNameText,
                     onValueChange = { targetNameText = it },
@@ -200,7 +213,10 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
                     singleLine = true
                 )
                 Spacer(Modifier.height(8.dp))
+                }
+                if (!context.settingIsFixedInNativePreset("target_latitude") || !context.settingIsFixedInNativePreset("target_longitude")) {
                 Row(Modifier.fillMaxWidth()) {
+                    if (!context.settingIsFixedInNativePreset("target_latitude")) {
                     OutlinedTextField(
                         value = targetLatitudeText,
                         onValueChange = { value ->
@@ -214,7 +230,11 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
+                    }
+                    if (!context.settingIsFixedInNativePreset("target_latitude") && !context.settingIsFixedInNativePreset("target_longitude")) {
                     Spacer(Modifier.width(8.dp))
+                    }
+                    if (!context.settingIsFixedInNativePreset("target_longitude")) {
                     OutlinedTextField(
                         value = targetLongitudeText,
                         onValueChange = { value ->
@@ -228,8 +248,11 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
+                    }
                 }
                 Spacer(Modifier.height(8.dp))
+                }
+                if (!context.settingIsFixedInNativePreset("arrival_radius_m")) {
                 OutlinedTextField(
                     value = arrivalRadiusText,
                     onValueChange = { value ->
@@ -244,6 +267,7 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
                     singleLine = true
                 )
                 Spacer(Modifier.height(8.dp))
+                }
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
@@ -358,6 +382,7 @@ object GpsTargetNavigatorCapabilityScreen : CapabilityScreenSpec {
                 is MethodSetting.FloatSetting -> raw.toFloatOrNull()?.let { settingsState.setFloat(setting.id, it) }
                 is MethodSetting.TextSetting -> settingsState.setString(setting.id, raw)
                 is MethodSetting.ChoiceSetting -> settingsState.setString(setting.id, raw)
+                is MethodSetting.MultiChoiceSetting -> settingsState.setString(setting.id, raw)
             }
         }
     }

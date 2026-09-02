@@ -23,7 +23,7 @@ object SensorProvisioningProfiles {
         SensorProvisioningProfile(
             id = "ld2410c",
             label = "LD2410C mmWave presence",
-            description = "UART LD2410C on TX GPIO 21 / RX GPIO 20.",
+            description = "UART LD2410C: ESP32 TX GPIO 5 → radar RX; ESP32 RX GPIO 4 ← radar TX.",
             defaultSampleIntervalMs = 1000,
             fields = listOf(
                 "presence",

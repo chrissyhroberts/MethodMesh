@@ -3,32 +3,27 @@ package com.example.methodmesh.modules.bluetoothprinter
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Typeface
-import android.graphics.Matrix
-import android.os.Handler
-import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -40,8 +35,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
@@ -49,266 +48,726 @@ import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicReference
-import java.util.UUID
 
-private const val QUTIE_SERVICE = "0000ff00-0000-1000-8000-00805f9b34fb"
-private const val QUTIE_WRITE = "0000ff02-0000-1000-8000-00805f9b34fb"
-private const val QUTIE_NOTIFY = "0000ff01-0000-1000-8000-00805f9b34fb"
-private const val CLIENT_CONFIG = "00002902-0000-1000-8000-00805f9b34fb"
-
+/**
+ * Complete operator UI for the Qutie-family printer.
+ *
+ * Everything printer-specific lives in this module. The screen consumes and
+ * emits only ordinary capability settings through CapabilityScreenContext.
+ */
 object BluetoothPrinterCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100BluetoothPrinterMethod.ID
-    override val title = "Bluetooth printer"
-    override val description = "Send a text or raw thermal payload to a paired Bluetooth printer."
+    override val title = "Qutie-family thermal printer"
+    override val description = "Print text, QR codes and Code 128 labels on Qutie-compatible FF00 BLE thermal printers."
 
     @SuppressLint("MissingPermission")
     @Composable
-    override fun Render(context: CapabilityScreenContext, onBack: () -> Unit, onConfirmed: (ExecutionResult) -> Unit, onCancel: () -> Unit) {
+    override fun Render(
+        context: CapabilityScreenContext,
+        onBack: () -> Unit,
+        onConfirmed: (ExecutionResult) -> Unit,
+        onCancel: () -> Unit
+    ) {
         val androidContext = LocalContext.current
-        val manager = androidContext.getSystemService(BluetoothManager::class.java)
-        val adapter = manager?.adapter
+        val adapter = androidContext.getSystemService(BluetoothManager::class.java)?.adapter
         val paired = remember { mutableStateListOf<BluetoothDevice>() }
-        val supplied = remember(context.action.settings, context.request.settings) { context.request.settings + context.action.settings }
-        var selectedAddress by rememberSaveable { mutableStateOf(supplied[BluetoothPrinterFields.DEVICE_ADDRESS].orEmpty()) }
+        val supplied = remember(context.action.settings, context.request.settings) {
+            context.request.settings + context.action.settings
+        }
+        val initial = remember(supplied) { BluetoothPrinterConfig.from(supplied) }
+
+        var selectedAddress by rememberSaveable { mutableStateOf(initial.deviceAddress) }
         var deviceName by rememberSaveable { mutableStateOf("") }
-        var serviceUuid by rememberSaveable { mutableStateOf(QUTIE_SERVICE) }
-        var writeUuid by rememberSaveable { mutableStateOf(QUTIE_WRITE) }
-        var payload by rememberSaveable { mutableStateOf("MethodMesh test label\n") }
-        var format by rememberSaveable { mutableStateOf("text") }
-        var fontSize by rememberSaveable { mutableStateOf(supplied[BluetoothPrinterFields.FONT_SIZE] ?: "22") }
-        var lineSpacing by rememberSaveable { mutableStateOf(supplied[BluetoothPrinterFields.LINE_SPACING] ?: "32") }
-        var labelHeight by rememberSaveable { mutableStateOf(supplied[BluetoothPrinterFields.LABEL_HEIGHT] ?: "32") }
+        var deviceMenuOpen by remember { mutableStateOf(false) }
+        var compatibilityOpen by rememberSaveable { mutableStateOf(false) }
+
+        var payload by rememberSaveable { mutableStateOf(initial.payload) }
+        var secondLine by rememberSaveable { mutableStateOf(initial.secondLine) }
+        var format by rememberSaveable { mutableStateOf(initial.content.wireName) }
+        var fontSize by rememberSaveable { mutableStateOf(initial.fontSizePx.toString()) }
+        var lineSpacing by rememberSaveable { mutableStateOf(initial.lineSpacingPx.toString()) }
+        var typefaceFamily by rememberSaveable { mutableStateOf(initial.typeface.wireName) }
+        var fontStyle by rememberSaveable { mutableStateOf(initial.fontStyle.wireName) }
+        var codeSize by rememberSaveable { mutableStateOf(initial.codeSizePx.toString()) }
+        var barcodeHeight by rememberSaveable { mutableStateOf(initial.barcodeHeightPx.toString()) }
+        var qrHumanReadable by rememberSaveable { mutableStateOf(initial.showQrHumanReadable) }
+        var qrHumanFontSize by rememberSaveable { mutableStateOf(initial.qrHumanFontSizePx.toString()) }
+        var qrHumanTypeface by rememberSaveable { mutableStateOf(initial.qrHumanTypeface.wireName) }
+        var qrHumanFontStyle by rememberSaveable { mutableStateOf(initial.qrHumanFontStyle.wireName) }
+        var qrHumanGap by rememberSaveable { mutableStateOf(initial.qrHumanGapPx.toString()) }
+        var centerText by rememberSaveable { mutableStateOf(initial.centerText) }
+        var xOffset by rememberSaveable { mutableStateOf(initial.xOffsetPx.toString()) }
+        var yOffset by rememberSaveable { mutableStateOf(initial.yOffsetPx.toString()) }
+        var stickerLength by rememberSaveable { mutableStateOf(initial.minimumLengthPx.toString()) }
+        var printWidth by rememberSaveable { mutableStateOf(initial.printWidthPx.toString()) }
+        var paperMode by rememberSaveable { mutableStateOf(initial.paperMode.wireName) }
+        var density by rememberSaveable { mutableStateOf(initial.density.toString()) }
+        var alongLabel by rememberSaveable { mutableStateOf(initial.alongLabel) }
+        var ejectPx by rememberSaveable { mutableStateOf(initial.ejectPx.toString()) }
+
         var status by rememberSaveable { mutableStateOf("Ready.") }
         var connected by rememberSaveable { mutableStateOf(false) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
-        var gatt by remember { mutableStateOf<BluetoothGatt?>(null) }
-        var writeCharacteristic by remember { mutableStateOf<BluetoothGattCharacteristic?>(null) }
-        var notifyCharacteristic by remember { mutableStateOf<BluetoothGattCharacteristic?>(null) }
-        var negotiatedMtu by remember { mutableStateOf(23) }
-        val pendingWrite = remember { AtomicReference<CompletableDeferred<Boolean>?>(null) }
-        val handler = remember { Handler(Looper.getMainLooper()) }
         val scope = rememberCoroutineScope()
-        val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { refreshPaired(adapter, paired, androidContext, statusSetter = { status = it }) }
-
-        LaunchedEffect(selectedAddress, serviceUuid, writeUuid, payload, format, fontSize, lineSpacing, labelHeight) {
-            context.onSettingsChanged(
-                mapOf(
-                    BluetoothPrinterFields.DEVICE_ADDRESS to selectedAddress,
-                    "printer_service_uuid" to serviceUuid,
-                    BluetoothPrinterFields.WRITE_UUID to writeUuid,
-                    BluetoothPrinterFields.PAYLOAD to payload,
-                    BluetoothPrinterFields.FORMAT to format,
-                    BluetoothPrinterFields.FONT_SIZE to fontSize,
-                    BluetoothPrinterFields.LINE_SPACING to lineSpacing,
-                    BluetoothPrinterFields.LABEL_HEIGHT to labelHeight
-                )
+        val bleClient = remember {
+            BluetoothPrinterBleClient(
+                context = androidContext.applicationContext,
+                onStatus = { status = it },
+                onConnectedChanged = { connected = it }
             )
         }
 
-        fun permissions(): Array<String> = if (android.os.Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN) else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
-        fun hasPermissions() = permissions().all { ContextCompat.checkSelfPermission(androidContext, it) == PackageManager.PERMISSION_GRANTED }
-        fun refresh() {
-            if (!hasPermissions()) { permissionLauncher.launch(permissions()); return }
-            refreshPaired(adapter, paired, androidContext) { status = it }
+        fun intValue(raw: String, fallback: Int, minimum: Int, maximum: Int): Int =
+            raw.toIntOrNull()?.coerceIn(minimum, maximum) ?: fallback
+
+        fun currentConfig(): BluetoothPrinterConfig = BluetoothPrinterConfig(
+            deviceAddress = selectedAddress,
+            payload = payload,
+            secondLine = secondLine,
+            content = BluetoothPrinterContent.fromWire(format),
+            fontSizePx = intValue(fontSize, 22, 8, 96),
+            lineSpacingPx = intValue(lineSpacing, 28, 8, 128),
+            typeface = typefaceFromWire(typefaceFamily),
+            fontStyle = textStyleFromWire(fontStyle),
+            codeSizePx = intValue(codeSize, 350, 24, 832),
+            barcodeHeightPx = intValue(barcodeHeight, 48, 16, 512),
+            showQrHumanReadable = qrHumanReadable,
+            qrHumanFontSizePx = intValue(qrHumanFontSize, 14, 8, 64),
+            qrHumanTypeface = typefaceFromWire(qrHumanTypeface),
+            qrHumanFontStyle = textStyleFromWire(qrHumanFontStyle),
+            qrHumanGapPx = intValue(qrHumanGap, 6, 0, 128),
+            centerText = centerText,
+            xOffsetPx = intValue(xOffset, 0, 0, 831),
+            yOffsetPx = intValue(yOffset, 2, 0, 4095),
+            minimumLengthPx = intValue(stickerLength, 160, 24, 4096),
+            printWidthPx = intValue(printWidth, 96, 48, 832),
+            paperMode = if (paperMode == "label") BluetoothPrinterProtocol.PaperMode.LABEL else BluetoothPrinterProtocol.PaperMode.CONTINUOUS,
+            density = intValue(density, 1, 0, 2),
+            alongLabel = alongLabel,
+            ejectPx = intValue(ejectPx, 150, 0, 2048)
+        )
+
+        fun requiredPermissions(): Array<String> = if (android.os.Build.VERSION.SDK_INT >= 31) {
+            arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
+        } else {
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+
+        fun hasPermissions(): Boolean = requiredPermissions().all {
+            ContextCompat.checkSelfPermission(androidContext, it) == PackageManager.PERMISSION_GRANTED
+        }
+
+        fun refreshPaired() {
+            if (adapter == null) {
+                status = "Bluetooth is unavailable."
+                return
+            }
+            paired.clear()
+            paired.addAll(adapter.bondedDevices.orEmpty().sortedBy { it.name.orEmpty().lowercase() })
             if (selectedAddress.isBlank() && paired.size == 1) {
                 selectedAddress = paired.first().address
                 deviceName = paired.first().name.orEmpty()
-                status = "Auto-selected paired Qutie printer."
+            } else if (selectedAddress.isNotBlank()) {
+                paired.firstOrNull { it.address == selectedAddress }?.let { deviceName = it.name.orEmpty() }
             }
-            status = "Paired devices refreshed."
+            status = if (paired.isEmpty()) "No paired Bluetooth devices found." else "Paired devices refreshed."
         }
+
+        val permissionLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) {
+            if (hasPermissions()) refreshPaired() else status = "Bluetooth permission is required."
+        }
+
+        LaunchedEffect(
+            selectedAddress, payload, secondLine, format,
+            fontSize, lineSpacing, typefaceFamily, fontStyle,
+            codeSize, barcodeHeight,
+            qrHumanReadable, qrHumanFontSize, qrHumanTypeface, qrHumanFontStyle, qrHumanGap,
+            centerText, xOffset, yOffset, stickerLength, printWidth,
+            paperMode, density, alongLabel, ejectPx
+        ) {
+            context.onSettingsChanged(currentConfig().settingsMap())
+        }
+
+        LaunchedEffect(adapter) {
+            if (hasPermissions()) refreshPaired()
+        }
+
+        DisposableEffect(bleClient) {
+            onDispose { bleClient.close() }
+        }
+
         fun connect() {
+            if (!hasPermissions()) {
+                permissionLauncher.launch(requiredPermissions())
+                return
+            }
             val device = paired.firstOrNull { it.address == selectedAddress }
-            if (device == null) { status = "Select a paired printer first."; return }
-            if (!hasPermissions()) { permissionLauncher.launch(permissions()); return }
-            gatt?.close(); connected = false; status = "Connecting to ${device.name ?: device.address}…"
-            gatt = device.connectGatt(androidContext, false, object : BluetoothGattCallback() {
-                override fun onConnectionStateChange(g: BluetoothGatt, statusCode: Int, newState: Int) {
-                    handler.post { connected = newState == android.bluetooth.BluetoothProfile.STATE_CONNECTED; status = if (connected) { g.requestMtu(517); g.discoverServices(); "Connected; negotiating printer transport…" } else "Disconnected (status=$statusCode)" }
+            if (device == null) {
+                status = "Select a paired printer first."
+                return
+            }
+            deviceName = device.name.orEmpty()
+            bleClient.connect(device)
+        }
+
+        fun printPayload() {
+            if (!bleClient.isConnected) {
+                status = "Connect to the printer first."
+                return
+            }
+            val config = currentConfig()
+            val bytes = runCatching { config.buildPrintJob() }.getOrElse { error ->
+                status = "Could not render label: ${error.message ?: error::class.java.simpleName}"
+                return
+            }
+            if (bytes.isEmpty()) {
+                status = "There is no printable payload."
+                return
+            }
+
+            scope.launch {
+                val send = bleClient.send(bytes)
+                val request = As100BluetoothPrinterMethod.request(
+                    As100BluetoothPrinterMethod.ID,
+                    config.settingsMap(),
+                    emptyList(),
+                    emptyList()
+                )
+                val values = config.resultValues(
+                    deviceName = deviceName,
+                    status = if (send.succeeded) "succeeded" else "failed",
+                    bytesSent = send.bytesSent,
+                    writeMode = send.writeMode,
+                    profile = "qutie_ff00_v2_12_standalone"
+                )
+                result = As100BluetoothPrinterMethod.result(
+                    request,
+                    values,
+                    context.request.invocationContext
+                )
+            }
+        }
+
+        val previewConfig = currentConfig()
+        val previewBitmap = remember(previewConfig) {
+            runCatching { previewConfig.preview() }.getOrNull()
+        }
+        DisposableEffect(previewBitmap) {
+            onDispose { previewBitmap?.recycle() }
+        }
+        fun showSetting(field: String): Boolean = context.settingShouldBeShown(field)
+
+        CapabilityScreenScaffold(
+            title,
+            capabilityId,
+            context,
+            context.stepNumber > 1,
+            result,
+            result?.let { OutputFormatter.fields(it, false) }.orEmpty(),
+            onBack,
+            { result = null },
+            { result?.let(onConfirmed) },
+            onCancel
+        ) {
+            Text(
+                "Hardware-tested Qutie driver using the FF00 / FF02 / FF01 LuckPrinter-style BLE transport. Defaults target a 96-pixel print head and 150-pixel raster eject.",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            OutlinedButton(
+                onClick = { compatibilityOpen = !compatibilityOpen },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (compatibilityOpen) "Hide compatibility & attribution" else "Compatibility & attribution")
+            }
+            if (compatibilityOpen) {
+                Text(
+                    "Compatible printers must expose the same FF00-family service/characteristics or equivalent endpoints. Published reverse engineering includes C&Co 3128 / DP-L1S-class and MakeID L1 devices; head width and control behaviour vary between models.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    "Protocol research attribution is retained in this module's docs/ATTRIBUTION.md and THIRD_PARTY_NOTICES.md. MethodMesh contains an independent Kotlin implementation.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+            SectionTitle("Printer")
+            Button(
+                onClick = {
+                    if (hasPermissions()) refreshPaired() else permissionLauncher.launch(requiredPermissions())
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Refresh paired devices")
+            }
+            PrinterDevicePicker(
+                devices = paired,
+                selectedAddress = selectedAddress,
+                expanded = deviceMenuOpen,
+                onExpandedChanged = { deviceMenuOpen = it },
+                onSelected = { device ->
+                    selectedAddress = device.address
+                    deviceName = device.name.orEmpty()
+                    deviceMenuOpen = false
                 }
-                override fun onMtuChanged(g: BluetoothGatt, mtu: Int, statusCode: Int) {
-                    if (statusCode == BluetoothGatt.GATT_SUCCESS) handler.post { negotiatedMtu = mtu; status = "Printer transport ready (MTU $mtu)." }
+            )
+
+            Spacer(Modifier.height(10.dp))
+            val contentHasRuntimeFields = listOf(
+                BluetoothPrinterFields.FORMAT,
+                BluetoothPrinterFields.PAYLOAD,
+                BluetoothPrinterFields.SECOND_LINE,
+                BluetoothPrinterFields.QR_HUMAN_READABLE,
+                BluetoothPrinterFields.QR_HUMAN_FONT_SIZE,
+                BluetoothPrinterFields.QR_HUMAN_TYPEFACE,
+                BluetoothPrinterFields.QR_HUMAN_FONT_STYLE,
+                BluetoothPrinterFields.QR_HUMAN_GAP
+            ).any(::showSetting)
+            if (contentHasRuntimeFields) {
+                SectionTitle("Content")
+                if (showSetting(BluetoothPrinterFields.FORMAT)) {
+                    ContentSelector(
+                        selected = format,
+                        onSelected = { selected ->
+                            format = selected
+                            if (selected == "qr") xOffset = "0"
+                        }
+                    )
                 }
-                override fun onServicesDiscovered(g: BluetoothGatt, statusCode: Int) {
-                    handler.post {
-                        val service = g.services.firstOrNull { it.uuid.toString().equals(serviceUuid.trim(), true) }
-                        writeCharacteristic = service?.characteristics?.firstOrNull { it.uuid.toString().equals(writeUuid.trim(), true) && it.properties and (BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0 }
-                        notifyCharacteristic = service?.characteristics?.firstOrNull { it.uuid.toString().equals(QUTIE_NOTIFY, true) && it.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0 }
-                        val notifyReady = notifyCharacteristic?.let { n ->
-                            g.setCharacteristicNotification(n, true)
-                            n.getDescriptor(UUID.fromString(CLIENT_CONFIG))?.let { d ->
-                                d.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                                g.writeDescriptor(d)
+
+                when (BluetoothPrinterContent.fromWire(format)) {
+                    BluetoothPrinterContent.HEX -> {
+                        if (showSetting(BluetoothPrinterFields.PAYLOAD)) {
+                            OutlinedTextField(
+                                value = payload,
+                                onValueChange = { payload = it },
+                                label = { Text("Raw payload (hex)") },
+                                modifier = Modifier.fillMaxWidth().height(120.dp)
+                            )
+                            Text(
+                                "Raw hex is sent exactly as entered. Label composition, density and eject settings do not modify it.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    BluetoothPrinterContent.QR -> {
+                        if (showSetting(BluetoothPrinterFields.PAYLOAD)) {
+                            OutlinedTextField(
+                                value = payload,
+                                onValueChange = { payload = it },
+                                label = { Text("QR payload") },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 2
+                            )
+                        }
+                        if (showSetting(BluetoothPrinterFields.QR_HUMAN_READABLE)) {
+                            ToggleRow("Show human-readable text", qrHumanReadable) { qrHumanReadable = it }
+                        }
+                        val qrReadableHasRuntimeFields = listOf(
+                            BluetoothPrinterFields.QR_HUMAN_FONT_SIZE,
+                            BluetoothPrinterFields.QR_HUMAN_GAP,
+                            BluetoothPrinterFields.QR_HUMAN_TYPEFACE,
+                            BluetoothPrinterFields.QR_HUMAN_FONT_STYLE
+                        ).any(::showSetting)
+                        if (qrHumanReadable && qrReadableHasRuntimeFields) {
+                            SectionTitle("QR readable text")
+                            Row(Modifier.fillMaxWidth()) {
+                                if (showSetting(BluetoothPrinterFields.QR_HUMAN_FONT_SIZE)) {
+                                    NumberField("Font px", qrHumanFontSize, Modifier.weight(1f)) { qrHumanFontSize = it }
+                                }
+                                if (showSetting(BluetoothPrinterFields.QR_HUMAN_FONT_SIZE) && showSetting(BluetoothPrinterFields.QR_HUMAN_GAP)) {
+                                    Spacer(Modifier.width(6.dp))
+                                }
+                                if (showSetting(BluetoothPrinterFields.QR_HUMAN_GAP)) {
+                                    NumberField("Gap px", qrHumanGap, Modifier.weight(1f)) { qrHumanGap = it }
+                                }
                             }
-                            true
-                        } ?: false
-                        status = if (writeCharacteristic != null) {
-                            if (notifyReady) "Printer write endpoint ready; status notifications enabled." else "Printer write endpoint ready."
-                        } else "Connected, but the configured write endpoint was not found."
+                            if (showSetting(BluetoothPrinterFields.QR_HUMAN_TYPEFACE)) {
+                                ChoiceButtons(
+                                    title = "Typeface",
+                                    selected = qrHumanTypeface,
+                                    choices = listOf("sans" to "Sans", "serif" to "Serif", "monospace" to "Mono")
+                                ) { qrHumanTypeface = it }
+                            }
+                            if (showSetting(BluetoothPrinterFields.QR_HUMAN_FONT_STYLE)) {
+                                ChoiceButtons(
+                                    title = "Font style",
+                                    selected = qrHumanFontStyle,
+                                    choices = listOf(
+                                        "normal" to "Regular",
+                                        "bold" to "Bold",
+                                        "italic" to "Italic",
+                                        "bold_italic" to "Bold italic"
+                                    ),
+                                    twoRows = true
+                                ) { qrHumanFontStyle = it }
+                            }
+                        }
+                    }
+                    BluetoothPrinterContent.CODE128 -> {
+                        if (showSetting(BluetoothPrinterFields.PAYLOAD)) {
+                            OutlinedTextField(
+                                value = payload,
+                                onValueChange = { payload = it.replace("\n", " ") },
+                                label = { Text("Code 128 payload") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
+                    }
+                    BluetoothPrinterContent.TEXT -> {
+                        if (showSetting(BluetoothPrinterFields.PAYLOAD)) {
+                            OutlinedTextField(
+                                value = payload,
+                                onValueChange = { payload = it.replace("\n", " ") },
+                                label = { Text("Line 1") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
+                        if (showSetting(BluetoothPrinterFields.SECOND_LINE)) {
+                            OutlinedTextField(
+                                value = secondLine,
+                                onValueChange = { secondLine = it.replace("\n", " ") },
+                                label = { Text("Line 2 (optional)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
                     }
                 }
-                override fun onCharacteristicChanged(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
-                    val hex = value.joinToString(" ") { "%02X".format(it) }
-                    handler.post { status = "Printer status: $hex" }
-                }
-                override fun onDescriptorWrite(g: BluetoothGatt, descriptor: BluetoothGattDescriptor, statusCode: Int) {
-                    if (statusCode != BluetoothGatt.GATT_SUCCESS) handler.post { status = "Could not enable printer status notifications (GATT $statusCode)." }
-                }
-                override fun onCharacteristicWrite(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic, statusCode: Int) {
-                    pendingWrite.getAndSet(null)?.complete(statusCode == BluetoothGatt.GATT_SUCCESS)
-                    if (statusCode != BluetoothGatt.GATT_SUCCESS) handler.post { status = "Printer write failed (GATT status $statusCode)." }
-                }
-            })
-        }
-        fun print() {
-            val g = gatt
-            val characteristic = writeCharacteristic
-            if (!connected || g == null || characteristic == null) { status = "Connect to the printer first."; return }
-            val bytes = if (format == "hex") parseHex(payload) else qutieTextLabel(payload, fontSize.toIntOrNull() ?: 22, lineSpacing.toIntOrNull() ?: 32, labelHeight.toIntOrNull() ?: 96)
-            if (bytes.isEmpty()) { status = "There is no printable payload."; return }
-            // Use the negotiated ATT payload size. Qutie treats each BLE
-            // write as a print stream fragment, so tiny writes produce the
-            // audible chick-chick behaviour and visible gaps.
-            val maxPayload = (negotiatedMtu - 3).coerceAtLeast(20)
-            val chunks = bytes.toList().chunked(maxPayload).map { it.toByteArray() }
-            status = "Sending ${bytes.size} bytes to the printer…"
-            scope.launch {
-                var accepted = true
-                for (chunk in chunks) {
-                    // Qutie exposes acknowledged writes. Use them whenever
-                    // available: a successful Boolean only means Android
-                    // queued a packet, whereas the callback confirms that
-                    // the printer accepted it. This prevents partial labels
-                    // and avoids reporting success after a stalled transfer.
-                    val acknowledged = characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE != 0
-                    characteristic.writeType = if (acknowledged) BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT else BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-                    characteristic.value = chunk
-                    val confirmation = if (acknowledged) CompletableDeferred<Boolean>().also { pendingWrite.set(it) } else null
-                    val queued = g.writeCharacteristic(characteristic)
-                    val confirmed = if (!queued) false else confirmation?.let { withTimeoutOrNull(3000) { it.await() } ?: false } ?: true
-                    accepted = accepted && confirmed
-                    if (!accepted) break
-                    delay(if (chunks.size == 1) 40 else 25)
-                }
-                status = if (accepted) "Print payload sent (${bytes.size} bytes)." else "Printer rejected the payload."
-                val request = As100BluetoothPrinterMethod.request(As100BluetoothPrinterMethod.ID, emptyMap(), emptyList(), emptyList())
-                val values = mapOf(
-                    BluetoothPrinterFields.DEVICE_NAME to deviceName,
-                    BluetoothPrinterFields.DEVICE_ADDRESS to selectedAddress,
-                    BluetoothPrinterFields.SERVICE_UUID to serviceUuid,
-                    BluetoothPrinterFields.WRITE_UUID to writeUuid,
-                    BluetoothPrinterFields.PAYLOAD to payload,
-                    BluetoothPrinterFields.FORMAT to format,
-                    BluetoothPrinterFields.FONT_SIZE to fontSize,
-                    BluetoothPrinterFields.LINE_SPACING to lineSpacing,
-                    BluetoothPrinterFields.LABEL_HEIGHT to labelHeight,
-                    BluetoothPrinterFields.PROFILE to "qutie_label_v1",
-                    BluetoothPrinterFields.STATUS to if (accepted) "succeeded" else "failed",
-                    BluetoothPrinterFields.BYTES_SENT to bytes.size.toString()
-                )
-                result = As100BluetoothPrinterMethod.result(request, values, context.request.invocationContext)
             }
-        }
-        DisposableEffect(Unit) { onDispose { runCatching { gatt?.close() }; handler.removeCallbacksAndMessages(null) } }
-        LaunchedRefresh(adapter, androidContext, paired, hasPermissions(), refreshPaired = {
-            refreshPaired(adapter, paired, androidContext) { status = it }
-            if (selectedAddress.isBlank() && paired.size == 1) {
-                selectedAddress = paired.first().address
-                deviceName = paired.first().name.orEmpty()
-                status = "Auto-selected paired printer."
-            }
-        })
 
-        CapabilityScreenScaffold(title, capabilityId, context, context.stepNumber > 1, result, result?.let { OutputFormatter.fields(it, false) }.orEmpty(), onBack, { result = null }, { result?.let(onConfirmed) }, onCancel) {
-            Text("Qutie label mode renders text as a 96-pixel label and sends the printer's label protocol. Raw hex is available for device-specific commands.", style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.height(8.dp))
-            Button(::refresh, Modifier.fillMaxWidth()) { Text("Refresh paired devices") }
-            paired.forEach { device ->
-                OutlinedButton(onClick = { selectedAddress = device.address; deviceName = device.name.orEmpty() }, Modifier.fillMaxWidth()) {
-                    Text(if (selectedAddress == device.address) "✓ ${device.name ?: "Unnamed"} (${device.address})" else "${device.name ?: "Unnamed"} (${device.address})")
+            if (previewConfig.content != BluetoothPrinterContent.HEX) {
+                Spacer(Modifier.height(10.dp))
+                SectionTitle("Label preview")
+                val previewHeight = previewConfig.resolvedPreviewHeight()
+                val headWidth = previewConfig.printWidthPx.coerceIn(48, 832)
+                val previewScale = minOf(1.5f, 720f / previewHeight.coerceAtLeast(1).toFloat())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    previewBitmap?.let { bitmap ->
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "Thermal label preview",
+                            modifier = Modifier
+                                .width((headWidth * previewScale).dp)
+                                .height((previewHeight * previewScale).dp),
+                            contentScale = ContentScale.FillBounds
+                        )
+                    } ?: Text("Preview unavailable for this payload.", style = MaterialTheme.typography.bodySmall)
+                }
+                Text(
+                    "${headWidth} × ${previewHeight} px · minimum length grows automatically to fit content.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            when (BluetoothPrinterContent.fromWire(format)) {
+                BluetoothPrinterContent.TEXT -> {
+                    val typographyHasRuntimeFields = listOf(
+                        BluetoothPrinterFields.CENTER_TEXT,
+                        BluetoothPrinterFields.FONT_SIZE,
+                        BluetoothPrinterFields.LINE_SPACING,
+                        BluetoothPrinterFields.TYPEFACE,
+                        BluetoothPrinterFields.FONT_STYLE,
+                        BluetoothPrinterFields.ROTATE_90
+                    ).any(::showSetting)
+                    if (typographyHasRuntimeFields) {
+                        Spacer(Modifier.height(10.dp))
+                        SectionTitle("Typography")
+                        if (showSetting(BluetoothPrinterFields.CENTER_TEXT)) {
+                            ToggleRow("Centre text across label", centerText) { centerText = it }
+                        }
+                        if (showSetting(BluetoothPrinterFields.FONT_SIZE) || showSetting(BluetoothPrinterFields.LINE_SPACING)) {
+                            Row(Modifier.fillMaxWidth()) {
+                                if (showSetting(BluetoothPrinterFields.FONT_SIZE)) {
+                                    NumberField("Font px", fontSize, Modifier.weight(1f)) { fontSize = it }
+                                }
+                                if (showSetting(BluetoothPrinterFields.FONT_SIZE) && showSetting(BluetoothPrinterFields.LINE_SPACING)) {
+                                    Spacer(Modifier.width(6.dp))
+                                }
+                                if (showSetting(BluetoothPrinterFields.LINE_SPACING)) {
+                                    NumberField("Line px", lineSpacing, Modifier.weight(1f)) { lineSpacing = it }
+                                }
+                            }
+                        }
+                        if (showSetting(BluetoothPrinterFields.TYPEFACE)) {
+                            ChoiceButtons(
+                                "Typeface",
+                                typefaceFamily,
+                                listOf("sans" to "Sans", "serif" to "Serif", "monospace" to "Mono")
+                            ) { typefaceFamily = it }
+                        }
+                        if (showSetting(BluetoothPrinterFields.FONT_STYLE)) {
+                            ChoiceButtons(
+                                "Font style",
+                                fontStyle,
+                                listOf(
+                                    "normal" to "Regular",
+                                    "bold" to "Bold",
+                                    "italic" to "Italic",
+                                    "bold_italic" to "Bold italic"
+                                ),
+                                twoRows = true
+                            ) { fontStyle = it }
+                        }
+                        if (showSetting(BluetoothPrinterFields.ROTATE_90)) {
+                            ChoiceButtons(
+                                "Text direction",
+                                if (alongLabel) "along" else "across",
+                                listOf("along" to "Along label", "across" to "Across label")
+                            ) { alongLabel = it == "along" }
+                        }
+                    }
+                }
+                BluetoothPrinterContent.QR -> {
+                    if (showSetting(BluetoothPrinterFields.CODE_SIZE)) {
+                        Spacer(Modifier.height(10.dp))
+                        SectionTitle("QR size")
+                        NumberField("QR size px", codeSize, Modifier.fillMaxWidth()) { codeSize = it }
+                    }
+                }
+                BluetoothPrinterContent.CODE128 -> {
+                    if (showSetting(BluetoothPrinterFields.CODE_SIZE) || showSetting(BluetoothPrinterFields.BARCODE_HEIGHT)) {
+                        Spacer(Modifier.height(10.dp))
+                        SectionTitle("Barcode size")
+                        Row(Modifier.fillMaxWidth()) {
+                            if (showSetting(BluetoothPrinterFields.CODE_SIZE)) {
+                                NumberField("Width px", codeSize, Modifier.weight(1f)) { codeSize = it }
+                            }
+                            if (showSetting(BluetoothPrinterFields.CODE_SIZE) && showSetting(BluetoothPrinterFields.BARCODE_HEIGHT)) {
+                                Spacer(Modifier.width(6.dp))
+                            }
+                            if (showSetting(BluetoothPrinterFields.BARCODE_HEIGHT)) {
+                                NumberField("Height px", barcodeHeight, Modifier.weight(1f)) { barcodeHeight = it }
+                            }
+                        }
+                    }
+                }
+                BluetoothPrinterContent.HEX -> Unit
+            }
+
+            if (previewConfig.content != BluetoothPrinterContent.HEX) {
+                val layoutHasRuntimeFields = listOf(
+                    BluetoothPrinterFields.X_OFFSET,
+                    BluetoothPrinterFields.Y_OFFSET,
+                    BluetoothPrinterFields.STICKER_LENGTH,
+                    BluetoothPrinterFields.FEED_DOTS,
+                    BluetoothPrinterFields.PRINT_WIDTH,
+                    BluetoothPrinterFields.DENSITY,
+                    BluetoothPrinterFields.PAPER_MODE
+                ).any(::showSetting)
+                if (layoutHasRuntimeFields) {
+                    Spacer(Modifier.height(10.dp))
+                    SectionTitle("Layout & media")
+                    if (showSetting(BluetoothPrinterFields.X_OFFSET) || showSetting(BluetoothPrinterFields.Y_OFFSET)) {
+                        Row(Modifier.fillMaxWidth()) {
+                            if (showSetting(BluetoothPrinterFields.X_OFFSET)) {
+                                if (previewConfig.content == BluetoothPrinterContent.QR ||
+                                    (previewConfig.content == BluetoothPrinterContent.TEXT && centerText)
+                                ) {
+                                    OutlinedTextField(
+                                        value = if (previewConfig.content == BluetoothPrinterContent.QR) "0" else "centred",
+                                        onValueChange = {},
+                                        label = { Text("X offset") },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true,
+                                        enabled = false
+                                    )
+                                } else {
+                                    NumberField("X offset", xOffset, Modifier.weight(1f)) { xOffset = it }
+                                }
+                            }
+                            if (showSetting(BluetoothPrinterFields.X_OFFSET) && showSetting(BluetoothPrinterFields.Y_OFFSET)) {
+                                Spacer(Modifier.width(6.dp))
+                            }
+                            if (showSetting(BluetoothPrinterFields.Y_OFFSET)) {
+                                NumberField("Y offset", yOffset, Modifier.weight(1f)) { yOffset = it }
+                            }
+                        }
+                    }
+                    if (showSetting(BluetoothPrinterFields.STICKER_LENGTH) || showSetting(BluetoothPrinterFields.FEED_DOTS)) {
+                        Row(Modifier.fillMaxWidth()) {
+                            if (showSetting(BluetoothPrinterFields.STICKER_LENGTH)) {
+                                NumberField("Minimum length px", stickerLength, Modifier.weight(1f)) { stickerLength = it }
+                            }
+                            if (showSetting(BluetoothPrinterFields.STICKER_LENGTH) && showSetting(BluetoothPrinterFields.FEED_DOTS)) {
+                                Spacer(Modifier.width(6.dp))
+                            }
+                            if (showSetting(BluetoothPrinterFields.FEED_DOTS)) {
+                                NumberField("Eject px", ejectPx, Modifier.weight(1f)) { ejectPx = it }
+                            }
+                        }
+                    }
+                    if (showSetting(BluetoothPrinterFields.FEED_DOTS)) {
+                        Text(
+                            "Eject is blank raster advance rather than ESC J. Hardware calibration on the tested Qutie gives 150 px as the best default.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    if (showSetting(BluetoothPrinterFields.PRINT_WIDTH) || showSetting(BluetoothPrinterFields.DENSITY)) {
+                        Row(Modifier.fillMaxWidth()) {
+                            if (showSetting(BluetoothPrinterFields.PRINT_WIDTH)) {
+                                NumberField("Head px", printWidth, Modifier.weight(1f)) { printWidth = it }
+                            }
+                            if (showSetting(BluetoothPrinterFields.PRINT_WIDTH) && showSetting(BluetoothPrinterFields.DENSITY)) {
+                                Spacer(Modifier.width(6.dp))
+                            }
+                            if (showSetting(BluetoothPrinterFields.DENSITY)) {
+                                NumberField("Density 0–2", density, Modifier.weight(1f)) { density = it }
+                            }
+                        }
+                    }
+                    if (showSetting(BluetoothPrinterFields.PAPER_MODE)) {
+                        ChoiceButtons(
+                            "Paper mode",
+                            paperMode,
+                            listOf("continuous" to "Continuous", "label" to "Label")
+                        ) { paperMode = it }
+                    }
                 }
             }
-            OutlinedTextField(serviceUuid, { serviceUuid = it }, label = { Text("Printer service UUID") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(writeUuid, { writeUuid = it }, label = { Text("Write characteristic UUID") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            Row(Modifier.fillMaxWidth()) {
-                Button({ format = "text"; status = "Text payload selected." }, Modifier.weight(1f)) { Text(if (format == "text") "✓ Text" else "Text") }
-                Spacer(Modifier.padding(4.dp))
-                Button({ format = "hex"; status = "Raw hex payload selected." }, Modifier.weight(1f)) { Text(if (format == "hex") "✓ Hex" else "Raw hex") }
+
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "Driver endpoints: FF00 service · FF02 write · FF01 notify. Other Bluetooth printer protocols should be implemented as separate drivers.",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            Text(
+                "Status: $status",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+            Button(onClick = ::connect, modifier = Modifier.fillMaxWidth()) {
+                Text(if (connected) "Reconnect / inspect printer" else "Connect / inspect printer")
             }
-            OutlinedTextField(payload, { payload = it }, label = { Text(if (format == "hex") "Raw payload (hex)" else "Label text") }, modifier = Modifier.fillMaxWidth().height(120.dp))
-            if (format == "text") {
-                Row(Modifier.fillMaxWidth()) {
-                    OutlinedTextField(fontSize, { fontSize = it.filter(Char::isDigit) }, label = { Text("Font px") }, modifier = Modifier.weight(1f), singleLine = true)
-                    Spacer(Modifier.padding(4.dp))
-                    OutlinedTextField(lineSpacing, { lineSpacing = it.filter(Char::isDigit) }, label = { Text("Line spacing px") }, modifier = Modifier.weight(1f), singleLine = true)
-                    Spacer(Modifier.padding(4.dp))
-                    OutlinedTextField(labelHeight, { labelHeight = it.filter(Char::isDigit) }, label = { Text("Label length px") }, modifier = Modifier.weight(1f), singleLine = true)
-                }
+            Button(onClick = ::printPayload, modifier = Modifier.fillMaxWidth()) {
+                Text("Send print job")
             }
-            Text("Status: $status", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 6.dp))
-            Button(::connect, Modifier.fillMaxWidth()) { Text(if (connected) "Reconnect and inspect printer" else "Connect to printer") }
-            Button(::print, Modifier.fillMaxWidth()) { Text("Send print payload") }
         }
     }
-}
-
-@SuppressLint("MissingPermission")
-private fun refreshPaired(adapter: android.bluetooth.BluetoothAdapter?, paired: MutableList<BluetoothDevice>, context: android.content.Context, statusSetter: (String) -> Unit) {
-    if (adapter == null) { statusSetter("Bluetooth is unavailable."); return }
-    paired.clear(); paired.addAll(adapter.bondedDevices.orEmpty().sortedBy { it.name.orEmpty().lowercase() })
 }
 
 @Composable
-private fun LaunchedRefresh(adapter: android.bluetooth.BluetoothAdapter?, context: android.content.Context, paired: MutableList<BluetoothDevice>, permitted: Boolean, refreshPaired: () -> Unit) {
-    androidx.compose.runtime.LaunchedEffect(adapter, permitted) { if (permitted) refreshPaired() }
-}
-
-private fun qutieTextLabel(text: String, fontSize: Int, lineSpacing: Int, requestedHeight: Int): ByteArray {
-    // Earlier Qutie experiments produced recognisable text with the label
-    // length represented before rotation. This is still experimental, but it
-    // is the most useful fallback until the vendor packet stream is captured.
-    val sourceWidth = 96
-    val sourceHeight = requestedHeight.coerceIn(32, 512)
-    val source = Bitmap.createBitmap(sourceWidth, sourceHeight, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(source)
-    canvas.drawColor(Color.WHITE)
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK; textSize = fontSize.coerceIn(8, 48).toFloat(); typeface = Typeface.DEFAULT }
-    text.lines().forEachIndexed { index, line -> canvas.drawText(line, 2f, (fontSize + index * lineSpacing).toFloat(), paint) }
-    // Qutie feeds the printhead 90° relative to the screen orientation.
-    // Rotate the raster so text is upright on the label, rather than only
-    // becoming readable when the strip is held on its edge.
-    val rotated = Bitmap.createBitmap(source, 0, 0, source.width, source.height, Matrix().apply { postRotate(90f) }, true)
-    source.recycle()
-    val widthBytes = (rotated.width + 7) / 8
-    val height = rotated.height
-    val raster = ByteArray(widthBytes * height)
-    for (y in 0 until height) for (xByte in 0 until widthBytes) {
-        var value = 0
-        for (bit in 0 until 8) {
-            val x = xByte * 8 + bit
-            val pixel = if (x < rotated.width) rotated.getPixel(x, y) else Color.WHITE
-            if ((Color.red(pixel) + Color.green(pixel) + Color.blue(pixel)) / 3 < 160) value = value or (1 shl (7 - bit))
+private fun PrinterDevicePicker(
+    devices: List<BluetoothDevice>,
+    selectedAddress: String,
+    expanded: Boolean,
+    onExpandedChanged: (Boolean) -> Unit,
+    onSelected: (BluetoothDevice) -> Unit
+) {
+    Box(Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { onExpandedChanged(true) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = devices.isNotEmpty()
+        ) {
+            val selected = devices.firstOrNull { it.address == selectedAddress }
+            Text(
+                selected?.let { "${it.name ?: "Unnamed"} (${it.address})" }
+                    ?: if (devices.isEmpty()) "No paired devices" else "Select paired printer"
+            )
         }
-        raster[y * widthBytes + xByte] = value.toByte()
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChanged(false) }
+        ) {
+            devices.forEach { device ->
+                DropdownMenuItem(
+                    text = { Text("${device.name ?: "Unnamed"} (${device.address})") },
+                    onClick = { onSelected(device) }
+                )
+            }
+        }
     }
-    rotated.recycle()
-    val header = byteArrayOf(
-        0x10, 0xFF.toByte(), 0x10, 0x00, 0x02,
-        0x10, 0xFF.toByte(), 0x84.toByte(), 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x10, 0xFF.toByte(), 0xFE.toByte(), 0x01,
-        0x1D, 0x76, 0x30, 0x00,
-        widthBytes.toByte(), 0x00, height.toByte(), (height shr 8).toByte()
-    )
-    // Advance to the next label before stopping. Without this, repeated
-    // prints progressively migrate because the printer's media position is
-    // never re-indexed.
-    return header + raster + byteArrayOf(0x1D, 0x0C, 0x10, 0xFF.toByte(), 0xFE.toByte(), 0x45)
 }
 
-private fun parseHex(text: String): ByteArray = text.split(Regex("[\\s,;]+"), limit = 0).filter { it.isNotBlank() }.mapNotNull { token -> token.toIntOrNull(16)?.takeIf { token.length <= 2 }?.toByte() }.toByteArray()
+@Composable
+private fun ContentSelector(selected: String, onSelected: (String) -> Unit) {
+    Row(Modifier.fillMaxWidth()) {
+        ModeButton("Text", selected == "text", Modifier.weight(1f)) { onSelected("text") }
+        Spacer(Modifier.width(4.dp))
+        ModeButton("QR", selected == "qr", Modifier.weight(1f)) { onSelected("qr") }
+    }
+    Spacer(Modifier.height(4.dp))
+    Row(Modifier.fillMaxWidth()) {
+        ModeButton("Code 128", selected == "barcode", Modifier.weight(1f)) { onSelected("barcode") }
+        Spacer(Modifier.width(4.dp))
+        ModeButton("Raw hex", selected == "hex", Modifier.weight(1f)) { onSelected("hex") }
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+    Spacer(Modifier.height(4.dp))
+}
+
+@Composable
+private fun ToggleRow(label: String, checked: Boolean, onChanged: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Switch(checked = checked, onCheckedChange = onChanged)
+    }
+}
+
+@Composable
+private fun ModeButton(
+    label: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    if (selected) {
+        Button(onClick = onClick, modifier = modifier) { Text("✓ $label") }
+    } else {
+        OutlinedButton(onClick = onClick, modifier = modifier) { Text(label) }
+    }
+}
+
+@Composable
+private fun NumberField(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    onChanged: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { onChanged(it.filter(Char::isDigit)) },
+        label = { Text(label) },
+        modifier = modifier,
+        singleLine = true
+    )
+}
+
+@Composable
+private fun ChoiceButtons(
+    title: String,
+    selected: String,
+    choices: List<Pair<String, String>>,
+    twoRows: Boolean = false,
+    onSelected: (String) -> Unit
+) {
+    Text(title, style = MaterialTheme.typography.bodySmall)
+    val rows = if (twoRows) choices.chunked(2) else listOf(choices)
+    rows.forEachIndexed { rowIndex, rowChoices ->
+        if (rowIndex > 0) Spacer(Modifier.height(4.dp))
+        Row(Modifier.fillMaxWidth()) {
+            rowChoices.forEachIndexed { index, (value, label) ->
+                ModeButton(label, selected == value, Modifier.weight(1f)) { onSelected(value) }
+                if (index < rowChoices.lastIndex) Spacer(Modifier.width(4.dp))
+            }
+            if (twoRows && rowChoices.size == 1) Spacer(Modifier.weight(1f))
+        }
+    }
+}

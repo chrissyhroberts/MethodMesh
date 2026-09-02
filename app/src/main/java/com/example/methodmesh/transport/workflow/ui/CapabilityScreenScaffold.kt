@@ -69,11 +69,33 @@ data class CapabilityScreenContext(
     val onSettingsChanged: (Map<String, String>) -> Unit = {}
 ) {
     val isLastStep: Boolean get() = stepNumber >= totalSteps
+    val isNativePresetRun: Boolean get() =
+        request.settings["methodmesh_native_preset_run"] == "true" ||
+            request.settings["input_methodmesh_native_preset_run"] == "true"
     val startsImmediately: Boolean get() =
         completionMode == CapabilityCompletionMode.AutomaticReturn ||
-            request.settings["methodmesh_native_preset_run"] == "true" ||
-            request.settings["input_methodmesh_native_preset_run"] == "true"
+            isNativePresetRun
     val submitsImmediately: Boolean get() = completionMode == CapabilityCompletionMode.AutomaticReturn
+
+    val runtimeInputFields: Set<String> get() =
+        (action.settings["methodmesh_runtime_fields"]
+            ?: action.settings["input_methodmesh_runtime_fields"]
+            ?: request.settings["methodmesh_runtime_fields"]
+            ?: request.settings["input_methodmesh_runtime_fields"])
+            .orEmpty()
+            .split(',', '|', ';', '\n')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toSet()
+
+    fun settingIsRuntimeInput(settingId: String): Boolean =
+        settingId in runtimeInputFields
+
+    fun settingIsFixedInNativePreset(settingId: String): Boolean =
+        isNativePresetRun && settingId !in runtimeInputFields
+
+    fun settingShouldBeShown(settingId: String, alwaysShow: Boolean = false): Boolean =
+        alwaysShow || !settingIsFixedInNativePreset(settingId)
 }
 
 enum class CapabilityCompletionMode {

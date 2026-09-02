@@ -2,6 +2,7 @@ package com.example.methodmesh.modules.conversationtranslate
 
 import android.Manifest
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
@@ -99,7 +100,15 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
         var latestTextA by rememberSaveable { mutableStateOf("") }
         var latestTextB by rememberSaveable { mutableStateOf("") }
         var operatorFacing by rememberSaveable { mutableStateOf(false) }
-        var conversationOpen by rememberSaveable(context.action.canonicalId) { mutableStateOf(context.startsImmediately) }
+        val runtimeSettingsVisible = listOf(
+            "language_a",
+            "language_b",
+            "label_a",
+            "label_b",
+            "spoken_output",
+            "prefer_offline"
+        ).any(context::settingIsRuntimeInput)
+        var conversationOpen by rememberSaveable(context.action.canonicalId) { mutableStateOf(context.startsImmediately && !runtimeSettingsVisible) }
         var turnsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("[]") }
         var startedAt by rememberSaveable(context.action.canonicalId) { mutableStateOf(Instant.now().toString()) }
         var resultValuesJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
@@ -354,15 +363,20 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
             val prompt = "${if (side == "a") labelA else labelB}: speak now"
             listeningSide = side
             status = "Listening…"
-            recognizer.launch(
-                Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, speechLocaleTagFor(source))
-                    putExtra(RecognizerIntent.EXTRA_PROMPT, prompt)
-                    putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, preferOffline)
-                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-                }
-            )
+            val recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, speechLocaleTagFor(source))
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, speechLocaleTagFor(source))
+                putExtra(RecognizerIntent.EXTRA_PROMPT, prompt)
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, preferOffline && source != "zh")
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+            }
+            try {
+                recognizer.launch(recognizerIntent)
+            } catch (_: ActivityNotFoundException) {
+                listeningSide = null
+                status = "Android speech recognition is not available for ${languageLabel(source)} on this device. The ML Kit translation pack is separate from the speech recogniser."
+            }
         }
 
         CapabilityScreenScaffold(
@@ -381,7 +395,7 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                 latestTranslated = ""
                 latestTextA = ""
                 latestTextB = ""
-                conversationOpen = context.startsImmediately
+                conversationOpen = context.startsImmediately && !runtimeSettingsVisible
                 startedAt = Instant.now().toString()
                 status = "Conversation cleared."
             },
@@ -389,15 +403,23 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
             onCancel = onCancel
         ) {
             if (capturedResult == null) {
-                if (!context.startsImmediately) {
+                if (!context.startsImmediately || runtimeSettingsVisible) {
                     Text("Configure a language pair, then let either person press their own button whenever they speak.", style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(10.dp))
+                    if (!context.settingIsFixedInNativePreset("language_a")) {
                     ConversationLanguagePicker("First language", languageA, onSelected = { languageA = it; labelA = defaultButtonLabel(it) })
                     Spacer(Modifier.height(8.dp))
+                    }
+                    if (!context.settingIsFixedInNativePreset("language_b")) {
                     ConversationLanguagePicker("Second language", languageB, onSelected = { languageB = it; labelB = defaultButtonLabel(it) })
                     Spacer(Modifier.height(8.dp))
+                    }
+                    if (!context.settingIsFixedInNativePreset("spoken_output")) {
                     ToggleRow("Speak translations aloud", spokenOutput) { spokenOutput = it }
+                    }
+                    if (!context.settingIsFixedInNativePreset("prefer_offline")) {
                     ToggleRow("Prefer offline speech recognition", preferOffline) { preferOffline = it }
+                    }
                     Spacer(Modifier.height(12.dp))
                     Button(
                         onClick = { conversationOpen = true },
@@ -911,8 +933,11 @@ private fun speechLocaleTagFor(language: String): String = when (language) {
     "de" -> "de-DE"
     "it" -> "it-IT"
     "sw" -> "sw-KE"
-    "zh" -> "zh-CN"
+    "zh" -> "cmn-Hans-CN"
     else -> language
 }
 
-private fun localeFor(language: String): Locale = Locale.forLanguageTag(speechLocaleTagFor(language))
+private fun localeFor(language: String): Locale = when (language) {
+    "zh" -> Locale.SIMPLIFIED_CHINESE
+    else -> Locale.forLanguageTag(speechLocaleTagFor(language))
+}

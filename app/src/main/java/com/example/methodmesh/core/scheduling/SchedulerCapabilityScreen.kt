@@ -306,6 +306,7 @@ private fun CapabilitySettingsCard(methodId: String, raw: String, onChanged: (St
                     is MethodSetting.FloatSetting -> setting.defaultValue.toString()
                     is MethodSetting.TextSetting -> setting.defaultValue
                     is MethodSetting.ChoiceSetting -> setting.defaultValue
+                    is MethodSetting.MultiChoiceSetting -> setting.defaultValue
                 }
                 put(setting.id, value)
             }
@@ -349,6 +350,7 @@ private fun CapabilitySettingsCard(methodId: String, raw: String, onChanged: (St
                         Text(setting.label, modifier = Modifier.padding(top = 12.dp))
                     }
                     is MethodSetting.ChoiceSetting -> SchedulerDropdownField(setting.label, values[setting.id].orEmpty(), setting.choices.map { it to it }) { update(setting.id, it) }
+                    is MethodSetting.MultiChoiceSetting -> SchedulerMultiChoiceField(setting, values[setting.id].orEmpty()) { update(setting.id, it) }
                     else -> OutlinedTextField(
                         values[setting.id].orEmpty(),
                         { update(setting.id, it) },
@@ -383,6 +385,45 @@ private fun SchedulerDropdownField(
                         DropdownMenuItem(text = { Text(display) }, onClick = { onSelected(value); expanded = false })
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SchedulerMultiChoiceField(
+    setting: MethodSetting.MultiChoiceSetting,
+    value: String,
+    onChanged: (String) -> Unit
+) {
+    val selected = value
+        .split(setting.delimiter, ",", ";")
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+        .toSet()
+    Column(Modifier.fillMaxWidth()) {
+        Text(setting.label, style = MaterialTheme.typography.labelLarge)
+        if (setting.emptyMeansAll) {
+            Row(Modifier.fillMaxWidth()) {
+                Checkbox(
+                    checked = selected.isEmpty(),
+                    onCheckedChange = { checked -> if (checked) onChanged("") }
+                )
+                Text("Automatic / all", modifier = Modifier.padding(top = 12.dp))
+            }
+        }
+        setting.choices.forEach { choice ->
+            Row(Modifier.fillMaxWidth()) {
+                Checkbox(
+                    checked = choice in selected,
+                    enabled = !(setting.emptyMeansAll && selected.isEmpty()),
+                    onCheckedChange = { nowChecked ->
+                        val next = selected.toMutableSet()
+                        if (nowChecked) next += choice else next -= choice
+                        onChanged(next.joinToString(setting.delimiter))
+                    }
+                )
+                Text(choice, modifier = Modifier.padding(top = 12.dp))
             }
         }
     }

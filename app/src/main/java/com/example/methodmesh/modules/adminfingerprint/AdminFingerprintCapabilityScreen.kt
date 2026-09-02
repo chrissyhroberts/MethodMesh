@@ -247,6 +247,7 @@ object AdminFingerprintCapabilityScreen : CapabilityScreenSpec {
                 is MethodSetting.FloatSetting -> raw.toFloatOrNull()?.let { settingsState.setFloat(setting.id, it) }
                 is MethodSetting.TextSetting -> settingsState.setString(setting.id, raw)
                 is MethodSetting.ChoiceSetting -> settingsState.setString(setting.id, raw)
+                is MethodSetting.MultiChoiceSetting -> settingsState.setString(setting.id, raw)
             }
         }
     }

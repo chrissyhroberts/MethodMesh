@@ -52,16 +52,14 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
         val supplied = remember(context.request.settings, context.action.settings, context.request.invocationContext) {
             context.request.invocationContext.asMap(context.action.canonicalId) + context.request.settings + context.action.settings
         }
-        val runtimeFields = supplied.firstPresent("methodmesh_runtime_fields", "input_methodmesh_runtime_fields")
-            .split(',')
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-            .toSet()
-        val nativePresetRun = supplied.firstPresent("methodmesh_native_preset_run", "input_methodmesh_native_preset_run") == "true"
         var phone by rememberSaveable { mutableStateOf(supplied.firstPresent("sms_phone", "input_sms_phone", "phone", "input_phone", "recipient_phone")) }
         var message by rememberSaveable { mutableStateOf(supplied.firstPresent("sms_message", "input_sms_message", "message", "input_message", "sms_message_template", "input_sms_message_template")) }
-        val needsRuntimePhone = phone.isBlank() || "sms_phone" in runtimeFields || "phone" in runtimeFields
-        val needsRuntimeMessage = message.isBlank() || "sms_message" in runtimeFields || "message" in runtimeFields
+        val needsRuntimePhone = phone.isBlank() ||
+            context.settingIsRuntimeInput("sms_phone") ||
+            context.settingIsRuntimeInput("phone")
+        val needsRuntimeMessage = message.isBlank() ||
+            context.settingIsRuntimeInput("sms_message") ||
+            context.settingIsRuntimeInput("message")
         var status by rememberSaveable { mutableStateOf(if (needsRuntimePhone || needsRuntimeMessage) "Enter SMS details." else "Ready to send SMS.") }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var requestedByPermission by remember { mutableStateOf(false) }
@@ -139,8 +137,8 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
                 sendNow()
             }
         }
-        LaunchedEffect(context.startsImmediately, nativePresetRun, needsRuntimePhone, needsRuntimeMessage) {
-            val shouldAutoSend = context.startsImmediately || (nativePresetRun && !needsRuntimePhone && !needsRuntimeMessage)
+        LaunchedEffect(context.startsImmediately, context.isNativePresetRun, needsRuntimePhone, needsRuntimeMessage) {
+            val shouldAutoSend = context.startsImmediately || (context.isNativePresetRun && !needsRuntimePhone && !needsRuntimeMessage)
             if (shouldAutoSend && !autoAttempted && !needsRuntimePhone && !needsRuntimeMessage) {
                 autoAttempted = true
                 sendNow()
@@ -163,21 +161,26 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
                 Text("Enter SMS details.", fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
             }
-            OutlinedTextField(
-                value = phone,
-                onValueChange = { phone = it },
-                label = { Text("Phone number") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = message,
-                onValueChange = { message = it },
-                label = { Text("Message") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3
-            )
+            if (needsRuntimePhone) {
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Phone number") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+            if (needsRuntimeMessage) {
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    label = { Text("Message") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+                Spacer(Modifier.height(8.dp))
+            }
             Spacer(Modifier.height(10.dp))
             Text("Recipient: ${phone.ifBlank { "not configured" }}", style = MaterialTheme.typography.bodySmall)
             Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))

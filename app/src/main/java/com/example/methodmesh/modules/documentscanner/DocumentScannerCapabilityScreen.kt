@@ -75,6 +75,14 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
         var status by rememberSaveable { mutableStateOf("Ready to scan a paper document.") }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var resultFieldsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val runtimeSettingsVisible = listOf(
+            "page_limit",
+            "scanner_mode",
+            "allow_gallery_import",
+            "run_ocr",
+            "return_searchable_pdf",
+            "return_text_file"
+        ).any(context::settingIsRuntimeInput)
         val resultValues = remember(resultFieldsJson) { resultFieldsJson?.let(::documentScannerValuesFromJson) }
         val result = remember(resultValues, context.request.invocationContext) {
             resultValues?.let { values ->
@@ -155,8 +163,8 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
                 }
         }
 
-        LaunchedEffect(context.startsImmediately, context.action.settings) {
-            if (context.startsImmediately && !launched && result == null) {
+        LaunchedEffect(context.startsImmediately, context.action.settings, runtimeSettingsVisible) {
+            if (context.startsImmediately && !runtimeSettingsVisible && !launched && result == null) {
                 launched = true
                 start()
             }
@@ -179,7 +187,8 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
         ) {
             Text("Scan paper pages, straighten them, and return a searchable PDF plus extracted text.", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
-            if (!context.startsImmediately) {
+            if (!context.startsImmediately || runtimeSettingsVisible) {
+                if (!context.settingIsFixedInNativePreset("page_limit")) {
                 OutlinedTextField(
                     value = pageLimitText,
                     onValueChange = { pageLimitText = it.filter(Char::isDigit).take(2) },
@@ -187,31 +196,42 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
+                }
+                if (!context.settingIsFixedInNativePreset("scanner_mode")) {
                 ScannerModeChooser(scannerMode = scannerMode, onScannerModeSelected = { scannerMode = it })
+                }
+                if (!context.settingIsFixedInNativePreset("allow_gallery_import")) {
                 DocumentScannerToggle(
                     checked = allowGallery,
                     onCheckedChange = { allowGallery = it },
                     label = "Allow gallery import",
                     description = "Permit choosing existing page images as well as using the camera."
                 )
+                }
+                if (!context.settingIsFixedInNativePreset("run_ocr")) {
                 DocumentScannerToggle(
                     checked = runOcr,
                     onCheckedChange = { runOcr = it },
                     label = "OCR",
                     description = "Read printed text from each page on device."
                 )
+                }
+                if (!context.settingIsFixedInNativePreset("return_searchable_pdf")) {
                 DocumentScannerToggle(
                     checked = returnSearchablePdf,
                     onCheckedChange = { returnSearchablePdf = it },
                     label = "Searchable PDF",
                     description = "Create a PDF attachment containing the scanned pages and OCR text."
                 )
+                }
+                if (!context.settingIsFixedInNativePreset("return_text_file")) {
                 DocumentScannerToggle(
                     checked = returnTextFile,
                     onCheckedChange = { returnTextFile = it },
                     label = "OCR text file",
                     description = "Also attach the extracted text as a plain .txt file."
                 )
+                }
                 Spacer(Modifier.height(8.dp))
             }
             Text(
@@ -219,7 +239,7 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
                 style = MaterialTheme.typography.bodySmall
             )
             Spacer(Modifier.height(12.dp))
-            if (!context.startsImmediately || result != null) {
+            if (!context.startsImmediately || runtimeSettingsVisible || result != null) {
                 Button(onClick = {
                     launched = true
                     start()

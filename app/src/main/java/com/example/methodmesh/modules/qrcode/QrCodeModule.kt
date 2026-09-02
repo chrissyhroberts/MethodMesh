@@ -25,20 +25,23 @@ object QrCodeModule : MethodMeshModule {
     override fun capabilityScreens() = listOf(BarcodeScanCapabilityScreen)
 
     private val scannerSettings = listOf(
-        MethodSetting.ChoiceSetting(
+        MethodSetting.MultiChoiceSetting(
             "barcode_formats",
             "Accepted code formats",
-            "Choose a supported scanner profile; automatic detection is usually best.",
+            "Leave automatic on to accept every supported format, or choose specific barcode formats.",
             "Scanner",
             "",
             listOf(
-                "",
                 "QR_CODE",
                 "DATA_MATRIX",
-                "QR_CODE|DATA_MATRIX",
-                "CODE_128|CODE_39|EAN_13|EAN_8|UPC_A|UPC_E",
-                "DATA_MATRIX|CODE_128"
-            )
+                "CODE_128",
+                "CODE_39",
+                "EAN_13",
+                "EAN_8",
+                "UPC_A",
+                "UPC_E"
+            ),
+            emptyMeansAll = true
         )
     )
 

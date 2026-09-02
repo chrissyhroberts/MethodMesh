@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -98,6 +99,7 @@ import com.example.methodmesh.modules.odkformlauncher.As100OdkFormLauncherMethod
 import com.example.methodmesh.platform.externalforms.ExternalFormCatalog
 import com.example.methodmesh.platform.externalforms.ExternalProjectRegistry
 import com.example.methodmesh.settings.DisplaySettingsScreen
+import com.example.methodmesh.settings.MethodSetting
 import com.example.methodmesh.settings.SettingsState
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.OutputExportRepository
@@ -1706,7 +1708,7 @@ private fun CapabilityCard(
                 onClick = { quickTestOpen = true },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (isProtocolPrimitive) "Test" else "Open tool")
+                Text(if (isProtocolPrimitive) "Configure / test" else "Open tool")
             }
             if (isProtocolPrimitive) {
                 Spacer(Modifier.height(8.dp))
@@ -1714,14 +1716,7 @@ private fun CapabilityCard(
                     onClick = { quickTestSaveOpen = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Test and save")
-                }
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = { presetDialogOpen = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Save as preset")
+                    Text("Test and save output")
                 }
             }
             lastResult?.let { ResultPreview(it, lastResultStatus) }
@@ -1811,11 +1806,68 @@ private fun CapabilityCard(
             presetStatus?.let {
                 Text(it, modifier = Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
             }
+            if (quickTestOpen) {
+                FullScreenCapabilityDialog(onDismiss = { quickTestOpen = false }) {
+                    DashboardCapabilityRunner(
+                        method = method,
+                        screen = screen,
+                        saveOutput = false,
+                        settingsJson = settingsJsonFromMap(settingsState.asMap()),
+                        onSettingsChanged = { updated -> updated.forEach { (key, value) -> settingsState.setString(key, value) } },
+                        onConfirmed = { result ->
+                            acceptResult(result, saveOutput = false)
+                            quickTestOpen = false
+                        },
+                        onCancel = { quickTestOpen = false }
+                    )
+                    if (isProtocolPrimitive) {
+                        Spacer(Modifier.height(12.dp))
+                        presetStatus?.let {
+                            Text(it, modifier = Modifier.padding(bottom = 8.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                        }
+                        OutlinedButton(
+                            onClick = { presetDialogOpen = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Save current setup as preset")
+                        }
+                    }
+                }
+            }
+            if (quickTestSaveOpen) {
+                FullScreenCapabilityDialog(onDismiss = { quickTestSaveOpen = false }) {
+                    DashboardCapabilityRunner(
+                        method = method,
+                        screen = screen,
+                        saveOutput = true,
+                        settingsJson = settingsJsonFromMap(settingsState.asMap()),
+                        onSettingsChanged = { updated -> updated.forEach { (key, value) -> settingsState.setString(key, value) } },
+                        onConfirmed = { result ->
+                            acceptResult(result, saveOutput = true)
+                            quickTestSaveOpen = false
+                        },
+                        onCancel = { quickTestSaveOpen = false }
+                    )
+                    if (isProtocolPrimitive) {
+                        Spacer(Modifier.height(12.dp))
+                        presetStatus?.let {
+                            Text(it, modifier = Modifier.padding(bottom = 8.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                        }
+                        OutlinedButton(
+                            onClick = { presetDialogOpen = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Save current setup as preset")
+                        }
+                    }
+                }
+            }
             if (presetDialogOpen) {
-                val presetSettings = presetEditableSettingsFor(method.id, settingsState.asMap())
+                val presetSettings = settingsState.asMap()
                 SavePresetDialog(
-                    defaultName = defaultPresetName(method.id),
+                    defaultName = defaultPresetName(method.descriptor.name),
                     methodId = method.id,
+                    settingSchema = settingSchema,
                     initialSettings = presetSettings,
                     defaultPayloadMode = returnPayloadMode,
                     onDismiss = { presetDialogOpen = false },
@@ -1837,38 +1889,6 @@ private fun CapabilityCard(
                         onPresetSaved()
                     }
                 )
-            }
-            if (quickTestOpen) {
-                FullScreenCapabilityDialog(onDismiss = { quickTestOpen = false }) {
-                    DashboardCapabilityRunner(
-                        method = method,
-                        screen = screen,
-                        saveOutput = false,
-                        settingsJson = settingsJsonFromMap(settingsState.asMap()),
-                        onSettingsChanged = { updated -> updated.forEach { (key, value) -> settingsState.setString(key, value) } },
-                        onConfirmed = { result ->
-                            acceptResult(result, saveOutput = false)
-                            quickTestOpen = false
-                        },
-                        onCancel = { quickTestOpen = false }
-                    )
-                }
-            }
-            if (quickTestSaveOpen) {
-                FullScreenCapabilityDialog(onDismiss = { quickTestSaveOpen = false }) {
-                    DashboardCapabilityRunner(
-                        method = method,
-                        screen = screen,
-                        saveOutput = true,
-                        settingsJson = settingsJsonFromMap(settingsState.asMap()),
-                        onSettingsChanged = { updated -> updated.forEach { (key, value) -> settingsState.setString(key, value) } },
-                        onConfirmed = { result ->
-                            acceptResult(result, saveOutput = true)
-                            quickTestSaveOpen = false
-                        },
-                        onCancel = { quickTestSaveOpen = false }
-                    )
-                }
             }
         }
     }
@@ -1893,6 +1913,10 @@ private fun FullScreenCapabilityDialog(
                     .verticalScroll(rememberScrollState())
                     .padding(18.dp)
             ) {
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                    Text("Home")
+                }
+                Spacer(Modifier.height(12.dp))
                 content()
             }
         }
@@ -1948,6 +1972,7 @@ private fun CapabilityOutputsSection(method: As100Method) {
 private fun SavePresetDialog(
     defaultName: String,
     methodId: String,
+    settingSchema: List<MethodSetting>,
     initialSettings: Map<String, Any>,
     defaultPayloadMode: String,
     onDismiss: () -> Unit,
@@ -1956,36 +1981,62 @@ private fun SavePresetDialog(
     var name by rememberSaveable(methodId) { mutableStateOf(defaultName) }
     var payloadMode by rememberSaveable(methodId) { mutableStateOf(ProtocolPayloadMode.normalize(defaultPayloadMode)) }
     var resultAction by rememberSaveable(methodId) { mutableStateOf(PresetResultAction.HOME) }
-    val fieldSpecs = remember(methodId, initialSettings) { presetFieldSpecs(methodId, initialSettings) }
+    var nameDialogOpen by rememberSaveable(methodId) { mutableStateOf(false) }
+    val usesTypedSchema = settingSchema.isNotEmpty()
+    val fieldSpecs = remember(methodId, initialSettings, settingSchema) {
+        if (usesTypedSchema) emptyList() else presetFieldSpecs(initialSettings)
+    }
+    val schemaDefaults = remember(methodId, initialSettings, settingSchema) {
+        settingSchema.associate { setting -> setting.id to presetDefaultString(setting, initialSettings[setting.id]) }
+    }
+    val editableKeys = remember(methodId, fieldSpecs, settingSchema) {
+        if (usesTypedSchema) settingSchema.map { it.id } else fieldSpecs.map { it.key }
+    }
+    val existingRuntimeFields = remember(methodId, initialSettings) {
+        initialSettings["methodmesh_runtime_fields"]
+            ?.toString()
+            .orEmpty()
+            .split(',')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toSet()
+    }
     val editableValues = remember(methodId, initialSettings) {
         mutableStateMapOf<String, String>().apply {
+            schemaDefaults.forEach { (key, value) -> put(key, value) }
             fieldSpecs.forEach { spec -> put(spec.key, initialSettings[spec.key]?.toString() ?: spec.defaultValue) }
             initialSettings.forEach { (key, value) -> putIfAbsent(key, value.toString()) }
         }
     }
     val fixedFlags = remember(methodId, initialSettings) {
         mutableStateMapOf<String, Boolean>().apply {
-            fieldSpecs.forEach { spec ->
-                val current = editableValues[spec.key].orEmpty()
-                put(spec.key, spec.defaultFixed || current.isNotBlank() && !spec.runtimeInput)
+            if (usesTypedSchema) {
+                settingSchema.forEach { setting ->
+                    put(setting.id, setting.id !in existingRuntimeFields)
+                }
+            } else {
+                fieldSpecs.forEach { spec ->
+                    val current = editableValues[spec.key].orEmpty()
+                    put(spec.key, spec.defaultFixed || current.isNotBlank() && !spec.runtimeInput)
+                }
             }
         }
     }
 
     fun selectedSettings(): Map<String, Any> {
-        if (fieldSpecs.isEmpty()) return presetSettingsFor(methodId, editableValues.toMap())
+        if (editableKeys.isEmpty()) return presetSettingsFor(editableValues.toMap())
         val selected = linkedMapOf<String, Any>()
         val runtimeFields = mutableListOf<String>()
-        fieldSpecs.forEach { spec ->
-            if (fixedFlags[spec.key] == true) {
-                val value = editableValues[spec.key].orEmpty()
-                if (value.isNotBlank()) selected[spec.key] = value
+        editableKeys.forEach { key ->
+            if (fixedFlags[key] == true) {
+                val value = editableValues[key].orEmpty()
+                if (value.isNotBlank()) selected[key] = value
             } else {
-                runtimeFields += spec.key
+                runtimeFields += key
             }
         }
         initialSettings.forEach { (key, value) ->
-            if (fieldSpecs.none { it.key == key } && value.toString().isNotBlank()) selected[key] = value
+            if (key !in editableKeys && key != "methodmesh_runtime_fields" && value.toString().isNotBlank()) selected[key] = value
         }
         if (runtimeFields.isNotEmpty()) selected["methodmesh_runtime_fields"] = runtimeFields.joinToString(",")
         return selected
@@ -2008,14 +2059,6 @@ private fun SavePresetDialog(
                 Text("Save capability preset", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(methodId, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    name,
-                    { name = it },
-                    label = { Text("Preset name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(Modifier.height(8.dp))
                 PayloadModeSelector(
                     selected = payloadMode,
                     onSelected = { payloadMode = it }
@@ -2027,8 +2070,18 @@ private fun SavePresetDialog(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text("Preset fields", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                if (fieldSpecs.isEmpty()) {
+                if (editableKeys.isEmpty()) {
                     Text("No editable preset fields for this capability.", style = MaterialTheme.typography.bodySmall)
+                } else if (usesTypedSchema) {
+                    settingSchema.forEach { setting ->
+                        PresetMethodSettingRow(
+                            setting = setting,
+                            value = editableValues[setting.id].orEmpty(),
+                            fixed = fixedFlags[setting.id] == true,
+                            onValueChanged = { editableValues[setting.id] = it },
+                            onFixedChanged = { fixedFlags[setting.id] = it }
+                        )
+                    }
                 } else {
                     fieldSpecs.forEach { spec ->
                         PresetFieldRow(
@@ -2050,19 +2103,153 @@ private fun SavePresetDialog(
                     OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
                     Button(
-                        onClick = {
-                            if (name.isNotBlank()) {
-                                onSave(
-                                    name.trim(),
-                                    ProtocolPayloadMode.normalize(payloadMode),
-                                    PresetResultAction.normalize(resultAction),
-                                    selectedSettings()
-                                )
-                            }
+                        onClick = { nameDialogOpen = true },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Save…") }
+                }
+                if (nameDialogOpen) {
+                    AlertDialog(
+                        onDismissRequest = { nameDialogOpen = false },
+                        title = { Text("Name preset") },
+                        text = {
+                            OutlinedTextField(
+                                name,
+                                { name = it },
+                                label = { Text("Preset name") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
                         },
-                        modifier = Modifier.weight(1f),
-                        enabled = name.isNotBlank()
-                    ) { Text("Save") }
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    if (name.isNotBlank()) {
+                                        onSave(
+                                            name.trim(),
+                                            ProtocolPayloadMode.normalize(payloadMode),
+                                            PresetResultAction.normalize(resultAction),
+                                            selectedSettings()
+                                        )
+                                    }
+                                },
+                                enabled = name.isNotBlank()
+                            ) { Text("Save preset") }
+                        },
+                        dismissButton = {
+                            OutlinedButton(onClick = { nameDialogOpen = false }) { Text("Back") }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PresetMethodSettingRow(
+    setting: MethodSetting,
+    value: String,
+    fixed: Boolean,
+    onValueChanged: (String) -> Unit,
+    onFixedChanged: (Boolean) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(Modifier.padding(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = fixed, onCheckedChange = onFixedChanged)
+                Column(Modifier.weight(1f)) {
+                    Text(setting.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (fixed) "Fixed in preset" else "Ask at runtime / supplied by ODK",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    setting.description?.takeIf { it.isNotBlank() }?.let {
+                        Text(it, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            when (setting) {
+                is MethodSetting.BooleanSetting -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 6.dp, top = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(if (value.equals("true", true)) "On" else "Off", style = MaterialTheme.typography.bodyMedium)
+                        Switch(
+                            checked = value.equals("true", true),
+                            enabled = fixed,
+                            onCheckedChange = { onValueChanged(it.toString()) }
+                        )
+                    }
+                }
+                is MethodSetting.ChoiceSetting -> {
+                    val spec = PresetFieldSpec(
+                        key = setting.id,
+                        label = setting.label,
+                        defaultValue = setting.defaultValue,
+                        singleChoices = setting.choices.map { choice ->
+                            PresetChoiceSpec(choice, presetChoiceLabel(choice))
+                        }
+                    )
+                    PresetSingleChoiceField(
+                        spec = spec,
+                        value = value,
+                        enabled = fixed,
+                        onValueChanged = onValueChanged
+                    )
+                }
+                is MethodSetting.MultiChoiceSetting -> {
+                    val spec = PresetFieldSpec(
+                        key = setting.id,
+                        label = setting.label,
+                        defaultValue = setting.defaultValue,
+                        multiChoices = setting.choices.map { choice ->
+                            PresetChoiceSpec(choice, presetChoiceLabel(choice))
+                        }
+                    )
+                    PresetMultiChoiceField(
+                        spec = spec,
+                        value = value,
+                        enabled = fixed,
+                        onValueChanged = onValueChanged
+                    )
+                }
+                is MethodSetting.IntSetting -> {
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = onValueChanged,
+                        enabled = fixed,
+                        label = { Text(setting.unit?.let { "Saved value ($it)" } ?: "Saved value") },
+                        supportingText = { Text(settingRangeLabel(setting.minimum, setting.maximum, setting.step)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+                is MethodSetting.FloatSetting -> {
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = onValueChanged,
+                        enabled = fixed,
+                        label = { Text(setting.unit?.let { "Saved value ($it)" } ?: "Saved value") },
+                        supportingText = { Text(settingRangeLabel(setting.minimum, setting.maximum, setting.step)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+                is MethodSetting.TextSetting -> {
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = onValueChanged,
+                        enabled = fixed,
+                        label = { Text(if (fixed) "Saved value" else "Runtime input") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = if (setting.id.contains("message") || setting.id.contains("text") || setting.id.contains("payload")) 2 else 1
+                    )
                 }
             }
         }
@@ -2223,555 +2410,96 @@ private fun PresetMultiChoiceField(
     }
 }
 
-private fun defaultPresetName(methodId: String): String =
-    "capability_${methodId.replace(Regex("[^A-Za-z0-9]+"), "_").trim('_')}_v1"
+private fun defaultPresetName(methodName: String): String =
+    methodName.trim().ifBlank { "New preset" }
 
-private fun presetFieldSpecs(methodId: String, values: Map<String, Any>): List<PresetFieldSpec> {
-    fun current(key: String, fallback: String = "") = values[key]?.toString() ?: fallback
-    return when (methodId) {
-        "admin_fingerprint_confirmation" -> listOf(
-            PresetFieldSpec(
-                key = "authentication_method",
-                label = "Authentication method",
-                defaultValue = current("authentication_method", "biometric_or_device_credential"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = listOf(
-                    PresetChoiceSpec(
-                        "biometric",
-                        "Biometric",
-                        "Require an enrolled fingerprint, face, or other Android biometric."
-                    ),
-                    PresetChoiceSpec(
-                        "device_credential",
-                        "PIN, pattern or password",
-                        "Require the device credential configured in Android settings."
-                    ),
-                    PresetChoiceSpec(
-                        "biometric_or_device_credential",
-                        "Biometric or device credential",
-                        "Allow either local authentication route."
-                    )
-                )
-            ),
-            PresetFieldSpec(
-                "confirmation_reason",
-                "Confirmation reason",
-                current("confirmation_reason", "local_access_authorisation"),
-                runtimeInput = false,
-                defaultFixed = true
-            )
-        )
-        "sms.send" -> listOf(
-            PresetFieldSpec("sms_phone", "Phone number", current("sms_phone"), runtimeInput = true),
-            PresetFieldSpec("sms_message", "Message", current("sms_message"), runtimeInput = true)
-        )
-        "mlkit.translate" -> listOf(
-            PresetFieldSpec("source_language", "Source language", current("source_language", "en"), runtimeInput = true, defaultFixed = true),
-            PresetFieldSpec("target_language", "Target language", current("target_language", "fr"), runtimeInput = true, defaultFixed = true),
-            PresetFieldSpec("input_text", "Text to translate", current("input_text"), runtimeInput = true),
-            PresetFieldSpec("model_action", "Action", current("model_action", "translate"), runtimeInput = false)
-        )
-        "conversation.translate" -> listOf(
-            PresetFieldSpec(
-                key = "language_a",
-                label = "First language",
-                defaultValue = current("language_a", "en"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = conversationLanguageChoices()
-            ),
-            PresetFieldSpec(
-                key = "language_b",
-                label = "Second language",
-                defaultValue = current("language_b", "es"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = conversationLanguageChoices()
-            ),
-            PresetFieldSpec(
-                key = "label_a",
-                label = "First button label",
-                defaultValue = current("label_a", "Speak"),
-                runtimeInput = false,
-                defaultFixed = true
-            ),
-            PresetFieldSpec(
-                key = "label_b",
-                label = "Second button label",
-                defaultValue = current("label_b", "Habla"),
-                runtimeInput = false,
-                defaultFixed = true
-            ),
-            PresetFieldSpec(
-                key = "spoken_output",
-                label = "Speak translations aloud",
-                defaultValue = current("spoken_output", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            ),
-            PresetFieldSpec(
-                key = "prefer_offline",
-                label = "Prefer offline speech recognition",
-                defaultValue = current("prefer_offline", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            )
-        )
-        "barcode.scan" -> listOf(
-            PresetFieldSpec(
-                key = "barcode_formats",
-                label = "Accepted code formats",
-                defaultValue = current("barcode_formats"),
-                runtimeInput = false,
-                defaultFixed = true,
-                multiChoices = listOf(
-                    PresetChoiceSpec("QR_CODE", "QR code"),
-                    PresetChoiceSpec("DATA_MATRIX", "Data Matrix"),
-                    PresetChoiceSpec("CODE_128", "Code 128"),
-                    PresetChoiceSpec("CODE_39", "Code 39"),
-                    PresetChoiceSpec("EAN_13", "EAN-13"),
-                    PresetChoiceSpec("EAN_8", "EAN-8"),
-                    PresetChoiceSpec("UPC_A", "UPC-A"),
-                    PresetChoiceSpec("UPC_E", "UPC-E")
-                )
-            )
-        )
-        "calibrated_scale" -> listOf(
-            PresetFieldSpec(
-                key = "prompt",
-                label = "Question prompt",
-                defaultValue = current("prompt", "Rate this item"),
-                runtimeInput = false,
-                defaultFixed = true
-            ),
-            PresetFieldSpec(
-                key = "hint",
-                label = "Participant hint",
-                defaultValue = current("hint", ""),
-                runtimeInput = false,
-                defaultFixed = true
-            ),
-            PresetFieldSpec(
-                key = "vas_length_mm",
-                label = "Scale length",
-                defaultValue = current("vas_length_mm", current("scale_length_mm", "50")),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = listOf("40", "50", "75", "100", "150", "200").map { PresetChoiceSpec(it, "$it mm") }
-            ),
-            PresetFieldSpec(
-                key = "minimum",
-                label = "Minimum value",
-                defaultValue = current("minimum", "0"),
-                runtimeInput = false,
-                defaultFixed = true
-            ),
-            PresetFieldSpec(
-                key = "maximum",
-                label = "Maximum value",
-                defaultValue = current("maximum", "100"),
-                runtimeInput = false,
-                defaultFixed = true
-            ),
-            PresetFieldSpec(
-                key = "use_range",
-                label = "Two-scale range",
-                defaultValue = current("use_range", "false"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            ),
-            PresetFieldSpec(
-                key = "lower_label",
-                label = "Lower scale label",
-                defaultValue = current("lower_label", "Lower"),
-                runtimeInput = false,
-                defaultFixed = true
-            ),
-            PresetFieldSpec(
-                key = "upper_label",
-                label = "Upper scale label",
-                defaultValue = current("upper_label", "Upper"),
-                runtimeInput = false,
-                defaultFixed = true
-            ),
-            PresetFieldSpec(
-                key = "vertical_mode",
-                label = "Vertical scale",
-                defaultValue = current("vertical_mode", "false"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            ),
-            PresetFieldSpec(
-                key = "show_endpoint_labels",
-                label = "Endpoint labels",
-                defaultValue = current("show_endpoint_labels", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            ),
-            PresetFieldSpec(
-                key = "show_current_score",
-                label = "Live score",
-                defaultValue = current("show_current_score", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            )
-        )
-        "image.redact" -> listOf(
-            PresetFieldSpec(
-                key = "input_source",
-                label = "Image source",
-                defaultValue = current("input_source", "camera"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = listOf(
-                    PresetChoiceSpec("camera", "Camera"),
-                    PresetChoiceSpec("file_picker", "Pick image")
-                )
-            ),
-            PresetFieldSpec(
-                key = "grid_rows",
-                label = "Grid rows",
-                defaultValue = current("grid_rows", "10"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = redactionGridChoices()
-            ),
-            PresetFieldSpec(
-                key = "grid_columns",
-                label = "Grid columns",
-                defaultValue = current("grid_columns", "10"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = redactionGridChoices()
-            ),
-            PresetFieldSpec(
-                key = "redaction_style",
-                label = "Mask style",
-                defaultValue = current("redaction_style", "black"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = listOf(
-                    PresetChoiceSpec("black", "Black"),
-                    PresetChoiceSpec("white", "White")
-                )
-            )
-        )
-        "document.scan" -> listOf(
-            PresetFieldSpec(
-                key = "page_limit",
-                label = "Maximum pages",
-                defaultValue = current("page_limit", "10"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = listOf("1", "2", "3", "5", "10", "20", "50").map { PresetChoiceSpec(it, it) }
-            ),
-            PresetFieldSpec(
-                key = "scanner_mode",
-                label = "Scanner mode",
-                defaultValue = current("scanner_mode", "full"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = listOf(
-                    PresetChoiceSpec("full", "Full scanner", "Best default: crop, filter, and cleanup tools."),
-                    PresetChoiceSpec("base_with_filter", "Basic + filters", "Simpler scan flow with image filters."),
-                    PresetChoiceSpec("base", "Basic", "Fastest scan flow.")
-                )
-            ),
-            PresetFieldSpec(
-                key = "allow_gallery_import",
-                label = "Gallery import",
-                defaultValue = current("allow_gallery_import", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            ),
-            PresetFieldSpec(
-                key = "run_ocr",
-                label = "OCR",
-                defaultValue = current("run_ocr", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            ),
-            PresetFieldSpec(
-                key = "return_searchable_pdf",
-                label = "Searchable PDF",
-                defaultValue = current("return_searchable_pdf", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            ),
-            PresetFieldSpec(
-                key = "return_text_file",
-                label = "OCR text file",
-                defaultValue = current("return_text_file", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            )
-        )
-        "gps_target_navigator" -> listOf(
-            PresetFieldSpec(
-                key = "arrival_radius_m",
-                label = "Arrival radius",
-                defaultValue = current("arrival_radius_m", "10"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = listOf("5", "10", "25", "50", "100", "250", "500").map { PresetChoiceSpec(it, "$it m") }
-            ),
-            PresetFieldSpec(
-                key = "show_ar_camera",
-                label = "AR camera",
-                defaultValue = current("show_ar_camera", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            ),
-            PresetFieldSpec(
-                key = "show_distance",
-                label = "Distance display",
-                defaultValue = current("show_distance", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            ),
-            PresetFieldSpec(
-                key = "show_bearing",
-                label = "Bearing display",
-                defaultValue = current("show_bearing", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            ),
-            PresetFieldSpec(
-                key = "show_current_location",
-                label = "Current coordinates",
-                defaultValue = current("show_current_location", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            )
-        )
-        "plus_code.capture" -> listOf(
-            PresetFieldSpec(
-                key = "code_length",
-                label = "Grid precision",
-                defaultValue = current("code_length", "10"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = listOf(
-                    PresetChoiceSpec("8", "8-digit"),
-                    PresetChoiceSpec("10", "10-digit")
-                )
-            ),
-            PresetFieldSpec(
-                key = "gps_average_seconds",
-                label = "GPS averaging",
-                defaultValue = current("gps_average_seconds", "10"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = listOf("5", "10", "20").map { PresetChoiceSpec(it, "${it}s") }
-            ),
-            PresetFieldSpec(
-                key = "basemap_mode",
-                label = "Map view",
-                defaultValue = current("basemap_mode", "auto"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = listOf(
-                    PresetChoiceSpec("auto", "Street"),
-                    PresetChoiceSpec("satellite", "Satellite"),
-                    PresetChoiceSpec("blank", "Grid only")
-                )
-            ),
-            PresetFieldSpec(
-                key = "grid_span_cells",
-                label = "Starting zoom",
-                defaultValue = current("grid_span_cells", "129"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = listOf(
-                    PresetChoiceSpec("5", "Near"),
-                    PresetChoiceSpec("33", "Field"),
-                    PresetChoiceSpec("129", "Area")
-                )
-            ),
-            PresetFieldSpec(
-                key = "allow_online_tiles",
-                label = "Online map tiles",
-                defaultValue = current("allow_online_tiles", "true"),
-                runtimeInput = false,
-                defaultFixed = true,
-                singleChoices = yesNoChoices()
-            )
-        )
-        else -> values.keys.sorted().map { key ->
+private fun presetDefaultString(setting: MethodSetting, currentValue: Any?): String =
+    currentValue?.toString() ?: when (setting) {
+        is MethodSetting.BooleanSetting -> setting.defaultValue.toString()
+        is MethodSetting.IntSetting -> setting.defaultValue.toString()
+        is MethodSetting.FloatSetting -> setting.defaultValue.toString()
+        is MethodSetting.TextSetting -> setting.defaultValue
+        is MethodSetting.ChoiceSetting -> setting.defaultValue
+        is MethodSetting.MultiChoiceSetting -> setting.defaultValue
+    }
+
+private fun presetChoiceLabel(value: String): String =
+    when (value) {
+        "" -> "Automatic / default"
+        "true" -> "Yes"
+        "false" -> "No"
+        "android.intent.action.MAIN" -> "Open app"
+        "android.intent.action.VIEW" -> "View / open URI"
+        "android.intent.action.SEND" -> "Send"
+        "android.intent.action.SENDTO" -> "Send to"
+        "android.intent.action.GET_CONTENT" -> "Pick content"
+        "android.intent.action.EDIT" -> "Edit"
+        "full" -> "Full document scanner"
+        "base_with_filter" -> "Basic scanner + image filters"
+        "base" -> "Basic scanner"
+        "single" -> "Single read"
+        "trace" -> "Trace over time"
+        "average" -> "Average over time"
+        "discover" -> "Discover available sensors"
+        "fallback" -> "Use selected sensor, otherwise choose nearby"
+        "strict" -> "Only use selected sensor"
+        "any_nearby" -> "Choose nearby sensor"
+        "aht20" -> "AHT20 temperature/humidity"
+        "ld2410c" -> "LD2410C radar/presence"
+        "generic_ble_sensor" -> "Generic BLE sensor"
+        "generic" -> "Generic sensor payload"
+        "secure_random" -> "Secure random seed"
+        "fixed_seed" -> "Fixed reproducible seed"
+        "disabled" -> "Off / disabled"
+        "preferred" -> "Preferred"
+        "required" -> "Required"
+        "Fingerprint" -> "Fingerprint / biometric"
+        "Pin" -> "Device PIN / pattern"
+        "Qr" -> "QR / camera code"
+        "Nfc" -> "NFC token"
+        "Password" -> "Study password/token"
+        "replace" -> "Replace existing content"
+        "empty_only" -> "Only if tag is empty"
+        "camera" -> "Camera"
+        "file_picker" -> "Choose file"
+        "ocr" -> "OCR text"
+        "barcodes" -> "Barcodes only"
+        "ocr_and_barcodes" -> "OCR + barcodes"
+        "download" -> "Download language model"
+        "delete" -> "Delete language model"
+        "list" -> "List language models"
+        else -> value.replace('_', ' ').replace("|", " + ")
+    }
+
+private fun settingRangeLabel(minimum: Number?, maximum: Number?, step: Number?): String {
+    val range = when {
+        minimum != null && maximum != null -> "$minimum–$maximum"
+        minimum != null -> "Minimum $minimum"
+        maximum != null -> "Maximum $maximum"
+        else -> ""
+    }
+    val stepLabel = step?.let { "Step $it" }.orEmpty()
+    return listOf(range, stepLabel).filter { it.isNotBlank() }.joinToString(" · ")
+}
+
+private fun presetFieldSpecs(values: Map<String, Any>): List<PresetFieldSpec> =
+    values
+        .filterKeys { it != "methodmesh_runtime_fields" }
+        .keys
+        .sorted()
+        .map { key ->
             PresetFieldSpec(
                 key = key,
                 label = key.replace('_', ' '),
                 defaultValue = values[key]?.toString().orEmpty(),
-                runtimeInput = key in runtimeInputKeysFor(methodId) || key.removePrefix("input_") in runtimeInputKeysFor(methodId)
+                runtimeInput = false
             )
         }
-    }
-}
 
-private fun redactionGridChoices(): List<PresetChoiceSpec> =
-    listOf("6", "8", "10", "12", "16", "20", "25", "50").map { value ->
-        PresetChoiceSpec(value, value)
-    }
-
-private fun yesNoChoices(): List<PresetChoiceSpec> = listOf(
-    PresetChoiceSpec("true", "Yes"),
-    PresetChoiceSpec("false", "No")
-)
-
-private fun conversationLanguageChoices(): List<PresetChoiceSpec> = listOf(
-    *MlKitLanguageCatalog.supportedLanguages()
-        .map { PresetChoiceSpec(it.code, it.label) }
-        .toTypedArray()
-)
-
-private fun presetEditableSettingsFor(methodId: String, values: Map<String, Any>): Map<String, Any> = when (methodId) {
-    "admin_fingerprint_confirmation" -> mapOf(
-        "authentication_method" to "biometric_or_device_credential",
-        "confirmation_reason" to "local_access_authorisation"
-    ) + values
-    "mlkit.translate" -> mapOf(
-        "source_language" to "en",
-        "target_language" to "fr",
-        "model_action" to "translate",
-        "input_text" to ""
-    ) + values
-    "sms.send" -> mapOf(
-        "sms_phone" to "",
-        "sms_message" to ""
-    ) + values
-    "conversation.translate" -> {
-        val allowed = setOf(
-            "language_a",
-            "language_b",
-            "label_a",
-            "label_b",
-            "spoken_output",
-            "prefer_offline"
-        )
-        mapOf(
-            "language_a" to (values["language_a"] ?: "en"),
-            "language_b" to (values["language_b"] ?: "es"),
-            "label_a" to (values["label_a"] ?: "Speak"),
-            "label_b" to (values["label_b"] ?: "Habla"),
-            "spoken_output" to (values["spoken_output"] ?: "true"),
-            "prefer_offline" to (values["prefer_offline"] ?: "true")
-        ) + values.filterKeys { it in allowed }
-    }
-    "calibrated_scale" -> {
-        val allowed = setOf(
-            "prompt",
-            "hint",
-            "vas_length_mm",
-            "minimum",
-            "maximum",
-            "use_range",
-            "lower_label",
-            "upper_label",
-            "vertical_mode",
-            "show_endpoint_labels",
-            "show_current_score"
-        )
-        val cleanedValues = values.filterKeys { it in allowed }
-        val scaleLength = values["vas_length_mm"] ?: values["scale_length_mm"] ?: "50"
-        mapOf(
-            "prompt" to "Rate this item",
-            "hint" to "",
-            "vas_length_mm" to scaleLength,
-            "minimum" to (values["minimum"] ?: "0"),
-            "maximum" to (values["maximum"] ?: "100"),
-            "use_range" to (values["use_range"] ?: "false"),
-            "lower_label" to (values["lower_label"] ?: "Lower"),
-            "upper_label" to (values["upper_label"] ?: "Upper"),
-            "vertical_mode" to (values["vertical_mode"] ?: "false"),
-            "show_endpoint_labels" to (values["show_endpoint_labels"] ?: "true"),
-            "show_current_score" to (values["show_current_score"] ?: "true")
-        ) + cleanedValues
-    }
-    "gps_target_navigator" -> mapOf(
-        "arrival_radius_m" to "10",
-        "show_ar_camera" to "true",
-        "show_distance" to "true",
-        "show_bearing" to "true",
-        "target_plus_code" to "",
-        "target_latitude" to "",
-        "target_longitude" to ""
-    ) + values.filterKeys { key ->
-        key !in setOf(
-            "target_name",
-            "target_latitude",
-            "target_longitude",
-            "current_latitude",
-            "current_longitude",
-            "accuracy_m",
-            "distance_m",
-            "bearing_deg",
-            "heading_deg",
-            "relative_bearing_deg",
-            "arrived",
-            "timestamp_ms",
-            "update_count",
-            "status"
-        )
-    }
-    "plus_code.capture" -> {
-        val allowed = setOf(
-            "code_length",
-            "gps_average_seconds",
-            "basemap_mode",
-            "grid_span_cells",
-            "allow_online_tiles"
-        )
-        mapOf(
-            "code_length" to (values["code_length"] ?: "10"),
-            "gps_average_seconds" to (values["gps_average_seconds"] ?: "10"),
-            "basemap_mode" to (values["basemap_mode"] ?: "auto"),
-            "grid_span_cells" to (values["grid_span_cells"] ?: "129"),
-            "allow_online_tiles" to (values["allow_online_tiles"] ?: "true")
-        ) + values.filterKeys { it in allowed }
-    }
-    else -> values
-}
-
-private fun presetSettingsFor(methodId: String, values: Map<String, Any>): Map<String, Any> {
-    val withDefaults = when (methodId) {
-        "mlkit.translate" -> mapOf(
-            "source_language" to "en",
-            "target_language" to "fr",
-            "model_action" to "translate"
-        ) + values
-        else -> values
-    }
-    val variableKeys = runtimeInputKeysFor(methodId)
-    return withDefaults.filterKeys { key -> key !in variableKeys && key.removePrefix("input_") !in variableKeys }
+private fun presetSettingsFor(values: Map<String, Any>): Map<String, Any> =
+    values
+        .filterKeys { it != "methodmesh_runtime_fields" }
         .filterValues { value -> value.toString().isNotBlank() }
-}
-
-private fun runtimeInputKeysFor(methodId: String): Set<String> = when (methodId) {
-    "mlkit.translate" -> setOf("input_text", "text", "mlkit_translate_input_text")
-    "sms.send" -> setOf("sms_message", "message")
-    "gps_target_navigator" -> setOf("target_plus_code", "plus_code", "target_latitude", "target_longitude", "latitude", "longitude", "lat", "lon", "lng")
-    "plus_code.capture" -> emptySet()
-    "conversation.translate" -> emptySet()
-    "question.text" -> setOf("answer", "response", "value", "text_answer")
-    "question.number" -> setOf("answer", "response", "value", "number_answer")
-    "question.select_one", "question.select_multiple" -> setOf("answer", "response", "selected", "value")
-    else -> setOf("answer", "response", "selected", "value")
-}
 
 private fun settingsJsonFromMap(values: Map<String, Any>): String =
     JSONObject().apply { values.toSortedMap().forEach { (key, value) -> put(key, value) } }.toString()
