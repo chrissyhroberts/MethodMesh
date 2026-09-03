@@ -18,6 +18,7 @@ import com.example.methodmesh.transport.OutputExportRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
 import java.util.UUID
@@ -50,7 +51,14 @@ class SchedulerDispatchActivity : Activity() {
         if (schedule == null) { finish(); return }
         activeSchedule = schedule
         SchedulerRepository.recordEvent(this, schedule.id, "dispatch_started:${intent.getStringExtra("notification_kind").orEmpty().ifBlank { "direct" }}")
-        if (schedule.chainOrder <= 0) clearChainClipboard(schedule)
+        if (schedule.chainOrder <= 0 && protocolId.isBlank()) {
+            clearChainClipboard(schedule)
+            if (schedule.chainId.isNotBlank()) {
+                initialiseScheduleChainRun(schedule)
+            } else {
+                clearRunContext(scheduleRunContextKey(schedule))
+            }
+        }
         if (schedule.target == SchedulerTarget.PROTOCOL && outputGroupFolder.isBlank()) {
             launchProtocolStep(schedule, schedule.targetValue, 0)
             return
@@ -64,7 +72,7 @@ class SchedulerDispatchActivity : Activity() {
                 finish()
                 return
             }
-            launchPreset(preset)
+            launchPreset(preset, currentPipeSettings(schedule))
             return
         }
         if (schedule.target == SchedulerTarget.WEB_FORM) {
@@ -82,7 +90,7 @@ class SchedulerDispatchActivity : Activity() {
                 finish()
                 return
             }
-            launchPreset(preset)
+            launchPreset(preset, currentPipeSettings(schedule))
             return
         }
         if (schedule.target == SchedulerTarget.CLIPBOARD) {
@@ -128,48 +136,64 @@ class SchedulerDispatchActivity : Activity() {
             ProtocolLibraryRepository.protocol(this, protocolId)
         } else null
         val nextProtocolStep = activeProtocol?.steps?.sortedBy { it.order }?.getOrNull(protocolStepIndex + 1)
+        val nextChainStep = if (completed && current != null && protocolId.isBlank()) {
+            SchedulerRepository.nextInChain(this, current)
+        } else null
+        var exported: OutputExportRepository.ExportPackage? = null
         if (requestCode == 101 && (resultCode == RESULT_OK || testChain) && data != null) {
+            val returnedFields = returnedFields(data)
+            if (completed && current != null) appendCurrentRunContext(current, returnedFields)
             val output = data.getStringExtra("value").orEmpty().ifBlank {
                 data.extras?.keySet().orEmpty()
                     .filterNot { it == "value" }
                     .sorted()
-                    .joinToString("\n") { key -> "$key = ${data.extras?.get(key)}" }
+                    .joinToString("\n") { key -> "$key = ${data.extras?.getString(key)}" }
             }
-            if (output.isNotBlank()) {
-                current?.let {
-                    if (it.target == SchedulerTarget.CLIPBOARD) {
+            current?.let {
+                if (it.target == SchedulerTarget.CLIPBOARD) {
+                    if (output.isNotBlank()) {
                         publishChainClipboard(it, output, "MethodMesh scheduled capability")
                         SchedulerRepository.recordEvent(this, it.id, "completed_output_copied")
-                    } else if (suppressOutput) {
-                        SchedulerRepository.recordEvent(this, it.id, "completed_output_suppressed")
+                    }
+                } else if (suppressOutput) {
+                    SchedulerRepository.recordEvent(this, it.id, "completed_output_suppressed")
+                } else {
+                    val mode = ProtocolOutputMode.normalize(
+                        activeProtocol?.steps?.sortedBy { step -> step.order }?.getOrNull(protocolStepIndex)?.outputMode
+                            ?: ProtocolOutputMode.SAVE
+                    )
+                    if (mode == ProtocolOutputMode.NONE) {
+                        SchedulerRepository.recordEvent(this, it.id, "completed_output_suppressed_by_step")
                     } else {
-                        val mode = ProtocolOutputMode.normalize(
-                            activeProtocol?.steps?.sortedBy { step -> step.order }?.getOrNull(protocolStepIndex)?.outputMode
-                                ?: ProtocolOutputMode.SAVE
-                        )
-                        if (mode == ProtocolOutputMode.NONE) {
-                            SchedulerRepository.recordEvent(this, it.id, "completed_output_suppressed_by_step")
-                        } else {
-                            val exported = exportReturnedFields(it, data)
-                            val event = if (mode == ProtocolOutputMode.SHARE) "completed_output_share_ready" else "completed_output_exported"
-                            SchedulerRepository.recordEvent(this, it.id, "$event:${exported.folderName}")
-                            if (nextProtocolStep == null) {
+                        exported = exportReturnedFields(it, returnedFields)
+                        val event = if (mode == ProtocolOutputMode.SHARE) "completed_output_share_ready" else "completed_output_exported"
+                        SchedulerRepository.recordEvent(this, it.id, "$event:${exported?.folderName.orEmpty()}")
+                        if (nextProtocolStep == null && nextChainStep == null) {
+                            val finalExport = exported
+                            if (hasMeaningfulPayload(returnedFields)) {
                                 val message = if (mode == ProtocolOutputMode.SHARE) {
-                                    "MethodMesh output ready to share: ${exported.folderName}"
+                                    "MethodMesh protocol output ready: ${finalExport.folderName}"
                                 } else {
-                                    "Saved MethodMesh output: ${exported.folderName}"
+                                    "Saved MethodMesh protocol output: ${finalExport.folderName}"
                                 }
                                 Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-                                OutputExportRepository.notifySaved(this, exported)
+                                OutputExportRepository.notifySaved(this, finalExport)
+                            } else {
+                                Toast.makeText(this, "MethodMesh run complete.", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
                 }
             }
         }
-        if (completed && current != null && !transientProtocolRun && !transientPresetRun) SchedulerRepository.markCompleted(this, current)
-        else if (completed && current != null) SchedulerRepository.recordEvent(this, current.id, "completed")
-        else current?.let { SchedulerRepository.recordEvent(this, it.id, "cancelled") }
+        val protocolHasNextStep = protocolId.isNotBlank() && nextProtocolStep != null
+        val chainHasNextStep = nextChainStep != null
+        if (completed && current != null && !protocolHasNextStep && !chainHasNextStep && !transientProtocolRun && !transientPresetRun) {
+            SchedulerRepository.markCompleted(this, current)
+        } else if (completed && current != null) {
+            val event = if (protocolHasNextStep || chainHasNextStep) "step_completed" else "completed"
+            SchedulerRepository.recordEvent(this, current.id, event)
+        } else current?.let { SchedulerRepository.recordEvent(this, it.id, "cancelled") }
         if (completed && current != null && protocolId.isNotBlank()) {
             val nextStep = nextProtocolStep
             if (nextStep != null) {
@@ -188,7 +212,7 @@ class SchedulerDispatchActivity : Activity() {
                 return
             }
         }
-        val next = if (completed) current?.let { SchedulerRepository.nextInChain(this, it) } else null
+        val next = nextChainStep
         if (next != null) {
             SchedulerRepository.recordEvent(this, next.id, "chain_dispatch_started")
             startActivity(Intent(this, SchedulerDispatchActivity::class.java)
@@ -214,6 +238,7 @@ class SchedulerDispatchActivity : Activity() {
             "${safeName(protocol.name)}__${submissionId}___${timestamp}"
         }
         val submissionId = protocolSubmissionId.ifBlank { submissionIdFromProtocolFolder(group) }
+        if (stepIndex == 0) clearRunContext(protocolRunContextKey(submissionId, group, protocol.id))
         startActivity(Intent(this, SchedulerDispatchActivity::class.java)
             .setAction("com.example.methodmesh.SCHEDULED_PROTOCOL_DISPATCH")
             .putExtra("schedule_id", schedule.id)
@@ -259,16 +284,17 @@ class SchedulerDispatchActivity : Activity() {
         )
     }
 
-    private fun launchPreset(preset: CapabilityPreset) {
+    private fun launchPreset(preset: CapabilityPreset, pipeSettings: Map<String, String> = emptyMap()) {
         SchedulerRepository.recordEvent(this, intent.getStringExtra("schedule_id").orEmpty(), "preset_started:${preset.name}")
-        launchCapability(preset.methodId, preset.settingsJson, preset.payloadMode, preset.resultAction)
+        launchCapability(preset.methodId, preset.settingsJson, preset.payloadMode, preset.resultAction, pipeSettings)
     }
 
     private fun launchCapability(
         methodId: String,
         settingsJson: String,
         payloadMode: String = ProtocolPayloadMode.CORE,
-        presetResultAction: String = PresetResultAction.HOME
+        presetResultAction: String = PresetResultAction.HOME,
+        pipeSettings: Map<String, String> = currentPipeSettings(activeSchedule)
     ) {
         startActivityForResult(Intent(this, IntentRouterActivity::class.java).apply {
             action = "com.example.methodmesh.EXECUTE_METHOD"
@@ -276,6 +302,9 @@ class SchedulerDispatchActivity : Activity() {
             putExtra("input_payload_mode", ProtocolPayloadMode.normalize(payloadMode))
             putExtra("input_methodmesh_native_preset_run", "true")
             putExtra("input_methodmesh_preset_result_action", PresetResultAction.normalize(presetResultAction))
+            pipeSettings.forEach { (key, value) ->
+                if (value.isNotBlank()) putExtra("input_$key", value)
+            }
             runCatching {
                 val modifiers = JSONObject(settingsJson.ifBlank { "{}" })
                 modifiers.keys().forEach { key ->
@@ -284,27 +313,27 @@ class SchedulerDispatchActivity : Activity() {
                     // namespace so the normal RIL transport exposes them to
                     // the selected method. Plain extras are treated as ODK
                     // return placeholders and are intentionally ignored.
-                    putExtra("input_$key", value)
+                    if (value.isNotBlank() || !hasExtra("input_$key")) {
+                        putExtra("input_$key", value)
+                    }
                 }
             }
         }, 101)
     }
 
-    private fun exportReturnedFields(schedule: ResearchSchedule, data: Intent): OutputExportRepository.ExportPackage {
-        val extras = data.extras
-        val fields = extras?.keySet().orEmpty()
-            .filterNot { it == "value" || it == "return_mode" || it == "payload_mode" }
-            .associateWith { key -> extras?.get(key)?.toString() }
+    private fun exportReturnedFields(schedule: ResearchSchedule, fields: Map<String, String?>): OutputExportRepository.ExportPackage {
         val methodId = fields["methodmesh_method_id"] ?: schedule.targetValue
         val status = fields["methodmesh_status"] ?: "Succeeded"
         val protocol = protocolId.takeIf { it.isNotBlank() }?.let { ProtocolLibraryRepository.protocol(this, it) }
         val protocolStep = protocol?.steps?.sortedBy { it.order }?.getOrNull(protocolStepIndex)
+        val scheduleChainFolder = if (protocol == null && schedule.chainId.isNotBlank()) scheduleChainRunFolder(schedule) else ""
         val label = when {
             protocol != null -> "${"%02d".format(protocolStepIndex + 1)}_${safeName(protocolStep?.name ?: schedule.name)}"
+            scheduleChainFolder.isNotBlank() -> "${"%02d".format(schedule.chainOrder + 1)}_${safeName(schedule.name)}"
             schedule.target == SchedulerTarget.PRESET -> safeName(schedule.name)
             else -> safeName(methodId)
         }
-        val parent = outputGroupFolder.takeIf { it.isNotBlank() }
+        val parent = outputGroupFolder.takeIf { it.isNotBlank() } ?: scheduleChainFolder.takeIf { it.isNotBlank() }
         if (protocol != null && parent != null) {
             return OutputExportRepository.exportProtocolStepPackage(
                 context = this,
@@ -313,6 +342,19 @@ class SchedulerDispatchActivity : Activity() {
                 protocolSubmissionId = protocolSubmissionId.ifBlank { submissionIdFromProtocolFolder(parent) },
                 stepIndex = protocolStepIndex,
                 stepName = protocolStep?.name ?: schedule.name,
+                methodId = methodId,
+                status = status,
+                fields = fields
+            )
+        }
+        if (protocol == null && scheduleChainFolder.isNotBlank() && parent != null) {
+            return OutputExportRepository.exportProtocolStepPackage(
+                context = this,
+                protocolFolder = parent,
+                protocolName = scheduleChainName(schedule),
+                protocolSubmissionId = scheduleChainSubmissionId(schedule),
+                stepIndex = schedule.chainOrder,
+                stepName = schedule.name,
                 methodId = methodId,
                 status = status,
                 fields = fields
@@ -330,6 +372,124 @@ class SchedulerDispatchActivity : Activity() {
 
     private fun safeName(value: String): String =
         value.replace(Regex("[^A-Za-z0-9_.-]"), "_").trim('_').ifBlank { "methodmesh_run" }
+
+    private fun returnedFields(data: Intent): Map<String, String?> {
+        val extras = data.extras
+        return extras?.keySet().orEmpty()
+            .filterNot { it == "value" || it == "return_mode" || it == "payload_mode" }
+            .associateWith { key -> extras?.getString(key) }
+    }
+
+    private fun hasMeaningfulPayload(fields: Map<String, String?>): Boolean =
+        fields.any { (key, value) ->
+            value?.isNotBlank() == true &&
+                !key.startsWith("methodmesh_") &&
+                !key.startsWith("diagnostic_")
+        }
+
+    private fun currentPipeSettings(schedule: ResearchSchedule?): Map<String, String> =
+        when {
+            protocolId.isNotBlank() -> readRunContext(protocolRunContextKey())
+            schedule != null && schedule.chainId.isNotBlank() -> readRunContext(scheduleRunContextKey(schedule))
+            else -> emptyMap()
+        }
+
+    private fun appendCurrentRunContext(schedule: ResearchSchedule, fields: Map<String, String?>) {
+        val key = when {
+            protocolId.isNotBlank() -> protocolRunContextKey()
+            schedule.chainId.isNotBlank() -> scheduleRunContextKey(schedule)
+            else -> return
+        }
+        appendRunContext(key, protocolStepIndex.takeIf { protocolId.isNotBlank() } ?: schedule.chainOrder, fields)
+    }
+
+    private fun protocolRunContextKey(
+        submissionId: String = protocolSubmissionId,
+        folder: String = outputGroupFolder,
+        protocol: String = protocolId
+    ): String = "protocol_run_context_${submissionId.ifBlank { folder }.ifBlank { protocol }}"
+
+    private fun scheduleRunContextKey(schedule: ResearchSchedule): String =
+        "schedule_run_context_${schedule.chainId.ifBlank { schedule.id }}"
+
+    private fun scheduleChainFolderKey(schedule: ResearchSchedule): String =
+        "schedule_chain_folder_${schedule.chainId}"
+
+    private fun scheduleChainSubmissionKey(schedule: ResearchSchedule): String =
+        "schedule_chain_submission_${schedule.chainId}"
+
+    private fun scheduleChainNameKey(schedule: ResearchSchedule): String =
+        "schedule_chain_name_${schedule.chainId}"
+
+    private fun initialiseScheduleChainRun(schedule: ResearchSchedule) {
+        val submissionId = UUID.randomUUID().toString()
+        val timestamp = Instant.now().toString().replace(Regex("[^A-Za-z0-9_.-]"), "_")
+        val folder = "${safeName(scheduleChainName(schedule))}__${submissionId}___${timestamp}"
+        getSharedPreferences("methodmesh_scheduler", MODE_PRIVATE).edit()
+            .remove(scheduleRunContextKey(schedule))
+            .putString(scheduleChainFolderKey(schedule), folder)
+            .putString(scheduleChainSubmissionKey(schedule), submissionId)
+            .putString(scheduleChainNameKey(schedule), scheduleChainName(schedule))
+            .apply()
+    }
+
+    private fun scheduleChainRunFolder(schedule: ResearchSchedule): String =
+        getSharedPreferences("methodmesh_scheduler", MODE_PRIVATE)
+            .getString(scheduleChainFolderKey(schedule), null)
+            .orEmpty()
+
+    private fun scheduleChainSubmissionId(schedule: ResearchSchedule): String =
+        getSharedPreferences("methodmesh_scheduler", MODE_PRIVATE)
+            .getString(scheduleChainSubmissionKey(schedule), null)
+            .orEmpty()
+            .ifBlank { schedule.chainId.ifBlank { schedule.id } }
+
+    private fun scheduleChainName(schedule: ResearchSchedule): String =
+        getSharedPreferences("methodmesh_scheduler", MODE_PRIVATE)
+            .getString(scheduleChainNameKey(schedule), null)
+            .orEmpty()
+            .ifBlank { schedule.name.ifBlank { "Scheduled chain" } }
+
+    private fun appendRunContext(key: String, stepIndex: Int, fields: Map<String, String?>) {
+        if (key.isBlank()) return
+        val prior = JSONObject(getSharedPreferences("methodmesh_scheduler", MODE_PRIVATE).getString(key, "{}").orEmpty().ifBlank { "{}" })
+        val steps = prior.optJSONArray("steps") ?: JSONArray()
+        val stepFields = JSONObject()
+        fields.forEach { (field, value) ->
+            val text = value.orEmpty()
+            if (text.isNotBlank()) {
+                stepFields.put(field, text)
+                prior.put("step_${stepIndex + 1}_$field", text)
+                prior.put("previous_$field", text)
+                prior.put(field, text)
+            }
+        }
+        steps.put(JSONObject().apply {
+            put("step_index", stepIndex)
+            put("step_number", stepIndex + 1)
+            put("stored_at", Instant.now().toString())
+            put("fields", stepFields)
+        })
+        prior.put("steps", steps)
+        getSharedPreferences("methodmesh_scheduler", MODE_PRIVATE).edit().putString(key, prior.toString()).apply()
+    }
+
+    private fun readRunContext(key: String): Map<String, String> = runCatching {
+        val root = JSONObject(getSharedPreferences("methodmesh_scheduler", MODE_PRIVATE).getString(key, "{}").orEmpty().ifBlank { "{}" })
+        buildMap {
+            root.keys().forEach { key ->
+                if (key != "steps") {
+                    val value = root.optString(key)
+                    if (value.isNotBlank()) put(key, value)
+                }
+            }
+        }
+    }.getOrDefault(emptyMap())
+
+    private fun clearRunContext(key: String) {
+        if (key.isBlank()) return
+        getSharedPreferences("methodmesh_scheduler", MODE_PRIVATE).edit().remove(key).apply()
+    }
 
     private fun submissionIdFromProtocolFolder(folderName: String): String {
         val leaf = folderName.substringAfterLast('/')

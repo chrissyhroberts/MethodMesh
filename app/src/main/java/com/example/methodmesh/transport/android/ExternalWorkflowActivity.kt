@@ -111,6 +111,9 @@ class ExternalWorkflowActivity : FragmentActivity() {
             payloadMode = payloadMode
         )
         val data = Intent().apply {
+            putExtra("methodmesh_closeout_status", "completed")
+            putExtra("methodmesh_closeout_step_count", confirmed.size.toString())
+            putExtra("methodmesh_closeout_has_payload", hasMeaningfulPayload(fields).toString())
             putExtra("value", output)
             putExtra("return_mode", request.returnMode.id)
             putExtra("payload_mode", OutputFormatter.PayloadMode.normalize(payloadMode))
@@ -156,10 +159,23 @@ class ExternalWorkflowActivity : FragmentActivity() {
     private fun finishWithCancel(message: String) {
         if (resultReturned) return
         resultReturned = true
-        setResult(RESULT_CANCELED, Intent().apply { putExtra("error", message) })
+        setResult(RESULT_CANCELED, Intent().apply {
+            putExtra("methodmesh_closeout_status", "cancelled")
+            putExtra("methodmesh_closeout_step_count", "0")
+            putExtra("methodmesh_closeout_has_payload", "false")
+            putExtra("error", message)
+        })
         finish()
     }
 }
+
+private fun hasMeaningfulPayload(fields: Map<String, Any?>): Boolean =
+    fields.any { (key, value) ->
+        value?.toString()?.isNotBlank() == true &&
+            key !in setOf("return_mode", "payload_mode") &&
+            !key.startsWith("methodmesh_") &&
+            !key.startsWith("diagnostic_")
+    }
 
 @Composable
 private fun ExternalWorkflowScreen(
@@ -191,7 +207,7 @@ private fun ExternalWorkflowScreen(
         }
 
         if (index < actions.size) {
-            val action = actions[index]
+            val action = actions[index].withPipeSettings(confirmed)
             CapabilityStepScreen(
                 action = action,
                 request = request,
@@ -225,6 +241,27 @@ private fun ExternalWorkflowScreen(
             )
         }
     }
+}
+
+private fun ExternalActionRequest.withPipeSettings(confirmed: List<ConfirmedWorkflowStep>): ExternalActionRequest {
+    if (confirmed.isEmpty()) return this
+    return copy(settings = pipeSettings(confirmed) + settings)
+}
+
+private fun pipeSettings(confirmed: List<ConfirmedWorkflowStep>): Map<String, String> {
+    val piped = linkedMapOf<String, String>()
+    confirmed.forEachIndexed { index, step ->
+        val fields = OutputFormatter.fields(step.result, includeProvenance = false)
+        fields.forEach { (key, value) ->
+            val text = value?.toString().orEmpty()
+            if (text.isNotBlank()) {
+                piped["step_${index + 1}_$key"] = text
+                piped["previous_$key"] = text
+                piped.putIfAbsent(key, text)
+            }
+        }
+    }
+    return piped
 }
 
 

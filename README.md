@@ -113,6 +113,8 @@ The core UI should not need to know that a particular capability is a barcode sc
 
 This keeps MethodMesh modular enough that new capabilities can be added without turning the dashboard into a pile of special cases.
 
+For contributors or AI chats prototyping new capabilities, read [docs/CAPABILITY_WRITING_GUIDE.md](docs/CAPABILITY_WRITING_GUIDE.md) before changing code. It captures the capability ownership rules, preset/runtime requirements, ODK/XLSForm expectations and production checklist.
+
 ---
 
 ## Workbench and development tools
@@ -232,4 +234,3 @@ Near-term work includes:
 - central offline map/tile management;
 - additional ML Kit capabilities such as entity extraction, image labelling, pose detection and summarisation;
 - continued review of development capabilities before promotion to production.
-

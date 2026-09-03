@@ -10,12 +10,6 @@ Use simple Markdown checkboxes so Codex and humans can edit this file easily.
 
 ## UI
 
-- A lot of UI issues relate to the problem that capabilities still don't close out gracefully. A thing happens and it sits on the result page with no signal of closing out the step
-
-- Any place where multiple presets are run back to back, like protocols, schedules or scheduled protocols, needs a graceful way to move from step-to-step. At present there's no 'this is done, now move on signal
-
-- Needs to be concept of piping results into the next thing - i.e. for protocols where input of one thing is output of the previous thing
-
 - Presets with preset option share still go to the page with buttons to share or home. It should automatically share. 
 
 - Presets should also have a preset option to copy to clipboard - this would show the result, copy it to clipboard automatically, then return to home screen. 
@@ -51,12 +45,11 @@ Use simple Markdown checkboxes so Codex and humans can edit this file easily.
 - Explore a text-message workflow where an SMS carries a link to a MethodMesh protocol on a second phone, providing an immediate pathway to countersignature and a return link by SMS.
 - Consider plus/minus a review payload in the countersignature workflow.
 - Experimental ALCOA/ResearchOS protocol: determine how to prevent temporal spoofing.
-- Protocols currently don't work well with some capabilities. These depend on the automatic outcomes like copy, share etc. We need [a] a method to pipe results of one into the next - so need a new outcome (pipe) that for instance scans a barcode, pipes the payload into Qutie printer and prints a sticker with the same barcode and human readable. We also need [b] a true completion signal from a preset. At the moment if I scan a document and share via whatsapp, when I return to the app I press home or cancel and it quits to dashboard. It should signal that step x of the protocol x,y,z is complete, triggering step y. This is not always going to require a piped output. 
+- Add a visual pipe editor for protocols so users can deliberately map outputs from previous steps into later runtime inputs, e.g. barcode payload -> Qutie printer message. The runtime now carries previous outputs forward, but the UI still needs a friendly mapping layer.
 
 
 ## Scheduler
 
-- The scheduler is mature but the bridges between multiple activities are dead, just like for protocols. This used to work well, but I think we broke it a while back. The issue comes from the fact that there's no official completion signal for presets. They need a formal closeout and at the moment it goes to the result screen with share, home etc, but there's no 'ping' to say it is done and carry on.
 - Any need for pipes should be delegated to protocols rather than coded into scheduling
 
 
@@ -367,3 +360,7 @@ The settings sub-panels should be collapsed by default.
 - Marked random number generator as Production.
 - Confirmed existing Production status in the roadmap for barcode scanner, document scanner, GPS target navigation, image redaction, local device authentication, conversation translator and Plus Code capture.
 - Improved World Bank indicator handling so the latest non-empty value is returned with its matching year.
+- Added a capability writing guide for external AI chats and contributors.
+- Added a formal close-out contract for external/native preset runs so capabilities report completed/cancelled, step count and whether a useful payload exists.
+- Repaired protocol and scheduled-run sequencing so multi-step runs can progress step-to-step and collate returned fields into one final grouped output package when output is enabled.
+- Added first-pass runtime piping context: completed steps expose `step_N_<field>`, `previous_<field>` and unprefixed field values to later steps. A visual pipe editor remains on the roadmap.
