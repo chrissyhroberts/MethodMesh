@@ -69,7 +69,7 @@ object As100MlKitVisionMethod : As100Method {
         description = "Run on-device ML Kit OCR and/or barcode detection on a captured or selected image.",
         outputs = MlKitVisionFields.outputs,
         graphOutputs = listOf("mlkit.vision.analyze"),
-        parameters = mapOf("category" to "Recognition")
+        parameters = mapOf("category" to "Recognition", "status" to "Production")
     )
     override val contract = MethodContract(
         method = ref,

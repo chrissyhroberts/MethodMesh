@@ -128,13 +128,38 @@ object OutputFormatter {
 
     private val headlineCoreFields = setOf(
         "barcode_payload",
+        "api_value",
+        "api_values_json",
         "plus_code",
         "redacted_image_uri",
         "conversation_transcript"
     )
 
+    private val apiAuditFields = setOf(
+        "api_status",
+        "api_values_json",
+        "api_label",
+        "api_definition_id",
+        "api_definition_name",
+        "api_result_path",
+        "api_result_paths",
+        "api_provider",
+        "api_http_status",
+        "api_from_cache",
+        "api_stale",
+        "api_source_url",
+        "api_response_json",
+        "api_error",
+        "api_retrieved_time_iso",
+        "api_data_age_hours",
+        "api_exchange_rate",
+        "api_exchange_amount",
+        "api_exchange_converted"
+    )
+
     private fun isAuditOrCoreField(key: String): Boolean =
         isCoreField(key) ||
+            key in apiAuditFields ||
             key in calibratedScaleAuditFields ||
             key in documentScanAuditFields ||
             key in plusCodeAuditFields ||

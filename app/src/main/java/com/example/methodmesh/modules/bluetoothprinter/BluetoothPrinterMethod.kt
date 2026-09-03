@@ -39,7 +39,8 @@ object As100BluetoothPrinterMethod : As100Method {
         version = VERSION,
         description = "Compose and print text, QR codes, Code 128 barcodes, or raw bytes using the Qutie-compatible FF00/LuckPrinter-family BLE protocol.",
         outputs = BluetoothPrinterFields.outputs,
-        graphOutputs = listOf("bluetooth.print")
+        graphOutputs = listOf("bluetooth.print"),
+        parameters = mapOf("category" to "Device interoperability", "status" to "Production")
     )
 
     override val contract = MethodContract(

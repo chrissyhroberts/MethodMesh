@@ -61,7 +61,7 @@ object As100MlKitTranslateMethod : As100Method {
         description = "Manage ML Kit translation language models and translate text on device.",
         outputs = MlKitTranslateFields.outputs,
         graphOutputs = listOf("mlkit.translate"),
-        parameters = mapOf("category" to "Recognition")
+        parameters = mapOf("category" to "Recognition", "status" to "Production")
     )
     override val contract = MethodContract(
         method = ref,

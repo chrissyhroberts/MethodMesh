@@ -103,7 +103,7 @@ object As100SensorProvisionerMethod : As100Method {
         description = "Configure a MethodMesh BLE environmental sensor node and save it into the device registry.",
         outputs = SensorProvisionerFields.outputs,
         graphOutputs = listOf("sensor.node.provisioning"),
-        parameters = mapOf("category" to "Device interoperability", "status" to "Prototype")
+        parameters = mapOf("category" to "Device interoperability", "status" to "Production")
     )
     override val contract = MethodContract(
         method = ref,

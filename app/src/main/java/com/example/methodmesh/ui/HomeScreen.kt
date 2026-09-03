@@ -92,6 +92,20 @@ import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.core.methodmesh.runtime.As100MethodRegistry
 import com.example.methodmesh.core.methodmesh.runtime.CapabilityConfigurationRegistry
 import com.example.methodmesh.core.methodmesh.withInvocationContext
+import com.example.methodmesh.core.onlinedata.ApiDefinition
+import com.example.methodmesh.core.onlinedata.ApiDefinitionOrigin
+import com.example.methodmesh.core.onlinedata.ApiDefinitionRepository
+import com.example.methodmesh.core.onlinedata.ApiExecutionResult
+import com.example.methodmesh.core.onlinedata.ApiGetExecutor
+import com.example.methodmesh.core.onlinedata.ApiGetRequest
+import com.example.methodmesh.core.onlinedata.ApiInputType
+import com.example.methodmesh.core.onlinedata.HttpUrlConnectionOnlineHttpClient
+import com.example.methodmesh.core.onlinedata.InMemoryApiDefinitionRegistry
+import com.example.methodmesh.core.onlinedata.OnlineHttpClient
+import com.example.methodmesh.core.onlinedata.OnlineHttpRequest
+import com.example.methodmesh.core.onlinedata.OnlineHttpResponse
+import com.example.methodmesh.core.onlinedata.OnlineExecutionStatus
+import com.example.methodmesh.core.onlinedata.ResultTree
 import com.example.methodmesh.modules.MethodMeshModule
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
 import com.example.methodmesh.modules.mlkittranslate.MlKitLanguageCatalog
@@ -124,8 +138,10 @@ import com.example.methodmesh.platform.devices.DeviceTransport
 import com.example.methodmesh.platform.devices.RegisteredDevice
 import org.json.JSONObject
 import java.time.Instant
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private data class ProtocolStepDraft(
     val presetId: String,
@@ -189,7 +205,12 @@ private fun capabilityLifecycle(method: As100Method): CapabilityLifecycle {
         "document.scan",
         "gps_target_navigator",
         "plus_code.capture",
-        "conversation.translate"
+        "conversation.translate",
+        "bluetooth_print",
+        "mlkit.translate",
+        "mlkit.vision.analyze",
+        "odk_form_launcher",
+        "random.number.generate"
     )
     return if (method.id in productionCapabilityIds) CapabilityLifecycle.Production else CapabilityLifecycle.Development
 }
@@ -1454,6 +1475,7 @@ private fun WorkbenchCard(
                 style = MaterialTheme.typography.bodySmall
             )
             if (expanded) {
+                WorkbenchApiLinksPanel()
                 workbenchMethods.sortedBy { it.id }
                     .groupBy { moduleByMethod[it.id]?.displayName ?: "Other" }
                     .toSortedMap()
@@ -1486,6 +1508,307 @@ private fun WorkbenchCard(
             }
         }
     }
+}
+
+@Composable
+private fun WorkbenchApiLinksPanel() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var definitions by remember { mutableStateOf(ApiDefinitionRepository.all(context)) }
+    var selectedId by rememberSaveable { mutableStateOf(definitions.firstOrNull()?.id.orEmpty()) }
+    val selected = definitions.firstOrNull { it.id == selectedId } ?: definitions.firstOrNull()
+    val inputValues = remember { mutableStateMapOf<String, String>() }
+    var previewText by rememberSaveable { mutableStateOf("") }
+    var confirmDefinition by remember { mutableStateOf<ApiDefinition?>(null) }
+    var testing by rememberSaveable { mutableStateOf(false) }
+
+    fun refreshDefinitions() {
+        definitions = ApiDefinitionRepository.all(context)
+        if (selectedId.isBlank() || definitions.none { it.id == selectedId }) {
+            selectedId = definitions.firstOrNull()?.id.orEmpty()
+        }
+    }
+
+    LaunchedEffect(selected?.id) {
+        selected?.inputs.orEmpty().forEach { input ->
+            inputValues.putIfAbsent(input.id, input.defaultValue.ifBlank { sampleValueFor(input.type) })
+        }
+        previewText = ""
+    }
+
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Online API links", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Inspect definitions and preview requests. Live testing will require explicit send confirmation.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                OutlinedButton(onClick = { refreshDefinitions() }) {
+                    Text("Refresh")
+                }
+            }
+
+            if (definitions.isEmpty()) {
+                Text("No API definitions found.", style = MaterialTheme.typography.bodySmall)
+                return@Column
+            }
+
+            definitions.forEach { definition ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            selectedId = definition.id
+                            previewText = ""
+                        },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = definition.id == selected?.id,
+                        onClick = {
+                            selectedId = definition.id
+                            previewText = ""
+                        }
+                    )
+                    Column(Modifier.weight(1f)) {
+                        Text(definition.name, style = MaterialTheme.typography.labelLarge)
+                        Text(
+                            "${definition.id} · ${definition.origin.name.lowercase()} · v${definition.version}",
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+            }
+
+            selected?.let { definition ->
+                if (definition.privacy.sendsLocation) {
+                    Text(
+                        apiLocationDisclosureText(definition),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                definition.inputs.forEach { input ->
+                    OutlinedTextField(
+                        value = inputValues[input.id].orEmpty(),
+                        onValueChange = { inputValues[input.id] = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text(input.name) },
+                        placeholder = { Text(input.id) }
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = { previewText = apiDefinitionPreview(definition, inputValues.toMap()) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Preview request")
+                }
+
+                if (definition.origin == ApiDefinitionOrigin.BUNDLED) {
+                    Button(
+                        onClick = {
+                            previewText = apiDefinitionPreview(definition, inputValues.toMap())
+                            confirmDefinition = definition
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !testing
+                    ) {
+                        Text(if (testing) "Sending…" else "Send test request")
+                    }
+                } else {
+                    Text(
+                        "Live testing for saved or imported API links will be enabled after the API editor has trust controls.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                if (definition.response.expectedPaths.isNotEmpty()) {
+                    Text("Expected paths", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    definition.response.expectedPaths.forEach { path ->
+                        Text(path, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+                    }
+                }
+
+                if (previewText.isNotBlank()) {
+                    SelectionContainer {
+                        Text(
+                            previewText,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 220.dp)
+                                .verticalScroll(rememberScrollState())
+                                .padding(top = 4.dp),
+                            fontFamily = FontFamily.Monospace,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    confirmDefinition?.let { definition ->
+        AlertDialog(
+            onDismissRequest = { confirmDefinition = null },
+            title = { Text("Send API request?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("MethodMesh will send this bundled test request to ${definition.attribution.providerName}.")
+                    if (definition.privacy.sendsLocation) {
+                        Text(apiLocationDisclosureText(definition), color = MaterialTheme.colorScheme.error)
+                    }
+                    Text("Saved and imported API links remain preview-only until the API editor has trust controls.")
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val snapshot = definition
+                        val inputs = inputValues.toMap()
+                        confirmDefinition = null
+                        testing = true
+                        previewText = "Sending request…"
+                        scope.launch {
+                            val resultText = withContext(Dispatchers.IO) {
+                                val result = ApiGetExecutor(
+                                    registry = InMemoryApiDefinitionRegistry(listOf(snapshot)),
+                                    httpClient = HttpUrlConnectionOnlineHttpClient()
+                                ).execute(
+                                    ApiGetRequest(
+                                        definitionId = snapshot.id,
+                                        inputs = inputs
+                                    )
+                                )
+                                apiResultPreview(snapshot, result)
+                            }
+                            testing = false
+                            previewText = resultText
+                        }
+                    }
+                ) {
+                    Text("Send")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { confirmDefinition = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+private fun apiDefinitionPreview(definition: ApiDefinition, inputs: Map<String, String>): String {
+    val executor = ApiGetExecutor(
+        registry = InMemoryApiDefinitionRegistry(listOf(definition)),
+        httpClient = object : OnlineHttpClient {
+            override fun get(request: OnlineHttpRequest): OnlineHttpResponse =
+                error("Offline preview does not send network requests.")
+        }
+    )
+    return runCatching {
+        val prepared = executor.prepare(definition, inputs)
+        buildString {
+            appendLine("Method: ${definition.method.name}")
+            appendLine("URL: ${prepared.redactedUrl}")
+            appendLine("Headers: ${prepared.headers.keys.sorted().joinToString().ifBlank { "none" }}")
+            appendLine("Cache: ${definition.cache.mode.name.lowercase()} · ${definition.cache.ttlSeconds}s")
+            appendLine("Response: ${definition.response.type.name.lowercase()}")
+        }.trim()
+    }.getOrElse { error ->
+        "Cannot prepare request: ${error.message.orEmpty()}"
+    }
+}
+
+private fun apiLocationDisclosureText(definition: ApiDefinition): String {
+    val provider = definition.attribution.providerName.ifBlank { "the provider" }
+    return when (definition.privacy.locationMode) {
+        com.example.methodmesh.core.onlinedata.LocationDisclosureMode.ROUNDED ->
+            "This API sends rounded location to $provider, about ${definition.privacy.roundedLocationRadiusMeters / 1_000} km precision."
+        com.example.methodmesh.core.onlinedata.LocationDisclosureMode.EXACT ->
+            "This API sends exact location to $provider."
+        com.example.methodmesh.core.onlinedata.LocationDisclosureMode.MANUAL ->
+            "This API sends the manually entered location to $provider."
+        com.example.methodmesh.core.onlinedata.LocationDisclosureMode.DISABLED ->
+            "This API is marked as not sending location."
+    }
+}
+
+private fun sampleValueFor(type: ApiInputType): String = when (type) {
+    ApiInputType.LATITUDE -> "52.0779"
+    ApiInputType.LONGITUDE -> "-0.0580"
+    ApiInputType.BOOLEAN -> "true"
+    ApiInputType.NUMBER -> "0"
+    else -> ""
+}
+
+private fun apiResultPreview(
+    definition: ApiDefinition,
+    result: ApiExecutionResult
+): String = buildString {
+    appendLine("Status: ${result.status.name.lowercase()}")
+    appendLine("Provider: ${definition.attribution.providerName}")
+    result.meta.statusCode?.let { appendLine("HTTP: $it") }
+    appendLine("Cache: ${if (result.meta.fromCache) "hit" else "miss"}")
+    result.meta.sourceUrlRedacted.takeIf { it.isNotBlank() }?.let { appendLine("URL: $it") }
+    result.error?.message?.takeIf { it.isNotBlank() }?.let { appendLine("Error: $it") }
+    result.error?.detail?.takeIf { it.isNotBlank() }?.let { appendLine("Detail: $it") }
+    appendLine()
+    appendLine("Data")
+    appendLine(resultTreePreview(result.data))
+}.trim()
+
+private fun resultTreePreview(tree: ResultTree, indent: String = "", maxDepth: Int = 4): String {
+    if (maxDepth <= 0) return "$indent…"
+    return when (tree) {
+        is ResultTree.ObjectNode -> {
+            if (tree.values.isEmpty()) {
+                "${indent}{}"
+            } else {
+                tree.values.entries.take(12).joinToString("\n") { (key, value) ->
+                    when (value) {
+                        is ResultTree.ObjectNode,
+                        is ResultTree.ArrayNode -> "$indent$key:\n${resultTreePreview(value, "$indent  ", maxDepth - 1)}"
+                        else -> "$indent$key: ${resultTreeScalar(value)}"
+                    }
+                } + if (tree.values.size > 12) "\n$indent…" else ""
+            }
+        }
+        is ResultTree.ArrayNode -> {
+            if (tree.values.isEmpty()) {
+                "${indent}[]"
+            } else {
+                tree.values.take(6).mapIndexed { index, value ->
+                    when (value) {
+                        is ResultTree.ObjectNode,
+                        is ResultTree.ArrayNode -> "$indent[$index]\n${resultTreePreview(value, "$indent  ", maxDepth - 1)}"
+                        else -> "$indent[$index] ${resultTreeScalar(value)}"
+                    }
+                }.joinToString("\n") + if (tree.values.size > 6) "\n$indent…" else ""
+            }
+        }
+        else -> "$indent${resultTreeScalar(tree)}"
+    }
+}
+
+private fun resultTreeScalar(tree: ResultTree): String = when (tree) {
+    is ResultTree.StringNode -> tree.value
+    is ResultTree.NumberNode -> tree.value.toString()
+    is ResultTree.BooleanNode -> tree.value.toString()
+    ResultTree.NullNode -> "null"
+    is ResultTree.ObjectNode -> "{…}"
+    is ResultTree.ArrayNode -> "[…]"
 }
 
 @Composable
