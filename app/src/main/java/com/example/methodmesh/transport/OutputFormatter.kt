@@ -132,7 +132,12 @@ object OutputFormatter {
         "api_values_json",
         "plus_code",
         "redacted_image_uri",
-        "conversation_transcript"
+        "conversation_transcript",
+        "random_first_number",
+        "random_numbers_csv",
+        "sampling_value",
+        "sampling_result_uri",
+        "sound_summary"
     )
 
     private val apiAuditFields = setOf(
@@ -159,6 +164,7 @@ object OutputFormatter {
 
     private fun isAuditOrCoreField(key: String): Boolean =
         isCoreField(key) ||
+            key.endsWith("_audit_json") ||
             key in apiAuditFields ||
             key in calibratedScaleAuditFields ||
             key in documentScanAuditFields ||

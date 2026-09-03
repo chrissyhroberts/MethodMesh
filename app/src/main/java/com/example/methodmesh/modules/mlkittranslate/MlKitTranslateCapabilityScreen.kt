@@ -54,11 +54,15 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
         onConfirmed: (ExecutionResult) -> Unit,
         onCancel: () -> Unit
     ) {
-        var source by rememberSaveable { mutableStateOf(context.action.settings["source_language"] ?: context.action.settings["input_source_language"] ?: "en") }
-        var target by rememberSaveable { mutableStateOf(context.action.settings["target_language"] ?: context.action.settings["input_target_language"] ?: "fr") }
+        var source by rememberSaveable {
+            mutableStateOf(MlKitLanguageCatalog.canonicalCode(context.action.settings["source_language"] ?: context.action.settings["input_source_language"], "en"))
+        }
+        var target by rememberSaveable {
+            mutableStateOf(MlKitLanguageCatalog.canonicalCode(context.action.settings["target_language"] ?: context.action.settings["input_target_language"], "fr"))
+        }
         var text by rememberSaveable { mutableStateOf(context.action.settings["input_text"] ?: context.action.settings["input_input_text"] ?: "") }
         val action = context.action.settings["model_action"] ?: context.action.settings["input_model_action"] ?: "translate"
-        val modelLanguage = context.action.settings["model_language"] ?: context.action.settings["input_model_language"]
+        val modelLanguage = MlKitLanguageCatalog.canonicalCode(context.action.settings["model_language"] ?: context.action.settings["input_model_language"])
         val hasSuppliedText = remember(context.action.settings, context.request.settings) {
             listOf("input_text", "input_input_text", "text")
                 .any { key -> context.action.settings[key].orEmpty().isNotBlank() || context.request.settings[key].orEmpty().isNotBlank() }
@@ -87,7 +91,7 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
                     put("target_language", target)
                     put("input_text", text)
                     put("model_action", action)
-                    modelLanguage?.takeIf { it.isNotBlank() }?.let { put("model_language", it) }
+                    modelLanguage.takeIf { it.isNotBlank() }?.let { put("model_language", it) }
                 }
             )
         }
@@ -133,9 +137,14 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun download(code: String) {
-            busyModelCode = code
-            status = "Downloading ${languageLabel(code)}…"
-            val model = TranslateRemoteModel.Builder(code).build()
+            val canonical = MlKitLanguageCatalog.canonicalCode(code)
+            if (canonical !in MlKitLanguageCatalog.supportedCodes()) {
+                complete(values("download", error = "${languageLabel(code)} is not available in ML Kit translation.", state = "failed"), false)
+                return
+            }
+            busyModelCode = canonical
+            status = "Downloading ${languageLabel(canonical)}…"
+            val model = TranslateRemoteModel.Builder(canonical).build()
             RemoteModelManager.getInstance()
                 .download(model, DownloadConditions.Builder().build())
                 .addOnSuccessListener {
@@ -150,9 +159,14 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun delete(code: String) {
-            busyModelCode = code
-            status = "Removing $code model…"
-            val model = TranslateRemoteModel.Builder(code).build()
+            val canonical = MlKitLanguageCatalog.canonicalCode(code)
+            if (canonical !in MlKitLanguageCatalog.supportedCodes()) {
+                complete(values("delete", error = "${languageLabel(code)} is not available in ML Kit translation.", state = "failed"), false)
+                return
+            }
+            busyModelCode = canonical
+            status = "Removing ${languageLabel(canonical)} model…"
+            val model = TranslateRemoteModel.Builder(canonical).build()
             RemoteModelManager.getInstance()
                 .deleteDownloadedModel(model)
                 .addOnSuccessListener {
@@ -172,6 +186,8 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
                 return
             }
             status = "Preparing translation models…"
+            source = MlKitLanguageCatalog.canonicalCode(source, "en")
+            target = MlKitLanguageCatalog.canonicalCode(target, "fr")
             val options = TranslatorOptions.Builder()
                 .setSourceLanguage(source)
                 .setTargetLanguage(target)
@@ -202,10 +218,10 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
                 launched = true
                 when (action) {
                     "list" -> refreshModels(thenComplete = true)
-                    "download", "download_target" -> download(modelLanguage ?: target)
-                    "download_source" -> download(modelLanguage ?: source)
-                    "delete", "delete_target" -> delete(modelLanguage ?: target)
-                    "delete_source" -> delete(modelLanguage ?: source)
+                    "download", "download_target" -> download(modelLanguage.ifBlank { target })
+                    "download_source" -> download(modelLanguage.ifBlank { source })
+                    "delete", "delete_target" -> delete(modelLanguage.ifBlank { target })
+                    "delete_source" -> delete(modelLanguage.ifBlank { source })
                     else -> translate()
                 }
             }
@@ -230,11 +246,11 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
             Spacer(Modifier.height(10.dp))
             if (!compactInputOnly || needsRuntimeLanguages) {
                 if (needsRuntimeSource || !context.isNativePresetRun) {
-                LanguagePicker("Source language", source, sourceMenuOpen, { sourceMenuOpen = it }) { source = it }
+                LanguagePicker("Source language", source, sourceMenuOpen, { sourceMenuOpen = it }) { source = MlKitLanguageCatalog.canonicalCode(it, "en") }
                 Spacer(Modifier.height(8.dp))
                 }
                 if (needsRuntimeTarget || !context.isNativePresetRun) {
-                LanguagePicker("Target language", target, targetMenuOpen, { targetMenuOpen = it }) { target = it }
+                LanguagePicker("Target language", target, targetMenuOpen, { targetMenuOpen = it }) { target = MlKitLanguageCatalog.canonicalCode(it, "fr") }
                 Spacer(Modifier.height(8.dp))
                 }
             } else {

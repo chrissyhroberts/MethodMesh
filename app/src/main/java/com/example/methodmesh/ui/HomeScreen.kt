@@ -3186,7 +3186,11 @@ private fun MlKitLanguagePacksScreen() {
         RemoteModelManager.getInstance()
             .getDownloadedModels(TranslateRemoteModel::class.java)
             .addOnSuccessListener { models ->
-                downloadedCodes = models.mapNotNull { it.language }.sorted().joinToString(",")
+                downloadedCodes = models.mapNotNull { it.language }
+                    .map { MlKitLanguageCatalog.canonicalCode(it, it) }
+                    .distinct()
+                    .sortedBy { MlKitLanguageCatalog.label(it).lowercase() }
+                    .joinToString(",")
                 status = if (downloadedCodes.isBlank()) "No language packs downloaded." else "Language packs ready."
                 log("Downloaded models: ${downloadedCodes.ifBlank { "none" }}")
             }
@@ -3197,43 +3201,55 @@ private fun MlKitLanguagePacksScreen() {
     }
 
     fun download(code: String) {
-        busyCode = code
+        val canonical = MlKitLanguageCatalog.canonicalCode(code)
+        if (canonical !in supportedCodes) {
+            status = "${MlKitLanguageCatalog.label(code)} is not available in ML Kit translation."
+            log("Download blocked: ${MlKitLanguageCatalog.label(code)} is not in the canonical ML Kit translation list.")
+            return
+        }
+        busyCode = canonical
         busySeconds = 0
-        status = "Downloading ${MlKitLanguageCatalog.label(code)}…"
-        val model = TranslateRemoteModel.Builder(code).build()
-        log("Download started via RemoteModelManager: ${MlKitLanguageCatalog.label(code)}. ${languagePackConnectivityStatus(context)}")
+        status = "Downloading ${MlKitLanguageCatalog.label(canonical)}…"
+        val model = TranslateRemoteModel.Builder(canonical).build()
+        log("Download started via RemoteModelManager: ${MlKitLanguageCatalog.label(canonical)}. ${languagePackConnectivityStatus(context)}")
         RemoteModelManager.getInstance()
             .download(model, DownloadConditions.Builder().build())
             .addOnSuccessListener {
                 busyCode = null
-                status = "${MlKitLanguageCatalog.label(code)} downloaded."
-                log("Download callback succeeded for ${MlKitLanguageCatalog.label(code)}.")
+                status = "${MlKitLanguageCatalog.label(canonical)} downloaded."
+                log("Download callback succeeded for ${MlKitLanguageCatalog.label(canonical)}.")
                 refresh()
             }
             .addOnFailureListener { error ->
                 busyCode = null
-                status = "Download failed for ${MlKitLanguageCatalog.label(code)}: ${error.message.orEmpty()}"
-                log("Download failed for ${MlKitLanguageCatalog.label(code)}: ${error.message.orEmpty().ifBlank { error.javaClass.simpleName }}")
+                status = "Download failed for ${MlKitLanguageCatalog.label(canonical)}: ${error.message.orEmpty()}"
+                log("Download failed for ${MlKitLanguageCatalog.label(canonical)}: ${error.message.orEmpty().ifBlank { error.javaClass.simpleName }}")
             }
     }
 
     fun delete(code: String) {
-        busyCode = code
+        val canonical = MlKitLanguageCatalog.canonicalCode(code)
+        if (canonical !in supportedCodes) {
+            status = "${MlKitLanguageCatalog.label(code)} is not available in ML Kit translation."
+            log("Remove blocked: ${MlKitLanguageCatalog.label(code)} is not in the canonical ML Kit translation list.")
+            return
+        }
+        busyCode = canonical
         busySeconds = 0
-        status = "Removing ${MlKitLanguageCatalog.label(code)}…"
-        log("Remove started: ${MlKitLanguageCatalog.label(code)}.")
+        status = "Removing ${MlKitLanguageCatalog.label(canonical)}…"
+        log("Remove started: ${MlKitLanguageCatalog.label(canonical)}.")
         RemoteModelManager.getInstance()
-            .deleteDownloadedModel(TranslateRemoteModel.Builder(code).build())
+            .deleteDownloadedModel(TranslateRemoteModel.Builder(canonical).build())
             .addOnSuccessListener {
                 busyCode = null
-                status = "${MlKitLanguageCatalog.label(code)} removed."
-                log("Remove callback succeeded: ${MlKitLanguageCatalog.label(code)}.")
+                status = "${MlKitLanguageCatalog.label(canonical)} removed."
+                log("Remove callback succeeded: ${MlKitLanguageCatalog.label(canonical)}.")
                 refresh()
             }
             .addOnFailureListener { error ->
                 busyCode = null
-                status = "Remove failed for ${MlKitLanguageCatalog.label(code)}: ${error.message.orEmpty()}"
-                log("Remove failed for ${MlKitLanguageCatalog.label(code)}: ${error.message.orEmpty().ifBlank { error.javaClass.simpleName }}")
+                status = "Remove failed for ${MlKitLanguageCatalog.label(canonical)}: ${error.message.orEmpty()}"
+                log("Remove failed for ${MlKitLanguageCatalog.label(canonical)}: ${error.message.orEmpty().ifBlank { error.javaClass.simpleName }}")
             }
     }
 

@@ -1,0 +1,4 @@
+item_id,item_label,weight,stratum,eligible
+001,Alice,1,A,true
+002,Bob,1,A,true
+003,Carol,2,B,true

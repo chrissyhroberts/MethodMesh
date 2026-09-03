@@ -117,18 +117,74 @@ object MlKitLanguageCatalog {
         "zu" to "Zulu"
     )
 
+    private val aliases = mapOf(
+        "chinese" to "zh",
+        "mandarin" to "zh",
+        "simplified chinese" to "zh",
+        "traditional chinese" to "zh",
+        "zh-cn" to "zh",
+        "zh-hans" to "zh",
+        "zh-hans-cn" to "zh",
+        "cmn" to "zh",
+        "cmn-cn" to "zh",
+        "cmn-hans" to "zh",
+        "cmn-hans-cn" to "zh",
+        "cn" to "zh",
+        "japanese" to "ja",
+        "jp" to "ja",
+        "ja-jp" to "ja",
+        "korean" to "ko",
+        "kr" to "ko",
+        "ko-kr" to "ko",
+        "english" to "en",
+        "spanish" to "es",
+        "castilian" to "es",
+        "french" to "fr",
+        "portuguese" to "pt",
+        "brazilian portuguese" to "pt",
+        "german" to "de",
+        "swahili" to "sw"
+    )
+
+    private val fallbackCanonicalCodes = listOf(
+        "af", "sq", "ar", "be", "bg", "bn", "ca", "zh", "hr", "cs", "da", "nl", "en", "eo",
+        "et", "fi", "fr", "gl", "ka", "de", "el", "gu", "ht", "he", "hi", "hu", "is", "id",
+        "ga", "it", "ja", "kn", "ko", "lt", "lv", "mk", "mr", "ms", "mt", "no", "fa", "pl",
+        "pt", "ro", "ru", "sk", "sl", "es", "sv", "sw", "tl", "ta", "te", "th", "tr", "uk",
+        "ur", "vi", "cy"
+    )
+
+    fun canonicalCode(input: String?, fallback: String = ""): String {
+        val raw = input.orEmpty().trim()
+        if (raw.isBlank()) return fallback
+        val compact = raw
+            .substringBefore("(")
+            .trim()
+            .lowercase()
+            .replace('_', '-')
+        aliases[compact]?.let { return it }
+        names.entries.firstOrNull { it.value.lowercase() == compact }?.let { return it.key }
+        val fromTag = runCatching { TranslateLanguage.fromLanguageTag(compact) }.getOrNull()
+        if (!fromTag.isNullOrBlank()) return fromTag
+        if (compact in fallbackCanonicalCodes) return compact
+        return fallback.ifBlank { compact }
+    }
+
+    fun canonicalCodes(): List<String> =
+        supportedCodes()
+            .map { canonicalCode(it, it) }
+            .distinct()
+            .sortedBy { info(it).name.lowercase() }
+
     fun supportedCodes(): Set<String> =
-        runCatching { TranslateLanguage.getAllLanguages().toSet() }.getOrElse { commonMlKitLanguageCodes.toSet() }
+        runCatching { TranslateLanguage.getAllLanguages().map { canonicalCode(it, it) }.toSet() }
+            .getOrElse { fallbackCanonicalCodes.toSet() }
 
     fun supportedLanguages(): List<MlKitLanguageInfo> =
-        supportedCodes()
-            .map { code -> info(code) }
-            .sortedBy { it.name.lowercase() }
+        canonicalCodes().map { code -> info(code) }
 
     fun allKnownLanguages(): List<MlKitLanguageInfo> =
-        names.keys
-            .map(::info)
-            .sortedBy { it.name.lowercase() }
+        supportedLanguages()
 
     fun info(code: String): MlKitLanguageInfo =
         MlKitLanguageInfo(code = code, name = names[code] ?: code.uppercase())

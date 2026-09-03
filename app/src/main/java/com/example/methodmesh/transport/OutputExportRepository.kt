@@ -69,7 +69,47 @@ object OutputExportRepository {
             }
     }
 
+    data class DownloadsExport(
+        val files: List<ExportedFile>,
+        val folderName: String
+    ) {
+        val summary: String
+            get() = "${files.size} file${if (files.size == 1) "" else "s"} in Downloads/MethodMesh/$folderName"
+    }
+
     fun export(context: Context, result: ExecutionResult): String = exportPackage(context, result).json.uri
+
+    fun saveToDownloads(
+        context: Context,
+        label: String,
+        text: String,
+        mediaUris: List<String>
+    ): DownloadsExport {
+        val timestamp = stamp.format(Instant.now())
+        val folderName = safeSegment("${timestamp}_${safeSegment(label).ifBlank { "methodmesh_result" }}")
+        val exported = mutableListOf<ExportedFile>()
+        if (text.isNotBlank()) {
+            val name = "result.txt"
+            val uri = writePublicDownload(
+                context = context,
+                folderName = folderName,
+                name = name,
+                mime = "text/plain",
+                bytes = text.toByteArray(Charsets.UTF_8)
+            ) ?: throw IllegalStateException("Could not write text result to Downloads.")
+            exported += ExportedFile("result_text", name, uri, "text/plain")
+        }
+        mediaUris.distinct().forEachIndexed { index, source ->
+            val ext = extension(source).takeIf { it != "bin" } ?: "bin"
+            val name = safeSegment("media_${index + 1}") + ".$ext"
+            val mime = mimeTypeFor(name)
+            val bytes = openSource(context, source)?.use { it.readBytes() } ?: return@forEachIndexed
+            val uri = writePublicDownload(context, folderName, name, mime, bytes)
+            if (uri != null) exported += ExportedFile("media_${index + 1}", name, uri, mime)
+        }
+        if (exported.isEmpty()) throw IllegalStateException("No text or media was available to save.")
+        return DownloadsExport(exported, folderName)
+    }
 
     fun exportFlatPackage(
         context: Context,
@@ -697,6 +737,31 @@ object OutputExportRepository {
             }
         }
         val out = File(defaultFolder(context), folderName).apply { mkdirs() }.resolve(name)
+        out.writeBytes(bytes)
+        return out.absolutePath
+    }
+
+    private fun writePublicDownload(context: Context, folderName: String, name: String, mime: String, bytes: ByteArray): String? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = android.content.ContentValues().apply {
+                put(MediaStore.Files.FileColumns.DISPLAY_NAME, name)
+                put(MediaStore.Files.FileColumns.MIME_TYPE, mime)
+                put(MediaStore.Files.FileColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/MethodMesh/$folderName")
+                put(MediaStore.Files.FileColumns.IS_PENDING, 1)
+            }
+            val uri = context.contentResolver.insert(MediaStore.Files.getContentUri("external"), values) ?: return null
+            return runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } ?: error("Unable to write download")
+                val completed = android.content.ContentValues().apply { put(MediaStore.Files.FileColumns.IS_PENDING, 0) }
+                context.contentResolver.update(uri, completed, null, null)
+                uri.toString()
+            }.getOrElse {
+                context.contentResolver.delete(uri, null, null)
+                throw it
+            }
+        }
+        val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val out = File(downloads, "MethodMesh/$folderName").apply { mkdirs() }.resolve(name)
         out.writeBytes(bytes)
         return out.absolutePath
     }

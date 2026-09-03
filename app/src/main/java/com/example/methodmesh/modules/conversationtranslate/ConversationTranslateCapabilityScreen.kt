@@ -86,8 +86,12 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
         onCancel: () -> Unit
     ) {
         val androidContext = LocalContext.current
-        var languageA by rememberSaveable { mutableStateOf(context.action.settings["language_a"] ?: context.action.settings["input_language_a"] ?: "en") }
-        var languageB by rememberSaveable { mutableStateOf(context.action.settings["language_b"] ?: context.action.settings["input_language_b"] ?: "es") }
+        var languageA by rememberSaveable {
+            mutableStateOf(MlKitLanguageCatalog.canonicalCode(context.action.settings["language_a"] ?: context.action.settings["input_language_a"], "en"))
+        }
+        var languageB by rememberSaveable {
+            mutableStateOf(MlKitLanguageCatalog.canonicalCode(context.action.settings["language_b"] ?: context.action.settings["input_language_b"], "es"))
+        }
         var labelA by rememberSaveable { mutableStateOf(context.action.settings["label_a"] ?: context.action.settings["input_label_a"] ?: defaultButtonLabel(languageA)) }
         var labelB by rememberSaveable { mutableStateOf(context.action.settings["label_b"] ?: context.action.settings["input_label_b"] ?: defaultButtonLabel(languageB)) }
         var spokenOutput by rememberSaveable { mutableStateOf((context.action.settings["spoken_output"] ?: context.action.settings["input_spoken_output"] ?: "true").equals("true", true)) }
@@ -174,7 +178,11 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
             RemoteModelManager.getInstance()
                 .getDownloadedModels(TranslateRemoteModel::class.java)
                 .addOnSuccessListener { models ->
-                    downloadedModelCodes = models.mapNotNull { it.language }.sorted().joinToString(",")
+                    downloadedModelCodes = models.mapNotNull { it.language }
+                        .map { MlKitLanguageCatalog.canonicalCode(it, it) }
+                        .distinct()
+                        .sortedBy { MlKitLanguageCatalog.label(it).lowercase() }
+                        .joinToString(",")
                     modelStatus = if (downloadedModelCodes.isBlank()) {
                         "No language packs downloaded."
                     } else {
@@ -189,27 +197,28 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun downloadLanguagePack(code: String) {
-            if (code !in supportedLanguageCodes) {
-                modelStatus = "${languageLabel(code)} is not available in ML Kit on this device."
+            val canonical = MlKitLanguageCatalog.canonicalCode(code)
+            if (canonical !in supportedLanguageCodes) {
+                modelStatus = "${languageLabel(code)} is not available in ML Kit translation."
                 return
             }
-            busyLanguageCode = code
+            busyLanguageCode = canonical
             busyLanguageSeconds = 0
-            modelStatus = "Downloading ${languageLabel(code)}…"
-            val model = TranslateRemoteModel.Builder(code).build()
-            modelDebugLog = prependDebugLog(modelDebugLog, "Download started via RemoteModelManager: ${languageLabel(code)}. ${languagePackConnectivityStatus(androidContext)}")
+            modelStatus = "Downloading ${languageLabel(canonical)}…"
+            val model = TranslateRemoteModel.Builder(canonical).build()
+            modelDebugLog = prependDebugLog(modelDebugLog, "Download started via RemoteModelManager: ${languageLabel(canonical)}. ${languagePackConnectivityStatus(androidContext)}")
             RemoteModelManager.getInstance()
                 .download(model, DownloadConditions.Builder().build())
                 .addOnSuccessListener {
                     busyLanguageCode = null
-                    modelStatus = "${languageLabel(code)} downloaded."
-                    modelDebugLog = prependDebugLog(modelDebugLog, "Download callback succeeded: ${languageLabel(code)}.")
+                    modelStatus = "${languageLabel(canonical)} downloaded."
+                    modelDebugLog = prependDebugLog(modelDebugLog, "Download callback succeeded: ${languageLabel(canonical)}.")
                     refreshLanguagePacks()
                 }
                 .addOnFailureListener { error ->
                     busyLanguageCode = null
-                    modelStatus = "Download failed for ${languageLabel(code)}: ${error.message.orEmpty()}"
-                    modelDebugLog = prependDebugLog(modelDebugLog, "Download failed for ${languageLabel(code)}: ${error.message.orEmpty().ifBlank { error.javaClass.simpleName }}")
+                    modelStatus = "Download failed for ${languageLabel(canonical)}: ${error.message.orEmpty()}"
+                    modelDebugLog = prependDebugLog(modelDebugLog, "Download failed for ${languageLabel(canonical)}: ${error.message.orEmpty().ifBlank { error.javaClass.simpleName }}")
                 }
         }
 
@@ -266,8 +275,8 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun addTurn(side: String, original: String, translated: String) {
-            val source = if (side == "a") languageA else languageB
-            val target = if (side == "a") languageB else languageA
+            val source = MlKitLanguageCatalog.canonicalCode(if (side == "a") languageA else languageB)
+            val target = MlKitLanguageCatalog.canonicalCode(if (side == "a") languageB else languageA)
             val speaker = if (side == "a") labelA else labelB
             val turn = ConversationTurn(
                 side = side,
@@ -359,16 +368,17 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                 status = missingLanguageStatus(missingTranslationLanguages, unsupportedTranslationLanguages)
                 return
             }
-            val source = if (side == "a") languageA else languageB
+            val source = MlKitLanguageCatalog.canonicalCode(if (side == "a") languageA else languageB)
             val prompt = "${if (side == "a") labelA else labelB}: speak now"
             listeningSide = side
             status = "Listening…"
             val recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, speechLocaleTagFor(source))
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, speechLocaleTagFor(source))
+                val speechLocale = speechLocaleTagFor(source)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, speechLocale)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, speechLocale)
                 putExtra(RecognizerIntent.EXTRA_PROMPT, prompt)
-                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, preferOffline && source != "zh")
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, preferOffline && source !in onlineFirstSpeechLanguages)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             }
             try {
@@ -407,11 +417,17 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                     Text("Configure a language pair, then let either person press their own button whenever they speak.", style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(10.dp))
                     if (!context.settingIsFixedInNativePreset("language_a")) {
-                    ConversationLanguagePicker("First language", languageA, onSelected = { languageA = it; labelA = defaultButtonLabel(it) })
+                    ConversationLanguagePicker("First language", languageA, onSelected = {
+                        languageA = MlKitLanguageCatalog.canonicalCode(it, "en")
+                        labelA = defaultButtonLabel(languageA)
+                    })
                     Spacer(Modifier.height(8.dp))
                     }
                     if (!context.settingIsFixedInNativePreset("language_b")) {
-                    ConversationLanguagePicker("Second language", languageB, onSelected = { languageB = it; labelB = defaultButtonLabel(it) })
+                    ConversationLanguagePicker("Second language", languageB, onSelected = {
+                        languageB = MlKitLanguageCatalog.canonicalCode(it, "es")
+                        labelB = defaultButtonLabel(languageB)
+                    })
                     Spacer(Modifier.height(8.dp))
                     }
                     if (!context.settingIsFixedInNativePreset("spoken_output")) {
@@ -922,8 +938,13 @@ private fun defaultButtonLabel(language: String): String = when (language) {
     "fr" -> "Parlez"
     "pt" -> "Fale"
     "sw" -> "Ongea"
+    "zh" -> "说话"
+    "ja" -> "話す"
+    "ko" -> "말하기"
     else -> "Speak"
 }
+
+private val onlineFirstSpeechLanguages = setOf("zh", "ja", "ko")
 
 private fun speechLocaleTagFor(language: String): String = when (language) {
     "en" -> "en-US"
@@ -933,11 +954,15 @@ private fun speechLocaleTagFor(language: String): String = when (language) {
     "de" -> "de-DE"
     "it" -> "it-IT"
     "sw" -> "sw-KE"
-    "zh" -> "cmn-Hans-CN"
-    else -> language
+    "zh" -> "zh-CN"
+    "ja" -> "ja-JP"
+    "ko" -> "ko-KR"
+    else -> MlKitLanguageCatalog.canonicalCode(language, language)
 }
 
 private fun localeFor(language: String): Locale = when (language) {
     "zh" -> Locale.SIMPLIFIED_CHINESE
+    "ja" -> Locale.JAPANESE
+    "ko" -> Locale.KOREAN
     else -> Locale.forLanguageTag(speechLocaleTagFor(language))
 }

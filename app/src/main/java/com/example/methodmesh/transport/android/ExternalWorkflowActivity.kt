@@ -185,6 +185,7 @@ private fun ExternalWorkflowScreen(
 ) {
     val confirmed = remember { mutableStateListOf<ConfirmedWorkflowStep>() }
     var index by remember { mutableIntStateOf(0) }
+    var acceptedIndex by remember { mutableIntStateOf(-1) }
     val actions = request.actions
 
     Column(
@@ -208,29 +209,40 @@ private fun ExternalWorkflowScreen(
 
         if (index < actions.size) {
             val action = actions[index].withPipeSettings(confirmed)
-            CapabilityStepScreen(
-                action = action,
-                request = request,
-                stepNumber = index + 1,
-                totalSteps = actions.size,
-                canGoBack = index > 0,
-                onBack = { if (index > 0) index -= 1 },
-                onConfirmed = { result ->
-                    val recorded = ResearchRuntime.session.record(result.withInvocationContext(request.invocationContext))
-                    val completedStep = ConfirmedWorkflowStep(action, recorded)
-                    if (confirmed.size > index) {
-                        confirmed[index] = completedStep
-                    } else {
-                        confirmed.add(completedStep)
-                    }
-                    if (index == actions.lastIndex) {
-                        onReturn(confirmed.toList())
-                    } else {
-                        index += 1
-                    }
-                },
-                onCancel = onCancel
-            )
+            if (actions.size > 1 && acceptedIndex != index) {
+                ExternalStepIntroScreen(
+                    stepNumber = index + 1,
+                    totalSteps = actions.size,
+                    title = action.requestedId,
+                    lastCompleted = confirmed.lastOrNull()?.let(::externalLastCompletedSummary).orEmpty(),
+                    onGo = { acceptedIndex = index },
+                    onCancel = onCancel
+                )
+            } else {
+                CapabilityStepScreen(
+                    action = action,
+                    request = request,
+                    stepNumber = index + 1,
+                    totalSteps = actions.size,
+                    canGoBack = index > 0,
+                    onBack = { if (index > 0) index -= 1 },
+                    onConfirmed = { result ->
+                        val recorded = ResearchRuntime.session.record(result.withInvocationContext(request.invocationContext))
+                        val completedStep = ConfirmedWorkflowStep(action, recorded)
+                        if (confirmed.size > index) {
+                            confirmed[index] = completedStep
+                        } else {
+                            confirmed.add(completedStep)
+                        }
+                        if (index == actions.lastIndex) {
+                            onReturn(confirmed.toList())
+                        } else {
+                            index += 1
+                        }
+                    },
+                    onCancel = onCancel
+                )
+            }
         } else {
             ReturnSummaryScreen(
                 request = request,
@@ -240,6 +252,45 @@ private fun ExternalWorkflowScreen(
                 onCancel = onCancel
             )
         }
+    }
+}
+
+@Composable
+private fun ExternalStepIntroScreen(
+    stepNumber: Int,
+    totalSteps: Int,
+    title: String,
+    lastCompleted: String,
+    onGo: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Text("Step $stepNumber of $totalSteps", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(10.dp))
+        if (lastCompleted.isNotBlank()) {
+            Text(lastCompleted, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(18.dp))
+        }
+        Text("Next step", style = MaterialTheme.typography.labelLarge)
+        Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(20.dp))
+        Button(onClick = onGo, modifier = Modifier.fillMaxWidth()) { Text("Go") }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel run") }
+    }
+}
+
+private fun externalLastCompletedSummary(step: ConfirmedWorkflowStep): String {
+    val fields = OutputFormatter.projectFields(
+        OutputFormatter.fields(step.result, includeProvenance = false),
+        OutputFormatter.PayloadMode.CORE,
+        step.result.status
+    ).filterValues { it?.toString()?.isNotBlank() == true }
+    val first = fields.entries.firstOrNull()
+    return if (first == null) {
+        "Last step completed."
+    } else {
+        "Last step completed: ${first.key.replace('_', ' ')} ${first.value}"
     }
 }
 
@@ -302,7 +353,13 @@ private fun CapabilityStepScreen(
         request = request,
         stepNumber = stepNumber,
         totalSteps = totalSteps,
-        completionMode = if (request.settings["methodmesh_native_preset_run"] == "true" || request.settings["input_methodmesh_native_preset_run"] == "true") {
+        completionMode = if (
+            (request.settings["methodmesh_native_preset_run"] == "true" || request.settings["input_methodmesh_native_preset_run"] == "true") &&
+            request.settings["methodmesh_protocol_step_run"] != "true" &&
+            request.settings["input_methodmesh_protocol_step_run"] != "true" &&
+            request.settings["methodmesh_sequence_step_run"] != "true" &&
+            request.settings["input_methodmesh_sequence_step_run"] != "true"
+        ) {
             CapabilityCompletionMode.ManualConfirmation
         } else {
             CapabilityCompletionMode.AutomaticReturn

@@ -1,5 +1,7 @@
 package com.example.methodmesh.transport.workflow.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -301,6 +303,21 @@ fun CapabilityScreenScaffold(
                                 .onFailure { shareStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
                         }
                     ) { Text(if (mediaResultUris.isNotEmpty()) shareMediaLabel(mediaResultUris) else "Share result") }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            runCatching {
+                                val text = humanShareText(userResultPreview)
+                                if (text.isBlank()) throw IllegalStateException("No text result to copy.")
+                                appContext.getSystemService(ClipboardManager::class.java)
+                                    .setPrimaryClip(ClipData.newPlainText("MethodMesh result", text))
+                            }
+                                .onSuccess { shareStatus = "Copied result." }
+                                .onFailure { shareStatus = "Copy failed: ${it.message ?: "no text result"}" }
+                        },
+                        enabled = userResultPreview.any { (key, value) -> !looksLikeShareableMediaUri(key, value?.toString().orEmpty()) }
+                    ) { Text("Copy") }
                     if (mediaResultUris.size > 1) {
                         Spacer(Modifier.height(8.dp))
                         OutlinedButton(
@@ -312,6 +329,23 @@ fun CapabilityScreenScaffold(
                             }
                         ) { Text("Share media") }
                     }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            runCatching {
+                                OutputExportRepository.saveToDownloads(
+                                    context = appContext,
+                                    label = title,
+                                    text = humanShareText(userResultPreview),
+                                    mediaUris = mediaResultUris.map(Uri::toString)
+                                )
+                            }
+                                .onSuccess { exportStatus = "Saved ${it.summary}" }
+                                .onFailure { exportStatus = "Downloads save failed: ${it.message ?: "storage error"}" }
+                        },
+                        enabled = userResultPreview.isNotEmpty() || mediaResultUris.isNotEmpty()
+                    ) { Text("Save to Downloads") }
                     Spacer(Modifier.height(8.dp))
                     if (nativePresetRun && context.isLastStep) {
                         Button(

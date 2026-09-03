@@ -54,6 +54,14 @@ app/src/main/java/com/example/methodmesh/modules/<module_name>/
 
 Additional helper files are fine, but they must live inside the same module folder unless there is a genuine shared-framework change.
 
+If a prototype was produced by a chat that cannot run the Android build, place the folder first under:
+
+```text
+incoming_capability_prototypes/<module_name>/
+```
+
+A Work-mode review can then compile and correct it before it is admitted into the real auto-discovered `modules/` path. Do not place unverified `*Module.kt` files directly under `app/src/main/java/com/example/methodmesh/modules/`, because MethodMesh will discover them automatically and one broken prototype can break the whole app.
+
 The module folder is the handoff unit. A reviewer should be able to copy or inspect one folder and find:
 
 - the module declaration;

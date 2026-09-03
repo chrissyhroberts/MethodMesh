@@ -1,6 +1,5 @@
 package com.example.methodmesh.core.scheduling
 
-import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.content.ClipData
@@ -8,6 +7,29 @@ import android.content.ClipboardManager
 import com.example.methodmesh.transport.android.IntentRouterActivity
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.core.content.FileProvider
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.protocols.CapabilityPreset
 import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
 import com.example.methodmesh.core.protocols.ProtocolOutputMode
@@ -15,15 +37,18 @@ import com.example.methodmesh.core.protocols.ProtocolPayloadMode
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.platform.externalforms.ExternalFormCatalog
 import com.example.methodmesh.transport.OutputExportRepository
+import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.ui.theme.MethodMeshTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.time.Instant
 import java.util.UUID
 
-class SchedulerDispatchActivity : Activity() {
+class SchedulerDispatchActivity : ComponentActivity() {
     private var resultHandled = false
     private var activeSchedule: ResearchSchedule? = null
     private val testChain: Boolean
@@ -42,6 +67,8 @@ class SchedulerDispatchActivity : Activity() {
         get() = intent.getStringExtra("protocol_submission_id").orEmpty()
     private val suppressOutput: Boolean
         get() = intent.getBooleanExtra("suppress_output", false)
+    private val stepAccepted: Boolean
+        get() = intent.getBooleanExtra("methodmesh_step_accepted", false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,6 +88,10 @@ class SchedulerDispatchActivity : Activity() {
         }
         if (schedule.target == SchedulerTarget.PROTOCOL && outputGroupFolder.isBlank()) {
             launchProtocolStep(schedule, schedule.targetValue, 0)
+            return
+        }
+        if (!stepAccepted && shouldShowStepIntro(schedule)) {
+            showStepIntro(schedule)
             return
         }
         if (protocolId.isNotBlank()) {
@@ -127,6 +158,10 @@ class SchedulerDispatchActivity : Activity() {
         if (resultHandled) return
         resultHandled = true
         val current = activeSchedule ?: SchedulerRepository.get(this, intent.getStringExtra("schedule_id").orEmpty())
+        if ((requestCode == 100 || requestCode == 102) && current != null && shouldAskManualCompletion(current)) {
+            showManualCompletionCheck(current)
+            return
+        }
         // ODK Collect and browser-based forms commonly return RESULT_CANCELED even
         // after the external activity has completed. For those transports, returning
         // to MethodMesh is the completion signal. Capability calls retain strict
@@ -220,7 +255,136 @@ class SchedulerDispatchActivity : Activity() {
                 .putExtra("schedule_id", next.id)
                 .putExtra("test_chain", testChain))
         }
+        if (completed && current != null && protocolId.isNotBlank() && transientProtocolRun) {
+            showRunResult(activeProtocol?.name ?: current.name, protocolRunContextKey(), outputGroupFolder, current.targetValue)
+            return
+        }
+        if (completed && current != null && protocolId.isBlank() && current.chainId.isNotBlank() && next == null) {
+            showRunResult(scheduleChainName(current), scheduleRunContextKey(current), scheduleChainRunFolder(current), current.targetValue)
+            return
+        }
         finish()
+    }
+
+    private fun shouldShowStepIntro(schedule: ResearchSchedule): Boolean =
+        transientPresetRun ||
+            protocolId.isNotBlank() ||
+            schedule.chainId.isNotBlank() ||
+            schedule.target in setOf(SchedulerTarget.PRESET, SchedulerTarget.CAPABILITY, SchedulerTarget.WEB_FORM, SchedulerTarget.ODK_FORM)
+
+    private fun shouldAskManualCompletion(schedule: ResearchSchedule): Boolean =
+        schedule.target == SchedulerTarget.WEB_FORM || schedule.target == SchedulerTarget.ODK_FORM
+
+    private fun showStepIntro(schedule: ResearchSchedule) {
+        setContent {
+            MethodMeshTheme {
+                StepIntroScreen(
+                    title = stepTitle(schedule),
+                    detail = stepDetail(schedule),
+                    stepLabel = stepCounterLabel(schedule),
+                    lastCompleted = previousStepSummary(),
+                    onGo = {
+                        intent.putExtra("methodmesh_step_accepted", true)
+                        recreate()
+                    },
+                    onCancel = { showCancelRunConfirmation() }
+                )
+            }
+        }
+    }
+
+    private fun showManualCompletionCheck(schedule: ResearchSchedule) {
+        setContent {
+            MethodMeshTheme {
+                ManualCompletionScreen(
+                    title = "Did you complete ${stepTitle(schedule)}?",
+                    onYes = { completeManualStep(schedule) },
+                    onNo = {
+                        resultHandled = false
+                        intent.putExtra("methodmesh_step_accepted", true)
+                        recreate()
+                    },
+                    onCancel = { showCancelRunConfirmation() }
+                )
+            }
+        }
+    }
+
+    private fun completeManualStep(schedule: ResearchSchedule) {
+        appendCurrentRunContext(schedule, mapOf("manual_step_completed" to "true", "manual_step_name" to stepTitle(schedule)))
+        val next = if (protocolId.isBlank()) SchedulerRepository.nextInChain(this, schedule) else null
+        if (next != null) {
+            SchedulerRepository.recordEvent(this, next.id, "chain_dispatch_started")
+            startActivity(Intent(this, SchedulerDispatchActivity::class.java)
+                .setAction("com.example.methodmesh.SCHEDULED_CHAIN_DISPATCH")
+                .putExtra("schedule_id", next.id)
+                .putExtra("test_chain", testChain))
+            finish()
+        } else if (schedule.chainId.isNotBlank()) {
+            showRunResult(scheduleChainName(schedule), scheduleRunContextKey(schedule), scheduleChainRunFolder(schedule), schedule.targetValue)
+        } else {
+            SchedulerRepository.markCompleted(this, schedule)
+            showRunResult(schedule.name, scheduleRunContextKey(schedule), "", schedule.targetValue)
+        }
+    }
+
+    private fun showCancelRunConfirmation() {
+        setContent {
+            MethodMeshTheme {
+                CancelRunScreen(
+                    onKeepGoing = {
+                        intent.putExtra("methodmesh_step_accepted", false)
+                        recreate()
+                    },
+                    onCancelRun = { finish() }
+                )
+            }
+        }
+    }
+
+    private fun stepTitle(schedule: ResearchSchedule): String {
+        if (protocolId.isNotBlank()) {
+            val protocol = ProtocolLibraryRepository.protocol(this, protocolId)
+            val step = protocol?.steps?.sortedBy { it.order }?.getOrNull(protocolStepIndex)
+            return step?.name?.ifBlank { null }
+                ?: ProtocolLibraryRepository.preset(this, step?.presetId.orEmpty())?.name
+                ?: schedule.name
+        }
+        if (schedule.target == SchedulerTarget.PRESET) {
+            return ProtocolLibraryRepository.preset(this, schedule.targetValue)?.name ?: schedule.name
+        }
+        return schedule.name.ifBlank { schedule.targetValue.ifBlank { schedule.target.name.lowercase().replace('_', ' ') } }
+    }
+
+    private fun stepDetail(schedule: ResearchSchedule): String = when {
+        protocolId.isNotBlank() -> "Press Go when you are ready to run this protocol step."
+        schedule.target == SchedulerTarget.WEB_FORM -> "Press Go to open the web form. When you return, MethodMesh will ask whether it was completed."
+        schedule.target == SchedulerTarget.ODK_FORM -> "Press Go to open the form. When you return, MethodMesh will ask whether it was completed."
+        schedule.target == SchedulerTarget.PRESET -> "Press Go to run this preset."
+        schedule.target == SchedulerTarget.CAPABILITY -> "Press Go to run this capability."
+        else -> "Press Go to continue."
+    }
+
+    private fun stepCounterLabel(schedule: ResearchSchedule): String = when {
+        protocolId.isNotBlank() -> {
+            val total = ProtocolLibraryRepository.protocol(this, protocolId)?.steps?.size ?: 1
+            "Step ${protocolStepIndex + 1} of $total"
+        }
+        schedule.chainId.isNotBlank() -> "Step ${schedule.chainOrder + 1}"
+        else -> "Ready"
+    }
+
+    private fun previousStepSummary(): String {
+        val key = when {
+            protocolId.isNotBlank() -> protocolRunContextKey()
+            activeSchedule?.chainId?.isNotBlank() == true -> scheduleRunContextKey(activeSchedule!!)
+            else -> ""
+        }
+        if (key.isBlank()) return ""
+        return readRunContextSteps(key).lastOrNull()?.let { step ->
+            val first = step.fields.entries.firstOrNull()
+            if (first != null) "Last step completed: ${prettyProtocolFieldLabel(first.key)} ${first.value}" else "Last step completed."
+        }.orEmpty()
     }
 
     private fun launchProtocolStep(schedule: ResearchSchedule, protocolLookup: String, stepIndex: Int) {
@@ -302,6 +466,12 @@ class SchedulerDispatchActivity : Activity() {
             putExtra("input_payload_mode", ProtocolPayloadMode.normalize(payloadMode))
             putExtra("input_methodmesh_native_preset_run", "true")
             putExtra("input_methodmesh_preset_result_action", PresetResultAction.normalize(presetResultAction))
+            if (protocolId.isNotBlank()) {
+                putExtra("input_methodmesh_protocol_step_run", "true")
+                putExtra("input_methodmesh_sequence_step_run", "true")
+            } else if (activeSchedule?.chainId?.isNotBlank() == true) {
+                putExtra("input_methodmesh_sequence_step_run", "true")
+            }
             pipeSettings.forEach { (key, value) ->
                 if (value.isNotBlank()) putExtra("input_$key", value)
             }
@@ -486,6 +656,156 @@ class SchedulerDispatchActivity : Activity() {
         }
     }.getOrDefault(emptyMap())
 
+    private fun readRunContextSteps(key: String): List<ProtocolStepSummary> = runCatching {
+        val root = JSONObject(getSharedPreferences("methodmesh_scheduler", MODE_PRIVATE).getString(key, "{}").orEmpty().ifBlank { "{}" })
+        val steps = root.optJSONArray("steps") ?: JSONArray()
+        (0 until steps.length()).mapNotNull { index ->
+            val step = steps.optJSONObject(index) ?: return@mapNotNull null
+            val fieldsObject = step.optJSONObject("fields") ?: JSONObject()
+            val allFields = fieldsObject.keys().asSequence().associateWith { field -> fieldsObject.optString(field, "") }
+            val coreFields = runSummaryCoreFields(OutputFormatter.projectFields(allFields, OutputFormatter.PayloadMode.CORE))
+                .filterKeys { !it.startsWith("manual_step_") }
+                .filterValues { it?.toString()?.isNotBlank() == true }
+            val mediaFields = allFields
+                .filter { (field, value) -> isHumanMediaUri(field, value) }
+                .filterValues { it.isNotBlank() }
+            ProtocolStepSummary(
+                stepNumber = step.optInt("step_number", index + 1),
+                fields = coreFields,
+                media = mediaFields
+            )
+        }.filter { it.fields.isNotEmpty() || it.media.isNotEmpty() }
+    }.getOrDefault(emptyList())
+
+    private fun runSummaryCoreFields(fields: Map<String, Any?>): Map<String, Any?> {
+        if ("random_first_number" in fields) {
+            return fields.filterKeys { it == "random_first_number" }
+        }
+        if ("barcode_payload" in fields) {
+            return fields.filterKeys { it == "barcode_payload" }
+        }
+        if ("plus_code" in fields) {
+            return fields.filterKeys { it == "plus_code" }
+        }
+        if ("sampling_value" in fields) {
+            return fields.filterKeys { it == "sampling_value" }
+        }
+        return fields
+    }
+
+    private fun showRunResult(runName: String, contextKey: String, folderName: String, methodId: String) {
+        val steps = readRunContextSteps(contextKey)
+        val combinedFields = combinedRunFields(steps)
+        setContent {
+            MethodMeshTheme {
+                RunResultScreen(
+                    runName = runName,
+                    steps = steps,
+                    onClose = { finish() },
+                    onCopy = {
+                        val text = runShareText(runName, steps)
+                        if (text.isBlank()) {
+                            Toast.makeText(this, "Nothing to copy.", Toast.LENGTH_SHORT).show()
+                        } else {
+                            getSystemService(ClipboardManager::class.java)
+                                .setPrimaryClip(ClipData.newPlainText("MethodMesh result", text))
+                            Toast.makeText(this, "Result copied.", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    onShare = {
+                        runCatching { shareRunResult(runName, steps) }
+                            .onFailure { Toast.makeText(this, "Share failed: ${it.message ?: "no share target"}", Toast.LENGTH_SHORT).show() }
+                    },
+                    onDownload = {
+                        runCatching {
+                            OutputExportRepository.saveToDownloads(
+                                context = this,
+                                label = runName,
+                                text = runShareText(runName, steps),
+                                mediaUris = steps.flatMap { it.media.values }
+                            )
+                        }
+                            .onSuccess { Toast.makeText(this, "Saved ${it.summary}", Toast.LENGTH_LONG).show() }
+                            .onFailure { Toast.makeText(this, "Downloads save failed: ${it.message ?: "storage error"}", Toast.LENGTH_SHORT).show() }
+                    },
+                    onSave = {
+                        runCatching {
+                            OutputExportRepository.exportFlatPackage(
+                                context = this,
+                                packageLabel = runName,
+                                methodId = methodId.ifBlank { "methodmesh.sequence" },
+                                status = "Succeeded",
+                                fields = combinedFields,
+                                parentFolder = folderName.takeIf { it.isNotBlank() }
+                            )
+                        }
+                            .onSuccess {
+                                OutputExportRepository.notifySaved(this, it)
+                                Toast.makeText(this, "Saved ${it.summary}", Toast.LENGTH_LONG).show()
+                            }
+                            .onFailure { Toast.makeText(this, "Save failed: ${it.message ?: "storage error"}", Toast.LENGTH_SHORT).show() }
+                    }
+                )
+            }
+        }
+    }
+
+    private fun combinedRunFields(steps: List<ProtocolStepSummary>): Map<String, String?> =
+        linkedMapOf<String, String?>().apply {
+            steps.forEach { step ->
+                step.fields.forEach { (key, value) -> put("step_${step.stepNumber}_$key", value?.toString()) }
+                step.media.forEach { (key, value) -> put("step_${step.stepNumber}_$key", value) }
+            }
+        }
+
+    private fun shareRunResult(runName: String, steps: List<ProtocolStepSummary>) {
+        val mediaUris = steps.flatMap { step -> step.media.values.map(Uri::parse) }
+        val text = runShareText(runName, steps)
+        if (mediaUris.isEmpty()) {
+            if (text.isBlank()) throw IllegalStateException("No shareable result.")
+            startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, text)
+            }, "Share result").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            return
+        }
+        val shareable = ArrayList(mediaUris.map { shareableUri(it) })
+        val intent = if (shareable.size == 1) {
+            Intent(Intent.ACTION_SEND).apply {
+                type = mediaMimeType(shareable.first().toString())
+                putExtra(Intent.EXTRA_STREAM, shareable.first())
+            }
+        } else {
+            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "*/*"
+                putParcelableArrayListExtra(Intent.EXTRA_STREAM, shareable)
+            }
+        }.apply {
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
+        }
+        startActivity(Intent.createChooser(intent, "Share result").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    private fun shareableUri(uri: Uri): Uri =
+        if (uri.scheme == "file") {
+            FileProvider.getUriForFile(this, "${packageName}.fileprovider", File(uri.path.orEmpty()))
+        } else uri
+
+    private fun isHumanMediaUri(key: String, value: String): Boolean {
+        if (key.startsWith("methodmesh_") || key.startsWith("diagnostic_")) return false
+        if (!(value.startsWith("content://") || value.startsWith("file://") || value.startsWith("/"))) return false
+        val lower = value.lowercase()
+        return key.contains("image", true) ||
+            key.contains("photo", true) ||
+            key.contains("pdf", true) ||
+            lower.endsWith(".jpg") ||
+            lower.endsWith(".jpeg") ||
+            lower.endsWith(".png") ||
+            lower.endsWith(".webp") ||
+            lower.endsWith(".pdf")
+    }
+
     private fun clearRunContext(key: String) {
         if (key.isBlank()) return
         getSharedPreferences("methodmesh_scheduler", MODE_PRIVATE).edit().remove(key).apply()
@@ -520,5 +840,190 @@ class SchedulerDispatchActivity : Activity() {
             .edit()
             .remove(key)
             .apply()
+    }
+}
+
+private data class ProtocolStepSummary(
+    val stepNumber: Int,
+    val fields: Map<String, Any?>,
+    val media: Map<String, String> = emptyMap()
+)
+
+@Composable
+private fun StepIntroScreen(
+    title: String,
+    detail: String,
+    stepLabel: String,
+    lastCompleted: String,
+    onGo: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp)
+    ) {
+        Text(stepLabel, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(10.dp))
+        if (lastCompleted.isNotBlank()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f))
+            ) {
+                Text(lastCompleted, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
+            }
+            Spacer(Modifier.height(18.dp))
+        }
+        Text("Next step", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Text(detail, style = MaterialTheme.typography.bodyLarge)
+        Spacer(Modifier.height(28.dp))
+        Button(onClick = onGo, modifier = Modifier.fillMaxWidth()) { Text("Go") }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel run") }
+    }
+}
+
+@Composable
+private fun ManualCompletionScreen(
+    title: String,
+    onYes: () -> Unit,
+    onNo: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp)
+    ) {
+        Text("Confirm step", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(10.dp))
+        Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Text("Some external screens cannot report completion automatically. Tell MethodMesh what happened so the run can continue safely.", style = MaterialTheme.typography.bodyLarge)
+        Spacer(Modifier.height(28.dp))
+        Button(onClick = onYes, modifier = Modifier.fillMaxWidth()) { Text("Yes, completed") }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onNo, modifier = Modifier.fillMaxWidth()) { Text("No, try again") }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel run") }
+    }
+}
+
+@Composable
+private fun CancelRunScreen(
+    onKeepGoing: () -> Unit,
+    onCancelRun: () -> Unit
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp)
+    ) {
+        Text("Cancel run?", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Text("This will stop the current preset, protocol or schedule sequence.", style = MaterialTheme.typography.bodyLarge)
+        Spacer(Modifier.height(28.dp))
+        Button(onClick = onKeepGoing, modifier = Modifier.fillMaxWidth()) { Text("Keep going") }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onCancelRun, modifier = Modifier.fillMaxWidth()) { Text("Yes, cancel") }
+    }
+}
+
+@Composable
+private fun RunResultScreen(
+    runName: String,
+    steps: List<ProtocolStepSummary>,
+    onClose: () -> Unit,
+    onCopy: () -> Unit,
+    onShare: () -> Unit,
+    onDownload: () -> Unit,
+    onSave: () -> Unit
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp)
+    ) {
+        Text("Run result", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+        Text(runName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(18.dp))
+        if (steps.isEmpty()) {
+            Text("Done.", style = MaterialTheme.typography.titleLarge)
+        } else {
+            steps.forEach { step ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("Step ${step.stepNumber}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        step.fields.forEach { (key, value) ->
+                            Text(prettyProtocolFieldLabel(key), style = MaterialTheme.typography.labelMedium)
+                            Text(value?.toString().orEmpty(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                            Spacer(Modifier.height(8.dp))
+                        }
+                        step.media.forEach { (key, value) ->
+                            Text(prettyProtocolFieldLabel(key), style = MaterialTheme.typography.labelMedium)
+                            Text(value, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.height(8.dp))
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = onShare, modifier = Modifier.weight(1f), enabled = steps.isNotEmpty()) { Text("Share") }
+            OutlinedButton(onClick = onCopy, modifier = Modifier.weight(1f), enabled = steps.any { it.fields.isNotEmpty() }) { Text("Copy") }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = onDownload, modifier = Modifier.weight(1f), enabled = steps.isNotEmpty()) { Text("Save to Downloads") }
+            OutlinedButton(onClick = onSave, modifier = Modifier.weight(1f), enabled = steps.isNotEmpty()) { Text("Export") }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onClose, modifier = Modifier.weight(1f)) { Text("Close") }
+        }
+    }
+}
+
+private fun prettyProtocolFieldLabel(key: String): String =
+    when (key) {
+        "barcode_payload" -> "Barcode"
+        "random_first_number" -> "Random number"
+        "plus_code" -> "Plus code"
+        "sampling_value" -> "Sampling"
+        else -> key.removePrefix("input_")
+        .replace('_', ' ')
+        .split(' ')
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { word -> word.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } }
+    }
+
+private fun runShareText(runName: String, steps: List<ProtocolStepSummary>): String =
+    buildString {
+        appendLine(runName)
+        steps.forEach { step ->
+            step.fields.forEach { (key, value) ->
+                appendLine("${prettyProtocolFieldLabel(key)}: ${value?.toString().orEmpty()}")
+            }
+        }
+    }.trim()
+
+private fun mediaMimeType(value: String): String {
+    val lower = value.lowercase()
+    return when {
+        lower.endsWith(".pdf") || lower.contains("pdf") -> "application/pdf"
+        lower.endsWith(".png") -> "image/png"
+        lower.endsWith(".webp") -> "image/webp"
+        lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.contains("image") -> "image/jpeg"
+        else -> "*/*"
     }
 }
