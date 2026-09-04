@@ -129,6 +129,8 @@ data class AttestationRecord(
     val eventType: String,
     val eventPayloadHash: String,
     val eventPayloadMode: String,
+    val commitmentRecipe: String,
+    val commitmentRecipeSha256: String,
     val verificationMethod: AttestationVerificationMethod,
     val verificationEvidenceFormat: String,
     val verificationEvidenceHash: String,
@@ -153,6 +155,7 @@ data class AttestationRecord(
             eventType = eventType,
             eventPayloadHash = eventPayloadHash,
             eventPayloadMode = eventPayloadMode,
+            commitmentRecipeSha256 = commitmentRecipeSha256,
             verificationMethod = verificationMethod.name,
             verificationEvidenceFormat = verificationEvidenceFormat,
             verificationEvidenceHash = verificationEvidenceHash,
@@ -179,6 +182,8 @@ data class AttestationRecord(
         put("event_type", eventType)
         put("event_payload_hash", eventPayloadHash)
         put("event_payload_mode", eventPayloadMode)
+        put("commitment_recipe", commitmentRecipe)
+        put("commitment_recipe_sha256", commitmentRecipeSha256)
         put("verification_method", verificationMethod.name)
         put("verification_evidence_format", verificationEvidenceFormat)
         put("verification_evidence_hash", verificationEvidenceHash)
@@ -219,6 +224,7 @@ data class AttestationRecord(
             eventType: String,
             eventPayloadHash: String,
             eventPayloadMode: String,
+            commitmentRecipeSha256: String,
             verificationMethod: String,
             verificationEvidenceFormat: String,
             verificationEvidenceHash: String,
@@ -235,6 +241,7 @@ data class AttestationRecord(
             "event_type=$eventType",
             "event_payload_hash=$eventPayloadHash",
             "event_payload_mode=$eventPayloadMode",
+            "commitment_recipe_sha256=$commitmentRecipeSha256",
             "verification_method=$verificationMethod",
             "verification_evidence_format=$verificationEvidenceFormat",
             "verification_evidence_hash=$verificationEvidenceHash",
@@ -300,6 +307,7 @@ object AttestationRepository {
         subjectRef: String,
         eventType: String,
         eventPayloadHash: String?,
+        commitmentRecipe: String?,
         verificationMethod: AttestationVerificationMethod,
         verificationEvidence: AttestationEvidence,
         trustedTimestampPolicy: TrustedTimestampPolicy = TrustedTimestampPolicy.Disabled,
@@ -318,6 +326,8 @@ object AttestationRepository {
         }
         val payloadHash = suppliedHash.lowercase()
         val payloadMode = "supplied_hash"
+        val validatedRecipe = AttestationCommitmentRecipe.validate(commitmentRecipe)
+        val commitmentRecipeSha256 = AttestationCommitmentRecipe.sha256(validatedRecipe)
         val attestationId = "att_${UUID.randomUUID()}"
         val canonical = AttestationRecord.canonicalPayload(
             attestationId = attestationId,
@@ -327,6 +337,7 @@ object AttestationRepository {
             eventType = eventType,
             eventPayloadHash = payloadHash,
             eventPayloadMode = payloadMode,
+            commitmentRecipeSha256 = commitmentRecipeSha256,
             verificationMethod = verificationMethod.name,
             verificationEvidenceFormat = verificationEvidence.format,
             verificationEvidenceHash = verificationEvidence.hash,
@@ -343,6 +354,8 @@ object AttestationRepository {
             eventType = eventType,
             eventPayloadHash = payloadHash,
             eventPayloadMode = payloadMode,
+            commitmentRecipe = validatedRecipe,
+            commitmentRecipeSha256 = commitmentRecipeSha256,
             verificationMethod = verificationMethod,
             verificationEvidenceFormat = verificationEvidence.format,
             verificationEvidenceHash = verificationEvidence.hash,

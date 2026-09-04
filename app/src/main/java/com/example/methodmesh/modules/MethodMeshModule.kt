@@ -11,6 +11,7 @@ import com.example.methodmesh.core.scheduling.SchedulerTransferCapabilityScreen
 import com.example.methodmesh.core.scheduling.SchedulerCapabilityScreen
 import com.example.methodmesh.core.methodmesh.runtime.CapabilityConfigurationRegistry
 import com.example.methodmesh.settings.MethodSetting
+import com.example.methodmesh.settings.SettingsSectionSpec
 
 /**
  * Self-contained module contract.
@@ -40,10 +41,30 @@ interface MethodMeshModule {
     val summary: String
         get() = "Self-contained MethodMesh module."
 
+    /**
+     * Optional MethodMesh-styled icon hint for widgets and other generic launch
+     * surfaces. The UI may map this to a broad visual family; modules can set a
+     * value such as "location", "language", "document", "hardware", "random",
+     * or their own method/category identifier without the UI learning capability
+     * internals.
+     */
+    val iconKey: String
+        get() = moduleId
+
     fun as100Methods(): List<As100Method> = emptyList()
     fun rilBindings(): List<RilBinding> = emptyList()
     fun capabilityScreens(): List<CapabilityScreenSpec> = emptyList()
     fun capabilitySettings(): Map<String, List<MethodSetting>> = emptyMap()
+
+    /**
+     * Optional Settings sections owned by this module.
+     *
+     * The shared Settings UI controls layout and collapsible presentation; a
+     * module only contributes the section metadata and its content. This means
+     * future modules can add shared services (for example offline resource packs)
+     * without editing HomeScreen.kt.
+     */
+    fun settingsSections(): List<SettingsSectionSpec> = emptyList()
 
     /**
      * Module-level dependencies. Dependency modules remain independently owned;
@@ -103,6 +124,8 @@ object MethodMeshModuleRegistry {
         require(methods.map { it.id }.distinct().size == methods.size) { "MethodMesh method IDs must be unique." }
         val screens = modules.flatMap { it.capabilityScreens() } + coreScreens()
         require(screens.map { it.capabilityId }.distinct().size == screens.size) { "MethodMesh capability screen IDs must be unique." }
+        val settingsSections = modules.flatMap { it.settingsSections() }
+        require(settingsSections.map { it.id }.distinct().size == settingsSections.size) { "MethodMesh Settings section IDs must be unique." }
         installed = modules.sortedBy { it.moduleId }
         As100MethodRegistry.install(methods)
         CapabilityConfigurationRegistry.install(modules.flatMap { it.capabilitySettings().entries }.associate { it.key to it.value })
@@ -114,6 +137,9 @@ object MethodMeshModuleRegistry {
     fun as100Methods(): List<As100Method> = all().flatMap { it.as100Methods() } + coreMethods()
     fun rilBindings(): List<RilBinding> = all().flatMap { it.rilBindings() } + coreBindings()
     fun capabilityScreens(): List<CapabilityScreenSpec> = all().flatMap { it.capabilityScreens() } + coreScreens()
+    fun settingsSections(): List<SettingsSectionSpec> = all()
+        .flatMap { it.settingsSections() }
+        .sortedWith(compareBy<SettingsSectionSpec> { it.order }.thenBy { it.title.lowercase() })
 
     private fun coreMethods() = listOf(As100SchedulerMethod, As100SchedulerExportMethod, As100SchedulerImportMethod)
     private fun coreScreens() = listOf(SchedulerCapabilityScreen, SchedulerExportCapabilityScreen, SchedulerTransferCapabilityScreen)

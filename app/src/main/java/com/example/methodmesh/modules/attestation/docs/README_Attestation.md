@@ -1,6 +1,6 @@
 # Signed event attestation
 
-Cryptographically signs a caller-supplied event hash with the Android Keystore key, links the event into the device attestation chain, and optionally obtains an RFC 3161 trusted timestamp.
+Cryptographically signs a caller-supplied event hash with the Android Keystore key, binds it to a machine-readable commitment recipe, links the event into the device attestation chain, and optionally obtains an RFC 3161 trusted timestamp.
 
 ## Capabilities
 
@@ -15,10 +15,11 @@ Returns a signed bundle describing the current chain head and unanchored records
 ## Android intent
 
 Every signed-event call needs the method, the caller-computed SHA-256 hash, a
-verification method, and a timestamp policy. The compact fingerprint form is:
+commitment recipe, a verification method, and a timestamp policy. The compact
+fingerprint form is:
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='attestation.create',input_event_payload_hash=${form_payload_hash},input_verification_method='Fingerprint',input_trusted_timestamp='preferred',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='attestation.create',input_event_payload_hash=${form_payload_hash},input_commitment_recipe=${commitment_recipe_json},input_verification_method='Fingerprint',input_trusted_timestamp='preferred',return_mode='flat')
 ```
 
 Use the same call with one of these verification controls:
@@ -53,17 +54,50 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='attestation.anchor_bundle',inpu
 | Input | Required | Description |
 |---|---:|---|
 | `event_payload_hash` | Yes | 64-character hexadecimal SHA-256 digest. It is signed directly and never re-hashed. |
+| `commitment_recipe` | Yes | JSON object describing how the event hash can be reconstructed. MethodMesh hashes the exact UTF-8 recipe and binds that hash into the attestation. |
 | `verification_method` | Yes | Verification dependency or Android authenticator. |
 | `trusted_timestamp` | No | `disabled`, `preferred`, or `required`. |
 | `verification_evidence` | Password only | Evidence token used by the Password method. |
 | `study_id`, `operator_id`, `subject_ref`, `event_type` | No | Optional signed metadata. Values protected inside the form hash need not be duplicated. |
 
-The manual/debug screen supplies a clearly labelled deterministic placeholder hash. External calls never receive that placeholder.
+The manual/debug screen supplies a clearly labelled deterministic placeholder hash and matching demo recipe. External calls never receive that placeholder.
+
+### Commitment recipe v1
+
+ODK remains responsible for constructing the canonical string and hashing it.
+MethodMesh does not need the raw form values. Instead, ODK sends the final
+`event_payload_hash` plus `commitment_recipe`, a declarative JSON recipe that
+explains how an independent verifier can rebuild the committed string later.
+
+Required recipe shape:
+
+```json
+{
+  "schema": "methodmesh.commitment_recipe.v1",
+  "canonicalization": "ordered-kv-v1",
+  "hash_algorithm": "SHA-256",
+  "members": [
+    {
+      "path": "photo_redacted_image_sha256",
+      "type": "sha256",
+      "commitment": "artifact-bytes-sha256",
+      "artifact_field": "photo_redacted_image_uri"
+    }
+  ]
+}
+```
+
+Supported `commitment` values are `value`, `artifact-bytes-sha256`,
+`text-utf8-sha256`, and `json-utf8-sha256`. Large images, audio, PDFs, long
+transcripts and bulky JSON should be represented in the ODK-built canonical
+string by SHA-256 digests, not by moving the large object through
+`attestation.create`.
 
 ## Outputs
 
 Schema version 4 includes `attestation_id`, `event_payload_hash`,
-`event_payload_mode`, `verification_method`, `verification_evidence_format`,
+`event_payload_mode`, `commitment_recipe`, `commitment_recipe_sha256`,
+`verification_method`, `verification_evidence_format`,
 `verification_evidence_hash`, device time and monotonic counter,
 `previous_attestation_hash`, `attestation_hash`, the public key and key
 identifier, ECDSA signature fields, timestamp policy/status, and complete RFC
@@ -82,10 +116,12 @@ record or caller-facing return.
 | PIN/pattern/password | `android_device_credential_result_sha256_v1` | SHA-256 of the successful Android device-credential result label. |
 | Study token | `study_token_utf8_sha256_v1` | SHA-256 of the supplied token as UTF-8 bytes. |
 
-The signed canonical attestation contains both the caller's
-`event_payload_hash` and `verification_evidence_hash`. A verifier independently
-reconstructs both and then verifies the device signature. There is no need to
-concatenate the credential with the complete form payload.
+The signed canonical attestation contains the caller's `event_payload_hash`,
+MethodMesh's `commitment_recipe_sha256`, and `verification_evidence_hash`. A
+verifier independently reconstructs the payload hash using the recipe, checks
+the recipe hash, reconstructs the verification evidence, and then verifies the
+device signature. There is no need to concatenate the credential with the
+complete form payload.
 
 A static QR code or ordinary NFC tag remains bearer evidence: it proves that the
 token was scanned, not that a named person was physically present. Studies that
@@ -118,6 +154,7 @@ placeholders cannot erase request configuration. For example:
 
 ```text
 input_event_payload_hash
+input_commitment_recipe
 input_verification_method
 input_trusted_timestamp
 ```

@@ -89,6 +89,9 @@ object RilTransportAdapter {
      * is awkward in XLSForm intent syntax.
      */
     private fun transportSettings(values: Map<String, String>): Map<String, String> = buildMap {
+        values["methodmesh_return_namespace"]?.takeIf { it.isNotBlank() }?.let {
+            put("methodmesh_return_namespace", it)
+        }
         values.filterKeys { it.startsWith(INPUT_PREFIX) }.forEach { (key, value) ->
             val setting = key.removePrefix(INPUT_PREFIX)
             if (setting.isNotBlank() && value.isNotBlank()) put(setting, value)

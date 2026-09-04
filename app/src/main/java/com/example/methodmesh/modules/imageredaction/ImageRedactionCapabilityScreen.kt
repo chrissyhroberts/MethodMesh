@@ -57,6 +57,7 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.transport.workflow.ui.IntentExample
 import com.example.methodmesh.transport.workflow.ui.IntentExampleDropdown
 import org.json.JSONArray
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.time.Instant
 
@@ -102,6 +103,7 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
         var redactionStyle by rememberSaveable { mutableStateOf<String?>(null) }
         var redactionSource by rememberSaveable { mutableStateOf<String?>(null) }
         var redactionTimeIso by rememberSaveable { mutableStateOf<String?>(null) }
+        var redactedImageSha256 by rememberSaveable { mutableStateOf<String?>(null) }
         var status by rememberSaveable { mutableStateOf("Choose or capture an image, then mark regions to remove.") }
         var pendingCameraUriString by rememberSaveable { mutableStateOf<String?>(null) }
         var captureStarted by rememberSaveable { mutableStateOf(false) }
@@ -120,7 +122,8 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
             redactionColumns,
             redactionStyle,
             redactionSource,
-            redactionTimeIso
+            redactionTimeIso,
+            redactedImageSha256
         ) {
             val uri = redactedImageUri
             if (uri.isNullOrBlank()) {
@@ -130,6 +133,7 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                     ImageRedactionFields.STATUS to "succeeded",
                     ImageRedactionFields.REDACTED_IMAGE_URI to uri,
                     ImageRedactionFields.REDACTED_IMAGE_NAME to redactedImageName.orEmpty(),
+                    ImageRedactionFields.REDACTED_IMAGE_SHA256 to redactedImageSha256.orEmpty(),
                     ImageRedactionFields.MASK_JSON to redactionMaskJson.orEmpty(),
                     ImageRedactionFields.SELECTED_CELLS to redactionCellCount.orEmpty(),
                     ImageRedactionFields.GRID_ROWS to redactionRows.orEmpty(),
@@ -164,6 +168,7 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                 redactionStyle = null
                 redactionSource = null
                 redactionTimeIso = null
+                redactedImageSha256 = null
                 status = "Image loaded. Tap or swipe cells to toggle redaction."
             }.onFailure {
                 status = "Image load failed: ${it.message ?: "unknown error"}"
@@ -227,8 +232,13 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                 val c = id.substringAfter('c').toIntOrNull()?.minus(1) ?: return@forEach
                 canvas.drawRect(c * cw, r * ch, (c + 1) * cw, (r + 1) * ch, fill)
             }
+            val finalJpegBytes = ByteArrayOutputStream().use { stream ->
+                out.compress(Bitmap.CompressFormat.JPEG, 95, stream)
+                stream.toByteArray()
+            }
+            val finalJpegSha256 = ImageRedactionHash.sha256Hex(finalJpegBytes)
             val file = File(appContext.cacheDir, "methodmesh-redacted-${System.currentTimeMillis()}.jpg")
-            file.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, 95, it) }
+            file.writeBytes(finalJpegBytes)
             val uri = FileProvider.getUriForFile(appContext, "${appContext.packageName}.fileprovider", file).toString()
             val maskJson = JSONArray(selected.toList().sorted()).toString()
             val createdAt = Instant.now().toString()
@@ -236,6 +246,7 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                 ImageRedactionFields.STATUS to "succeeded",
                 ImageRedactionFields.REDACTED_IMAGE_URI to uri,
                 ImageRedactionFields.REDACTED_IMAGE_NAME to file.name,
+                ImageRedactionFields.REDACTED_IMAGE_SHA256 to finalJpegSha256,
                 ImageRedactionFields.MASK_JSON to maskJson,
                 ImageRedactionFields.SELECTED_CELLS to selected.size.toString(),
                 ImageRedactionFields.GRID_ROWS to rows.toString(),
@@ -254,6 +265,7 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
             redactionStyle = settings.getString("redaction_style")
             redactionSource = settings.getString("input_source")
             redactionTimeIso = createdAt
+            redactedImageSha256 = finalJpegSha256
             status = "Redacted image created. Original image is not returned."
             if (context.submitsImmediately) {
                 onConfirmed(
@@ -287,6 +299,7 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                 redactionStyle = null
                 redactionSource = null
                 redactionTimeIso = null
+                redactedImageSha256 = null
                 captureStarted = false
                 status = "Choose or capture an image, then mark regions to remove."
                 if (context.startsImmediately && !runtimeSettingsVisible) startConfiguredSource()

@@ -1,9 +1,6 @@
 package com.example.methodmesh.transport.android
 
-import com.example.methodmesh.platform.devices.PlatformDeviceBootstrap
-import android.content.ClipData
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
@@ -35,6 +32,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import com.example.methodmesh.platform.devices.PlatformDeviceBootstrap
 import com.example.methodmesh.core.ResearchRuntime
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.TransformationStatus
@@ -43,6 +41,7 @@ import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.calibration.CalibrationRepository
 import com.example.methodmesh.settings.DisplaySettingsRepository
 import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.ReturnNamespaceProjector
 import com.example.methodmesh.transport.workflow.ConfirmedWorkflowStep
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
 import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
@@ -89,6 +88,13 @@ class ExternalWorkflowActivity : FragmentActivity() {
     private fun finishWithResult(confirmed: List<ConfirmedWorkflowStep>) {
         if (resultReturned) return
         resultReturned = true
+        val returnNamespace = ReturnNamespaceProjector.namespaceFrom(request.settings)
+        runCatching { ReturnNamespaceProjector.validate(returnNamespace) }
+            .onFailure {
+                resultReturned = false
+                finishWithCancel(it.message ?: "Invalid MethodMesh return namespace.")
+                return
+            }
         val combined = combineResults(confirmed.map { it.result })
         val payloadMode = request.settings["payload_mode"]
             ?: request.settings["input_payload_mode"]
@@ -110,29 +116,26 @@ class ExternalWorkflowActivity : FragmentActivity() {
             graph = ResearchRuntime.session.graph(),
             payloadMode = payloadMode
         )
-        val data = Intent().apply {
-            putExtra("methodmesh_closeout_status", "completed")
-            putExtra("methodmesh_closeout_step_count", confirmed.size.toString())
-            putExtra("methodmesh_closeout_has_payload", hasMeaningfulPayload(fields).toString())
-            putExtra("value", output)
-            putExtra("return_mode", request.returnMode.id)
-            putExtra("payload_mode", OutputFormatter.PayloadMode.normalize(payloadMode))
-            if (OutputFormatter.PayloadMode.normalize(payloadMode) != OutputFormatter.PayloadMode.CORE) {
-                putExtra("methodmesh_execution_id", combined.request.id.value)
-                putExtra("methodmesh_status", combined.status.name)
-                putExtra("context_entity_id", request.invocationContext.canonicalEntityId)
-            }
-            fields.forEach { (key, value) -> putExtra(key, value?.toString()) }
+        val flatReturnFields = linkedMapOf<String, String?>(
+            "methodmesh_closeout_status" to "completed",
+            "methodmesh_closeout_step_count" to confirmed.size.toString(),
+            "methodmesh_closeout_has_payload" to hasMeaningfulPayload(fields).toString(),
+            "value" to output,
+            "return_mode" to request.returnMode.id,
+            "payload_mode" to OutputFormatter.PayloadMode.normalize(payloadMode)
+        )
+        if (OutputFormatter.PayloadMode.normalize(payloadMode) != OutputFormatter.PayloadMode.CORE) {
+            flatReturnFields["methodmesh_execution_id"] = combined.request.id.value
+            flatReturnFields["methodmesh_status"] = combined.status.name
+            flatReturnFields["context_entity_id"] = request.invocationContext.canonicalEntityId
         }
-        val binaryUris = fields.filter { (key, value) ->
-            key.endsWith("_uri") && value?.toString()?.startsWith("content://") == true
-        }.mapNotNull { (key, value) -> value?.toString()?.let { key to Uri.parse(it) } }
-        if (binaryUris.isNotEmpty()) {
-            val clip = ClipData.newUri(contentResolver, binaryUris.first().first, binaryUris.first().second)
-            binaryUris.drop(1).forEach { (key, uri) -> clip.addItem(ClipData.Item(uri)) }
-            data.clipData = clip
-            data.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
+        fields.forEach { (key, value) -> flatReturnFields[key] = value?.toString() }
+        val data = Intent()
+        ReturnIntentProjector.applyTo(
+            intent = data,
+            contentResolver = contentResolver,
+            projected = ReturnIntentProjector.projectFlatReturn(flatReturnFields, returnNamespace)
+        )
         setResult(RESULT_OK, data)
         finish()
     }
@@ -159,12 +162,26 @@ class ExternalWorkflowActivity : FragmentActivity() {
     private fun finishWithCancel(message: String) {
         if (resultReturned) return
         resultReturned = true
-        setResult(RESULT_CANCELED, Intent().apply {
-            putExtra("methodmesh_closeout_status", "cancelled")
-            putExtra("methodmesh_closeout_step_count", "0")
-            putExtra("methodmesh_closeout_has_payload", "false")
-            putExtra("error", message)
-        })
+        val returnNamespace = runCatching { ReturnNamespaceProjector.namespaceFrom(request.settings) }.getOrDefault("")
+        val safeNamespace = runCatching {
+            ReturnNamespaceProjector.validate(returnNamespace)
+            returnNamespace
+        }.getOrDefault("")
+        val data = Intent()
+        ReturnIntentProjector.applyTo(
+            intent = data,
+            contentResolver = contentResolver,
+            projected = ReturnIntentProjector.projectFlatReturn(
+                linkedMapOf(
+                    "methodmesh_closeout_status" to "cancelled",
+                    "methodmesh_closeout_step_count" to "0",
+                    "methodmesh_closeout_has_payload" to "false",
+                    "error" to message
+                ),
+                safeNamespace
+            )
+        )
+        setResult(RESULT_CANCELED, data)
         finish()
     }
 }

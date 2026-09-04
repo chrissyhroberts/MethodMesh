@@ -132,6 +132,7 @@ object OutputFormatter {
         "api_values_json",
         "plus_code",
         "redacted_image_uri",
+        "redacted_image_sha256",
         "conversation_transcript",
         "random_first_number",
         "random_numbers_csv",

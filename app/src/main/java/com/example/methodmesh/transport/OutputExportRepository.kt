@@ -83,7 +83,8 @@ object OutputExportRepository {
         context: Context,
         label: String,
         text: String,
-        mediaUris: List<String>
+        mediaUris: List<String>,
+        jsonText: String = ""
     ): DownloadsExport {
         val timestamp = stamp.format(Instant.now())
         val folderName = safeSegment("${timestamp}_${safeSegment(label).ifBlank { "methodmesh_result" }}")
@@ -98,6 +99,17 @@ object OutputExportRepository {
                 bytes = text.toByteArray(Charsets.UTF_8)
             ) ?: throw IllegalStateException("Could not write text result to Downloads.")
             exported += ExportedFile("result_text", name, uri, "text/plain")
+        }
+        if (jsonText.isNotBlank()) {
+            val name = "metadata.json"
+            val uri = writePublicDownload(
+                context = context,
+                folderName = folderName,
+                name = name,
+                mime = "application/json",
+                bytes = jsonText.toByteArray(Charsets.UTF_8)
+            ) ?: throw IllegalStateException("Could not write JSON metadata to Downloads.")
+            exported += ExportedFile("metadata_json", name, uri, "application/json")
         }
         mediaUris.distinct().forEachIndexed { index, source ->
             val ext = extension(source).takeIf { it != "bin" } ?: "bin"

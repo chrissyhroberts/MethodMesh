@@ -25,8 +25,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -69,6 +73,8 @@ class SchedulerDispatchActivity : ComponentActivity() {
         get() = intent.getBooleanExtra("suppress_output", false)
     private val stepAccepted: Boolean
         get() = intent.getBooleanExtra("methodmesh_step_accepted", false)
+    private val finishToLauncher: Boolean
+        get() = intent.getBooleanExtra("finish_to_launcher", false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -133,9 +139,10 @@ class SchedulerDispatchActivity : ComponentActivity() {
                 startActivity(Intent(this, SchedulerDispatchActivity::class.java)
                     .setAction("com.example.methodmesh.SCHEDULED_CHAIN_DISPATCH")
                     .putExtra("schedule_id", next.id)
+                    .putExtra("finish_to_launcher", finishToLauncher)
                     .putExtra("test_chain", testChain))
             }
-            finish()
+            finishRun()
             return
         }
         CoroutineScope(Dispatchers.Main).launch {
@@ -174,7 +181,6 @@ class SchedulerDispatchActivity : ComponentActivity() {
         val nextChainStep = if (completed && current != null && protocolId.isBlank()) {
             SchedulerRepository.nextInChain(this, current)
         } else null
-        var exported: OutputExportRepository.ExportPackage? = null
         if (requestCode == 101 && (resultCode == RESULT_OK || testChain) && data != null) {
             val returnedFields = returnedFields(data)
             if (completed && current != null) appendCurrentRunContext(current, returnedFields)
@@ -200,19 +206,11 @@ class SchedulerDispatchActivity : ComponentActivity() {
                     if (mode == ProtocolOutputMode.NONE) {
                         SchedulerRepository.recordEvent(this, it.id, "completed_output_suppressed_by_step")
                     } else {
-                        exported = exportReturnedFields(it, returnedFields)
-                        val event = if (mode == ProtocolOutputMode.SHARE) "completed_output_share_ready" else "completed_output_exported"
-                        SchedulerRepository.recordEvent(this, it.id, "$event:${exported?.folderName.orEmpty()}")
+                        val event = if (mode == ProtocolOutputMode.SHARE) "completed_output_share_ready" else "completed_output_captured"
+                        SchedulerRepository.recordEvent(this, it.id, event)
                         if (nextProtocolStep == null && nextChainStep == null) {
-                            val finalExport = exported
                             if (hasMeaningfulPayload(returnedFields)) {
-                                val message = if (mode == ProtocolOutputMode.SHARE) {
-                                    "MethodMesh protocol output ready: ${finalExport.folderName}"
-                                } else {
-                                    "Saved MethodMesh protocol output: ${finalExport.folderName}"
-                                }
-                                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-                                OutputExportRepository.notifySaved(this, finalExport)
+                                Toast.makeText(this, "MethodMesh run complete.", Toast.LENGTH_SHORT).show()
                             } else {
                                 Toast.makeText(this, "MethodMesh run complete.", Toast.LENGTH_SHORT).show()
                             }
@@ -242,8 +240,9 @@ class SchedulerDispatchActivity : ComponentActivity() {
                     .putExtra("output_group_folder", outputGroupFolder)
                     .putExtra("protocol_submission_id", protocolSubmissionId)
                     .putExtra("suppress_output", suppressOutput)
+                    .putExtra("finish_to_launcher", finishToLauncher)
                     .putExtra("test_chain", testChain))
-                finish()
+                finishRun()
                 return
             }
         }
@@ -253,6 +252,7 @@ class SchedulerDispatchActivity : ComponentActivity() {
             startActivity(Intent(this, SchedulerDispatchActivity::class.java)
                 .setAction("com.example.methodmesh.SCHEDULED_CHAIN_DISPATCH")
                 .putExtra("schedule_id", next.id)
+                .putExtra("finish_to_launcher", finishToLauncher)
                 .putExtra("test_chain", testChain))
         }
         if (completed && current != null && protocolId.isNotBlank() && transientProtocolRun) {
@@ -263,14 +263,13 @@ class SchedulerDispatchActivity : ComponentActivity() {
             showRunResult(scheduleChainName(current), scheduleRunContextKey(current), scheduleChainRunFolder(current), current.targetValue)
             return
         }
-        finish()
+        finishRun()
     }
 
     private fun shouldShowStepIntro(schedule: ResearchSchedule): Boolean =
-        transientPresetRun ||
-            protocolId.isNotBlank() ||
+        protocolId.isNotBlank() ||
             schedule.chainId.isNotBlank() ||
-            schedule.target in setOf(SchedulerTarget.PRESET, SchedulerTarget.CAPABILITY, SchedulerTarget.WEB_FORM, SchedulerTarget.ODK_FORM)
+            schedule.target in setOf(SchedulerTarget.CAPABILITY, SchedulerTarget.WEB_FORM, SchedulerTarget.ODK_FORM)
 
     private fun shouldAskManualCompletion(schedule: ResearchSchedule): Boolean =
         schedule.target == SchedulerTarget.WEB_FORM || schedule.target == SchedulerTarget.ODK_FORM
@@ -318,8 +317,9 @@ class SchedulerDispatchActivity : ComponentActivity() {
             startActivity(Intent(this, SchedulerDispatchActivity::class.java)
                 .setAction("com.example.methodmesh.SCHEDULED_CHAIN_DISPATCH")
                 .putExtra("schedule_id", next.id)
+                .putExtra("finish_to_launcher", finishToLauncher)
                 .putExtra("test_chain", testChain))
-            finish()
+            finishRun()
         } else if (schedule.chainId.isNotBlank()) {
             showRunResult(scheduleChainName(schedule), scheduleRunContextKey(schedule), scheduleChainRunFolder(schedule), schedule.targetValue)
         } else {
@@ -336,10 +336,14 @@ class SchedulerDispatchActivity : ComponentActivity() {
                         intent.putExtra("methodmesh_step_accepted", false)
                         recreate()
                     },
-                    onCancelRun = { finish() }
+                    onCancelRun = { finishRun() }
                 )
             }
         }
+    }
+
+    private fun finishRun() {
+        if (finishToLauncher) finishAndRemoveTask() else finish()
     }
 
     private fun stepTitle(schedule: ResearchSchedule): String {
@@ -412,8 +416,9 @@ class SchedulerDispatchActivity : ComponentActivity() {
             .putExtra("output_group_folder", group)
             .putExtra("protocol_submission_id", submissionId)
             .putExtra("suppress_output", suppressOutput)
+            .putExtra("finish_to_launcher", finishToLauncher)
             .putExtra("test_chain", testChain))
-        finish()
+        finishRun()
     }
 
     private fun transientProtocolSchedule(): ResearchSchedule? {
@@ -466,6 +471,7 @@ class SchedulerDispatchActivity : ComponentActivity() {
             putExtra("input_payload_mode", ProtocolPayloadMode.normalize(payloadMode))
             putExtra("input_methodmesh_native_preset_run", "true")
             putExtra("input_methodmesh_preset_result_action", PresetResultAction.normalize(presetResultAction))
+            if (finishToLauncher) putExtra("input_methodmesh_finish_to_launcher", "true")
             if (protocolId.isNotBlank()) {
                 putExtra("input_methodmesh_protocol_step_run", "true")
                 putExtra("input_methodmesh_sequence_step_run", "true")
@@ -489,55 +495,6 @@ class SchedulerDispatchActivity : ComponentActivity() {
                 }
             }
         }, 101)
-    }
-
-    private fun exportReturnedFields(schedule: ResearchSchedule, fields: Map<String, String?>): OutputExportRepository.ExportPackage {
-        val methodId = fields["methodmesh_method_id"] ?: schedule.targetValue
-        val status = fields["methodmesh_status"] ?: "Succeeded"
-        val protocol = protocolId.takeIf { it.isNotBlank() }?.let { ProtocolLibraryRepository.protocol(this, it) }
-        val protocolStep = protocol?.steps?.sortedBy { it.order }?.getOrNull(protocolStepIndex)
-        val scheduleChainFolder = if (protocol == null && schedule.chainId.isNotBlank()) scheduleChainRunFolder(schedule) else ""
-        val label = when {
-            protocol != null -> "${"%02d".format(protocolStepIndex + 1)}_${safeName(protocolStep?.name ?: schedule.name)}"
-            scheduleChainFolder.isNotBlank() -> "${"%02d".format(schedule.chainOrder + 1)}_${safeName(schedule.name)}"
-            schedule.target == SchedulerTarget.PRESET -> safeName(schedule.name)
-            else -> safeName(methodId)
-        }
-        val parent = outputGroupFolder.takeIf { it.isNotBlank() } ?: scheduleChainFolder.takeIf { it.isNotBlank() }
-        if (protocol != null && parent != null) {
-            return OutputExportRepository.exportProtocolStepPackage(
-                context = this,
-                protocolFolder = parent,
-                protocolName = protocol.name,
-                protocolSubmissionId = protocolSubmissionId.ifBlank { submissionIdFromProtocolFolder(parent) },
-                stepIndex = protocolStepIndex,
-                stepName = protocolStep?.name ?: schedule.name,
-                methodId = methodId,
-                status = status,
-                fields = fields
-            )
-        }
-        if (protocol == null && scheduleChainFolder.isNotBlank() && parent != null) {
-            return OutputExportRepository.exportProtocolStepPackage(
-                context = this,
-                protocolFolder = parent,
-                protocolName = scheduleChainName(schedule),
-                protocolSubmissionId = scheduleChainSubmissionId(schedule),
-                stepIndex = schedule.chainOrder,
-                stepName = schedule.name,
-                methodId = methodId,
-                status = status,
-                fields = fields
-            )
-        }
-        return OutputExportRepository.exportFlatPackage(
-            context = this,
-            packageLabel = label,
-            methodId = methodId,
-            status = status,
-            fields = fields,
-            parentFolder = parent
-        )
     }
 
     private fun safeName(value: String): String =
@@ -701,9 +658,13 @@ class SchedulerDispatchActivity : ComponentActivity() {
                 RunResultScreen(
                     runName = runName,
                     steps = steps,
-                    onClose = { finish() },
-                    onCopy = {
-                        val text = runShareText(runName, steps)
+                    onClose = { finishRun() },
+                    onCopy = { includeJson ->
+                        val text = runShareText(runName, steps) + if (includeJson) {
+                            "\n\nmetadata.json\n${runMetadataJson(runName, steps)}"
+                        } else {
+                            ""
+                        }
                         if (text.isBlank()) {
                             Toast.makeText(this, "Nothing to copy.", Toast.LENGTH_SHORT).show()
                         } else {
@@ -712,38 +673,22 @@ class SchedulerDispatchActivity : ComponentActivity() {
                             Toast.makeText(this, "Result copied.", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    onShare = {
-                        runCatching { shareRunResult(runName, steps) }
+                    onShare = { includeJson ->
+                        runCatching { shareRunResult(runName, steps, includeJson) }
                             .onFailure { Toast.makeText(this, "Share failed: ${it.message ?: "no share target"}", Toast.LENGTH_SHORT).show() }
                     },
-                    onDownload = {
+                    onDownload = { includeJson ->
                         runCatching {
                             OutputExportRepository.saveToDownloads(
                                 context = this,
                                 label = runName,
                                 text = runShareText(runName, steps),
-                                mediaUris = steps.flatMap { it.media.values }
+                                mediaUris = steps.flatMap { it.media.values },
+                                jsonText = if (includeJson) runMetadataJson(runName, steps) else ""
                             )
                         }
                             .onSuccess { Toast.makeText(this, "Saved ${it.summary}", Toast.LENGTH_LONG).show() }
                             .onFailure { Toast.makeText(this, "Downloads save failed: ${it.message ?: "storage error"}", Toast.LENGTH_SHORT).show() }
-                    },
-                    onSave = {
-                        runCatching {
-                            OutputExportRepository.exportFlatPackage(
-                                context = this,
-                                packageLabel = runName,
-                                methodId = methodId.ifBlank { "methodmesh.sequence" },
-                                status = "Succeeded",
-                                fields = combinedFields,
-                                parentFolder = folderName.takeIf { it.isNotBlank() }
-                            )
-                        }
-                            .onSuccess {
-                                OutputExportRepository.notifySaved(this, it)
-                                Toast.makeText(this, "Saved ${it.summary}", Toast.LENGTH_LONG).show()
-                            }
-                            .onFailure { Toast.makeText(this, "Save failed: ${it.message ?: "storage error"}", Toast.LENGTH_SHORT).show() }
                     }
                 )
             }
@@ -758,10 +703,12 @@ class SchedulerDispatchActivity : ComponentActivity() {
             }
         }
 
-    private fun shareRunResult(runName: String, steps: List<ProtocolStepSummary>) {
+    private fun shareRunResult(runName: String, steps: List<ProtocolStepSummary>, includeJson: Boolean) {
         val mediaUris = steps.flatMap { step -> step.media.values.map(Uri::parse) }
         val text = runShareText(runName, steps)
-        if (mediaUris.isEmpty()) {
+        val shareable = ArrayList(mediaUris.map { shareableUri(it) })
+        if (includeJson) shareable += temporaryJsonShareUri(runMetadataJson(runName, steps))
+        if (shareable.isEmpty()) {
             if (text.isBlank()) throw IllegalStateException("No shareable result.")
             startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
@@ -769,11 +716,11 @@ class SchedulerDispatchActivity : ComponentActivity() {
             }, "Share result").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             return
         }
-        val shareable = ArrayList(mediaUris.map { shareableUri(it) })
         val intent = if (shareable.size == 1) {
             Intent(Intent.ACTION_SEND).apply {
                 type = mediaMimeType(shareable.first().toString())
                 putExtra(Intent.EXTRA_STREAM, shareable.first())
+                if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
             }
         } else {
             Intent(Intent.ACTION_SEND_MULTIPLE).apply {
@@ -785,6 +732,13 @@ class SchedulerDispatchActivity : ComponentActivity() {
             if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
         }
         startActivity(Intent.createChooser(intent, "Share result").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    private fun temporaryJsonShareUri(jsonText: String): Uri {
+        val folder = File(cacheDir, "methodmesh_share").apply { mkdirs() }
+        val file = File(folder, "metadata_${System.currentTimeMillis()}.json")
+        file.writeText(jsonText, Charsets.UTF_8)
+        return FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
     }
 
     private fun shareableUri(uri: Uri): Uri =
@@ -939,11 +893,11 @@ private fun RunResultScreen(
     runName: String,
     steps: List<ProtocolStepSummary>,
     onClose: () -> Unit,
-    onCopy: () -> Unit,
-    onShare: () -> Unit,
-    onDownload: () -> Unit,
-    onSave: () -> Unit
+    onCopy: (Boolean) -> Unit,
+    onShare: (Boolean) -> Unit,
+    onDownload: (Boolean) -> Unit
 ) {
+    var includeFullJson by rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     Column(
         Modifier
             .fillMaxSize()
@@ -978,14 +932,23 @@ private fun RunResultScreen(
             }
         }
         Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Include full JSON", style = MaterialTheme.typography.titleSmall)
+            Switch(checked = includeFullJson, onCheckedChange = { includeFullJson = it })
+        }
+        Text(
+            if (includeFullJson) "Share, copy and downloads will include metadata JSON." else "Share, copy and downloads use only the main result.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onShare, modifier = Modifier.weight(1f), enabled = steps.isNotEmpty()) { Text("Share") }
-            OutlinedButton(onClick = onCopy, modifier = Modifier.weight(1f), enabled = steps.any { it.fields.isNotEmpty() }) { Text("Copy") }
+            OutlinedButton(onClick = { onShare(includeFullJson) }, modifier = Modifier.weight(1f), enabled = steps.isNotEmpty()) { Text("Share") }
+            OutlinedButton(onClick = { onCopy(includeFullJson) }, modifier = Modifier.weight(1f), enabled = steps.any { it.fields.isNotEmpty() }) { Text("Copy") }
         }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onDownload, modifier = Modifier.weight(1f), enabled = steps.isNotEmpty()) { Text("Save to Downloads") }
-            OutlinedButton(onClick = onSave, modifier = Modifier.weight(1f), enabled = steps.isNotEmpty()) { Text("Export") }
+            OutlinedButton(onClick = { onDownload(includeFullJson) }, modifier = Modifier.weight(1f), enabled = steps.isNotEmpty()) { Text("Save to Downloads") }
         }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1016,6 +979,28 @@ private fun runShareText(runName: String, steps: List<ProtocolStepSummary>): Str
             }
         }
     }.trim()
+
+private fun runMetadataJson(runName: String, steps: List<ProtocolStepSummary>): String =
+    JSONObject().apply {
+        put("methodmesh_output_schema", "methodmesh.run.summary")
+        put("methodmesh_export_version", "1")
+        put("run_name", runName)
+        put("created_at", Instant.now().toString())
+        put("step_count", steps.size)
+        put("steps", JSONArray().apply {
+            steps.forEach { step ->
+                put(JSONObject().apply {
+                    put("step_number", step.stepNumber)
+                    put("fields", JSONObject().apply {
+                        step.fields.forEach { (key, value) -> put(key, value ?: JSONObject.NULL) }
+                    })
+                    put("media", JSONObject().apply {
+                        step.media.forEach { (key, value) -> put(key, value) }
+                    })
+                })
+            }
+        })
+    }.toString(2)
 
 private fun mediaMimeType(value: String): String {
     val lower = value.lowercase()

@@ -87,6 +87,9 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
         var eventPayloadHash by remember {
             mutableStateOf(initialAttestationPayloadHash(supplied["event_payload_hash"], external))
         }
+        var commitmentRecipe by remember {
+            mutableStateOf(supplied["commitment_recipe"].orEmpty().ifBlank { if (external) "" else DEFAULT_ATTESTATION_COMMITMENT_RECIPE })
+        }
         var evidence by remember { mutableStateOf(supplied["verification_evidence"].orEmpty()) }
         var trustedTimestampPolicy by remember { mutableStateOf(supplied["trusted_timestamp"].orEmpty().ifBlank { "preferred" }) }
         var trustedTimestampAuthority by remember { mutableStateOf(supplied["trusted_timestamp_authority"].orEmpty().ifBlank { DEFAULT_TRUSTED_TIMESTAMP_AUTHORITY_URL }) }
@@ -110,6 +113,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             subjectRef,
             eventType,
             eventPayloadHash,
+            commitmentRecipe,
             evidence,
             trustedTimestampPolicy,
             trustedTimestampAuthority,
@@ -123,6 +127,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                     "subject_ref" to subjectRef,
                     "event_type" to eventType,
                     "event_payload_hash" to eventPayloadHash,
+                    "commitment_recipe" to commitmentRecipe,
                     "verification_evidence" to evidence,
                     "verification_method" to method.name,
                     "trusted_timestamp" to trustedTimestampPolicy,
@@ -139,6 +144,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                 put("subject_ref", subjectRef)
                 put("event_type", eventType)
                 put("event_payload_hash", eventPayloadHash)
+                put("commitment_recipe", commitmentRecipe)
                 put("verification_method", selectedMethod.name)
                 put("trusted_timestamp", trustedTimestampPolicy)
                 put("trusted_timestamp_authority", trustedTimestampAuthority)
@@ -271,7 +277,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             Spacer(Modifier.height(10.dp))
             if (focusedLaunch) {
                 Text(
-                    "Configured: ${method.label}, timestamp $trustedTimestampPolicy, event hash ${eventPayloadHash.take(12)}…",
+                    "Configured: ${method.label}, timestamp $trustedTimestampPolicy, event hash ${eventPayloadHash.take(12)}…, recipe ${if (commitmentRecipe.isBlank()) "missing" else "supplied"}",
                     style = MaterialTheme.typography.bodySmall
                 )
             } else {
@@ -280,6 +286,13 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                 OutlinedTextField(subjectRef, { subjectRef = it }, label = { Text("Subject / event reference") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(eventType, { eventType = it }, label = { Text("Event type") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(eventPayloadHash, { eventPayloadHash = it }, label = { Text("Event payload SHA-256 (hex)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    commitmentRecipe,
+                    { commitmentRecipe = it },
+                    label = { Text("Commitment recipe JSON") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 4
+                )
                 Spacer(Modifier.height(8.dp))
                 TimestampPolicyChooser(
                     selected = trustedTimestampPolicy,
@@ -363,6 +376,9 @@ internal fun initialAttestationPayloadHash(
 ): String = suppliedHash.orEmpty().ifBlank {
     if (startsImmediately) "" else MANUAL_DEBUG_EVENT_PAYLOAD_HASH
 }
+
+internal const val DEFAULT_ATTESTATION_COMMITMENT_RECIPE: String =
+    """{"schema":"methodmesh.commitment_recipe.v1","canonicalization":"ordered-kv-v1","hash_algorithm":"SHA-256","members":[{"path":"manual_debug_event","type":"string","commitment":"value"}]}"""
 
 @Composable
 private fun TimestampPolicyChooser(

@@ -115,6 +115,7 @@ class OutputFormatterTest {
     fun `core projection keeps redacted image uri without redaction metadata`() {
         val fields = mapOf(
             "redacted_image_uri" to "content://com.example.methodmesh/redacted.jpg",
+            "redacted_image_sha256" to "abc123",
             "redacted_image_name" to "redacted.jpg",
             "redaction_mask_json" to "[\"r1c1\"]",
             "redaction_grid_rows" to "10",
@@ -125,7 +126,35 @@ class OutputFormatterTest {
 
         val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.CORE, TransformationStatus.Succeeded)
 
-        assertEquals(mapOf("redacted_image_uri" to "content://com.example.methodmesh/redacted.jpg"), projected)
+        assertEquals(
+            mapOf(
+                "redacted_image_uri" to "content://com.example.methodmesh/redacted.jpg",
+                "redacted_image_sha256" to "abc123"
+            ),
+            projected
+        )
+    }
+
+    @Test
+    fun `full projection keeps redacted image uri and sha as flat fields and in full json`() {
+        val fields = mapOf(
+            "redacted_image_uri" to "content://com.example.methodmesh/redacted.jpg",
+            "redacted_image_sha256" to "abc123",
+            "redacted_image_name" to "redacted.jpg",
+            "redaction_mask_json" to "[\"r1c1\"]",
+            "image_redaction_status" to "succeeded",
+            "methodmesh_execution_id" to "exec-redact",
+            "methodmesh_status" to "Succeeded"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.FULL, TransformationStatus.Succeeded)
+
+        assertEquals("content://com.example.methodmesh/redacted.jpg", projected["redacted_image_uri"])
+        assertEquals("abc123", projected["redacted_image_sha256"])
+        val fullJson = projected["methodmesh_full_json"].toString()
+        assertTrue(fullJson.contains("redacted_image_uri"))
+        assertTrue(fullJson.contains("redacted_image_sha256"))
+        assertTrue(fullJson.contains("abc123"))
     }
 
     @Test
