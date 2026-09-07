@@ -74,3 +74,9 @@ docs/assets/screenshots/signed_attestation_video.mp4
 website/assets/screenshots/scheduled_event_chain.mp4
 website/assets/screenshots/sensor_video.mp4
 website/assets/screenshots/signed_attestation_video.mp4
+
+# MethodMesh documentation consolidation workspace
+.methodmesh-doc-review/
+/MethodMesh_Master_Book_v*_Canonical/
+/MethodMesh_documentation_review*.zip
+/MethodMesh_Documentation_Review*.zip
