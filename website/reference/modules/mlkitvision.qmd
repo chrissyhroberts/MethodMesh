@@ -1,0 +1,41 @@
+---
+title: "ML Kit vision"
+subtitle: "Module reference · mlkitvision"
+---
+
+<div class="status-box status-production"><strong>Master Book production evidence:</strong> <code>mlkit.vision.analyze</code></div>
+
+Use ML Kit for OCR and barcode/Data Matrix/1D code detection from camera or image files.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>mlkitvision</code></div>
+<div><strong>Source directory</strong><code>mlkitvision</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>0</div>
+<div><strong>Source docs</strong>1</div>
+<div><strong>Explicit source status labels</strong>Production</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `mlkit.vision.analyze` | read text with ML Kit | Capture or select an image and run ML Kit OCR | <span class="badge-prod">polished production</span> | RIL binding, capability screen, intent example, module registry |
+
+## ODK / XLSForm examples
+
+_No module-owned XLSForm was present in this supplied `docs/` directory._
+
+## Module-local documentation
+
+- [ML Kit vision](../source-docs/mlkitvision/README_MlKitVision.qmd) — `README_MlKitVision.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

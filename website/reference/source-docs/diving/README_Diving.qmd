@@ -1,0 +1,209 @@
+---
+title: "MethodMesh Diving capability family — Development prototype v0.1.0"
+subtitle: "Module source document · Diving"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/diving/docs/README_Diving.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+## Scope
+
+The `diving` module provides low-weight recreational/technical diving calculations plus local dive, gas-analysis and cylinder records. The same calculation engines are used by atomic capabilities and native dashboards.
+
+This prototype deliberately separates **calculation support** from **authoritative decompression/life-support decision making**. It does not generate decompression schedules, NDLs, repetitive-dive tissue loading, omitted-decompression procedures, treatment tables or manufacturer-specific life-support settings.
+
+Safety-supporting screens never report that a dive is "safe". They report values against explicitly entered assumptions, e.g. `ppO2 exceeds configured limit` or `reserve not met`.
+
+## Public method IDs
+
+| Method | Purpose | Primary outputs |
+|---|---|---|
+| `diving.sac_rmv` | SAC/RMV from pressure drop, cylinder volume, average depth and duration | `diving_sac_bar_min`, `diving_rmv_l_min` |
+| `diving.cylinder.capacity` | Nominal cylinder gas/reserve | `diving_cylinder_total_gas_l`, `diving_cylinder_usable_gas_l` |
+| `diving.ppo2` | Oxygen partial pressure at depth | `diving_ppo2_bar` |
+| `diving.mod` | MOD boundary from analysed FO2 and configured ppO2 | `diving_mod_m` |
+| `diving.nitrox.best_mix` | Maximum FO2 satisfying ppO2 boundary at depth | `diving_best_mix_fo2_percent` |
+| `diving.ead` | Equivalent air depth for nitrox | `diving_ead_m` |
+| `diving.end` | Equivalent narcotic depth for helium mixes | `diving_end_m` |
+| `diving.gas.density` | Ideal-gas density at depth | `diving_gas_density_g_l` |
+| `diving.gas.plan` | Multi-segment gas requirement and reserve margin | `diving_required_gas_l`, `diving_required_start_pressure_bar`, `diving_reserve_met` |
+| `diving.bailout.plan` | Simplified entered-profile bailout gas arithmetic | `diving_bailout_required_gas_l`, `diving_bailout_reserve_met` |
+| `diving.navigation` | Reciprocal heading and simple time/distance | `diving_reciprocal_heading_deg`, `diving_travel_time_min` |
+| `diving.lift` | Lift-bag displacement/fill-gas physics | `diving_lift_bag_min_volume_l` |
+| `diving.dashboard` | Persistent planning snapshot | dashboard gas/ppO2/MOD/END/density fields |
+| `diving.log.record` | Store/update a local dive | `diving_log_id`, `diving_log_rmv_l_min` |
+| `diving.log.dashboard` | Persistent local log summary | `diving_log_count`, `diving_log_total_time_min`, `diving_log_deepest_m` |
+| `diving.gas.analysis.record` | Store analysed O2/He mix | analysis ID/mix/time fields |
+| `diving.cylinder.record` | Store/update cylinder inventory | cylinder ID/label/pressure/nominal gas |
+| `diving.gas.dashboard` | Persistent cylinder/gas inventory summary | counts and nominal stored gas |
+
+All methods also return:
+
+- `diving_status`
+- `diving_warning`
+- `diving_audit_json`
+- `diving_calculated_time_iso`
+- `diving_error`
+
+The audit JSON records method/version, inputs, outputs, warnings, assumptions and the deliberately excluded authoritative functions.
+
+## Pressure model
+
+Rather than hard-coding the approximate `depth / 10 + 1` seawater rule, the module uses hydrostatic pressure:
+
+```text
+P_abs = P_surface + rho * g * depth
+```
+
+with configurable water density and surface absolute pressure. Defaults are 1025 kg/m3 and 1.01325 bar.
+
+## Gas mix handling
+
+Oxygen and helium are entered as **analysed percentages**. Nitrogen is the balance. The calculator rejects impossible fractions.
+
+`diving.mod` reports a mathematical ppO2 boundary. `ppo2_limit_bar` is deliberately a user/configuration input rather than a hard-coded declaration that one value is universally safe.
+
+The prototype defaults to 1.4 bar because it is a widely used recreational working reference; the warning system becomes more explicit above 1.4 and above 1.6. Training/agency/organisational/environmental requirements take precedence.
+
+Reference background used for the prototype safety language:
+
+- DAN Nitrox: https://dan.org/alert-diver/article/nitrox/
+- DAN oxygen toxicity: https://dan.org/health-medicine/health-resources/diseases-conditions/oxygen-toxicity/
+- DAN gas density discussion: https://dan.org/alert-diver/article/performance-under-pressure/
+- NOAA Diving Program resources/manuals: https://www.omao.noaa.gov/diving-program/resources
+
+## Gas density
+
+`diving.gas.density` uses ideal-gas density from the entered O2/N2/He fractions, ambient pressure and gas temperature. It warns above 5.2 g/L and more strongly above 6.2 g/L because those are commonly cited planning reference values. They are warnings, not MethodMesh-established physiological limits.
+
+Regulator/rebreather work of breathing, apparatus resistance, CO2 production/retention and individual physiology are not modelled.
+
+## Multi-segment gas plan
+
+`segments` accepts semicolon-separated segments:
+
+```text
+depth:minutes
+label:depth:minutes
+label:depth:minutes:rmv_multiplier
+```
+
+Example:
+
+```text
+descent:10:2:1;bottom:30:20:1;ascent:15:2:1;stop:5:3:1
+```
+
+The method reports segment-level audit JSON, total surface-equivalent gas, required starting pressure, margin and whether the entered reserve is met.
+
+This is gas-volume arithmetic only. It does not decide which ascent/decompression stops should exist.
+
+## Bailout planner
+
+The prototype represents:
+
+1. entered problem-solving time at starting depth;
+2. ascent at the entered rate to an entered stop depth;
+3. an entered stop duration;
+4. ascent to surface.
+
+The stop is **not generated by a decompression model**. The capability exists to answer questions such as “given this explicitly chosen escape profile and stressed RMV, does this cylinder contain the entered reserve?”
+
+## EAD and END
+
+EAD is restricted to air/nitrox (`FHe = 0`).
+
+END requires the operator to choose a narcotic-gas assumption:
+
+- `oxygen_and_nitrogen`
+- `nitrogen_only`
+
+The selected assumption is written into audit data because END values are meaningless without that model statement.
+
+## Local records
+
+### Dive log
+
+Stores:
+
+- ID and date/time;
+- site and buddy/team;
+- max/average depth and duration;
+- cylinder volume/start/end pressure;
+- O2/He;
+- temperature and visibility;
+- suit/weight configuration;
+- notes;
+- calculated RMV when enough inputs are present.
+
+### Gas analysis
+
+Stores measured O2/He, cylinder ID, pressure if recorded, analyser/calibration reference, operator and timestamp.
+
+This is a **record of an entered measurement**, not a gas-analysis instrument and not certification of cylinder contents.
+
+### Cylinder inventory
+
+Stores cylinder ID/label, water volume, working/current pressure, material, test/service note and an operator-entered oxygen-clean flag. MethodMesh does not certify oxygen cleanliness or in-test/serviceability status.
+
+The Development prototype uses a module-owned SharedPreferences JSON repository so records are small, portable and offline. Migration to a shared MethodMesh repository can happen without changing public method IDs.
+
+## Persistent dashboards
+
+### `diving.dashboard`
+
+Cards show:
+
+- depth / ambient pressure;
+- ppO2;
+- MOD boundary;
+- END;
+- gas density;
+- estimated end pressure;
+- gas margin and reserve state.
+
+Inputs are collapsed by default in ordinary native dashboard use. Native presets expose runtime inputs where required.
+
+### `diving.log.dashboard`
+
+Shows dive count, total time, deepest dive, mean calculated RMV and recent dives.
+
+### `diving.gas.dashboard`
+
+Shows cylinder/analysis counts, nominal stored gas and individual cylinder/mix summaries.
+
+All three follow the MethodMesh persistent-dashboard contract:
+
+- refresh recalculates local UI state;
+- native dashboard/preset execution retains the actual `ExecutionResult` locally while passing `null` to the shared scaffold;
+- `Use this snapshot` / `Finish` explicitly confirms the current snapshot;
+- genuine external/ODK calls receive a structured single-shot result without native interaction;
+- refresh alone does not write a new graph/history result.
+
+## ODK / external call pattern
+
+Use the normal MethodMesh multi-field intent group:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='diving.mod',input_fo2_percent='32',input_ppo2_limit_bar='1.4',return_mode='flat')
+```
+
+For dynamic values, use normal XLSForm expressions in the `body::intent` extras. Inputs use `input_*`. Return placeholders use the exact MethodMesh output field names.
+
+`docs/example_odk_Diving.xlsx` exercises every public method at least once.
+
+## Development validation
+
+Pure calculation smoke tests are in `tests/DivingAlgorithmsSmokeTest.kt` and cover hydrostatic pressure round-trip/sanity, MOD, EAD, nominal cylinder capacity, SAC/RMV, best-mix, helium density direction, gas-plan reserve logic and navigation reciprocal.
+
+Before promotion from Development:
+
+- run `./gradlew :app:assembleDebug` after admission into a current MethodMesh checkout;
+- run focused Android/native/preset/ODK tests;
+- independently verify reference vectors for each safety-supporting calculation;
+- review ppO2/gas-density wording and defaults with appropriately qualified diving-domain reviewers;
+- verify persistence/export/upgrade behaviour on real Android devices;
+- do not add decompression planning without a separately specified, versioned and validated decompression model.
+

@@ -1,0 +1,198 @@
+---
+title: "Aviation emergency panel — UX design review v0.3"
+subtitle: "Module source document · Aviation tools"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/aviation/docs/UX_DESIGN_REVIEW_v0.3.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+Status: **Development**
+
+This note records the iterative design decisions behind `aviation.emergency.instruments`. The objective was not to draw a miniature certified instrument panel. It was to create a polished, low-workload emergency/reference surface whose visual confidence never exceeds the confidence justified by phone sensors.
+
+## Design objective
+
+The panel is intended for a pilot who may be busy, stressed, in poor lighting, offline, or dealing with degraded primary information. Under those conditions the UI should favour:
+
+- immediate recognition over dense explanation;
+- stable positions over configurable layouts;
+- source-explicit labels over familiar-but-misleading aviation terminology;
+- graceful component degradation over page-level failure;
+- few large actions over forms;
+- visible data quality over hidden caveats;
+- offline phone sensing first, optional reference data second.
+
+It remains a supplementary, non-certified reference surface.
+
+## Round 1 — reject the false six-pack
+
+### Initial temptation
+
+A classic six-pack layout would look attractive and immediately "aviation-like".
+
+### Review finding
+
+That design would imply equivalence that the hardware does not support. A phone can report GNSS ground speed and track, but it cannot derive indicated airspeed from the aircraft pitot/static system. GNSS altitude is not an aircraft altimeter indication. Device orientation is not automatically aircraft attitude.
+
+### Change
+
+The panel uses source-explicit labels:
+
+- `GS` — ground speed;
+- `TRK` — GNSS track;
+- `GNSS ALT`;
+- `GNSS VS`;
+- `DEV MAG`;
+- `BARO PA`;
+- `DEVICE ATT`.
+
+The persistent safety band states the most important non-equivalences in plain language.
+
+## Round 2 — emergency scan hierarchy
+
+### Review finding
+
+A conventional settings-first capability screen makes the user read and configure before receiving useful information. That is the wrong workload order for an emergency surface.
+
+### Change
+
+The live panel contains no editable text fields. The top-level visual hierarchy is:
+
+1. emergency/reference identity and quality state;
+2. central device-attitude reference;
+3. four large GNSS gauges;
+4. compact source/quality strip;
+5. nearest-airfield reference;
+6. collapsed setup/calibration;
+7. persistent safety band;
+8. explicit snapshot/finish action when MethodMesh needs a committed result.
+
+Setup is deliberately secondary and collapsible.
+
+## Round 3 — interaction minimisation
+
+### Review finding
+
+Tiny settings controls and repeated manual entries are particularly poor under vibration or high workload.
+
+### Change
+
+- mount orientation: dropdown;
+- airfield radius: dropdown;
+- cache policy: dropdown;
+- level calibration: one large button;
+- calibration reset: one large button;
+- no latitude/longitude entry in normal native use;
+- no pitch/roll offset entry in the native live panel;
+- screen kept awake while panel is active.
+
+MethodMesh still declares calibration values as method inputs for protocol/external reproducibility, but native users set them through calibration rather than typing numbers.
+
+## Round 4 — fail by component, not by screen
+
+### Review finding
+
+Reference catalogues and connectivity are the least dependable dependencies in an emergency context. A network failure must not suppress locally available sensor information.
+
+### Change
+
+Phone sensors/GNSS render independently of the airfield catalogue. The nearest-airfield reference is populated opportunistically from cache or refresh. Failure is localised:
+
+- GPS unavailable -> GPS fields show unavailable/degraded;
+- attitude sensor unavailable -> attitude loses authority, other instruments remain;
+- barometer unavailable -> `BARO PA` shows no barometer;
+- airfield cache/network unavailable -> only the airfield card shows unavailable;
+- low magnetic accuracy -> `MAG LOW`;
+- stale/poor GNSS -> explicit quality state.
+
+This produces a much stronger emergency failure model than a single all-or-nothing refresh.
+
+## Round 5 — visual polish without decorative workload
+
+### Review finding
+
+A polished panel does not need decorative knobs, bezel textures or pseudo-certified instrument faces. Those details consume space and can increase false authority.
+
+### Change
+
+Polish is provided through:
+
+- a restrained dark cockpit palette;
+- cyan/green/amber/red used semantically rather than decoratively;
+- monospaced numerical readouts;
+- stable instrument geometry;
+- consistent rounded instrument cards;
+- a central high-contrast horizon;
+- responsive portrait/wide layouts using the same instrument order;
+- generous touch targets;
+- subtle borders rather than heavy chrome;
+- short, uppercase source labels;
+- explicit caution bands and quality chips.
+
+The visual goal is "high-quality reference instrument" rather than "simulation of certified avionics".
+
+## Round 6 — attitude integrity review
+
+### Review finding
+
+Even a calibrated phone attitude display can be misleading during acceleration. A visually convincing horizon is therefore the highest-risk element of the panel.
+
+### Change
+
+The panel now distinguishes:
+
+- rotation-vector attitude;
+- accelerometer/magnetometer fallback (`ATT FALLBACK`);
+- uncalibrated attitude (`ATT UNCAL`);
+- dynamic acceleration (`ATT DYNAMIC`).
+
+The operator must rigidly mount the device, select its physical orientation and explicitly set the current position as level. Until that calibration exists, the visual horizon is held neutral rather than animating raw device angles; this prevents an uncalibrated moving horizon from looking more trustworthy than it is. The engine also calculates total acceleration magnitude. When it differs materially from 1 g, `ATT DYNAMIC` is raised and the horizon displays a dynamic caution.
+
+This does not make the phone attitude source certified or inertially valid. It makes a known failure mode harder to miss.
+
+## Round 7 — nearest-airfield semantics
+
+### Review finding
+
+"Nearest landing site" was too strong. Geographic proximity says nothing about runway suitability, status, weather, obstacles, NOTAMs, legal availability or aircraft performance.
+
+### Change
+
+The feature is named **NEAREST AIRFIELD REFERENCE** throughout the user-facing UI and output warning. It shows distance and bearing as reference context only. The method explicitly states that the result does not establish suitability, availability or safety.
+
+## Round 8 — MethodMesh completion semantics
+
+The persistent-dashboard guide requires a live native dashboard to retain the latest genuine `ExecutionResult` but withhold it from the generic result scaffold until the operator explicitly finishes.
+
+The emergency panel therefore follows the same contract as the main aviation dashboard:
+
+- native/browser -> live persistent panel;
+- native preset -> live panel with **Finish**;
+- `intent_test` -> interactive;
+- external/ODK -> bounded sensor stabilisation followed by one structured automatic return;
+- live updates replace capability-owned preview state and do not themselves commit graph history.
+
+This keeps the UI alive without changing global MethodMesh scaffold behaviour.
+
+## Remaining design risks before Production
+
+The feature should stay Development until real-device work verifies:
+
+- pitch/roll axis mapping for every declared mount orientation;
+- rotation behaviour and activity recreation;
+- actual sensor update frequency and latency across devices;
+- GNSS altitude and vertical-speed behaviour under poor fixes;
+- pressure sensor presence and behaviour in pressurised/unpressurised environments;
+- visual legibility in sunlight and at night;
+- gloved/one-hand touch usability;
+- landscape and tablet layouts;
+- low-memory/background/permission recovery;
+- native, native-preset, intent-test, ODK and multi-step protocol completion semantics;
+- accessibility semantics and large-font behaviour.
+
+## Design conclusion
+
+The strongest version of this capability is not the one that looks most like an aircraft panel. It is the one that makes useful phone-derived information extremely easy to scan while making provenance, quality and non-equivalence equally difficult to overlook.
+

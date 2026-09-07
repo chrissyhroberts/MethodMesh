@@ -1,0 +1,58 @@
+---
+title: "Surveying"
+subtitle: "Module reference · surveying"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Traverse, coordinates, offsets, levelling, area, GPS QC and field-book tools.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>surveying</code></div>
+<div><strong>Source directory</strong><code>surveying</code></div>
+<div><strong>Indexed methods</strong>13</div>
+<div><strong>XLSForms</strong>3</div>
+<div><strong>Source docs</strong>4</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `survey.area` | calculate area from coordinates | Shoelace area, perimeter and centroid | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `survey.bearing_distance` | calculate bearing and distance | Bearing/distance between two coordinates | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `survey.chainage_offset` | calculate chainage offset | Project a coordinate onto a baseline | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `survey.forward_coordinate` | project survey coordinate | Forward coordinate from azimuth and distance | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `survey.gps_average` | average gps fixes | Average repeated GPS fixes and report scatter | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `survey.grade` | calculate grade | Rise/fall, percent grade, angle and 1:n | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `survey.intersection` | intersect survey bearings | Bearing-bearing intersection from two control points | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `survey.level_reduce` | reduce levelling book | Reduce BS/IS/FS observations and closure | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `survey.levelling_book` | open levelling field book | Persistent levelling dashboard | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `survey.offset_point` | calculate survey offset | Coordinate from baseline chainage and signed offset | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `survey.setout` | set out survey point | Grid bearing and distance to a target | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `survey.traverse` | calculate traverse | Traverse coordinates, closure and adjustment | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `survey.traverse_book` | open traverse field book | Persistent traverse dashboard | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_survey_bearing_distance.xlsx](../source-docs/surveying/example_odk_survey_bearing_distance.xlsx)
+- [example_odk_survey_level_reduce.xlsx](../source-docs/surveying/example_odk_survey_level_reduce.xlsx)
+- [example_odk_survey_traverse.xlsx](../source-docs/surveying/example_odk_survey_traverse.xlsx)
+
+## Module-local documentation
+
+- [Surveying v0.1.0 build / validation report](../source-docs/surveying/BUILD_REPORT.qmd) — `BUILD_REPORT.md`
+- [Surveying ODK / XLSForm intent catalogue](../source-docs/surveying/ODK_METHODS.qmd) — `ODK_METHODS.md`
+- [MethodMesh Surveying capability](../source-docs/surveying/README_Surveying.qmd) — `README_Surveying.md`
+- [Suggested 000Roadmap.md note — Surveying](../source-docs/surveying/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

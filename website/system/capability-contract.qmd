@@ -1,0 +1,38 @@
+---
+title: "Canonical capability contract"
+subtitle: "The architectural boundary that keeps every surface in sync"
+---
+
+<div class="mm-rule"><strong>Golden rule:</strong> the shared MethodMesh UI knows nothing about individual capabilities.</div>
+
+Shared code may know about discovery, generic settings rendering, preset creation, runtime inputs, result actions, transports, protocols, schedules, widgets, shared services, broad categories and icon keys. It must not learn bespoke facts such as barcode formats, redaction grids, printer widths or translation language semantics.
+
+## Module ownership
+
+Every admitted capability lives under:
+
+```text
+app/src/main/java/com/example/methodmesh/modules/<module_name>/
+```
+
+The module owns its `MethodMeshModule` object, `As100Method` implementations, capability screens, settings, RIL bindings, dependencies, examples and module-local `docs/` artefacts. Modules are discovered at startup; the runtime is not supposed to maintain a hand-written central capability list.
+
+## Parity invariant
+
+If MethodMesh can perform an operation or produce a declared output, that operation/output must remain addressable through the canonical capability contract regardless of surface.
+
+This means:
+
+- dashboard aggregation cannot suppress individual capability discovery;
+- presets and protocols cannot gain private functionality unavailable to ODK;
+- ODK does not get a separate output schema;
+- a capability is not reimplemented independently for every surface;
+- method IDs, input semantics, output names, types and meanings remain canonical.
+
+## Capability lanes
+
+The Master Book distinguishes incoming prototype, Development, Production and Workbench lanes. Presence in the source tree is **not** itself evidence of Production. See [production and implementation status](../reference/production-status.qmd).
+
+## Current source contract
+
+The supplied source implements `MethodMeshModule` with module ID, display name, summary, icon key, `as100Methods()`, `rilBindings()`, `capabilityScreens()`, `capabilitySettings()`, optional settings sections, dependencies and examples. `MethodMeshModuleRegistry` installs the discovered modules and asserts unique module IDs, method IDs, screen IDs and Settings section IDs.

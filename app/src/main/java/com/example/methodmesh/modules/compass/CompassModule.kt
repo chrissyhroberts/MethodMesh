@@ -7,7 +7,8 @@ import com.example.methodmesh.settings.MethodSetting
 object CompassModule : MethodMeshModule {
     override val moduleId = "compass"
     override val displayName = "Compass"
-    override val summary = "Read a magnetic heading or sight a configured bearing with a live alignment reticle."
+    override val summary = "Live magnetic compass and bearing sight with explicit Commit capture."
+    override val iconKey = "location"
 
     override fun as100Methods() = listOf(As100CompassMethod)
 

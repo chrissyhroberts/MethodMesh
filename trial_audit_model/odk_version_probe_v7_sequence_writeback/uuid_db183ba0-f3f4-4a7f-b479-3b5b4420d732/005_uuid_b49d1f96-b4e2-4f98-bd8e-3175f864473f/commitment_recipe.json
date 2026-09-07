@@ -1,0 +1,115 @@
+{
+  "canonicalization": "ordered-kv-v1",
+  "hash_algorithm": "SHA-256",
+  "members": [
+    {
+      "commitment": "value",
+      "path": "showcase_commitment_schema",
+      "type": "string"
+    },
+    {
+      "commitment": "value",
+      "path": "showcase_id",
+      "type": "string"
+    },
+    {
+      "commitment": "value",
+      "path": "age_years",
+      "type": "integer"
+    },
+    {
+      "commitment": "value",
+      "path": "favourite_colour",
+      "type": "string"
+    },
+    {
+      "commitment": "value",
+      "path": "short_note",
+      "type": "string"
+    },
+    {
+      "commitment": "value",
+      "path": "auth_auth_method",
+      "type": "string"
+    },
+    {
+      "commitment": "value",
+      "path": "auth_timestamp_iso",
+      "type": "string"
+    },
+    {
+      "commitment": "json-utf8-sha256",
+      "path": "auth_json_sha256",
+      "source_field": "auth_methodmesh_full_json",
+      "type": "sha256"
+    },
+    {
+      "artifact_field": "photo_redacted_image_uri",
+      "commitment": "artifact-bytes-sha256",
+      "path": "photo_redacted_image_sha256",
+      "type": "sha256"
+    },
+    {
+      "commitment": "json-utf8-sha256",
+      "path": "photo_json_sha256",
+      "source_field": "photo_methodmesh_full_json",
+      "type": "sha256"
+    },
+    {
+      "commitment": "value",
+      "path": "location_plus_code",
+      "type": "string"
+    },
+    {
+      "commitment": "json-utf8-sha256",
+      "path": "location_json_sha256",
+      "source_field": "location_methodmesh_full_json",
+      "type": "sha256"
+    },
+    {
+      "commitment": "value",
+      "path": "polygon_value",
+      "type": "string"
+    },
+    {
+      "commitment": "json-utf8-sha256",
+      "path": "polygon_json_sha256",
+      "source_field": "polygon_methodmesh_full_json",
+      "type": "sha256"
+    },
+    {
+      "commitment": "text-utf8-sha256",
+      "path": "conversation_transcript_sha256",
+      "source_field": "conversation_conversation_transcript",
+      "type": "sha256"
+    },
+    {
+      "commitment": "json-utf8-sha256",
+      "path": "conversation_json_sha256",
+      "source_field": "conversation_methodmesh_full_json",
+      "type": "sha256"
+    },
+    {
+      "commitment": "value",
+      "path": "fourat_clinical_score",
+      "type": "string"
+    },
+    {
+      "commitment": "value",
+      "path": "fourat_clinical_classification",
+      "type": "string"
+    },
+    {
+      "commitment": "value",
+      "path": "fourat_clinical_definition_fingerprint",
+      "type": "sha256"
+    },
+    {
+      "commitment": "json-utf8-sha256",
+      "path": "fourat_json_sha256",
+      "source_field": "fourat_methodmesh_full_json",
+      "type": "sha256"
+    }
+  ],
+  "schema": "methodmesh.commitment_recipe.v1"
+}

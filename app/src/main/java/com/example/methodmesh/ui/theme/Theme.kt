@@ -66,11 +66,12 @@ private val LightColorScheme = lightColorScheme(
 )
 
 private val MethodMeshShapes = Shapes(
-    extraSmall = RoundedCornerShape(6.dp),
-    small = RoundedCornerShape(8.dp),
-    medium = RoundedCornerShape(12.dp),
-    large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(20.dp)
+    // v1.05 shell: restrained geometry rather than pill-heavy Material defaults.
+    extraSmall = RoundedCornerShape(1.dp),
+    small = RoundedCornerShape(2.dp),
+    medium = RoundedCornerShape(4.dp),
+    large = RoundedCornerShape(6.dp),
+    extraLarge = RoundedCornerShape(8.dp)
 )
 
 @Composable

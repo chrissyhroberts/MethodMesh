@@ -1,0 +1,159 @@
+# Web Actions v0.10 validation record
+
+Status: **Development / admission candidate**
+
+This module has been reviewed against the MethodMesh v1.05 module-refresh requirements and the current public ODK Central / ODK Web Forms / Enketo API contracts. No claim of Production status is made until a full app build and device integration tests pass.
+
+## Contract inventory
+
+| Capability | Native | Preset | Protocol/schedule | RIL | ODK | Canonical completion |
+|---|---|---|---|---|---|---|
+| `web.odk_central_roundtrip` | yes | yes | yes | yes | yes | one-shot Central `return_url` |
+| `web.precooked_enketo` | yes | yes | yes | yes | yes | one-shot Enketo `return_url` |
+| `web.roundtrip` | yes | yes | yes | yes | yes | one-shot callback parameter/placeholder |
+| `web.open` | yes | yes | yes | yes | yes | successful browser dispatch only |
+
+All public capabilities have a method descriptor, typed capability settings where appropriate, a capability-specific screen, RIL binding, and ODK example.
+
+## v1.05 UX review
+
+- primary Central workflow is paste link → Open form, not an API configuration screen
+- public Central/web-form links require no Enketo/Central API token; API credentials are confined to the separate advanced `web.precooked_enketo` capability
+- live web state remains on the capability screen
+- returning/backing out is not success
+- explicit callback completion is displayed as a live working result
+- manual/native use requires Commit to freeze the result
+- `submitsImmediately` origins return automatically after the terminal callback, avoiding a redundant second confirmation
+- post-Commit result actions use copy/share/save/finish affordances
+- displayed canonical values are tap-to-copy
+- fixed preset settings are conditionally hidden through `settingShouldBeShown`
+- transaction state is durable and resumes across normal recreation
+
+## ODK Central review
+
+Validated in source against the documented Central v2025.2.3+ link behavior:
+
+- Public Access: `/f/<id>?st=<secret>`
+- Data Collector new submission: `/projects/<id>/forms/<name>/submissions/new`
+- `return_url` supported for redirect-after-submit
+- `single=true` added for Data Collector links when absent
+- existing Central query parameters are preserved
+- legacy `/-/...` links are tolerated; authenticated legacy Data Collector links are converted to the documented `/-/single/...` redirect form
+- no renderer assumption: Central can select ODK Web Forms or Enketo
+- raw Central URL / `st` are not outputs
+
+Reference: https://docs.getodk.org/central-submissions/
+
+ODK Web Forms is the default for new forms in Central v2026.2.0+ and existing form links continue to reflect the server-selected renderer. File upload and geospatial browser interactions are supported by Web Forms; the embedded WebView delegates file chooser and geolocation permission flows to Android.
+
+Reference: https://docs.getodk.org/web-forms-intro/
+
+## Enketo API review
+
+The programmatic capability uses API v2 semantics:
+
+- POST `/survey/single` or `/survey/single/once`
+- `application/x-www-form-urlencoded`
+- Basic Authorization `API_KEY:`
+- required `server_url` + `form_id`
+- optional `return_url`, `theme`, `defaults[/path]`
+- response `single_url` / `single_once_url`
+- API redirects not followed while credentials are attached
+
+Reference: https://apidocs.enketo.org/v2
+
+## Precook/prefill review
+
+- flat form-node mappings only
+- paths must start with `/`
+- fixed literal values supported
+- runtime references `{{field}}` supported
+- lookup includes normalized `input_*` values, invocation context and action/request settings
+- protocol-piped previous result fields are therefore available to mappings
+- built-ins `{{today}}`, `{{now_iso}}`
+- missing runtime source is a visible validation error; it is not silently replaced
+- resolved values are not returned in canonical result/audit
+
+## Security/static checks
+
+- callback token generated from 24 SecureRandom bytes
+- constant-time callback compare
+- top-level-navigation requirement
+- SSL fail-closed
+- mixed content disabled
+- encrypted secret active-state record using Android Keystore AES-GCM
+- Central `st`, callback `k`, `return_url`, common credential parameters and prefill/default query values covered by redaction policy
+- Central source URI omitted from declared outputs
+- API token excluded from typed settings/result context/audit
+- no raw callback-injected launch URL in declared outputs
+
+## Required real integration test matrix before Production
+
+1. `:app:compileDebugKotlin` and normal debug app assembly in the current MethodMesh tree.
+2. Public Access Link on a current Central server using ODK Web Forms.
+3. Public Access Link using Enketo renderer.
+4. Authenticated Data Collector `/submissions/new` link, including login/session behavior.
+5. Legacy Central Enketo-style link if backwards compatibility is required operationally.
+6. Successful submit → callback → live result → Commit/native completion.
+7. ODK-originated run → submit → automatic canonical return without extra confirmation.
+8. browser back/cancel must not produce success.
+9. replay/cross-transaction callback rejection.
+10. rotation/activity recreation while a form is active.
+11. process recreation / active transaction restoration where Android allows.
+12. image/file upload on representative Android WebView versions.
+13. geopoint permission grant/deny flow.
+14. `st` and callback token absent from flat/FULL outputs and saved result package.
+15. precooked Enketo session with fixed + protocol-piped + ODK runtime mappings.
+16. invalid/missing mapping source produces visible error and sends no API request.
+17. timeout/cancel/failure removes active secret state.
+
+## Packaging checks
+
+Final delivery must contain exactly one top-level `webactions/` folder and no MethodMesh app tree.
+
+## v0.05 kiosk-form repair
+
+- Replaced the fixed-height embedded form panel with a full-screen `Dialog` surface.
+- Live Central, Precooked Enketo, and generic roundtrip WebViews now receive the full remaining viewport (`weight(1f)`) instead of a hard-coded 590 dp window.
+- Dashboard/setup/result UI is hidden while the form is active.
+- Explicit **Exit form** is the only kiosk dismissal path; merely leaving/returning is never treated as successful completion.
+- The one-shot callback still drives the automatic transition back to MethodMesh completion/Commit state.
+- File chooser, camera/content selection, geolocation delegation, WebView pooling, rotation survival, timeout and callback handling remain on the existing transaction path.
+
+- Callback interception freezes the submitted page before leaving the kiosk to avoid a navigation/reset race.
+
+
+## v0.10 post-submit loop regression
+
+- Kobo `/x/` links are no longer rewritten to an invented `/single/` path. Kobo collection mode is owned by the link/provider configuration.
+- `return_url` remains the preferred completion mechanism.
+- Central/Kobo kiosk sessions additionally detect only a visible, strong provider success dialog while the transaction is still WAITING.
+- Provider confirmation immediately stops/pauses the WebView before Compose returns to MethodMesh, preventing creation of the next blank auto-saved record.
+- `Unsaved Record Found`, browser Back, page reload, and a fresh blank form are explicitly not completion signals.
+- Canonical output records whether completion came from `central_return_url` or `provider_submission_confirmation`; callback_received is false for the fallback path.
+
+## v0.10 online-only kiosk checks
+
+- Central launch refuses to start without a validated Internet connection.
+- Central WebView uses `WebSettings.LOAD_NO_CACHE`.
+- Cache, form data and WebStorage are cleared at session start and teardown.
+- Best-effort service-worker and Cache Storage removal is injected after page load.
+- Provider Save Draft controls are hidden in the Central kiosk.
+- A MutationObserver latches strong submission-success text after a Submit/Complete action, avoiding the prior polling race with short-lived Enketo thank-you UI.
+- The success latch is polled at 100 ms and immediately freezes the page before returning to MethodMesh.
+
+## v0.10 kiosk exit / submit-return regression
+
+- Automatic capability start is one-shot per screen lifetime. Leaving the kiosk cannot re-enter it merely because the waiting branch leaves composition.
+- `Exit form` destroys the active transaction and returns to the MethodMesh setup/result surface without reopening the URL.
+- Central provider-success polling performs a fresh visible-DOM scan every 100 ms in addition to the MutationObserver latch, covering short-lived Enketo thank-you modals and DOM replacement.
+- Recognised Enketo success strings include the upstream English messages `Submission Successful`, `Your data was submitted!`, `Thank you for participating!`, and `You can close this window now`, plus close variants used by hosted providers.
+- Save-draft, record-list and offline affordances are best-effort hidden in the Central online-only kiosk; persistent WebStorage/cache state is purged at session start and teardown.
+
+
+## v0.10 completion landing regression
+
+- Successful `web.odk_central_roundtrip` completion no longer exposes an extra manual Commit gate for interactive/native runs.
+- The terminal result is frozen immediately and rendered on the normal MethodMesh Done / Share / Copy / Save landing surface.
+- Automatic-return invocations (`context.submitsImmediately`, including ODK/protocol/external intent flows) call `onConfirmed` immediately and do not pause on the landing page.
+- The transient callback-received frame contains no Commit action and only exists while the canonical result is being finalised.

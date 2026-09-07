@@ -1,0 +1,44 @@
+---
+title: "Calibrated scale"
+subtitle: "Module reference · calibratedscale"
+---
+
+<div class="status-box status-production"><strong>Master Book production evidence:</strong> <code>calibrated_scale</code></div>
+
+Current MethodMesh module.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>calibratedscale</code></div>
+<div><strong>Source directory</strong><code>calibratedscale</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>4</div>
+<div><strong>Source docs</strong>1</div>
+<div><strong>Explicit source status labels</strong>Production</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `calibrated_scale` | Calibrated Scale |  | <span class="badge-prod">polished production</span> | intent example |
+
+## ODK / XLSForm examples
+
+- [example_odk_calibrated_scale.xlsx](../source-docs/calibratedscale/example_odk_calibrated_scale.xlsx)
+- [example_odk_calibrated_scale_MinMax.xlsx](../source-docs/calibratedscale/example_odk_calibrated_scale_MinMax.xlsx)
+- [example_odk_calibrated_scale_Range.xlsx](../source-docs/calibratedscale/example_odk_calibrated_scale_Range.xlsx)
+- [example_odk_calibrated_scale_Vertical.xlsx](../source-docs/calibratedscale/example_odk_calibrated_scale_Vertical.xlsx)
+
+## Module-local documentation
+
+- [Calibrated scale measurement](../source-docs/calibratedscale/README_CalibratedScale.qmd) — `README_CalibratedScale.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

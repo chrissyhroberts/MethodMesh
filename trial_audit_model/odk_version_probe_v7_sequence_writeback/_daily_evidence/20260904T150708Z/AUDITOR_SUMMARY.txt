@@ -1,0 +1,41 @@
+METHODMESH DAILY TRIAL EVIDENCE
+========================================================================
+Central:                 https://central.lshtm.ac.uk
+Project / Form:          231 / methodmesh_capability_chain_showcase
+Evidence window:         2026-09-03T15:07:08.558666+00:00 -> 2026-09-04T15:07:08.558666+00:00
+
+PROVENANCE
+Logical submissions:     3
+Retained-version records:     2
+Zero-version anomalies:       1
+Original crypto verified:     2 / 2
+Human edit events:            4
+Reasons associated:           0
+New reasons unresolved:       4
+Integrity unresolved:         0
+Research values copied into this report: NO
+
+CENTRAL / SYSTEM
+Metadata endpoints read:     12 / 17
+Server audit events:          0
+
+SERVICE OBSERVATIONS
+Probe observations:           1
+HTTP successes:               1
+API successes:                1
+Unexpected open ports:   none
+
+DAILY CRYPTOGRAPHIC CHECKPOINT
+Evidence Merkle root:    0696fd74a44f510d6b073c88fc38f0723bbe5e3738a8e4af984ce53cb3651a2f
+Checkpoint SHA-256:      06a9b70d9aec013f3cbe513fbaacc4a3b464178915cf84f658423a591674bda1
+Previous checkpoint:     GENESIS
+RFC3161 status:          rfc3161_verified
+RFC3161 time:            2026-09-04T15:07:11+00:00
+
+AUDIT INTERPRETATION
+PASS - privacy-safe evidence snapshot completed.
+
+NOTE
+Changed-field evidence contains field names/labels only. Old and new
+research values are deliberately excluded. Raw XML/attachments remain
+inside the restricted verification archive for issue-specific review.

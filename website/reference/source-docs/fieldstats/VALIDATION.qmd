@@ -1,0 +1,83 @@
+---
+title: "Field Statistics v0.1.0 — validation report"
+subtitle: "Module source document · Field Statistics"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/fieldstats/docs/VALIDATION.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+## Completed in the authoring environment
+
+### Pure Kotlin calculation engine
+
+`FieldStatsEngine.kt` compiles independently with Kotlin/JVM 1.9.0.
+
+Smoke/reference tests passed for:
+
+- inverse-normal 95% critical value;
+- Wilson interval for `7/83`;
+- single-proportion sample size with and without FPC/design-effect/non-response inflation;
+- detect-at-least-one sample size;
+- zero-event exact upper bound and rule-of-three output;
+- finite-population hypergeometric detection calculations;
+- diagnostic 2×2 metrics and alternate-prevalence PPV/NPV;
+- diagnostic edge case with no test-positive observations: PPV undefined but other estimable metrics retained;
+- two-group risk difference, RR, OR and NNT interpretation;
+- descriptive statistics and quantiles;
+- two-proportion sample size;
+- diagnostic precision sample size;
+- ROC/AUC and Youden-optimal threshold;
+- binomial, Poisson and normal probability calculations.
+
+Reference vectors are in `TEST_VECTORS.md`.
+
+### Method / module / Compose contract smoke compile
+
+The complete Field Statistics source set compiles against focused stubs matching the current public MethodMesh contracts used by the module:
+
+- `MethodMeshModule` and module auto-discovery contract;
+- `MethodSetting` types and constructor signatures;
+- `As100Method` / execution result contracts;
+- `CapabilityScreenContext`, `CapabilityScreenSpec`, and `CapabilityScreenScaffold`;
+- Compose APIs used by the calculator and ROC screens.
+
+This smoke compile catches Kotlin syntax and public-surface mismatches but is not a substitute for the real Android Gradle build.
+
+## Design checks completed
+
+- All ten methods are declared `Development`.
+- Module ID is `fieldstats`.
+- Stable method IDs all use the `fieldstats.*` namespace.
+- All public inputs are declared in `capabilitySettings()`.
+- Standard calculators use compact `fieldstats_value` main results plus explicit scalar outputs and `fieldstats_audit_json`.
+- Result state is saveable/reconstructable across Compose recreation.
+- Fixed native-preset settings are hidden through `settingShouldBeShown(...)`.
+- External automatic-return execution excludes internal `intent_test` launches.
+- ROC native/preset presentation follows the persistent-dashboard pattern: latest real result retained locally, scaffold result withheld until **Use this snapshot** / **Finish**.
+- ROC external/ODK execution remains single-shot.
+- Calculations are offline/local and require no permissions or external services.
+- Random sampling is not reimplemented; that remains the responsibility of `sampling.run`.
+- No current MethodMesh value-piping behaviour is assumed.
+
+## Not validated in this environment
+
+A complete Android MethodMesh checkout was not mounted here, so these integration checks remain required before Production promotion:
+
+1. Copy the canonical folder to:
+   `app/src/main/java/com/example/methodmesh/modules/fieldstats/`
+2. Run:
+   `./gradlew :app:assembleDebug`
+3. Run every calculator natively on an Android device/emulator.
+4. Verify portrait/landscape or activity recreation preserves entered settings and completed results.
+5. Create native presets for every method; verify fixed settings hide and runtime inputs remain editable.
+6. Verify ROC native preset stays on the live dashboard until **Finish**.
+7. Verify ROC normal native dashboard stays live until **Use this snapshot**.
+8. Verify protocol/sequence execution does not become trapped on the ROC dashboard.
+9. Verify each XLSForm in ODK Collect returns the documented fields.
+10. Verify normal share/export shows the useful compact result while FULL payload retains audit metadata.
+11. Add the repository-level roadmap note from `ROADMAP_NOTE.md` to `000_Roadmap.md`.
+
+Until these checks pass, keep the module in **Development**.
+

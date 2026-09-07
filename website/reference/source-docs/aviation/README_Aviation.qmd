@@ -1,0 +1,629 @@
+---
+title: "MethodMesh Aviation tools"
+subtitle: "Module source document · Aviation tools"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/aviation/docs/README_Aviation.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+Status: **Development**  
+Module ID: `aviation`  
+Version: `0.3.2`
+
+This module is a first working aviation slice for MethodMesh. It is deliberately built as small reusable capabilities rather than one monolithic pilot application.
+
+The six methods in v0.3.2 are:
+
+| Method ID | Main job |
+| --- | --- |
+| `aviation.dashboard` | Persistent GPS-aware aviation dashboard with nearby airfields, runway context, telemetry and optional condition calculations. |
+| `aviation.emergency.instruments` | Persistent emergency-reference panel using phone GNSS, barometer and device sensors with explicit source/quality labelling. |
+| `aviation.airfield.nearby` | Find nearby aerodromes from current GPS or supplied/piped coordinates. |
+| `aviation.runway.wind` | Calculate headwind, tailwind and crosswind components. |
+| `aviation.altitude.calculate` | Calculate pressure altitude and approximate density altitude. |
+| `aviation.e6b.calculate` | Calculate common time/distance/speed/fuel/endurance/range quantities. |
+
+All six methods are Development capabilities. `aviation.dashboard` and `aviation.emergency.instruments` opt into the generic MethodMesh `CapabilityHostPresentation.Immersive` host; the four compact atomic tools remain `Standard`. They are planning/reference aids, not certified flight instruments or substitutes for current official aeronautical information, NOTAMs, meteorological briefings, ATC instructions, an aircraft AFM/POH, or pilot judgement.
+
+## Design principles
+
+The native UI follows the MethodMesh control rule: sense or derive first, structured selection second, numeric entry third, free text only where genuinely necessary.
+
+- Nearby-airfield location is obtained from supplied/piped coordinates when they exist, otherwise from Android GPS/location services.
+- Latitude and longitude are not exposed as ordinary native text boxes.
+- Radius, result count, cache policy, QNH unit, E6B calculation type and fuel units use dropdowns.
+- Airfield types use checkboxes.
+- Gust inclusion uses a checkbox.
+- Continuous quantities such as wind speed, pressure and temperature use numeric entry.
+- Native preset runs hide fixed settings and request only runtime fields.
+- Atomic capability inputs/results use saveable state where appropriate; the live dashboard preserves its settings/selections and safely refreshes contextual data after activity recreation.
+
+
+## 1. Persistent aviation dashboard
+
+Method ID: `aviation.dashboard`
+
+The dashboard is the native entry surface for the aviation pack. It follows the MethodMesh persistent-dashboard pattern rather than the normal capture-result pattern.
+
+### Native behaviour
+
+- A normal MethodMesh dashboard/browser launch refreshes in place and remains on the aviation dashboard.
+- A native preset also remains on the dashboard after refresh and exposes **Finish** only after a successful snapshot exists.
+- **Refresh** replaces the in-memory preview/snapshot; it does not itself commit another result to the MethodMesh graph.
+- **Use this snapshot** / **Finish** explicitly returns the latest successful `ExecutionResult`.
+- `intent_test` is treated as an interactive internal launch rather than being mistaken for an external machine caller.
+
+The implementation keeps the genuine latest result in capability-owned state while the native dashboard stays live. In v0.3.2 the dashboard opts into `CapabilityHostPresentation.Immersive`, owns its fixed aviation toolbar, bounded scroll region and snapshot footer, and performs external automatic return directly from the capability lifecycle. No capability-specific branch is added to the MethodMesh host.
+
+
+### Immersive native hosting (v0.3.2)
+
+The dashboard requests the generic MethodMesh immersive presentation because host-owned padding, Home chrome and outer scrolling interfere with the flight-deck layout. The capability therefore owns:
+
+- a fixed aviation title/status bar with explicit **Back** (when applicable) and **Exit**;
+- one bounded, capability-owned vertical scroll region;
+- a fixed **Use this snapshot / Finish** footer for persistent native use;
+- unchanged one-shot external/ODK return semantics.
+
+The host still knows only `Standard` versus `Immersive`; there is no aviation-specific logic in `HomeScreen.kt`.
+
+### External / ODK behaviour
+
+External callers and protocol/sequence steps are not trapped on the native dashboard. They refresh once, produce the same structured snapshot, and follow normal MethodMesh automatic-return/completion behaviour.
+
+This gives one method two presentation modes:
+
+```text
+native / native preset -> persistent interactive flight-deck view
+external / ODK         -> single-shot structured snapshot
+```
+
+### Dashboard feed
+
+The dashboard does not invoke other capability screens to obtain values. It shares the same underlying engines and repositories as the atomic methods:
+
+```text
+Android / supplied location
+        |
+        +--> AviationAirfieldRepository -> nearby-airfield cards
+        |                              -> runway-end selector
+        |
+        +--> Android Location metadata -> GPS accuracy / GNSS altitude / groundspeed / track
+        |
+        +--> AviationCalculations / atomic method engines
+                 -> runway wind components when conditions are enabled
+                 -> pressure / density altitude when conditions are enabled
+```
+
+A refresh therefore does the following:
+
+1. Use supplied/piped coordinates if present; otherwise obtain the current Android GPS location.
+2. Search the locally cached OurAirports airport catalogue within the configured radius.
+3. Select the requested airfield when supplied, otherwise the nearest matching airfield.
+4. Load the cached OurAirports runway catalogue for that airfield.
+5. Select the requested runway end when supplied, otherwise the first available runway end.
+6. If current conditions are enabled, use the selected runway heading for the existing runway-wind engine and the selected airfield elevation for the existing altitude engine.
+7. Build one auditable `aviation.dashboard` snapshot.
+
+The UI presents this as an instrument-style view rather than a form:
+
+- nearest-airfield hero card;
+- GPS groundspeed/track and fix metadata;
+- horizontally selectable nearby-airfield cards;
+- structured runway dropdown populated from the runway catalogue;
+- optional current-conditions panel;
+- headwind/crosswind and pressure/density-altitude metric cards;
+- catalogue freshness/source warning panel;
+- a single explicit snapshot/finish action for persistent native use.
+
+Latitude and longitude are never ordinary native text inputs.
+
+### Runway catalogue
+
+The persistent dashboard uses the public-domain OurAirports runway dataset:
+
+- https://davidmegginson.github.io/ourairports-data/runways.csv
+
+For conventional numbered runway ends, MethodMesh derives the approximate magnetic centreline from the designator (`09` -> `090°`, `27R` -> `270°`, `36` -> `360°`). For a non-numeric designator where a heading is available, it falls back to the published `le_heading_degT` / `he_heading_degT` value and records `true_heading_fallback` in the audit data. The dashboard labels the displayed heading as approximate and remains a planning/reference aid.
+
+### Dashboard settings
+
+| Setting | Control | Default |
+| --- | --- | --- |
+| `radius_nm` | dropdown | `25` |
+| `airfield_types` | checkboxes | large + medium + small airports |
+| `scheduled_only` | checkbox | `false` |
+| `max_results` | dropdown | `10` |
+| `refresh_policy` | dropdown | `refresh_if_stale` |
+| `conditions_enabled` | checkbox | `false` |
+| `wind_direction_deg` | numeric | only used when conditions enabled |
+| `wind_speed_kt` | numeric | only used when conditions enabled |
+| `include_gust` | checkbox | `false` |
+| `gust_speed_kt` | numeric | conditional |
+| `qnh_unit` | dropdown | `hpa` |
+| `qnh_value` | numeric | `1013.25` but ignored until conditions are enabled |
+| `oat_c` | numeric | `15` but ignored until conditions are enabled |
+
+Dynamic airfield and runway choices are structured selectors in the dashboard itself; they are not free-text fields.
+
+### Dashboard outputs
+
+Main result:
+
+- `aviation_dashboard_value`
+
+Selected airfield / runway:
+
+- `aviation_dashboard_airfield_ident`
+- `aviation_dashboard_airfield_name`
+- `aviation_dashboard_airfield_distance_nm`
+- `aviation_dashboard_airfield_bearing_deg`
+- `aviation_dashboard_airfield_elevation_ft`
+- `aviation_dashboard_airfield_municipality`
+- `aviation_dashboard_runway_ident`
+- `aviation_dashboard_runway_heading_deg`
+- `aviation_dashboard_runway_length_ft`
+- `aviation_dashboard_runway_surface`
+
+Telemetry/context:
+
+- `aviation_dashboard_latitude`
+- `aviation_dashboard_longitude`
+- `aviation_dashboard_location_source`
+- `aviation_dashboard_location_accuracy_m`
+- `aviation_dashboard_gps_altitude_ft`
+- `aviation_dashboard_ground_speed_kt`
+- `aviation_dashboard_track_deg`
+
+Optional calculated conditions:
+
+- `aviation_dashboard_wind_value`
+- `aviation_dashboard_headwind_kt`
+- `aviation_dashboard_tailwind_kt`
+- `aviation_dashboard_crosswind_kt`
+- `aviation_dashboard_crosswind_side`
+- `aviation_dashboard_altitude_value`
+- `aviation_dashboard_pressure_altitude_ft`
+- `aviation_dashboard_density_altitude_ft`
+
+Audit/background:
+
+- `aviation_dashboard_airfields_json`
+- `aviation_dashboard_runways_json`
+- `aviation_dashboard_airfield_catalog_updated_iso`
+- `aviation_dashboard_runway_catalog_updated_iso`
+- `aviation_dashboard_data_source`
+- `aviation_dashboard_snapshot_time_iso`
+- `aviation_dashboard_warning`
+- `aviation_dashboard_audit_json`
+- `aviation_dashboard_status`
+- `aviation_dashboard_error`
+
+## 2. Emergency reference instrument panel
+
+Method ID: `aviation.emergency.instruments`
+
+This is a deliberately conservative emergency/reference surface for a phone or tablet which remains usable when ordinary aircraft instrumentation or situational-awareness tools are degraded. It is **not** presented as a replacement six-pack and does not rename phone-derived quantities to resemble certified aircraft instruments.
+
+### UX contract
+
+The live panel is glance-first rather than form-first:
+
+- no editable text fields appear in the instrument view;
+- the screen stays awake while the panel is active;
+- GNSS and phone-sensor values update continuously;
+- the central attitude display, four primary round gauges and three source readouts remain in stable positions;
+- setup/calibration is collapsed behind **SETUP**;
+- the only prominent workflow action is **Use this snapshot** / **Finish**;
+- portrait and wider landscape/tablet layouts rearrange the same instruments without changing their labels or meaning;
+- loss of the online/reference catalogue degrades only the nearby-airfield card and never blocks the live sensor panel.
+
+The terminology is intentionally source-explicit:
+
+| Display | What it means | What it does **not** mean |
+| --- | --- | --- |
+| `GS` | GNSS groundspeed | indicated/calibrated/true airspeed |
+| `TRK` | GNSS course over ground | aircraft magnetic/true heading |
+| `GNSS ALT` | GNSS altitude reported by Android location | pressure altitude / indicated altimeter altitude |
+| `GNSS VS` | smoothed vertical rate estimated from successive GNSS altitude fixes | certified VSI indication |
+| `DEV MAG` | device magnetic heading | aircraft compass/HSI heading |
+| `BARO PA` | standard-pressure altitude calculated from the phone barometer | aircraft static-system altitude |
+| `DEVICE ATT` | mounted-device pitch/roll reference | certified aircraft attitude |
+
+The bottom safety band keeps these distinctions visible rather than relying on a one-time disclaimer.
+
+### Attitude-reference safeguards
+
+MethodMesh uses the existing shared `PhoneSensorRepository`; this capability does not implement a second sensor stack. A rotation-vector sensor is preferred. If unavailable, the repository can fall back to accelerometer/magnetometer orientation and the panel explicitly marks `ATT FALLBACK`.
+
+Attitude is invalid until the operator:
+
+1. rigidly mounts the phone/tablet;
+2. chooses the physical mount orientation from a dropdown; and
+3. presses **Set current as level** against a trustworthy level reference.
+
+Calibration stores only the device-axis offsets used by the current live panel. Until calibration exists, the visual horizon is held neutral and labelled **CALIBRATION REQUIRED** rather than animating raw device angles. Clearing calibration immediately returns to that state.
+
+A further `ATT DYNAMIC` caution is shown whenever measured acceleration magnitude is materially away from 1 g. This is intentionally conservative: sustained manoeuvring acceleration can make a gravity-referenced phone attitude display misleading even when it looks visually stable.
+
+### Degraded-state hierarchy
+
+The panel is designed to fail by component rather than fail as a page:
+
+- no/fair/poor/stale GNSS is labelled in the quality strip;
+- missing attitude sensors remove authority from the horizon without hiding other values;
+- low magnetometer accuracy is labelled `MAG LOW`;
+- missing barometer shows `NO BAROMETER` rather than fabricating pressure altitude;
+- airfield catalogue/network failure leaves the core sensor panel running;
+- no result is committed merely because the live values refresh.
+
+### Nearby-airfield reference
+
+The panel opportunistically shows the nearest three matching airfields from the same locally searched OurAirports catalogue used by `aviation.airfield.nearby`.
+
+The card deliberately says **NEAREST AIRFIELD REFERENCE**, not “nearest landing site”. Proximity alone does not establish runway length, surface condition, opening status, weather, NOTAM state, obstacles, fuel, emergency suitability, legal availability or any other operational acceptability. The structured output repeats that warning.
+
+### Persistent/native behaviour
+
+The emergency panel follows the same MethodMesh persistent-dashboard contract as `aviation.dashboard`:
+
+- normal native use remains on the live panel;
+- native presets remain live until **Finish**;
+- `intent_test` remains interactive;
+- live refresh creates new in-memory snapshots only;
+- `capturedResult` remains withheld from the generic scaffold while the native panel is active;
+- **Use this snapshot** / **Finish** explicitly returns the latest successful snapshot;
+- external/ODK execution waits briefly for sensor/GNSS stabilisation, captures once, then returns automatically.
+
+### Settings
+
+| Setting | Control | Default |
+| --- | --- | --- |
+| `mount_orientation` | dropdown | `portrait_up` |
+| `pitch_zero_deg` | numeric/piped calibration value | `0` |
+| `roll_zero_deg` | numeric/piped calibration value | `0` |
+| `attitude_calibrated` | boolean | `false` |
+| `airfield_radius_nm` | dropdown | `25` |
+| `airfield_refresh_policy` | dropdown | `refresh_if_stale` |
+
+The live native panel does not expose pitch/roll zero as text boxes; they are set through the calibration action. They remain declared inputs so a protocol/external caller can carry an explicit calibration state when appropriate.
+
+### Main outputs
+
+- `aviation_emergency_value`
+- `aviation_emergency_sensor_quality`
+- `aviation_emergency_gps_ground_speed_kt`
+- `aviation_emergency_gps_track_deg`
+- `aviation_emergency_gps_altitude_ft`
+- `aviation_emergency_gps_vertical_speed_fpm`
+- `aviation_emergency_device_pitch_deg`
+- `aviation_emergency_device_roll_deg`
+- `aviation_emergency_device_attitude_valid`
+- `aviation_emergency_device_heading_deg`
+- `aviation_emergency_pressure_hpa`
+- `aviation_emergency_pressure_altitude_ft`
+- `aviation_emergency_acceleration_magnitude_g`
+- `aviation_emergency_nearest_airfield_ident`
+- `aviation_emergency_nearest_airfield_name`
+- `aviation_emergency_nearest_airfield_distance_nm`
+- `aviation_emergency_nearest_airfield_bearing_deg`
+- `aviation_emergency_warning`
+- `aviation_emergency_snapshot_time_iso`
+- `aviation_emergency_audit_json`
+
+### External intent
+
+An external caller receives a single structured snapshot; it is not asked to interact with the persistent UI:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='aviation.emergency.instruments',input_mount_orientation=${emergency_mount_orientation},input_airfield_radius_nm=${emergency_radius},input_airfield_refresh_policy=${emergency_refresh},input_payload_mode='FULL',return_mode='flat',methodmesh_return_namespace='emergency')
+```
+
+## 3. Nearby airfields
+
+Method ID: `aviation.airfield.nearby`
+
+### Native workflow
+
+1. Choose a search radius.
+2. Select one or more airfield types.
+3. Optionally restrict results to aerodromes with scheduled service.
+4. Choose the maximum number of results.
+5. Choose the catalogue policy: refresh if stale, cache only, or force refresh.
+6. Run the capability.
+7. MethodMesh uses supplied/piped coordinates if present; otherwise it requests Android location permission and obtains the current position.
+8. Distance and initial bearing are calculated locally and the nearest matches are returned.
+
+The primary display is a compact list such as:
+
+```text
+EGXX — Example Airfield: 7.2 NM, 041°
+EGYY — Another Aerodrome: 11.8 NM, 215°
+```
+
+### Data source and privacy
+
+The airfield and runway catalogues are downloaded from the public-domain OurAirports data distribution:
+
+- https://ourairports.com/data/
+- https://davidmegginson.github.io/ourairports-data/airports.csv
+- https://davidmegginson.github.io/ourairports-data/runways.csv
+
+The CSV catalogues are cached in module-owned app storage and refreshed when older than 24 hours unless the caller selects another policy.
+
+The GPS coordinates are **not sent to OurAirports**. MethodMesh downloads the catalogue and performs the proximity calculation locally on the device.
+
+OurAirports explicitly does not guarantee the accuracy or fitness-for-use of its data. Treat the result as a convenient discovery/reference layer and verify operational aerodrome information against the applicable official AIS/AIP and current notices.
+
+### Inputs
+
+| Input | Type / values | Notes |
+| --- | --- | --- |
+| `latitude` | decimal | Optional supplied/piped latitude. Native UI normally obtains GPS automatically. |
+| `longitude` | decimal | Optional supplied/piped longitude. Native UI normally obtains GPS automatically. |
+| `radius_nm` | choice | `5`, `10`, `25`, `50`, `100`, `200`; default `25`. |
+| `airfield_types` | multi-choice | Pipe-delimited values such as `large_airport|medium_airport|small_airport`. |
+| `scheduled_only` | boolean | Default `false`. |
+| `max_results` | choice | `5`, `10`, `20`, `50`; default `10`. |
+| `refresh_policy` | choice | `refresh_if_stale`, `cache_only`, `force_refresh`. |
+
+The method also accepts normal MethodMesh `input_...` and `previous_...` aliases for chained/external use.
+
+### Outputs
+
+Main result:
+
+- `airfield_nearby_value`
+
+Core fields:
+
+- `airfield_nearby_count`
+- `airfield_nearest_ident`
+- `airfield_nearest_name`
+- `airfield_nearest_distance_nm`
+- `airfield_nearest_bearing_deg`
+- `airfield_nearest_latitude`
+- `airfield_nearest_longitude`
+- `airfield_nearest_elevation_ft`
+
+Audit/background fields:
+
+- `airfield_query_latitude`
+- `airfield_query_longitude`
+- `airfield_location_source`
+- `airfield_catalog_updated_iso`
+- `airfield_data_source`
+- `airfield_warning`
+- `airfield_nearby_audit_json`
+- `airfield_nearby_status`
+- `airfield_nearby_error`
+
+### Offline behaviour
+
+After the catalogue has been downloaded once, `cache_only` works completely offline. `refresh_if_stale` attempts a refresh when the cache is older than 24 hours and falls back to the existing cache if a network refresh fails. `force_refresh` always attempts a download.
+
+### Permissions/services
+
+- `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` when GPS is required.
+- Internet access only for catalogue refresh.
+- Google Play Services location support already present in MethodMesh.
+
+### Development limitation
+
+`aviation.airfield.nearby` currently performs GPS and catalogue access at its Android capability boundary. Native and ODK/intent runs work through that screen. A fully headless scheduled execution that has neither supplied coordinates nor a prepared catalogue is not implemented in v0.3.
+
+## 4. Runway wind components
+
+Method ID: `aviation.runway.wind`
+
+This is a pure offline calculation.
+
+### Inputs
+
+| Input | Type | Notes |
+| --- | --- | --- |
+| `runway_heading_deg` | integer 0–360 | Magnetic runway heading in degrees. |
+| `wind_direction_deg` | integer 0–360 | Direction the wind is **from**. |
+| `wind_speed_kt` | decimal | Steady wind in knots. |
+| `include_gust` | boolean | Native/preset UI control. |
+| `gust_speed_kt` | decimal | Optional gust speed in knots. |
+
+### Outputs
+
+Main result:
+
+- `runway_wind_value`
+
+Core fields:
+
+- `runway_headwind_kt`
+- `runway_tailwind_kt`
+- `runway_crosswind_kt`
+- `runway_crosswind_side`
+- `runway_gust_headwind_kt`
+- `runway_gust_tailwind_kt`
+- `runway_gust_crosswind_kt`
+
+Audit/background:
+
+- `runway_wind_audit_json`
+- `runway_wind_status`
+- `runway_wind_error`
+
+The calculation uses standard trigonometric vector resolution. The result does not determine whether a given aircraft/runway operation is acceptable; compare it with the applicable AFM/POH, operating procedures and current conditions.
+
+## 5. Pressure and density altitude
+
+Method ID: `aviation.altitude.calculate`
+
+This is a pure offline planning calculation.
+
+### Inputs
+
+| Input | Type / values | Notes |
+| --- | --- | --- |
+| `field_elevation_ft` | decimal | May be piped directly from `airfield_nearest_elevation_ft`. |
+| `qnh_unit` | choice | `hpa` or `inhg`. |
+| `qnh_value` | decimal | Valid operational range is checked after unit conversion. |
+| `oat_c` | decimal | Outside-air temperature in °C. |
+
+Aliases include `airfield_nearest_elevation_ft`, `elevation_ft`, `qnh_hpa`, `qnh_inhg`, `pressure_hpa` and `temperature_c`.
+
+### Outputs
+
+Main result:
+
+- `aviation_altitude_value`
+
+Core fields:
+
+- `pressure_altitude_ft`
+- `density_altitude_ft`
+- `isa_temperature_c`
+- `isa_deviation_c`
+- `qnh_hpa`
+
+Audit/background:
+
+- `aviation_altitude_audit_json`
+- `aviation_altitude_status`
+- `aviation_altitude_error`
+
+Pressure altitude uses a standard-atmosphere pressure correction. Density altitude uses the common planning approximation of 120 ft per °C departure from ISA at the pressure altitude. Use aircraft AFM/POH performance data for actual aircraft operation.
+
+## 6. E6B flight calculator
+
+Method ID: `aviation.e6b.calculate`
+
+This is a pure offline calculation with a calculation selector that exposes only the numeric fields required for the selected operation.
+
+### Calculations
+
+- `time_from_distance_speed`
+- `distance_from_speed_time`
+- `speed_from_distance_time`
+- `fuel_required`
+- `endurance`
+- `range`
+
+### Inputs
+
+- `calculation`
+- `distance_nm`
+- `groundspeed_kt`
+- `time_minutes`
+- `fuel_unit`: `L`, `US gal`, `Imp gal`, or `kg`
+- `fuel_available`
+- `fuel_burn_per_hour`
+
+Fuel available and fuel burn must use the same selected unit.
+
+### Outputs
+
+Main result:
+
+- `aviation_e6b_value`
+
+Core fields:
+
+- `aviation_e6b_result`
+- `aviation_e6b_result_unit`
+- `aviation_e6b_calculation`
+
+Audit/background:
+
+- `aviation_e6b_audit_json`
+- `aviation_e6b_status`
+- `aviation_e6b_error`
+
+## Presets and chaining
+
+All methods accept their configuration through the normal MethodMesh setting machinery. Fixed preset settings are not asked for again during native preset runs.
+
+Useful chain examples include:
+
+```text
+aviation.airfield.nearby
+    -> airfield_nearest_elevation_ft
+    -> aviation.altitude.calculate / field_elevation_ft
+```
+
+and, when weather/route providers are added later:
+
+```text
+route distance -> aviation.e6b.calculate / distance_nm
+METAR wind     -> aviation.runway.wind / wind_direction_deg + wind_speed_kt
+METAR QNH/OAT  -> aviation.altitude.calculate / qnh_value + oat_c
+```
+
+The method parsers accept `previous_<field>` aliases so normal MethodMesh protocol pipes can feed these values without capability-specific shared-framework logic.
+
+## ODK/XLSForm workflow
+
+The module-owned example is:
+
+[`example_odk_Aviation.xlsx`](example_odk_Aviation.xlsx)
+
+As with other MethodMesh capabilities, put the external application call on a `begin_group` row in `body::intent`; the group children are returned fields.
+
+### Persistent dashboard intent
+
+External invocation is deliberately single-shot: it refreshes once and returns without requiring **Use this snapshot** / **Finish**.
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='aviation.dashboard',input_radius_nm=${dashboard_radius},input_airfield_types=${dashboard_types_pipe},input_max_results=${dashboard_max_results},input_refresh_policy=${dashboard_refresh},input_conditions_enabled=${dashboard_conditions},input_wind_direction_deg=${dashboard_wind_direction},input_wind_speed_kt=${dashboard_wind_speed},input_include_gust=${dashboard_include_gust},input_gust_speed_kt=${dashboard_gust_speed},input_qnh_unit=${dashboard_qnh_unit},input_qnh_value=${dashboard_qnh},input_oat_c=${dashboard_oat},input_payload_mode='FULL',return_mode='flat',methodmesh_return_namespace='dashboard')
+```
+
+### Nearby-airfield intent
+
+No GPS coordinate question is required in the form. The Android capability obtains current location if latitude/longitude were not supplied.
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='aviation.airfield.nearby',input_radius_nm=${nearby_radius},input_airfield_types=${nearby_types_pipe},input_scheduled_only=${nearby_scheduled},input_max_results=${nearby_max_results},input_refresh_policy=${nearby_refresh},input_payload_mode='FULL',return_mode='flat',methodmesh_return_namespace='nearby')
+```
+
+### Runway-wind intent
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='aviation.runway.wind',input_runway_heading_deg=${wind_runway},input_wind_direction_deg=${wind_direction},input_wind_speed_kt=${wind_speed},input_gust_speed_kt=${wind_gust},input_payload_mode='FULL',return_mode='flat',methodmesh_return_namespace='wind')
+```
+
+### Altitude intent chained from nearby-airfield output
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='aviation.altitude.calculate',input_field_elevation_ft=${nearby_airfield_nearest_elevation_ft},input_qnh_unit=${alt_qnh_unit},input_qnh_value=${alt_qnh},input_oat_c=${alt_oat},input_payload_mode='FULL',return_mode='flat',methodmesh_return_namespace='altitude')
+```
+
+### E6B intent
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='aviation.e6b.calculate',input_calculation=${e6b_calculation},input_distance_nm=${e6b_distance},input_groundspeed_kt=${e6b_speed},input_time_minutes=${e6b_time},input_fuel_unit=${e6b_fuel_unit},input_fuel_available=${e6b_fuel},input_fuel_burn_per_hour=${e6b_burn},input_payload_mode='FULL',return_mode='flat',methodmesh_return_namespace='e6b')
+```
+
+Each example requests `FULL` payload mode so the useful flat result is available alongside `methodmesh_full_json` for the audit envelope.
+
+## Known limitations / next work
+
+The following are intentionally left for later tranches rather than shipped as half-implemented stubs in v0.3:
+
+- METAR/TAF aviation weather adapter;
+- SIGMET/route-warning intersection;
+- jurisdiction-specific NOTAM providers;
+- frequency/detail lookup beyond the current runway-end selector;
+- route planner;
+- aircraft profiles and weight/balance;
+- GPS flight-track recorder and flight log;
+- ADS-B traffic.
+
+The intended next step is to add those as separate MethodMesh methods or declarative online-data providers while preserving this module's structured-input and piping conventions. Official/authoritative feeds should remain distinguishable from open reference and supplementary data.
+
+## Safety-design references for portable devices
+
+The conservative labelling/mounting assumptions in the emergency panel are consistent with current portable-EFB and low-cost portable-device guidance. These references do not constitute approval of MethodMesh as an EFB or flight instrument:
+
+- UK CAA — Electronic flight bags: https://www.caa.co.uk/Commercial-industry/Aircraft/Airworthiness/Aircraft-equipment/Electronic-flight-bags/
+- FAA AC 120-76E — Authorization for Use of Electronic Flight Bags: https://www.faa.gov/regulations_policies/advisory_circulars/index.cfm/go/document.information/documentID/1042829
+- UK CAA CAP1391 — Electronic Conspicuity devices: https://www.caa.co.uk/data-and-publications/publications/documents/content/cap1391/
+

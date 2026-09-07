@@ -1,0 +1,65 @@
+---
+title: "Lab Bench"
+subtitle: "Module reference · labbench"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Offline laboratory calculators for dilutions, solution preparation, master mixes, centrifugation, cell work and common bench planning.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>labbench</code></div>
+<div><strong>Source directory</strong><code>labbench</code></div>
+<div><strong>Indexed methods</strong>13</div>
+<div><strong>XLSForms</strong>13</div>
+<div><strong>Source docs</strong>1</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `labbench.aliquot` | plan aliquots | Plan aliquot count or size | <span class="badge-source">current source</span> | RIL binding, method source |
+| `labbench.cell_dilution` | calculate cell dilution | Calculate cell or OD dilution | <span class="badge-source">current source</span> | RIL binding, method source |
+| `labbench.centrifuge` | convert centrifuge rcf rpm | Convert RCF and RPM | <span class="badge-source">current source</span> | RIL binding, method source |
+| `labbench.concentration` | convert concentration | Convert laboratory concentration units | <span class="badge-source">current source</span> | RIL binding, method source |
+| `labbench.dashboard` | open lab bench | Open the persistent laboratory calculator dashboard | <span class="badge-source">current source</span> | RIL binding, capability screen, method source |
+| `labbench.dilution` | calculate dilution | Calculate stock and diluent volumes | <span class="badge-source">current source</span> | RIL binding, method source |
+| `labbench.hemocytometer` | calculate hemocytometer count | Calculate cells per mL and viability | <span class="badge-source">current source</span> | RIL binding, method source |
+| `labbench.master_mix` | calculate master mix | Scale a reaction master mix | <span class="badge-source">current source</span> | RIL binding, method source |
+| `labbench.molar_solution` | prepare molar solution | Calculate molar solution preparation | <span class="badge-source">current source</span> | RIL binding, method source |
+| `labbench.nucleic_acid` | calculate nucleic acid | Calculate DNA/RNA molarity or copy number | <span class="badge-source">current source</span> | RIL binding, method source |
+| `labbench.percent_solution` | prepare percent solution | Prepare percent solutions | <span class="badge-source">current source</span> | RIL binding, method source |
+| `labbench.reconstitute` | reconstitute reagent | Calculate reagent reconstitution volume | <span class="badge-source">current source</span> | RIL binding, method source |
+| `labbench.serial_dilution` | plan serial dilution | Plan a serial dilution series | <span class="badge-source">current source</span> | RIL binding, method source |
+
+## ODK / XLSForm examples
+
+- [example_odk_labbench.aliquot.xlsx](../source-docs/labbench/example_odk_labbench.aliquot.xlsx)
+- [example_odk_labbench.cell_dilution.xlsx](../source-docs/labbench/example_odk_labbench.cell_dilution.xlsx)
+- [example_odk_labbench.centrifuge.xlsx](../source-docs/labbench/example_odk_labbench.centrifuge.xlsx)
+- [example_odk_labbench.concentration.xlsx](../source-docs/labbench/example_odk_labbench.concentration.xlsx)
+- [example_odk_labbench.dashboard.xlsx](../source-docs/labbench/example_odk_labbench.dashboard.xlsx)
+- [example_odk_labbench.dilution.xlsx](../source-docs/labbench/example_odk_labbench.dilution.xlsx)
+- [example_odk_labbench.hemocytometer.xlsx](../source-docs/labbench/example_odk_labbench.hemocytometer.xlsx)
+- [example_odk_labbench.master_mix.xlsx](../source-docs/labbench/example_odk_labbench.master_mix.xlsx)
+- [example_odk_labbench.molar_solution.xlsx](../source-docs/labbench/example_odk_labbench.molar_solution.xlsx)
+- [example_odk_labbench.nucleic_acid.xlsx](../source-docs/labbench/example_odk_labbench.nucleic_acid.xlsx)
+- [example_odk_labbench.percent_solution.xlsx](../source-docs/labbench/example_odk_labbench.percent_solution.xlsx)
+- [example_odk_labbench.reconstitute.xlsx](../source-docs/labbench/example_odk_labbench.reconstitute.xlsx)
+- [example_odk_labbench.serial_dilution.xlsx](../source-docs/labbench/example_odk_labbench.serial_dilution.xlsx)
+
+## Module-local documentation
+
+- [Lab Bench](../source-docs/labbench/README_LabBench.qmd) — `README_LabBench.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

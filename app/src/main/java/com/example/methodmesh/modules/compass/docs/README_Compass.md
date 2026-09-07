@@ -1,231 +1,260 @@
-# Compass
+# Compass — MethodMesh v1.05 refresh
 
-`compass.read` is a Development-stage MethodMesh navigation/orientation capability for reading a magnetic heading and sighting either magnetic North or a manually configured bearing.
+`compass.read` is the canonical MethodMesh compass capability for reading a phone magnetic heading and sighting either magnetic North or a configured bearing.
 
-**Status:** Development  
 **Module:** `compass`  
-**Method:** `compass.read`  
-**Version:** `0.1.0`
+**Method ID:** `compass.read`  
+**Capability version:** `0.2.0`  
+**Lane:** Development  
+**MethodMesh target:** v1.05
 
-## What it does
+The v1.05 refresh is a migration of the existing capability. The established method ID, setting keys, input semantics and output field names are preserved.
 
-- shows a polished flat-phone compass with a large numeric heading and 16-point cardinal direction;
-- uses the existing shared `PhoneSensorRepository` rather than implementing a second orientation stack;
-- offers a vertical **Sight target** mode using the shared rear-camera optical-axis heading already used by GPS target navigation;
-- optionally displays the shared `LiveCameraPreview` behind the sighting overlay;
-- shows a thick central sighting ring that turns green when the phone is within a configurable angular tolerance of the target;
-- targets either **magnetic North (0°)** or a manually entered bearing from 0–359.9°;
-- captures a compact human-readable main result plus structured fields and audit JSON;
-- runs fully offline.
+## Capability contract and surface parity
 
-## Design / reuse
+There is one canonical capability: `compass.read`.
 
-The module intentionally does not copy the GPS navigator's private implementation. It consumes shared platform boundaries that already exist in MethodMesh:
+- **Dashboard:** the auto-discovered module presence uses the module metadata and `iconKey="location"`; it launches the same `compass.read` capability. There is no dashboard-only compass implementation.
+- **Direct native use:** opens the purpose-built compass instrument.
+- **Presets:** `compass.read` remains independently selectable. Fixed preset values are hidden at runtime; declared runtime fields remain editable.
+- **Protocols:** `compass.read` remains an independent protocol step. Commit returns the canonical payload to the protocol runner.
+- **Schedules/widgets:** where the host launches the capability interactively, it uses the same method and screen. Widget-origin completion respects `methodmesh_finish_to_launcher`.
+- **ODK/XLSForm:** `compass.read` is invoked through the normal grouped intent route. Commit returns the same canonical fields to ODK; every declared output remains transport-addressable.
 
-- `PhoneSensorRepository.headingDegrees` for the normal flat-phone compass;
-- `PhoneSensorRepository.rearCameraHeadingDegrees` for vertical sighting along the rear-camera optical axis;
-- `PhoneSensorRepository.pitchDegrees` and `rollDegrees` for capture metadata;
-- `PhoneSensorRepository.readings["magnetometer"]?.accuracy` for Android sensor-accuracy metadata;
-- `LiveCameraPreview` for the optional rear-camera background.
+No central capability registration or shared dashboard special case is required.
 
-The existing phone-sensor repository prefers Android's rotation-vector sensor and falls back to accelerometer + magnetometer orientation when required. This Compass module does not add another sensor listener or orientation algorithm.
+## Native v1.05 interaction
+
+The production interaction is now instrument-first rather than settings-form-first:
+
+1. The live compass is at the top of the screen.
+2. Heading, target and angular error update in place.
+3. Tap any displayed useful value to copy its value to the clipboard.
+4. **Commit reading** freezes the canonical result for this execution.
+5. The live compass remains visible after Commit; the frozen committed result does not silently change as the sensor moves.
+6. After Commit, the same screen exposes Copy, Share, Save, optional full JSON, Technical details and Done.
+7. Settings are below the instrument.
+8. **Sight** opens the full-screen rear-camera-axis sight. Its button is also explicitly **Commit reading**.
+
+If settings are changed after a commit, the committed payload stays frozen and the UI says that a recommit is required to replace it.
+
+### Launch-origin closeout
+
+- normal dashboard/direct run: **Done** returns the committed result to the dashboard flow;
+- app-launched native preset: **Done/Home** follows the existing preset closeout settings;
+- widget preset: `methodmesh_finish_to_launcher=true` returns through the caller so the user is not stranded inside MethodMesh;
+- protocol/schedule/dependency/ODK automatic-return route: **Commit** immediately returns the canonical payload to the caller;
+- cancellation before Commit returns through the host cancellation callback.
+
+## Compass behaviour
+
+The module reuses existing shared platform boundaries:
+
+- `PhoneSensorRepository.headingDegrees` — flat-phone magnetic heading;
+- `PhoneSensorRepository.rearCameraHeadingDegrees` — rear-camera optical-axis heading in sight mode;
+- `PhoneSensorRepository.pitchDegrees` / `rollDegrees` — capture metadata;
+- `PhoneSensorRepository.readings["magnetometer"]?.accuracy` — Android sensor-accuracy metadata;
+- `LiveCameraPreview` — optional camera background.
+
+The module does not add a second orientation sensor stack.
+
+The main instrument uses a dark compass face, brass bezel/ticks, a red north needle, a pale south needle, a direction-of-travel marker and a target bug. Numeric heading remains the authoritative live readout.
 
 ## North reference
 
-v0.1 reports **magnetic north**. It does not request location and does not apply magnetic declination.
+This capability reports **magnetic north**. It does not request location and does not apply magnetic declination.
 
-This is deliberate: a basic compass should remain a sensor-only, offline capability and should not silently acquire precise location merely to label the result "true north". A future true-north option can consume an existing public location fix and Android geomagnetic declination without changing the meaning of v0.1 results.
-
-Every result therefore contains:
+Every successful result includes:
 
 ```text
 compass_north_reference = magnetic
 ```
 
-## Native workflow
+A future true-north mode should consume an explicitly supplied/public location fix rather than silently acquiring precise location.
 
-1. Open **Compass**.
-2. Choose the target:
-   - **North**; or
-   - **Bearing**, then enter 0–359.9°.
-3. Optionally adjust the green-zone tolerance. Default is ±5°.
-4. Hold the phone flat to use the main compass display.
-5. Press **Capture bearing** to save the flat-phone reading.
-6. Or press **Sight target** and hold the phone vertically like a camera.
-7. In sighting mode, put the central ring over the object/line you are sighting. The thick ring turns green when the rear-camera optical axis is within tolerance of the target bearing.
-8. Press **Capture bearing** or **Capture aligned bearing**.
+## Settings / runtime inputs
 
-The camera background is optional. If camera permission is denied or camera display is disabled, the sighting reticle still works on a dark background because heading comes from the orientation sensors, not from image analysis.
+All reusable configuration remains declared through `MethodSetting` in `CompassModule.kt`.
 
-## Preset workflow
+| Key | Type | Meaning | Default |
+|---|---|---|---|
+| `target_mode` | choice | `north` or `bearing` | `north` |
+| `target_bearing_deg` | float | Manual target bearing, 0–359.9° | `0` |
+| `alignment_tolerance_deg` | float | Aligned-zone half-width, 1–30° | `5` |
+| `show_camera_in_sight` | boolean | Rear-camera preview behind sight | `true` |
+| `start_in_sight_mode` | boolean | Open directly into sight mode | `false` |
 
-The capability declares all configuration through `capabilitySettings()`:
+`target_bearing_deg` is ignored when `target_mode=north`; the effective target is 0°.
 
-- target mode;
-- target bearing;
-- alignment tolerance;
-- whether to show the camera in sighting mode;
-- whether to start directly in sighting mode.
+Useful preset patterns:
 
-When a native preset fixes a setting, the capability uses `settingShouldBeShown(...)` so that fixed values do not need to be re-entered. Runtime inputs remain available before capture.
+- **Sight North** — fixed North target; start in sight mode;
+- **Transect 090°** — fixed 90° target and ±3° tolerance;
+- **Bearing capture** — target bearing left as a runtime input.
 
-Useful presets include:
+## Canonical outputs
 
-- **Sight North** — target fixed to North, sighting mode starts automatically;
-- **Transect 090°** — target fixed to 90°, tolerance fixed to ±3°;
-- **Bearing capture** — target bearing left as runtime input.
+All fields below are declared outputs of `compass.read`. Presentation is selective, but contract availability is not.
 
-## ODK / XLSForm workflow
+| Field | Normal native presentation | Contract role / meaning |
+|---|---|---|
+| `compass_status` | technical | `succeeded` or `failed` |
+| `compass_result` | **primary** | Compact human-readable beef, e.g. `091° E · 90.0° · On target` |
+| `compass_heading_deg` | live + committed | Captured magnetic heading, [0,360) |
+| `compass_cardinal` | primary/technical | 16-point direction |
+| `compass_target_mode` | technical | `north` or `bearing` |
+| `compass_target_bearing_deg` | live + committed | Effective target bearing |
+| `compass_error_deg` | live + committed | Signed shortest error; positive means turn right |
+| `compass_abs_error_deg` | technical | Absolute angular error |
+| `compass_aligned` | primary/technical | Within configured tolerance |
+| `compass_tolerance_deg` | settings/technical | Alignment tolerance |
+| `compass_view_mode` | technical | `flat` or `sight` |
+| `compass_heading_axis` | technical | `device_top_edge` or `rear_camera_optical_axis` |
+| `compass_north_reference` | technical | `magnetic` |
+| `compass_pitch_deg` | technical | Pitch at Commit when available |
+| `compass_roll_deg` | technical | Roll at Commit when available |
+| `compass_magnetometer_accuracy` | status/technical | Android sensor accuracy integer |
+| `compass_captured_time_iso` | technical | UTC ISO timestamp of Commit |
+| `compass_audit_json` | technical/audit | Capability audit JSON |
+| `compass_error` | error | Failure detail |
 
-ODK calls the capability through a group intent. The supplied `example_odk_Compass.xlsx` demonstrates both North and manual-bearing targets.
+### Beef-first actions
 
-Example manual-bearing call:
+With **Include full JSON** off:
+
+- tap-to-copy on a scalar copies the scalar value only;
+- Copy/Share/Save use `compass_result` as the main result.
+
+With **Include full JSON** on:
+
+- Copy/Share append the standard full MethodMesh JSON representation;
+- Save writes the main result and the full JSON metadata file to Downloads.
+
+`compass_audit_json` remains independently addressable through the capability contract and ODK projection even though it is normally hidden under Technical details.
+
+## ODK / XLSForm
+
+The supplied `docs/example_odk_Compass.xlsx` uses a grouped intent call and requests FULL payload mode.
+
+Representative call:
 
 ```text
 com.example.methodmesh.EXECUTE_METHOD(
   method_id='compass.read',
-  input_target_mode='bearing',
+  input_target_mode=${target_mode},
   input_target_bearing_deg=${target_bearing},
   input_alignment_tolerance_deg=${tolerance_deg},
-  input_show_camera_in_sight='true',
-  input_start_in_sight_mode='true',
+  input_show_camera_in_sight=${show_camera},
+  input_start_in_sight_mode=${start_in_sight},
   input_payload_mode='FULL',
   return_mode='flat'
 )
 ```
 
-The user completes the live sighting/capture in MethodMesh and the selected CORE fields return to the XLSForm. The example also stores `methodmesh_full_json`, which is the standard MethodMesh FULL envelope containing background metadata including the capability audit JSON. The capability does not force ODK through an additional native configuration dialog.
-
-## Inputs
-
-| Input | Type | Meaning | Default |
-|---|---|---|---|
-| `target_mode` | choice | `north` or `bearing` | `north` |
-| `target_bearing_deg` | float | Manual target bearing, 0–359.9° | `0` |
-| `alignment_tolerance_deg` | float | Green-zone half-width in degrees | `5` |
-| `show_camera_in_sight` | boolean | Show rear-camera preview behind reticle | `true` |
-| `start_in_sight_mode` | boolean | Open sighting view immediately | `false` |
-
-`target_bearing_deg` is ignored when `target_mode=north`; the effective target is 0°.
-
-## Outputs
-
-| Field | Role | Meaning |
-|---|---|---|
-| `compass_result` | **main/core** | Compact human-readable result, e.g. `091° E · 90.0° · On target`. |
-| `compass_heading_deg` | core | Captured magnetic heading in degrees, normalised to [0,360). |
-| `compass_cardinal` | core | 16-point direction such as `N`, `ENE`, `SW`. |
-| `compass_target_mode` | core | `north` or `bearing`. |
-| `compass_target_bearing_deg` | core | Effective target bearing; North is `0.0`. |
-| `compass_error_deg` | core | Signed shortest error. Positive = turn right/clockwise; negative = turn left. |
-| `compass_abs_error_deg` | core | Absolute angular error. |
-| `compass_aligned` | core | `true` when absolute error is within tolerance. |
-| `compass_tolerance_deg` | audit/core | Configured alignment tolerance. |
-| `compass_view_mode` | audit | `flat` or `sight`. |
-| `compass_heading_axis` | audit | `device_top_edge` or `rear_camera_optical_axis`. |
-| `compass_north_reference` | audit/core | Always `magnetic` in v0.1. |
-| `compass_pitch_deg` | audit | Phone pitch at capture when available. |
-| `compass_roll_deg` | audit | Phone roll at capture when available. |
-| `compass_magnetometer_accuracy` | audit | Raw Android sensor accuracy integer when available. |
-| `compass_captured_time_iso` | audit | UTC ISO timestamp. |
-| `compass_audit_json` | audit metadata | Complete capture metadata and versioning inside the raw execution result and therefore inside `methodmesh_full_json` when FULL payload mode is requested. |
-| `compass_status` | status | `succeeded` or `failed`. |
-| `compass_error` | error | Failure detail. |
-
-## Main result
-
-Native sharing should use `compass_result` only. Example:
+The compass is inherently interactive: the current sensor reading must be intentionally committed. ODK therefore follows the interactive route:
 
 ```text
-091° E · 90.0° · On target
+ODK -> compass.read UI -> live sight/heading -> Commit -> canonical result -> ODK
 ```
 
-The verbose sensor/posture/provenance information belongs in the raw `compass_audit_json` and the standard `methodmesh_full_json` envelope rather than the primary share action. The capability deliberately supplies only `compass_result` to the native result preview, so the shared **Share result** action remains compact without adding a compass-specific rule to the central UI.
+ODK does not receive MethodMesh normal Share/Save/Home closeout after Commit. The external workflow transport owns namespace projection, `methodmesh_full_json`, closeout fields and return-to-caller behaviour.
+
+The example workbook includes every declared `compass_*` output plus `methodmesh_full_json` and closeout/status fields. Example forms remain demonstrations rather than allow-lists: generic ODK projection is driven by the canonical method contract.
+
+No MethodMesh archive copy is created merely because ODK invoked the capability.
 
 ## Audit JSON
 
-`compass_audit_json` is a raw capability output. In the current MethodMesh transport contract, an XLSForm requesting `payload_mode=FULL` should retain `methodmesh_full_json` as the background audit field rather than expecting a separate flat `compass_audit_json` column.
-
-The audit JSON records at least:
+`compass_audit_json` records at least:
 
 - method ID and version;
 - alignment algorithm version;
-- explicit magnetic-north reference;
+- magnetic north reference;
 - captured heading and cardinal direction;
 - target mode and effective target bearing;
 - signed and absolute angular error;
-- alignment tolerance and aligned flag;
+- tolerance and aligned flag;
 - flat vs sighting mode;
-- heading axis used;
+- heading axis;
 - pitch and roll where available;
-- Android magnetometer accuracy value where available;
-- capture timestamp;
-- shared sensor boundary identifier;
+- Android magnetometer accuracy where available;
+- Commit timestamp;
+- sensor boundary identifier;
 - `network_used=false`;
 - `location_used=false`.
 
-## Permissions and services
+## State and persistence
+
+- target, tolerance, camera option and start-in-sight configuration use saveable UI state;
+- the full committed `compass_*` field set is saved as a compact JSON snapshot and reconstructed after Activity recreation;
+- sight-open state is saveable;
+- the committed payload remains separate from the continuously changing live sensor reading;
+- there is no automatic permanent record or output-folder save;
+- explicit **Save** is the only native persistence action introduced by this module.
+
+## Permissions
 
 ### Orientation sensors
 
-No runtime permission is required for the Android motion/magnetic sensors used through `PhoneSensorRepository`.
+No runtime permission is required for the Android motion/magnetic sensors exposed by `PhoneSensorRepository`.
 
 ### Camera
 
-`android.permission.CAMERA` is required only when the optional camera background is shown in sighting mode. The current MethodMesh host manifest already declares this permission, so the compass drop-in requires no manifest edit. The module owns the runtime permission request. Denial does not disable compass/sighting calculations; it falls back to a dark sighting background.
+`android.permission.CAMERA` is required only when the optional camera background is requested in sight mode. Denial leaves the sighting calculation usable on a dark background.
 
-No location permission is requested in v0.1.
+No location permission is requested.
 
-## Offline / online behaviour
+## Offline behaviour
 
 **Fully offline.**
 
-The capability performs no web request, cloud processing, telemetry upload or map lookup.
+No network request, cloud processing, telemetry upload, map lookup or remote API is required for compass operation.
 
-## Known limitations — Development
+## Dependencies
 
-1. v0.1 reports magnetic rather than true north.
-2. Phone magnetometers are vulnerable to nearby steel, magnets, speakers, cases and electrical equipment. The UI therefore displays Android's sensor-accuracy state but does not claim survey-grade accuracy.
-3. Android device heading accuracy varies by hardware and calibration state.
-4. The sighting reticle tests horizontal bearing only. It is not an inclinometer or full 3D aiming solution.
-5. The rear-camera optical-axis heading becomes undefined when the camera points nearly straight up/down; the shared repository correctly returns no sight heading in that geometry.
+Host/shared MethodMesh dependencies used by the existing capability contract:
+
+- `PhoneSensorRepository`;
+- `LiveCameraPreview`;
+- `OutputFormatter`;
+- `OutputExportRepository`;
+- standard capability workflow callbacks and preset closeout settings.
+
+No new third-party library is introduced by this refresh.
+
+## Validation status
+
+Completed in the packaging environment:
+
+- standalone Kotlin smoke compile/run for compass normalisation, cardinal mapping, wrap-around error, alignment boundaries and labels;
+- v1.05 contract review against the supplied module review manual;
+- current MethodMesh public framework interfaces cross-checked for `MethodMeshModule`, `CapabilityScreenContext`, output export and external automatic-return behaviour;
+- ODK example expanded to cover all declared compass outputs.
+
+Not claimable in this packaging environment:
+
+- `./gradlew :app:testDebugUnitTest`;
+- `./gradlew :app:assembleDebug`;
+- physical-device sensor/camera testing;
+- ODK Collect launch/Commit/return test.
+
+Keep the capability in **Development** until those host/device checks pass.
+
+## Known limitations
+
+1. Magnetic north only; no declination correction.
+2. Phone magnetometers are vulnerable to nearby magnets, steel, speakers, cases and electrical equipment.
+3. Heading accuracy is hardware/calibration dependent; the UI reports Android sensor accuracy but makes no survey-grade claim.
+4. Sight mode assesses horizontal bearing; it is not an inclinometer or full 3D aiming solution.
+5. Rear-camera optical-axis heading is undefined near vertical up/down geometry.
 6. Camera imagery is display-only and is not captured, persisted or analysed.
-7. The complete Android `./gradlew :app:assembleDebug` build still needs to be run in a complete current MethodMesh checkout.
-8. Physical-device testing should compare the flat and camera-axis modes against a known compass/bearing reference across several headings.
-9. Native preset behaviour and orientation recreation need device validation.
-10. The example XLSForm needs an ODK Collect round-trip test.
-
-## Production checklist
-
-Keep the capability **Development** until:
-
-1. `./gradlew :app:assembleDebug` passes in the complete repository.
-2. Flat compass and sighting mode are tested on multiple Android devices.
-3. Heading behaviour is checked at 0/90/180/270° and intermediate bearings.
-4. Sighting mode is verified with the phone held vertically in portrait and landscape where supported.
-5. Camera permission denial and retry are tested.
-6. Sensor-unavailable / unreliable states are tested.
-7. Result state survives orientation changes.
-8. Native preset fixed/runtime fields behave correctly.
-9. ODK example completes a full launch/capture/return round trip.
-10. Main share returns `compass_result` rather than the full audit JSON.
 
 ## Roadmap
 
-Potential follow-ons:
+Potential future work, outside this migration:
 
-- optional **true north** using an explicit public location fix + geomagnetic declination, never silent location acquisition;
-- bearing lock / hold function;
-- configurable haptic/audio cue when alignment enters the green zone;
-- inclinometer / slope measurement as a separate method rather than overloading compass bearing;
-- direct "bearing to current GPS target" composition through the public GPS navigation boundary.
-
-## Canonical delivery folder
-
-Copy the complete folder:
-
-```text
-app/src/main/java/com/example/methodmesh/modules/compass/
-```
-
-No central module registration or shared dashboard special case is required.
+- optional true north using explicit location + geomagnetic declination;
+- haptic/audio alignment cue;
+- bearing hold/lock;
+- inclinometer as a separate method;
+- composition with GPS target bearing through the public GPS navigation contract.

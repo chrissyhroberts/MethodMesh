@@ -1,0 +1,431 @@
+METHODMESH RECONSTRUCTION DEBUG
+==============================================================================
+classification: CRYPTOGRAPHICALLY_VERIFIED_ATTESTED_VERSION
+xml_sha256: dc11f01ba9070dfe496f76379699acf99122e9af72fc8bb04832024a74e4aada
+stored_showcase_payload_sha256: aa3cfb4707e85b1d22836845f033d8110167eba489dd0346e5538169b17d251e
+attestation_event_payload_hash: aa3cfb4707e85b1d22836845f033d8110167eba489dd0346e5538169b17d251e
+rebuilt_payload_sha256: aa3cfb4707e85b1d22836845f033d8110167eba489dd0346e5538169b17d251e
+stored_member_payload_sha256: aa3cfb4707e85b1d22836845f033d8110167eba489dd0346e5538169b17d251e
+
+MEMBER-BY-MEMBER CHECKS
+------------------------------------------------------------------------------
+[1] showcase_commitment_schema
+  commitment: value
+  type: string
+  source_field: showcase_commitment_schema
+  artifact_field: None
+  source: showcase_commitment_schema
+  source_raw_value: methodmesh.showcase.submission.v1
+  stored_value: methodmesh.showcase.submission.v1
+  source_derived_value: methodmesh.showcase.submission.v1
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[2] showcase_id
+  commitment: value
+  type: string
+  source_field: showcase_id
+  artifact_field: None
+  source: showcase_id
+  source_raw_value: TJ FF
+  stored_value: TJ FF
+  source_derived_value: TJ FF
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[3] age_years
+  commitment: value
+  type: integer
+  source_field: age_years
+  artifact_field: None
+  source: age_years
+  source_raw_value: 66
+  stored_value: 66
+  source_derived_value: 66
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[4] favourite_colour
+  commitment: value
+  type: string
+  source_field: favourite_colour
+  artifact_field: None
+  source: favourite_colour
+  source_raw_value: yellow
+  stored_value: yellow
+  source_derived_value: yellow
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[5] short_note
+  commitment: value
+  type: string
+  source_field: short_note
+  artifact_field: None
+  source: short_note
+  source_raw_value: The du
+  stored_value: The du
+  source_derived_value: The du
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[6] auth_auth_method
+  commitment: value
+  type: string
+  source_field: auth_auth_method
+  artifact_field: None
+  source: auth_auth_method
+  source_raw_value: biometric
+  stored_value: biometric
+  source_derived_value: biometric
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[7] auth_timestamp_iso
+  commitment: value
+  type: string
+  source_field: auth_timestamp_iso
+  artifact_field: None
+  source: auth_timestamp_iso
+  source_raw_value: 2026-09-04T13:09:27.200Z
+  stored_value: 2026-09-04T13:09:27.200Z
+  source_derived_value: 2026-09-04T13:09:27.200Z
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[8] auth_json_sha256
+  commitment: json-utf8-sha256
+  type: sha256
+  source_field: auth_methodmesh_full_json
+  artifact_field: None
+  source: auth_methodmesh_full_json
+  source_raw_value: {
+  "methodmesh_execution_id": "677687f4-8f22-445e-84a1-c4396f6dfeb1",
+  "methodmesh_method_id": "admin_fingerprint_confirmation",
+  "methodmesh_status": "Succeeded",
+  "confirmed": "true",
+  "verification_status": "verified",
+  "auth_method": "biometric",
+  "authentication_policy": "biometric",
+  "assurance_scope": "local_device_access",
+  "identity_claimed": "false",
+  "timestamp_ms": "1788527367200",
+  "timestamp_iso": "2026-09-04T13:09:27.200Z",
+  "reason": "local_access_authorisation",
+  "message": "Local access authorised",
+  "biometric_device_service": "device.biometric.android",
+  "biometric_signal_type": "biometric.authentication.result",
+  "biometric_execution_id": "677687f4-8f22-445e-84a1-c4396f6dfeb1",
+  "biometric_provenance_json": "{\"provider\":\"android.biometric_prompt\",\"method_id\":\"admin_fingerprint_confirmation\",\"method_version\":\"1.1.0\",\"source_service\":\"device.biometric.android\",\"signal_type\":\"biometric.authentication.result\",\"signal_id\":\"650fdde5-51a5-433c-ac23-c816221602f4\",\"timestamp_ms\":1788527367200}"
+}
+  stored_value: dd38784f29992089f51e6ddf40a28bd30dd42a2a3aee1e3c8f92eeb6fe35dc21
+  source_derived_value: dd38784f29992089f51e6ddf40a28bd30dd42a2a3aee1e3c8f92eeb6fe35dc21
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[9] photo_redacted_image_sha256
+  commitment: artifact-bytes-sha256
+  type: sha256
+  source_field: None
+  artifact_field: photo_redacted_image_uri
+  source: photo_redacted_image_uri -> 1788527387611.jpg
+  source_raw_value: 1788527387611.jpg
+  stored_value: 8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268
+  source_derived_value: 8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[10] photo_json_sha256
+  commitment: json-utf8-sha256
+  type: sha256
+  source_field: photo_methodmesh_full_json
+  artifact_field: None
+  source: photo_methodmesh_full_json
+  source_raw_value: {
+  "methodmesh_execution_id": "c5f9ec67-700f-4ffb-bdcf-6c6658fdfb9c",
+  "methodmesh_method_id": "image.redact",
+  "methodmesh_status": "Succeeded",
+  "image_redaction_status": "succeeded",
+  "redacted_image_uri": "content://com.example.methodmesh.fileprovider/shared_cache/methodmesh-redacted-1788527387478.jpg",
+  "redacted_image_name": "methodmesh-redacted-1788527387478.jpg",
+  "redacted_image_sha256": "8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268",
+  "redaction_mask_json": "[\"r1c10\",\"r1c5\",\"r1c6\",\"r1c7\",\"r1c8\",\"r1c9\",\"r2c10\",\"r2c5\",\"r2c6\",\"r2c7\",\"r2c8\",\"r2c9\",\"r3c10\",\"r3c5\",\"r3c6\",\"r3c7\",\"r3c8\",\"r3c9\",\"r4c10\",\"r4c5\",\"r4c6\",\"r4c7\",\"r4c8\",\"r4c9\",\"r5c10\",\"r5c4\",\"r5c6\",\"r5c7\",\"r5c9\",\"r6c10\",\"r6c5\",\"r6c6\",\"r6c7\",\"r6c9\"]",
+  "redacted_cells": "34",
+  "redaction_grid_rows": "10",
+  "redaction_grid_columns": "10",
+  "redaction_style": "black",
+  "redaction_input_source": "camera",
+  "redaction_created_time_iso": "2026-09-04T13:09:47.479716Z",
+  "image_redaction_error": ""
+}
+  stored_value: bcff5549d6d3cf75b7e4a0207ca5e5404e46fe60157b7fd50726169d433429c8
+  source_derived_value: bcff5549d6d3cf75b7e4a0207ca5e5404e46fe60157b7fd50726169d433429c8
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[11] location_plus_code
+  commitment: value
+  type: string
+  source_field: location_plus_code
+  artifact_field: None
+  source: location_plus_code
+  source_raw_value: 6FG22228+5M
+  stored_value: 6FG22228+5M
+  source_derived_value: 6FG22228+5M
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[12] location_json_sha256
+  commitment: json-utf8-sha256
+  type: sha256
+  source_field: location_methodmesh_full_json
+  artifact_field: None
+  source: location_methodmesh_full_json
+  source_raw_value: {
+  "methodmesh_execution_id": "09684886-0771-4d28-9964-635fcaa12a23",
+  "methodmesh_method_id": "plus_code.capture",
+  "methodmesh_status": "Succeeded",
+  "subject_id": "plus-code:6FG22228+5M",
+  "plus_code_status": "succeeded",
+  "plus_code": "6FG22228+5M",
+  "plus_code_length": "10",
+  "plus_code_centroid_latitude": "0.0004375",
+  "plus_code_centroid_longitude": "0.0166875",
+  "plus_code_gps_latitude": "52.077924",
+  "plus_code_gps_longitude": "-0.05627923",
+  "plus_code_gps_accuracy_m": "83.842",
+  "plus_code_gps_fix_count": "3",
+  "plus_code_basemap_mode": "auto",
+  "plus_code_basemap_actual_source": "openfreemap_online_or_cache",
+  "plus_code_selected_time_iso": "2026-09-04T13:10:12.588875Z",
+  "plus_code_audit_json": "{\"methodmesh_method_id\":\"plus_code.capture\",\"status\":\"succeeded\",\"plus_code\":\"6FG22228+5M\",\"code_length\":10,\"selected_cell\":{\"south\":3.75E-4,\"west\":0.016625,\"north\":5.0E-4,\"east\":0.01675,\"center_latitude\":4.375E-4,\"center_longitude\":0.0166875},\"gps\":{\"latitude\":52.077924,\"longitude\":-0.05627923,\"accuracy_m\":83.842,\"fix_count\":3},\"basemap\":{\"mode\":\"auto\",\"actual_source\":\"openfreemap_online_or_cache\",\"fallback_used\":true},\"timestamp_iso\":\"2026-09-04T13:10:12.588875Z\"}",
+  "plus_code_error": ""
+}
+  stored_value: 5faf8ba312329ead3b3afcc9a2b66cf249d5ebc09eef1234406f8034b2f4c8b9
+  source_derived_value: 5faf8ba312329ead3b3afcc9a2b66cf249d5ebc09eef1234406f8034b2f4c8b9
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[13] polygon_value
+  commitment: value
+  type: string
+  source_field: polygon_value
+  artifact_field: None
+  source: polygon_value
+  source_raw_value: {
+  "methodmesh_execution_id": "e8c7c911-dabd-4500-99a8-041f047607f6",
+  "methodmesh_method_id": "svg.select",
+  "methodmesh_status": "Succeeded",
+  "svg_name": "bodymap_black.svg",
+  "selected_polygons": "[{\"polygon_id\":\"Ventral_Abdomen_Lower_Central\",\"sequence_index\":1}]",
+  "methodmesh_full_json": "{\n  \"methodmesh_execution_id\": \"e8c7c911-dabd-4500-99a8-041f047607f6\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selection_mode\": \"single\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1}]\",\n  \"selection_events\": \"[{\\\"type\\\":\\\"select\\\",\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1,\\\"time_iso\\\":\\\"2026-09-04T13:10:17.661498Z\\\"}]\",\n  \"selection_audit_hash\": \"4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2\",\n  \"selection_started_at\": \"2026-09-04T13:10:16.695836Z\",\n  \"selection_completed_at\": \"2026-09-04T13:10:18.385428Z\"\n}"
+}
+  stored_value: {
+  "methodmesh_execution_id": "e8c7c911-dabd-4500-99a8-041f047607f6",
+  "methodmesh_method_id": "svg.select",
+  "methodmesh_status": "Succeeded",
+  "svg_name": "bodymap_black.svg",
+  "selected_polygons": "[{\"polygon_id\":\"Ventral_Abdomen_Lower_Central\",\"sequence_index\":1}]",
+  "methodmesh_full_json": "{\n  \"methodmesh_execution_id\": \"e8c7c911-dabd-4500-99a8-041f047607f6\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selection_mode\": \"single\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1}]\",\n  \"selection_events\": \"[{\\\"type\\\":\\\"select\\\",\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1,\\\"time_iso\\\":\\\"2026-09-04T13:10:17.661498Z\\\"}]\",\n  \"selection_audit_hash\": \"4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2\",\n  \"selection_started_at\": \"2026-09-04T13:10:16.695836Z\",\n  \"selection_completed_at\": \"2026-09-04T13:10:18.385428Z\"\n}"
+}
+  source_derived_value: {
+  "methodmesh_execution_id": "e8c7c911-dabd-4500-99a8-041f047607f6",
+  "methodmesh_method_id": "svg.select",
+  "methodmesh_status": "Succeeded",
+  "svg_name": "bodymap_black.svg",
+  "selected_polygons": "[{\"polygon_id\":\"Ventral_Abdomen_Lower_Central\",\"sequence_index\":1}]",
+  "methodmesh_full_json": "{\n  \"methodmesh_execution_id\": \"e8c7c911-dabd-4500-99a8-041f047607f6\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selection_mode\": \"single\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1}]\",\n  \"selection_events\": \"[{\\\"type\\\":\\\"select\\\",\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1,\\\"time_iso\\\":\\\"2026-09-04T13:10:17.661498Z\\\"}]\",\n  \"selection_audit_hash\": \"4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2\",\n  \"selection_started_at\": \"2026-09-04T13:10:16.695836Z\",\n  \"selection_completed_at\": \"2026-09-04T13:10:18.385428Z\"\n}"
+}
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[14] polygon_json_sha256
+  commitment: json-utf8-sha256
+  type: sha256
+  source_field: polygon_methodmesh_full_json
+  artifact_field: None
+  source: polygon_methodmesh_full_json
+  source_raw_value: {
+  "methodmesh_execution_id": "e8c7c911-dabd-4500-99a8-041f047607f6",
+  "methodmesh_method_id": "svg.select",
+  "methodmesh_status": "Succeeded",
+  "svg_name": "bodymap_black.svg",
+  "selection_mode": "single",
+  "selected_polygons": "[{\"polygon_id\":\"Ventral_Abdomen_Lower_Central\",\"sequence_index\":1}]",
+  "selection_events": "[{\"type\":\"select\",\"polygon_id\":\"Ventral_Abdomen_Lower_Central\",\"sequence_index\":1,\"time_iso\":\"2026-09-04T13:10:17.661498Z\"}]",
+  "selection_audit_hash": "4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2",
+  "selection_started_at": "2026-09-04T13:10:16.695836Z",
+  "selection_completed_at": "2026-09-04T13:10:18.385428Z"
+}
+  stored_value: 090075527cffc6d8b6009e38b8bac2359edb9bc84f64ec0706080ea7e5619a1f
+  source_derived_value: 090075527cffc6d8b6009e38b8bac2359edb9bc84f64ec0706080ea7e5619a1f
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[15] conversation_transcript_sha256
+  commitment: text-utf8-sha256
+  type: sha256
+  source_field: conversation_conversation_transcript
+  artifact_field: None
+  source: conversation_conversation_transcript
+  source_raw_value: Speak (en): Hello
+Spanish (Es): Hola
+
+Habla (es): hola
+English (En): hi there
+  stored_value: cfeb2ec6917bd4c7ec7ba116674c176beac9df993e2cea0b69be92900c3bacfb
+  source_derived_value: cfeb2ec6917bd4c7ec7ba116674c176beac9df993e2cea0b69be92900c3bacfb
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[16] conversation_json_sha256
+  commitment: json-utf8-sha256
+  type: sha256
+  source_field: conversation_methodmesh_full_json
+  artifact_field: None
+  source: conversation_methodmesh_full_json
+  source_raw_value: {
+  "methodmesh_execution_id": "2f9d683a-8808-4930-8227-9075fe3e2db8",
+  "methodmesh_method_id": "conversation.translate",
+  "methodmesh_status": "Succeeded",
+  "subject_id": "conversation-translation:1788527442302",
+  "conversation_transcript": "Speak (en): Hello\nSpanish (Es): Hola\n\nHabla (es): hola\nEnglish (En): hi there",
+  "conversation_turns_json": "[{\"side\":\"a\",\"speaker\":\"Speak\",\"source_language\":\"en\",\"target_language\":\"es\",\"original_text\":\"Hello\",\"translated_text\":\"Hola\",\"time_iso\":\"2026-09-04T13:10:30.374025Z\"},{\"side\":\"b\",\"speaker\":\"Habla\",\"source_language\":\"es\",\"target_language\":\"en\",\"original_text\":\"hola\",\"translated_text\":\"hi there\",\"time_iso\":\"2026-09-04T13:10:38.363832Z\"}]",
+  "conversation_language_a": "en",
+  "conversation_language_b": "es",
+  "conversation_label_a": "Speak",
+  "conversation_label_b": "Habla",
+  "conversation_spoken_output": "true",
+  "conversation_prefer_offline": "true",
+  "conversation_turn_count": "2",
+  "conversation_started_time_iso": "2026-09-04T13:10:23.217262Z",
+  "conversation_finished_time_iso": "2026-09-04T13:10:42.302360Z",
+  "conversation_status": "succeeded",
+  "conversation_error": ""
+}
+  stored_value: 7d11ca9b9cb33c637607a99aa999cf7572882cc56127e8621a93a2a2617e9352
+  source_derived_value: 7d11ca9b9cb33c637607a99aa999cf7572882cc56127e8621a93a2a2617e9352
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[17] fourat_clinical_score
+  commitment: value
+  type: string
+  source_field: fourat_clinical_score
+  artifact_field: None
+  source: fourat_clinical_score
+  source_raw_value: 1
+  stored_value: 1
+  source_derived_value: 1
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[18] fourat_clinical_classification
+  commitment: value
+  type: string
+  source_field: fourat_clinical_classification
+  artifact_field: None
+  source: fourat_clinical_classification
+  source_raw_value: possible_cognitive_impairment
+  stored_value: possible_cognitive_impairment
+  source_derived_value: possible_cognitive_impairment
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[19] fourat_clinical_definition_fingerprint
+  commitment: value
+  type: sha256
+  source_field: fourat_clinical_definition_fingerprint
+  artifact_field: None
+  source: fourat_clinical_definition_fingerprint
+  source_raw_value: 9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8
+  stored_value: 9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8
+  source_derived_value: 9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[20] fourat_json_sha256
+  commitment: json-utf8-sha256
+  type: sha256
+  source_field: fourat_methodmesh_full_json
+  artifact_field: None
+  source: fourat_methodmesh_full_json
+  source_raw_value: {
+  "methodmesh_execution_id": "984197d1-1a56-4fb1-ac09-b6c1be9718ea",
+  "methodmesh_method_id": "clinical.instrument.run",
+  "methodmesh_status": "Succeeded",
+  "subject_id": "TJ FF",
+  "clinical_status": "succeeded",
+  "clinical_result": "4AT delirium assessment: 1 — Possible cognitive impairment",
+  "clinical_answers": "1. Alertness — Normal or brief mild sleepiness after waking\n2. AMT4 orientation — One mistake\n3. Attention - months backwards — Seven or more months correct\n4. Acute change or fluctuating course — No",
+  "clinical_instrument": "four_at",
+  "clinical_version": "1.2.0",
+  "clinical_definition_fingerprint": "9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8",
+  "clinical_session": "82484153-9d24-46de-b91b-9d597eba1c02",
+  "clinical_instrument_id": "four_at",
+  "clinical_instrument_name": "4AT delirium assessment",
+  "clinical_instrument_version": "1.2.0",
+  "clinical_definition_sha256": "9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8",
+  "clinical_subject_id": "TJ FF",
+  "clinical_session_id": "82484153-9d24-46de-b91b-9d597eba1c02",
+  "clinical_responses_json": "{\"alertness\":\"0\",\"amt4\":\"1\",\"attention\":\"0\",\"acute_change\":\"0\"}",
+  "clinical_derived_json": "{}",
+  "clinical_score": "1",
+  "clinical_classification": "possible_cognitive_impairment",
+  "clinical_result_json": "{\"schema\":\"methodmesh.clinical-result.v1\",\"run\":{\"id\":\"82484153-9d24-46de-b91b-9d597eba1c02\",\"subject_id\":\"TJ FF\",\"status\":\"completed\"},\"instrument\":{\"id\":\"four_at\",\"name\":\"4AT delirium assessment\",\"version\":\"1.2.0\",\"definition_sha256\":\"9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8\",\"type\":\"clinical_score\",\"category\":\"acute_bedside\"},\"responses\":{\"alertness\":\"0\",\"amt4\":\"1\",\"attention\":\"0\",\"acute_change\":\"0\"},\"derived\":{},\"scores\":{\"four_at\":\"1\"},\"classification\":{\"value\":\"possible_cognitive_impairment\",\"label\":\"Possible cognitive impairment\"},\"provenance\":{\"source_url\":\"https:\\/\\/www.the4at.com\\/\",\"citation\":\"4AT version 1.2. MacLullich A, Ryan T, Cash H. © 2011-2014.\",\"rights_status\":\"CC_BY_4_0\",\"definition_sha256\":\"9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8\"}}",
+  "clinical_completed_time_iso": "2026-09-04T13:10:52.532661Z",
+  "clinical_error": "",
+  "clinical_response_alertness": "0",
+  "clinical_response_amt4": "1",
+  "clinical_response_attention": "0",
+  "clinical_response_acute_change": "0",
+  "clinical_score_four_at": "1",
+  "entity_id": "clinical-instrument:82484153-9d24-46de-b91b-9d597eba1c02",
+  "entity_type": "ClinicalInstrumentRun"
+}
+  stored_value: ee2ae7c58432b296cd900e7068e52d179f87d0f62e03f53fa752e86f5183efa1
+  source_derived_value: ee2ae7c58432b296cd900e7068e52d179f87d0f62e03f53fa752e86f5183efa1
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+RECONSTRUCTED CANONICAL PAYLOAD
+------------------------------------------------------------------------------
+showcase_commitment_schema=methodmesh.showcase.submission.v1|showcase_id=TJ FF|age_years=66|favourite_colour=yellow|short_note=The du|auth_auth_method=biometric|auth_timestamp_iso=2026-09-04T13:09:27.200Z|auth_json_sha256=dd38784f29992089f51e6ddf40a28bd30dd42a2a3aee1e3c8f92eeb6fe35dc21|photo_redacted_image_sha256=8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268|photo_json_sha256=bcff5549d6d3cf75b7e4a0207ca5e5404e46fe60157b7fd50726169d433429c8|location_plus_code=6FG22228+5M|location_json_sha256=5faf8ba312329ead3b3afcc9a2b66cf249d5ebc09eef1234406f8034b2f4c8b9|polygon_value={
+  "methodmesh_execution_id": "e8c7c911-dabd-4500-99a8-041f047607f6",
+  "methodmesh_method_id": "svg.select",
+  "methodmesh_status": "Succeeded",
+  "svg_name": "bodymap_black.svg",
+  "selected_polygons": "[{\"polygon_id\":\"Ventral_Abdomen_Lower_Central\",\"sequence_index\":1}]",
+  "methodmesh_full_json": "{\n  \"methodmesh_execution_id\": \"e8c7c911-dabd-4500-99a8-041f047607f6\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selection_mode\": \"single\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1}]\",\n  \"selection_events\": \"[{\\\"type\\\":\\\"select\\\",\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1,\\\"time_iso\\\":\\\"2026-09-04T13:10:17.661498Z\\\"}]\",\n  \"selection_audit_hash\": \"4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2\",\n  \"selection_started_at\": \"2026-09-04T13:10:16.695836Z\",\n  \"selection_completed_at\": \"2026-09-04T13:10:18.385428Z\"\n}"
+}|polygon_json_sha256=090075527cffc6d8b6009e38b8bac2359edb9bc84f64ec0706080ea7e5619a1f|conversation_transcript_sha256=cfeb2ec6917bd4c7ec7ba116674c176beac9df993e2cea0b69be92900c3bacfb|conversation_json_sha256=7d11ca9b9cb33c637607a99aa999cf7572882cc56127e8621a93a2a2617e9352|fourat_clinical_score=1|fourat_clinical_classification=possible_cognitive_impairment|fourat_clinical_definition_fingerprint=9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8|fourat_json_sha256=ee2ae7c58432b296cd900e7068e52d179f87d0f62e03f53fa752e86f5183efa1
+
+STORED-MEMBER CANONICAL PAYLOAD
+------------------------------------------------------------------------------
+showcase_commitment_schema=methodmesh.showcase.submission.v1|showcase_id=TJ FF|age_years=66|favourite_colour=yellow|short_note=The du|auth_auth_method=biometric|auth_timestamp_iso=2026-09-04T13:09:27.200Z|auth_json_sha256=dd38784f29992089f51e6ddf40a28bd30dd42a2a3aee1e3c8f92eeb6fe35dc21|photo_redacted_image_sha256=8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268|photo_json_sha256=bcff5549d6d3cf75b7e4a0207ca5e5404e46fe60157b7fd50726169d433429c8|location_plus_code=6FG22228+5M|location_json_sha256=5faf8ba312329ead3b3afcc9a2b66cf249d5ebc09eef1234406f8034b2f4c8b9|polygon_value={
+  "methodmesh_execution_id": "e8c7c911-dabd-4500-99a8-041f047607f6",
+  "methodmesh_method_id": "svg.select",
+  "methodmesh_status": "Succeeded",
+  "svg_name": "bodymap_black.svg",
+  "selected_polygons": "[{\"polygon_id\":\"Ventral_Abdomen_Lower_Central\",\"sequence_index\":1}]",
+  "methodmesh_full_json": "{\n  \"methodmesh_execution_id\": \"e8c7c911-dabd-4500-99a8-041f047607f6\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selection_mode\": \"single\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1}]\",\n  \"selection_events\": \"[{\\\"type\\\":\\\"select\\\",\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1,\\\"time_iso\\\":\\\"2026-09-04T13:10:17.661498Z\\\"}]\",\n  \"selection_audit_hash\": \"4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2\",\n  \"selection_started_at\": \"2026-09-04T13:10:16.695836Z\",\n  \"selection_completed_at\": \"2026-09-04T13:10:18.385428Z\"\n}"
+}|polygon_json_sha256=090075527cffc6d8b6009e38b8bac2359edb9bc84f64ec0706080ea7e5619a1f|conversation_transcript_sha256=cfeb2ec6917bd4c7ec7ba116674c176beac9df993e2cea0b69be92900c3bacfb|conversation_json_sha256=7d11ca9b9cb33c637607a99aa999cf7572882cc56127e8621a93a2a2617e9352|fourat_clinical_score=1|fourat_clinical_classification=possible_cognitive_impairment|fourat_clinical_definition_fingerprint=9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8|fourat_json_sha256=ee2ae7c58432b296cd900e7068e52d179f87d0f62e03f53fa752e86f5183efa1

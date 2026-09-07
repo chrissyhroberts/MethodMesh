@@ -1,0 +1,56 @@
+---
+title: "Earth science utilities"
+subtitle: "Module reference · earthscience"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Field geodesy, GNSS averaging, structural geology, geological time and earth-material classification.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>earthscience</code></div>
+<div><strong>Source directory</strong><code>earthscience</code></div>
+<div><strong>Indexed methods</strong>12</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>5</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `geodesy.destination` | calculate destination coordinate | Project a WGS84 coordinate by bearing and distance | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `geodesy.distance_bearing` | calculate geodesic distance | Calculate WGS84 ellipsoidal distance and bearings between two positions | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `geodesy.utm_to_wgs84` | convert UTM to WGS84 | Convert UTM coordinates to latitude/longitude | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `geodesy.wgs84_to_utm` | convert WGS84 to UTM | Convert latitude/longitude to UTM | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `geotime.lookup` | lookup geological time | Classify a numerical geological age using the bundled ICS hierarchy | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `gnss.average_position` | average GNSS position | Collect and average repeated GNSS fixes | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `sediment.grain_size` | classify sediment grain size | Convert millimetres and phi and classify Wentworth grain size | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `soil.texture_usda` | classify soil texture | Classify sand, silt and clay percentages using USDA textural classes | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `structural.line` | normalise geological line | Normalise trend and plunge | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `structural.plane` | normalise geological plane | Normalise strike and dip and derive dip direction and pole | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `structural.plane_capture` | capture geological plane | Capture a Development-stage strike and dip estimate from phone orientation | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `structural.plane_intersection` | intersect geological planes | Calculate the trend and plunge of the intersection of two planes | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_EarthScience.xlsx](../source-docs/earthscience/example_odk_EarthScience.xlsx)
+
+## Module-local documentation
+
+- [Attribution and external design references](../source-docs/earthscience/ATTRIBUTION.qmd) — `ATTRIBUTION.md`
+- [Earth Science v0.1.1](../source-docs/earthscience/CHANGELOG_v0.1.1.qmd) — `CHANGELOG_v0.1.1.md`
+- [Earth science utilities](../source-docs/earthscience/README_EarthScience.qmd) — `README_EarthScience.md`
+- [Proposed 000Roadmap.md entry — Earth science utilities](../source-docs/earthscience/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [Earth science v0.1 validation record](../source-docs/earthscience/VALIDATION.qmd) — `VALIDATION.md`
+
+### Additional source artefacts
+
+- [EarthScienceMathSmoke.kt](../source-docs/earthscience/EarthScienceMathSmoke.kt)
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

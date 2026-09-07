@@ -1,0 +1,81 @@
+schema: methodmesh.clinical-instrument.v1
+id: glasgow_blatchford
+name: Glasgow-Blatchford Bleeding Score
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [gastrointestinal, bleeding, upper_gi, emergency]
+summary: Pre-endoscopy risk score for adults presenting with acute upper gastrointestinal bleeding.
+source_url: https://handbook.ggcmedicines.org.uk/guidelines/gastrointestinal-system/glasgow-blatchford-score/
+citation: "Blatchford O, Murray WR, Blatchford M. A risk score to predict need for treatment for upper-gastrointestinal haemorrhage. Lancet. 2000;356:1318-1321. Criteria cross-checked against NHS Greater Glasgow and Clyde guidance."
+rights_status: factual_definition
+rights_note: Numerical thresholds and scoring criteria are factual clinical rules; MethodMesh uses concise field labels and cites the original study and NHS implementation guidance.
+questions:
+  - id: sex
+    label: Sex used for haemoglobin threshold
+    type: select_one
+    choices: [male|Male, female|Female]
+  - id: urea_mmol_l
+    label: Blood urea
+    type: decimal
+    unit: mmol/L
+    min: 0
+    max: 100
+  - id: haemoglobin_g_l
+    label: Haemoglobin
+    type: decimal
+    unit: g/L
+    min: 20
+    max: 250
+  - id: systolic_bp
+    label: Systolic blood pressure
+    type: integer
+    unit: mmHg
+    min: 20
+    max: 300
+  - id: pulse
+    label: Pulse
+    type: integer
+    unit: beats/min
+    min: 0
+    max: 300
+  - id: melaena
+    label: Presentation with melaena?
+    type: boolean
+  - id: syncope
+    label: Presentation with syncope?
+    type: boolean
+  - id: hepatic_disease
+    label: Hepatic disease?
+    type: boolean
+  - id: cardiac_failure
+    label: Cardiac failure?
+    type: boolean
+derived:
+  - id: urea_points
+    expression: (urea_mmol_l >= 6.5 and urea_mmol_l < 8) * 2 + (urea_mmol_l >= 8 and urea_mmol_l < 10) * 3 + (urea_mmol_l >= 10 and urea_mmol_l < 25) * 4 + (urea_mmol_l >= 25) * 6
+  - id: haemoglobin_points
+    expression: (sex == 'male' and haemoglobin_g_l >= 120 and haemoglobin_g_l < 130) + (sex == 'male' and haemoglobin_g_l >= 100 and haemoglobin_g_l < 120) * 3 + (sex == 'male' and haemoglobin_g_l < 100) * 6 + (sex == 'female' and haemoglobin_g_l >= 100 and haemoglobin_g_l < 120) + (sex == 'female' and haemoglobin_g_l < 100) * 6
+  - id: bp_points
+    expression: (systolic_bp >= 100 and systolic_bp < 110) + (systolic_bp >= 90 and systolic_bp < 100) * 2 + (systolic_bp < 90) * 3
+  - id: other_points
+    expression: (pulse >= 100) + melaena + syncope * 2 + hepatic_disease * 2 + cardiac_failure * 2
+scores:
+  - id: glasgow_blatchford
+    label: Glasgow-Blatchford score
+    expression: urea_points + haemoglobin_points + bp_points + other_points
+classifications:
+  - when: glasgow_blatchford == 0
+    value: score_zero
+    label: Glasgow-Blatchford score 0
+  - when: glasgow_blatchford > 0
+    value: score_above_zero
+    label: Glasgow-Blatchford score above 0
+tests:
+  - name: all_zero
+    input_json: '{"sex":"male","urea_mmol_l":5,"haemoglobin_g_l":140,"systolic_bp":120,"pulse":80,"melaena":false,"syncope":false,"hepatic_disease":false,"cardiac_failure":false}'
+    expect_json: '{"glasgow_blatchford":0,"classification":"score_zero"}'
+  - name: high_components
+    input_json: '{"sex":"male","urea_mmol_l":26,"haemoglobin_g_l":90,"systolic_bp":85,"pulse":110,"melaena":true,"syncope":true,"hepatic_disease":true,"cardiac_failure":true}'
+    expect_json: '{"glasgow_blatchford":23,"classification":"score_above_zero"}'

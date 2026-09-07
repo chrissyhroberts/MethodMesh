@@ -1,0 +1,116 @@
+# Aviation v0.3.2 build / validation report
+
+## Added in v0.3
+
+- `aviation.emergency.instruments` persistent emergency-reference capability.
+- Continuous GNSS groundspeed, track, altitude, fix quality and estimated GNSS vertical speed.
+- Shared `PhoneSensorRepository` integration for pitch/roll, device magnetic heading, barometric pressure and accelerometer state.
+- Explicit mounted-device attitude calibration and orientation mapping.
+- Dynamic-acceleration attitude caution (`ATT DYNAMIC`).
+- Rotation-vector vs accelerometer/magnetometer fallback quality signalling.
+- Non-blocking nearest-airfield reference from the existing cached OurAirports repository.
+- Responsive dark flight-deck UI with source-explicit instrument labels and persistent safety band.
+- Persistent native/native-preset semantics plus one-shot external/ODK snapshot semantics.
+- Dedicated emergency-instrument engine unit tests and UX design review.
+- Updated XLSForm exercising the new external snapshot.
+
+## Core validation completed in this environment
+
+The emergency instrument engine was compiled with the actual aviation calculation, CSV and airfield-repository sources against local stubs matching the MethodMesh runtime/settings contracts.
+
+Focused smoke checks cover:
+
+- portrait attitude calibration offsets;
+- landscape-left/right axis remapping;
+- uncalibrated attitude remaining invalid;
+- standard-pressure altitude at sea-level standard pressure;
+- GNSS/reference headline uses `GS`, `TRK` and `GNSS ALT` rather than claiming airspeed/aircraft altitude;
+- dynamic acceleration produces `ATT DYNAMIC`;
+- rotation-vector absence produces attitude fallback quality when orientation data exist;
+- nearest-airfield output remains a positional reference and includes the suitability warning;
+- the core warning states the panel is supplementary and not certified.
+
+The pure aviation repository/calculation smoke suite from v0.2 remains applicable to airfield search, runway headings, wind, altitude, E6B and CSV parsing.
+
+## Source/architecture checks
+
+- The emergency panel reuses `PhoneSensorRepository`; no second Android sensor platform was added.
+- It reuses `AviationAirfieldRepository` for reference data.
+- It reuses the aviation calculation/output/provenance support rather than invoking other capability screens.
+- `aviation.emergency.instruments` is registered only inside `AviationModule` through normal self-discovery.
+- No shared `CapabilityScreenScaffold` behaviour was modified.
+- All new method metadata remains `Development`.
+- Native inputs use dropdowns/buttons rather than free-text fields where a structured control is available.
+
+## Persistent-dashboard checks implemented in source
+
+- `context.isNativePresetRun` is explicitly considered.
+- Native dashboard/browser use remains on the emergency panel.
+- Native preset use remains on the emergency panel.
+- `intent_test` remains interactive.
+- `capturedResult` is withheld while persistent presentation is active.
+- The latest genuine `ExecutionResult` stays in capability-owned state.
+- Live one-second updates rebuild the local snapshot but do not call `onConfirmed`.
+- **Use this snapshot** / **Finish** explicitly returns the latest successful result.
+- External/ODK execution uses a bounded sensor/GNSS stabilisation window and then returns one structured snapshot.
+- Airfield catalogue failure does not block phone/GNSS instrumentation.
+
+## Safety/UX checks implemented in source
+
+- Groundspeed is labelled `GS` / `GROUND SPEED`, never presented as airspeed.
+- Track is labelled GNSS track and explicitly distinguished from heading.
+- GNSS altitude is explicitly distinguished from pressure altitude.
+- Phone pressure altitude is separately labelled `BARO PA`.
+- Device attitude remains invalid until explicit calibration; the uncalibrated visual horizon is held neutral rather than animating raw angles.
+- Attitude source fallback and dynamic-acceleration conditions are visible quality states.
+- Nearest-airfield UI uses **reference**, not “landing site” or “suitable airfield”.
+- A permanent safety band remains visible below the live panel.
+- Setup is collapsed and contains structured controls only.
+
+## Android build status
+
+A full Android/Compose Gradle build could not be run in this execution environment. The available GitHub connector is read-capable but previously returned HTTP 403 for branch creation, and the sandbox does not provide a complete online MethodMesh Android checkout/dependency environment.
+
+The Kotlin/Compose source was therefore syntax-reviewed and the non-Android engine was compiled independently, but this is not a substitute for:
+
+```bash
+./gradlew :app:testDebugUnitTest --tests 'com.example.methodmesh.modules.aviation.*'
+./gradlew :app:assembleDebug
+```
+
+## Required real-device review before Production
+
+1. Run both Gradle commands above on a current MethodMesh checkout.
+2. Verify pitch/roll axis direction for all four mount-orientation choices.
+3. Verify **Set current as level** and reset behaviour while the device is rigidly mounted.
+4. Test rotation-vector devices and a device/environment where fallback orientation is used.
+5. Test `ATT DYNAMIC` while safely moving the device on the ground; confirm the caution does not create UI instability.
+6. Test GPS acquisition, stale fixes, poor accuracy, stationary jitter and loss/recovery of location permission.
+7. Verify GNSS vertical-speed smoothing does not imply aircraft-VSI quality.
+8. Test a phone with a barometer and one without; confirm `BARO PA` degradation is obvious.
+9. Test first airfield-catalogue download, stale refresh, offline cache and no-cache/offline failure.
+10. Verify phone sensors continue to render when airfield lookup fails.
+11. Verify screen-awake state is restored on exit.
+12. Test portrait, both landscape orientations, a small phone and a tablet.
+13. Test sunlight, dark cockpit/night mode and large Android text scaling.
+14. Test native dashboard, native preset, `intent_test`, ODK external call and a multi-step protocol.
+15. Confirm live one-second updates do not create graph/output history until **Use this snapshot / Finish**.
+16. Import `docs/example_odk_Aviation.xlsx` and verify the emergency group auto-returns a single structured snapshot.
+17. Have an aviation-domain reviewer assess terminology and failure-state presentation before changing status from Development.
+
+See `UX_DESIGN_REVIEW_v0.3.md` for the design iterations and residual UX risks.
+
+
+## v0.3.2 immersive-host integration
+
+- `aviation.dashboard` requests `CapabilityHostPresentation.Immersive`.
+- `aviation.emergency.instruments` requests `CapabilityHostPresentation.Immersive`.
+- Both use a bounded `fillMaxSize()` root.
+- Both provide capability-owned Back/Exit navigation.
+- Both constrain their vertical scroll region with `Modifier.weight(1f)` inside the bounded root.
+- Both keep the snapshot/finish action fixed below the scroll region.
+- External/ODK automatic-return semantics are implemented explicitly without relying on `CapabilityScreenScaffold`.
+- Atomic aviation screens remain Standard.
+- No host or module-ID special case is included in this patch.
+
+The target MethodMesh checkout must already contain the fullscreen contract described in `METHODMESH_FULLSCREEN_CAPABILITY_GUIDE.md` (`CapabilityHostPresentation` and the generic host propagation). Run `:app:compileDebugKotlin` and `:app:assembleDebug` in that checkout.

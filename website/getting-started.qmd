@@ -1,56 +1,38 @@
 ---
 title: "Getting started"
+subtitle: "Use the task surface that matches what you are trying to do"
 ---
 
-## The operating model
+MethodMesh is deliberately multi-surface. You do not have to begin at the dashboard, and the dashboard is not the implementation boundary for a capability.
 
-MethodMesh is a modular, offline-first capability extension layer for XLSForm-based research systems. It does not replace the EDC.
+## Choose an entry point
 
-A normal workflow is:
+| Need | Best starting point |
+|---|---|
+| Run one task now | **Capabilities** or a dashboard quick action |
+| Reuse the same setup | **Preset** |
+| Chain several steps with rails | **Protocol** |
+| Run/toggle something from the Android desktop | **Widget** |
+| Trigger work on a cadence | **Schedule** |
+| Call a capability from a research form | **ODK/XLSForm** |
+| Inspect hardware, APIs or prototypes | **Workbench** |
+| Manage shared app-level services | **Settings** |
 
-1.  The form collects the inputs required by a capability.
-2.  The form invokes MethodMesh through the standard execution action.
-3.  MethodMesh validates the request and runs the selected method.
-4.  MethodMesh returns flat fields and, where useful, structured JSON.
-5.  The form continues and the EDC stores the research record.
+## A normal native run
 
-## Core principles
+1. Open the relevant capability or preset.
+2. Configure only the settings that matter for this run.
+3. Perform the task in a capability-specific screen.
+4. Watch the **live current result** update in place.
+5. Tap displayed useful values to copy them directly.
+6. Press **Commit** when the working result is the result you intend to finalise.
+7. Use share/save/copy/full-JSON actions after Commit where the capability exposes them.
+8. Press **Done/Home**. MethodMesh routes closeout according to where the run came from.
 
-- **XLSForm first:** capabilities are designed to be called from real forms.
-- **Offline first:** network use must be explicit rather than an invisible fallback.
-- **Local round trip:** the result returns to the calling EDC.
-- **No second research database:** MethodMesh executes specialist operations but does not become the participant record.
-- **Canonical methods:** forms call a stable MethodMesh method rather than a raw Android component.
-- **Traceable results:** outputs may include timestamps, provider details, hashes and diagnostics.
+The critical distinction is that a live result is editable/working state. **Commit freezes the canonical payload.** A generic result screen should not be inserted merely for architectural convenience.
 
-## A first test
+## External calls
 
-A practical first test is the automatic code scanner because it has a simple request and an immediately visible result.
+ODK/XLSForm calls the same canonical method ID and input/output contract. Interactive capabilities may open their normal MethodMesh screen and then return to ODK. Non-interactive methods may execute and return without showing a UI.
 
-1.  Install MethodMesh.
-2.  Import `example_odk_barcode.scan.xlsx` into ODK Central or another compatible XLSForm server.
-3.  Download the form to ODK Collect.
-4.  Open the form and launch the MethodMesh scan group.
-5.  Scan a QR code, Data Matrix code, or supported one-dimensional barcode.
-6.  Confirm that the decoded payload and format return to the form.
-
-[Open the automatic code scanner documentation](capabilities/qr-code.qmd)
-
-## Reading capability pages
-
-Every capability page follows the same sequence:
-
-1.  Status
-2.  Purpose
-3.  Capability IDs
-4.  Requirements
-5.  Screenshot placeholder
-6.  Supported calls
-7.  Inputs
-8.  Expected outputs
-9.  XLSForm examples
-10. Behaviour and validation
-11. Limitations
-12. Detailed source reference
-
-This makes unfinished work visible rather than allowing it to look complete by omission.
+See [ODK/XLSForm integration](workflows/odk-xlsform.qmd) and the [current XLSForm library](reference/forms.qmd).

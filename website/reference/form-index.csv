@@ -1,0 +1,148 @@
+module_id,module,filename
+acoustics,Acoustics,example_odk_Acoustics.xlsx
+adminfingerprint,Local device authentication,example_odk_admin_fingerprint_confirmation.xlsx
+appinspector,Android app inspector,example_odk_android_app_inspector.xlsx
+aquaticfield,Aquatic fieldwork,example_odk_aquaticfield.xlsx
+arcade,Arcade,example_odk_Arcade.xlsx
+astronomy,Astronomy,example_odk_Astronomy.xlsx
+attestation,Traceable attestation,example_odk_attestation.anchor_bundle.xlsx
+attestation,Traceable attestation,example_odk_attestation.create_Fingerprint.xlsx
+attestation,Traceable attestation,example_odk_attestation.create_Nfc.xlsx
+attestation,Traceable attestation,example_odk_attestation.create_Password.xlsx
+attestation,Traceable attestation,example_odk_attestation.create_Pin.xlsx
+attestation,Traceable attestation,example_odk_attestation.create_Qr.xlsx
+aviation,Aviation tools,example_odk_Aviation.xlsx
+bluetoothinspector,Bluetooth device inspector,example_odk_bluetooth_device_inspector.xlsx
+calibratedscale,Calibrated scale,example_odk_calibrated_scale.xlsx
+calibratedscale,Calibrated scale,example_odk_calibrated_scale_MinMax.xlsx
+calibratedscale,Calibrated scale,example_odk_calibrated_scale_Range.xlsx
+calibratedscale,Calibrated scale,example_odk_calibrated_scale_Vertical.xlsx
+chance,Chance,example_odk_chance_cards_draw.xlsx
+chance,Chance,example_odk_chance_pick_one.xlsx
+chance,Chance,example_odk_chance_spinner_spin.xlsx
+chance,Chance,example_odk_chance_weighted_choose.xlsx
+chance,Chance,example_odk_coin_toss.xlsx
+chance,Chance,example_odk_dice_simulate.xlsx
+choiceexperiment,Discrete choice experiments,example_odk_dce.conjoint.xlsx
+choiceexperiment,Discrete choice experiments,example_odk_dce.maxdiff.xlsx
+choiceexperiment,Discrete choice experiments,example_odk_dce.pairwise.xlsx
+choiceexperiment,Discrete choice experiments,example_odk_dce.points.xlsx
+choiceexperiment,Discrete choice experiments,example_odk_dce.ranking.xlsx
+clinicalinstruments,Clinical Instruments,example_odk_ClinicalInstruments.xlsx
+compass,Compass,example_odk_Compass.xlsx
+conversationtranslate,Conversation translator,example_odk_conversation.translate.xlsx
+conversions,Conversions / General Calculator,example_odk_conversion.calculate.xlsx
+cryptography,Cryptography,example_odk_crypto.file.encrypt.xlsx
+cryptography,Cryptography,example_odk_crypto.text.encrypt.xlsx
+datatools,Data tools,example_odk_data.tools.xlsx
+digitalsigning,Digital signing,example_odk_document.sign_pdf.xlsx
+diving,Diving,example_odk_Diving.xlsx
+documentscanner,Document scanner,example_odk_document.scan.xlsx
+earthscience,Earth science utilities,example_odk_EarthScience.xlsx
+emergency,Emergency,example_odk_Emergency.xlsx
+expenses,Expenses,example_odk_Expenses.xlsx
+fieldstats,Field Statistics,example_odk_FieldStats_CompareBinary.xlsx
+fieldstats,Field Statistics,example_odk_FieldStats_DetectionLimit.xlsx
+fieldstats,Field Statistics,example_odk_FieldStats_Diagnostic2x2.xlsx
+fieldstats,Field Statistics,example_odk_FieldStats_Probability.xlsx
+fieldstats,Field Statistics,example_odk_FieldStats_Proportion.xlsx
+fieldstats,Field Statistics,example_odk_FieldStats_ROC.xlsx
+fieldstats,Field Statistics,example_odk_FieldStats_SampleSizeDiagnostic.xlsx
+fieldstats,Field Statistics,example_odk_FieldStats_SampleSizeProportion.xlsx
+fieldstats,Field Statistics,example_odk_FieldStats_SampleSizeTwoProportions.xlsx
+fieldstats,Field Statistics,example_odk_FieldStats_Summary.xlsx
+gamedeck,GameDeck,example_odk_GameDeck.xlsx
+gpstargetnavigator,GPS target navigator,example_odk_gps_target_navigator.xlsx
+hamradio,Amateur radio,example_odk_HamRadio.xlsx
+imageredaction,Image annotation and redaction,example_odk_image.redact.xlsx
+labbench,Lab Bench,example_odk_labbench.aliquot.xlsx
+labbench,Lab Bench,example_odk_labbench.cell_dilution.xlsx
+labbench,Lab Bench,example_odk_labbench.centrifuge.xlsx
+labbench,Lab Bench,example_odk_labbench.concentration.xlsx
+labbench,Lab Bench,example_odk_labbench.dashboard.xlsx
+labbench,Lab Bench,example_odk_labbench.dilution.xlsx
+labbench,Lab Bench,example_odk_labbench.hemocytometer.xlsx
+labbench,Lab Bench,example_odk_labbench.master_mix.xlsx
+labbench,Lab Bench,example_odk_labbench.molar_solution.xlsx
+labbench,Lab Bench,example_odk_labbench.nucleic_acid.xlsx
+labbench,Lab Bench,example_odk_labbench.percent_solution.xlsx
+labbench,Lab Bench,example_odk_labbench.reconstitute.xlsx
+labbench,Lab Bench,example_odk_labbench.serial_dilution.xlsx
+magnifier,Magnifier,example_odk_visual.magnifier.capture.xlsx
+multicounter,Multi-counter,example_odk_Multicounter.xlsx
+music,Music,example_odk_Arpeggiator.xlsx
+music,Music,example_odk_Bassline.xlsx
+music,Music,example_odk_BeatPads.xlsx
+music,Music,example_odk_Chord.xlsx
+music,Music,example_odk_ChordGuide.xlsx
+music,Music,example_odk_ChordProgression.xlsx
+music,Music,example_odk_DelayTime.xlsx
+music,Music,example_odk_DrumMachine.xlsx
+music,Music,example_odk_EuclideanRhythm.xlsx
+music,Music,example_odk_Harmonics.xlsx
+music,Music,example_odk_Interval.xlsx
+music,Music,example_odk_JamDashboard.xlsx
+music,Music,example_odk_LiveLooper.xlsx
+music,Music,example_odk_MelodySequence.xlsx
+music,Music,example_odk_Metronome.xlsx
+music,Music,example_odk_MotifGenerator.xlsx
+music,Music,example_odk_MusicReference.xlsx
+music,Music,example_odk_NoteFrequency.xlsx
+music,Music,example_odk_PatternMutation.xlsx
+music,Music,example_odk_PerformanceDashboard.xlsx
+music,Music,example_odk_Polyrhythm.xlsx
+music,Music,example_odk_PracticeDashboard.xlsx
+music,Music,example_odk_ProbabilityPattern.xlsx
+music,Music,example_odk_ReferenceDashboard.xlsx
+music,Music,example_odk_RhythmCapture.xlsx
+music,Music,example_odk_SetListTiming.xlsx
+music,Music,example_odk_SongSketch.xlsx
+music,Music,example_odk_SongSketchDashboard.xlsx
+music,Music,example_odk_TapTempo.xlsx
+music,Music,example_odk_Temperament.xlsx
+music,Music,example_odk_TempoConvert.xlsx
+music,Music,example_odk_TempoTrainer.xlsx
+music,Music,example_odk_Transpose.xlsx
+networktools,Network tools,example_odk_network.tools.xlsx
+nfc,NFC,example_odk_nfc_credential_provisioning.xlsx
+nfc,NFC,example_odk_nfc_credential_verification.xlsx
+nfc,NFC,example_odk_nfc_tag_read.xlsx
+nfc,NFC,example_odk_nfc_tag_wipe.xlsx
+nfc,NFC,example_odk_nfc_tag_write.xlsx
+nfc,NFC,example_odk_protocol_nfc_check.xlsx
+nfc,NFC,example_odk_protocol_nfc_complete.xlsx
+odkformlauncher,ODK form launcher,example_odk_odk_form_launcher.xlsx
+pluscodecapture,Plus Code capture,example_odk_plus_code.capture.xlsx
+psychomotorvigilance,Psychomotor vigilance test (PVT),example_odk_psychomotor_vigilance.xlsx
+barcode,Automatic code scanner,example_odk_barcode.scan.xlsx
+referencelibrary,Reference library,example_odk_reference_library.xlsx
+sampling,Sampling,example_odk_Sampling.xlsx
+scaledphoto,Image annotation and redaction,example_odk_scaled_photo.capture.xlsx
+scoring,Scoring & counters,example_odk_score.counter.xlsx
+scoring,Scoring & counters,example_odk_score.high_score.xlsx
+scoring,Scoring & counters,example_odk_score.match.xlsx
+scoring,Scoring & counters,example_odk_score.race_to.xlsx
+scoring,Scoring & counters,example_odk_score.rounds.xlsx
+scoring,Scoring & counters,example_odk_score.session.finish.xlsx
+scoring,Scoring & counters,example_odk_score.session.read.xlsx
+scoring,Scoring & counters,example_odk_score.session.resume.xlsx
+scoring,Scoring & counters,example_odk_score.set_match.xlsx
+scoring,Scoring & counters,example_odk_score.sports.xlsx
+scoring,Scoring & counters,example_odk_score.tally.xlsx
+sensorread,ESP32 sensor framework,example_odk_sensorread.xlsx
+sms,Send SMS,example_odk_sms.send.xlsx
+soundgenerator,Sound generator,example_odk_SoundGenerator.xlsx
+spatialgeometry,Spatial geometry,example_odk_spatialgeometry.xlsx
+surveying,Surveying,example_odk_survey_bearing_distance.xlsx
+surveying,Surveying,example_odk_survey_level_reduce.xlsx
+surveying,Surveying,example_odk_survey_traverse.xlsx
+svgselector,SVG polygon selector,example_odk_svg.select.xlsx
+tabletoputilities,Tabletop utilities,example_odk_TabletopUtilities.xlsx
+texttools,Text tools,example_odk_text_tools.xlsx
+time_tools,Time Tools,example_odk_time_tools.xlsx
+trustedtimestamp,Trusted timestamp,example_odk_integrity.trusted_timestamp.xlsx
+visualacuity,Visual acuity,example_odk_VisualAcuity.xlsx
+webactions,Web Actions,example_odk_web.odk_central_roundtrip.xlsx
+webactions,Web Actions,example_odk_web.open.xlsx
+webactions,Web Actions,example_odk_web.precooked_enketo.xlsx
+webactions,Web Actions,example_odk_web.roundtrip.xlsx

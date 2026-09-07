@@ -12,12 +12,12 @@ The Acoustics module uses the Android microphone as a local signal-measurement s
 
 | Method ID | Native name | Purpose |
 |---|---|---|
-| `acoustic.analyse` | Acoustic analyser | Frequency/pitch, note, waveform, FFT spectrum, amplitude and derived wavelength. |
+| `acoustic.analyse` | Acoustic analyser | Timed acoustic observation with frequency/amplitude summaries, averaged dBFS spectrum, sampled time series, harmonics, live waveform/spectrum and derived wavelength. |
 | `acoustic.tune` | Instrument tuner | Chromatic/instrument tuning with target frequency and cents deviation. |
 | `acoustic.level` | Sound-level meter | Relative digital level in dBFS; optionally estimated dB SPL after calibration. |
 | `acoustic.compare` | Tone comparator | Compare a stable observed tone against a target with Hz, percent or cents tolerance. |
 
-The module is completely local/offline. Raw microphone audio is processed in memory and is **not retained** by v0.1.
+The module is completely local/offline. Raw microphone audio is processed in memory and is **not retained** by v0.2. The analyser retains derived time-series and spectral summaries only.
 
 ## Design principles
 
@@ -37,7 +37,7 @@ The default temperature-based speed of sound approximation is:
 331.3 + 0.606 × temperature_C   m/s
 ```
 
-Humidity and atmospheric-pressure corrections are not included in v0.1. A caller can instead supply a fixed speed of sound.
+Humidity and atmospheric-pressure corrections are not included in v0.2. A caller can instead supply a fixed speed of sound.
 
 ### dBFS and dB SPL are not interchangeable
 
@@ -61,11 +61,11 @@ The module deliberately adds no third-party DSP dependency.
 - default sample rate: 48 kHz (44.1 kHz also available);
 - analysis frame: 4096 samples;
 - pitch: YIN cumulative-mean-normalized-difference detector with parabolic lag refinement;
-- spectrum: Hann-windowed radix-2 FFT;
+- spectrum: Hann-windowed radix-2 FFT; live display spectrum is frame-relative while saved measurement spectrum is approximately dBFS and averaged in the power domain;
 - level: RMS and peak amplitude converted to dBFS;
 - Leq: energy average across captured RMS frames;
 - stability: contiguous pitch observations must satisfy minimum duration, confidence and cents-SD criteria;
-- raw audio: not persisted.
+- raw audio: not persisted; only derived summary statistics, spectrum bins and sampled time-series observations are returned.
 
 Algorithm constants are versioned in `AcousticsAlgorithms.kt`.
 
@@ -73,19 +73,30 @@ Algorithm constants are versioned in `AcousticsAlgorithms.kt`.
 
 ### Acoustic analyser
 
-1. Open **Acoustic analyser**.
-2. Configure pitch range, reference A4 and wavelength basis if needed.
-3. Press **Start listening**.
-4. The screen shows:
-   - detected frequency;
-   - nearest chromatic note and cents offset;
-   - derived wavelength;
-   - dBFS level;
-   - live oscilloscope trace;
-   - live FFT spectrum.
-5. Press **Capture result** to return a compact result and audit metadata.
+The analyser separates **live inspection** from **scientific measurement**.
 
-A stable pitch window is preferred for the returned frequency. If no stable pitch exists but audio was captured, the analyser can still succeed as a general acoustic observation with pitch fields blank.
+1. Open **Acoustic analyser** and configure the measurement duration, pitch range, time-series interval, reference A4 and wavelength basis if needed.
+2. Press **Start live analyser**. The oscilloscope, current frequency and display spectrum update continuously but no scientific observation is yet being accumulated.
+3. Press **Start N-second measurement** when the sound of interest is present. The measurement accumulator is reset at that moment.
+4. During the timed interval MethodMesh records derived frame measurements, not raw audio, and displays:
+   - the live oscilloscope and instantaneous spectrum;
+   - an averaged measurement spectrum in dBFS;
+   - frequency versus time;
+   - amplitude (dBFS) versus time.
+5. At the end of the configured interval the result contains whole-window frequency and amplitude summaries, Leq, spectrum, harmonic profile and sampled time series.
+
+**Freeze display** is now a visual control only. It pauses the displayed trace while the microphone engine remains live; it does not create, truncate or alter a measurement.
+
+The analyser reports mean, median, minimum, maximum and SD where appropriate rather than treating an arbitrary final frame as the observation. A stable pitch window is still identified for quality/stability metadata, but the principal analyser output describes the full timed interval. If no valid fundamental pitch is found, level and spectral outputs can still succeed.
+
+#### Scientific interval outputs
+
+The analyser retains two structured derived profiles:
+
+- `acoustic_spectrum_json` / `acoustic_spectrum_csv_payload`: power-averaged frequency-bin amplitudes in dBFS across the measurement interval, with frequency and derived wavelength for each bin;
+- `acoustic_timeseries_json` / `acoustic_timeseries_csv_payload`: sampled derived observations containing time, frequency, pitch confidence, RMS, peak, dBFS and peak dBFS.
+
+The time-series interval defaults to 100 ms and is configurable. Spectrum averaging is performed in the power domain before conversion back to dBFS. The spectrum is not raw audio and cannot reconstruct the original waveform. Large CSV strings use a `_payload` suffix so they stay out of the normal CORE result preview; they remain available inside the FULL result envelope/export.
 
 ### Instrument tuner
 
@@ -121,7 +132,7 @@ A4 defaults to 440 Hz and is configurable.
 6. MethodMesh calculates and stores the calibration offset in the current capability settings; save it in a preset when reuse is appropriate.
 7. Calibrated outputs are clearly marked and the audit records the offset/reference and microphone route.
 
-v0.1 does **not** implement A-weighting, C-weighting or IEC sound-level-meter class claims.
+v0.2 does **not** implement A-weighting, C-weighting or IEC sound-level-meter class claims.
 
 ### Tone comparator
 
@@ -187,7 +198,8 @@ Intent calls use groups. ODK does not depend on a MethodMesh configuration dialo
 
 | Input | Default | Meaning |
 |---|---:|---|
-| `capture_seconds` | 2.0 | Timed capture length for automatic/intent runs. |
+| `capture_seconds` | 5.0 | Duration of the recorded scientific observation. |
+| `timeseries_interval_ms` | 100 | Interval between retained derived time-series observations. |
 | `sample_rate_hz` | 48000 | `44100` or `48000`. |
 | `min_frequency_hz` | 40 | Lowest pitch candidate. |
 | `max_frequency_hz` | 5000 | Highest pitch candidate. |
@@ -247,14 +259,26 @@ Main result: `acoustic_analysis_result`
 
 Core measurement fields:
 
-- `acoustic_frequency_hz`
+- `acoustic_duration_s`
+- `acoustic_frequency_hz` (median; retained as the backwards-compatible primary frequency)
+- `acoustic_frequency_mean_hz`
+- `acoustic_frequency_median_hz`
+- `acoustic_frequency_min_hz`
+- `acoustic_frequency_max_hz`
 - `acoustic_note`
 - `acoustic_cents`
 - `acoustic_wavelength_m`
 - `acoustic_speed_of_sound_mps`
-- `acoustic_rms`
+- `acoustic_rms` (mean; backwards-compatible alias)
+- `acoustic_rms_mean`
+- `acoustic_rms_min`
+- `acoustic_rms_max`
 - `acoustic_peak`
-- `acoustic_dbfs`
+- `acoustic_dbfs` (mean; backwards-compatible alias)
+- `acoustic_dbfs_mean`
+- `acoustic_dbfs_min`
+- `acoustic_dbfs_max`
+- `acoustic_leq_dbfs`
 - `acoustic_peak_dbfs`
 - `acoustic_pitch_confidence`
 - `acoustic_frequency_sd_hz`
@@ -378,7 +402,7 @@ Keep this module in **Development** until at least the following are closed:
 9. Import `example_odk_Acoustics.xlsx` into ODK Central/Collect and verify all four operation selections through the dynamic group intent and their return fields.
 10. Validate permission denial/retry and microphone-unavailable states.
 11. Validate SPL calibration repeatability across restart and across input-route changes. Treat calibration as invalid if device/input processing changes.
-12. Do not claim IEC 61672 sound-level-meter conformance. v0.1 has no A/C weighting, time weighting or class certification.
+12. Do not claim IEC 61672 sound-level-meter conformance. v0.2 has no A/C weighting, time weighting or class certification.
 13. Phone microphone frequency response and gain vary substantially by device; calibrated dB SPL therefore requires device-specific validation.
 14. The temperature-only speed-of-sound approximation ignores humidity and pressure.
 15. The module does not persist raw audio, so a later auditor can inspect settings/results/provenance but cannot replay the original sound waveform.

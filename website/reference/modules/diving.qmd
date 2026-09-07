@@ -1,0 +1,58 @@
+---
+title: "Diving"
+subtitle: "Module reference · diving"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Recreational and technical diving physics, gas planning, cylinder/log records, and persistent planning dashboards.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>diving</code></div>
+<div><strong>Source directory</strong><code>diving</code></div>
+<div><strong>Indexed methods</strong>18</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>1</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `diving.bailout.plan` | plan diving bailout gas | Calculate simplified bailout ascent gas requirement | <span class="badge-source">current source</span> | RIL binding |
+| `diving.cylinder.capacity` | calculate cylinder gas | Calculate nominal cylinder gas and reserve | <span class="badge-source">current source</span> | RIL binding |
+| `diving.cylinder.record` | record diving cylinder | Create or update a local diving cylinder record | <span class="badge-source">current source</span> | RIL binding |
+| `diving.dashboard` | open dive planner dashboard | Open the persistent diving planning dashboard | <span class="badge-source">current source</span> | RIL binding |
+| `diving.ead` | calculate equivalent air depth | Calculate EAD for nitrox | <span class="badge-source">current source</span> | RIL binding |
+| `diving.end` | calculate equivalent narcotic depth | Calculate END for helium mixes | <span class="badge-source">current source</span> | RIL binding |
+| `diving.gas.analysis.record` | record diving gas analysis | Record an analysed O2/He mix for a cylinder | <span class="badge-source">current source</span> | RIL binding |
+| `diving.gas.dashboard` | open diving gas dashboard | Summarise local cylinders and gas analyses | <span class="badge-source">current source</span> | RIL binding |
+| `diving.gas.density` | calculate diving gas density | Estimate ideal-gas breathing density at depth | <span class="badge-source">current source</span> | RIL binding |
+| `diving.gas.plan` | plan diving gas | Calculate multi-segment gas requirement and reserve margin | <span class="badge-source">current source</span> | RIL binding |
+| `diving.lift` | calculate lift bag gas | Estimate minimum lift-bag displacement and inflation gas | <span class="badge-source">current source</span> | RIL binding |
+| `diving.log.dashboard` | open dive log dashboard | Summarise locally recorded dives | <span class="badge-source">current source</span> | RIL binding |
+| `diving.log.record` | record dive | Record a dive in the local MethodMesh dive log | <span class="badge-source">current source</span> | RIL binding |
+| `diving.mod` | calculate diving MOD | Calculate maximum operating depth from analysed FO2 and configured ppO2 limit | <span class="badge-source">current source</span> | RIL binding |
+| `diving.navigation` | calculate dive navigation | Calculate reciprocal heading and simple time/distance navigation | <span class="badge-source">current source</span> | RIL binding |
+| `diving.nitrox.best_mix` | calculate nitrox best mix | Calculate maximum FO2 at a planned depth for a configured ppO2 limit | <span class="badge-source">current source</span> | RIL binding |
+| `diving.ppo2` | calculate diving ppO2 | Calculate oxygen partial pressure at depth | <span class="badge-source">current source</span> | RIL binding |
+| `diving.sac_rmv` | calculate diving SAC RMV | Calculate SAC and RMV from a dive and cylinder pressure drop | <span class="badge-source">current source</span> | RIL binding |
+
+## ODK / XLSForm examples
+
+- [example_odk_Diving.xlsx](../source-docs/diving/example_odk_Diving.xlsx)
+
+## Module-local documentation
+
+- [MethodMesh Diving capability family — Development prototype v0.1.0](../source-docs/diving/README_Diving.qmd) — `README_Diving.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

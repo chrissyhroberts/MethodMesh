@@ -1,0 +1,56 @@
+schema: methodmesh.clinical-instrument.v1
+id: cha2ds2_vasc
+name: CHA2DS2-VASc
+version: 1.0.0
+status: core
+type: clinical_score
+category: cardiovascular
+tags: [atrial_fibrillation, stroke_risk, cardiovascular]
+summary: Point score for thromboembolic risk factors in atrial fibrillation.
+source_url: https://www.escardio.org/static-file/Escardio/Guidelines/ehw128_Addenda.pdf
+citation: "European Society of Cardiology. CHA2DS2-VASc stroke-risk factors for atrial fibrillation."
+rights_status: factual_definition
+rights_note: MethodMesh returns the score and component values; anticoagulation decisions require the current applicable guideline and clinical context.
+questions:
+  - id: heart_failure
+    label: Congestive heart failure or left ventricular dysfunction?
+    type: boolean
+  - id: hypertension
+    label: Hypertension?
+    type: boolean
+  - id: age_years
+    label: Age
+    type: integer
+    unit: years
+    min: 18
+    max: 130
+  - id: diabetes
+    label: Diabetes mellitus?
+    type: boolean
+  - id: stroke_tia_thromboembolism
+    label: Previous stroke, TIA or systemic thromboembolism?
+    type: boolean
+  - id: vascular_disease
+    label: Vascular disease - prior MI, peripheral arterial disease, or aortic plaque?
+    type: boolean
+  - id: sex_category
+    label: Sex category
+    type: select_one
+    choices: [female|Female, male|Male, other|Other / not represented by score]
+derived:
+  - id: age_75_points
+    expression: (age_years >= 75) * 2
+  - id: age_65_74_points
+    expression: (age_years >= 65 and age_years < 75)
+  - id: stroke_points
+    expression: stroke_tia_thromboembolism * 2
+  - id: sex_points
+    expression: sex_category == 'female'
+scores:
+  - id: cha2ds2_vasc
+    label: CHA2DS2-VASc
+    expression: heart_failure + hypertension + age_75_points + diabetes + stroke_points + vascular_disease + age_65_74_points + sex_points
+tests:
+  - name: example
+    input_json: '{"heart_failure":true,"hypertension":true,"age_years":76,"diabetes":true,"stroke_tia_thromboembolism":false,"vascular_disease":false,"sex_category":"female"}'
+    expect_json: '{"cha2ds2_vasc":6}'

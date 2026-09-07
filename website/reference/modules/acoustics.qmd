@@ -1,0 +1,46 @@
+---
+title: "Acoustics"
+subtitle: "Module reference · acoustics"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Analyse tones, tune instruments, estimate sound level, and compare measured tones with target frequencies.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>acoustics</code></div>
+<div><strong>Source directory</strong><code>acoustics</code></div>
+<div><strong>Indexed methods</strong>4</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>3</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `acoustic.analyse` | analyse acoustic signal | Measure pitch, waveform, spectrum and amplitude | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `acoustic.compare` | compare tone | Compare a measured tone with a target frequency and tolerance | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `acoustic.level` | measure sound level | Measure relative or calibrated acoustic level | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `acoustic.tune` | tune instrument | Tune a chromatic or preset string instrument | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_Acoustics.xlsx](../source-docs/acoustics/example_odk_Acoustics.xlsx)
+
+## Module-local documentation
+
+- [MethodMesh Acoustics capability](../source-docs/acoustics/README_Acoustics.qmd) — `README_Acoustics.md`
+- [Roadmap handoff note — Acoustics v0.1.0](../source-docs/acoustics/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [Acoustics v0.2.0 validation note](../source-docs/acoustics/VALIDATION_v0.2.0.qmd) — `VALIDATION_v0.2.0.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

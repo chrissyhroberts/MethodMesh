@@ -1,0 +1,43 @@
+---
+title: "Reference library"
+subtitle: "Module reference · referencelibrary"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Keep useful field references, manuals and document packs accessible offline.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>referencelibrary</code></div>
+<div><strong>Source directory</strong><code>referencelibrary</code></div>
+<div><strong>Indexed methods</strong>2</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>2</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `reference.library.email` | email reference documents | Prepare an email with library or piped document attachments | <span class="badge-source">current source</span> | RIL binding, capability screen, module docs, module registry |
+| `reference.library.open` | open reference library | Open the offline reference library | <span class="badge-source">current source</span> | RIL binding, capability screen, module docs, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_reference_library.xlsx](../source-docs/referencelibrary/example_odk_reference_library.xlsx)
+
+## Module-local documentation
+
+- [Reference Library architecture — v0.2.6](../source-docs/referencelibrary/ARCHITECTURE.qmd) — `ARCHITECTURE.md`
+- [MethodMesh Reference Library](../source-docs/referencelibrary/README_ReferenceLibrary.qmd) — `README_ReferenceLibrary.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

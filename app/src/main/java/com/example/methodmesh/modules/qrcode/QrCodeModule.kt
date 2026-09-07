@@ -1,14 +1,17 @@
 package com.example.methodmesh.modules.qrcode
 
-import com.example.methodmesh.modules.ModuleExample
 import com.example.methodmesh.modules.MethodMeshModule
+import com.example.methodmesh.modules.ModuleExample
 import com.example.methodmesh.modules.RilBinding
 import com.example.methodmesh.settings.MethodSetting
 
 object QrCodeModule : MethodMeshModule {
+    // Historical IDs are intentionally retained for saved presets, protocols,
+    // XLSForms and external callers.
     override val moduleId: String = "barcode"
     override val displayName: String = "Automatic code scanner"
-    override val summary: String = "Automatically capture QR, Data Matrix, and common 1D barcode evidence."
+    override val summary: String = "Scan QR, Data Matrix, Aztec, PDF417, and common 1D codes into canonical evidence."
+    override val iconKey: String = "tool"
 
     override fun as100Methods() = listOf(As100BarcodeScanMethod)
 
@@ -34,6 +37,8 @@ object QrCodeModule : MethodMeshModule {
             listOf(
                 "QR_CODE",
                 "DATA_MATRIX",
+                "PDF_417",
+                "AZTEC",
                 "CODE_128",
                 "CODE_39",
                 "EAN_13",
@@ -53,7 +58,7 @@ object QrCodeModule : MethodMeshModule {
         ModuleExample(
             title = "Capture a QR, Data Matrix, or barcode token",
             ril = "WHAT; scan barcode; WHERE; participant/P001; RESULT; return barcode_payload, barcode_format; format json",
-            notes = "This is a standalone code-scanning capability so other modules, including attestation, can depend on captured code evidence rather than reimplementing scanner behaviour."
+            notes = "The same barcode.scan contract is used by direct native runs, presets, protocols, schedules/widgets and ODK/XLSForm."
         )
     )
 }

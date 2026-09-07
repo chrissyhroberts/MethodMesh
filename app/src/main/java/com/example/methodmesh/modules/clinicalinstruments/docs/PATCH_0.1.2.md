@@ -1,0 +1,31 @@
+# Clinical Instruments v0.1.2 detail/output patch
+
+## Fixes
+
+### New local instrument template
+
+The constrained YAML parser previously treated any root line ending in `:` as a list section. The generated local-instrument template therefore failed on the deliberately blank `source_url:` field.
+
+v0.1.2 fixes this in two places:
+
+- known root metadata fields may now be represented as empty YAML scalars; and
+- the generated template writes blank metadata explicitly as `source_url: ""` and `citation: ""`.
+
+Unknown root fields and unknown list sections still fail validation rather than being silently ignored.
+
+### Clinical completion output
+
+The normal native result/share surface is now intentionally clinical rather than audit-oriented:
+
+1. **Headline score/classification**
+2. **Every individual question and recorded answer, in instrument order**
+
+Boolean values are rendered as Yes/No, select-one answers use their human-readable labels, and numeric values include units where defined.
+
+The complete structured result remains unchanged in principle: ODK/callers still receive raw response fields, derived values, score/classification, instrument version, definition fingerprint/hash, session identifiers, JSON result and provenance. A new human-readable `clinical_answers` core field mirrors the ordered answer list for simple transports/sharing.
+
+Technical provenance is deliberately not promoted above the clinical observations in the native result screen.
+
+## Scope
+
+This remains Clinical Instruments v0.1: linear resumable checklists and deterministic scoring only. Branching/relevance is not introduced by this patch.

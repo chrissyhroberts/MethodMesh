@@ -1,0 +1,38 @@
+---
+title: "App surfaces"
+subtitle: "One contract, several ways to interact"
+---
+
+## Dashboard
+
+The dashboard is the operational control centre: shortcuts, useful current state, common tasks, active schedules and recent results. Calculated or returnable values should be directly tap-to-copy. Maps, images, documents and other visual artefacts may expose compact share/save controls and full-screen manipulation while preserving dashboard state.
+
+A dashboard component may act as a module control centre, but it must not swallow the underlying capabilities. The dashboard should remain compact rather than becoming a long settings page.
+
+## Capabilities
+
+Capabilities are the canonical units of invocation and composition. Every individual capability remains independently discoverable for direct use, preset creation, protocol creation and ODK/XLSForm.
+
+## Presets
+
+A preset is a saved capability setup. It stores intentional configuration and runtime-input policy, not accidental run-specific text. Fixed settings should not reappear as unnecessary runtime questions.
+
+## Protocols
+
+Protocols chain capabilities/presets. A protocol runner needs explicit rails: current step, previous outcome, next step, retry/cancel/continue state and a final combined result.
+
+## Workbench
+
+Workbench contains development, inspector, hardware and hackerish tools that are useful but not usually normal field presets: firmware installation, BLE/Bluetooth inspection, Android app inspection, API editing/testing and diagnostics.
+
+## Device registry
+
+The registry is intended to become a live device view. Sensor entries should expose refresh/current values rather than only static manifests where possible.
+
+## Settings
+
+Settings is for shared app-level services and controls — for example language packs, export preferences and shared resource packs — not module-specific special cases that belong in a capability contract.
+
+## Widgets
+
+Widgets are launch origins, not separate implementations. The intended 1×1 patterns are preset trigger, protocol trigger and schedule toggle. One-shot widget closeout returns cleanly to the Android desktop.

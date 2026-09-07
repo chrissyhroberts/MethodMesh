@@ -1,0 +1,85 @@
+---
+title: "VALIDATION — Music v1.05 refresh"
+subtitle: "Module source document · Music"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/music/docs/VALIDATION.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+**Status:** Development  
+**Module implementation:** 0.3.0  
+**MethodMesh standard:** v1.05
+
+## Migration scorecard
+
+- Canonical method IDs preserved: **33 / 33**.
+- Native capability screens: **33 / 33**.
+- Per-capability settings map entries: **33 / 33** (including intentional empty operational-setting lists).
+- Individual preset/protocol discoverability: derived from the same `MusicModule.as100Methods()` catalogue; no dashboard-only private capability implementation.
+- ODK examples: **33 / 33**, one grouped-intent workbook per method.
+- ODK examples project every declared method output plus `methodmesh_full_json`.
+- Dashboard capabilities remain separate canonical methods while underlying primitives also remain registered.
+
+## v1.05 UX checks
+
+- Working results remain on the capability screen.
+- Deterministic methods update current output immediately as inputs change.
+- Physical/acquisition operations keep explicit Tap/Start/Stop/Record/Play controls.
+- Commit freezes a saved JSON copy of canonical fields; subsequent input edits occur only after explicit Edit/new run.
+- Module screens pass `capturedResult = null`, avoiding mandatory generic result-page replacement.
+- Useful displayed result values use module-local tappable clipboard cards/text, including compact dashboard/looper summary displays, and copy the canonical useful value rather than the machine label.
+- Post-Commit UI is beef first; audit/technical values are progressive disclosure.
+- Closeout is delegated to the shared `onConfirmed` execution callback; automatic/external completion uses the existing completion context rather than module-specific navigation.
+- Fixed preset settings are suppressed through `CapabilityScreenContext.settingShouldBeShown`.
+
+## Persistence checks
+
+- Working and committed screen state uses `rememberSaveable` where serialisable.
+- Practice active timing is persisted with epoch timestamps.
+- Performance set list and active run state are persisted with epoch timestamps.
+- Jam and Song Sketch dashboard state uses module-owned SharedPreferences.
+- Live looper uses a process-local PCM session store across Activity recreation; process death is explicitly documented as ending uncommitted audio.
+- Commit does not automatically save/export user artefacts.
+
+## Contract compatibility changes
+
+No existing method/input/output key was removed or renamed. Additive v1.05 fields:
+
+- `music_metronome_audio_enabled`, `music_metronome_visual_enabled`, `music_metronome_haptic_enabled`.
+- `music_polyrhythm_bpm`, `music_polyrhythm_audio_enabled`, `music_polyrhythm_haptic_enabled`.
+- `music_practice_dashboard_elapsed_seconds`, `music_practice_dashboard_elapsed_formatted`.
+- `music_performance_dashboard_planned_start`, `music_performance_dashboard_curfew`, `music_performance_dashboard_current_index`, `music_performance_dashboard_current_song`, `music_performance_dashboard_running`.
+- `music_live_looper_recording`.
+
+## Tests run in this environment
+
+1. `kotlinc MusicAlgorithms.kt MusicCreationAlgorithms.kt` — **PASS**.
+2. Focused JVM smoke test — **PASS**: A4=440 Hz; 120 BPM dotted-eighth=375 ms; 3:2 pulse count; 16/5 Euclidean hit count; bassline octave crossing; scale-degree melody generation.
+3. Static scan — **PASS**: no `Modifier.weight(...)`, `RowColumnParentData`, `RowScopeInstance` or `ColumnScopeInstance` references in module Kotlin.
+4. Tap-to-copy sweep — **PASS (source review)**: live-result cards, dashboard summaries, tap-tempo/rhythm-capture headline values, reference summaries and looper scalar summaries route through `CopyableMusicValue` / `CopyableMusicText`; operational-only indicators such as current metronome beat remain controls/status rather than canonical result fields.
+5. Static screen scan — **PASS**: all migrated screens use in-place working results/Commit and do not provide a non-null `capturedResult` to the old scaffold result flow.
+6. ODK generation/inspection — **PASS**: 33 workbooks generated with `artifact_tool`; inspected grouped metronome intent and declared outputs; formula-error scan found no spreadsheet errors.
+
+## Not run
+
+The complete MethodMesh Gradle repository was not present in this sandbox, so the following could not be executed here:
+
+- `./gradlew :app:testDebugUnitTest`
+- `./gradlew :app:assembleDebug`
+- on-device rotation/navigation tests
+- ODK Collect roundtrip on Android
+- microphone/Bluetooth/audio-focus/latency device testing
+
+The module must therefore remain **Development**, not Production, until those target-repository/device checks pass.
+
+## 2026-09-06 compile-fix pass
+
+Addressed host-app `:app:compileDebugKotlin` errors reported after the v1.05 migration:
+
+- `CapabilityScreenScaffold.resultPreview` now receives an explicit `Map<String, String>` (`emptyMap<String, String>()`) rather than the pre-v1.05 list shape.
+- `LocalContext.current` is read in composable scope before entering `remember { ... }`; repository construction no longer invokes a composable ambient from a non-composable calculation lambda.
+
+These changes preserve all method IDs, settings, inputs and output contracts. A complete host-app Gradle build is still required in the receiving MethodMesh repository.
+

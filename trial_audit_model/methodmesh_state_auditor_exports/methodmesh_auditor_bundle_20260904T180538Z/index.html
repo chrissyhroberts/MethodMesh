@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MethodMesh Auditor Dashboard</title>
+<style>
+:root{--bg:#f4f6f8;--panel:#fff;--ink:#17202a;--muted:#667085;
+--line:#d8dee6;--good:#137333;--warn:#9a6700;--bad:#b42318;
+--info:#175cd3;--soft-good:#ecfdf3;--soft-warn:#fffaeb;
+--soft-bad:#fef3f2;--soft-info:#eff8ff;--mono:ui-monospace,
+SFMono-Regular,Menlo,Monaco,Consolas,monospace;--sans:Inter,system-ui,
+-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);
+font-family:var(--sans);line-height:1.45}header{background:#111827;color:#fff;
+padding:28px max(24px,calc((100vw - 1120px)/2))}header .eyebrow{
+text-transform:uppercase;letter-spacing:.12em;font-size:12px;color:#cbd5e1}
+header h1{margin:6px 0 4px;font-size:30px}header .sub{color:#cbd5e1}
+main{max-width:1120px;margin:0 auto;padding:24px}section{margin:0 0 24px}
+.panel,.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+box-shadow:0 1px 2px rgba(16,24,40,.03)}.panel{padding:18px}.grid{display:grid;
+gap:12px}.cards{grid-template-columns:repeat(auto-fit,minmax(175px,1fr))}
+.card{padding:15px}.label{color:var(--muted);font-size:12px;text-transform:uppercase;
+letter-spacing:.04em}.value{font-size:25px;font-weight:700;margin-top:4px}
+.badge{display:inline-block;border-radius:999px;padding:6px 10px;font-size:12px;
+font-weight:700;margin:4px 5px 0 0}.good{color:var(--good);background:var(--soft-good);
+border:1px solid #abefc6}.warn{color:var(--warn);background:var(--soft-warn);
+border:1px solid #fedf89}.bad{color:var(--bad);background:var(--soft-bad);
+border:1px solid #fecdca}.info{color:var(--info);background:var(--soft-info);
+border:1px solid #b2ddff}.start{border:2px solid #b2ddff;background:#fff}
+.start h2{margin-top:0}.steps{display:grid;gap:9px}.step{display:flex;gap:12px;
+align-items:center;padding:12px;border:1px solid var(--line);border-radius:9px;
+text-decoration:none;color:var(--ink);background:#fff}.step strong{display:block}
+.step span{color:var(--muted);font-size:13px}.num{width:30px;height:30px;
+border-radius:50%;display:grid;place-items:center;background:#eff8ff;color:var(--info);
+font-weight:800;flex:0 0 auto}.issue{display:block;padding:14px;border:1px solid #fedf89;
+background:var(--soft-warn);border-radius:10px;margin:8px 0;text-decoration:none;
+color:var(--ink)}.issue.high{border-color:#fecdca;background:var(--soft-bad)}
+.issue .meta{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.issue .arrow{float:right;font-weight:800}h2{font-size:20px;margin:0 0 10px}
+.kv{display:grid;grid-template-columns:minmax(180px,32%) 1fr;gap:7px 14px;
+font-size:13px}.kv dt{color:var(--muted)}.kv dd{margin:0;overflow-wrap:anywhere}
+.mono{font-family:var(--mono);font-size:12px}a.button{display:inline-block;
+padding:9px 12px;border-radius:8px;text-decoration:none;font-weight:700;
+background:#175cd3;color:white}pre{white-space:pre-wrap;overflow-wrap:anywhere;
+background:#101828;color:white;border-radius:9px;padding:12px;font:12px/1.45 var(--mono)}
+footer{max-width:1120px;margin:0 auto;padding:0 24px 30px;color:var(--muted);
+font-size:12px}@media(max-width:700px){main{padding:16px}.kv{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="eyebrow">MethodMesh · guided auditor view</div>
+<h1 id="title">Project audit</h1><div class="sub" id="sub"></div>
+<div id="badges"></div></header>
+<main>
+<section class="panel start">
+<h2>Start here</h2>
+<p>This page tells you what needs attention before exposing technical detail.</p>
+<div class="steps">
+<a class="step" href="#issues"><div class="num">1</div><div><strong>Review issues</strong>
+<span id="step-issues">Loading…</span></div></a>
+<a class="step" href="#proof"><div class="num">2</div><div><strong>Confirm the evidence package verifies</strong>
+<span>Check the Merkle root and RFC3161 timestamp.</span></div></a>
+<a class="step" href="#scope"><div class="num">3</div><div><strong>Confirm the scope</strong>
+<span>Check what this project bundle does and does not contain.</span></div></a>
+</div>
+</section>
+<section><div class="grid cards" id="cards"></div></section>
+<section id="issues"><div class="panel"><h2>Issues requiring review</h2>
+<div id="issue-list"></div><p><a class="button" href="issues/index.html">Review all issues</a></p>
+</div></section>
+<section id="scope"><div class="panel"><h2>Project scope & privacy</h2>
+<dl class="kv" id="scope-kv"></dl><p>This front page intentionally does not
+render every submission. Complete machine evidence remains in background files
+in this bundle.</p></div></section>
+<section><div class="panel"><h2>Forms</h2><div id="forms"></div></div></section>
+<section id="proof"><div class="panel"><h2>Cryptographic checkpoint</h2>
+<dl class="kv" id="proof-kv"></dl><h3 style="margin-top:16px">Independent verification</h3>
+<pre>python3 verify_bundle.py</pre></div></section>
+</main>
+<footer>No participant answers, old/new research values, XML, photographs or
+attachment bytes are rendered by this dashboard.</footer>
+<script id="model" type="application/json">{"attention_issue_count":5,"central_scope":"PROJECT_SAFE","central_url":"https://central.lshtm.ac.uk","checkpoint":{"daily_checkpoint_sha256":"7e1944d57a0e286096ae3712208fb0b053a0f3296ded9176426005caa6cb9dc2","evidence_merkle_root":"a6c80c460e4132ff70a591987970aaa3b5d3646972d2cfdc2bc4c4232d918ffb","leaf_count":26,"previous_daily_checkpoint_sha256":"83176142ba875be301782dc79ab83ff1287befe909d3debf6be38fc56253b887","timestamp_status":"VERIFIED","trusted_timestamp_authority":"https://freetsa.org/tsr","trusted_timestamp_time_iso":"2026-09-04T18:05:55+00:00"},"form_count":35,"forms_preview":[{"form_id":"admin_fingerprint_confirmation","name":"admin_fingerprint_confirmation","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"attestation_anchor_bundle","name":"attestation.anchor_bundle","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"attestation_create_Fingerprint","name":"attestation.create_Fingerprint","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"attestation_create_Nfc","name":"attestation.create_Nfc","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"attestation_create_Password","name":"attestation.create_Password","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"attestation_create_Pin","name":"attestation.create_Pin","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"attestation_create_Qr","name":"attestation.create_Qr","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"calibrated_scale","name":"calibrated_scale","state":"open","submission_state_rows":0,"version":"2026072709a"},{"form_id":"calibrated_scale_MinMax","name":"calibrated_scale_MinMax","state":"open","submission_state_rows":0,"version":"2026072709"},{"form_id":"calibrated_scale_Range","name":"calibrated_scale_Range","state":"open","submission_state_rows":0,"version":"2026072709"},{"form_id":"calibrated_scale_Vertical","name":"calibrated_scale_Vertical","state":"open","submission_state_rows":0,"version":"2026072709"},{"form_id":"dce_conjoint","name":"dce.conjoint","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"dce_maxdiff","name":"dce.maxdiff","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"dce_pairwise","name":"dce.pairwise","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"dce_points","name":"dce.points","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"dce_ranking","name":"dce.ranking","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"enketo_sha256_diagnostic_matrix","name":"Enketo SHA-256 Diagnostic Matrix","state":"open","submission_state_rows":0,"version":"2026090401"},{"form_id":"example_odk_odk_form_launcher","name":"form_id","state":"open","submission_state_rows":0,"version":"aaa"},{"form_id":"gps_target_navigator","name":"gps_target_navigator","state":"open","submission_state_rows":0,"version":"2026072707"},{"form_id":"methodmesh_capability_chain_showcase","name":"MethodMesh Capability Chain Showcase","state":"open","submission_state_rows":8,"version":"2026090407"},{"form_id":"methodmesh_clinical_instruments_example","name":"MethodMesh Clinical Instruments example","state":"open","submission_state_rows":0,"version":"2026090302"},{"form_id":"example_odk_conversation_translate","name":"MethodMesh conversation translator","state":"open","submission_state_rows":0,"version":"2026090101a"},{"form_id":"nfc_credential_provisioning","name":"nfc_credential_provisioning","state":"open","submission_state_rows":0,"version":"2026072701"},{"form_id":"nfc_credential_verification","name":"nfc_credential_verification","state":"open","submission_state_rows":0,"version":"2026072701"},{"form_id":"nfc_tag_read","name":"nfc_tag_read","state":"open","submission_state_rows":0,"version":"2026072707"}],"forms_preview_truncated":true,"high_issue_count":0,"installation_audit_events_read":1,"issue_count":5,"methodmesh_evidenced":2,"privacy_policy":{"analytics_other_project_rows_included":false,"analytics_system_aggregates_included":true,"attachments_included":false,"central_diffs_endpoint_queried":false,"central_is_authoritative_data_store":true,"changed_fields_are_names_only":true,"comment_body_included_as_reason_evidence":true,"comment_body_is_operator_entered_free_text":true,"cross_project_metadata_included":false,"images_included":false,"persistent_state_is_non_data_ledger":true,"raw_methodmesh_full_json_included":false,"raw_submission_xml_included":false,"research_values_included":false,"server_audits_project_scoped":true},"project_audit_event_count":0,"project_id":231,"schema":"methodmesh.dashboard_summary.v1","server_audit_available":true,"service_summary":{"api_success_count":1,"http_success_count":1,"interpretation_note":"These are observed probe success fractions, not continuous availability unless probes are scheduled at the declared cadence.","observation_count":1,"observed_api_success_fraction":1.0,"observed_http_success_fraction":1.0,"unexpected_open_ports_seen":[]},"status_counts":{"DELETED":5,"VERIFIED_PRESENT":2,"ZERO_VERSION_ANOMALY":1},"submission_count":8,"top_issues":[{"form_id":"methodmesh_capability_chain_showcase","href":"issues/issue-000001.html","issue_id":"ISSUE-000001","occurred_at":"2026-09-04T07:37:28.505Z","record_id":"uuid:5b802c63-a6e0-444d-83da-88888a2b770d","severity":"ATTENTION","title":"Central lists this record, but no retained version is available"},{"form_id":"methodmesh_capability_chain_showcase","href":"issues/issue-000002.html","issue_id":"ISSUE-000002","occurred_at":"2026-09-04T11:58:32.691Z","record_id":"uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732","severity":"ATTENTION","title":"The reason for this edit cannot be proven against the specific version"},{"form_id":"methodmesh_capability_chain_showcase","href":"issues/issue-000003.html","issue_id":"ISSUE-000003","occurred_at":"2026-09-04T11:59:02.402Z","record_id":"uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732","severity":"ATTENTION","title":"The reason for this edit cannot be proven against the specific version"},{"form_id":"methodmesh_capability_chain_showcase","href":"issues/issue-000004.html","issue_id":"ISSUE-000004","occurred_at":"2026-09-04T13:09:10.535Z","record_id":"uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732","severity":"ATTENTION","title":"The reason for this edit cannot be proven against the specific version"},{"form_id":"methodmesh_capability_chain_showcase","href":"issues/issue-000005.html","issue_id":"ISSUE-000005","occurred_at":"2026-09-04T13:27:59.390Z","record_id":"uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732","severity":"ATTENTION","title":"The reason for this edit cannot be proven against the specific version"}],"window_end_utc":"2026-09-04T18:05:38.274672+00:00","window_start_utc":"2026-09-04T17:18:25.424296+00:00"}</script>
+<script>
+"use strict";
+const M=JSON.parse(document.getElementById("model").textContent);
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",
+">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const dt=v=>{if(!v)return"—";const d=new Date(v);return Number.isNaN(d.getTime())?
+String(v):d.toLocaleString()};
+const kv=(el,k,v,mono=false)=>el.insertAdjacentHTML("beforeend",
+`<dt>${esc(k)}</dt><dd class="${mono?"mono":""}">${esc(v??"—")}</dd>`);
+$("title").textContent=`Project ${M.project_id} audit`;
+$("sub").textContent=`${M.central_url} · ${dt(M.window_start_utc)} → ${dt(M.window_end_utc)}`;
+$("badges").innerHTML=`<span class="badge info">PROJECT-SCOPED BUNDLE</span>`+
+`<span class="badge good">NO RESEARCH VALUES</span>`+
+(M.server_audit_available?`<span class="badge good">CENTRAL PROVENANCE</span>`:
+`<span class="badge warn">CENTRAL AUDIT LIMITED</span>`);
+const attention=M.issue_count>0;
+$("cards").innerHTML=[
+`<div class="card"><div class="label">Audit findings</div><div class="value">${attention?"ATTENTION":"NONE"}</div></div>`,
+`<div class="card"><div class="label">Current issues</div><div class="value">${M.issue_count}</div></div>`,
+`<div class="card"><div class="label">Submission states represented</div><div class="value">${M.submission_count.toLocaleString()}</div></div>`,
+`<div class="card"><div class="label">Forms</div><div class="value">${M.form_count.toLocaleString()}</div></div>`,
+`<div class="card"><div class="label">MethodMesh-evidenced</div><div class="value">${M.methodmesh_evidenced.toLocaleString()}</div></div>`,
+`<div class="card"><div class="label">Checkpoint</div><div class="value">${esc(M.checkpoint.timestamp_status||"—")}</div></div>`
+].join("");
+$("step-issues").textContent=M.issue_count?
+`${M.issue_count} finding(s) currently require review.`:"No current auditor-facing findings.";
+$("issue-list").innerHTML=M.top_issues.length?M.top_issues.map(x=>
+`<a class="issue ${x.severity==="HIGH"?"high":""}" href="${esc(x.href)}">
+<span class="arrow">→</span><strong>${esc(x.title)}</strong>
+<div class="meta">${esc(x.record_id||"—")} · ${esc(x.form_id||"—")} · ${esc(dt(x.occurred_at))}</div></a>`
+).join(""):`<p><span class="badge good">No current issues</span></p>`;
+kv($("scope-kv"),"Bundle scope",M.central_scope||"PROJECT_SAFE");
+kv($("scope-kv"),"Project",M.project_id);
+kv($("scope-kv"),"Cross-project metadata included",
+M.privacy_policy.cross_project_metadata_included===false?"NO":"—");
+kv($("scope-kv"),"Research values included",
+M.privacy_policy.research_values_included===false?"NO":"—");
+kv($("scope-kv"),"Submission XML included",
+M.privacy_policy.raw_submission_xml_included===false?"NO":"—");
+kv($("scope-kv"),"Attachments/images included",
+M.privacy_policy.attachments_included===false?"NO":"—");
+$("forms").innerHTML=M.forms_preview.map(f=>
+`<div style="padding:9px 0;border-bottom:1px solid #eaecf0">
+<strong>${esc(f.form_id||"—")}</strong> · ${esc(f.name||"")}
+<div style="font-size:12px;color:#667085">version ${esc(f.version||"—")} ·
+state ${esc(f.state||"—")} · ${Number(f.submission_state_rows||0).toLocaleString()}
+submission state row(s)</div></div>`).join("")+
+(M.forms_preview_truncated?`<p class="mono">Additional forms are present in the
+machine evidence but are not rendered on this front page.</p>`:"");
+kv($("proof-kv"),"Evidence Merkle root",M.checkpoint.evidence_merkle_root,true);
+kv($("proof-kv"),"Checkpoint SHA-256",M.checkpoint.daily_checkpoint_sha256,true);
+kv($("proof-kv"),"RFC3161 status",M.checkpoint.timestamp_status);
+kv($("proof-kv"),"Trusted timestamp",dt(M.checkpoint.trusted_timestamp_time_iso));
+</script>
+</body>
+</html>

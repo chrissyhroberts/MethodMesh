@@ -32,7 +32,8 @@ class AcousticsCaptureEngine(private val appContext: Context) {
         val dbfs: Double,
         val peakDbfs: Double,
         val waveform: FloatArray,
-        val spectrumDb: FloatArray
+        val spectrumDb: FloatArray,
+        val spectrumDbfs: FloatArray
     )
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -122,7 +123,8 @@ class AcousticsCaptureEngine(private val appContext: Context) {
                         dbfs = AcousticsAlgorithms.dbfsFromAmplitude(rms),
                         peakDbfs = AcousticsAlgorithms.dbfsFromAmplitude(peak),
                         waveform = AcousticsAlgorithms.waveformForDisplay(samples, 256),
-                        spectrumDb = AcousticsAlgorithms.spectrumDb(samples, 256)
+                        spectrumDb = AcousticsAlgorithms.spectrumDb(samples, 256),
+                        spectrumDbfs = AcousticsAlgorithms.spectrumDbfs(samples, 256)
                     )
                     mainHandler.post { if (running.get()) onFrame(frame) }
                 }

@@ -22,29 +22,48 @@ import com.example.methodmesh.settings.SettingsState
 
 object AcousticAnalyseFields {
     const val RESULT = "acoustic_analysis_result"
+    const val DURATION_S = "acoustic_duration_s"
     const val FREQUENCY_HZ = "acoustic_frequency_hz"
+    const val FREQUENCY_MEAN_HZ = "acoustic_frequency_mean_hz"
+    const val FREQUENCY_MEDIAN_HZ = "acoustic_frequency_median_hz"
+    const val FREQUENCY_MIN_HZ = "acoustic_frequency_min_hz"
+    const val FREQUENCY_MAX_HZ = "acoustic_frequency_max_hz"
     const val NOTE = "acoustic_note"
     const val CENTS = "acoustic_cents"
     const val WAVELENGTH_M = "acoustic_wavelength_m"
     const val SPEED_OF_SOUND_MPS = "acoustic_speed_of_sound_mps"
     const val RMS = "acoustic_rms"
+    const val RMS_MEAN = "acoustic_rms_mean"
+    const val RMS_MIN = "acoustic_rms_min"
+    const val RMS_MAX = "acoustic_rms_max"
     const val PEAK = "acoustic_peak"
     const val DBFS = "acoustic_dbfs"
+    const val DBFS_MEAN = "acoustic_dbfs_mean"
+    const val DBFS_MIN = "acoustic_dbfs_min"
+    const val DBFS_MAX = "acoustic_dbfs_max"
+    const val LEQ_DBFS = "acoustic_leq_dbfs"
     const val PEAK_DBFS = "acoustic_peak_dbfs"
     const val PITCH_CONFIDENCE = "acoustic_pitch_confidence"
     const val FREQUENCY_SD_HZ = "acoustic_frequency_sd_hz"
     const val FREQUENCY_SD_CENTS = "acoustic_frequency_sd_cents"
     const val STABLE_DURATION_MS = "acoustic_stable_duration_ms"
     const val HARMONICS_JSON = "acoustic_harmonics_json"
+    const val SPECTRUM_JSON = "acoustic_spectrum_json"
+    const val SPECTRUM_CSV = "acoustic_spectrum_csv_payload"
+    const val TIMESERIES_JSON = "acoustic_timeseries_json"
+    const val TIMESERIES_CSV = "acoustic_timeseries_csv_payload"
+    const val TIMESERIES_INTERVAL_MS = "acoustic_timeseries_interval_ms"
     const val STATUS = "acoustic_status"
     const val AUDIT_JSON = "acoustic_audit_json"
     const val ERROR = "acoustic_error"
 
     val outputs = listOf(
-        RESULT, FREQUENCY_HZ, NOTE, CENTS, WAVELENGTH_M, SPEED_OF_SOUND_MPS,
-        RMS, PEAK, DBFS, PEAK_DBFS, PITCH_CONFIDENCE,
-        FREQUENCY_SD_HZ, FREQUENCY_SD_CENTS, STABLE_DURATION_MS,
-        HARMONICS_JSON, STATUS, AUDIT_JSON, ERROR
+        RESULT, DURATION_S, FREQUENCY_HZ, FREQUENCY_MEAN_HZ, FREQUENCY_MEDIAN_HZ,
+        FREQUENCY_MIN_HZ, FREQUENCY_MAX_HZ, NOTE, CENTS, WAVELENGTH_M, SPEED_OF_SOUND_MPS,
+        RMS, RMS_MEAN, RMS_MIN, RMS_MAX, PEAK, DBFS, DBFS_MEAN, DBFS_MIN, DBFS_MAX,
+        LEQ_DBFS, PEAK_DBFS, PITCH_CONFIDENCE, FREQUENCY_SD_HZ, FREQUENCY_SD_CENTS,
+        STABLE_DURATION_MS, HARMONICS_JSON, SPECTRUM_JSON, SPECTRUM_CSV,
+        TIMESERIES_JSON, TIMESERIES_CSV, TIMESERIES_INTERVAL_MS, STATUS, AUDIT_JSON, ERROR
     )
 }
 
@@ -184,7 +203,7 @@ private object AcousticMethodSupport {
 
 object As100AcousticAnalyseMethod : As100Method {
     const val ID = "acoustic.analyse"
-    const val VERSION = "0.1.0"
+    const val VERSION = "0.2.0"
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Acoustic signal analyser")
     override val descriptor = MethodDescriptor(
@@ -192,8 +211,8 @@ object As100AcousticAnalyseMethod : As100Method {
         methodType = MethodObjectType.SignalInterpreter,
         name = "Acoustic analyser",
         version = VERSION,
-        description = "Measure pitch/frequency, waveform/spectrum, amplitude and derived wavelength from a microphone signal.",
-        inputs = listOf("capture_seconds", "sample_rate_hz", "min_frequency_hz", "max_frequency_hz", "reference_a4_hz", "temperature_c", "speed_of_sound_mode", "speed_of_sound_mps"),
+        description = "Record a timed acoustic observation with frequency and amplitude summaries, averaged spectrum, sampled time series, harmonics and derived wavelength.",
+        inputs = listOf("capture_seconds", "timeseries_interval_ms", "sample_rate_hz", "min_frequency_hz", "max_frequency_hz", "reference_a4_hz", "temperature_c", "speed_of_sound_mode", "speed_of_sound_mps"),
         outputs = AcousticAnalyseFields.outputs,
         graphOutputs = listOf("acoustic.signal.analysis"),
         parameters = mapOf("category" to "Development", "status" to "Development", "offline" to "true")
@@ -207,7 +226,7 @@ object As100AcousticAnalyseMethod : As100Method {
 
 object As100AcousticTunerMethod : As100Method {
     const val ID = "acoustic.tune"
-    const val VERSION = "0.1.0"
+    const val VERSION = "0.2.0"
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Instrument tuner")
     override val descriptor = MethodDescriptor(
@@ -230,7 +249,7 @@ object As100AcousticTunerMethod : As100Method {
 
 object As100AcousticLevelMethod : As100Method {
     const val ID = "acoustic.level"
-    const val VERSION = "0.1.0"
+    const val VERSION = "0.2.0"
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Acoustic level measurement")
     override val descriptor = MethodDescriptor(
@@ -253,7 +272,7 @@ object As100AcousticLevelMethod : As100Method {
 
 object As100AcousticCompareMethod : As100Method {
     const val ID = "acoustic.compare"
-    const val VERSION = "0.1.0"
+    const val VERSION = "0.2.0"
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Tone comparison")
     override val descriptor = MethodDescriptor(

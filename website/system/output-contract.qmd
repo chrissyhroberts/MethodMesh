@@ -1,0 +1,27 @@
+---
+title: "Output, audit and transport contract"
+---
+
+## Cross-surface invariant
+
+A capability has one output contract. Native UI may present only the useful subset, but ODK, protocols and other adapters project the same declared output semantics.
+
+## Core result
+
+Every capability should make the useful result obvious and stable. Output names are part of the contract and should not drift between surfaces.
+
+## Audit / ALCOA fields
+
+Where relevant, outputs should retain enough context to reconstruct what happened: timestamps, method/version, device/provider information, hashes, calibration or sampling details, and other method-specific provenance. These fields remain available even when the native surface hides them by default.
+
+## Full JSON
+
+`methodmesh_full_json` is the portable complete return used when a caller needs the canonical structured result/audit envelope. Example XLSForms should include it where audit metadata is expected.
+
+## Hashes
+
+Hashes must be computed over the final bytes or canonical content they are intended to identify. Do not hash a pre-transform artefact and then return different bytes under the same claim.
+
+## Binary artefacts
+
+Images, PDFs and other binary outputs returned to Android/ODK require proper content URIs, `ClipData` and read grants. XLSForms should bind them to actual attachment-compatible question types rather than pretending a URI is ordinary text.

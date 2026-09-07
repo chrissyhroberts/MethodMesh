@@ -1,0 +1,317 @@
+# Scoring & counters
+
+**Status:** Development  
+**Module:** `scoring`  
+**Version:** `0.2.0`
+
+The scoring module provides offline-first persistent counters, tallies, generic match scoring, round/target scoring, rule-driven sports scoring, explicit high-score records, and durable session read/resume/finish operations.
+
+The module follows the MethodMesh capability-first contract. The dashboard is only an optional surface over module-owned state. Direct capability launch, presets, protocols and ODK/XLSForm roundtrip are first-class and use the same persistent `score_session_id`.
+
+## Capabilities
+
+| Method ID | Purpose |
+|---|---|
+| `score.counter` | One or more persistent numeric counters. |
+| `score.tally` | Fast categorical tallying. |
+| `score.match` | Generic two-side/team scoring. |
+| `score.rounds` | Accumulated round scoring. |
+| `score.race_to` | Race to a configured target. |
+| `score.set_match` | Set/game style scoring. |
+| `score.sports` | Ruleset-aware sports scoring. |
+| `score.high_score` | Explicitly save a score/PB record. |
+| `score.session.read` | Return current persistent session state without changing it. |
+| `score.session.resume` | Re-open a persistent active/paused session. |
+| `score.session.finish` | Complete a persistent session and return its result. |
+
+Supported sports rulesets in v0.2 are:
+
+- football;
+- basketball;
+- rugby union;
+- hockey;
+- netball;
+- handball;
+- tennis;
+- badminton;
+- table tennis;
+- volleyball;
+- squash;
+- padel.
+
+Simple sports use declarative score actions. Tennis/padel and rally/set sports use structured state progression.
+
+## Native behaviour
+
+A new scoring session can be opened directly from Capabilities or from a preset/protocol. The active screen prioritises large score values, large score controls, Undo, Correct, Pause/Resume, Finish and Abandon.
+
+Active and paused sessions are durably stored on-device after meaningful score changes. They survive activity recreation, application backgrounding and process loss. The module keeps no network dependency and does not require an account.
+
+The module can keep the screen awake while scoring when requested. This is optional because long matches may instead need battery preservation.
+
+Completed scoring is beef-first. The main result is a concise value such as:
+
+```text
+Blue 3 · Red 2
+```
+
+or a structured match state. Full event/state JSON remains available as metadata.
+
+## Persistent session contract
+
+Every live scoring activity has a stable `score_session_id`.
+
+Persistence is operational state, not an automatic permanent activity archive. An active/paused session is retained because losing a live score would be a correctness failure. `score.high_score` is the separate explicit persistent record function.
+
+Session status values are:
+
+- `active`;
+- `paused`;
+- `completed`;
+- `abandoned`.
+
+An abandoned activity is a meaningful outcome, not equivalent to deletion.
+
+Score changes are represented as events. Undo adds an undo event rather than requiring the UI to pretend the original action never happened. Corrections are explicit correction events.
+
+## Presets
+
+All stable setup is declared through `capabilitySettings()`.
+
+Typical preset:
+
+```text
+Club badminton
+method: score.sports
+fixed ruleset: badminton
+fixed best_of: 3
+runtime participant_names
+```
+
+A native preset must not ask the user to re-enter fixed values. Runtime participant names remain available when declared as runtime fields.
+
+Useful presets include:
+
+- football scoreboard;
+- club badminton;
+- tennis best-of-three;
+- two-person life counter;
+- specimen tally;
+- race to 100;
+- Scrabble-style multi-player score counter.
+
+## Protocols
+
+Scoring capabilities can be ordinary protocol steps. The persistent session is owned by this module while the protocol owns workflow position.
+
+Example:
+
+```text
+capture location
+→ record teams
+→ score match
+→ post-match observation
+→ photograph
+→ attest
+```
+
+On Finish, the capability returns an `ExecutionResult` through the standard MethodMesh closeout path so the protocol can continue. Pause is not completion. Abandon may be handled as a valid data outcome by the calling protocol.
+
+## Android intent
+
+ODK and other external callers use the normal MethodMesh group-intent contract.
+
+Example sports call:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='score.sports',input_participant_names='Blue|Red',input_ruleset='football',input_keep_screen_awake='false',input_payload_mode='FULL',return_mode='flat')
+```
+
+The user scores the event in MethodMesh and presses Finish. MethodMesh returns the score payload to the caller.
+
+Long-duration workflows can retain `score_session_id` and call:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='score.session.read',input_score_session_id=${score_session_id_input},input_payload_mode='FULL',return_mode='flat')
+```
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='score.session.resume',input_score_session_id=${score_session_id_input},input_payload_mode='FULL',return_mode='flat')
+```
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='score.session.finish',input_score_session_id=${score_session_id_input},input_payload_mode='FULL',return_mode='flat')
+```
+
+This avoids making a multi-hour match depend on one fragile uninterrupted Android activity roundtrip.
+
+## Inputs
+
+Common scoring inputs are:
+
+| Input | Type | Default | Meaning |
+|---|---|---:|---|
+| `title` | text | blank | Optional session title. |
+| `participant_names` | text | `Player 1|Player 2` | Pipe/semicolon/newline-separated labels. |
+| `participant_count` | int | 2 | Number of entities, 1–12. |
+| `starting_value` | int | 0 | Initial numeric value. |
+| `increment` | int | 1 | Standard counter increment. |
+| `allow_negative` | boolean | true | Permit scores below zero. |
+| `highest_wins` | boolean | true | Winner interpretation for generic scoring. |
+| `keep_screen_awake` | boolean | false | Keep display awake during live scoring. |
+
+Sports/set inputs additionally include:
+
+| Input | Type | Default | Meaning |
+|---|---|---:|---|
+| `ruleset` | choice | `football` | Sport/rules profile. |
+| `target` | int | 0 | Target/points-per-game override; zero means ruleset default where supported. |
+| `win_by` | int | 2 | Required winning margin for rally sports. |
+| `best_of` | int | 3 | Number of games/sets in match structure. |
+
+Session operations use:
+
+| Input | Type | Meaning |
+|---|---|---|
+| `score_session_id` | text | Stable ID of the score session. |
+
+As with all MethodMesh intents, external callers may supply inputs using the `input_` prefix.
+
+## Outputs
+
+| Field | Role | Meaning |
+|---|---|---|
+| `score_result` | **main/core** | Compact human-readable score. |
+| `score_session_id` | core | Stable persistent session identifier. |
+| `score_session_status` | core | `active`, `paused`, `completed` or `abandoned`. |
+| `score_winner` | core | Unique winner label where determinable. |
+| `score_ruleset` | core | Active sports ruleset. |
+| `score_participants_json` | core/structured | Participant labels. |
+| `score_scores_json` | core/structured | Current participant score objects. |
+| `score_event_count` | audit | Number of score/session events. |
+| `score_started_at` | audit | ISO start time. |
+| `score_updated_at` | audit | ISO last-update time. |
+| `score_finished_at` | audit | ISO completion/abandonment time when present. |
+| `score_current_state_json` | structured | Sport-specific current state. |
+| `score_full_json` | audit | Complete module-owned score session including events. |
+| `score_status` | status | `succeeded` or `failed`. |
+| `score_error` | error | Failure detail. |
+| `methodmesh_full_json` | standard FULL output | Complete MethodMesh execution envelope when FULL payload mode is requested. |
+
+The default native/share value should remain `score_result`. Audit/event details must not dominate the everyday result screen.
+
+## ODK example
+
+This module includes one self-identifying XLSForm workbook for every public method, following the current MethodMesh capability documentation standard.
+
+The workbooks:
+
+- use `com.example.methodmesh.EXECUTE_METHOD` on a `begin_group` row;
+- use `field-list` appearance;
+- prefix capability inputs with `input_`;
+- use child return fields matching the returned extras;
+- include `methodmesh_full_json` for full audit capture;
+- keep static configuration in `body::intent` rather than generating unnecessary study fields.
+
+For long-duration session read/resume/finish examples, the session ID is a runtime form field referenced by the group intent.
+
+## ODK ownership and persistence
+
+ODK owns the form data and submission. MethodMesh retains only the operational session state needed to ensure a live score can be resumed safely. It does not create an additional MethodMesh research archive merely because ODK called the capability.
+
+Namespace projection remains the responsibility of the standard MethodMesh transport. This module does not introduce a scoring-specific transport or namespace system.
+
+## Event and correction semantics
+
+Normal score taps produce score events. Undo records an explicit reference to a prior score/correction event. Correction records the replacement current values as an explicit correction event.
+
+This supports:
+
+- crash recovery;
+- accidental-tap recovery;
+- chronology;
+- reconstruction;
+- useful research/audit metadata.
+
+The detailed event stream remains salad unless explicitly exported/requested.
+
+## Dashboard and widgets
+
+The dashboard is optional. It may show/resume active scoring sessions through generic module-owned surfaces, but no scoring truth belongs in dashboard code and the module must work fully without it.
+
+Widgets may later launch scoring presets or attach to a `score_session_id`. They must use the same session repository rather than inventing another score store.
+
+No HomeScreen or central registry special case is required by this module.
+
+## Timer composition
+
+Sports frequently need clocks, but this module intentionally does not implement a second general timer engine. Match/period timers should compose with the MethodMesh timing module through public capability/session boundaries.
+
+## Offline / online behaviour
+
+Fully offline.
+
+The core scorer performs no web call, telemetry upload, cloud sync or account operation.
+
+## Storage
+
+Temporary operational sessions are stored beneath the app's internal MethodMesh scoring directory using atomic replace-on-write JSON files. Every meaningful score change is persisted immediately.
+
+Explicit high-score records use a separate local record file and are written only when the user presses **Save record**.
+
+## Permissions
+
+No sensitive Android runtime permission is required for scoring.
+
+`keep_screen_awake` changes only the current view's screen-on policy while the scorer is visible.
+
+## Dependencies
+
+No new external library or Gradle dependency is required.
+
+The module uses existing MethodMesh interfaces, Jetpack Compose already present in the app, Android local file storage and `org.json`.
+
+## Known limitations — Development
+
+1. v0.2 is a drop-in implementation handoff and still requires full build/device review in the current MethodMesh checkout.
+2. The initial structured tennis/padel engine handles deuce/advantage, set progression and a 6–6 tie-break, but does not yet model every governing-body match-format variant.
+3. Volleyball does not yet implement a special deciding-set target of 15.
+4. Rugby/football/basketball v0.2 focus on score changes and do not yet add cards, fouls, possession or substitutions.
+5. `score.rounds` currently uses the common persistent score surface; a richer explicit round ledger is a planned refinement.
+6. Widget/dashboard session controls are intentionally not implemented inside this folder because shared surfaces must remain generic.
+7. Completion cleanup policy is not invoked automatically in v0.2; retention should be reviewed with the wider MethodMesh lifecycle policy.
+
+## Production checklist
+
+Keep all methods Development until:
+
+1. the folder is copied to `app/src/main/java/com/example/methodmesh/modules/scoring/`;
+2. `./gradlew :app:testDebugUnitTest` passes;
+3. `./gradlew :app:assembleDebug` passes;
+4. module auto-discovery sees `ScoringModule` without central registration;
+5. direct counter, tally, match and sports runs are exercised;
+6. preset fixed/runtime fields are verified;
+7. protocol completion returns and advances correctly;
+8. orientation recreation preserves the displayed live session;
+9. process-death/app-restart recovery restores active sessions;
+10. device reboot recovery is verified;
+11. Undo/correction persistence is tested;
+12. pause/resume and abandon semantics are tested;
+13. two or more simultaneous active sessions are tested;
+14. every bundled XLSForm passes ODK validation/import;
+15. ODK launch → scoring → Finish → return is tested;
+16. ODK `score.session.read` returns state without modification;
+17. ODK `score.session.resume` reopens the correct session;
+18. ODK `score.session.finish` completes and returns the correct session;
+19. native share/copy returns the compact `score_result` rather than event JSON;
+20. battery/screen-awake behaviour is tested on a long session.
+
+## Canonical delivery folder
+
+Copy this complete folder into:
+
+```text
+app/src/main/java/com/example/methodmesh/modules/scoring/
+```
+
+Do not add a central capability registration entry and do not add scoring-specific dashboard logic.

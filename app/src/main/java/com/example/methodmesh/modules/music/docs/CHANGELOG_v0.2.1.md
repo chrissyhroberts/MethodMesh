@@ -1,0 +1,15 @@
+# Music v0.2.1 changes
+
+Bug-fix release of the v0.2 music creation module.
+
+## Fixed
+
+- Reworked `MusicCreationCapabilityScreen.kt` to remove the invalid explicit Compose `foundation.layout.weight` dependency that caused `RowColumnParentData?.weight` visibility errors.
+- Reworked `MusicCreationDashboardScreen.kt` for the same Compose compatibility issue.
+- Drum-machine and Jam dashboard step grids now use explicit-width cells in horizontally scrollable rows rather than scope-sensitive weighted cells.
+- Creation-screen paired controls use full-width stacked controls, avoiding ambiguous `RowScope.weight` resolution across Compose versions.
+- No internal Compose layout implementation symbols are imported.
+
+## Compatibility
+
+Capability IDs, returned field names, XLSForm examples, algorithms, repositories, audio engines, and dashboard semantics are unchanged from v0.2.0.

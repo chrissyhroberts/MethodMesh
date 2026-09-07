@@ -6,6 +6,8 @@ import com.example.methodmesh.modules.RilBinding
 object GpsTargetNavigatorModule : MethodMeshModule {
     override val moduleId: String = "gpstargetnavigator"
     override val displayName: String = "GPS target navigator"
+    override val summary: String = "Target-first GPS navigation with live compass, distance and coordinate/Plus Code setup."
+    override val iconKey: String = "location"
 
 
     override fun as100Methods() = listOf(As100LocateTargetMethod)

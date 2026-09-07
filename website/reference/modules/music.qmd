@@ -1,0 +1,145 @@
+---
+title: "Music"
+subtitle: "Module reference · music"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Tempo, pitch, harmony, rhythm creation, looping, beat making, composition, practice and live performance tools.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>music</code></div>
+<div><strong>Source directory</strong><code>music</code></div>
+<div><strong>Indexed methods</strong>33</div>
+<div><strong>XLSForms</strong>33</div>
+<div><strong>Source docs</strong>41</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `music.arpeggiator` | arpeggiate chord | Turn a chord into an arpeggio | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.bassline` | generate bassline | Generate a bassline from chord symbols | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.beat_pads` | open beat pads | Finger drum and capture a hit sequence | <span class="badge-source">current source</span> | RIL binding, capability screen, method source |
+| `music.chord` | identify chord | Build or identify a chord | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.chord_guide` | show chord shape | Show a compact guitar chord fingering | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.chord_progression` | build chord progression | Build or generate a diatonic chord progression | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.delay_time` | calculate delay time | Calculate tempo-synchronised delay time | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.drum_machine` | open drum machine | Open the synthesized step sequencer | <span class="badge-source">current source</span> | RIL binding, capability screen, method source |
+| `music.euclidean_rhythm` | generate euclidean rhythm | Distribute rhythmic hits evenly over a grid | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.harmonics` | explore harmonics | Calculate a harmonic series | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.interval` | identify interval | Identify the interval between two notes | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.jam_dashboard` | open jam dashboard | Open the live music creation dashboard | <span class="badge-source">current source</span> | RIL binding, capability screen, method source |
+| `music.live_looper` | open live looper | Record a master phrase and overdub loop layers | <span class="badge-source">current source</span> | RIL binding, capability screen, method source |
+| `music.melody_sequence` | make melody | Create a scale-locked melody from degrees | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.metronome` | run metronome | Run an audio, visual and haptic metronome | <span class="badge-source">current source</span> | RIL binding, capability screen, method source |
+| `music.motif_generator` | vary motif | Generate transformations of a melodic motif | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.note_frequency` | convert note frequency | Convert between scientific pitch notation and frequency | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.pattern_mutation` | mutate beat | Create a variation of a rhythmic pattern | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.performance_dashboard` | open performance dashboard | Open the persistent set-list dashboard | <span class="badge-source">current source</span> | RIL binding, capability screen, method source |
+| `music.polyrhythm` | generate polyrhythm | Generate an A:B polyrhythm cycle | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.practice_dashboard` | open practice dashboard | Open the live music practice dashboard | <span class="badge-source">current source</span> | RIL binding, capability screen, method source |
+| `music.probability_pattern` | probability beat | Realise a seeded probability rhythm | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.reference` | music reference | Show scale notes and diatonic triads | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.reference_dashboard` | open music reference dashboard | Open the key, scale and chord reference dashboard | <span class="badge-source">current source</span> | RIL binding, capability screen, method source |
+| `music.rhythm_capture` | tap a rhythm | Capture and quantise a tapped rhythm | <span class="badge-source">current source</span> | RIL binding, capability screen, method source |
+| `music.setlist_timing` | time set list | Calculate total performance duration | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.song_sketch` | make song sketch | Combine rhythm, harmony, melody and structure into a sketch | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.song_sketch_dashboard` | open song sketch dashboard | Open the persistent composition sketch dashboard | <span class="badge-source">current source</span> | RIL binding, capability screen, method source |
+| `music.tap_tempo` | tap tempo | Tap repeatedly to estimate BPM | <span class="badge-source">current source</span> | RIL binding, capability screen, method source |
+| `music.temperament` | calculate temperament | Calculate an equal-temperament step | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.tempo_convert` | convert tempo | Convert BPM to note durations | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.tempo_trainer` | train tempo | Generate a stepped practice tempo progression | <span class="badge-source">current source</span> | RIL binding, method source |
+| `music.transpose` | transpose music | Transpose notes or chord symbols | <span class="badge-source">current source</span> | RIL binding, method source |
+
+## ODK / XLSForm examples
+
+- [example_odk_Arpeggiator.xlsx](../source-docs/music/example_odk_Arpeggiator.xlsx)
+- [example_odk_Bassline.xlsx](../source-docs/music/example_odk_Bassline.xlsx)
+- [example_odk_BeatPads.xlsx](../source-docs/music/example_odk_BeatPads.xlsx)
+- [example_odk_Chord.xlsx](../source-docs/music/example_odk_Chord.xlsx)
+- [example_odk_ChordGuide.xlsx](../source-docs/music/example_odk_ChordGuide.xlsx)
+- [example_odk_ChordProgression.xlsx](../source-docs/music/example_odk_ChordProgression.xlsx)
+- [example_odk_DelayTime.xlsx](../source-docs/music/example_odk_DelayTime.xlsx)
+- [example_odk_DrumMachine.xlsx](../source-docs/music/example_odk_DrumMachine.xlsx)
+- [example_odk_EuclideanRhythm.xlsx](../source-docs/music/example_odk_EuclideanRhythm.xlsx)
+- [example_odk_Harmonics.xlsx](../source-docs/music/example_odk_Harmonics.xlsx)
+- [example_odk_Interval.xlsx](../source-docs/music/example_odk_Interval.xlsx)
+- [example_odk_JamDashboard.xlsx](../source-docs/music/example_odk_JamDashboard.xlsx)
+- [example_odk_LiveLooper.xlsx](../source-docs/music/example_odk_LiveLooper.xlsx)
+- [example_odk_MelodySequence.xlsx](../source-docs/music/example_odk_MelodySequence.xlsx)
+- [example_odk_Metronome.xlsx](../source-docs/music/example_odk_Metronome.xlsx)
+- [example_odk_MotifGenerator.xlsx](../source-docs/music/example_odk_MotifGenerator.xlsx)
+- [example_odk_MusicReference.xlsx](../source-docs/music/example_odk_MusicReference.xlsx)
+- [example_odk_NoteFrequency.xlsx](../source-docs/music/example_odk_NoteFrequency.xlsx)
+- [example_odk_PatternMutation.xlsx](../source-docs/music/example_odk_PatternMutation.xlsx)
+- [example_odk_PerformanceDashboard.xlsx](../source-docs/music/example_odk_PerformanceDashboard.xlsx)
+- [example_odk_Polyrhythm.xlsx](../source-docs/music/example_odk_Polyrhythm.xlsx)
+- [example_odk_PracticeDashboard.xlsx](../source-docs/music/example_odk_PracticeDashboard.xlsx)
+- [example_odk_ProbabilityPattern.xlsx](../source-docs/music/example_odk_ProbabilityPattern.xlsx)
+- [example_odk_ReferenceDashboard.xlsx](../source-docs/music/example_odk_ReferenceDashboard.xlsx)
+- [example_odk_RhythmCapture.xlsx](../source-docs/music/example_odk_RhythmCapture.xlsx)
+- [example_odk_SetListTiming.xlsx](../source-docs/music/example_odk_SetListTiming.xlsx)
+- [example_odk_SongSketch.xlsx](../source-docs/music/example_odk_SongSketch.xlsx)
+- [example_odk_SongSketchDashboard.xlsx](../source-docs/music/example_odk_SongSketchDashboard.xlsx)
+- [example_odk_TapTempo.xlsx](../source-docs/music/example_odk_TapTempo.xlsx)
+- [example_odk_Temperament.xlsx](../source-docs/music/example_odk_Temperament.xlsx)
+- [example_odk_TempoConvert.xlsx](../source-docs/music/example_odk_TempoConvert.xlsx)
+- [example_odk_TempoTrainer.xlsx](../source-docs/music/example_odk_TempoTrainer.xlsx)
+- [example_odk_Transpose.xlsx](../source-docs/music/example_odk_Transpose.xlsx)
+
+## Module-local documentation
+
+- [Music v0.2.0 changes](../source-docs/music/CHANGELOG_v0.2.0.qmd) — `CHANGELOG_v0.2.0.md`
+- [Music v0.2.1 changes](../source-docs/music/CHANGELOG_v0.2.1.qmd) — `CHANGELOG_v0.2.1.md`
+- [Arpeggiator](../source-docs/music/README_Arpeggiator.qmd) — `README_Arpeggiator.md`
+- [Bassline generator](../source-docs/music/README_Bassline.qmd) — `README_Bassline.md`
+- [Beat pads](../source-docs/music/README_BeatPads.qmd) — `README_BeatPads.md`
+- [Chord builder / identifier](../source-docs/music/README_Chord.qmd) — `README_Chord.md`
+- [Chord / tab guide](../source-docs/music/README_ChordGuide.qmd) — `README_ChordGuide.md`
+- [Chord progression](../source-docs/music/README_ChordProgression.qmd) — `README_ChordProgression.md`
+- [Delay-time calculator](../source-docs/music/README_DelayTime.qmd) — `README_DelayTime.md`
+- [Drum machine](../source-docs/music/README_DrumMachine.qmd) — `README_DrumMachine.md`
+- [Euclidean rhythm](../source-docs/music/README_EuclideanRhythm.qmd) — `README_EuclideanRhythm.md`
+- [Harmonic-series explorer](../source-docs/music/README_Harmonics.qmd) — `README_Harmonics.md`
+- [Interval identifier](../source-docs/music/README_Interval.qmd) — `README_Interval.md`
+- [Jam dashboard](../source-docs/music/README_JamDashboard.qmd) — `README_JamDashboard.md`
+- [Live looper](../source-docs/music/README_LiveLooper.qmd) — `README_LiveLooper.md`
+- [Scale-locked melody](../source-docs/music/README_MelodySequence.qmd) — `README_MelodySequence.md`
+- [Metronome](../source-docs/music/README_Metronome.qmd) — `README_Metronome.md`
+- [Motif variations](../source-docs/music/README_MotifGenerator.qmd) — `README_MotifGenerator.md`
+- [MethodMesh Music module — v1.05 refresh](../source-docs/music/README_Music.qmd) — `README_Music.md`
+- [Music reference](../source-docs/music/README_MusicReference.qmd) — `README_MusicReference.md`
+- [Note ↔ frequency](../source-docs/music/README_NoteFrequency.qmd) — `README_NoteFrequency.md`
+- [Pattern mutation](../source-docs/music/README_PatternMutation.qmd) — `README_PatternMutation.md`
+- [Performance / set-list dashboard](../source-docs/music/README_PerformanceDashboard.qmd) — `README_PerformanceDashboard.md`
+- [Polyrhythm generator](../source-docs/music/README_Polyrhythm.qmd) — `README_Polyrhythm.md`
+- [Practice dashboard](../source-docs/music/README_PracticeDashboard.qmd) — `README_PracticeDashboard.md`
+- [Probability sequencer](../source-docs/music/README_ProbabilityPattern.qmd) — `README_ProbabilityPattern.md`
+- [Music reference dashboard](../source-docs/music/README_ReferenceDashboard.qmd) — `README_ReferenceDashboard.md`
+- [Tap rhythm](../source-docs/music/README_RhythmCapture.qmd) — `README_RhythmCapture.md`
+- [Set-list timing](../source-docs/music/README_SetListTiming.qmd) — `README_SetListTiming.md`
+- [Song sketch](../source-docs/music/README_SongSketch.qmd) — `README_SongSketch.md`
+- [Song sketch dashboard](../source-docs/music/README_SongSketchDashboard.qmd) — `README_SongSketchDashboard.md`
+- [Tap tempo](../source-docs/music/README_TapTempo.qmd) — `README_TapTempo.md`
+- [Temperament calculator](../source-docs/music/README_Temperament.qmd) — `README_Temperament.md`
+- [Tempo / subdivision converter](../source-docs/music/README_TempoConvert.qmd) — `README_TempoConvert.md`
+- [Tempo trainer](../source-docs/music/README_TempoTrainer.qmd) — `README_TempoTrainer.md`
+- [Transpose](../source-docs/music/README_Transpose.qmd) — `README_Transpose.md`
+- [Music module roadmap after MethodMesh v1.05 migration](../source-docs/music/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [VALIDATION — Music v1.05 refresh](../source-docs/music/VALIDATION.qmd) — `VALIDATION.md`
+- [Validation status · Music v0.1.0](../source-docs/music/VALIDATION_v0.1.0.qmd) — `VALIDATION_v0.1.0.md`
+- [Validation note — Music v0.2.0](../source-docs/music/VALIDATION_v0.2.0.qmd) — `VALIDATION_v0.2.0.md`
+- [Validation note — Music v0.2.1](../source-docs/music/VALIDATION_v0.2.1.qmd) — `VALIDATION_v0.2.1.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

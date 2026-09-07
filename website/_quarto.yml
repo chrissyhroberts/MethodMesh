@@ -2,16 +2,32 @@ project:
   type: website
   output-dir: ../docs
   resources:
-    - examples/**
     - assets/**
+    - reference/source-docs/**
 
 website:
-  title: "MethodMesh User Guide"
-  search: true
+  title: "MethodMesh"
+  search:
+    location: sidebar
+    type: overlay
   page-navigation: true
+  bread-crumbs: true
   repo-url: https://github.com/chrissyhroberts/MethodMesh
   repo-branch: master
   repo-actions: [edit, issue]
+  navbar:
+    left:
+      - text: "Guide"
+        href: index.qmd
+      - text: "Capabilities"
+        href: reference/modules/index.qmd
+      - text: "ODK forms"
+        href: reference/forms.qmd
+      - text: "Architecture"
+        href: system/capability-contract.qmd
+    right:
+      - icon: github
+        href: https://github.com/chrissyhroberts/MethodMesh
   sidebar:
     style: docked
     collapse-level: 2
@@ -19,54 +35,49 @@ website:
       - index.qmd
       - getting-started.qmd
       - installation.qmd
-      - concepts.qmd
-      - xlsform-integration.qmd
-      - scheduling.qmd
-      - section: "Capabilities"
+      - section: "System model"
         contents:
-          - capabilities/index.qmd
-          - capabilities/admin-fingerprint.qmd
-          - capabilities/app-inspector.qmd
-          - capabilities/attestation.qmd
-          - capabilities/bluetooth-inspector.qmd
-          - capabilities/bluetooth-printer.qmd
-          - capabilities/calibrated-scale.qmd
-          - capabilities/choice-experiments.qmd
-          - capabilities/document-scanner.qmd
-          - capabilities/gps-target-navigator.qmd
-          - capabilities/mlkit-translate.qmd
-          - capabilities/mlkit-vision.qmd
-          - capabilities/nfc.qmd
-          - capabilities/odk-form-launcher.qmd
-          - capabilities/provider-command.qmd
-          - capabilities/qr-code.qmd
-          - capabilities/question-primitives.qmd
-          - capabilities/random-number.qmd
-          - capabilities/scaled-photo.qmd
-          - capabilities/image-redaction.qmd
-          - capabilities/scheduler-capability.qmd
-          - capabilities/sensor-firmware-installer.qmd
-          - capabilities/sensor-provisioner.qmd
-          - capabilities/sensor-read.qmd
-          - capabilities/sms.qmd
-          - capabilities/spatial-geometry.qmd
-          - capabilities/speech-transcription.qmd
-          - capabilities/svg-selector.qmd
-      - examples/index.qmd
-      - troubleshooting.qmd
-      - section: "Technical reference"
+          - system/index.qmd
+          - system/surfaces.qmd
+          - system/capability-contract.qmd
+          - system/native-lifecycle.qmd
+          - system/output-contract.qmd
+      - section: "Composition & workflows"
         contents:
-          - reference/architecture.qmd
+          - workflows/presets-protocols.qmd
+          - workflows/schedules-widgets.qmd
+          - workflows/odk-xlsform.qmd
+      - section: "Operations"
+        contents:
+          - operations/offline-online.qmd
+          - operations/devices-hardware.qmd
+          - operations/settings-services.qmd
+      - section: "Current reference library"
+        contents:
+          - reference/modules/index.qmd
+          - reference/methods.qmd
+          - reference/forms.qmd
+          - reference/production-status.qmd
           - reference/ril.qmd
-          - reference/capability-documentation-standard.qmd
-          - reference/specification-status.qmd
-          - reference/release-notes.qmd
+          - reference/architecture.qmd
+          - reference/known-gaps.qmd
+          - reference/master-book.qmd
+      - section: "Development"
+        contents:
+          - development/module-authoring.qmd
+          - development/documentation.qmd
+          - development/testing-release.qmd
+      - troubleshooting.qmd
 
 format:
   html:
     theme: cosmo
     css: styles.css
     toc: true
+    toc-depth: 3
     code-copy: true
     code-overflow: wrap
     link-external-newwindow: true
+    anchor-sections: true
+    smooth-scroll: true
+    include-after-body: assets/reference-filter.html

@@ -1,0 +1,7 @@
+UX rail scan v0.3.0
+PASS: no primary UI phrase: Mode: random /
+PASS: no primary UI phrase: PBES2 iterations
+cryptography/PortableCryptoScreens.kt:83:            require(uriText.isNotBlank()) { "Input file URI is required." }
+WARN: stale primary UI phrase: Input file URI
+PASS: no primary UI phrase: JWE ciphertext
+PASS: no primary UI phrase: Detached JWS response

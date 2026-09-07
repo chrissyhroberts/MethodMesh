@@ -1,0 +1,47 @@
+---
+title: "Traceable attestation"
+subtitle: "Module reference · attestation"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Signed, hash-chained field attestations with nightly ODK chain anchoring.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>attestation</code></div>
+<div><strong>Source directory</strong><code>attestation</code></div>
+<div><strong>Indexed methods</strong>2</div>
+<div><strong>XLSForms</strong>6</div>
+<div><strong>Source docs</strong>1</div>
+<div><strong>Explicit source status labels</strong>Experimental</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `attestation.anchor_bundle` | create nightly anchor | Export ODK fields for a nightly chain anchor | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `attestation.create` | create attestation | Sign a field event with the device attestation key | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_attestation.anchor_bundle.xlsx](../source-docs/attestation/example_odk_attestation.anchor_bundle.xlsx)
+- [example_odk_attestation.create_Fingerprint.xlsx](../source-docs/attestation/example_odk_attestation.create_Fingerprint.xlsx)
+- [example_odk_attestation.create_Nfc.xlsx](../source-docs/attestation/example_odk_attestation.create_Nfc.xlsx)
+- [example_odk_attestation.create_Password.xlsx](../source-docs/attestation/example_odk_attestation.create_Password.xlsx)
+- [example_odk_attestation.create_Pin.xlsx](../source-docs/attestation/example_odk_attestation.create_Pin.xlsx)
+- [example_odk_attestation.create_Qr.xlsx](../source-docs/attestation/example_odk_attestation.create_Qr.xlsx)
+
+## Module-local documentation
+
+- [Signed event attestation](../source-docs/attestation/README_Attestation.qmd) — `README_Attestation.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

@@ -1,0 +1,171 @@
+---
+title: "Digital signing"
+subtitle: "Module source document · Digital signing"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/digitalsigning/docs/README_DigitalSigning.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+Capability: `document.sign_pdf`  
+Status: **Development**
+
+Digital Signing opens an existing PDF, lets the operator pan/zoom and add visible handwritten ink, then commits a new PDF without overwriting the source. The committed file is SHA-256 hashed and can optionally be sent to an RFC 3161 Time Stamp Authority (TSA).
+
+This v1 capability is deliberately narrow:
+
+- the visible mark is an **electronic handwritten ink signature**;
+- it is **not** a certificate-backed/PAdES identity signature;
+- an RFC 3161 timestamp attests the committed file hash/time, not the identity of the person who drew the ink.
+
+## Native workflow
+
+1. Open `Digital signing`.
+2. Choose a PDF with the Android document picker. If an unfinished draft exists, it is recovered first.
+3. Use **Navigate** to pan/pinch-zoom.
+4. Switch to **Ink** to write. Use **Erase** or **Undo** to correct marks.
+5. Choose Standard or Finalised output and optionally request a trusted timestamp.
+6. Press **Commit**. MethodMesh creates a new PDF and never overwrites the source.
+7. The normal MethodMesh result surface provides save/share/close-out actions.
+
+The source SHA-256 shown before Commit can be tapped to copy it.
+
+## PDF input
+
+The PDF can come from either route:
+
+- **Direct/native:** Android `OpenDocument` picker (`application/pdf`).
+- **ODK/external/protocol:** `input_pdf_uri` / `pdf_uri` supplied as an Android URI. MethodMesh immediately copies the readable input into its own files area so the working draft does not depend on temporary caller URI permissions.
+
+When a PDF URI is supplied by an ODK launch, the document opens directly without a redundant picker step.
+
+## Draft persistence
+
+The active PDF, page number and completed ink strokes are stored under the module's private app files area. A process restart can recover an unfinished draft. Commit state is persisted before optional TSA network work begins, so timestamp failure or process interruption cannot discard the exact committed PDF.
+
+After the shared MethodMesh scaffold successfully confirms/returns a completed result, the active draft pointer is cleared. Committed PDF versions remain independent files.
+
+## Standard vs Finalised
+
+### Standard
+
+The source page appearance is recreated into a new PDF and the handwritten ink remains vector page content. Existing source form fields/annotations are flattened as part of the page recreation.
+
+### Finalised
+
+The complete committed appearance, including ink, is raster-flattened page by page. This removes editable form/annotation structure and makes accidental editing of existing elements difficult.
+
+Finalisation is **not DRM** and is not described as mathematically uneditable: a capable PDF editor can still add new markup or rewrite a PDF. Integrity is instead detectable by comparing the committed SHA-256 and, where used, the RFC 3161 timestamp token.
+
+ODK and other automatic external-return launches force Finalised mode.
+
+## Trusted timestamp
+
+If `input_request_tsa=true`, MethodMesh:
+
+1. commits/finalises the PDF;
+2. calculates SHA-256 over the exact committed output bytes;
+3. persists that committed result locally;
+4. sends an RFC 3161 `application/timestamp-query` request to `input_tsa_url`;
+5. validates the TSA response against the request;
+6. checks the token message imprint against the signed PDF SHA-256;
+7. locates the included signer certificate and validates the timestamp token signature;
+8. reports whether the signer certificate was valid at the token generation time.
+
+If TSA is unavailable or misconfigured, the PDF commit still succeeds. The returned TSA JSON reports the failure/not-configured state.
+
+## Inputs
+
+- `input_pdf_uri` — input PDF URI. ODK/external callers normally supply this; direct native use can use the file picker.
+- `input_finalise_pdf` — request Finalised mode. ODK forces this true regardless of a false input.
+- `input_request_tsa` — `true` to request RFC 3161 attestation after Commit.
+- `input_tsa_url` — RFC 3161 HTTP(S) endpoint.
+- `input_pen_width_pt` — ink width, 0.8–10 pt.
+- `input_pen_color` — `black` or `blue`.
+
+## Main outputs
+
+- `digital_signing_signed_pdf_uri` — FileProvider URI of the new committed PDF.
+- `digital_signing_signed_sha256` — SHA-256 of the exact committed PDF.
+- `digital_signing_result_json` — structured signing/provenance record, including TSA object.
+- `digital_signing_tsa_json` — TSA-only JSON object, always present (`requested=false`/`not_requested` when unused).
+
+Additional audit fields:
+
+- `digital_signing_status`
+- `digital_signing_signed_pdf_name`
+- `digital_signing_source_sha256`
+- `digital_signing_source_origin`
+- `digital_signing_page_count`
+- `digital_signing_ink_present`
+- `digital_signing_ink_stroke_count`
+- `digital_signing_finalised`
+- `digital_signing_finalisation_mode`
+- `digital_signing_committed_time_iso`
+- `digital_signing_tsa_status`
+- `digital_signing_tsa_time_iso`
+- `digital_signing_tsa_authority`
+- `digital_signing_error`
+
+## TSA JSON shape
+
+The TSA object has a stable shape even when no timestamp is requested:
+
+```json
+{
+  "requested": false,
+  "status": "not_requested",
+  "authority": null,
+  "timestamp_utc": null,
+  "message_imprint_algorithm": "SHA-256",
+  "message_imprint": null,
+  "policy_oid": null,
+  "serial_number": null,
+  "token_format": "RFC3161",
+  "token": null,
+  "verification": {
+    "signature_valid": null,
+    "imprint_matches_signed_pdf": null,
+    "certificate_valid_at_timestamp": null
+  },
+  "error": null
+}
+```
+
+When verified, `token` contains the Base64-encoded RFC 3161 token so the attestation can be preserved and independently checked later.
+
+## ODK/XLSForm workflow
+
+Use an XLSForm `begin_group` Android intent. The PDF question should supply its Android URI as `input_pdf_uri`. The capability returns the signed PDF URI plus compact fields and JSON/audit data through the normal MethodMesh external workflow.
+
+Example intent:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='document.sign_pdf',caller='odk_collect',input_pdf_uri=${source_pdf},input_finalise_pdf='true',input_request_tsa=${request_tsa},input_tsa_url=${tsa_url},input_payload_mode='FULL',return_mode='flat')
+```
+
+The module includes `docs/example_odk_document.sign_pdf.xlsx`.
+
+For ODK, `digital_signing_signed_pdf_uri` is the primary media result. `digital_signing_result_json` contains the complete signing record and `digital_signing_tsa_json` contains the complete TSA record when relevant. The generic MethodMesh return layer grants returned `_uri` attachments to the caller.
+
+## Presets and protocols
+
+The capability remains the same canonical `document.sign_pdf` method when launched directly, from a preset, or as a protocol step. Fixed preset settings are hidden by the shared runtime; the document workspace remains the operator surface because inking is inherently interactive. A prior protocol step may pipe a `pdf_uri` into this capability.
+
+## Dependencies
+
+The PDF viewer/commit engine uses Android platform APIs (`PdfRenderer` and `PdfDocument`) only. It does **not** require PDFBox or Material icon libraries.
+
+RFC 3161 support uses the Bouncy Castle dependencies already present in the MethodMesh app build (`bcprov-jdk18on` and `bcpkix-jdk18on`).
+
+## Known limitations in v1
+
+- No certificate/PAdES signer identity signature.
+- No multi-signer workflow.
+- No visual signature field placement metadata beyond the visible ink itself.
+- Password-protected/encrypted PDFs may not open through Android `PdfRenderer`.
+- Page recreation is appearance-preserving, not a byte-preserving incremental PDF edit; interactive source forms/annotations are flattened.
+- Finalisation does not prevent a capable editor adding new markup; subsequent byte changes are instead detectable through SHA-256/TSA verification.
+- TSA requires network connectivity and a compatible RFC 3161 endpoint.
+

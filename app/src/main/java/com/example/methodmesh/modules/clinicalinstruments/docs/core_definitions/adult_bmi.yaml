@@ -1,0 +1,50 @@
+schema: methodmesh.clinical-instrument.v1
+id: adult_bmi
+name: Adult BMI classification
+version: 1.0.0
+status: core
+type: clinical_score
+category: nutrition
+tags: [nutrition, anthropometry, bmi]
+summary: Calculates adult body-mass index from measured weight and height and returns standard WHO category thresholds.
+source_url: https://www.who.int/data/gho/data/themes/topics/indicator-groups/indicator-group-details/GHO/bmi-among-adults
+citation: "World Health Organization. Body mass index (BMI) classification for adults."
+rights_status: factual_definition
+rights_note: Formula and numerical thresholds are factual clinical definitions; cite WHO.
+questions:
+  - id: weight_kg
+    label: Weight
+    type: decimal
+    unit: kg
+    min: 1
+    max: 500
+  - id: height_cm
+    label: Height
+    type: decimal
+    unit: cm
+    min: 50
+    max: 250
+derived:
+  - id: height_m
+    expression: height_cm / 100
+scores:
+  - id: bmi
+    label: BMI
+    expression: weight_kg / (height_m * height_m)
+classifications:
+  - when: bmi < 18.5
+    value: underweight
+    label: Underweight
+  - when: bmi >= 18.5 and bmi < 25
+    value: normal_range
+    label: Normal range
+  - when: bmi >= 25 and bmi < 30
+    value: overweight
+    label: Overweight
+  - when: bmi >= 30
+    value: obesity
+    label: Obesity
+tests:
+  - name: normal
+    input_json: '{"weight_kg":70,"height_cm":175}'
+    expect_json: '{"classification":"normal_range"}'

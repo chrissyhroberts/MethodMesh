@@ -1,5 +1,6 @@
 package com.example.methodmesh.modules.qrcode
 
+import com.example.methodmesh.core.crypto.Digests
 import com.example.methodmesh.core.methodmesh.ArchitectureId
 import com.example.methodmesh.core.methodmesh.ArchitectureRef
 import com.example.methodmesh.core.methodmesh.ExecutionRequest
@@ -16,7 +17,6 @@ import com.example.methodmesh.core.methodmesh.Transformation
 import com.example.methodmesh.core.methodmesh.TransformationStatus
 import com.example.methodmesh.core.methodmesh.runtime.As100ExecutionEngine
 import com.example.methodmesh.core.methodmesh.runtime.As100Method
-import com.example.methodmesh.core.crypto.Digests
 import com.example.methodmesh.settings.SettingsState
 import java.net.URI
 import java.time.Instant
@@ -41,7 +41,7 @@ internal object BarcodePayloadSemantics {
 
 object As100BarcodeScanMethod : As100Method {
     const val ID = "barcode.scan"
-    private const val VERSION = "1.0.0"
+    internal const val VERSION = "1.1.1"
 
     override val id: String = ID
     override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "Automatic code scanner")
@@ -50,7 +50,7 @@ object As100BarcodeScanMethod : As100Method {
         methodType = MethodObjectType.SignalInterpreter,
         name = "Automatic code scanner",
         version = VERSION,
-        description = "Automatically decode QR, Data Matrix, and common 1D barcode formats and convert the payload into canonical evidence.",
+        description = "Automatically decode QR, Data Matrix, Aztec, PDF417, and common 1D barcode formats and convert the payload into canonical evidence.",
         outputs = listOf(
             "barcode_payload",
             "barcode_payload_kind",
@@ -76,11 +76,34 @@ object As100BarcodeScanMethod : As100Method {
         producedGraphOutputs = descriptor.graphOutputs
     )
 
-    override fun request(action: String, context: Map<String, String>, signals: List<Signal>, inputs: List<ArchitectureRef>): ExecutionRequest =
+    override fun request(
+        action: String,
+        context: Map<String, String>,
+        signals: List<Signal>,
+        inputs: List<ArchitectureRef>
+    ): ExecutionRequest =
         As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
 
     override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult =
         BarcodeScanExecution.execute(request, ref, ID, VERSION)
+
+    /**
+     * Rebuild a saved working/committed result with the same architectural IDs.
+     * This keeps the frozen payload, full JSON, and graph identity stable across
+     * Android activity recreation without changing the public method contract.
+     */
+    internal fun executeWithIdentity(
+        request: ExecutionRequest,
+        observationId: ArchitectureId,
+        transformationId: ArchitectureId
+    ): ExecutionResult = BarcodeScanExecution.execute(
+        request = request,
+        methodRef = ref,
+        methodId = ID,
+        methodVersion = VERSION,
+        observationId = observationId,
+        transformationId = transformationId
+    )
 }
 
 private object BarcodeScanExecution {
@@ -88,7 +111,9 @@ private object BarcodeScanExecution {
         request: ExecutionRequest,
         methodRef: ArchitectureRef,
         methodId: String,
-        methodVersion: String
+        methodVersion: String,
+        observationId: ArchitectureId = ArchitectureId(),
+        transformationId: ArchitectureId = ArchitectureId()
     ): ExecutionResult {
         val c = request.context
         val payload = c["barcode_payload"].orEmpty()
@@ -125,6 +150,7 @@ private object BarcodeScanExecution {
             operatorId = c["operator_id"]
         )
         val observation = Observation(
+            id = observationId,
             phenomenon = "barcode.payload_evidence",
             subject = InvocationContext.from(c)?.subjectRef(),
             values = values,
@@ -132,6 +158,7 @@ private object BarcodeScanExecution {
             provenance = provenance
         )
         val transformation = Transformation(
+            id = transformationId,
             action = "barcode.scan_payload",
             method = methodRef,
             outputs = listOf(ArchitectureRef(observation.id, observation.objectType, observation.phenomenon)),

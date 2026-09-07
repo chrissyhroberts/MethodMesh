@@ -57,6 +57,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 private enum class AcousticMode { ANALYSE, TUNE, LEVEL, COMPARE }
 
@@ -92,36 +95,78 @@ object AcousticCompareCapabilityScreen : CapabilityScreenSpec {
         AcousticCapabilityUi(AcousticMode.COMPARE, title, capabilityId, context, onBack, onConfirmed, onCancel)
 }
 
+private data class AcousticTimeSample(
+    val timestampMs: Long,
+    val frequencyHz: Double?,
+    val confidence: Double,
+    val rms: Double,
+    val peak: Double,
+    val dbfs: Double,
+    val peakDbfs: Double
+)
+
 private class AcousticSessionAccumulator {
     val pitchObservations = mutableListOf<AcousticsAlgorithms.FrequencyObservation>()
+    val timeSeries = mutableListOf<AcousticTimeSample>()
+    val frameRms = mutableListOf<Double>()
+    val frameDbfs = mutableListOf<Double>()
     var frameCount: Int = 0
     var sumFrameMeanSquare: Double = 0.0
     var maxPeak: Double = 0.0
     var lastFrame: AcousticsCaptureEngine.AcousticFrame? = null
+    var firstTimestampMs: Long = 0L
+    var lastTimestampMs: Long = 0L
+    private var lastTimeSeriesTimestampMs: Long = Long.MIN_VALUE
+    private var spectrumPowerSum: DoubleArray? = null
+    private var spectrumFrameCount: Int = 0
 
     fun reset() {
-        pitchObservations.clear()
-        frameCount = 0
-        sumFrameMeanSquare = 0.0
-        maxPeak = 0.0
-        lastFrame = null
+        pitchObservations.clear(); timeSeries.clear(); frameRms.clear(); frameDbfs.clear()
+        frameCount = 0; sumFrameMeanSquare = 0.0; maxPeak = 0.0; lastFrame = null
+        firstTimestampMs = 0L; lastTimestampMs = 0L; lastTimeSeriesTimestampMs = Long.MIN_VALUE
+        spectrumPowerSum = null; spectrumFrameCount = 0
     }
 
-    fun add(frame: AcousticsCaptureEngine.AcousticFrame) {
+    fun add(frame: AcousticsCaptureEngine.AcousticFrame, timeSeriesIntervalMs: Long = 100L) {
+        if (frameCount == 0) firstTimestampMs = frame.timestampMs
+        lastTimestampMs = frame.timestampMs
         frameCount += 1
+        frameRms += frame.rms
+        frameDbfs += frame.dbfs
         sumFrameMeanSquare += frame.rms * frame.rms
         maxPeak = max(maxPeak, frame.peak)
         lastFrame = frame
         frame.frequencyHz?.let { frequency ->
             pitchObservations += AcousticsAlgorithms.FrequencyObservation(frame.timestampMs, frequency, frame.pitchConfidence)
         }
-        if (pitchObservations.size > 600) pitchObservations.removeAt(0)
+        if (lastTimeSeriesTimestampMs == Long.MIN_VALUE || frame.timestampMs - lastTimeSeriesTimestampMs >= timeSeriesIntervalMs) {
+            timeSeries += AcousticTimeSample(frame.timestampMs, frame.frequencyHz, frame.pitchConfidence, frame.rms, frame.peak, frame.dbfs, frame.peakDbfs)
+            lastTimeSeriesTimestampMs = frame.timestampMs
+        }
+        if (frame.spectrumDbfs.isNotEmpty()) {
+            val sum = spectrumPowerSum?.takeIf { it.size == frame.spectrumDbfs.size } ?: DoubleArray(frame.spectrumDbfs.size).also { spectrumPowerSum = it }
+            frame.spectrumDbfs.forEachIndexed { i, db -> sum[i] += 10.0.pow(db.toDouble() / 10.0) }
+            spectrumFrameCount += 1
+        }
+        if (pitchObservations.size > 5000) pitchObservations.removeAt(0)
+        if (timeSeries.size > 5000) timeSeries.removeAt(0)
     }
 
     fun leqDbfs(): Double {
         if (frameCount <= 0) return -120.0
         val meanSquare = sumFrameMeanSquare / frameCount
         return if (meanSquare <= 1e-12) -120.0 else 10.0 * kotlin.math.log10(meanSquare)
+    }
+
+    fun durationMs(): Long = if (frameCount <= 1) 0L else (lastTimestampMs - firstTimestampMs).coerceAtLeast(0L)
+
+    fun averageSpectrumDbfs(): FloatArray {
+        val sum = spectrumPowerSum ?: return FloatArray(0)
+        if (spectrumFrameCount <= 0) return FloatArray(0)
+        return FloatArray(sum.size) { i ->
+            val power = (sum[i] / spectrumFrameCount).coerceAtLeast(1e-12)
+            (10.0 * kotlin.math.log10(power)).coerceIn(-120.0, 6.0).toFloat()
+        }
     }
 }
 
@@ -142,7 +187,8 @@ private fun AcousticCapabilityUi(
     fun initial(key: String, fallback: String): String =
         context.action.settings[key] ?: context.action.settings["input_$key"] ?: fallback
 
-    var captureSeconds by rememberSaveable { mutableStateOf(initial("capture_seconds", if (mode == AcousticMode.LEVEL) "3.0" else "2.0")) }
+    var captureSeconds by rememberSaveable { mutableStateOf(initial("capture_seconds", if (mode == AcousticMode.ANALYSE) "5.0" else if (mode == AcousticMode.LEVEL) "3.0" else "2.0")) }
+    var timeseriesIntervalMs by rememberSaveable { mutableStateOf(initial("timeseries_interval_ms", "100")) }
     var sampleRateHz by rememberSaveable { mutableStateOf(initial("sample_rate_hz", "48000")) }
     var minFrequencyHz by rememberSaveable { mutableStateOf(initial("min_frequency_hz", "40")) }
     var maxFrequencyHz by rememberSaveable { mutableStateOf(initial("max_frequency_hz", "5000")) }
@@ -172,6 +218,9 @@ private fun AcousticCapabilityUi(
     }
     var pendingPermissionStart by rememberSaveable { mutableStateOf(false) }
     var listening by rememberSaveable { mutableStateOf(false) }
+    var measurementActive by rememberSaveable { mutableStateOf(false) }
+    var displayPaused by rememberSaveable { mutableStateOf(false) }
+    var pendingMeasurementStart by rememberSaveable { mutableStateOf(false) }
     var captureStartedAtMs by rememberSaveable { mutableStateOf(0L) }
     var captureStartedIso by rememberSaveable { mutableStateOf("") }
     var launchAttempted by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
@@ -194,6 +243,7 @@ private fun AcousticCapabilityUi(
     val settings = when (mode) {
         AcousticMode.ANALYSE -> linkedMapOf(
             "capture_seconds" to captureSeconds,
+            "timeseries_interval_ms" to timeseriesIntervalMs,
             "sample_rate_hz" to sampleRateHz,
             "min_frequency_hz" to minFrequencyHz,
             "max_frequency_hz" to maxFrequencyHz,
@@ -253,24 +303,36 @@ private fun AcousticCapabilityUi(
         pendingPermissionStart = false
     }
 
-    fun startListening() {
+    fun beginMeasurement() {
+        accumulator.reset()
+        captureStartedAtMs = System.currentTimeMillis()
+        captureStartedIso = Instant.now().toString()
+        measurementActive = true
+        captureSequence += 1
+        status = "Measuring for ${captureSeconds}s…"
+    }
+
+    fun startListening(measureNow: Boolean) {
         if (!hasAudioPermission) {
             pendingPermissionStart = true
+            pendingMeasurementStart = measureNow
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             return
         }
-        if (engine.isRunning()) return
+        if (engine.isRunning()) {
+            if (measureNow && !measurementActive) beginMeasurement()
+            return
+        }
 
         accumulator.reset()
         frame = null
         captureInfo = null
         result = null
         resultValuesJson = null
-        captureStartedAtMs = System.currentTimeMillis()
-        captureStartedIso = Instant.now().toString()
+        displayPaused = false
         listening = true
-        captureSequence += 1
-        status = "Listening…"
+        measurementActive = false
+        if (measureNow) beginMeasurement() else status = "Live analyser · press Start measurement to record an observation."
 
         engine.start(
             sampleRateHz = sampleRateHz.toIntOrNull() ?: 48_000,
@@ -279,15 +341,16 @@ private fun AcousticCapabilityUi(
             maxFrequencyHz = maxFrequencyHz.toDoubleOrNull() ?: 5000.0,
             onInfo = { info ->
                 captureInfo = info
-                status = if (info.unprocessedUsed) "Listening · unprocessed microphone path" else "Listening · ${info.audioSourceLabel} input"
+                if (!measurementActive) status = if (info.unprocessedUsed) "Live analyser · unprocessed microphone path" else "Live analyser · ${info.audioSourceLabel} input"
             },
             onFrame = { next ->
-                accumulator.add(next)
-                frame = next
+                if (measurementActive || mode != AcousticMode.ANALYSE) {
+                    accumulator.add(next, timeseriesIntervalMs.toLongOrNull()?.coerceIn(50L, 5000L) ?: 100L)
+                }
+                if (!displayPaused) frame = next
             },
             onError = { message ->
-                listening = false
-                status = message
+                listening = false; measurementActive = false; status = message
             }
         )
     }
@@ -298,6 +361,7 @@ private fun AcousticCapabilityUi(
             status = "No audio frames were captured."
             return
         }
+        measurementActive = false
         stopListening()
         val values = when (mode) {
             AcousticMode.ANALYSE -> buildAnalyseValues(settings, accumulator, captureInfo, captureStartedIso)
@@ -313,19 +377,19 @@ private fun AcousticCapabilityUi(
     LaunchedEffect(hasAudioPermission, pendingPermissionStart) {
         if (hasAudioPermission && pendingPermissionStart) {
             pendingPermissionStart = false
-            startListening()
+            startListening(pendingMeasurementStart)
         }
     }
 
     LaunchedEffect(autoStartEligible, launchAttempted) {
         if (autoStartEligible && !launchAttempted) {
             launchAttempted = true
-            startListening()
+            startListening(true)
         }
     }
 
-    LaunchedEffect(listening, captureSequence, context.startsImmediately, captureSeconds) {
-        if (listening && context.startsImmediately) {
+    LaunchedEffect(listening, measurementActive, captureSequence, captureSeconds) {
+        if (listening && measurementActive) {
             val durationMs = ((captureSeconds.toDoubleOrNull() ?: 2.0).coerceIn(0.5, 60.0) * 1000.0).toLong()
             delay(durationMs)
             if (listening) finaliseCapture()
@@ -347,7 +411,7 @@ private fun AcousticCapabilityUi(
         onRetry = {
             result = null
             resultValuesJson = null
-            startListening()
+            startListening(true)
         },
         onConfirm = { restoredResult?.let(onConfirmed) },
         onCancel = {
@@ -356,8 +420,8 @@ private fun AcousticCapabilityUi(
         }
     ) {
         when (mode) {
-            AcousticMode.ANALYSE -> AnalyseControlsAndDisplay(context, settings, frame, captureInfo, listening,
-                onCaptureSeconds = { captureSeconds = it }, onSampleRate = { sampleRateHz = it },
+            AcousticMode.ANALYSE -> AnalyseControlsAndDisplay(context, settings, frame, accumulator, captureInfo, listening, measurementActive,
+                onCaptureSeconds = { captureSeconds = it }, onTimeseriesInterval = { timeseriesIntervalMs = it }, onSampleRate = { sampleRateHz = it },
                 onMinFrequency = { minFrequencyHz = it }, onMaxFrequency = { maxFrequencyHz = it },
                 onReferenceA4 = { referenceA4Hz = it }, onSpeedMode = { speedMode = it },
                 onTemperature = { temperatureC = it }, onFixedSpeed = { fixedSpeedMps = it },
@@ -397,23 +461,28 @@ private fun AcousticCapabilityUi(
 
         when {
             context.submitsImmediately -> {
-                if (listening) Text("Automatic capture in progress…", style = MaterialTheme.typography.bodyMedium)
+                if (listening) Text("Timed measurement in progress…", style = MaterialTheme.typography.bodyMedium)
             }
-            context.isNativePresetRun -> {
-                if (!listening) {
-                    Button(onClick = { startListening() }, modifier = Modifier.fillMaxWidth()) { Text("Start measurement") }
-                } else {
-                    Text("Preset capture in progress…", style = MaterialTheme.typography.bodyMedium)
+            context.isNativePresetRun && !listening -> {
+                Button(onClick = { startListening(true) }, modifier = Modifier.fillMaxWidth()) { Text("Start measurement") }
+            }
+            mode == AcousticMode.ANALYSE && !listening -> {
+                Button(onClick = { startListening(false) }, modifier = Modifier.fillMaxWidth()) { Text("Start live analyser") }
+            }
+            mode == AcousticMode.ANALYSE && listening && !measurementActive -> {
+                Button(onClick = { beginMeasurement() }, modifier = Modifier.fillMaxWidth()) { Text("Start ${captureSeconds}s measurement") }
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { displayPaused = !displayPaused; status = if (displayPaused) "Display frozen · measurement engine remains live." else "Live display resumed." }, modifier = Modifier.weight(1f)) { Text(if (displayPaused) "Resume display" else "Freeze display") }
+                    OutlinedButton(onClick = { stopListening(); measurementActive = false; status = "Stopped." }, modifier = Modifier.weight(1f)) { Text("Stop") }
                 }
             }
             !listening -> {
-                Button(onClick = { startListening() }, modifier = Modifier.fillMaxWidth()) { Text("Start listening") }
+                Button(onClick = { startListening(true) }, modifier = Modifier.fillMaxWidth()) { Text("Start measurement") }
             }
             else -> {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { finaliseCapture() }, modifier = Modifier.weight(1f)) { Text("Capture result") }
-                    OutlinedButton(onClick = { stopListening(); status = "Stopped." }, modifier = Modifier.weight(1f)) { Text("Stop") }
-                }
+                Text("Timed measurement in progress…", style = MaterialTheme.typography.bodyMedium)
+                OutlinedButton(onClick = { stopListening(); measurementActive = false; status = "Measurement cancelled." }, modifier = Modifier.fillMaxWidth()) { Text("Cancel measurement") }
             }
         }
         Spacer(Modifier.height(6.dp))
@@ -426,9 +495,12 @@ private fun AnalyseControlsAndDisplay(
     context: CapabilityScreenContext,
     settings: Map<String, String>,
     frame: AcousticsCaptureEngine.AcousticFrame?,
+    accumulator: AcousticSessionAccumulator,
     captureInfo: AcousticsCaptureEngine.CaptureInfo?,
     listening: Boolean,
+    measurementActive: Boolean,
     onCaptureSeconds: (String) -> Unit,
+    onTimeseriesInterval: (String) -> Unit,
     onSampleRate: (String) -> Unit,
     onMinFrequency: (String) -> Unit,
     onMaxFrequency: (String) -> Unit,
@@ -458,11 +530,18 @@ private fun AnalyseControlsAndDisplay(
     WaveformView(frame?.waveform ?: FloatArray(0))
     Spacer(Modifier.height(8.dp))
     SpectrumView(frame?.spectrumDb ?: FloatArray(0))
+    if (measurementActive && accumulator.frameCount > 0) {
+        Spacer(Modifier.height(8.dp))
+        SpectrumDbfsView(accumulator.averageSpectrumDbfs(), captureInfo?.sampleRateHz ?: settings.i("sample_rate_hz", 48000))
+        Spacer(Modifier.height(8.dp))
+        TimeSeriesView(accumulator.timeSeries)
+    }
     Spacer(Modifier.height(8.dp))
     Text("Wavelength is derived from frequency and an assumed/calculated speed of sound; it is not directly measured by the microphone.", style = MaterialTheme.typography.bodySmall)
 
     SettingsHeader()
-    if (context.settingShouldBeShown("capture_seconds")) NumberField("Automatic capture (s)", settings["capture_seconds"].orEmpty(), onCaptureSeconds)
+    if (context.settingShouldBeShown("capture_seconds")) NumberField("Measurement duration (s)", settings["capture_seconds"].orEmpty(), onCaptureSeconds)
+    if (context.settingShouldBeShown("timeseries_interval_ms")) NumberField("Time-series interval (ms)", settings["timeseries_interval_ms"].orEmpty(), onTimeseriesInterval, integerOnly = true)
     if (context.settingShouldBeShown("sample_rate_hz")) ChoiceDropdown("Sample rate", settings["sample_rate_hz"].orEmpty(), listOf("44100", "48000"), onSampleRate)
     if (context.settingShouldBeShown("min_frequency_hz")) NumberField("Minimum pitch (Hz)", settings["min_frequency_hz"].orEmpty(), onMinFrequency)
     if (context.settingShouldBeShown("max_frequency_hz")) NumberField("Maximum pitch (Hz)", settings["max_frequency_hz"].orEmpty(), onMaxFrequency)
@@ -652,50 +731,74 @@ private fun buildAnalyseValues(
     info: AcousticsCaptureEngine.CaptureInfo?,
     startedIso: String
 ): Map<String, String> {
-    val stable = AcousticsAlgorithms.findStableWindow(
-        accumulator.pitchObservations,
-        settings.i("minimum_stable_ms", 500).toLong(),
-        settings.d("maximum_sd_cents", 5.0),
-        settings.d("minimum_pitch_confidence", 0.60)
-    )
-    val summary = stable ?: AcousticsAlgorithms.summaryWindow(accumulator.pitchObservations, settings.d("minimum_pitch_confidence", 0.60))
-    val frequency = summary?.medianHz
+    val minConfidence = settings.d("minimum_pitch_confidence", 0.60)
+    val stable = AcousticsAlgorithms.findStableWindow(accumulator.pitchObservations, settings.i("minimum_stable_ms", 500).toLong(), settings.d("maximum_sd_cents", 5.0), minConfidence)
+    val summary = AcousticsAlgorithms.summaryWindow(accumulator.pitchObservations, minConfidence)
+    val validFrequencies = accumulator.pitchObservations.filter { it.confidence >= minConfidence }.map { it.frequencyHz }
+    val frequencyMean = validFrequencies.takeIf { it.isNotEmpty() }?.average()
+    val frequencyMedian = validFrequencies.takeIf { it.isNotEmpty() }?.let(AcousticsAlgorithms::median)
+    val frequencyMin = validFrequencies.minOrNull()
+    val frequencyMax = validFrequencies.maxOrNull()
+    val frequency = frequencyMedian
     val note = frequency?.let { AcousticsAlgorithms.noteFromFrequency(it, settings.d("reference_a4_hz", 440.0)) }
-    val speed = if (settings["speed_of_sound_mode"] == "fixed_speed") settings.d("speed_of_sound_mps", 343.0)
-        else AcousticsAlgorithms.soundSpeedMps(settings.d("temperature_c", 20.0))
+    val speed = if (settings["speed_of_sound_mode"] == "fixed_speed") settings.d("speed_of_sound_mps", 343.0) else AcousticsAlgorithms.soundSpeedMps(settings.d("temperature_c", 20.0))
     val wavelength = frequency?.let { AcousticsAlgorithms.derivedWavelengthM(it, speed) }
-    val last = accumulator.lastFrame
-    val harmonics = if (frequency != null && last != null && info != null) {
-        JSONArray(AcousticsAlgorithms.strongestHarmonics(last.spectrumDb, info.sampleRateHz, frequency).map { (hz, db) -> JSONObject().put("frequency_hz", hz).put("relative_db", db) }).toString()
+    val rmsMean = accumulator.frameRms.takeIf { it.isNotEmpty() }?.average()
+    val rmsMin = accumulator.frameRms.minOrNull()
+    val rmsMax = accumulator.frameRms.maxOrNull()
+    val dbfsMean = accumulator.frameDbfs.takeIf { it.isNotEmpty() }?.average()
+    val dbfsMin = accumulator.frameDbfs.minOrNull()
+    val dbfsMax = accumulator.frameDbfs.maxOrNull()
+    val avgSpectrum = accumulator.averageSpectrumDbfs()
+    val sampleRate = info?.sampleRateHz ?: settings.i("sample_rate_hz", 48000)
+    val spectrumJsonArray = JSONArray()
+    val spectrumCsv = StringBuilder("frequency_hz,wavelength_m,amplitude_dbfs\n")
+    if (avgSpectrum.isNotEmpty()) {
+        val nyquist = sampleRate / 2.0
+        avgSpectrum.forEachIndexed { index, db ->
+            val hz = (index + 0.5) * nyquist / avgSpectrum.size
+            val binWavelength = AcousticsAlgorithms.derivedWavelengthM(hz, speed)
+            spectrumJsonArray.put(JSONObject().put("frequency_hz", hz).put("wavelength_m", binWavelength ?: JSONObject.NULL).put("amplitude_dbfs", db.toDouble()))
+            spectrumCsv.append(fmt(hz, 3)).append(',').append(fmt(binWavelength, 6)).append(',').append(fmt(db.toDouble(), 3)).append('\n')
+        }
+    }
+    val timeseriesJsonArray = JSONArray()
+    val timeseriesCsv = StringBuilder("time_s,frequency_hz,pitch_confidence,rms,peak,dbfs,peak_dbfs\n")
+    val t0 = accumulator.firstTimestampMs
+    accumulator.timeSeries.forEach { sample ->
+        val timeS = if (t0 > 0L) (sample.timestampMs - t0) / 1000.0 else 0.0
+        timeseriesJsonArray.put(JSONObject().put("time_s", timeS).put("frequency_hz", sample.frequencyHz ?: JSONObject.NULL).put("pitch_confidence", sample.confidence).put("rms", sample.rms).put("peak", sample.peak).put("dbfs", sample.dbfs).put("peak_dbfs", sample.peakDbfs))
+        timeseriesCsv.append(fmt(timeS, 3)).append(',').append(fmt(sample.frequencyHz, 4)).append(',').append(fmt(sample.confidence, 4)).append(',').append(fmt(sample.rms, 6)).append(',').append(fmt(sample.peak, 6)).append(',').append(fmt(sample.dbfs, 3)).append(',').append(fmt(sample.peakDbfs, 3)).append('\n')
+    }
+    val harmonics = if (frequency != null && avgSpectrum.isNotEmpty()) {
+        JSONArray(AcousticsAlgorithms.strongestHarmonics(avgSpectrum, sampleRate, frequency).map { (hz, db) -> JSONObject().put("frequency_hz", hz).put("amplitude_dbfs", db) }).toString()
     } else JSONArray().toString()
-    val resultText = if (frequency != null) "${fmt(frequency, 2)} Hz${note?.let { " · ${it.note} · ${signed(it.cents, 1)} cents" }.orEmpty()}"
-        else "No stable pitch · ${fmt(last?.dbfs, 1)} dBFS"
+    val durationS = accumulator.durationMs() / 1000.0
+    val resultText = if (frequency != null) "${fmt(durationS, 1)} s · ${fmt(frequency, 2)} Hz median · ${fmt(frequencyMin, 2)}–${fmt(frequencyMax, 2)} Hz · Leq ${fmt(accumulator.leqDbfs(), 1)} dBFS" else "${fmt(durationS, 1)} s acoustic measurement · no valid fundamental pitch"
     val audit = baseAudit(As100AcousticAnalyseMethod.ID, As100AcousticAnalyseMethod.VERSION, settings, info, accumulator, startedIso)
-        .put("wavelength_is_derived", true)
-        .put("speed_of_sound_mps", speed)
+        .put("measurement_model", "timed_interval_summary")
+        .put("wavelength_is_derived", true).put("speed_of_sound_mps", speed)
         .put("speed_of_sound_basis", settings["speed_of_sound_mode"] ?: "temperature")
         .put("temperature_c", if (settings["speed_of_sound_mode"] == "temperature") settings.d("temperature_c", 20.0) else JSONObject.NULL)
-        .put("stable_window_found", stable != null)
+        .put("stable_window_found", stable != null).put("spectrum_retained", true).put("timeseries_retained", true)
+        .put("timeseries_interval_ms", settings.i("timeseries_interval_ms", 100)).put("spectrum_bins", avgSpectrum.size)
         .put("harmonics", JSONArray(harmonics))
     return linkedMapOf(
         AcousticAnalyseFields.RESULT to resultText,
-        AcousticAnalyseFields.FREQUENCY_HZ to fmt(frequency, 4),
-        AcousticAnalyseFields.NOTE to (note?.note ?: ""),
-        AcousticAnalyseFields.CENTS to fmt(note?.cents, 3),
-        AcousticAnalyseFields.WAVELENGTH_M to fmt(wavelength, 6),
-        AcousticAnalyseFields.SPEED_OF_SOUND_MPS to fmt(speed, 3),
-        AcousticAnalyseFields.RMS to fmt(last?.rms, 6),
-        AcousticAnalyseFields.PEAK to fmt(accumulator.maxPeak, 6),
-        AcousticAnalyseFields.DBFS to fmt(last?.dbfs, 3),
-        AcousticAnalyseFields.PEAK_DBFS to fmt(AcousticsAlgorithms.dbfsFromAmplitude(accumulator.maxPeak), 3),
-        AcousticAnalyseFields.PITCH_CONFIDENCE to fmt(summary?.meanConfidence, 4),
-        AcousticAnalyseFields.FREQUENCY_SD_HZ to fmt(summary?.sdHz, 4),
-        AcousticAnalyseFields.FREQUENCY_SD_CENTS to fmt(summary?.sdCents, 3),
-        AcousticAnalyseFields.STABLE_DURATION_MS to (stable?.durationMs?.toString() ?: "0"),
-        AcousticAnalyseFields.HARMONICS_JSON to harmonics,
-        AcousticAnalyseFields.STATUS to "succeeded",
-        AcousticAnalyseFields.AUDIT_JSON to audit.toString(),
-        AcousticAnalyseFields.ERROR to ""
+        AcousticAnalyseFields.DURATION_S to fmt(durationS, 3),
+        AcousticAnalyseFields.FREQUENCY_HZ to fmt(frequencyMedian, 4),
+        AcousticAnalyseFields.FREQUENCY_MEAN_HZ to fmt(frequencyMean, 4),
+        AcousticAnalyseFields.FREQUENCY_MEDIAN_HZ to fmt(frequencyMedian, 4),
+        AcousticAnalyseFields.FREQUENCY_MIN_HZ to fmt(frequencyMin, 4),
+        AcousticAnalyseFields.FREQUENCY_MAX_HZ to fmt(frequencyMax, 4),
+        AcousticAnalyseFields.NOTE to (note?.note ?: ""), AcousticAnalyseFields.CENTS to fmt(note?.cents, 3),
+        AcousticAnalyseFields.WAVELENGTH_M to fmt(wavelength, 6), AcousticAnalyseFields.SPEED_OF_SOUND_MPS to fmt(speed, 3),
+        AcousticAnalyseFields.RMS to fmt(rmsMean, 6), AcousticAnalyseFields.RMS_MEAN to fmt(rmsMean, 6), AcousticAnalyseFields.RMS_MIN to fmt(rmsMin, 6), AcousticAnalyseFields.RMS_MAX to fmt(rmsMax, 6),
+        AcousticAnalyseFields.PEAK to fmt(accumulator.maxPeak, 6), AcousticAnalyseFields.DBFS to fmt(dbfsMean, 3), AcousticAnalyseFields.DBFS_MEAN to fmt(dbfsMean, 3), AcousticAnalyseFields.DBFS_MIN to fmt(dbfsMin, 3), AcousticAnalyseFields.DBFS_MAX to fmt(dbfsMax, 3),
+        AcousticAnalyseFields.LEQ_DBFS to fmt(accumulator.leqDbfs(), 3), AcousticAnalyseFields.PEAK_DBFS to fmt(AcousticsAlgorithms.dbfsFromAmplitude(accumulator.maxPeak), 3),
+        AcousticAnalyseFields.PITCH_CONFIDENCE to fmt(summary?.meanConfidence, 4), AcousticAnalyseFields.FREQUENCY_SD_HZ to fmt(summary?.sdHz, 4), AcousticAnalyseFields.FREQUENCY_SD_CENTS to fmt(summary?.sdCents, 3), AcousticAnalyseFields.STABLE_DURATION_MS to (stable?.durationMs?.toString() ?: "0"),
+        AcousticAnalyseFields.HARMONICS_JSON to harmonics, AcousticAnalyseFields.SPECTRUM_JSON to spectrumJsonArray.toString(), AcousticAnalyseFields.SPECTRUM_CSV to spectrumCsv.toString().trimEnd(), AcousticAnalyseFields.TIMESERIES_JSON to timeseriesJsonArray.toString(), AcousticAnalyseFields.TIMESERIES_CSV to timeseriesCsv.toString().trimEnd(), AcousticAnalyseFields.TIMESERIES_INTERVAL_MS to settings.i("timeseries_interval_ms", 100).toString(),
+        AcousticAnalyseFields.STATUS to "succeeded", AcousticAnalyseFields.AUDIT_JSON to audit.toString(), AcousticAnalyseFields.ERROR to ""
     )
 }
 
@@ -834,6 +937,7 @@ private fun baseAudit(
         .put("sample_rate_hz", info?.sampleRateHz ?: settings.i("sample_rate_hz", 48000))
         .put("frame_size_samples", info?.frameSizeSamples ?: 4096)
         .put("frame_count", accumulator.frameCount)
+        .put("measurement_duration_ms", accumulator.durationMs())
         .put("audio_source", info?.audioSourceLabel ?: "unknown")
         .put("unprocessed_audio_advertised", info?.unprocessedAdvertised ?: false)
         .put("unprocessed_audio_used", info?.unprocessedUsed ?: false)
@@ -973,6 +1077,81 @@ private fun SpectrumView(spectrum: FloatArray) {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SpectrumDbfsView(spectrum: FloatArray, sampleRateHz: Int) {
+    val bar = MaterialTheme.colorScheme.tertiary
+    val guide = MaterialTheme.colorScheme.outlineVariant
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(8.dp)) {
+            Text("Measurement mean spectrum · dBFS", style = MaterialTheme.typography.labelMedium)
+            Text("Averaged in the power domain across the recorded interval.", style = MaterialTheme.typography.labelSmall)
+            Canvas(Modifier.fillMaxWidth().height(120.dp)) {
+                if (spectrum.isNotEmpty()) {
+                    val width = size.width / spectrum.size
+                    drawLine(guide, Offset(0f, size.height * 0.25f), Offset(size.width, size.height * 0.25f), 1f)
+                    drawLine(guide, Offset(0f, size.height * 0.5f), Offset(size.width, size.height * 0.5f), 1f)
+                    drawLine(guide, Offset(0f, size.height * 0.75f), Offset(size.width, size.height * 0.75f), 1f)
+                    spectrum.forEachIndexed { index, db ->
+                        val normalized = ((db + 120f) / 120f).coerceIn(0f, 1f)
+                        drawRect(bar, Offset(index * width, size.height * (1f - normalized)), Size(max(1f, width), size.height * normalized))
+                    }
+                }
+            }
+            Text("0 Hz → ${sampleRateHz / 2} Hz · vertical scale −120 to 0 dBFS", style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun TimeSeriesView(samples: List<AcousticTimeSample>) {
+    if (samples.size < 2) return
+    val frequencyColor = MaterialTheme.colorScheme.primary
+    val levelColor = MaterialTheme.colorScheme.secondary
+    val guide = MaterialTheme.colorScheme.outlineVariant
+    val frequencies = samples.mapNotNull { it.frequencyHz }
+    val minFrequency = frequencies.minOrNull()
+    val maxFrequency = frequencies.maxOrNull()
+    val t0 = samples.first().timestampMs
+    val duration = (samples.last().timestampMs - t0).coerceAtLeast(1L).toDouble()
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(8.dp)) {
+            Text("Measurement time series", style = MaterialTheme.typography.labelMedium)
+            Text("Frequency", style = MaterialTheme.typography.labelSmall)
+            Canvas(Modifier.fillMaxWidth().height(92.dp)) {
+                drawLine(guide, Offset(0f, size.height / 2f), Offset(size.width, size.height / 2f), 1f)
+                if (minFrequency != null && maxFrequency != null) {
+                    val span = max(maxFrequency - minFrequency, maxFrequency * 0.002).coerceAtLeast(0.1)
+                    var previous: Pair<Float, Float>? = null
+                    samples.forEach { sample ->
+                        sample.frequencyHz?.let { hz ->
+                            val x = ((sample.timestampMs - t0) / duration).toFloat() * size.width
+                            val y = size.height - (((hz - minFrequency) / span).coerceIn(0.0, 1.0).toFloat() * size.height)
+                            previous?.let { drawLine(frequencyColor, Offset(it.first, it.second), Offset(x, y), 2f, cap = StrokeCap.Round) }
+                            previous = x to y
+                        }
+                    }
+                }
+            }
+            Text(if (minFrequency != null) "${fmt(minFrequency, 2)}–${fmt(maxFrequency, 2)} Hz" else "No valid pitch samples", style = MaterialTheme.typography.labelSmall)
+            Spacer(Modifier.height(6.dp))
+            Text("Amplitude · dBFS", style = MaterialTheme.typography.labelSmall)
+            Canvas(Modifier.fillMaxWidth().height(92.dp)) {
+                drawLine(guide, Offset(0f, size.height / 2f), Offset(size.width, size.height / 2f), 1f)
+                var previous: Pair<Float, Float>? = null
+                samples.forEach { sample ->
+                    val x = ((sample.timestampMs - t0) / duration).toFloat() * size.width
+                    val normalized = ((sample.dbfs.coerceIn(-90.0, 0.0) + 90.0) / 90.0).toFloat()
+                    val y = size.height * (1f - normalized)
+                    previous?.let { drawLine(levelColor, Offset(it.first, it.second), Offset(x, y), 2f, cap = StrokeCap.Round) }
+                    previous = x to y
+                }
+            }
+            Text("−90 to 0 dBFS · ${fmt(duration / 1000.0, 1)} s", style = MaterialTheme.typography.labelSmall)
         }
     }
 }

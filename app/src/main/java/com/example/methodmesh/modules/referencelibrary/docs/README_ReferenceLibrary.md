@@ -1,0 +1,155 @@
+# MethodMesh Reference Library
+
+Version: **0.2.6**  
+Status: **Development**
+
+The Reference Library is an offline-first document shelf for MethodMesh. Direct native use is deliberately dashboard-like: browse, search, scan, import, read, rename, move, favourite and organise documents without entering a capture/result loop.
+
+## Native dashboard
+
+The dashboard is intentionally restrained and reading-first. v0.2.2 gives it a calmer premium hierarchy: a compact library header, rounded search field, pill-like shelf navigation, larger Continue reading tiles, and one softly grouped document surface rather than a stack of cards. File-type badges, typography and spacing carry the visual structure; maintenance actions remain behind one overflow affordance instead of occupying permanent screen space.
+
+Direct native reading follows:
+
+`Library -> document reader -> Back/close -> Library`
+
+No MethodMesh result is created merely because a native user read a document.
+
+Dashboard functions:
+
+- search by title, source or shelf;
+- filter by built-in or custom shelf;
+- continue recently opened documents;
+- favourite/unfavourite;
+- rename a library entry;
+- move a document between shelves;
+- create/delete custom shelves;
+- add an existing Android document;
+- scan a paper document using `document.scan`, give it a custom title, and save it to a shelf;
+- remove a library entry without deleting the user's original external file.
+
+Scans are copied from the scanner cache into MethodMesh-owned persistent storage before being shelved.
+
+## Method 1: return a library document
+
+Method ID: `reference.library.open`
+
+This is the ODK/preset/protocol-facing retrieval contract. A caller can supply a known `document_id`; MethodMesh resolves the local document and returns its content URI and metadata. If no ID is supplied in an interactive launch, the user can select from the library.
+
+Inputs:
+
+- `document_id` — stable local library document ID; optional for interactive use;
+- `query` — optional initial search;
+- `shelf` — optional initial shelf filter.
+
+Core outputs:
+
+- `library_status`
+- `library_document_id`
+- `library_document_title`
+- `library_document_uri`
+- `library_document_mime`
+- `library_shelf`
+- `library_source`
+- `library_version`
+- `library_error`
+
+### ODK use case: pull a document into a form
+
+An ODK group can invoke `reference.library.open` with `input_document_id=<known library ID>`. The returned `library_document_uri` is the media/document result for subsequent form logic, attachment handling, or a later MethodMesh step.
+
+This contract returns the document; it does not force the native reader to open.
+
+## Method 2: prepare an email with document copies
+
+Method ID: `reference.library.email`
+
+This method resolves one or more library documents and/or accepts attachment URIs piped from earlier MethodMesh steps, constructs a mail intent, and opens an installed mail application for the user to review and send.
+
+**MethodMesh does not silently send email and does not claim provider-level delivery.** The capability is one continuous compose card: select documents by human-readable title, open the mail app, return to MethodMesh, then answer **Yes — sent** or **No — not sent**. `library_email_user_confirmed_sent` records that explicit operator confirmation, while `library_email_delivery_confirmed` remains `false` because Android mail handoff cannot prove server delivery.
+
+Inputs:
+
+- `document_ids` — caller-facing library IDs (ODK/presets/protocols may supply these); native users select documents by shelf and title from dropdowns rather than typing IDs;
+- `attachment_uris` — semicolon/pipe/newline-delimited content/file URIs from earlier steps;
+- `recipient` — To address(es), comma/semicolon/newline-delimited;
+- `cc` — optional;
+- `bcc` — optional;
+- `subject` — mail subject;
+- `body` — arbitrary caller-supplied message body;
+- `chooser_title` — optional Android chooser title.
+
+Outputs:
+
+- `library_email_status`
+- `library_email_recipient`
+- `library_email_subject`
+- `library_email_document_ids_json`
+- `library_email_attachment_uris_json`
+- `library_email_attachment_count`
+- `library_email_missing_document_ids_json`
+- `library_email_handoff`
+- `library_email_user_confirmed_sent`
+- `library_email_delivery_confirmed`
+- `library_email_error`
+
+### ODK consent-delivery pattern
+
+The email method is generic enough for research consent without containing study-specific code. A typical protocol is:
+
+1. ODK captures participant/study fields such as name, email and study ID.
+2. MethodMesh displays/signs the consent workflow, with witness evidence if the study requires it.
+3. A PDF/signature capability produces the final signed consent document URI.
+4. ODK or the MethodMesh protocol invokes `reference.library.email`.
+5. `attachment_uris` receives the signed consent URI from the previous step.
+6. `document_ids` names static library items such as the participant information sheet and study-team contact sheet.
+7. `recipient`, `subject` and `body` are populated from ODK fields/calculations, e.g. a personalised message containing participant name and study ID.
+8. MethodMesh opens the mail composer with all attachments and text ready for user review.
+9. On return, the same capability card asks the operator to confirm **Yes — sent** or **No — not sent**.
+10. MethodMesh returns that operator confirmation to ODK while still reporting `library_email_delivery_confirmed=false` because provider/server delivery cannot be verified.
+
+Example body supplied by ODK could be conceptually equivalent to:
+
+`Dear <participant name>, thank you for signing up. Your study ID is <study ID>. Attached are your signed consent form, participant information sheet and study-team contact details.`
+
+The exact text remains an ODK/study configuration responsibility.
+
+## Presets and protocols
+
+Both methods remain ordinary MethodMesh capabilities. Runtime fields can be left unfixed in presets. Protocol outputs from earlier steps can be piped into `attachment_uris`, `recipient`, `subject` or `body` using the standard MethodMesh prior-output contract.
+
+## Custom shelves
+
+Built-in shelf IDs remain stable for presets and ODK. Custom shelves are user-local. Deleting a custom shelf never deletes documents; its entries are moved to `personal`.
+
+## Storage and privacy
+
+- Imported Android files stay in their original storage location and use persisted read permission where available.
+- Scanned documents are copied to MethodMesh-managed app storage.
+- Removing a library entry does not delete an externally owned original file.
+- Email content and addresses are handed to the mail app only when the user invokes the email capability.
+- No MethodMesh mail server is introduced by this module.
+
+## Dependency
+
+`documentscanner` / `document.scan` is used for Scan to shelf. The Reference Library does not copy the scanner implementation.
+
+
+### v0.2.3 navigation fix
+
+When a document is opened from the normal MethodMesh library dashboard, external readers such as Drive Viewer are launched in the same Android task. Pressing Back therefore returns directly to the library dashboard. The ordinary reading path does not create or expose a MethodMesh result screen.
+
+
+### v0.2.4 visual refinement
+
+The native library surface removes the redundant internal “Your field shelf” title. The MethodMesh shell already identifies Reference Library, so the module now begins with quiet document/shelf metadata, search and shelf navigation. Continue Reading is presented as a darker theme-derived reading-room surface using only MethodMesh colour-scheme values; its document tiles are fixed to identical width and height so long filenames do not distort the carousel. The main catalogue uses calmer typography, lighter dividers and more generous row spacing. Functional contracts, ODK fields and the email workflow are unchanged.
+
+
+### v0.2.5 reading navigation
+
+Reading is no longer treated as document selection. In any manual MethodMesh library surface, tapping a document only opens it; Back from Drive Viewer or another reader returns to the library without a Result page. If a manual preset-style run needs a document as its return value, use the document overflow menu and choose **Use this document**. ODK/automatic-return calls continue to return the selected document immediately.
+
+
+### v0.2.6 document sharing
+
+Every library row now offers **Share this document** from its overflow menu. Sharing uses the Android share sheet with the document URI and MIME type plus temporary read permission. It does not create a MethodMesh result, alter selection state, or change the dashboard reading/navigation contract.

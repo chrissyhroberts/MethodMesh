@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Keppel Fingerprint Set",
+  "type": "object",
+  "required": ["schema", "templates"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "keppel.fingerprint-set/1"},
+    "templates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "slot", "format", "template"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "slot": {
+            "enum": [
+              "R_THUMB", "R_INDEX", "R_MIDDLE", "R_RING", "R_LITTLE",
+              "L_THUMB", "L_INDEX", "L_MIDDLE", "L_RING", "L_LITTLE",
+              "UNKNOWN"
+            ]
+          },
+          "impression": {"type": "integer", "minimum": 1},
+          "format": {"const": "ISO_19794_2"},
+          "template": {"type": "string", "pattern": "^[0-9A-Fa-f]+$"},
+          "quality": {
+            "type": "object",
+            "required": ["metric", "value"],
+            "additionalProperties": false,
+            "properties": {
+              "metric": {"type": "string"},
+              "value": {"type": "number"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

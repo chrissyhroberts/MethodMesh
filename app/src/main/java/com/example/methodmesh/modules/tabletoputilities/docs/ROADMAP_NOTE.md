@@ -1,0 +1,59 @@
+# Tabletop Utilities — repository roadmap note
+
+Suggested entry for `000_Roadmap.md` when this Development module is merged.
+
+## Tabletop Utilities
+
+Development module: `modules/tabletoputilities`
+
+Implemented in v0.1 prototype:
+
+- persistent game/campaign/ruleset workspaces;
+- actual module-private folder per workspace (`workspace.json` + append-only `audit.jsonl`);
+- selectable per-game feature set so unused utilities do not clutter play;
+- HP and temporary HP;
+- EXP quick adjustments;
+- arbitrary resources and generic counters;
+- character cards with linked state rather than duplicated HP/EXP fields;
+- players distinct from characters;
+- death-save success/failure counters;
+- round ticker;
+- timed/indefinite effects with automatic round decrement;
+- initiative entries, initiative scores, current turn and round wrapping;
+- player score counters;
+- immutable score records and personal-best display;
+- campaign/session start, notes and finish;
+- audit events for meaningful state changes;
+- workspace snapshot SHA-256 in audit entries;
+- undo as reversal rather than event deletion;
+- public `tabletop.state.manage` boundary for dashboard/snapshot/counter/session/initiative/score operations;
+- generic preset/runtime inputs declared through `capabilitySettings()`;
+- ODK/XLSForm group example;
+- public dependency on Dice Simulator `dice.simulate` rather than copied RNG/dice logic;
+- pure Kotlin state-engine compile and smoke test.
+
+Open before Production:
+
+- integrate into the current full repository and run `./gradlew :app:assembleDebug`;
+- add repository unit tests for state transitions, JSON persistence and undo selection;
+- device/emulator test workspace library and dashboard in portrait/landscape;
+- validate app-restart persistence;
+- validate native preset fixed/runtime settings;
+- validate ODK round trip;
+- validate Dice Simulator activity-result integration;
+- emit separate `effect_auto_tick` audit entries if individual automatic-effect changes need event-level provenance;
+- decide whether to add configurable effect tick points (`round_start`, `round_end`, `turn_start`, `turn_end`);
+- add edit/remove/reorder flows for characters, players, initiative entries, counters and effects;
+- add archive browser/restore;
+- decide whether state/audit writes require a transactional journal/recovery marker;
+- add explicit import/export of a complete workspace folder;
+- evaluate optional cross-device sync only as a separate explicit capability, never as hidden network behaviour;
+- validate scheduled/headless state operations against MethodMesh's runtime context lifecycle.
+
+Out of scope for this module:
+
+- dice-expression parsing and RNG internals (owned by `dicesimulator`);
+- game-system-specific D&D/Pathfinder/Scrabble rule engines;
+- cloud accounts/synchronisation;
+- physical/quantum randomness claims;
+- tamper-proof trusted attestation (compose with an attestation capability if required).

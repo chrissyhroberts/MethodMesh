@@ -11,3 +11,14 @@ Add under the relevant measurement/signal capability section of `000_Roadmap.md`
   - Requests Android unprocessed microphone input when advertised; falls back to voice-recognition/MIC and records the actual path in audit metadata.
   - Example ODK workbook covers all four methods.
   - Remains Development pending Android build/device validation, ODK round-trip testing, orientation/preset tests, frequency-range validation and calibrated sound-level repeatability checks.
+
+
+## v0.2.0 scientific measurement update
+
+- Replaced snapshot-style analyser capture with an explicit timed observation window.
+- Freeze is display-only and never defines a recorded result.
+- Added full-window frequency mean/median/min/max/SD and amplitude/RMS/dBFS summaries.
+- Added power-averaged dBFS spectrum output as JSON and CSV.
+- Added configurable derived time-series sampling (default 100 ms) as JSON and CSV.
+- Added native frequency-vs-time and amplitude-vs-time plots during measurement.
+- Raw audio remains unretained.

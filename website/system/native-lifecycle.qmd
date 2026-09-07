@@ -1,0 +1,34 @@
+---
+title: "Native run lifecycle"
+subtitle: "Live result → Commit → post-commit actions → origin-aware closeout"
+---
+
+## Capability-owned UI
+
+Production capability screens should look and behave like the task they perform. Rich interaction belongs in module-owned UI where warranted; a generic generated form is not an acceptable substitute when it would make the capability awkward.
+
+## Live current result
+
+While the user works, current outputs should remain visible on the same screen. The result is **working state** until finalised. Rotation and other ordinary lifecycle changes should preserve meaningful working state.
+
+## Tap-to-copy
+
+Every displayed calculated or returned scalar/text value should expose its primary clipboard projection. Copy the useful value, not a decorative label. For example, a Plus Code card copies the code rather than `Plus Code: …`.
+
+## Commit
+
+**Commit is the finalisation boundary.** It freezes the canonical payload for that run. Where feasible, the same capability screen then reveals post-commit actions such as copy, share, save, full JSON and Done.
+
+Commit does not imply that MethodMesh must persist an internal copy. Persistence is capability-specific and should not be introduced by default merely because a result was finalised.
+
+## Closeout depends on origin
+
+| Launch origin | Successful closeout |
+|---|---|
+| MethodMesh app / normal preset | Dashboard |
+| Android widget | Android desktop |
+| ODK/XLSForm | Return to ODK with projected results |
+| Protocol | Return to protocol runner |
+| Schedule | Return to schedule runner/appropriate schedule flow |
+
+Cancel should unwind to the same origin unless a blocking error genuinely needs to be surfaced.

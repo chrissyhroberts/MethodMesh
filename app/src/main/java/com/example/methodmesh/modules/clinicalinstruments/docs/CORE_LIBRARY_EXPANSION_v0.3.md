@@ -1,0 +1,24 @@
+# Core library expansion v0.4
+
+## Acute/emergency additions
+
+| ID | Instrument | Primary use | Representation |
+|---|---|---|---|
+| `glasgow_blatchford` | Glasgow-Blatchford Bleeding Score | Acute upper-GI bleeding | score |
+| `pre_endoscopy_rockall` | Pre-endoscopy Rockall | Acute upper-GI bleeding | score |
+| `rosier` | ROSIER | Suspected stroke in ED/A&E | score + threshold |
+| `nexus_cspine` | NEXUS C-spine | Blunt trauma cervical-spine assessment | low-risk criteria |
+| `ottawa_ankle` | Ottawa ankle rule | Ankle radiography criteria | decision rule |
+| `ottawa_foot` | Ottawa foot rule | Foot radiography criteria | decision rule |
+| `heart_score` | HEART | Suspected ACS/chest pain | score |
+| `bisap` | BISAP | Acute pancreatitis severity | score |
+
+## Source gate
+
+Definitions are based on primary validation papers and/or public clinical guidance. MethodMesh stores concise question labels and factual scoring thresholds rather than copying extended explanatory prose.
+
+## Deferred despite high clinical value
+
+**Glasgow Coma Scale** is deferred pending support for official `NT` (non-testable) components. Rights are not the blocker: the Glasgow Coma Scale site explicitly permits clinical and research use without a licence, with attribution. Faithful data representation is the blocker.
+
+Other instruments remain candidates only when both representation and redistribution are unambiguous.

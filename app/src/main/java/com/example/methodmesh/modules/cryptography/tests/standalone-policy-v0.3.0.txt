@@ -1,0 +1,4 @@
+Standalone policy scan v0.3.0
+PASS: no external crypto/Maven dependency references in Kotlin source
+PASS: no Gradle/settings/manifest override inside capability
+PASS: UX helper is module-owned

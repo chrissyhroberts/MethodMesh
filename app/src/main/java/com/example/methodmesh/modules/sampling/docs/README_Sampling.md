@@ -175,14 +175,10 @@ Native CSV/JSON runs create:
 
 The result and companion manifest are returned as `content://` URIs. MethodMesh
 external intent handling grants `_uri` outputs back to callers such as ODK.
-The normal **Save/export full output** action also copies both attachments into
-MethodMesh's configured output package.
-
-Known Development limitation: the current shared native **Share result** helper
-recognises image/PDF attachments but not generic CSV/JSON attachments. Use
-**Save/export full output** for native file export until that generic framework
-helper gains CSV/JSON sharing support. This module does not patch shared runtime
-code from inside the capability folder.
+The shared native result screen can share/copy the compact result or save it to
+Android Downloads. If the operator enables **Include full JSON**, the same
+share/copy/download action also includes `metadata.json`; otherwise only the
+main result and media/file output are sent.
 
 ## Main result and output projection
 

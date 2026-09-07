@@ -1,0 +1,59 @@
+[
+  {
+    "createdAt": "2026-09-04T13:11:11.439Z",
+    "currentVersion": {
+      "createdAt": "2026-09-04T13:11:11.439Z",
+      "current": true,
+      "deviceId": "collect:FyYIBCfCy5VEAUGW",
+      "instanceId": "uuid:074b4913-9620-41d4-a74c-09df9bea5e95",
+      "instanceName": "MethodMesh showcase - TJ FF",
+      "submitterId": 7592,
+      "userAgent": "org.odk.collect.android/v2026.3.3 Dalvik/2.1.0 (Linux; U; Android 17; Pixel 7a Build/CP2A.260705.006)"
+    },
+    "deletedAt": null,
+    "deviceId": "collect:FyYIBCfCy5VEAUGW",
+    "instanceId": "uuid:074b4913-9620-41d4-a74c-09df9bea5e95",
+    "reviewState": "approved",
+    "submitterId": 7592,
+    "updatedAt": "2026-09-04T13:15:48.354Z",
+    "userAgent": "org.odk.collect.android/v2026.3.3 Dalvik/2.1.0 (Linux; U; Android 17; Pixel 7a Build/CP2A.260705.006)"
+  },
+  {
+    "createdAt": "2026-09-04T11:58:11.201Z",
+    "currentVersion": {
+      "createdAt": "2026-09-04T13:28:29.974Z",
+      "current": true,
+      "deviceId": null,
+      "instanceId": "uuid:9101c009-3c8e-480f-a937-5b09abd0c23b",
+      "instanceName": "MethodMesh showcase - asasas",
+      "submitterId": 15,
+      "userAgent": "python-requests/2.32.5"
+    },
+    "deletedAt": null,
+    "deviceId": "collect:FyYIBCfCy5VEAUGW",
+    "instanceId": "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732",
+    "reviewState": "approved",
+    "submitterId": 7592,
+    "updatedAt": "2026-09-04T13:28:30.002Z",
+    "userAgent": "org.odk.collect.android/v2026.3.3 Dalvik/2.1.0 (Linux; U; Android 17; Pixel 7a Build/CP2A.260705.006)"
+  },
+  {
+    "createdAt": "2026-09-04T07:37:28.505Z",
+    "currentVersion": {
+      "createdAt": "2026-09-04T07:37:28.505Z",
+      "current": true,
+      "deviceId": "collect:FyYIBCfCy5VEAUGW",
+      "instanceId": "uuid:5b802c63-a6e0-444d-83da-88888a2b770d",
+      "instanceName": "MethodMesh showcase - 001",
+      "submitterId": 7592,
+      "userAgent": "org.odk.collect.android/v2026.3.3 Dalvik/2.1.0 (Linux; U; Android 17; Pixel 7a Build/CP2A.260705.006)"
+    },
+    "deletedAt": null,
+    "deviceId": "collect:FyYIBCfCy5VEAUGW",
+    "instanceId": "uuid:5b802c63-a6e0-444d-83da-88888a2b770d",
+    "reviewState": null,
+    "submitterId": 7592,
+    "updatedAt": null,
+    "userAgent": "org.odk.collect.android/v2026.3.3 Dalvik/2.1.0 (Linux; U; Android 17; Pixel 7a Build/CP2A.260705.006)"
+  }
+]

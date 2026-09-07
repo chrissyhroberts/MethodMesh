@@ -1,0 +1,53 @@
+---
+title: "Amateur radio"
+subtitle: "Module reference · hamradio"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+A live operating dashboard plus space weather, PSK activity, HF band guidance, Maidenhead/path and practical RF calculators.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>hamradio</code></div>
+<div><strong>Source directory</strong><code>hamradio</code></div>
+<div><strong>Indexed methods</strong>9</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>5</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `ham.activity.pskreporter` | read psk reporter | Read recent observed PSK Reporter reception activity | <span class="badge-source">current source</span> | RIL binding, module registry |
+| `ham.antenna.calculate` | calculate antenna length | Calculate wavelength-derived antenna starting dimensions | <span class="badge-source">current source</span> | RIL binding, module registry |
+| `ham.band.recommend` | recommend ham band | Rank HF amateur bands for current conditions | <span class="badge-source">current source</span> | RIL binding, module registry |
+| `ham.dashboard` | show ham radio dashboard | Refresh QTH, current HF band guidance, space weather and optional PSK activity | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `ham.link.calculate` | calculate radio link | Calculate FSPL, horizon and Fresnel-zone values | <span class="badge-source">current source</span> | RIL binding, module registry |
+| `ham.maidenhead.convert` | convert maidenhead | Encode or decode a Maidenhead locator | <span class="badge-source">current source</span> | RIL binding, module registry |
+| `ham.path.calculate` | calculate radio path | Calculate distance and bearings between two Maidenhead locators | <span class="badge-source">current source</span> | RIL binding, module registry |
+| `ham.spaceweather.snapshot` | read space weather | Read current radio-relevant NOAA space weather | <span class="badge-source">current source</span> | RIL binding, module registry |
+| `ham.swr.calculate` | calculate swr | Calculate SWR from forward and reflected power | <span class="badge-source">current source</span> | RIL binding, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_HamRadio.xlsx](../source-docs/hamradio/example_odk_HamRadio.xlsx)
+
+## Module-local documentation
+
+- [Ham Radio v0.4.0 — build / validation report](../source-docs/hamradio/BUILD_REPORT.qmd) — `BUILD_REPORT.md`
+- [Ham Radio v0.4.0](../source-docs/hamradio/CHANGELOG_v0.4.0.qmd) — `CHANGELOG_v0.4.0.md`
+- [Amateur radio / Ham Radio](../source-docs/hamradio/README_HamRadio.qmd) — `README_HamRadio.md`
+- [Suggested 000Roadmap.md entry](../source-docs/hamradio/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [Ham Radio v0.4.0 — deterministic test vectors](../source-docs/hamradio/TEST_VECTORS.qmd) — `TEST_VECTORS.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

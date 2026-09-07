@@ -1,0 +1,5 @@
+METHODMESH RESTRICTED VERIFICATION ARCHIVE
+=========================================
+This directory may contain exact historical submission XML, attachments/images and detailed verifier working files.
+DO NOT provide this directory as the routine auditor package.
+Use the separately generated methodmesh_auditor_bundle_*.zip.

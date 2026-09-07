@@ -1,0 +1,44 @@
+schema: methodmesh.clinical-instrument.v1
+id: modified_shock_index
+name: Modified Shock Index
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [hemodynamics, shock, vital_signs]
+summary: Calculates heart rate divided by mean arterial pressure.
+source_url: https://pubmed.ncbi.nlm.nih.gov/?term=modified+shock+index+heart+rate+mean+arterial+pressure
+citation: "Modified Shock Index: heart rate divided by mean arterial pressure."
+rights_status: factual_formula
+rights_note: MethodMesh returns the calculated index without imposing a universal clinical threshold.
+questions:
+  - id: heart_rate
+    label: Heart rate
+    type: integer
+    unit: beats/min
+    min: 20
+    max: 250
+  - id: systolic_bp
+    label: Systolic blood pressure
+    type: integer
+    unit: mmHg
+    min: 20
+    max: 300
+  - id: diastolic_bp
+    label: Diastolic blood pressure
+    type: integer
+    unit: mmHg
+    min: 10
+    max: 200
+derived:
+  - id: map
+    label: Mean arterial pressure
+    expression: (systolic_bp + diastolic_bp * 2) / 3
+scores:
+  - id: modified_shock_index
+    label: Modified Shock Index
+    expression: heart_rate / map
+tests:
+  - name: example
+    input_json: '{"heart_rate":100,"systolic_bp":120,"diastolic_bp":60}'
+    expect_json: '{"modified_shock_index":1.25}'

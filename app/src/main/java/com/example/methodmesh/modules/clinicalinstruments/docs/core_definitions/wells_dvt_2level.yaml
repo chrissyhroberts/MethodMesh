@@ -1,0 +1,59 @@
+schema: methodmesh.clinical-instrument.v1
+id: wells_dvt_2level
+name: Wells score - DVT (2-level)
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [dvt, vte, emergency]
+summary: Two-level Wells clinical probability score for suspected deep-vein thrombosis.
+source_url: https://www.nice.org.uk/guidance/ng158/chapter/Recommendations
+citation: "NICE NG158. Venous thromboembolic diseases: diagnosis, management and thrombophilia testing. Two-level DVT Wells score."
+rights_status: factual_definition
+rights_note: Numerical criteria and weights are implemented from NICE's published two-level Wells table.
+questions:
+  - id: active_cancer
+    label: Active cancer - treatment ongoing, within 6 months, or palliative?
+    type: boolean
+  - id: paralysis_immobilisation
+    label: Paralysis, paresis or recent plaster immobilisation of the lower extremity?
+    type: boolean
+  - id: bedridden_or_major_surgery
+    label: Bedridden at least 3 days or major surgery within 12 weeks under general/regional anaesthesia?
+    type: boolean
+  - id: deep_venous_tenderness
+    label: Localised tenderness along the deep venous system?
+    type: boolean
+  - id: entire_leg_swollen
+    label: Entire leg swollen?
+    type: boolean
+  - id: calf_swelling_3cm
+    label: Calf swelling at least 3 cm greater than the asymptomatic side?
+    type: boolean
+  - id: pitting_edema
+    label: Pitting oedema confined to symptomatic leg?
+    type: boolean
+  - id: collateral_veins
+    label: Collateral superficial non-varicose veins?
+    type: boolean
+  - id: previous_dvt
+    label: Previously documented DVT?
+    type: boolean
+  - id: alternative_diagnosis
+    label: Alternative diagnosis at least as likely as DVT?
+    type: boolean
+scores:
+  - id: wells_dvt
+    label: Wells DVT score
+    expression: active_cancer + paralysis_immobilisation + bedridden_or_major_surgery + deep_venous_tenderness + entire_leg_swollen + calf_swelling_3cm + pitting_edema + collateral_veins + previous_dvt - alternative_diagnosis * 2
+classifications:
+  - when: wells_dvt >= 2
+    value: dvt_likely
+    label: DVT likely
+  - when: wells_dvt <= 1
+    value: dvt_unlikely
+    label: DVT unlikely
+tests:
+  - name: likely
+    input_json: '{"active_cancer":true,"paralysis_immobilisation":false,"bedridden_or_major_surgery":true,"deep_venous_tenderness":false,"entire_leg_swollen":false,"calf_swelling_3cm":false,"pitting_edema":false,"collateral_veins":false,"previous_dvt":false,"alternative_diagnosis":false}'
+    expect_json: '{"wells_dvt":2,"classification":"dvt_likely"}'

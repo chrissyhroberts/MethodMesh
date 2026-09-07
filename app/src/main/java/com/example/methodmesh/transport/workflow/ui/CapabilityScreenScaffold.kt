@@ -112,10 +112,24 @@ enum class CapabilityPresentationMode {
     IntentLaunch
 }
 
+/*
+ * Describes how much of the MethodMesh host surface a capability wants.
+ *
+ * This is deliberately capability-agnostic. The runtime knows only the
+ * requested presentation, never which capability is requesting it.
+ */
+enum class CapabilityHostPresentation {
+    Standard,
+    Immersive
+}
+
 interface CapabilityScreenSpec {
     val capabilityId: String
     val title: String
     val description: String
+
+    val hostPresentation: CapabilityHostPresentation
+        get() = CapabilityHostPresentation.Standard
 
     @Composable
     fun Render(

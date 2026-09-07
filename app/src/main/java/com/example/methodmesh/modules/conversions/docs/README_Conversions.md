@@ -1,0 +1,68 @@
+# Conversions / General Calculator
+
+Status: **Development**
+
+A dependency-light, completely offline calculation module.
+
+## Capabilities
+
+- `conversion.calculate` — unit conversion, percentages, ratios/proportions, date difference/arithmetic, age calculation and simple geometry.
+
+Unit families: length, area, volume, mass, temperature, speed, pressure, energy, power, angle and data size.
+
+## Android intent
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='conversion.calculate',input_category='length',input_value='3.5',input_from_unit='km',input_to_unit='mi',return_mode='flat')
+```
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='conversion.calculate',input_category='percentage',input_operation='percent_change',input_value='80',input_value2='100',return_mode='flat')
+```
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='conversion.calculate',input_category='date_arithmetic',input_date1='2026-09-05',input_value='14',input_operation='add_days',return_mode='flat')
+```
+
+## Inputs
+
+- `input_category` — one of the documented calculation families.
+- `input_value` — primary numeric value; also the date-arithmetic amount or geometry A/radius.
+- `input_value2` — secondary numeric value.
+- `input_value3` — third value used by `solve_proportion` for `A:B = C:X`.
+- `input_from_unit`, `input_to_unit` — unit identifiers for unit conversion.
+- `input_operation` — operation within percentage/ratio/date/geometry modes.
+- `input_date1`, `input_date2` — ISO local dates (`YYYY-MM-DD`).
+- `input_shape` — `rectangle`, `triangle`, `circle`.
+
+Important operation names include `percent_of`, `what_percent`, `percent_change`, `increase_by_percent`, `decrease_by_percent`, `a_to_b`, `solve_proportion`, `add_days`, `add_weeks`, `add_months`, `add_years`, `subtract_days`, `area`, `perimeter`, `circumference`.
+
+## Outputs
+
+Core outputs:
+
+- `conversion_value`
+- `conversion_unit`
+- `conversion_summary`
+
+Audit-priority outputs:
+
+- `conversion_status`
+- `conversion_error`
+
+Full metadata:
+
+- `conversion_metadata_json`
+
+## ODK example
+
+`example_odk_conversion.calculate.xlsx` demonstrates a length conversion with runtime input fields and flat return fields.
+
+## Permissions and offline behaviour
+
+No permissions and no network access. Constants are embedded in the module. Data-size conversion distinguishes decimal (`KB`, `MB`, `GB`) and binary (`KiB`, `MiB`, `GiB`) units.
+
+## Known limitations
+
+- Geometry is intentionally simple: rectangle area/perimeter, triangle area from base/height, circle area/circumference from radius.
+- Date arithmetic uses ISO local dates and calendar arithmetic; it does not represent time zones or times of day.

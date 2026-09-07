@@ -1,0 +1,100 @@
+---
+title: "MethodMesh Time Tools"
+subtitle: "Module source document · Time Tools"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/time_tools/docs/README_TimeTools.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+Status: **Development**
+
+Time Tools provides six independently addressable MethodMesh timing capabilities:
+
+- `time.countdown`
+- `time.stopwatch`
+- `time.interval`
+- `time.until`
+- `time.elapsed`
+- `time.duration.calculate`
+
+The module dashboard is only a native convenience surface. Presets, protocols, schedules/widgets and ODK must invoke the constituent methods directly through ordinary MethodMesh discovery and transport.
+
+## Core product behaviour
+
+- Offline-first. No network is required.
+- Countdown and stopwatch duration measurement uses Android monotonic elapsed realtime, not civil time.
+- `time.until` intentionally uses wall-clock / timezone semantics because its target is a civil instant.
+- UI ticks render timing state; they do not define timing state.
+- Primary native outputs are beef-first and directly copy/shareable.
+- Audit/detail JSON is optional and secondary.
+- Cancellation is distinct from successful completion.
+- Fixed preset configuration should be hidden when the preset runs.
+
+## Methods
+
+### `time.countdown`
+Inputs/settings: duration, optional label, completion sound, vibration, repeat policy.
+Core outputs: `formatted_duration`, `duration_ms`, `requested_duration_ms`, `actual_elapsed_ms`, `completion_status`.
+
+### `time.stopwatch`
+Runtime controls: start, pause/resume, lap, stop, cancel.
+Core outputs: `formatted_duration`, `duration_ms`, `lap_count`, `laps_json`.
+
+### `time.interval`
+Inputs: ordered labelled phases with positive durations; cycle count.
+Core outputs: `formatted_duration`, `completed_cycles`, `configured_cycles`, `completed_phases`, `completion_status`.
+
+### `time.until`
+Inputs: target ISO instant, or native local-time/date selection. Device timezone is the native default.
+Core outputs: `target_timestamp`, `formatted_duration`, `remaining_ms`, `completion_status`.
+
+### `time.elapsed`
+Inputs: `start_timestamp`, `end_timestamp` as ISO-8601 instants.
+Core outputs: `formatted_duration`, `duration_ms`, `start_timestamp`, `end_timestamp`.
+
+### `time.duration.calculate`
+Inputs: duration A, duration B, operation (`add`/`subtract`).
+Core outputs: `formatted_duration`, `duration_ms`.
+
+## Native dashboard
+
+`TimeToolsDashboardScreen` launches the six method IDs. It must never be the only route to the functions and must not contain duplicate private implementations.
+
+## Presets and widgets
+
+Typical presets include Tea 4m, Incubation 10m, Observation 15m and repeated phase programmes. Generic MethodMesh preset widgets should launch those presets directly.
+
+## Protocols
+
+Methods must behave as ordinary protocol steps and close using the shared MethodMesh closeout contract. Example: `barcode.scan -> time.stopwatch -> document.scan`.
+
+## ODK/XLSForm
+
+ODK supplies inputs and receives core return fields plus optional `methodmesh_full_json`. ODK must not be routed through the dashboard or native configuration flow. MethodMesh should not archive ODK timing results merely because it handled the roundtrip.
+
+The included XLSForm is an integration example. Because the repository's current external-intent column/URI conventions were not provided in this handoff, its intent declarations are explicitly marked for alignment with the current MethodMesh example forms before release.
+
+## Background operation
+
+The engine is written so elapsed state is calculated from monotonic reference points. Production admission should connect active countdown/interval operations to the repository's foreground-service/notification architecture so screen lock and background execution remain reliable.
+
+## Repository adapter
+
+`TimeToolsModule.kt` intentionally isolates the MethodMesh-facing binding. The source repository was not supplied, so exact `MethodMeshModule`, descriptor and `MethodSetting` constructor names cannot be truthfully build-verified here. During admission, replace the small adapter definition with the current repo interface while preserving all six method IDs and their independent discovery.
+
+## Permissions
+
+Depending on target Android version and final background implementation:
+
+- notification permission may be required;
+- foreground-service declaration may be required;
+- vibration is optional.
+
+No location, network or storage permission is inherently required for the core timing functions.
+
+## Third-party dependencies
+
+None beyond Android/Jetpack/Kotlin APIs expected to already exist in MethodMesh. `org.json` is used for compact structured outputs.
+

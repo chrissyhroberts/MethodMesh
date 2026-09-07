@@ -1,0 +1,33 @@
+---
+title: "Network tools roadmap"
+subtitle: "Module source document · Network tools"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/networktools/docs/ROADMAP_NOTE.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+The v0.1.0 boundary is intentionally narrow.
+
+## Appropriate extensions
+
+- IPv6 CIDR/subnet calculation.
+- mDNS/Bonjour lookup for a **named** service or explicitly selected discovery mode, if a field use case justifies it.
+- richer Android link metrics that are available through stable public APIs.
+- a generic runtime Android-context service if MethodMesh later needs headless device-service methods to access platform state consistently.
+- optional export of traceroute hops as a compact table while retaining `network_value` as the primary result.
+
+## Explicit non-goals
+
+Do not casually extend this module into:
+
+- subnet sweeps;
+- automatic LAN inventory;
+- port-range scanners;
+- vulnerability probing;
+- service/version fingerprinting;
+- packet sniffing.
+
+If a future research/diagnostic need genuinely requires one of those, it should be reviewed as a separate, clearly scoped capability with its own safety, privacy, UX and external-caller contract rather than being smuggled into `network.tools`.
+

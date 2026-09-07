@@ -1,0 +1,41 @@
+---
+title: "Plus Code capture"
+subtitle: "Module reference · pluscodecapture"
+---
+
+<div class="status-box status-production"><strong>Master Book production evidence:</strong> <code>plus_code.capture</code></div>
+
+Capture full offline Open Location Codes using GPS and a selectable local grid.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>pluscodecapture</code></div>
+<div><strong>Source directory</strong><code>pluscodecapture</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>1</div>
+<div><strong>Explicit source status labels</strong>Production</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `plus_code.capture` | capture plus code | Capture a full Open Location Code from GPS and a selected grid cell | <span class="badge-prod">polished production</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_plus_code.capture.xlsx](../source-docs/pluscodecapture/example_odk_plus_code.capture.xlsx)
+
+## Module-local documentation
+
+- [Plus Code capture](../source-docs/pluscodecapture/README_PlusCodeCapture.qmd) — `README_PlusCodeCapture.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

@@ -1,0 +1,62 @@
+# MethodMesh Music module — v1.05 refresh
+
+**Lane/status:** Development  
+**Module implementation:** 0.3.0  
+**MethodMesh standard:** v1.05
+
+The Music module is an offline-first set of tempo, pitch, harmony, rhythm, creation, looping, practice and performance capabilities. This is a migration of the established v0.2.1 module: all 33 established method IDs are preserved.
+
+## Canonical architecture
+
+`MusicModule.kt` exposes 33 canonical `As100Method` objects, 33 corresponding native capability screens, per-capability settings, and RIL bindings. Each individual method remains independently addressable for direct native use, presets, protocols and ODK. The five dashboards are aggregation/control surfaces only; they do not replace the underlying capabilities. A module-local `contractParityIssues()` QA helper checks method/screen/settings discovery alignment without teaching shared MethodMesh UI anything music-specific.
+
+## v1.05 native lifecycle
+
+Native screens now follow **configure/interact → live working result → Commit → share/copy/finish**. Deterministic methods recalculate in place. Physical tools (tap tempo, metronome, rhythm capture, drum machine, pads and looper) retain explicit action controls. Displayed useful text/scalar values are directly tappable to copy.
+
+Commit freezes the canonical payload on the current screen. Post-Commit actions are beef-first Share/Copy, optional JSON/audit inclusion, Technical details, Done and Edit/new run. The module deliberately keeps `capturedResult = null` in its v1.05 screens so an old generic result page does not replace the capability-specific body.
+
+Launch-origin routing remains generic: every screen hands the committed `ExecutionResult` to shared `onConfirmed`; external/automatic-return contexts return immediately rather than opening native Share/Save/Home theatre.
+
+## Capability map (33)
+
+### Tempo / practice
+`music.tap_tempo`, `music.metronome`, `music.tempo_convert`, `music.delay_time`, `music.polyrhythm`, `music.tempo_trainer`, `music.practice_dashboard`.
+
+### Pitch / theory
+`music.note_frequency`, `music.transpose`, `music.interval`, `music.chord`, `music.chord_guide`, `music.temperament`, `music.harmonics`, `music.reference`, `music.reference_dashboard`.
+
+### Rhythm / creation
+`music.rhythm_capture`, `music.euclidean_rhythm`, `music.pattern_mutation`, `music.probability_pattern`, `music.drum_machine`, `music.beat_pads`, `music.jam_dashboard`.
+
+### Harmony / melody / composition
+`music.chord_progression`, `music.arpeggiator`, `music.bassline`, `music.melody_sequence`, `music.motif_generator`, `music.song_sketch`, `music.song_sketch_dashboard`.
+
+### Audio / performance
+`music.live_looper`, `music.setlist_timing`, `music.performance_dashboard`.
+
+## Contract compatibility
+
+No established method ID or established key was renamed. v1.05 makes only additive contract changes where existing native/dashboard state was previously not fully addressable: metronome audio/visual/haptic flags; polyrhythm BPM/audio/haptic snapshot fields; practice elapsed fields; performance planned/current/run-state fields; and looper `recording`. Existing fields remain unchanged.
+
+Every declared method output is listed in its capability README and corresponding XLSForm example. `methodmesh_full_json` remains a transport-level complete-payload projection in addition to the module-local `*_audit_json`.
+
+## ODK parity
+
+`docs/` contains one grouped-intent XLSForm example for every one of the 33 methods. Each example uses distinct `req_*` input field names, canonical `input_*` extras, all canonical output fields, and `methodmesh_full_json`. Examples are demonstrations rather than allow-lists; MethodMesh transport projects the declared method contract generically, including namespace handling. No music-specific ODK schema is maintained.
+
+## State and persistence
+
+Simple working/committed UI state uses saveable Compose state. Practice and performance active timing is backed by module-owned SharedPreferences and wall-clock timestamps. Jam and Song Sketch dashboard state uses `MusicCreationRepository`. Live-looper PCM is process-local active-session state: it survives Activity recreation but intentionally does not auto-save audio to disk and cannot survive process death. Commit never creates an archive by itself.
+
+## Offline / permissions
+
+All capabilities are offline-first. Drum/pad audio is synthesized locally; no copyrighted sample pack is bundled. `music.live_looper` requires `RECORD_AUDIO`; haptic features use the device vibrator where available. No capability in this module sends music content to a cloud service.
+
+## Delivery
+
+The handoff root is this `music/` folder. In the MethodMesh repository it belongs at `app/src/main/java/com/example/methodmesh/modules/music/`. No shared framework or whole-app files are included.
+
+## Validation status
+
+See `docs/VALIDATION.md`. Pure Kotlin algorithm compilation/smoke tests and static contract/UX/ODK checks pass in this environment. The surrounding MethodMesh Gradle project was not supplied here, so `:app:assembleDebug` / `:app:testDebugUnitTest` could not be run and the module remains **Development**.

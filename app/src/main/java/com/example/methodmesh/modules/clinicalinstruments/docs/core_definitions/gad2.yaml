@@ -1,0 +1,39 @@
+schema: methodmesh.clinical-instrument.v1
+id: gad2
+name: GAD-2
+version: 1.0.0
+status: core
+type: screening
+category: mental_health
+tags: [anxiety, screening, gad]
+summary: Two-item anxiety screener using the first two GAD-7 items.
+source_url: https://www.ncbi.nlm.nih.gov/books/NBK92248/
+citation: "Kroenke K, Spitzer RL, Williams JBW, Monahan PO, Lowe B. Anxiety disorders in primary care. Ann Intern Med. 2007."
+rights_status: no_permission_required
+rights_note: GAD-2/GAD-7 are public-domain instruments; no permission is required to reproduce, translate, display or distribute.
+questions:
+  - id: nervous
+    label: Feeling nervous, anxious, or on edge
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: control_worry
+    label: Not being able to stop or control worrying
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+scores:
+  - id: gad2
+    label: GAD-2
+    expression: nervous + control_worry
+classifications:
+  - when: gad2 >= 3
+    value: positive_screen
+    label: Positive screening threshold - assess further
+  - when: gad2 < 3
+    value: below_screening_threshold
+    label: Below usual GAD-2 screening threshold
+tests:
+  - name: threshold
+    input_json: '{"nervous":"1","control_worry":"2"}'
+    expect_json: '{"gad2":3,"classification":"positive_screen"}'

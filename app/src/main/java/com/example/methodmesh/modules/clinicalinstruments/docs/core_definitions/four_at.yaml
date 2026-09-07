@@ -1,0 +1,55 @@
+schema: methodmesh.clinical-instrument.v1
+id: four_at
+name: 4AT delirium assessment
+version: 1.2.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [delirium, cognition, geriatrics, bedside]
+summary: Rapid four-item assessment for possible delirium and cognitive impairment.
+source_url: https://www.the4at.com/
+citation: "4AT version 1.2. MacLullich A, Ryan T, Cash H. © 2011-2014."
+rights_status: CC_BY_4_0
+rights_note: "4AT is licensed CC BY 4.0. This definition preserves the official item scoring and identifies MethodMesh as an electronic implementation."
+questions:
+  - id: alertness
+    label: Alertness
+    hint: Rate current alertness by observation.
+    type: select_one
+    choices: [0|Normal or brief mild sleepiness after waking, 4|Clearly abnormal alertness]
+  - id: amt4
+    label: AMT4 orientation
+    hint: Age, date of birth, place, current year.
+    type: select_one
+    choices: [0|No mistakes, 1|One mistake, 2|Two or more mistakes or untestable]
+  - id: attention
+    label: Attention - months backwards
+    hint: Ask for months of the year backwards starting at December.
+    type: select_one
+    choices: [0|Seven or more months correct, 1|Starts but fewer than seven or refuses, 2|Untestable]
+  - id: acute_change
+    label: Acute change or fluctuating course
+    hint: Significant change or fluctuation arising within the last 2 weeks and still evident in the last 24 hours.
+    type: select_one
+    choices: [0|No, 4|Yes]
+scores:
+  - id: four_at
+    label: 4AT
+    expression: alertness + amt4 + attention + acute_change
+classifications:
+  - when: four_at == 0
+    value: unlikely
+    label: Delirium or severe cognitive impairment unlikely; clinical context still applies
+  - when: four_at >= 1 and four_at <= 3
+    value: possible_cognitive_impairment
+    label: Possible cognitive impairment
+  - when: four_at >= 4
+    value: possible_delirium
+    label: Possible delirium +/- cognitive impairment
+tests:
+  - name: zero
+    input_json: '{"alertness":"0","amt4":"0","attention":"0","acute_change":"0"}'
+    expect_json: '{"four_at":0,"classification":"unlikely"}'
+  - name: positive
+    input_json: '{"alertness":"0","amt4":"1","attention":"1","acute_change":"4"}'
+    expect_json: '{"four_at":6,"classification":"possible_delirium"}'

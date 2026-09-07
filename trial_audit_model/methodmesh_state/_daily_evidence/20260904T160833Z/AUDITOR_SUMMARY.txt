@@ -1,0 +1,46 @@
+METHODMESH PROJECT AUDIT — DELTA LEDGER
+========================================================================
+Central:                  https://central.lshtm.ac.uk
+Project:                  231
+Evidence window:          2026-09-04T16:04:58.528947+00:00 -> 2026-09-04T16:08:33.181128+00:00
+
+PRIVACY / PROCESSING
+Central remains the research-data store: YES
+Research values retained by MethodMesh: NO
+Submission XML retained by MethodMesh: NO
+Attachment bytes retained by MethodMesh: NO
+Attachment verification: streamed SHA-256 and discarded
+
+THIS RUN
+Forms examined:           1
+Metadata rows examined:   8
+Submissions content-read: 0
+Unchanged content skipped:     2
+Currently deleted rows:   5
+
+LEDGER STATE
+Verified present:         2
+Deleted:                  5
+Purged:                   0
+Deleted before verify:    0
+Zero-version anomalies:   1
+Unresolved edit reasons:  4
+
+SERVICE OBSERVATIONS
+Probe observations:       1
+HTTP successes:           1
+API successes:            1
+Unexpected open ports:    none
+
+DAILY CRYPTOGRAPHIC CHECKPOINT
+Evidence Merkle root:     615e03c91b52f29082c8394bc2be242f2c341cc72f8840ec07e24ebb50d6372a
+Checkpoint SHA-256:       7738802877cb34ec7af2eca4d0ada7bdc8348c03c75f8f067d9e2bf56748be79
+Previous checkpoint:      9f07ecafbcab912795ea85612f031a531e885815727f991ebec3bd15a01ad72f
+RFC3161 status:           VERIFIED
+RFC3161 time:             2026-09-04T16:08:36+00:00
+
+WHAT THIS MEANS
+MethodMesh has independently verified the currently changed/new
+records it needed to inspect, retained only non-data cryptographic
+state, and cryptographically committed the observed project/system
+state. Unchanged submissions were not redownloaded.

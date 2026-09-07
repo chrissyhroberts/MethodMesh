@@ -1,0 +1,25 @@
+---
+title: "Offline-first and online data"
+---
+
+## Offline-first rule
+
+A capability that can reasonably work offline should do so. Online dependencies must be explicit rather than accidental. Cached/shared resources should be managed at the app/service layer where they benefit more than one capability.
+
+## Online APIs
+
+The current source includes a generic `api.get` capability and module-owned API definitions/consumers in specialist modules. Online providers must document provider, terms/licence, attribution, credentials, privacy implications and what leaves the device.
+
+The Master Book identifies important service areas including Open-Meteo, GDACS, World Bank indicators, exchange-rate providers, map/tile providers and RFC 3161 timestamp authorities.
+
+## Location privacy
+
+Location-aware API calls should minimise disclosure. Prefer sending only the precision actually required for the task and make online use visible to the user where relevant.
+
+## Credentials
+
+Secrets belong in appropriate shared/settings storage and should not be baked into preset exports, logs, documentation examples or return payloads.
+
+## RSS / Atom
+
+Feed consumption belongs in the same online-data model: explicit provider, bounded network behaviour, cache/offline behaviour and no silent cross-capability special cases.

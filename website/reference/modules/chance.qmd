@@ -1,0 +1,61 @@
+---
+title: "Chance"
+subtitle: "Module reference · chance"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Dice, coins, cards, concealed picks, spinners and weighted random choices.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>chance</code></div>
+<div><strong>Source directory</strong><code>chance</code></div>
+<div><strong>Indexed methods</strong>6</div>
+<div><strong>XLSForms</strong>6</div>
+<div><strong>Source docs</strong>11</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `chance.cards.draw` | draw card | Draw a card from a standard deck | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `chance.pick.one` | pick one | Lay out concealed choices and let the user pick one | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `chance.spinner.spin` | spin wheel | Spin an equal-segment choice wheel | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `chance.weighted.choose` | weighted choice | Choose from labelled options using numeric weights | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `coin.toss` | toss coin | Toss a fair coin one or more times | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `dice.simulate` | roll dice | Roll one or more dice | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_chance_cards_draw.xlsx](../source-docs/chance/example_odk_chance_cards_draw.xlsx)
+- [example_odk_chance_pick_one.xlsx](../source-docs/chance/example_odk_chance_pick_one.xlsx)
+- [example_odk_chance_spinner_spin.xlsx](../source-docs/chance/example_odk_chance_spinner_spin.xlsx)
+- [example_odk_chance_weighted_choose.xlsx](../source-docs/chance/example_odk_chance_weighted_choose.xlsx)
+- [example_odk_coin_toss.xlsx](../source-docs/chance/example_odk_coin_toss.xlsx)
+- [example_odk_dice_simulate.xlsx](../source-docs/chance/example_odk_dice_simulate.xlsx)
+
+## Module-local documentation
+
+- [Chance selection engine regression notes](../source-docs/chance/CHANCE_ENGINE_TEST_VECTORS.qmd) — `CHANCE_ENGINE_TEST_VECTORS.md`
+- [Dice Simulator engine regression vectors](../source-docs/chance/DICE_ENGINE_TEST_VECTORS.qmd) — `DICE_ENGINE_TEST_VECTORS.md`
+- [Chance](../source-docs/chance/README_Chance.qmd) — `README_Chance.md`
+- [Coin toss](../source-docs/chance/README_CoinToss.qmd) — `README_CoinToss.md`
+- [Dice](../source-docs/chance/README_Dice.qmd) — `README_Dice.md`
+- [Draw cards](../source-docs/chance/README_DrawCards.qmd) — `README_DrawCards.md`
+- [Pick one](../source-docs/chance/README_PickOne.qmd) — `README_PickOne.md`
+- [Spinner](../source-docs/chance/README_Spinner.qmd) — `README_Spinner.md`
+- [Weighted choice](../source-docs/chance/README_WeightedChoice.qmd) — `README_WeightedChoice.md`
+- [Chance roadmap note](../source-docs/chance/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [Chance v1.05 validation](../source-docs/chance/VALIDATION.qmd) — `VALIDATION.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

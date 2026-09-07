@@ -1,0 +1,32 @@
+---
+title: "Music module roadmap after MethodMesh v1.05 migration"
+subtitle: "Module source document · Music"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/music/docs/ROADMAP_NOTE.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+The v1.05 migration preserves the established Music scope and contracts. Remaining work is validation/polish rather than a second redesign.
+
+## Required before Production promotion
+
+- Build and unit-test inside the current MethodMesh repository (`:app:testDebugUnitTest`, `:app:assembleDebug`).
+- Exercise all 33 methods through direct capability discovery, preset creation, protocol creation and ODK projection.
+- Test app/preset/widget/protocol/schedule/ODK closeout using the current shared origin-aware framework.
+- Rotate/background/recreate active Practice, Performance, Jam, Song Sketch and Live Looper sessions on representative devices.
+- Validate looper/drum latency, microphone routing, Bluetooth routes and audio focus on physical Android devices.
+
+## Existing concept completions
+
+- Optional count-in and bar-quantised Live Looper close.
+- Optional explicit audio export for committed looper material only if a stable media/file output contract is designed; do not silently save PCM on Commit.
+- Richer fretboard/chord-diagram visualisation while preserving `music.chord_guide` contract.
+- More explicit polyrhythm pulse visualisation/playback while preserving current fields.
+- Additional sample/scene tools only as separate canonical capabilities if intentionally approved; do not turn the module into a DAW by accident.
+
+## Framework dependency
+
+The module intentionally relies on existing generic MethodMesh v1.05 orchestration for launch-origin closeout, ODK namespace projection/`methodmesh_full_json`, preset/protocol discovery and dashboard placement. No shared-framework files are included in this handoff.
+

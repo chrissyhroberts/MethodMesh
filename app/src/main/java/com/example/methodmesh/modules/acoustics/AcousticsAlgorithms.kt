@@ -15,7 +15,7 @@ import kotlin.math.sqrt
 
 /** Pure, Android-independent DSP and acoustic maths used by the Acoustics module. */
 object AcousticsAlgorithms {
-    const val DSP_VERSION = "1.0.0"
+    const val DSP_VERSION = "1.1.0"
     const val PITCH_ALGORITHM = "yin_cmnd"
     const val SPECTRUM_ALGORITHM = "radix2_fft_hann"
 
@@ -344,6 +344,42 @@ object AcousticsAlgorithms {
             var localMax = EPS
             for (i in start until min(end, half)) localMax = max(localMax, magnitudes[i])
             result[out] = (20.0 * log10(localMax / maxMagnitude)).coerceIn(-90.0, 0.0).toFloat()
+        }
+        return result
+    }
+
+
+    /**
+     * Hann-windowed spectrum expressed approximately in dBFS per grouped bin.
+     * A full-scale bin-centred sine is approximately 0 dBFS. The grouped output
+     * retains the strongest FFT component in each frequency band.
+     */
+    fun spectrumDbfs(samples: FloatArray, outputBins: Int = 256): FloatArray {
+        if (samples.isEmpty() || outputBins <= 0) return FloatArray(0)
+        val n = highestPowerOfTwoAtMost(samples.size)
+        if (n < 32) return FloatArray(0)
+        val real = DoubleArray(n)
+        val imag = DoubleArray(n)
+        for (i in 0 until n) {
+            val hann = 0.5 - 0.5 * cos(2.0 * PI * i / (n - 1))
+            real[i] = samples[i] * hann
+        }
+        fftInPlace(real, imag)
+        val half = n / 2
+        val magnitudes = DoubleArray(half)
+        for (i in 0 until half) {
+            val mag = sqrt(real[i] * real[i] + imag[i] * imag[i])
+            // Hann coherent gain is ~0.5; one-sided sine amplitude ~= 4*mag/N.
+            magnitudes[i] = (4.0 * mag / n).coerceAtLeast(EPS)
+        }
+        val bins = min(outputBins, half)
+        val result = FloatArray(bins)
+        for (out in 0 until bins) {
+            val start = out * half / bins
+            val end = max(start + 1, (out + 1) * half / bins)
+            var localMax = EPS
+            for (i in start until min(end, half)) localMax = max(localMax, magnitudes[i])
+            result[out] = (20.0 * log10(localMax)).coerceIn(-120.0, 6.0).toFloat()
         }
         return result
     }

@@ -69,7 +69,7 @@ object CompassFields {
 
 object As100CompassMethod : As100Method {
     const val ID = "compass.read"
-    const val VERSION = "0.1.0"
+    const val VERSION = "0.2.0"
     private const val ALGORITHM_VERSION = "1.0.0"
 
     override val id = ID
@@ -86,7 +86,9 @@ object As100CompassMethod : As100Method {
             "category" to "Navigation",
             "status" to "Development",
             "north_reference" to "magnetic",
-            "sensor_boundary" to "PhoneSensorRepository"
+            "sensor_boundary" to "PhoneSensorRepository",
+            "interaction_lifecycle" to "live_working_result_commit",
+            "icon_key" to "location"
         )
     )
     override val contract = MethodContract(

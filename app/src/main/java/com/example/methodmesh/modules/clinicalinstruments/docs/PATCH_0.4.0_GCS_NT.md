@@ -1,0 +1,24 @@
+# Clinical Instruments v0.4.0 — Not-testable components + Glasgow Coma Scale
+
+## Engine extension
+
+Clinical Instruments remains a linear checklist engine. v0.4 adds a deliberately small non-testable-component mechanism for composite scores:
+
+- a question may declare `not_testable_value`;
+- a derived value or score may declare `requires_testable: [question_ids...]`;
+- if any required component carries its declared NT value, that expression returns null rather than manufacturing a numeric value;
+- classifications can still use the recorded component values to state that a total is not reportable;
+- individual answers always remain present in the result.
+
+This is not skip logic and does not change question relevance or navigation.
+
+## Glasgow Coma Scale
+
+GCS is added as an immutable core instrument with Eye, Verbal and Motor responses using the modern official terminology. Each component supports `NT` where testing is prevented by an interfering factor.
+
+The total is calculated only when all three components are testable. `NT` is never converted to 1 or 0 and no total is reported when any component is NT.
+
+Source: https://www.glasgowcomascale.org/
+Permissions: https://www.glasgowcomascale.org/permissions/
+
+The official permissions page states that the GCS may be used for clinical care and clinical research at no cost and no licence is required, with copyright acknowledgement to Glasgow University.

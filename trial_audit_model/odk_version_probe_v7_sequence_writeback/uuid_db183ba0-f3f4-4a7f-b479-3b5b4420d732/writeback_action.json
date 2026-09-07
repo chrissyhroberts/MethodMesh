@@ -1,0 +1,710 @@
+{
+  "classification": "VERIFIED_BY_DESKTOP_RECEIPT",
+  "current_version_id": "uuid:9101c009-3c8e-480f-a937-5b09abd0c23b",
+  "mode": "WRITEBACK",
+  "prior_checkpoint": {
+    "audited_through_source_version_id": "uuid:8a29f105-128b-419d-9ffb-6e7bf4c58836",
+    "checkpoint_index": 7,
+    "checkpoint_version_id": "uuid:9101c009-3c8e-480f-a937-5b09abd0c23b",
+    "receipt": {
+      "audited_through_source_version_id": "uuid:8a29f105-128b-419d-9ffb-6e7bf4c58836",
+      "canonicalization": "ordered-kv-v1",
+      "commitment_recipe_schema": "methodmesh.commitment_recipe.v1",
+      "commitment_recipe_sha256": "2b1282822eec1f9a5a8fbe4808e0fb33d176cf038aec282fd7db1bf9f3a64b54",
+      "current_member_checks": [
+        {
+          "artifact_field": null,
+          "commitment": "value",
+          "path": "showcase_commitment_schema",
+          "source_field": "showcase_commitment_schema",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "value",
+          "path": "showcase_id",
+          "source_field": "showcase_id",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "value",
+          "path": "age_years",
+          "source_field": "age_years",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "value",
+          "path": "favourite_colour",
+          "source_field": "favourite_colour",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "value",
+          "path": "short_note",
+          "source_field": "short_note",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "value",
+          "path": "auth_auth_method",
+          "source_field": "auth_auth_method",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "value",
+          "path": "auth_timestamp_iso",
+          "source_field": "auth_timestamp_iso",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "json-utf8-sha256",
+          "path": "auth_json_sha256",
+          "source_field": "auth_methodmesh_full_json",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": "photo_redacted_image_uri",
+          "commitment": "artifact-bytes-sha256",
+          "path": "photo_redacted_image_sha256",
+          "source_field": null,
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "json-utf8-sha256",
+          "path": "photo_json_sha256",
+          "source_field": "photo_methodmesh_full_json",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "value",
+          "path": "location_plus_code",
+          "source_field": "location_plus_code",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "json-utf8-sha256",
+          "path": "location_json_sha256",
+          "source_field": "location_methodmesh_full_json",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "value",
+          "path": "polygon_value",
+          "source_field": "polygon_value",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "json-utf8-sha256",
+          "path": "polygon_json_sha256",
+          "source_field": "polygon_methodmesh_full_json",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "text-utf8-sha256",
+          "path": "conversation_transcript_sha256",
+          "source_field": "conversation_conversation_transcript",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "json-utf8-sha256",
+          "path": "conversation_json_sha256",
+          "source_field": "conversation_methodmesh_full_json",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "value",
+          "path": "fourat_clinical_score",
+          "source_field": "fourat_clinical_score",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "value",
+          "path": "fourat_clinical_classification",
+          "source_field": "fourat_clinical_classification",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "value",
+          "path": "fourat_clinical_definition_fingerprint",
+          "source_field": "fourat_clinical_definition_fingerprint",
+          "source_ok": true,
+          "stored_matches_source": true
+        },
+        {
+          "artifact_field": null,
+          "commitment": "json-utf8-sha256",
+          "path": "fourat_json_sha256",
+          "source_field": "fourat_methodmesh_full_json",
+          "source_ok": true,
+          "stored_matches_source": false
+        }
+      ],
+      "hash_algorithm": "SHA-256",
+      "logical_submission_id": "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732",
+      "member_count": 20,
+      "note": "Desktop verification reconstructs every previously unseen retained version from the original bound commitment recipe plus actual retained source values and attachment bytes. The deterministic receipt body hash is independently RFC3161 timestamped before Central approval.",
+      "observed_at_utc": "2026-09-04T13:28:28.403431+00:00",
+      "original_attestation": {
+        "attestation_hash": "f1733d332e557fb947e08702de105d35c35b70240740a2a2d21e782c83247d90",
+        "cryptographic_verification": {
+          "attestation_hash_valid": true,
+          "canonical_payload_sha256": "5de598bcde1f5cfebcb5034dfc6871401b30f01a875916e868dc9b6c0a661c14",
+          "ecdsa_signature_valid": true,
+          "openssl_version": "OpenSSL 3.6.1 27 Jan 2026 (Library: OpenSSL 3.6.1 27 Jan 2026)",
+          "overall_valid": true,
+          "public_key_id_valid": true,
+          "rfc3161_signature_and_chain_valid": true,
+          "timestamp_attested_hash_valid": true,
+          "timestamp_precedes_central_creation": true,
+          "timestamp_serial_matches_json": true,
+          "timestamp_time_matches_json": true,
+          "timestamp_token_sha256_valid": true,
+          "tsa_trust_source": "FREETSA_PINNED",
+          "verification_complete": true,
+          "verification_status": "VERIFIED"
+        },
+        "event_payload_hash": "2eec1873ddc170f805601e8082eb45f8025a8c7afc094de6df98f91b73c9f9d2",
+        "public_key_id": "d9df69ee1754c00c",
+        "trusted_timestamp_attested_hash": "f1733d332e557fb947e08702de105d35c35b70240740a2a2d21e782c83247d90",
+        "trusted_timestamp_status": "rfc3161_verified",
+        "trusted_timestamp_time_iso": "2026-09-04T11:58:01Z"
+      },
+      "previous_desktop_checkpoint_version_id": "uuid:28ceb8bb-8139-49d8-803e-9a45f476edbe",
+      "previous_desktop_receipt_sha256": "0d490d3a4fb45a115b95b063a7c70f23ef31d74e2497df85490880e63f34c7f1",
+      "receipt_envelope_sha256": "b4904037d501707efdc0aab3a345f1f415a1696dfdb1d62a2215607dd41acdfb",
+      "receipt_sha256": "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+      "reconstructed_payload_sha256": "0ba7e22ad2e32961d5ba4d2bafa782296074755234aa99aad74dcd60c91f7a21",
+      "reconstruction_complete": true,
+      "schema": "methodmesh.desktop_audit_receipt.v2",
+      "sequence_count": 1,
+      "source_actor": "Chrissy h. Roberts (User)",
+      "source_created_at": "2026-09-04T13:27:59.390Z",
+      "source_form_version": "2026090407",
+      "source_version_id": "uuid:8a29f105-128b-419d-9ffb-6e7bf4c58836",
+      "source_xml_sha256": "fcc6b8c268705086dc237f82b28f369992562d146bca224fc835e068f8058ebe",
+      "stored_calculated_digest_fields_trusted": false,
+      "trusted_timestamp_attested_hash": "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+      "trusted_timestamp_authority": "https://freetsa.org/tsr",
+      "trusted_timestamp_request_base64": "MEMCAQEwMTANBglghkgBZQMEAgEFAAQgU2eYRZA1SaWK9IJfQycO0ORTW01lyZvM8deSkDXTgi8CCGQ5E3MwqAEVAQH/",
+      "trusted_timestamp_request_sha256": "243952b0f4ff4ef6d5699285a8dbfabf0f50774a70e40dde90b922b7e5b3a7a3",
+      "trusted_timestamp_response_base64": "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",
+      "trusted_timestamp_response_sha256": "279f05849f2de32e6b955a5ee494ccc11b845f90e990bd5d126d17ea05a3b8c6",
+      "trusted_timestamp_serial": "78b8040",
+      "trusted_timestamp_status": "rfc3161_verified",
+      "trusted_timestamp_time_iso": "2026-09-04T13:28:29+00:00",
+      "trusted_timestamp_token_base64": "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",
+      "trusted_timestamp_token_sha256": "9005c9f9ab3c2a3fcd3070ba84ef8cd61e8f2c46a59a64f5d8c6f984520fdb19",
+      "trusted_timestamp_trust_source": "FREETSA_PINNED",
+      "verification_basis": "trusted_recipe_plus_retained_sources_plus_rfc3161",
+      "verification_result": "VERIFIED_EDIT",
+      "verified_sequence": [
+        {
+          "actor": "Chrissy h. Roberts (User)",
+          "created_at": "2026-09-04T13:27:59.390Z",
+          "form_version": "2026090407",
+          "previous_version_id": "uuid:28ceb8bb-8139-49d8-803e-9a45f476edbe",
+          "reconstructed_payload_sha256": "0ba7e22ad2e32961d5ba4d2bafa782296074755234aa99aad74dcd60c91f7a21",
+          "reconstruction_complete": true,
+          "stored_calculated_digest_fields_trusted": false,
+          "stored_digest_mismatches": [
+            "fourat_json_sha256"
+          ],
+          "transition": "COMMITTED_DATA_CHANGED",
+          "version_id": "uuid:8a29f105-128b-419d-9ffb-6e7bf4c58836",
+          "xml_sha256": "fcc6b8c268705086dc237f82b28f369992562d146bca224fc835e068f8058ebe"
+        }
+      ],
+      "verifier": "odk_version_probe_v10_tsa_receipts",
+      "writeback_version_id": "uuid:9101c009-3c8e-480f-a937-5b09abd0c23b"
+    },
+    "receipt_schema": "methodmesh.desktop_audit_receipt.v2",
+    "receipt_sha256": "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+    "reconstructed_payload_sha256": "0ba7e22ad2e32961d5ba4d2bafa782296074755234aa99aad74dcd60c91f7a21",
+    "timestamp_verification": {
+      "body_hash_calculated": "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+      "body_hash_stored": "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+      "errors": [],
+      "openssl_timestamp_parse": {
+        "available": true,
+        "command": [
+          "openssl",
+          "ts",
+          "-reply",
+          "-in",
+          "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/008_uuid_9101c009-3c8e-480f-a937-5b09abd0c23b/_desktop_receipt_tsa/stored_receipt.tsr",
+          "-text"
+        ],
+        "returncode": 0,
+        "stderr": "Using configuration from /usr/local/Caskroom/miniforge/base/ssl/openssl.cnf\n",
+        "stdout": "Status info:\nStatus: Granted.\nStatus description: unspecified\nFailure info: unspecified\n\nTST info:\nVersion: 1\nPolicy OID: tsa_policy1\nHash Algorithm: sha256\nMessage data:\n    0000 - 53 67 98 45 90 35 49 a5-8a f4 82 5f 43 27 0e d0   Sg.E.5I...._C'..\n    0010 - e4 53 5b 4d 65 c9 9b cc-f1 d7 92 90 35 d3 82 2f   .S[Me.......5../\nSerial number: 0x078B8040\nTime stamp: Sep  4 13:28:29 2026 GMT\nAccuracy: unspecified\nOrdering: yes\nNonce: 0x6439137330A80115\nTSA: DirName:/O=Free TSA/OU=TSA/description=This certificate digitally signs documents and time stamp requests made using the freetsa.org online services/CN=www.freetsa.org/emailAddress=busilezas@mailbox.org/L=Wuerzburg/C=DE/ST=Bayern\nExtensions:\n"
+      },
+      "openssl_timestamp_verify_digest": {
+        "available": true,
+        "command": [
+          "openssl",
+          "ts",
+          "-verify",
+          "-in",
+          "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/008_uuid_9101c009-3c8e-480f-a937-5b09abd0c23b/_desktop_receipt_tsa/stored_receipt.tsr",
+          "-digest",
+          "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+          "-CAfile",
+          "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/cacert.pem",
+          "-untrusted",
+          "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt"
+        ],
+        "returncode": 0,
+        "stderr": "Using configuration from /usr/local/Caskroom/miniforge/base/ssl/openssl.cnf\nWarning: certificate from 'odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt' with subject '/O=Free TSA/OU=TSA/description=This certificate digitally signs documents and time stamp requests made using the freetsa.org online services/CN=www.freetsa.org/emailAddress=busilezas@mailbox.org/L=Wuerzburg/C=DE/ST=Bayern' is not a CA cert\n",
+        "stdout": "Verification: OK\n"
+      },
+      "openssl_timestamp_verify_query": {
+        "available": true,
+        "command": [
+          "openssl",
+          "ts",
+          "-verify",
+          "-in",
+          "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/008_uuid_9101c009-3c8e-480f-a937-5b09abd0c23b/_desktop_receipt_tsa/stored_receipt.tsr",
+          "-queryfile",
+          "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/008_uuid_9101c009-3c8e-480f-a937-5b09abd0c23b/_desktop_receipt_tsa/stored_receipt.tsq",
+          "-CAfile",
+          "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/cacert.pem",
+          "-untrusted",
+          "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt"
+        ],
+        "returncode": 0,
+        "stderr": "Using configuration from /usr/local/Caskroom/miniforge/base/ssl/openssl.cnf\nWarning: certificate from 'odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt' with subject '/O=Free TSA/OU=TSA/description=This certificate digitally signs documents and time stamp requests made using the freetsa.org online services/CN=www.freetsa.org/emailAddress=busilezas@mailbox.org/L=Wuerzburg/C=DE/ST=Bayern' is not a CA cert\n",
+        "stdout": "Verification: OK\n"
+      },
+      "openssl_token_extract": {
+        "available": true,
+        "command": [
+          "openssl",
+          "ts",
+          "-reply",
+          "-in",
+          "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/008_uuid_9101c009-3c8e-480f-a937-5b09abd0c23b/_desktop_receipt_tsa/stored_receipt.tsr",
+          "-token_out",
+          "-out",
+          "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/008_uuid_9101c009-3c8e-480f-a937-5b09abd0c23b/_desktop_receipt_tsa/stored_receipt_token.der"
+        ],
+        "returncode": 0,
+        "stderr": "Using configuration from /usr/local/Caskroom/miniforge/base/ssl/openssl.cnf\n",
+        "stdout": ""
+      },
+      "overall_valid": true,
+      "parsed_serial_hex": "78b8040",
+      "parsed_time_iso": "2026-09-04T13:28:29+00:00",
+      "receipt_envelope_sha256_calculated": "b4904037d501707efdc0aab3a345f1f415a1696dfdb1d62a2215607dd41acdfb",
+      "receipt_envelope_sha256_stored": "b4904037d501707efdc0aab3a345f1f415a1696dfdb1d62a2215607dd41acdfb",
+      "timestamp_after_source_version": true,
+      "timestamp_before_writeback_version": true,
+      "timestamp_required": true,
+      "tsa_trust": {
+        "authority": "https://freetsa.org/tsr",
+        "available": true,
+        "ca_cache_source": "PINNED_CACHE",
+        "ca_file": "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/cacert.pem",
+        "ca_file_sha256": "2151b61137ffa86bf664691ba67e7da0b19f98c758e3d228d5d8ebf27e044438",
+        "source": "FREETSA_PINNED",
+        "tsa_cache_source": "PINNED_CACHE",
+        "tsa_cert_file": "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt",
+        "tsa_cert_file_sha256": "8bfb0305bb64e2571ca507552ef3245cb1c2fee8728e0ff8689225081ea13467"
+      },
+      "tsa_trust_source": "FREETSA_PINNED",
+      "verification_status": "VERIFIED"
+    }
+  },
+  "receipt_action": "VALID_CURRENT_RECEIPT_ALREADY_PRESENT",
+  "review_state_action": "ALREADY_APPROVED",
+  "sequence_verification": {
+    "complete": true,
+    "failures": [],
+    "prior_checkpoint": {
+      "audited_through_source_version_id": "uuid:8a29f105-128b-419d-9ffb-6e7bf4c58836",
+      "checkpoint_index": 7,
+      "checkpoint_version_id": "uuid:9101c009-3c8e-480f-a937-5b09abd0c23b",
+      "receipt": {
+        "audited_through_source_version_id": "uuid:8a29f105-128b-419d-9ffb-6e7bf4c58836",
+        "canonicalization": "ordered-kv-v1",
+        "commitment_recipe_schema": "methodmesh.commitment_recipe.v1",
+        "commitment_recipe_sha256": "2b1282822eec1f9a5a8fbe4808e0fb33d176cf038aec282fd7db1bf9f3a64b54",
+        "current_member_checks": [
+          {
+            "artifact_field": null,
+            "commitment": "value",
+            "path": "showcase_commitment_schema",
+            "source_field": "showcase_commitment_schema",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "value",
+            "path": "showcase_id",
+            "source_field": "showcase_id",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "value",
+            "path": "age_years",
+            "source_field": "age_years",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "value",
+            "path": "favourite_colour",
+            "source_field": "favourite_colour",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "value",
+            "path": "short_note",
+            "source_field": "short_note",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "value",
+            "path": "auth_auth_method",
+            "source_field": "auth_auth_method",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "value",
+            "path": "auth_timestamp_iso",
+            "source_field": "auth_timestamp_iso",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "json-utf8-sha256",
+            "path": "auth_json_sha256",
+            "source_field": "auth_methodmesh_full_json",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": "photo_redacted_image_uri",
+            "commitment": "artifact-bytes-sha256",
+            "path": "photo_redacted_image_sha256",
+            "source_field": null,
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "json-utf8-sha256",
+            "path": "photo_json_sha256",
+            "source_field": "photo_methodmesh_full_json",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "value",
+            "path": "location_plus_code",
+            "source_field": "location_plus_code",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "json-utf8-sha256",
+            "path": "location_json_sha256",
+            "source_field": "location_methodmesh_full_json",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "value",
+            "path": "polygon_value",
+            "source_field": "polygon_value",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "json-utf8-sha256",
+            "path": "polygon_json_sha256",
+            "source_field": "polygon_methodmesh_full_json",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "text-utf8-sha256",
+            "path": "conversation_transcript_sha256",
+            "source_field": "conversation_conversation_transcript",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "json-utf8-sha256",
+            "path": "conversation_json_sha256",
+            "source_field": "conversation_methodmesh_full_json",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "value",
+            "path": "fourat_clinical_score",
+            "source_field": "fourat_clinical_score",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "value",
+            "path": "fourat_clinical_classification",
+            "source_field": "fourat_clinical_classification",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "value",
+            "path": "fourat_clinical_definition_fingerprint",
+            "source_field": "fourat_clinical_definition_fingerprint",
+            "source_ok": true,
+            "stored_matches_source": true
+          },
+          {
+            "artifact_field": null,
+            "commitment": "json-utf8-sha256",
+            "path": "fourat_json_sha256",
+            "source_field": "fourat_methodmesh_full_json",
+            "source_ok": true,
+            "stored_matches_source": false
+          }
+        ],
+        "hash_algorithm": "SHA-256",
+        "logical_submission_id": "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732",
+        "member_count": 20,
+        "note": "Desktop verification reconstructs every previously unseen retained version from the original bound commitment recipe plus actual retained source values and attachment bytes. The deterministic receipt body hash is independently RFC3161 timestamped before Central approval.",
+        "observed_at_utc": "2026-09-04T13:28:28.403431+00:00",
+        "original_attestation": {
+          "attestation_hash": "f1733d332e557fb947e08702de105d35c35b70240740a2a2d21e782c83247d90",
+          "cryptographic_verification": {
+            "attestation_hash_valid": true,
+            "canonical_payload_sha256": "5de598bcde1f5cfebcb5034dfc6871401b30f01a875916e868dc9b6c0a661c14",
+            "ecdsa_signature_valid": true,
+            "openssl_version": "OpenSSL 3.6.1 27 Jan 2026 (Library: OpenSSL 3.6.1 27 Jan 2026)",
+            "overall_valid": true,
+            "public_key_id_valid": true,
+            "rfc3161_signature_and_chain_valid": true,
+            "timestamp_attested_hash_valid": true,
+            "timestamp_precedes_central_creation": true,
+            "timestamp_serial_matches_json": true,
+            "timestamp_time_matches_json": true,
+            "timestamp_token_sha256_valid": true,
+            "tsa_trust_source": "FREETSA_PINNED",
+            "verification_complete": true,
+            "verification_status": "VERIFIED"
+          },
+          "event_payload_hash": "2eec1873ddc170f805601e8082eb45f8025a8c7afc094de6df98f91b73c9f9d2",
+          "public_key_id": "d9df69ee1754c00c",
+          "trusted_timestamp_attested_hash": "f1733d332e557fb947e08702de105d35c35b70240740a2a2d21e782c83247d90",
+          "trusted_timestamp_status": "rfc3161_verified",
+          "trusted_timestamp_time_iso": "2026-09-04T11:58:01Z"
+        },
+        "previous_desktop_checkpoint_version_id": "uuid:28ceb8bb-8139-49d8-803e-9a45f476edbe",
+        "previous_desktop_receipt_sha256": "0d490d3a4fb45a115b95b063a7c70f23ef31d74e2497df85490880e63f34c7f1",
+        "receipt_envelope_sha256": "b4904037d501707efdc0aab3a345f1f415a1696dfdb1d62a2215607dd41acdfb",
+        "receipt_sha256": "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+        "reconstructed_payload_sha256": "0ba7e22ad2e32961d5ba4d2bafa782296074755234aa99aad74dcd60c91f7a21",
+        "reconstruction_complete": true,
+        "schema": "methodmesh.desktop_audit_receipt.v2",
+        "sequence_count": 1,
+        "source_actor": "Chrissy h. Roberts (User)",
+        "source_created_at": "2026-09-04T13:27:59.390Z",
+        "source_form_version": "2026090407",
+        "source_version_id": "uuid:8a29f105-128b-419d-9ffb-6e7bf4c58836",
+        "source_xml_sha256": "fcc6b8c268705086dc237f82b28f369992562d146bca224fc835e068f8058ebe",
+        "stored_calculated_digest_fields_trusted": false,
+        "trusted_timestamp_attested_hash": "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+        "trusted_timestamp_authority": "https://freetsa.org/tsr",
+        "trusted_timestamp_request_base64": "MEMCAQEwMTANBglghkgBZQMEAgEFAAQgU2eYRZA1SaWK9IJfQycO0ORTW01lyZvM8deSkDXTgi8CCGQ5E3MwqAEVAQH/",
+        "trusted_timestamp_request_sha256": "243952b0f4ff4ef6d5699285a8dbfabf0f50774a70e40dde90b922b7e5b3a7a3",
+        "trusted_timestamp_response_base64": "MIISHzADAgEAMIISFgYJKoZIhvcNAQcCoIISBzCCEgMCAQMxDzANBglghkgBZQMEAgMFADCCAZAGCyqGSIb3DQEJEAEEoIIBfwSCAXswggF3AgEBBgQqAwQBMDEwDQYJYIZIAWUDBAIBBQAEIFNnmEWQNUmlivSCX0MnDtDkU1tNZcmbzPHXkpA104IvAgQHi4BAGA8yMDI2MDkwNDEzMjgyOVoBAf8CCGQ5E3MwqAEVoIIBE6SCAQ8wggELMREwDwYDVQQKDAhGcmVlIFRTQTEMMAoGA1UECwwDVFNBMXYwdAYDVQQNDG1UaGlzIGNlcnRpZmljYXRlIGRpZ2l0YWxseSBzaWducyBkb2N1bWVudHMgYW5kIHRpbWUgc3RhbXAgcmVxdWVzdHMgbWFkZSB1c2luZyB0aGUgZnJlZXRzYS5vcmcgb25saW5lIHNlcnZpY2VzMRgwFgYDVQQDDA93d3cuZnJlZXRzYS5vcmcxJDAiBgkqhkiG9w0BCQEWFWJ1c2lsZXphc0BtYWlsYm94Lm9yZzESMBAGA1UEBwwJV3VlcnpidXJnMQswCQYDVQQGEwJERTEPMA0GA1UECAwGQmF5ZXJuoIIOZzCCBmAwggRIoAMCAQICCQDC6YYWDajpzTANBgkqhkiG9w0BAQ0FADCBlTERMA8GA1UEChMIRnJlZSBUU0ExEDAOBgNVBAsTB1Jvb3QgQ0ExGDAWBgNVBAMTD3d3dy5mcmVldHNhLm9yZzEiMCAGCSqGSIb3DQEJARYTYnVzaWxlemFzQGdtYWlsLmNvbTESMBAGA1UEBxMJV3VlcnpidXJnMQ8wDQYDVQQIEwZCYXllcm4xCzAJBgNVBAYTAkRFMB4XDTI2MDIxNTE5NDQyMloXDTQwMDIwMjE5NDQyMlowggELMREwDwYDVQQKDAhGcmVlIFRTQTEMMAoGA1UECwwDVFNBMXYwdAYDVQQNDG1UaGlzIGNlcnRpZmljYXRlIGRpZ2l0YWxseSBzaWducyBkb2N1bWVudHMgYW5kIHRpbWUgc3RhbXAgcmVxdWVzdHMgbWFkZSB1c2luZyB0aGUgZnJlZXRzYS5vcmcgb25saW5lIHNlcnZpY2VzMRgwFgYDVQQDDA93d3cuZnJlZXRzYS5vcmcxJDAiBgkqhkiG9w0BCQEWFWJ1c2lsZXphc0BtYWlsYm94Lm9yZzESMBAGA1UEBwwJV3VlcnpidXJnMQswCQYDVQQGEwJERTEPMA0GA1UECAwGQmF5ZXJuMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEohXhobLWy4cYsdKOFALpjUsB1FJTntwwb7PH2LOfNMAA1ufaKhkgsdeW6etU0pl5MC5tSVuPF52yy4sz+mbY3L7IVdx/bs9m0ud7IA14YNcC2yIQLa2gvnxwsrR3rlWro4IB5jCCAeIwCQYDVR0TBAIwADAdBgNVHQ4EFgQUFcC9JuvUXYLRXZMmMS/vcLKLRl4wHwYDVR0jBBgwFoAU+lUNjDRmUUNM9+ezp2yVr3rmpJcwCwYDVR0PBAQDAgbAMBYGA1UdJQEB/wQMMAoGCCsGAQUFBwMIMGwGCCsGAQUFBwEBBGAwXjAzBggrBgEFBQcwAoYnaHR0cDovL3d3dy5mcmVldHNhLm9yZy9maWxlcy9jYWNlcnQucGVtMCcGCCsGAQUFBzABhhtodHRwOi8vd3d3LmZyZWV0c2Eub3JnOjI1NjAwNwYDVR0fBDAwLjAsoCqgKIYmaHR0cDovL3d3dy5mcmVldHNhLm9yZy9jcmwvcm9vdF9jYS5jcmwwgcgGA1UdIASBwDCBvTCBugYDKwUIMIGyMDMGCCsGAQUFBwIBFidodHRwOi8vd3d3LmZyZWV0c2Eub3JnL2ZyZWV0c2FfY3BzLmh0bWwwMgYIKwYBBQUHAgEWJmh0dHA6Ly93d3cuZnJlZXRzYS5vcmcvZnJlZXRzYV9jcHMucGRmMEcGCCsGAQUFBwICMDsaOUZyZWVUU0EgdHJ1c3RlZCB0aW1lc3RhbXBpbmcgU29mdHdhcmUgYXMgYSBTZXJ2aWNlIChTYWFTKTANBgkqhkiG9w0BAQ0FAAOCAgEAazFUv2H53zK9M4mZ3rAVDqwzUazTYLdyIDDQ8DYcJeqClh1SIZWJzP+W6JY326WUwG6r8RyN87U9P7MMUDqk2reagSUQGP1R9Z/0+DPbg40rrt6n4dGR+Ty/RDaqFVuOIuTU/850Hr9jBlzgB8M/ZGcMM8/TBV+oWxoQalmvp5QKm+2O9ihc4995tTlR8VdlpeGA/X/dW2UxaVBBluCrW5JsaX/4hiD2n+Fh6aAVvzuhM6HzCmJc+Ml8hAYdMEUVcl5bS64/jBR6oXvj7DAZZav3QmjuFvxfgLhxJbu2lGFjAEnpaYVgCYlLDTK+RwKHgkkoIpan9QkqFgvpOnuN9+BcpviMuHLDHsfjxuK0nalyVUPgFhHUWo0jyoe8g36TZHZzusqkCf7UnddV0OXC9DPY1rgg9cx5YAPrvkdnK8t8qNt4w+6kxi4WalL1wslooB99P0P0V44w8K3OAyYkPoEWNBYXU2Kpb4DAT6+C3CSpzZLIr3Y/pG8+21Um6wQM0YmsyvZfONf+VzLT/Qbw9ISgqUBbz/T0oAgvBEJyqoEntuhUiQWgEHAOU5yvDReI5GxJQcX/88oez9yIx7KN+Y7YFFg9f4rYPQSVm2FMCeLXyC6QdhdMG5NRnGQwg2aMlt1397awKc/2Xfd4Bd46HPR4fURb3ikc1kO3XVLd3oEwggf/MIIF56ADAgECAgkAwemGFg2o6YAwDQYJKoZIhvcNAQENBQAwgZUxETAPBgNVBAoTCEZyZWUgVFNBMRAwDgYDVQQLEwdSb290IENBMRgwFgYDVQQDEw93d3cuZnJlZXRzYS5vcmcxIjAgBgkqhkiG9w0BCQEWE2J1c2lsZXphc0BnbWFpbC5jb20xEjAQBgNVBAcTCVd1ZXJ6YnVyZzEPMA0GA1UECBMGQmF5ZXJuMQswCQYDVQQGEwJERTAeFw0xNjAzMTMwMTUyMTNaFw00MTAzMDcwMTUyMTNaMIGVMREwDwYDVQQKEwhGcmVlIFRTQTEQMA4GA1UECxMHUm9vdCBDQTEYMBYGA1UEAxMPd3d3LmZyZWV0c2Eub3JnMSIwIAYJKoZIhvcNAQkBFhNidXNpbGV6YXNAZ21haWwuY29tMRIwEAYDVQQHEwlXdWVyemJ1cmcxDzANBgNVBAgTBkJheWVybjELMAkGA1UEBhMCREUwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQC2Ao4OMDLxERDZZM2pS50CeOGUKukTqqWZB82ml5OZW9msfjO62f43BNocAamNIa/j9ZGlnXBncFFnmY9QFnIuCrRish9DkXHSz8xFk/NzWveUpasxH2wBDHiY3jPXXEUQ7nb0vR0UmM8X0wPwal3Z95bMbKm2V6Vv4+pP77585rahjT41owzuX/Fw0c85ozPT/aiWTSLbaFsp5WG+iQ8KqEWHOy6Eqyarg5/+j63p0juzHmHSc8ybiAZJGF+r7PoFNGAKupAbYU4uhUWC3qIib8Gc199SvtUNh3fNmYjAU6P8fcMoegaKT/ErcTzZgDZm6VU4VFb/OPgCmM9rk4VukiR3SmbPHN0Rwvjv2FID10WLJWZLE+1jnN7U/4ET1sxTU9JylHPDwwcVfHIqpbXdC/stbDixuTdJyIHsYAJtCJUbOCS9cbrLzkc669Y28LkYtKLI/0aU8HRXry1vHPglVNF3D9ef9dMU3NEEzdyryUE4BW388Bfn64Vy/VL3AUTxiNoF9YI/WN0GKX5zh77S13LBPagmZgEEX+QS3XCYbAyYe6c0S5A3OHUW0ljniFtR+JaLfyYBITvEy0yF+P8LhK9qmIM3zfuBho9+zzHcpnFtfsLdgCwWcmKeXABSyzV90pqvxD9hWzsf+dThzgjHHHPh/rt9xWozYhMp6e1sIwIDAQABo4ICTjCCAkowDAYDVR0TBAUwAwEB/zAOBgNVHQ8BAf8EBAMCAcYwHQYDVR0OBBYEFPpVDYw0ZlFDTPfns6dsla965qSXMIHKBgNVHSMEgcIwgb+AFPpVDYw0ZlFDTPfns6dsla965qSXoYGbpIGYMIGVMREwDwYDVQQKEwhGcmVlIFRTQTEQMA4GA1UECxMHUm9vdCBDQTEYMBYGA1UEAxMPd3d3LmZyZWV0c2Eub3JnMSIwIAYJKoZIhvcNAQkBFhNidXNpbGV6YXNAZ21haWwuY29tMRIwEAYDVQQHEwlXdWVyemJ1cmcxDzANBgNVBAgTBkJheWVybjELMAkGA1UEBhMCREWCCQDB6YYWDajpgDAzBgNVHR8ELDAqMCigJqAkhiJodHRwOi8vd3d3LmZyZWV0c2Eub3JnL3Jvb3RfY2EuY3JsMIHPBgNVHSAEgccwgcQwgcEGCisGAQQBgfIkAQEwgbIwMwYIKwYBBQUHAgEWJ2h0dHA6Ly93d3cuZnJlZXRzYS5vcmcvZnJlZXRzYV9jcHMuaHRtbDAyBggrBgEFBQcCARYmaHR0cDovL3d3dy5mcmVldHNhLm9yZy9mcmVldHNhX2Nwcy5wZGYwRwYIKwYBBQUHAgIwOxo5RnJlZVRTQSB0cnVzdGVkIHRpbWVzdGFtcGluZyBTb2Z0d2FyZSBhcyBhIFNlcnZpY2UgKFNhYVMpMDcGCCsGAQUFBwEBBCswKTAnBggrBgEFBQcwAYYbaHR0cDovL3d3dy5mcmVldHNhLm9yZzoyNTYwMA0GCSqGSIb3DQEBDQUAA4ICAQBor36/k4Vi70zrO1gL4vr2zDWiZ3KWLz2VkB+lYwyH0JGYmEzooGoz+KnCgu2fHLEaxsI+FxCO5O/Ob7KU3pXBMyYiVXJVIsphlx1KO394JQ37jUruwPsZWbFkEAUgucEOZMYmYuStTQq64imPyUj8Tpno2ea4/b5EBBIex8FCLqyyydcyjgc5bmC087uAOtSlVcgP77U/hed2SgqftK/DmfTNL1+/WHEFxggc89BTN7a7fRsBC3SfSIjJEvNpa6G2kC13t9/ARsBKDMHsT40YXi2lXft7wqIDbGIZJGpPmd27bx+Ck5jzuAPcCtkNy1m+9MJ8d0BLmQQ7eCcYZ5kRUsOZ8Sy/xMYlrcCWNVrkTjQhAOxRelAuLwb5QLjUNZm7wRVPiudhoLDVVftKE5HU80IK+NvxLy1925133OFTeAQHSvF15PLW1Vs0tdb33L3TFzCvVkgNTAz/FD+eg7wVGGbQug8LvcR/4nhkF2u9bBq4XfMl7fd3iJvERxvz+nPlbMWR6LFgzaeweGoewErDsk+i4o1dGeXkgATV4WaoPILsb9VPs4Xrr3EzqFtS3kbbUkThw0ro025xL5/ODUk9fT7dWGxhmOPsPm6WNG9BesnyIeCv8zqPagse9MAjYwt2raqNkUM4JezEHEmluYsYHH2jDpl6uVTHPCzYBa/amTGCAewwggHoAgEBMIGjMIGVMREwDwYDVQQKEwhGcmVlIFRTQTEQMA4GA1UECxMHUm9vdCBDQTEYMBYGA1UEAxMPd3d3LmZyZWV0c2Eub3JnMSIwIAYJKoZIhvcNAQkBFhNidXNpbGV6YXNAZ21haWwuY29tMRIwEAYDVQQHEwlXdWVyemJ1cmcxDzANBgNVBAgTBkJheWVybjELMAkGA1UEBhMCREUCCQDC6YYWDajpzTANBglghkgBZQMEAgMFAKCBuDAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwHAYJKoZIhvcNAQkFMQ8XDTI2MDkwNDEzMjgyOVowKwYLKoZIhvcNAQkQAgwxHDAaMBgwFgQUSB/VPFNNOEGAwChlGaA2+YhUR2YwTwYJKoZIhvcNAQkEMUIEQHelJsVu6dZqnVefA0930/Kc75ngpKZcKORclfP9zw0P76GI4jqOztGhQ+qnAXVgK1v1D9q9lr1yg2sDNnZkP+owCgYIKoZIzj0EAwQEZzBlAjBSJJ++0xKNK/eZWYlOh3lPZrXshim2OK1viBcJkaY13ffZ5Rc31PKQQY24HmHnq8ACMQCctQM/rgJLQZ7flHXJK/el9xL09TAhmuVXpODSwAUXNCBtbtPP50QGhOjKPxd/N00=",
+        "trusted_timestamp_response_sha256": "279f05849f2de32e6b955a5ee494ccc11b845f90e990bd5d126d17ea05a3b8c6",
+        "trusted_timestamp_serial": "78b8040",
+        "trusted_timestamp_status": "rfc3161_verified",
+        "trusted_timestamp_time_iso": "2026-09-04T13:28:29+00:00",
+        "trusted_timestamp_token_base64": "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",
+        "trusted_timestamp_token_sha256": "9005c9f9ab3c2a3fcd3070ba84ef8cd61e8f2c46a59a64f5d8c6f984520fdb19",
+        "trusted_timestamp_trust_source": "FREETSA_PINNED",
+        "verification_basis": "trusted_recipe_plus_retained_sources_plus_rfc3161",
+        "verification_result": "VERIFIED_EDIT",
+        "verified_sequence": [
+          {
+            "actor": "Chrissy h. Roberts (User)",
+            "created_at": "2026-09-04T13:27:59.390Z",
+            "form_version": "2026090407",
+            "previous_version_id": "uuid:28ceb8bb-8139-49d8-803e-9a45f476edbe",
+            "reconstructed_payload_sha256": "0ba7e22ad2e32961d5ba4d2bafa782296074755234aa99aad74dcd60c91f7a21",
+            "reconstruction_complete": true,
+            "stored_calculated_digest_fields_trusted": false,
+            "stored_digest_mismatches": [
+              "fourat_json_sha256"
+            ],
+            "transition": "COMMITTED_DATA_CHANGED",
+            "version_id": "uuid:8a29f105-128b-419d-9ffb-6e7bf4c58836",
+            "xml_sha256": "fcc6b8c268705086dc237f82b28f369992562d146bca224fc835e068f8058ebe"
+          }
+        ],
+        "verifier": "odk_version_probe_v10_tsa_receipts",
+        "writeback_version_id": "uuid:9101c009-3c8e-480f-a937-5b09abd0c23b"
+      },
+      "receipt_schema": "methodmesh.desktop_audit_receipt.v2",
+      "receipt_sha256": "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+      "reconstructed_payload_sha256": "0ba7e22ad2e32961d5ba4d2bafa782296074755234aa99aad74dcd60c91f7a21",
+      "timestamp_verification": {
+        "body_hash_calculated": "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+        "body_hash_stored": "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+        "errors": [],
+        "openssl_timestamp_parse": {
+          "available": true,
+          "command": [
+            "openssl",
+            "ts",
+            "-reply",
+            "-in",
+            "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/008_uuid_9101c009-3c8e-480f-a937-5b09abd0c23b/_desktop_receipt_tsa/stored_receipt.tsr",
+            "-text"
+          ],
+          "returncode": 0,
+          "stderr": "Using configuration from /usr/local/Caskroom/miniforge/base/ssl/openssl.cnf\n",
+          "stdout": "Status info:\nStatus: Granted.\nStatus description: unspecified\nFailure info: unspecified\n\nTST info:\nVersion: 1\nPolicy OID: tsa_policy1\nHash Algorithm: sha256\nMessage data:\n    0000 - 53 67 98 45 90 35 49 a5-8a f4 82 5f 43 27 0e d0   Sg.E.5I...._C'..\n    0010 - e4 53 5b 4d 65 c9 9b cc-f1 d7 92 90 35 d3 82 2f   .S[Me.......5../\nSerial number: 0x078B8040\nTime stamp: Sep  4 13:28:29 2026 GMT\nAccuracy: unspecified\nOrdering: yes\nNonce: 0x6439137330A80115\nTSA: DirName:/O=Free TSA/OU=TSA/description=This certificate digitally signs documents and time stamp requests made using the freetsa.org online services/CN=www.freetsa.org/emailAddress=busilezas@mailbox.org/L=Wuerzburg/C=DE/ST=Bayern\nExtensions:\n"
+        },
+        "openssl_timestamp_verify_digest": {
+          "available": true,
+          "command": [
+            "openssl",
+            "ts",
+            "-verify",
+            "-in",
+            "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/008_uuid_9101c009-3c8e-480f-a937-5b09abd0c23b/_desktop_receipt_tsa/stored_receipt.tsr",
+            "-digest",
+            "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+            "-CAfile",
+            "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/cacert.pem",
+            "-untrusted",
+            "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt"
+          ],
+          "returncode": 0,
+          "stderr": "Using configuration from /usr/local/Caskroom/miniforge/base/ssl/openssl.cnf\nWarning: certificate from 'odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt' with subject '/O=Free TSA/OU=TSA/description=This certificate digitally signs documents and time stamp requests made using the freetsa.org online services/CN=www.freetsa.org/emailAddress=busilezas@mailbox.org/L=Wuerzburg/C=DE/ST=Bayern' is not a CA cert\n",
+          "stdout": "Verification: OK\n"
+        },
+        "openssl_timestamp_verify_query": {
+          "available": true,
+          "command": [
+            "openssl",
+            "ts",
+            "-verify",
+            "-in",
+            "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/008_uuid_9101c009-3c8e-480f-a937-5b09abd0c23b/_desktop_receipt_tsa/stored_receipt.tsr",
+            "-queryfile",
+            "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/008_uuid_9101c009-3c8e-480f-a937-5b09abd0c23b/_desktop_receipt_tsa/stored_receipt.tsq",
+            "-CAfile",
+            "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/cacert.pem",
+            "-untrusted",
+            "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt"
+          ],
+          "returncode": 0,
+          "stderr": "Using configuration from /usr/local/Caskroom/miniforge/base/ssl/openssl.cnf\nWarning: certificate from 'odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt' with subject '/O=Free TSA/OU=TSA/description=This certificate digitally signs documents and time stamp requests made using the freetsa.org online services/CN=www.freetsa.org/emailAddress=busilezas@mailbox.org/L=Wuerzburg/C=DE/ST=Bayern' is not a CA cert\n",
+          "stdout": "Verification: OK\n"
+        },
+        "openssl_token_extract": {
+          "available": true,
+          "command": [
+            "openssl",
+            "ts",
+            "-reply",
+            "-in",
+            "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/008_uuid_9101c009-3c8e-480f-a937-5b09abd0c23b/_desktop_receipt_tsa/stored_receipt.tsr",
+            "-token_out",
+            "-out",
+            "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/008_uuid_9101c009-3c8e-480f-a937-5b09abd0c23b/_desktop_receipt_tsa/stored_receipt_token.der"
+          ],
+          "returncode": 0,
+          "stderr": "Using configuration from /usr/local/Caskroom/miniforge/base/ssl/openssl.cnf\n",
+          "stdout": ""
+        },
+        "overall_valid": true,
+        "parsed_serial_hex": "78b8040",
+        "parsed_time_iso": "2026-09-04T13:28:29+00:00",
+        "receipt_envelope_sha256_calculated": "b4904037d501707efdc0aab3a345f1f415a1696dfdb1d62a2215607dd41acdfb",
+        "receipt_envelope_sha256_stored": "b4904037d501707efdc0aab3a345f1f415a1696dfdb1d62a2215607dd41acdfb",
+        "timestamp_after_source_version": true,
+        "timestamp_before_writeback_version": true,
+        "timestamp_required": true,
+        "tsa_trust": {
+          "authority": "https://freetsa.org/tsr",
+          "available": true,
+          "ca_cache_source": "PINNED_CACHE",
+          "ca_file": "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/cacert.pem",
+          "ca_file_sha256": "2151b61137ffa86bf664691ba67e7da0b19f98c758e3d228d5d8ebf27e044438",
+          "source": "FREETSA_PINNED",
+          "tsa_cache_source": "PINNED_CACHE",
+          "tsa_cert_file": "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt",
+          "tsa_cert_file_sha256": "8bfb0305bb64e2571ca507552ef3245cb1c2fee8728e0ff8689225081ea13467"
+        },
+        "tsa_trust_source": "FREETSA_PINNED",
+        "verification_status": "VERIFIED"
+      }
+    },
+    "reason": "ALL_UNSEEN_VERSIONS_RECONSTRUCTED",
+    "start_index": 8,
+    "unseen_count": 0,
+    "versions": []
+  },
+  "server_review_state_before": "approved"
+}

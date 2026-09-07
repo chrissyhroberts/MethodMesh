@@ -1,0 +1,92 @@
+# Dice
+
+**Method ID:** `dice.simulate`  
+**Module:** Chance (`chance`)  
+**Lane:** Development  
+**MethodMesh standard:** v1.05
+
+## Purpose
+
+Roll ordinary or advanced tabletop/RPG dice expressions, including mixed dice, arithmetic modifiers, keep/drop, rerolls, cascading explosions, success counting, comparisons, percentile and Fate/Fudge dice.
+
+## Canonical surface parity
+
+This method is implemented once by the Chance module and is independently exposed for direct native launch, the generic dashboard capability surface, preset creation/execution and protocol composition. ODK/XLSForm invokes the same method ID and receives fields from the same declared output contract. There is no dashboard-only or ODK-only implementation.
+
+## Native UX and Commit
+
+The user configures dice with friendly controls or advanced notation, deliberately rolls, watches the established full-screen wireframe animation, sees the current result, then commits it. Rerolls resolve amber, explosions green with cascading inset dice, and dropped dice resolve red then fade. Pathological result sets wrap rather than growing off-screen. Multiplayer uses take-turns or an around-table view.
+
+Recorded working results remain mutable until **Commit**. Commit freezes the already-generated canonical payload and reveals beef-first Share/Copy/Save/Done/New run actions on the same screen. Audit/JSON inclusion is opt-in. Useful displayed scalar/text results are tappable to copy their useful value.
+
+## Presets and protocols
+
+All canonical settings are declared through `MethodSetting`. Fixed preset values are hidden on native preset execution; declared runtime fields remain visible. A fully fixed native preset can start the operation directly where appropriate. Protocols call `dice.simulate` as an independent step and receive the same canonical result; completion is returned to the protocol runner through the supplied MethodMesh callback.
+
+## ODK/XLSForm
+
+Non-interactive when ODK supplies the expression/settings: MethodMesh executes locally and returns the canonical payload immediately. Inputs use the standard `input_*` projection. `input_payload_mode='FULL'` makes the generic transport return `methodmesh_full_json` in addition to requested flat fields. Return namespace projection, ClipData/URI grants (not used by this non-media capability) and caller closeout are owned by the shared transport rather than Chance.
+
+Example: `example_odk_dice_simulate.xlsx`.
+
+## Settings / runtime inputs
+
+- `expression` - dice notation/configuration
+- `roll_count` - recorded rolls per player
+- `player_count` - 1-20
+- `player_mode` - `take_turns` or `around_table`
+- `history_output` - include full series
+- `rng_mode` - secure or fixed-seed
+- `seed` - deterministic seed text
+- `animation_mode` - full/fast/off (native presentation only)
+
+Preset authoring may mark applicable settings as fixed or runtime. ODK may supply the same values with `input_` prefixes.
+
+## Outputs
+
+**Primary beef:** `dice_result`
+
+Totals, per-player JSON, retained/base values, history, primitive draw count and complete last-roll details remain contractually available even when not shown in the everyday UI.
+
+| Field | Role |
+|---|---|
+| `dice_status` | status/diagnostic |
+| `dice_result` | primary |
+| `dice_total` | secondary |
+| `dice_outcome` | secondary |
+| `dice_expression` | secondary |
+| `dice_canonical_expression` | secondary |
+| `dice_roll_count` | secondary |
+| `dice_player_count` | secondary |
+| `dice_players_json` | secondary |
+| `dice_last_values_csv` | secondary |
+| `dice_last_retained_values_csv` | secondary |
+| `dice_totals_csv` | secondary |
+| `dice_history_json` | secondary |
+| `dice_last_roll_details_json` | secondary |
+| `dice_primitive_draw_count` | audit/provenance |
+| `dice_rng_mode` | secondary |
+| `dice_seed` | audit/provenance |
+| `dice_seed_sha256` | audit/provenance |
+| `dice_rng_algorithm` | audit/provenance |
+| `dice_rng_algorithm_version` | audit/provenance |
+| `dice_engine_version` | audit/provenance |
+| `dice_generated_time_iso` | audit/provenance |
+| `dice_audit_json` | audit/provenance |
+| `dice_error` | status/diagnostic |
+
+`dice_audit_json`, RNG/seed fields, engine/algorithm versions, generated time and primitive-draw trace.
+
+`methodmesh_full_json` is a generic FULL-payload transport field rather than a Chance descriptor field; it contains the complete projected execution when requested.
+
+## State, offline behavior and storage
+
+The operation is local/offline. Relevant configuration, working result, animation/turn progress and committed screen state are saveable across ordinary activity recreation/orientation changes. Chance does not automatically create durable records or Downloads copies. Save is explicit. ODK owns its surrounding form persistence.
+
+## Permissions and dependencies
+
+No capability-specific Android permission, network service or third-party runtime dependency is required.
+
+## Validation status
+
+See `VALIDATION.md`. The v1.05 migration is retained in the Development lane until it is built and exercised in the full MethodMesh app.

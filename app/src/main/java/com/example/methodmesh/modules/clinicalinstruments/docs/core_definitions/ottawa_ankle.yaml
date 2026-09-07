@@ -1,0 +1,45 @@
+schema: methodmesh.clinical-instrument.v1
+id: ottawa_ankle
+name: Ottawa ankle radiography rule
+version: 1.0.0
+status: core
+type: decision_rule
+category: acute_bedside
+tags: [trauma, ankle, imaging, emergency]
+summary: Ottawa criteria for deciding whether ankle radiography is indicated after acute ankle trauma.
+source_url: https://aci.health.nsw.gov.au/ecat/appendices/ottawa-ankle-adult
+citation: "Stiell IG, McKnight RD, Greenberg GH, et al. Implementation of the Ottawa Ankle Rules. JAMA. 1994;271:827-832. Criteria cross-checked against NSW Agency for Clinical Innovation."
+rights_status: factual_definition
+rights_note: Implements factual examination criteria; concise labels are MethodMesh wording.
+questions:
+  - id: malleolar_zone_pain
+    label: Pain in the malleolar zone?
+    type: boolean
+  - id: lateral_malleolus_tenderness
+    label: Bone tenderness at posterior edge or tip of lateral malleolus?
+    hint: Distal 6 cm of posterior fibula or tip.
+    type: boolean
+  - id: medial_malleolus_tenderness
+    label: Bone tenderness at posterior edge or tip of medial malleolus?
+    hint: Distal 6 cm of posterior tibia or tip.
+    type: boolean
+  - id: unable_four_steps
+    label: Unable to bear weight for four steps both immediately after injury and in the department?
+    type: boolean
+derived:
+  - id: ankle_radiography_rule_positive
+    expression: malleolar_zone_pain and (lateral_malleolus_tenderness or medial_malleolus_tenderness or unable_four_steps)
+classifications:
+  - when: ankle_radiography_rule_positive == true
+    value: radiography_criteria_met
+    label: Ottawa ankle radiography criteria met
+  - when: ankle_radiography_rule_positive == false
+    value: radiography_criteria_not_met
+    label: Ottawa ankle radiography criteria not met
+tests:
+  - name: positive
+    input_json: '{"malleolar_zone_pain":true,"lateral_malleolus_tenderness":true,"medial_malleolus_tenderness":false,"unable_four_steps":false}'
+    expect_json: '{"ankle_radiography_rule_positive":true,"classification":"radiography_criteria_met"}'
+  - name: no_zone_pain
+    input_json: '{"malleolar_zone_pain":false,"lateral_malleolus_tenderness":true,"medial_malleolus_tenderness":false,"unable_four_steps":false}'
+    expect_json: '{"ankle_radiography_rule_positive":false,"classification":"radiography_criteria_not_met"}'

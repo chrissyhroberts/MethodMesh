@@ -1,0 +1,7 @@
+MethodMesh Cryptography v0.2.1 standalone dependency scan
+PASS
+- no org.pgpainless references
+- no org.bouncycastle references
+- no Gradle dependency declarations inside Kotlin source
+- no host Gradle patch
+- dependencies(): List<ModuleDependency> = emptyList()

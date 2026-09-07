@@ -1,0 +1,112 @@
+[17:31:56] [INFO] Starting MethodMesh v13.4 for Central https://central.lshtm.ac.uk, project 231, form methodmesh_capability_chain_showcase
+[17:31:56] [INFO] Authenticating to Central as chrissy.roberts@lshtm.ac.uk...
+[17:32:03] [INFO] Central authentication: PASS (0.4s)
+[17:32:03] [INFO] Opening non-data MethodMesh state ledger...
+[17:32:03] [INFO] Running point-in-time DNS/TLS/HTTP/API/targeted-port service probe...
+[17:32:17] [INFO] Selecting ephemeral verifier workspace...
+WARNING: --allow-disk-temp is active. This is intended only for development/testing; transient XML may touch ordinary temporary storage.
+[17:32:17] [INFO] Loading/pinning RFC3161 TSA public trust material...
+[17:32:17] [INFO] Reading Central server-wide audit delta (if permitted)...
+[17:32:17] [INFO] Enumerating active and deleted forms in the project...
+[17:32:18] [INFO] Project form inventory: 1 active, 3 deleted historical form object(s).
+[17:32:18] [PROGRESS] Project forms: 0/1 (0.0%; 0.0/s)
+[17:32:18] [PROGRESS] Project forms: 0/1 (0.0%; 0.0/s) — processing methodmesh_capability_chain_showcase
+
+##############################################################################
+FORM methodmesh_capability_chain_showcase
+##############################################################################
+[17:32:18] [INFO] Reading active submission metadata for form 'methodmesh_capability_chain_showcase' (page size 1,000)...
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: active metadata page 1 returned 3 rows (3 cumulative; 0.0s)
+[17:32:18] [INFO] methodmesh_capability_chain_showcase: active metadata complete — 3 rows.
+[17:32:18] [INFO] Reading deleted submission metadata for form 'methodmesh_capability_chain_showcase' (page size 1,000)...
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: deleted metadata page 1 returned 5 rows (5 cumulative; 0.0s)
+[17:32:18] [INFO] methodmesh_capability_chain_showcase: deleted metadata complete — 5 rows.
+[17:32:18] [INFO] methodmesh_capability_chain_showcase: metadata loaded — 3 active, 5 deleted.
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: active submissions: 0/3 (0.0%; 0.0/s)
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: active submissions: 1/3 (33.3%; 1,000.0/s; ETA 0s) — unchanged; content not downloaded
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: active submissions: 2/3 (66.7%; 1,376.0/s; ETA 0s) — unchanged; content not downloaded
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: active submissions: 3/3 (100.0%; 1,482.7/s; ETA 0s) — zero-version anomaly
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: active submissions: 3/3 (100.0%; 1,427.6/s; ETA 0s) — verified=0, unchanged=2, zero-version=1, errors=0
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: deleted inventory: 0/5 (0.0%; 0.0/s)
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: deleted inventory: 1/5 (20.0%; 1,000.0/s; ETA 0s)
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: deleted inventory: 2/5 (40.0%; 2,000.0/s; ETA 0s)
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: deleted inventory: 3/5 (60.0%; 2,437.5/s; ETA 0s)
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: deleted inventory: 4/5 (80.0%; 2,872.8/s; ETA 0s)
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: deleted inventory: 5/5 (100.0%; 3,226.8/s; ETA 0s)
+[17:32:18] [PROGRESS] methodmesh_capability_chain_showcase: deleted inventory: 5/5 (100.0%; 3,169.6/s; ETA 0s) — currently deleted=5
+[17:32:18] [INFO] methodmesh_capability_chain_showcase: checking Central comments for unresolved edit reasons...
+[FORM SUMMARY] metadata=3 active, 5 deleted; content verified=0; unchanged skipped=2; zero-version=1; errors=0
+[17:32:18] [PROGRESS] Project forms: 1/1 (100.0%; 5.0/s; ETA 0s) — methodmesh_capability_chain_showcase complete
+[17:32:18] [PROGRESS] Project forms: 1/1 (100.0%; 5.0/s; ETA 0s) — all selected forms complete
+
+==============================================================================
+DELTA RUN SUMMARY
+==============================================================================
+Forms examined:           1
+Submission metadata rows: 8
+Content verified:         0
+Unchanged content skipped:        2
+Zero-version anomalies:   1
+Currently deleted rows:   5
+Verification errors:      0
+Server audit events read: 9
+Form lifecycle observations: discovered=0, deleted=0, restored=0, version_changed=0
+Persistent research data: NONE (ledger contains metadata/hashes/reasons only)
+[17:32:18] [INFO] Building project daily evidence checkpoint and requesting RFC3161 timestamp...
+[17:32:18] [INFO] Checkpoint: collecting privacy-safe Central project/system metadata...
+[17:32:18] [PROGRESS] Checkpoint: Central metadata endpoints: 0/17 (0.0%; 0.0/s)
+[17:32:18] [INFO] Checkpoint metadata: reading projects (/v1/projects)...
+[17:32:19] [PROGRESS] Checkpoint: Central metadata endpoints: 1/17 (5.9%; 1.9/s; ETA 8s) — projects: HTTP 200
+[17:32:19] [INFO] Checkpoint metadata: reading forms (/v1/projects/231/forms)...
+[17:32:19] [PROGRESS] Checkpoint: Central metadata endpoints: 2/17 (11.8%; 2.5/s; ETA 6s) — forms: HTTP 200
+[17:32:19] [INFO] Checkpoint metadata: reading project (/v1/projects/231)...
+[17:32:19] [PROGRESS] Checkpoint: Central metadata endpoints: 3/17 (17.6%; 2.9/s; ETA 5s) — project: HTTP 200
+[17:32:19] [INFO] Checkpoint metadata: reading form (/v1/projects/231/forms/methodmesh_capability_chain_showcase)...
+[17:32:20] [PROGRESS] Checkpoint: Central metadata endpoints: 4/17 (23.5%; 3.1/s; ETA 4s) — form: HTTP 200
+[17:32:20] [INFO] Checkpoint metadata: reading form_versions (/v1/projects/231/forms/methodmesh_capability_chain_showcase/versions)...
+[17:32:20] [PROGRESS] Checkpoint: Central metadata endpoints: 5/17 (29.4%; 3.7/s; ETA 3s) — form_versions: HTTP 200
+[17:32:20] [INFO] Checkpoint metadata: reading submitters (/v1/projects/231/forms/methodmesh_capability_chain_showcase/submissions/submitters)...
+[17:32:20] [PROGRESS] Checkpoint: Central metadata endpoints: 6/17 (35.3%; 4.4/s; ETA 2s) — submitters: HTTP 200
+[17:32:20] [INFO] Checkpoint metadata: reading roles (/v1/roles)...
+[17:32:20] [PROGRESS] Checkpoint: Central metadata endpoints: 7/17 (41.2%; 5.1/s; ETA 2s) — roles: HTTP 200
+[17:32:20] [INFO] Checkpoint metadata: reading app_users (/v1/projects/231/app-users)...
+[17:32:20] [PROGRESS] Checkpoint: Central metadata endpoints: 8/17 (47.1%; 4.4/s; ETA 2s) — app_users: HTTP 200
+[17:32:20] [INFO] Checkpoint metadata: reading actor_properties (/v1/projects/231/actor-properties)...
+[17:32:20] [PROGRESS] Checkpoint: Central metadata endpoints: 9/17 (52.9%; 4.9/s; ETA 2s) — actor_properties: HTTP 404
+[17:32:20] [INFO] Checkpoint metadata: reading project_form_assignments (/v1/projects/231/assignments/forms)...
+[17:32:20] [PROGRESS] Checkpoint: Central metadata endpoints: 10/17 (58.8%; 5.4/s; ETA 1s) — project_form_assignments: HTTP 200
+[17:32:20] [INFO] Checkpoint metadata: reading form_assignments (/v1/projects/231/forms/methodmesh_capability_chain_showcase/assignments)...
+[17:32:20] [PROGRESS] Checkpoint: Central metadata endpoints: 11/17 (64.7%; 5.9/s; ETA 1s) — form_assignments: HTTP 200
+[17:32:20] [INFO] Checkpoint metadata: reading project_assignments (/v1/projects/231/assignments)...
+[17:32:20] [PROGRESS] Checkpoint: Central metadata endpoints: 12/17 (70.6%; 6.3/s; ETA 1s) — project_assignments: HTTP 200
+[17:32:20] [INFO] Checkpoint metadata: reading system_assignments (/v1/assignments)...
+[17:32:20] [PROGRESS] Checkpoint: Central metadata endpoints: 13/17 (76.5%; 6.8/s; ETA 1s) — system_assignments: HTTP 200
+[17:32:20] [INFO] Checkpoint metadata: reading users (/v1/users)...
+[17:32:20] [PROGRESS] Checkpoint: Central metadata endpoints: 14/17 (82.4%; 6.8/s; ETA 0s) — users: HTTP 200
+[17:32:20] [INFO] Checkpoint metadata: reading analytics_config (/v1/config/analytics)...
+[17:32:20] [PROGRESS] Checkpoint: Central metadata endpoints: 15/17 (88.2%; 7.2/s; ETA 0s) — analytics_config: HTTP 200
+[17:32:20] [INFO] Checkpoint metadata: reading analytics_preview (/v1/analytics/preview)...
+[17:32:35] [PROGRESS] Checkpoint: Central metadata endpoints: 16/17 (94.1%; 1.0/s; ETA 1s) — analytics_preview: HTTP 200
+[17:32:35] [INFO] Checkpoint metadata: reading server-wide Central audits...
+[17:32:35] [PROGRESS] Checkpoint: Central metadata endpoints: 17/17 (100.0%; 1.0/s; ETA 0s) — server_audits: 7 event(s)
+[17:32:35] [PROGRESS] Checkpoint: Central metadata endpoints: 17/17 (100.0%; 1.0/s; ETA 0s) — system/project metadata collection complete
+[17:32:35] [INFO] Checkpoint: loading non-data submission state from SQLite ledger...
+[17:32:35] [INFO] Checkpoint: hashing 29 evidence leaves into Merkle tree...
+[17:32:35] [INFO] Checkpoint: requesting RFC3161 timestamp for 1a400c56b8998977... from https://freetsa.org/tsr
+[17:32:36] [INFO] Checkpoint: RFC3161 response received; validating timestamp evidence...
+[17:32:36] [INFO] Checkpoint: building and self-verifying auditor-safe ZIP...
+[17:32:36] [INFO] Checkpoint: complete — Merkle root and TSA evidence committed.
+
+==============================================================================
+PROJECT DAILY CHECKPOINT
+==============================================================================
+Merkle root:      de2e388fade8e6b420a93aae8e1f992bd53224db7eb858f233da7b2530244a9a
+Checkpoint SHA:   1a400c56b8998977141a9b67b20e0083e6c55f2f20c158d8d09867189d7ef309
+RFC3161:          VERIFIED
+TSA time:         2026-09-04T16:32:36+00:00
+SAFE AUDITOR ZIP: /Users/icrucrob/AndroidStudioProjects/MethodMesh/trial_audit_model/methodmesh_state_auditor_exports/methodmesh_auditor_bundle_20260904T163218Z.zip
+
+Persistent state privacy check: PASS
+Ledger: /Users/icrucrob/AndroidStudioProjects/MethodMesh/trial_audit_model/methodmesh_state/methodmesh_state.sqlite
+DONE
+[17:32:36] [INFO] MethodMesh run completed successfully.

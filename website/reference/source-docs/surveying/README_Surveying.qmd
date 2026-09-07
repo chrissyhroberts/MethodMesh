@@ -1,0 +1,260 @@
+---
+title: "MethodMesh Surveying capability"
+subtitle: "Module source document · Surveying"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/surveying/docs/README_Surveying.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+Status: **Development prototype**  
+Module: `surveying`
+
+This module provides compact field-survey calculation primitives plus two persistent field-book dashboards. It is deliberately split between deterministic local-grid mathematics and lower-precision phone/GPS support. It does **not** treat a phone GNSS fix as survey-grade control.
+
+## What is included
+
+| Method ID | Native function | Main result |
+|---|---|---|
+| `survey.bearing_distance` | Inverse between two local-grid coordinates, or GPS-to-GPS navigation inverse | distance + azimuth/quadrant bearing |
+| `survey.forward_coordinate` | Forward coordinate from start, grid azimuth and horizontal distance | target E/N |
+| `survey.offset_point` | Coordinate at chainage plus signed right offset from a baseline | target E/N |
+| `survey.chainage_offset` | Project a point onto a baseline | chainage + signed right offset |
+| `survey.traverse` | Traverse coordinates, closure diagnostics and optional adjustment | leg count + closure |
+| `survey.area` | Polygon area, signed area, perimeter and centroid | area + perimeter |
+| `survey.level_reduce` | Reduce BS/IS/FS observations; HI, rise/fall, RL, arithmetic check and closure | final RL + closure |
+| `survey.grade` | Rise/fall to percent grade, angle and 1:n | grade + angle |
+| `survey.gps_average` | Average repeated GPS fixes with optional accuracy weighting | mean position + scatter |
+| `survey.intersection` | Bearing/bearing intersection from two known grid stations | intersection E/N |
+| `survey.setout` | Grid bearing and distance from current station to target | go distance + azimuth |
+| `survey.traverse_book` | Persistent traverse field-book dashboard | current traverse snapshot |
+| `survey.levelling_book` | Persistent levelling field-book dashboard | current levelling snapshot |
+
+All methods return the common compact fields `survey_status`, `survey_valid`, `survey_method`, `survey_main_result`, `survey_error` and `survey_metadata_json` plus method-specific fields.
+
+## Coordinate conventions
+
+Local-grid methods use:
+
+- `easting = X`;
+- `northing = Y`;
+- azimuth clockwise from **grid north**, normalised to 0–360°;
+- positive offset = **right of the baseline direction**;
+- metric field names use `_m` or `_sq_m` where appropriate.
+
+The code does not silently apply magnetic declination, meridian convergence, grid scale, elevation scale, datum transformations or ground-to-grid corrections. If those matter, supply already compatible coordinates/bearings or add an explicit transformation step in a later module revision.
+
+## Traverse calculation
+
+Input `traverse_legs` is newline/semicolon separated CSV:
+
+```text
+P1,90,100
+P2,0,100
+P3,270,100
+P4,180,100
+```
+
+Each row is `point_id,bearing_degrees,distance` (or simply `bearing,distance`). If known closing E/N are supplied, the module reports:
+
+- easting and northing misclosure;
+- linear misclosure;
+- relative precision (`perimeter / linear misclosure`);
+- optional pass/fail against `minimum_relative_precision`;
+- unadjusted and adjusted coordinates.
+
+Adjustment choices are:
+
+- `none`;
+- `bowditch` / compass rule: coordinate corrections proportional to leg length;
+- `transit`: easting correction proportional to absolute ΔE and northing correction proportional to absolute ΔN, with Bowditch fallback on a zero denominator.
+
+These are classical small-network adjustments. The module does not yet perform a weighted least-squares network adjustment.
+
+## Traverse field-book dashboard
+
+`survey.traverse_book` owns a local job repository and lets the operator:
+
+- start/name a traverse;
+- define start control and optional closing control;
+- set closure tolerance and adjustment rule;
+- append bearing/distance legs;
+- undo observations;
+- see live raw/adjusted plan geometry;
+- see total length, ΔE/ΔN and linear misclosure, relative precision and tolerance status;
+- retain the job locally between runs;
+- explicitly **Use this snapshot** / **Finish** when the current state should be returned to MethodMesh.
+
+Refreshing/editing the live book does not commit a MethodMesh history result. The dashboard keeps the latest real `ExecutionResult` privately and passes it to the scaffold only on explicit native confirmation. External/ODK calls use the normal single-shot result path.
+
+## Levelling reduction
+
+Input `level_observations` is newline/semicolon separated CSV:
+
+```text
+BM,BS,1.500,0
+P1,IS,2.000,25
+CP1,FS,2.500,25
+CP1,BS,1.000,0
+END,FS,1.500,50
+```
+
+Rows are `station,BS|IS|FS,reading,distance_from_previous`.
+
+A change point must use the same station ID on its FS and following BS. The reducer calculates height of collimation, rise/fall, RL and cumulative distance. It verifies:
+
+```text
+ΣBS − ΣFS = last RL − first RL
+```
+
+If a known closing RL is supplied, closure error is `computed_final_RL - known_close_RL`. Optional closure correction is distributed by cumulative distance when distances are available, otherwise by observation position.
+
+## Levelling field-book dashboard
+
+`survey.levelling_book` provides a persistent BS/IS/FS book with:
+
+- job name, starting benchmark RL and optional closing benchmark RL;
+- append/undo observations;
+- explicit observation type;
+- distance-from-previous point;
+- live reduced levels and arithmetic check;
+- live closure error and adjusted final RL;
+- simple longitudinal RL profile;
+- explicit **Use this snapshot** / **Finish** semantics.
+
+## GPS support
+
+`survey.gps_average` accepts `latitude,longitude[,accuracy_m]` fixes. When accuracy weighting is enabled and reported accuracies are available, weights are proportional to `1/accuracy²`. It returns RMS and maximum scatter around the mean position.
+
+This is a field-QC / repeated-fix convenience. Android GNSS accuracy estimates and consumer-phone antenna/systematics do not make this a survey-grade GNSS solution.
+
+The GPS mode of `survey.bearing_distance` uses a spherical great-circle inverse for navigation/QC. It is intentionally documented as **not cadastral geodesy**.
+
+## Relationship to existing MethodMesh capabilities
+
+This module should not duplicate existing device boundaries:
+
+- `spatialgeometry` already provides sensor-assisted slope/height/distance measurements;
+- `gpstargetnavigator` already provides live GPS target navigation;
+- GPS/Measure outputs can be piped into the declared surveying settings using the normal MethodMesh runtime field contract.
+
+`survey.setout` therefore handles the local-grid computation; use the existing GPS target navigator for live WGS84 navigation rather than creating a second navigator here.
+
+## Native workflow
+
+Atomic calculations show only their runtime inputs, calculate once and return the compact `survey_main_result` as the beef-first result. Detailed result fields and `survey_metadata_json` remain available for export/audit.
+
+Fixed native-preset settings are hidden with `context.settingShouldBeShown(...)`. Runtime fields remain editable. Calculation state is serialised through `rememberSaveable` so deterministic results can be reconstructed after configuration changes.
+
+## Preset workflow
+
+Typical useful presets include:
+
+- a site-specific traverse with fixed start/close control and closure tolerance, asking only for legs;
+- a benchmark levelling run with fixed start/close RL;
+- a repeated GPS-fix QC preset with accuracy weighting fixed on;
+- a set-out preset with a fixed target and runtime current grid coordinate.
+
+The two field books are persistent-dashboard capabilities: native presets remain on the live dashboard until **Finish**.
+
+## ODK/XLSForm workflow
+
+Use the standard group-intent pattern:
+
+```text
+begin_group  ...  body::intent=com.example.methodmesh.EXECUTE_METHOD(...)
+  text       survey_status       ... read_only=yes
+  text       survey_main_result  ... read_only=yes
+  ... method-specific return fields ...
+  text       survey_metadata_json ... read_only=yes
+end_group
+```
+
+Inputs are supplied as `input_*` intent parameters and examples request `return_mode='flat'`.
+
+Example for a traverse:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(
+  method_id='survey.traverse',
+  input_start_point_id=${start_point_id},
+  input_start_easting=${start_easting},
+  input_start_northing=${start_northing},
+  input_traverse_legs=${traverse_legs},
+  input_close_easting=${close_easting},
+  input_close_northing=${close_northing},
+  input_adjustment_mode=${adjustment_mode},
+  input_minimum_relative_precision=${minimum_relative_precision},
+  return_mode='flat'
+)
+```
+
+The `docs/` folder contains representative XLSForm examples for `survey.traverse`, `survey.level_reduce` and `survey.bearing_distance`; the same group-intent pattern applies to the other atomic methods. Dashboard methods are primarily native/preset tools; an external snapshot may supply an existing local `survey_job_id`, but a fresh ODK workflow should normally call the atomic `survey.traverse` or `survey.level_reduce` method directly.
+
+## Permissions and services
+
+The calculation methods require no Android permission and work offline.
+
+This v0.1 prototype does not directly acquire GPS. GPS values are inputs from another MethodMesh capability/ODK field or entered manually. This keeps the mathematics independently testable and avoids duplicating the established location boundary.
+
+The dashboards use capability-owned app-local persistence only.
+
+## Output philosophy
+
+Primary/native output is `survey_main_result`. Machine-readable/audit use can retain:
+
+- all declared flattened fields;
+- CSV text for point tables / levelling tables where generated;
+- `survey_metadata_json` containing the calculated values and method identity.
+
+No native output is automatically written to external files.
+
+## Known limitations / safety notes
+
+1. **CRS is not inferred.** Local-grid E/N inputs must already share a coordinate reference system and units.
+2. **Grid/ground corrections are not applied.** No convergence, combined scale factor, sea-level correction or magnetic declination is assumed.
+3. **GPS calculations are navigation/QC level.** The great-circle inverse is spherical, and phone GNSS is not survey-grade control.
+4. **Traverse adjustment is Bowditch/transit only.** No angular-condition adjustment or least-squares network solver yet.
+5. **Polygon area is planar.** It assumes an ordered, non-self-intersecting polygon in a suitable projected/local grid.
+6. **No cadastral/legal assertion.** Results are calculations from supplied inputs; legal survey practice, instrument calibration and jurisdictional standards remain external requirements.
+7. **Persistence is app-local.** v0.1 does not yet export/import an entire field-book job as a portable package.
+8. **Units are metres by convention.** Coordinate values themselves are unitless numbers; users must not mix metres and feet.
+
+## High-value follow-on capabilities
+
+These are deliberately left as explicit extensions rather than hidden assumptions in v0.1:
+
+### Priority 1 — field practice/QC
+
+- DMS/decimal/quadrant bearing parser and converter, including angle addition/subtraction;
+- slope-distance reduction: slope/zenith angle → horizontal distance + ΔH;
+- observed-angle traverse: interior/deflection angles, angular misclosure and distribution before coordinate closure;
+- two-peg level check and simple collimation-error calculation;
+- distance-distance and bearing-distance intersections;
+- backsight/orientation check and repeated face-left/face-right observation averaging;
+- configurable tolerance profiles, while always showing the raw misclosure used to reach pass/fail.
+
+### Priority 2 — coordinate systems and engineering set-out
+
+- explicit 2D similarity/Helmert transformation from control pairs with residuals;
+- CRS-aware WGS84 ↔ projected coordinates using a vetted projection library rather than hand-coded transforms;
+- grid convergence, point scale and grid-to-ground/ground-to-grid distance correction;
+- circular-curve setting: PI/PC/PT, tangent length, chainage, chord/deflection tables and offsets;
+- line/grade set-out: design chainage + offset + design RL → horizontal and vertical deltas;
+- profile/cross-section records and cut/fill once a defensible surface model exists.
+
+### Priority 3 — field data interoperability
+
+- import total-station/level CSV field books with explicit vendor profiles;
+- NMEA/Bluetooth external GNSS ingestion with fix type, satellite and age-of-correction metadata;
+- portable survey-job export/import (CSV + JSON manifest; optionally GeoJSON/DXF where appropriate);
+- feature codes and point descriptions;
+- least-squares control-network adjustment with observation weights, residuals, error ellipses and chi-square diagnostics.
+
+These extensions should continue to share a calculation engine with any dashboards and should not put surveying-specific logic into MethodMesh's shared UI.
+
+## Development validation
+
+See `BUILD_REPORT.md`. Pure Kotlin numerical smoke tests pass. The full Android Gradle build and real-device native/preset/ODK/dashboard checks remain required before Production.
+

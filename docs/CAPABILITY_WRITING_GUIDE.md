@@ -88,12 +88,15 @@ The build generates a module index automatically from files named `*Module.kt` u
 
 Do not add a one-off registration list for your capability.
 
+Set `iconKey` if the capability has a clear visual family. This lets generic surfaces such as Android home-screen widgets inherit a MethodMesh-styled icon without teaching the dashboard about individual capabilities. Good broad keys are `document`, `location`, `language`, `hardware`, `random`, `schedule` and `tool`. If in doubt, omit it; the module ID will be used as a fallback and can be refined later.
+
 Minimal shape:
 
 ```kotlin
 object ExampleModule : MethodMeshModule {
     override val moduleId = "example"
     override val displayName = "Example capability"
+    override val iconKey = "tool"
     override val summary = "Short plain-language summary."
 
     override fun as100Methods() = listOf(As100ExampleMethod)
@@ -224,6 +227,7 @@ For native runs:
 - show the main useful result clearly;
 - make the result easy to share;
 - default sharing to the main result only;
+- offer full JSON/audit data as an explicit opt-in on the result screen;
 - keep audit JSON/details in the background or under an optional details/export path;
 - do not auto-save to files unless the user or preset result action explicitly asks for saving;
 - preserve result state across orientation changes;

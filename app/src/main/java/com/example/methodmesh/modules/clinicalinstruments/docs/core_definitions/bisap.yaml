@@ -1,0 +1,76 @@
+schema: methodmesh.clinical-instrument.v1
+id: bisap
+name: BISAP acute pancreatitis score
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [pancreatitis, gastrointestinal, severity, emergency]
+summary: Five-point Bedside Index for Severity in Acute Pancreatitis using findings from the first 24 hours.
+source_url: https://pmc.ncbi.nlm.nih.gov/articles/PMC10167805/
+citation: "Wu BU, Johannes RS, Sun X, et al. The early prediction of mortality in acute pancreatitis: a large population-based study. Gut. 2008;57:1698-1703. BISAP criteria cross-checked against contemporary reviews."
+rights_status: factual_definition
+rights_note: Implements the five factual BISAP criteria; SIRS is calculated from its four standard criterion groups.
+questions:
+  - id: bun_mg_dl
+    label: Blood urea nitrogen
+    type: decimal
+    unit: mg/dL
+    min: 0
+    max: 200
+  - id: impaired_mental_status
+    label: Impaired mental status?
+    hint: Commonly operationalised as Glasgow Coma Scale below 15.
+    type: boolean
+  - id: age_years
+    label: Age
+    type: integer
+    unit: years
+    min: 16
+    max: 130
+  - id: pleural_effusion
+    label: Pleural effusion present on imaging?
+    type: boolean
+  - id: sirs_temperature
+    label: SIRS temperature criterion present?
+    hint: Temperature below 36 C or above 38 C.
+    type: boolean
+  - id: sirs_heart_rate
+    label: SIRS heart-rate criterion present?
+    hint: Heart rate above 90 beats/min.
+    type: boolean
+  - id: sirs_respiratory
+    label: SIRS respiratory criterion present?
+    hint: Respiratory rate above 20 breaths/min or PaCO2 below 32 mmHg.
+    type: boolean
+  - id: sirs_wbc
+    label: SIRS white-cell criterion present?
+    hint: WBC above 12,000/mm3, below 4,000/mm3, or more than 10% immature forms.
+    type: boolean
+derived:
+  - id: sirs_count
+    expression: sirs_temperature + sirs_heart_rate + sirs_respiratory + sirs_wbc
+  - id: sirs_present
+    expression: sirs_count >= 2
+  - id: bun_criterion
+    expression: bun_mg_dl > 25
+  - id: age_criterion
+    expression: age_years > 60
+scores:
+  - id: bisap
+    label: BISAP
+    expression: bun_criterion + impaired_mental_status + sirs_present + age_criterion + pleural_effusion
+classifications:
+  - when: bisap <= 2
+    value: score_0_to_2
+    label: BISAP 0-2
+  - when: bisap >= 3
+    value: score_3_to_5
+    label: BISAP 3-5
+tests:
+  - name: zero
+    input_json: '{"bun_mg_dl":20,"impaired_mental_status":false,"age_years":50,"pleural_effusion":false,"sirs_temperature":false,"sirs_heart_rate":false,"sirs_respiratory":false,"sirs_wbc":false}'
+    expect_json: '{"bisap":0,"classification":"score_0_to_2"}'
+  - name: five
+    input_json: '{"bun_mg_dl":30,"impaired_mental_status":true,"age_years":70,"pleural_effusion":true,"sirs_temperature":true,"sirs_heart_rate":true,"sirs_respiratory":false,"sirs_wbc":false}'
+    expect_json: '{"bisap":5,"classification":"score_3_to_5"}'

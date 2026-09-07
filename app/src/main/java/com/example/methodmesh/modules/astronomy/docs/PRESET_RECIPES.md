@@ -1,0 +1,65 @@
+# Astronomy preset / workflow recipes — v0.3
+
+## Afternoon: should I image tonight?
+
+Standalone/native use:
+
+```text
+astronomy.conditions
+    GPS -> Open-Meteo automatically
+        |
+        v
+astronomy.imaging_window
+    GPS/supplied Plus Code -> Open-Meteo hourly automatically
+```
+
+These capabilities do not require a preceding `api.get` step: they invoke the shared API machinery themselves.
+
+## AHT20 dew measurement — current limitation
+
+There is **not yet a general user-facing MethodMesh pipe**. AHT20 therefore does not automatically feed a separately launched dew-risk screen.
+
+The existing `ExternalWorkflowActivity` does, however, forward completed-step fields to later actions in the **same multi-step external workflow**. In that specific execution mode this works:
+
+```text
+step 1: sensor.read
+        sensor_profile = aht20
+        read_mode = average
+
+        produces:
+        temperature_c
+        relative_humidity_pct
+              |
+              | existing same-workflow field forwarding
+              v
+step 2: astronomy.dew_risk
+```
+
+Outside such a multi-step workflow, `astronomy.dew_risk` uses GPS + Open-Meteo automatically, or manual temperature/humidity offline.
+
+This field-name compatibility is deliberate preparation for a future first-class pipe system, but it is not itself that pipe system.
+
+## Remote / saved observing site
+
+Provide a full Plus Code directly to `astronomy.imaging_window`. The capability decodes the location and obtains the hourly forecast when network access is available. Without network access, location-dependent Sun/Moon/target geometry still works; forecast scoring is absent.
+
+## Good-night calibration
+
+```text
+astronomy.sky_test
+    -> Save current sample as GOOD NIGHT
+```
+
+Later sky tests score stability, transparency, darkness and point-spread width relative to that explicit device/setup baseline.
+
+## Astronomy dashboard
+
+The normal interactive reference use is simply:
+
+```text
+astronomy.dashboard
+```
+
+The screen acquires live GPS unless a Plus Code or coordinates are supplied, then refreshes current weather/air quality, the hourly forecast and GFS upper-atmosphere wind. Pressing **↻ Refresh** replaces the live preview. Press **Use this snapshot** only when the current state should become a recorded MethodMesh result.
+
+External/ODK use calls the same method ID and receives the structured dashboard fields automatically.

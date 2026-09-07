@@ -1,0 +1,8 @@
+METHODMESH v15.2 NON-DATA STATE
+=============================
+ODK Central is the authoritative research-data store.
+This directory must contain no submission XML, photos, attachments,
+CSV/XLS exports, or raw submission-answer JSON.
+Persistent contents are restricted to UUIDs, timestamps, field names,
+comments/reasons, cryptographic hashes, verification states, service
+metadata, public TSA certificates and cryptographic checkpoints.

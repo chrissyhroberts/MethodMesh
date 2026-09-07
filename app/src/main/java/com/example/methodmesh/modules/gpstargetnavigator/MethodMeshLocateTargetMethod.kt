@@ -20,19 +20,59 @@ import com.example.methodmesh.core.methodmesh.Transformation
 import com.example.methodmesh.core.methodmesh.TransformationStatus
 import com.example.methodmesh.core.methodmesh.runtime.As100ExecutionEngine
 import com.example.methodmesh.core.methodmesh.runtime.As100Method
+import com.example.methodmesh.modules.pluscodecapture.OpenLocationCode
 import com.example.methodmesh.platform.location.AndroidLocationDeviceService
 import com.example.methodmesh.settings.SettingsState
 
 /**
- * Native AS1.00 method for locating/navigating relative to a configured target.
+ * Canonical GPS target-navigation capability.
  *
- * The GPS interaction screen owns permission prompts and live Compose display.
- * This method owns the research operation: location signal + target context ->
- * navigation observation/state/transformation and transport output fields.
+ * All surfaces use the same method ID and output field contract. The native
+ * screen supplies the long-running interaction and Commit boundary; presets,
+ * protocols and ODK project the same settings/outputs.
  */
 object As100LocateTargetMethod : As100Method {
     const val ID = "gps_target_navigator"
-    const val VERSION = "0.3.0"
+    const val VERSION = "0.4.1"
+
+    private val OUTPUT_FIELDS = listOf(
+        // Live/current fields.
+        "target_name",
+        "target_plus_code",
+        "target_latitude",
+        "target_longitude",
+        "current_latitude",
+        "current_longitude",
+        "accuracy_m",
+        "distance_m",
+        "bearing_deg",
+        "heading_deg",
+        "relative_bearing_deg",
+        "arrived",
+        "timestamp_ms",
+        "update_count",
+        "status",
+        // Committed navigation-outcome fields.
+        "capability",
+        "event_type",
+        "navigation_completed",
+        "arrival_radius_m",
+        "arrival_latitude",
+        "arrival_longitude",
+        "arrival_accuracy_m",
+        "final_distance_m",
+        "started_at_ms",
+        "ended_at_ms",
+        "duration_seconds",
+        "sample_count",
+        "first_fix_latitude",
+        "first_fix_longitude",
+        "last_fix_latitude",
+        "last_fix_longitude",
+        "min_distance_m",
+        "mean_accuracy_m",
+        "max_accuracy_m"
+    )
 
     override val id: String = ID
 
@@ -45,39 +85,27 @@ object As100LocateTargetMethod : As100Method {
     override val descriptor: MethodDescriptor = MethodDescriptor(
         id = ArchitectureId(ID),
         methodType = MethodObjectType.SignalInterpreter,
-        name = "Locate Target",
+        name = "GPS Target Navigator",
         version = VERSION,
-        description = "Interpret an Android location-fix signal against a configured target coordinate and produce navigation evidence.",
+        description = "Navigate to a WGS84 coordinate or full Plus Code and return live plus committed navigation evidence.",
         inputs = listOf(AndroidLocationDeviceService.SIGNAL_TYPE_LOCATION_FIX),
-        outputs = listOf(
-            "target_name",
-            "target_latitude",
-            "target_longitude",
-            "current_latitude",
-            "current_longitude",
-            "accuracy_m",
-            "distance_m",
-            "bearing_deg",
-            "heading_deg",
-            "relative_bearing_deg",
-            "arrived",
-            "timestamp_ms",
-            "update_count",
-            "status"
-        ),
-
+        outputs = OUTPUT_FIELDS,
         parameters = mapOf(
             "category" to "Mapping",
             "status" to "Production",
             "device_service" to AndroidLocationDeviceService.SERVICE_ID,
-            "target" to "target_latitude,target_longitude,arrival_radius_m"
+            "target" to "target_plus_code|target_latitude,target_longitude",
+            "arrival" to "arrival_radius_m"
         )
     )
 
     override val contract: MethodContract = MethodContract(
         method = ref,
         acceptedSignals = listOf(AndroidLocationDeviceService.SIGNAL_TYPE_LOCATION_FIX),
-        requiredContext = listOf("target_latitude", "target_longitude", "arrival_radius_m"),
+        // Target selection is conditional: target_plus_code OR lat/lon. The
+        // module validates/resolves that condition rather than pretending all
+        // three are simultaneously required.
+        requiredContext = listOf("arrival_radius_m"),
         producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation, KnowledgeObjectType.State),
         producedFields = descriptor.outputs
     )
@@ -102,28 +130,10 @@ object As100LocateTargetMethod : As100Method {
     ): ExecutionResult {
         val signal = request.signals.firstOrNull()
         val output = if (settingsState != null) {
-            outputValues(settingsState).mapValues { it.value.toString() }
+            resolveTargetIntoSettings(settingsState)
+            outputValues(settingsState).mapValues { it.value?.toString().orEmpty() }
         } else {
-            val currentLatitude = signal?.payload?.get("latitude")?.toDoubleOrNull()
-            val currentLongitude = signal?.payload?.get("longitude")?.toDoubleOrNull()
-            val targetLatitude = request.context["target_latitude"]?.toDoubleOrNull()
-            val targetLongitude = request.context["target_longitude"]?.toDoubleOrNull()
-            val arrivalRadius = request.context["arrival_radius_m"]?.toFloatOrNull() ?: 10f
-            if (currentLatitude != null && currentLongitude != null && targetLatitude != null && targetLongitude != null) {
-                calculateOutputFields(
-                    targetName = request.context["target_name"].orEmpty(),
-                    targetLatitude = targetLatitude.toFloat(),
-                    targetLongitude = targetLongitude.toFloat(),
-                    currentLatitude = currentLatitude.toFloat(),
-                    currentLongitude = currentLongitude.toFloat(),
-                    accuracy = signal.payload["accuracy_m"]?.toFloatOrNull() ?: 0f,
-                    heading = request.context["heading_deg"]?.toFloatOrNull() ?: 0f,
-                    updateCount = request.context["update_count"]?.toFloatOrNull() ?: 0f,
-                    arrivalRadius = arrivalRadius
-                ).mapValues { it.value.toString() }
-            } else {
-                emptyMap()
-            }
+            outputFromRequest(request, signal).mapValues { it.value?.toString().orEmpty() }
         }
 
         val targetId = output["target_name"].orEmpty().ifBlank {
@@ -134,6 +144,7 @@ object As100LocateTargetMethod : As100Method {
             entityType = "SpatialTarget",
             attributes = mapOf(
                 "target_name" to output["target_name"].orEmpty(),
+                "target_plus_code" to output["target_plus_code"].orEmpty(),
                 "target_latitude" to output["target_latitude"].orEmpty(),
                 "target_longitude" to output["target_longitude"].orEmpty()
             ),
@@ -174,7 +185,7 @@ object As100LocateTargetMethod : As100Method {
             values = mapOf(
                 "arrived" to output["arrived"].orEmpty(),
                 "distance_m" to output["distance_m"].orEmpty(),
-                "arrival_radius_m" to request.context["arrival_radius_m"].orEmpty()
+                "arrival_radius_m" to (output["arrival_radius_m"] ?: request.context["arrival_radius_m"]).orEmpty()
             ),
             temporalContext = observation.temporalContext,
             spatialContext = observation.spatialContext
@@ -221,7 +232,6 @@ object As100LocateTargetMethod : As100Method {
             targetLatitude = targetLatitude,
             targetLongitude = targetLongitude
         )
-
         settingsState.setFloat("current_latitude", currentLatitude.toFloat())
         settingsState.setFloat("current_longitude", currentLongitude.toFloat())
         settingsState.setFloat("accuracy_m", accuracy)
@@ -229,17 +239,19 @@ object As100LocateTargetMethod : As100Method {
         settingsState.setFloat("bearing_deg", result.initialBearingDegrees)
         settingsState.setBoolean("arrived", result.distanceMeters <= arrivalRadius)
         settingsState.setString("timestamp_ms", System.currentTimeMillis().toString())
-        settingsState.setString("status", "updated")
+        if (settingsState.getString("status").isBlank()) settingsState.setString("status", "updated")
     }
 
     fun outputValues(settingsState: SettingsState): Map<String, Any?> {
+        resolveTargetIntoSettings(settingsState)
         val targetLatitude = settingsState.getFloat("target_latitude")
         val targetLongitude = settingsState.getFloat("target_longitude")
         val currentLatitude = settingsState.getFloat("current_latitude")
         val currentLongitude = settingsState.getFloat("current_longitude")
         val arrivalRadius = settingsState.getFloat("arrival_radius_m")
 
-        if (currentLatitude != 0f || currentLongitude != 0f) {
+        val hasFix = settingsState.getString("timestamp_ms").isNotBlank() || currentLatitude != 0f || currentLongitude != 0f
+        if (hasFix) {
             updateSettingsFromLocation(
                 settingsState = settingsState,
                 currentLatitude = currentLatitude.toDouble(),
@@ -252,20 +264,23 @@ object As100LocateTargetMethod : As100Method {
         }
 
         return calculateOutputFields(
-                targetName = settingsState.getString("target_name"),
-                targetLatitude = targetLatitude,
-                targetLongitude = targetLongitude,
-                currentLatitude = currentLatitude,
-                currentLongitude = currentLongitude,
-                accuracy = settingsState.getFloat("accuracy_m"),
-                heading = settingsState.getFloat("heading_deg"),
-                updateCount = settingsState.getFloat("update_count"),
-                arrivalRadius = arrivalRadius,
-                timestampMs = settingsState.getString("timestamp_ms"),
-                status = settingsState.getString("status")
-            )
+            targetName = settingsState.getString("target_name"),
+            targetPlusCode = settingsState.getString("target_plus_code"),
+            targetLatitude = targetLatitude,
+            targetLongitude = targetLongitude,
+            currentLatitude = currentLatitude,
+            currentLongitude = currentLongitude,
+            accuracy = settingsState.getFloat("accuracy_m"),
+            heading = settingsState.getFloat("heading_deg"),
+            updateCount = settingsState.getFloat("update_count"),
+            arrivalRadius = arrivalRadius,
+            timestampMs = settingsState.getString("timestamp_ms"),
+            status = settingsState.getString("status"),
+            hasLocationFix = hasFix
+        )
     }
 
+    /** Build, but do not automatically persist, a committed navigation result. */
     fun navigationOutcomeResult(fields: Map<String, Any?>): ExecutionResult {
         val request = request(action = ID, context = emptyMap())
         val provenance = ProvenanceContext(
@@ -295,12 +310,72 @@ object As100LocateTargetMethod : As100Method {
         )
     }
 
-    fun recordNavigationOutcome(fields: Map<String, Any?>): ExecutionResult {
-        return navigationOutcomeResult(fields).also { ResearchRuntime.session.record(it) }
+    /** Backwards-compatible explicit session-recording helper. Native Commit no longer calls this automatically. */
+    fun recordNavigationOutcome(fields: Map<String, Any?>): ExecutionResult =
+        navigationOutcomeResult(fields).also { ResearchRuntime.session.record(it) }
+
+    private fun outputFromRequest(request: ExecutionRequest, signal: Signal?): Map<String, Any?> {
+        val currentLatitude = signal?.payload?.get("latitude")?.toDoubleOrNull()
+        val currentLongitude = signal?.payload?.get("longitude")?.toDoubleOrNull()
+        val target = resolveTarget(request.context)
+        val arrivalRadius = request.context["arrival_radius_m"]?.toFloatOrNull()
+            ?: request.context["arrival_radius"]?.toFloatOrNull()
+            ?: 10f
+
+        if (currentLatitude == null || currentLongitude == null || target == null) return emptyMap()
+        return calculateOutputFields(
+            targetName = request.context["target_name"].orEmpty(),
+            targetPlusCode = target.plusCode,
+            targetLatitude = target.latitude.toFloat(),
+            targetLongitude = target.longitude.toFloat(),
+            currentLatitude = currentLatitude.toFloat(),
+            currentLongitude = currentLongitude.toFloat(),
+            accuracy = signal.payload["accuracy_m"]?.toFloatOrNull() ?: 0f,
+            heading = request.context["heading_deg"]?.toFloatOrNull() ?: 0f,
+            updateCount = request.context["update_count"]?.toFloatOrNull() ?: 0f,
+            arrivalRadius = arrivalRadius,
+            hasLocationFix = true
+        )
+    }
+
+    private fun resolveTargetIntoSettings(settingsState: SettingsState) {
+        val plusCode = settingsState.getString("target_plus_code")
+        if (plusCode.isBlank()) return
+        runCatching { OpenLocationCode.decode(plusCode) }.onSuccess { area ->
+            settingsState.setString("target_plus_code", plusCode.trim().uppercase())
+            settingsState.setFloat("target_latitude", area.centerLatitude.toFloat())
+            settingsState.setFloat("target_longitude", area.centerLongitude.toFloat())
+        }
+    }
+
+    private fun resolveTarget(context: Map<String, String>): ResolvedTarget? {
+        val plusCode = context["target_plus_code"]
+            ?: context["input_target_plus_code"]
+            ?: context["plus_code"]
+            ?: context["input_plus_code"]
+        if (!plusCode.isNullOrBlank()) {
+            val area = runCatching { OpenLocationCode.decode(plusCode) }.getOrNull()
+            if (area != null) {
+                return ResolvedTarget(
+                    latitude = area.centerLatitude,
+                    longitude = area.centerLongitude,
+                    plusCode = plusCode.trim().uppercase()
+                )
+            }
+        }
+
+        val latitude = (context["target_latitude"] ?: context["input_target_latitude"] ?: context["latitude"] ?: context["lat"])
+            ?.toDoubleOrNull()
+        val longitude = (context["target_longitude"] ?: context["input_target_longitude"] ?: context["longitude"] ?: context["lon"] ?: context["lng"])
+            ?.toDoubleOrNull()
+        return if (latitude != null && longitude != null && latitude in -90.0..90.0 && longitude in -180.0..180.0) {
+            ResolvedTarget(latitude, longitude, "")
+        } else null
     }
 
     private fun calculateOutputFields(
         targetName: String,
+        targetPlusCode: String,
         targetLatitude: Float,
         targetLongitude: Float,
         currentLatitude: Float,
@@ -310,21 +385,22 @@ object As100LocateTargetMethod : As100Method {
         updateCount: Float,
         arrivalRadius: Float,
         timestampMs: String = System.currentTimeMillis().toString(),
-        status: String = "updated"
+        status: String = "updated",
+        hasLocationFix: Boolean = currentLatitude != 0f || currentLongitude != 0f
     ): Map<String, Any?> {
-        val result = if (currentLatitude != 0f || currentLongitude != 0f) {
+        val hasFix = hasLocationFix
+        val result = if (hasFix) {
             distanceAndBearing(
                 currentLatitude = currentLatitude.toDouble(),
                 currentLongitude = currentLongitude.toDouble(),
                 targetLatitude = targetLatitude.toDouble(),
                 targetLongitude = targetLongitude.toDouble()
             )
-        } else {
-            NavigationResult(0f, 0f)
-        }
+        } else NavigationResult(0f, 0f)
         val relativeBearing = relativeBearingDegrees(result.initialBearingDegrees, heading)
         return mapOf(
             "target_name" to targetName,
+            "target_plus_code" to targetPlusCode,
             "target_latitude" to targetLatitude,
             "target_longitude" to targetLongitude,
             "current_latitude" to currentLatitude,
@@ -334,10 +410,11 @@ object As100LocateTargetMethod : As100Method {
             "bearing_deg" to result.initialBearingDegrees,
             "heading_deg" to heading,
             "relative_bearing_deg" to relativeBearing,
-            "arrived" to (result.distanceMeters <= arrivalRadius && (currentLatitude != 0f || currentLongitude != 0f)),
+            "arrived" to (hasFix && result.distanceMeters <= arrivalRadius),
             "timestamp_ms" to timestampMs,
             "update_count" to updateCount.toInt(),
-            "status" to status
+            "status" to status,
+            "arrival_radius_m" to arrivalRadius
         )
     }
 
@@ -348,25 +425,14 @@ object As100LocateTargetMethod : As100Method {
         targetLongitude: Double
     ): NavigationResult {
         val result = FloatArray(3)
-        Location.distanceBetween(
-            currentLatitude,
-            currentLongitude,
-            targetLatitude,
-            targetLongitude,
-            result
-        )
+        Location.distanceBetween(currentLatitude, currentLongitude, targetLatitude, targetLongitude, result)
         val bearing = ((result[1] % 360f) + 360f) % 360f
-        return NavigationResult(
-            distanceMeters = result[0],
-            initialBearingDegrees = bearing
-        )
+        return NavigationResult(result[0], bearing)
     }
 
     private fun relativeBearingDegrees(targetBearing: Float, heading: Float): Float =
         ((targetBearing - heading + 540f) % 360f) - 180f
 
-    private data class NavigationResult(
-        val distanceMeters: Float,
-        val initialBearingDegrees: Float
-    )
+    private data class NavigationResult(val distanceMeters: Float, val initialBearingDegrees: Float)
+    private data class ResolvedTarget(val latitude: Double, val longitude: Double, val plusCode: String)
 }

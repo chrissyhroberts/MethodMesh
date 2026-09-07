@@ -1,0 +1,25 @@
+Repository-relative drop-in layout
+
+app/
+  src/
+    main/
+      java/com/example/methodmesh/modules/multicounter/
+        MulticounterModule.kt
+        MulticounterMethod.kt
+        MulticounterState.kt
+        MulticounterCapabilityScreen.kt
+        docs/
+          README_Multicounter.md
+          VALIDATION.md
+          ROADMAP_NOTE.md
+          THIRD_PARTY_NOTICES.md
+          ATTRIBUTION.md
+          example_odk_Multicounter.xlsx
+          PACKAGE_CONTENTS.txt
+    test/
+      java/com/example/methodmesh/modules/multicounter/
+        MulticounterStateTest.kt
+
+Important: MulticounterStateTest.kt must remain under app/src/test/java, not under
+app/src/main/java. JUnit is a testImplementation dependency and is intentionally
+not available to production source compilation.

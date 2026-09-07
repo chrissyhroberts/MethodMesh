@@ -1,0 +1,82 @@
+# Scoring module validation
+
+Status: implementation handoff; full repository build and physical-device/ODK roundtrip remain required before Production promotion.
+
+## Static contract checks completed in this handoff
+
+- one module folder contains implementation and docs;
+- `ScoringModule` implements `MethodMeshModule`;
+- method IDs are module-owned;
+- no central registry/HomeScreen edit is required;
+- settings use `MethodSetting` declarations;
+- direct/preset/protocol/ODK pathways share the same `ScoreSession` model;
+- persistence is module-local and dependency-free;
+- active and paused sessions are retained separately from explicit high-score records;
+- ODK read/resume/finish operations accept `score_session_id`;
+- output contract is beef-first with `score_result` plus structured/audit fields;
+- all public methods have module-local example XLSForms;
+- no network service is required.
+
+## Required build validation
+
+Run from a current MethodMesh checkout after copying the folder into `modules/scoring/`:
+
+```bash
+./gradlew :app:testDebugUnitTest
+./gradlew :app:assembleDebug
+```
+
+Resolve any API drift against the current checkout inside this module where possible. Do not add capability-specific central UI/registry special cases.
+
+## Required functional validation
+
+### Persistence
+
+1. Start a match and score several events.
+2. Rotate the device.
+3. Background MethodMesh and return.
+4. Kill the process and reopen MethodMesh.
+5. Reboot the device and reopen MethodMesh.
+6. Verify the same `score_session_id`, participants and current score are restored.
+7. Verify multiple active sessions remain independent.
+
+### Error recovery
+
+1. Add a point to the wrong participant.
+2. Undo it.
+3. Add several further points.
+4. Enter correction mode and correct an earlier error.
+5. Restart the app.
+6. Confirm corrected state remains stable.
+
+### Sports
+
+Exercise at minimum:
+
+- football goals;
+- basketball +1/+2/+3;
+- rugby try/conversion/penalty/drop-goal;
+- tennis deuce/advantage/game/set/tie-break/match;
+- badminton win-by-two;
+- table-tennis win-by-two;
+- volleyball normal set progression.
+
+### Presets
+
+Verify fixed values are not redundantly requested during native preset runs and runtime participant fields remain available where configured.
+
+### Protocols
+
+Use a scorer as a middle protocol step. Finish the session and confirm the protocol advances using the returned execution payload.
+
+### ODK
+
+For every workbook in `docs/`:
+
+1. validate/import the XLSForm;
+2. launch MethodMesh from the group intent;
+3. complete the action;
+4. verify returned child fields;
+5. verify `methodmesh_full_json` when FULL mode is requested.
+
+For session operations specifically verify that read is non-mutating, resume opens the requested session, and finish marks only the requested session complete.

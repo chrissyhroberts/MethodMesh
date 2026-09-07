@@ -1,0 +1,56 @@
+# Validation — Multi-counter
+
+Status: **Development prototype / build not yet admitted**
+
+## Contract checks performed in packaging review
+
+- Stable method ID: `counter.multientity`.
+- Module-specific behaviour remains under the module folder; no `HomeScreen`/registry special-casing.
+- Settings use `MethodSetting` types.
+- Fixed preset settings are hidden with `settingShouldBeShown(...)`.
+- External/native-preset launches can enter the board directly; a result is not emitted until **Finish session**.
+- Primary result is `counter_result`; JSON/audit fields are non-CORE by the current `OutputFormatter` rules.
+- No auto-save or module-owned persistence repository.
+- Session and final output strings use `rememberSaveable` for orientation restoration.
+- Running/scheduled timers use monotonic elapsed realtime rather than wall-clock delta.
+- Countdown expiry, pending stagger starts and pause/reset operations are represented explicitly in state.
+- Event-log truncation is declared in audit rather than silent.
+- `MulticounterState.kt` passes a Kotlin compiler syntax check against a minimal stub of the Android JSON/method boundary; this is not a substitute for the Android Gradle build.
+
+## Required repository validation before admission
+
+1. Apply this repository-relative drop-in so production code lands in `app/src/main/java/com/example/methodmesh/modules/multicounter/` and `MulticounterStateTest.kt` lands in `app/src/test/java/com/example/methodmesh/modules/multicounter/`.
+2. Run focused unit tests for state transitions.
+3. Run `./gradlew :app:testDebugUnitTest`.
+4. Run `./gradlew :app:assembleDebug`.
+6. Exercise native direct run in all three modes.
+7. Exercise portrait → landscape → portrait while:
+   - counters have non-default values;
+   - timers are running;
+   - staggered timers are pending;
+   - the final result screen is displayed.
+8. Exercise preset authoring with fixed and runtime entity names.
+9. Exercise native preset launch with all settings fixed and with runtime inputs.
+10. Import `example_odk_Multicounter.xlsx` into ODK tooling and verify interactive return of all four fields.
+11. Verify protocol closeout after Finish and cancellation before Finish.
+12. Verify generic widget-launched preset returns to the Android desktop on Done.
+13. Verify native copy/share contains the compact `counter_result`, not the event JSON, unless full JSON is explicitly enabled.
+
+## Edge cases to test
+
+- 1 and 24 entities.
+- More/fewer names than entity count.
+- negative counter start with `allow_negative=false` (normalises to zero) and decrement at zero.
+- large step values.
+- countdown expiry and restart.
+- Start all with 0-second and non-zero stagger.
+- cancelling one pending staggered row.
+- Pause all while some rows are running and others pending.
+- reset timers while pending/running.
+- reset values without resetting timers.
+- >1 hour stopwatch formatting.
+- 5,001+ events to confirm truncation is visible in audit metadata.
+
+## Packaging limitation
+
+A full Android build was not possible in this chat runtime because the repository could be inspected through the GitHub connector but the build filesystem could not clone GitHub. The Master Book explicitly requires unbuilt chat prototypes to remain under `incoming_capability_prototypes/`; this package follows that rule.

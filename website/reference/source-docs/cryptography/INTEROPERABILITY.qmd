@@ -1,0 +1,22 @@
+---
+title: "Interoperability"
+subtitle: "Module source document · Cryptography"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/cryptography/docs/INTEROPERABILITY.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+The goal is that portable cryptographic outputs do not require MethodMesh to consume them.
+
+- Encryption: JWE Compact Serialization, RFC 7516 / RFC 7518.
+- Password KDF/wrapping: PBES2-HS256+A128KW plus RFC 3394 AES Key Wrap.
+- Content encryption: A256GCM.
+- Signatures: detached JWS, ES256, RFC 7515.
+- Public keys: EC P-256 JWK, RFC 7517.
+- Public key fingerprint: SHA-256 JWK Thumbprint, RFC 7638.
+- TOTP: RFC 6238 with standard `otpauth://` provisioning.
+
+The tests include independent Python `cryptography` validation of Kotlin-generated JWE and JWS data.
+

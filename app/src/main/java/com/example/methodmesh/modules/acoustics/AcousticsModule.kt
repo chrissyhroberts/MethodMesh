@@ -33,7 +33,8 @@ object AcousticsModule : MethodMeshModule {
 
     override fun capabilitySettings() = mapOf(
         As100AcousticAnalyseMethod.ID to listOf(
-            MethodSetting.FloatSetting("capture_seconds", "Capture duration", "Duration used for automatic/ODK measurements.", defaultValue = 2.0f, minimum = 0.5f, maximum = 30f, step = 0.5f, unit = "s", decimals = 1),
+            MethodSetting.FloatSetting("capture_seconds", "Measurement duration", "Duration of the recorded scientific observation.", defaultValue = 5.0f, minimum = 0.5f, maximum = 60f, step = 0.5f, unit = "s", decimals = 1),
+            MethodSetting.IntSetting("timeseries_interval_ms", "Time-series interval", "Sampling interval for derived frequency/amplitude observations; raw audio is not retained.", defaultValue = 100, minimum = 50, maximum = 5000, step = 50, unit = "ms"),
             MethodSetting.ChoiceSetting("sample_rate_hz", "Sample rate", "Audio sampling rate.", defaultValue = "48000", choices = listOf("44100", "48000")),
             MethodSetting.FloatSetting("min_frequency_hz", "Minimum pitch frequency", defaultValue = 40f, minimum = 20f, maximum = 1000f, step = 1f, unit = "Hz", decimals = 0),
             MethodSetting.FloatSetting("max_frequency_hz", "Maximum pitch frequency", defaultValue = 5000f, minimum = 100f, maximum = 10000f, step = 10f, unit = "Hz", decimals = 0),

@@ -1,0 +1,36 @@
+{
+  "createdAt": "2026-09-04T08:00:59.163Z",
+  "createdBy": {
+    "createdAt": "2020-10-09T16:44:09.730Z",
+    "deletedAt": null,
+    "displayName": "Chrissy h. Roberts (User)",
+    "id": 15,
+    "type": "user",
+    "updatedAt": "2020-10-16T11:26:08.533Z"
+  },
+  "draftToken": null,
+  "enketoId": "7Dnix1E63QcqKc1xhPS2T0df70X1UWp",
+  "enketoOnceId": "7c7c12718f527fcab283b0143e9753daac240ea176e6709f903ad694a0b27506",
+  "entityRelated": false,
+  "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "hash": "583a50fa2092c663dbace4151ab326e2",
+  "keyId": null,
+  "lastSubmission": "2026-09-04T13:11:11.439Z",
+  "name": "MethodMesh Capability Chain Showcase",
+  "projectId": 231,
+  "publicLinks": 0,
+  "publishedAt": "2026-09-04T11:56:28.032Z",
+  "reviewStates": {
+    "edited": 0,
+    "hasIssues": 0,
+    "received": 0
+  },
+  "sha": "c301bc046922b54e4b3b4e8bdd331fd0f057cc27",
+  "sha256": "bc564305eff544797c8ace1d7b0499676b80471b2b5c0ca8b150f52d493f34ad",
+  "state": "open",
+  "submissions": 2,
+  "updatedAt": "2026-09-04T12:10:29.190Z",
+  "version": "2026090407",
+  "webformsEnabled": false,
+  "xmlFormId": "methodmesh_capability_chain_showcase"
+}

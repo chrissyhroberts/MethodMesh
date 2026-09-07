@@ -1,0 +1,800 @@
+---
+title: "Astronomy"
+subtitle: "Module source document · Astronomy"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/astronomy/docs/README_Astronomy.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+`astronomy` is a Development-stage MethodMesh module for astronomical setup, observing-condition assessment, imaging planning, optical calculations, mount/focus checks, and compact session records.
+
+It deliberately **does not implement a planetarium**. Stellarium and similar applications already solve sky browsing and object discovery well. This module concentrates on the practical questions around an observing or imaging session:
+
+- where is true/celestial north or south?
+- is tonight worth setting up for?
+- how does tonight compare with a known good night at this setup?
+- when is the best imaging window?
+- is dew likely?
+- what field of view / sampling / untracked exposure can this rig achieve?
+- is the mount mechanically stable?
+- is focus improving?
+- how can the session be recorded and shared as compact text?
+
+**Status:** Development  
+**Module:** `astronomy`  
+**Version:** `0.6.0`
+
+## Public methods
+
+| Method ID | Native purpose | Main result |
+|---|---|---|
+| `astronomy.dashboard` | Refreshable visual observing dashboard | current conditions + structured snapshot |
+| `astronomy.light_pollution` | Query astronomy-owned cached regional artificial sky-brightness data | artificial zenith radiance + relative darkness label |
+| `astronomy.polar_align` | True/celestial pole direction, pole altitude and Polaris clock | compact alignment instruction |
+| `astronomy.conditions` | Transparent 0–100 imaging-condition score | score + component scores |
+| `astronomy.sky_test` | Phone-camera point-source test relative to a saved good-night baseline | relative stability/transparency/darkness score |
+| `astronomy.imaging_window` | Plan the coming night from astronomy + optional hourly forecast JSON | best usable window and peak score |
+| `astronomy.dew_risk` | Temperature/dewpoint margin | dew point, margin and risk |
+| `astronomy.image_scale` | FoV and sampling calculator | arcsec/pixel + FoV + f-ratio |
+| `astronomy.exposure_limit` | Untracked star-trail exposure calculator | pixel-aware limit + 500-rule comparator |
+| `astronomy.mount_stability` | Accelerometer/gyro vibration test | relative stability class + RMS metrics |
+| `astronomy.focus` | Bright-star FWHM focus assistant | current/best relative FWHM |
+| `astronomy.session` | Compact session record | WhatsApp/message-friendly text |
+
+All methods start as **Development**. They must not be promoted to Production until the validation checklist below has passed on real devices.
+
+---
+
+## Dashboard exemplar: `astronomy.dashboard`
+
+`astronomy.dashboard` is the first MethodMesh capability intentionally designed primarily for **reference / situational awareness** while remaining a normal executable capability with stable structured outputs.
+
+Native use is visual-first:
+
+- offers an explicit site selector: **Current GPS**, **Plus Code**, or **Latitude / longitude**;
+- **◎ GPS** deliberately recentres on a fresh phone location; manual/Plus Code sites remain selected until changed;
+- refreshes Open-Meteo current weather, air quality and hourly forecast;
+- refreshes GFS 300/250/200 hPa wind through Open-Meteo's GFS endpoint;
+- calculates dew margin, Moon geometry and the next useful observing window using the same `As100ImagingWindowMethod` engine as the atomic capability;
+- displays a large overall verdict plus compact condition cards;
+- includes a prominent **↻ Refresh** action;
+- shows a six-hour cloud strip;
+- displays cached site-darkness/light-pollution data when the selected location is covered by an astronomy-owned regional cache;
+- keeps refreshes as preview state. A graph observation is recorded only when the operator chooses **Use this snapshot**, or when an external caller such as ODK requests the result.
+
+The dashboard returns ordinary fields including:
+
+```text
+astronomy_dashboard_overall_label
+astronomy_dashboard_overall_score
+astronomy_dashboard_planetary_label
+astronomy_dashboard_deep_sky_label
+astronomy_dashboard_temperature_c
+astronomy_dashboard_relative_humidity_pct
+astronomy_dashboard_dew_margin_c
+astronomy_dashboard_dew_risk
+astronomy_dashboard_cloud_cover_pct
+astronomy_dashboard_visibility_m
+astronomy_dashboard_jet_300hpa_ms
+astronomy_dashboard_jet_250hpa_ms
+astronomy_dashboard_jet_200hpa_ms
+astronomy_dashboard_best_window_start_iso
+astronomy_dashboard_best_window_end_iso
+astronomy_dashboard_light_pollution_mcd_m2
+astronomy_dashboard_light_pollution_ratio
+astronomy_dashboard_light_pollution_label
+astronomy_dashboard_light_pollution_dataset
+astronomy_dashboard_json
+```
+
+The upper-atmosphere / planetary rating is deliberately labelled a **planning proxy**, not a seeing measurement. v0.5 uses GFS wind speed at 300, 250 and 200 hPa. Satellite cloud nowcasting is not yet included; that is reserved for a later EUMETSAT-backed card once access/licensing is validated.
+
+---
+
+## 1. `astronomy.polar_align`
+
+### What it does
+
+The capability acquires an explicit current location and has two native sighting modes. **Compass** uses the conventional phone magnetic heading. **AR sighting** is intended for a phone fixed vertically to a tripod/mount and computes the azimuth and elevation of the rear-camera optical axis from the rotation-vector sensor. Both modes apply local geomagnetic declination before comparing the sight line with the celestial pole. It reports:
+
+- magnetic heading;
+- calculated true heading;
+- local declination;
+- north or south celestial pole bearing;
+- celestial pole altitude (`abs(latitude)`);
+- signed azimuth alignment error;
+- in AR mode, signed altitude/elevation error and tilt guidance;
+- Polaris clock-face position in the northern hemisphere.
+
+The main result is intentionally compact, for example:
+
+```text
+True N 358.4° · pole 51.5° high · aligned · Polaris clock 8:17
+```
+
+### Inputs/settings
+
+- `alignment_tolerance_deg` — 0.5–15°, default 2°.
+
+Location is an operational input acquired by the native screen. External/preset compositions may instead supply location through the wider workflow before entering the interactive alignment screen.
+
+### Outputs
+
+Core fields include:
+
+```text
+astronomy_polar_result
+astronomy_polar_latitude
+astronomy_polar_longitude
+astronomy_polar_declination_deg
+astronomy_polar_magnetic_heading_deg
+astronomy_polar_true_heading_deg
+astronomy_polar_error_deg
+astronomy_polar_pole_bearing_deg
+astronomy_polar_pole_altitude_deg
+astronomy_polar_camera_elevation_deg
+astronomy_polar_altitude_error_deg
+astronomy_polar_hemisphere
+astronomy_polar_polaris_clock_deg
+```
+
+Audit field:
+
+```text
+astronomy_polar_audit_json
+```
+
+### Important limitation
+
+v0.5 uses Android `GeomagneticField` to convert magnetic heading to true heading. The result is therefore limited by both the Android geomagnetic model and the phone magnetometer. Nearby steel, magnets, speakers, cases, vehicles, telescope hardware and electrical equipment can corrupt heading. This is a setup aid, not survey instrumentation.
+
+---
+
+## 2. `astronomy.conditions`
+
+Scores the conditions relevant to practical imaging. The algorithm is explicit rather than opaque.
+
+Component scores:
+
+```text
+cloud
+transparency
+wind
+
+dew
+darkness
+```
+
+The overall score is currently weighted:
+
+```text
+32% cloud
+25% transparency
+17% wind
+13% dew
+13% darkness
+```
+
+The transparency component can combine:
+
+- visibility;
+- aerosol optical depth (when supplied);
+- PM2.5.
+
+Dew is calculated from air temperature + relative humidity by default. Set `use_supplied_dew_point=true` only when a dew-point value is deliberately supplied.
+
+Moon darkness uses moon altitude and illumination. A moon below the horizon receives no moonlight penalty.
+
+Example:
+
+```text
+IMAGING GOOD · 78/100 · cloud 92 · transparency 74 · wind 83 · dew 61 · darkness 80
+```
+
+This is a **decision-support score**, not a physical unit. Component values are always returned so the user can see why the score changed.
+
+### Automatic data acquisition
+
+Native `astronomy.conditions` is GPS/API-first. Unless suitable values are already supplied in the current workflow context, it obtains a location and uses MethodMesh's shared `api.get` machinery with the astronomy Open-Meteo declarations. Manual values remain available as a fallback.
+
+If a preceding action in the **same multi-step external workflow** has produced compatible fields, the existing workflow runner forwards those fields to the later action and astronomy will use them. This is limited workflow forwarding, not a general user-facing MethodMesh pipe.
+
+---
+
+## 3. `astronomy.sky_test`
+
+### Good-night calibration is built in
+
+The first useful workflow is:
+
+1. wait for a night that is known to be genuinely good at the observing setup;
+2. use the same phone/camera and a repeatable fixed position/tripod/adapter;
+3. centre a similar bright point source;
+4. run a normal sky test;
+5. press **Save this run as CLEAR-NIGHT reference**;
+6. optionally add a short note describing the setup.
+
+Future tests are expressed relative to that stored baseline.
+
+The baseline stores:
+
+```text
+centroid RMS
+FWHM proxy
+background luminance
+star/background contrast
+flux-variation coefficient
+saved timestamp
+note
+```
+
+A later test calculates relative scores for:
+
+- **stability** — lower centroid jitter is better;
+- **transparency** — higher point-source/background contrast is better;
+- **darkness** — lower background luminance is better;
+- **focus/PSF** — lower measured FWHM is better;
+- **overall** — mean of the available relative component scores.
+
+A score of 100 means approximately “at least as good as the saved baseline” on that metric, not a universal astronomical maximum.
+
+### What the camera analysis actually measures
+
+CameraX supplies the luminance plane. The analyser finds the brightest point source in a central region, then records frame-by-frame:
+
+```text
+weighted centroid x/y
+relative PSF FWHM in pixels
+background luma
+peak luma
+integrated point-source signal
+```
+
+The summary derives:
+
+```text
+centroid RMS
+median FWHM
+median background
+median contrast
+flux variation / scintillation proxy
+```
+
+These are deliberately labelled **relative phone-camera proxies**. The method does **not** claim an arcsecond seeing measurement, calibrated sky magnitude, SQM equivalence, or direct aerosol concentration. Camera motion, autofocus, optical stabilisation, exposure changes, phone optics and sensor processing can dominate the signal. Repeatability is improved by using the same device, same physical mounting, same camera, similar exposure behaviour and the saved good-night comparator.
+
+Main result without calibration:
+
+```text
+Sky test captured · save a good-night calibration for relative scores
+```
+
+With calibration:
+
+```text
+Sky 82/100 vs good-night · stability 77 · transparency 91 · darkness 80
+```
+
+---
+
+## 4. `astronomy.imaging_window`
+
+This is designed for the **afternoon / early-evening “is tonight worth it?” workflow** and for scheduled presets.
+
+It calculates local astronomical geometry itself:
+
+- Sun altitude / astronomical darkness;
+- Moon altitude;
+- Moon illumination;
+- optional target altitude from RA/Dec;
+- optional target–Moon angular separation.
+
+`use_target=false` gives a general dark-sky planning window. Set `use_target=true` only when supplying `target_ra_hours` and `target_dec_deg`.
+
+It can additionally consume `forecast_json`, expected to be an Open-Meteo-style hourly subtree containing some or all of:
+
+```json
+{
+  "utc_offset_seconds": 3600,
+  "hourly": {
+    "time": ["2026-09-04T18:00", "..."],
+    "cloud_cover": [10, 20],
+    "wind_gusts_10m": [12, 15],
+    "visibility": [30000, 28000]
+  }
+}
+```
+
+`wind_speed_10m` is also accepted when gust data are absent.
+
+The method samples the next 2–24 hours, scores each interval, and returns:
+
+```text
+astronomy_window_start_iso
+astronomy_window_end_iso
+astronomy_window_peak_iso
+astronomy_window_peak_score
+astronomy_window_target_altitude_deg
+astronomy_window_moon_altitude_deg
+astronomy_window_moon_illumination_pct
+astronomy_window_moon_separation_deg
+astronomy_window_samples_json
+```
+
+Example:
+
+```text
+Best M31 window 2026-09-04T22:30:00Z – 2026-09-05T02:30:00Z · peak 86/100 at 2026-09-05T00:30:00Z
+```
+
+### Included hourly Open-Meteo definition
+
+`docs/openmeteo_astronomy_hourly.methodmesh-api.json` is an importable MethodMesh API-definition bundle for the hourly forecast fields consumed by this planner. It keeps the network boundary in generic `api.get` rather than in astronomy Kotlin.
+
+### Recommended scheduled preset
+
+Conceptually:
+
+```text
+15:00 local schedule
+    ↓
+astronomy.imaging_window
+    ↓
+GPS or supplied Plus Code
+    ↓
+shared api.get / Open-Meteo hourly retrieval
+    ↓
+show/share result only when useful
+```
+
+The network execution still goes through generic MethodMesh `api.get`; the astronomy screen simply orchestrates that existing boundary for this specific task.
+
+---
+
+## 5. `astronomy.dew_risk`
+
+Inputs:
+
+```text
+temperature_c
+humidity_pct
+use_supplied_dew_point
+dew_point_c
+```
+
+When `use_supplied_dew_point=false`, dew point is calculated with a Magnus approximation.
+
+Outputs:
+
+```text
+astronomy_dew_point_c
+astronomy_dew_margin_c
+astronomy_dew_risk
+```
+
+Current qualitative thresholds use temperature minus dew point:
+
+```text
+<= 1.5°C   VERY HIGH
+<= 3.0°C   HIGH
+<= 5.0°C   MODERATE
+<= 8.0°C   LOW
+>  8.0°C   VERY LOW
+```
+
+Example:
+
+```text
+Dew 8.3°C · margin 1.7°C · HIGH RISK
+```
+
+These categories are operational heuristics, not a guarantee that a specific optic will or will not dew.
+
+### Dew data-source order
+
+Standalone/native use is:
+
+1. temperature/humidity already supplied in the current action context;
+2. otherwise live GPS + Open-Meteo;
+3. otherwise manual temperature/humidity.
+
+The first case includes AHT20 values only when `sensor.read` was an earlier action in the **same multi-step external workflow**, because the current external workflow runner forwards prior result fields to later steps. There is no general standalone `sensor.read -> astronomy.dew_risk` pipe yet, and astronomy does not own BLE sensor acquisition.
+
+---
+
+## 6. `astronomy.image_scale`
+
+Pure offline calculation.
+
+Inputs:
+
+```text
+focal_length_mm
+aperture_mm
+pixel_size_micron
+sensor_width_mm
+sensor_height_mm
+multiplier
+```
+
+`multiplier` represents a Barlow (>1) or reducer (<1).
+
+Outputs:
+
+```text
+astronomy_scale_arcsec_per_pixel
+astronomy_scale_fov_width_deg
+astronomy_scale_fov_height_deg
+astronomy_scale_effective_focal_length_mm
+astronomy_scale_f_ratio
+```
+
+Example:
+
+```text
+1.94 arcsec/px · FoV 2.53° × 1.92° · f/5.0
+```
+
+---
+
+## 7. `astronomy.exposure_limit`
+
+Pure offline calculation for **untracked** imaging.
+
+Inputs:
+
+```text
+focal_length_mm
+pixel_size_micron
+declination_deg
+max_trail_pixels
+crop_factor
+```
+
+The primary estimate uses pixel scale and the sidereal angular rate at target declination. The familiar 500-rule value is returned only as a comparator.
+
+Outputs:
+
+```text
+astronomy_exposure_pixel_limit_s
+astronomy_exposure_500_rule_s
+astronomy_exposure_arcsec_per_pixel
+```
+
+The pixel-aware estimate is intentionally conservative when `max_trail_pixels=1`. Real acceptable exposure also depends on lens aberrations, seeing, display scale and tolerance for elongation.
+
+---
+
+## 8. `astronomy.mount_stability`
+
+Place or attach the phone firmly to the telescope, tripod or mount. The capability samples the accelerometer and gyroscope at Android `SENSOR_DELAY_GAME` and reports:
+
+```text
+accelerometer magnitude RMS around its local mean
+gyroscope RMS when available
+peak acceleration deviation
+sample count
+relative class: EXCELLENT / GOOD / MARGINAL / UNSTABLE
+```
+
+Two useful workflows:
+
+**Baseline test:** do not touch the rig during the measurement.  
+**Tap/settling comparison:** start a test, give the rig one repeatable light tap, and compare configurations.
+
+The current classification thresholds are engineering heuristics and need physical-device characterization before Production.
+
+---
+
+## 9. `astronomy.focus`
+
+Uses the same point-source analyser as `astronomy.sky_test`, but the task is different: minimise the measured FWHM proxy.
+
+The live screen shows:
+
+```text
+current FWHM
+best FWHM in the current run
+```
+
+Turn the focuser to reduce the value, then capture the result.
+
+Outputs include:
+
+```text
+astronomy_focus_fwhm_px
+astronomy_focus_best_fwhm_px
+astronomy_focus_contrast
+astronomy_focus_frames
+astronomy_focus_warning
+```
+
+This is a relative focus aid. It does not replace camera-native autofocus, a Bahtinov-mask analyser, or dedicated autofocus hardware.
+
+---
+
+## 10. `astronomy.session`
+
+Creates a compact text result as the **main share payload**, with structured JSON retained for audit/export.
+
+Inputs:
+
+```text
+target
+start_iso
+end_iso
+equipment
+conditions_summary
+conditions_score
+sky_test_summary
+notes
+save_session
+```
+
+Example native share:
+
+```text
+ASTRO SESSION
+M31 · 2026-09-04T22:15:00Z → 2026-09-05T01:40:00Z
+Equipment: 80 mm f/5 + cooled camera
+Conditions: 81/100 · low cloud · dew moderate
+Sky test: 88/100 vs good-night
+Notes: 180 s subs; stopped when dew margin fell below 2°C
+```
+
+That text is designed to paste cleanly into WhatsApp, Signal, SMS, email or a field notebook.
+
+When `save_session=true`, the same structured session is appended to module-owned local history. Local saving is opt-in; the main share remains the compact text, not the history database or audit JSON.
+
+---
+
+# Composition and current forwarding boundary
+
+The astronomy methods use stable semantic field names so they are ready for a future first-class pipe system. Current MethodMesh has a narrower mechanism: within one multi-step `ExternalWorkflowRequest`, outputs from completed steps are forwarded into later step settings.
+
+That means this is currently valid only when constructed as one multi-step external workflow:
+
+```text
+sensor.read(AHT20)
+  -> temperature_c + relative_humidity_pct
+  -> astronomy.dew_risk
+```
+
+Launching the two capabilities separately does **not** connect them.
+
+Other astronomy capabilities are self-sufficient where practical: conditions and dew risk can acquire GPS/Open-Meteo themselves; imaging window can acquire GPS or accept a supplied Plus Code and fetch its own hourly forecast.
+
+# ODK / XLSForm
+
+The supplied `example_odk_Astronomy.xlsx` contains one example group for every public method.
+
+General pattern:
+
+```text
+ODK group
+  -> com.example.methodmesh.EXECUTE_METHOD(...)
+  -> astronomy capability
+  -> compact result fields + methodmesh_full_json
+```
+
+Interactive methods (`polar_align`, `sky_test`, `mount_stability`, `focus`) open their operator-facing native screen. Calculation methods can execute from supplied extras.
+
+Example calculation call:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(
+  method_id='astronomy.dew_risk',
+  input_temperature_c=${air_temp},
+  input_humidity_pct=${humidity},
+  input_use_supplied_dew_point='false',
+  input_payload_mode='FULL',
+  return_mode='flat'
+)
+```
+
+Example sky test:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(
+  method_id='astronomy.sky_test',
+  input_duration_seconds='10',
+  input_minimum_frames='25',
+  input_payload_mode='FULL',
+  return_mode='flat'
+)
+```
+
+For audit-focused forms, retain `methodmesh_full_json` in a hidden field.
+
+---
+
+# Permissions and services
+
+## Camera
+
+Required by:
+
+```text
+astronomy.sky_test
+astronomy.focus
+```
+
+Camera permission is requested by the module screen.
+
+## Location
+
+Required by native `astronomy.polar_align` when it acquires the current site. The module requests fine/coarse location explicitly; it does not silently acquire location merely because the astronomy module is installed.
+
+## Motion/orientation sensors
+
+- `astronomy.polar_align` consumes the shared `PhoneSensorRepository` orientation boundary.
+- `astronomy.mount_stability` directly samples accelerometer/gyroscope because vibration time-series sampling is the capability itself, rather than a one-value heading read.
+
+---
+
+# Offline / online behaviour
+
+The module itself performs **no HTTP requests**.
+
+Fully local methods:
+
+```text
+polar_align (after local GPS fix)
+sky_test
+dew_risk
+image_scale
+exposure_limit
+mount_stability
+focus
+session
+```
+
+`astronomy.conditions` and `astronomy.imaging_window` are also pure local calculations when values are supplied. They become network-informed only when a preset explicitly pipes data from `api.get`.
+
+This separation preserves MethodMesh's generic online-data architecture and makes cached/stale/offline API behaviour visible to the preset rather than hidden inside astronomy code.
+
+---
+
+## Light pollution heatmap and regional cache
+
+`astronomy.light_pollution` is map-first in v0.6. It can fetch a recent NASA GIBS VIIRS Day/Night Band nighttime-radiance image around **Current GPS**, a **Plus Code**, or explicit **latitude/longitude**, for a user-selected radius. The request is an ordinary public WMS `GetMap` bounding-box request; the returned PNG and its georeferencing metadata are cached inside `filesDir/astronomy/light_pollution/raster`. Multiple remote observing sites can therefore be cached before travel.
+
+The map deliberately reuses the approach already proven in `plus_code.capture`: MapLibre supplies the Cartesian/local map surface and map projection, with OpenFreeMap street tiles, Esri satellite imagery, or a blank dark background. The cached NASA image is attached to its geographic corner coordinates with a MapLibre `ImageSource` and rendered as a semi-transparent `RasterLayer`. Astronomy locally recolours the published GIBS greyscale into a heat palette while retaining the original cached PNG for point sampling.
+
+The primary returned quantity is `astronomy_light_pollution_radiance_nw_cm2_sr`. It is an **estimated nighttime at-sensor radiance** in `nW/(cm² sr)`, derived by approximately inverting NASA GIBS' published quantised greyscale colour map at the selected site. Treat it as a **night-light / artificial-light proxy for observing-site comparison**. It is not an SQM reading, not modelled zenith sky brightness, and not a Bortle class. Cloud, snow and unusual transient lighting can affect daily satellite radiance.
+
+The downloader starts from a recent UTC date and walks backwards until it finds a usable image at the selected site. Cached rectangles may overlap; lookup tries covering raster regions newest-first and skips transparent/no-data pixels. The astronomy dashboard uses exactly the same repository. Its **Site darkness** card can display the cached heat layer and can download a 50 km region directly when the selected site is not yet cached.
+
+The v0.5 Falchi World Atlas point-grid importer is retained as a backwards-compatible fallback. `docs/build_light_pollution_region.py` can still generate those JSON grids from a local World Atlas GeoTIFF, but manual import is no longer the primary user workflow.
+
+Current live source:
+
+- NASA GIBS WMS: `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi`
+- Layer: `VIIRS_SNPP_DayNightBand_At_Sensor_Radiance`
+- Approximate native resolution: ~500 m / 15 arc-second product family.
+- Cached provenance includes source, layer identifier, dataset date, geographic bounds, nominal resolution and cache type.
+
+A future refinement should assess the GIBS `VIIRS_SNPP_GapFilled_BRDF_Corrected_DayNightBand_Radiance` / VNP46A2 layer for the primary proxy once its rendered-value mapping is validated. NASA describes VNP46A2 as gap-filled, lunar-BRDF-adjusted nighttime lights, which is preferable conceptually for stable artificial-light assessment.
+
+## Interactive optics and session changes in v0.5
+
+### Image scale
+
+The native `astronomy.image_scale` screen now pairs sliders with exact numeric text fields. Sliders are for rapid exploration; typed values remain authoritative for exact focal length, aperture, pixel size, sensor dimensions and Barlow/reducer multiplier. Calculated image scale, FoV, effective focal length and f-ratio update as one result.
+
+### Focus
+
+The native focus assistant can use **rear or front camera**. Instead of treating a single frame as the focus metric, it maintains a rolling median of detected point-source FWHM over `sample_frames` (default 30) and tracks the best rolling median reached during the run.
+
+### Resumable session
+
+`astronomy.session` is now stateful and resumable. The native state machine is:
+
+```text
+NEW → RUNNING ⇄ PAUSED → FINISHED
+```
+
+An unfinished session is stored in astronomy-local preferences with session ID, start time, target, equipment, notes, accumulated active time and current state. Closing/reopening the capability restores that session. The screen exposes **Start**, **Pause**, **Resume**, **Stop** and **Discard**. Finished-history persistence remains separately controlled by `save_session`.
+
+# Data and privacy
+
+- Sky-test image frames are analysed in memory. v0.5 does not save photographs or video.
+- Focus frames are analysed in memory. v0.5 does not save photographs or video.
+- Good-night calibration persists only numerical summary metrics + timestamp/note.
+- Active session state is local and persists so an unfinished session can be resumed. Finished session history remains opt-in.
+- `polar_align` uses precise location locally. Any separate API step that sends location is governed by that API definition's privacy metadata.
+
+---
+
+# Development validation checklist
+
+Keep all twelve methods **Development** until at least:
+
+1. `./gradlew :app:assembleDebug` passes in a complete current MethodMesh checkout.
+2. Module discovery finds `AstronomyModule` without central registration.
+3. All twelve native screens launch on a phone-sized emulator/device.
+4. Rotation/recreation preserves completed results and does not duplicate automatic intent returns.
+5. `polar_align` is checked at several known headings and locations away from ferrous structures.
+6. Declination/true-heading output is cross-checked against a trusted contemporary geomagnetic reference.
+7. Polaris clock orientation is checked against a known polar-alignment reference.
+8. Sky-test calibration persists and produces sensible relative directionality when conditions are deliberately degraded.
+9. Sky-test behaviour is characterized across several Android camera pipelines; autofocus/OIS/exposure effects are documented.
+10. Focus score responds monotonically enough around best focus to be useful on supported devices.
+11. Mount stability is compared across a rigid support, flexible tripod and deliberate tap tests.
+12. Open-Meteo hourly subtree examples round-trip through the real `api.get` preset engine.
+13. `astronomy.imaging_window` is checked across DST/local-offset boundaries and high-latitude summer/winter cases.
+14. ODK Collect completes a full launch/capture/return round trip for all twelve examples.
+15. Native sharing of `astronomy_session_result` sends the compact text rather than verbose JSON.
+16. AR polar sighting is checked with the phone mounted vertically, including azimuth/elevation directionality and camera-axis sign.
+17. Image-scale slider/text synchronization is checked across min/max and exact values.
+18. Focus rear/front camera selection and rolling-median behaviour are verified on a device with both cameras.
+19. An unfinished session survives process restart, pauses without accumulating time, resumes, and stops with the correct active duration.
+20. A regional light-pollution cache built around a known site is imported, queried inside/outside its radius, and surfaced on the dashboard at a remote Plus Code/manual site.
+
+---
+
+# Canonical delivery folder
+
+Copy the complete folder to:
+
+```text
+app/src/main/java/com/example/methodmesh/modules/astronomy/
+```
+
+The module index is generated automatically from `AstronomyModule.kt`; no central capability registration should be added.
+
+---
+
+# Automatic data flow and current workflow forwarding
+
+## Location resolution
+
+For `astronomy.conditions`, `astronomy.dew_risk`, and `astronomy.imaging_window`, native auto mode does not treat the capability's numeric defaults as real observations. It resolves location from:
+
+1. a Plus Code/coordinates supplied by a previous step of the same multi-step external workflow;
+2. a Plus Code explicitly supplied to the capability;
+3. non-default explicit coordinates;
+4. live phone GPS;
+5. manual fallback when automatic location is unavailable.
+
+This prevents default `0,0` coordinates from silently suppressing GPS.
+
+## Weather and air quality
+
+The astronomy module owns three declarative Open-Meteo definitions but executes them through the existing shared `api.get` machinery:
+
+- `openmeteo.astronomy_current`
+- `openmeteo.astronomy_air_quality`
+- `openmeteo.astronomy_hourly`
+
+`astronomy.conditions` and `astronomy.dew_risk` fetch live data automatically in API mode. The calculation layer carries an explicit `data_source` marker so default manual settings cannot override fetched weather. `astronomy.imaging_window` similarly fetches its hourly forecast after resolving the site.
+
+## AHT20 / sensor.read boundary
+
+There is no general user-facing MethodMesh pipe yet. Astronomy therefore does not invoke `sensor.read` and does not declare `sensorread` as a module dependency.
+
+The existing multi-step `ExternalWorkflowActivity` does forward prior outputs into later steps using `previous_*`, `step_N_*`, and bare field aliases. Astronomy recognises the explicit `previous_*` / `step_N_*` forms. Consequently, in that one execution context:
+
+```text
+step 1  sensor.read(AHT20)
+        -> temperature_c
+        -> relative_humidity_pct
+
+step 2  astronomy.dew_risk
+        -> recognises previous_temperature_c
+        -> recognises previous_relative_humidity_pct
+```
+
+Launching the two capabilities separately does not connect them. Standalone dew risk uses GPS + Open-Meteo, then manual fallback. Stable field-name compatibility is retained for a future first-class pipe system.
+
+## Camera orientation
+
+`astronomy.sky_test` is now explicitly a **relative point-source sky-quality test**. Use a stable, repeatable mounting geometry and a similar bright point source each time; the saved clear-night reference is the comparator. It no longer prescribes a misleading screen-down posture.
+
+`astronomy.focus` is explicitly a **telescope focus assistant**. The native screen can select rear or front camera and reports a rolling-median FWHM over a configurable number of detected frames, reducing frame-to-frame seeing/noise spikes. It assumes the selected camera is optically coupled to an adjustable telescope/eyepiece or comparable optical train.
+
+## Exposure limit
+
+`astronomy.exposure_limit` remains an optional pure calculation. It is specifically for an **untracked camera/lens on a fixed tripod** and estimates how long an exposure can be before sidereal motion becomes a chosen number of pixels. It is not used by the imaging-window planner and can be omitted when irrelevant.
+

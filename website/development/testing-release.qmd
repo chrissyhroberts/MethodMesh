@@ -1,0 +1,24 @@
+---
+title: "Testing, build and release"
+---
+
+## Contract-boundary testing
+
+Tests should verify parity generically where possible: every registered capability is discoverable by presets/protocols, representable to ODK, and able to project every declared output without changing names/types/semantics.
+
+High-value behavioural checks include live result preservation, tap-to-copy, Commit payload freezing, post-commit actions, binary URI grants, final-byte hashing, preset runtime-input policy, launch-origin closeout and orientation/state preservation.
+
+## Capability promotion
+
+Before promotion, exercise dashboard presence, direct run, native preset, protocol selection, ODK invocation/return, example XLSForm where possible, copy/share/save, and capability-specific UI quality.
+
+## Standard commands
+
+```bash
+./gradlew :app:testDebugUnitTest
+./gradlew :app:assembleDebug
+```
+
+## Git hygiene
+
+MethodMesh worktrees may be busy. Inspect status, stage only the coherent intended change and do not delete/reset broad areas without explicit confirmation. Release notes describe what happened; they do not redefine architecture.

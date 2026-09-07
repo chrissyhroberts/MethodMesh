@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MethodMesh System Validation</title>
+<style>
+body{margin:0;background:#f4f6f8;color:#17202a;font:14px/1.45 system-ui,sans-serif}
+header{background:#111827;color:white;padding:24px max(20px,calc((100vw - 1100px)/2))}
+header a{color:#bfdbfe}main{max-width:1100px;margin:auto;padding:22px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.panel,.card{background:white;border:1px solid #d8dee6;border-radius:12px;padding:16px;margin-bottom:14px}
+.label{color:#667085;font-size:12px;text-transform:uppercase}.value{font-size:24px;font-weight:700}
+.kv{display:grid;grid-template-columns:minmax(190px,35%) 1fr;gap:7px 14px}
+.kv dt{color:#667085}.kv dd{margin:0;overflow-wrap:anywhere}.mono{font:12px ui-monospace,monospace}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid #eaecf0}
+th{background:#f9fafb}.note{background:#eff8ff;border:1px solid #b2ddff;border-radius:9px;padding:12px}
+pre{white-space:pre-wrap;background:#101828;color:white;padding:12px;border-radius:9px;font:12px/1.4 ui-monospace,monospace}
+</style></head><body>
+<header><a href="index.html">← Project audit</a><h1>ODK Central system validation</h1>
+<p id="sub"></p></header><main>
+<div class="note"><strong>Privacy:</strong> aggregate installation statistics and
+external service observations only. No participant answers, cross-project record
+metadata, project-name list, or user-identity list.</div>
+<h2>At a glance</h2><div class="grid" id="cards"></div>
+<div class="panel"><h2>Software & API</h2><dl class="kv" id="server"></dl>
+<details><summary>Central version detail</summary><pre id="version"></pre></details></div>
+<div class="panel"><h2>TLS</h2><dl class="kv" id="tls"></dl></div>
+<div class="panel"><h2>Observed network ports</h2><p>Point-in-time reachability from
+the verifier host, not a general firewall assessment.</p><table><thead><tr>
+<th>Port</th><th>State</th><th>Expected public</th><th>Latency</th></tr></thead>
+<tbody id="ports"></tbody></table></div>
+<div class="panel"><h2>Installation statistics</h2><dl class="kv" id="inst"></dl></div>
+<div class="panel"><h2>Audit-log health</h2><dl class="kv" id="audit"></dl></div>
+<div class="panel"><h2>Observed service history</h2><dl class="kv" id="hist"></dl></div>
+</main>
+<script id="stats" type="application/json">{"audit_health":{"any_failure":72,"client_audit_attachment_failures":0,"client_audit_attachments":307443,"entries_recent_45d":71614,"entries_total":3617490,"failed_after_retries":48,"unprocessed":0},"central_url":"https://central.lshtm.ac.uk","expected_public_ports":[80,443],"installation":{"database_size_bytes":639520178979,"database_size_human":"639.5 GB","num_admins_recent_45d":2,"num_admins_total":4,"num_archived_projects":135,"num_blob_files":1372410,"num_blob_files_on_s3":0,"num_client_audit_rows":18967607,"num_forms_recent_45d":164,"num_forms_total":2674,"num_projects":216,"num_questions_biggest_form":1184,"num_submissions_edited_total":6244,"num_submissions_received_recent_45d":37213,"num_submissions_received_total":1725644,"num_submissions_with_comments_total":1261,"num_unique_collectors":3,"num_unique_managers":185,"num_unique_viewers":20,"num_xml_only_form_defs":145,"sso_enabled":0,"uses_external_blob_store":0,"uses_external_db":1},"observed_at_utc":"2026-09-04T18:28:58.388903+00:00","ports":[{"elapsed_ms":2006.9,"port":22,"state":"TIMEOUT_FILTERED_OR_UNREACHABLE"},{"elapsed_ms":14.7,"port":80,"state":"OPEN"},{"elapsed_ms":14.9,"port":443,"state":"OPEN"},{"elapsed_ms":2014.3,"port":3000,"state":"TIMEOUT_FILTERED_OR_UNREACHABLE"},{"elapsed_ms":2005.5,"port":5432,"state":"TIMEOUT_FILTERED_OR_UNREACHABLE"},{"elapsed_ms":80.4,"port":8080,"state":"CLOSED_REFUSED"},{"elapsed_ms":2004.7,"port":8443,"state":"TIMEOUT_FILTERED_OR_UNREACHABLE"}],"privacy":{"project_names_included":false,"research_values_included":false,"statistics_are_aggregate":true,"user_identity_list_included":false},"schema":"methodmesh.system_validation_stats.v1","server":{"api_code":200,"api_elapsed_ms":258.3,"api_status":"PASS","dns_addresses":["194.80.41.67"],"dns_status":"PASS","hostname":"central.lshtm.ac.uk","http_code":200,"http_elapsed_ms":43.0,"http_status":"PASS","server_header":"nginx","version_sha256":"a43c9152f560d62f61c25a4fbd818da34931178d20e3c9f25a5beade6beb8170","version_text":"versions:\n896ceca5a1936faaf4d4b83264551a3acab29be8 (v2025.4.0-2-g896ceca)\n bd1be46611410f2c1f441b154f4d625b27e093c5 client (v2025.4.0)\n 97981e9694f392e5b3df90a2d28c6f7d3aefef17 server (v2025.4.0)"},"service_history":{"api_success_count":1,"http_success_count":1,"interpretation_note":"These are observed probe success fractions, not continuous availability unless probes are scheduled at the declared cadence.","observation_count":1,"observed_api_success_fraction":1.0,"observed_http_success_fraction":1.0,"unexpected_open_ports_seen":[]},"tls":{"certificate_sha256":"c7b10ed75f81fe1f5956c8a11d2d190e9937556efa57eb2f14aceacb6784cd89","cipher":"TLS_AES_256_GCM_SHA384","issuer":[[["countryName","GB"]],[["organizationName","Sectigo Limited"]],[["commonName","Sectigo Public Server Authentication CA OV R36"]]],"not_after":"Jan 24 23:59:59 2027 GMT","not_before":"Jul 10 00:00:00 2026 GMT","protocol":null,"status":"PASS","subject":[[["countryName","GB"]],[["stateOrProvinceName","London"]],[["organizationName","London School of Hygiene \u0026 Tropical Medicine"]],[["commonName","central.lshtm.ac.uk"]]]},"unexpected_open_ports":[]}</script>
+<script>
+const S=JSON.parse(document.getElementById("stats").textContent),$=x=>document.getElementById(x);
+const e=v=>String(v??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const n=v=>v===null||v===undefined?"—":typeof v==="number"?v.toLocaleString():String(v);
+const kv=(id,k,v,m=false)=>$(id).insertAdjacentHTML("beforeend",`<dt>${e(k)}</dt><dd class="${m?"mono":""}">${e(n(v))}</dd>`);
+$("sub").textContent=`${S.central_url} · observed ${S.observed_at_utc||"—"}`;
+const I=S.installation||{},A=S.audit_health||{},V=S.server||{},T=S.tls||{};
+$("cards").innerHTML=[
+["HTTP",V.http_status],["API",V.api_status],["TLS",T.status],
+["Database",I.database_size_human],["Projects",I.num_projects],
+["Forms",I.num_forms_total],["Submissions",I.num_submissions_received_total],
+["Audit log",A.entries_total]
+].map(x=>`<div class="card"><div class="label">${e(x[0])}</div><div class="value">${e(n(x[1]))}</div></div>`).join("");
+[["Hostname",V.hostname],["DNS status",V.dns_status],["DNS addresses",(V.dns_addresses||[]).join(", ")],
+["HTTP",`${V.http_status||"—"} / ${V.http_code??"—"} / ${V.http_elapsed_ms??"—"} ms`],
+["Authenticated API",`${V.api_status||"—"} / ${V.api_code??"—"} / ${V.api_elapsed_ms??"—"} ms`],
+["Server header",V.server_header],["Version SHA-256",V.version_sha256]].forEach(x=>kv("server",x[0],x[1],x[0].includes("SHA")));
+$("version").textContent=V.version_text||"—";
+[["Status",T.status],["Valid from",T.not_before],["Valid until",T.not_after],
+["Protocol",T.protocol],["Cipher",T.cipher],["Certificate SHA-256",T.certificate_sha256]].forEach(x=>kv("tls",x[0],x[1],x[0].includes("SHA")));
+$("ports").innerHTML=(S.ports||[]).map(p=>`<tr><td>${e(p.port)}</td><td>${e(p.state)}</td><td>${(S.expected_public_ports||[]).includes(p.port)?"YES":"NO"}</td><td>${e(p.elapsed_ms??"—")} ms</td></tr>`).join("");
+Object.entries(I).forEach(([k,v])=>kv("inst",k.replaceAll("_"," "),v));
+Object.entries(A).forEach(([k,v])=>kv("audit",k.replaceAll("_"," "),v));
+Object.entries(S.service_history||{}).forEach(([k,v])=>kv("hist",k.replaceAll("_"," "),Array.isArray(v)?v.join(", "):v));
+</script></body></html>

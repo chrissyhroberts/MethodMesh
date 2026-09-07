@@ -1,0 +1,44 @@
+---
+title: "Visual acuity"
+subtitle: "Module reference · visualacuity"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Rapid calibrated tumbling-E visual acuity measurement with logMAR and Snellen results.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>visualacuity</code></div>
+<div><strong>Source directory</strong><code>visualacuity</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>4</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `visual_acuity.measure` | measure visual acuity | Measure calibrated visual acuity | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_VisualAcuity.xlsx](../source-docs/visualacuity/example_odk_VisualAcuity.xlsx)
+
+## Module-local documentation
+
+- [Visual acuity drop-in installation](../source-docs/visualacuity/DROP_IN.qmd) — `DROP_IN.md`
+- [Visual acuity](../source-docs/visualacuity/README_VisualAcuity.qmd) — `README_VisualAcuity.md`
+- [Suggested 000Roadmap.md entry](../source-docs/visualacuity/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [Visual acuity engine test vectors](../source-docs/visualacuity/TEST_VECTORS.qmd) — `TEST_VECTORS.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

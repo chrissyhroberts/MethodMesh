@@ -2,72 +2,26 @@
 title: "Troubleshooting"
 ---
 
-## Start with the returned status
+## A capability exists but is missing from a surface
 
-Record the method ID, returned status, error, provider, timestamp and the exact form used.
+Treat this as a contract-parity problem first. Dashboard, direct capability discovery, presets, protocols and ODK should derive from the same canonical module/method metadata rather than separate lists.
 
-## Form does not open MethodMesh
+## ODK returns the wrong fields
 
-Check:
+Check the canonical method ID, requested return namespace, field-name collisions, `methodmesh_full_json`, and whether the module actually declares the output. Example XLSForms are demonstrations, not a second schema.
 
-- MethodMesh is installed;
-- the example uses the current execution action;
-- the method ID exists in the installed build;
-- the `body::intent` value is on the intended group;
-- the form was re-uploaded and re-downloaded after editing.
+## Binary output cannot be opened
 
-## MethodMesh opens but nothing returns
+Verify a content URI is returned with `ClipData` and read permission grants, and that the XLSForm target field is an appropriate attachment type.
 
-Check:
+## Done goes to the wrong place
 
-- the output field names match the documented return names;
-- the group is still active in ODK Collect;
-- the user did not navigate away through Android recents;
-- the operation was not cancelled;
-- the provider returned an actual result rather than only closing;
-- the call requested the appropriate return mode.
+Check launch-origin preservation. App/preset should return to dashboard, widget to desktop, ODK to ODK, and protocol/schedule to their runners.
 
-## Provider or hardware missing
+## A module page says “present in source” but not Production
 
-Some capabilities depend on:
+That is intentional. Presence in the supplied implementation snapshot is not automatic promotion. Use the [status page](reference/production-status.qmd) and current method metadata/review evidence.
 
-- Bluetooth hardware;
-- an ESP32 sensor node;
-- a Bluetooth printer;
-- an installed provider application;
-- a downloaded ML Kit model;
-- Android biometric or device-credential configuration;
-- an NFC-capable phone.
+## Documentation conflicts
 
-The capability page lists its specific requirements.
-
-## Permission denied
-
-Grant only the permission needed by the method, then repeat the whole call from the form.
-
-Common permissions include camera, microphone, Bluetooth/nearby devices, NFC, location, notifications and SMS.
-
-## Works online but not offline
-
-Look for:
-
-- a model that has not been downloaded;
-- a map package that is absent;
-- an external provider using a remote service;
-- an online URL target;
-- files that exist only in cloud storage.
-
-## Report a reproducible issue
-
-Include:
-
-- MethodMesh version;
-- device and Android version;
-- EDC application and version;
-- capability and call;
-- example workbook name;
-- expected output;
-- actual output;
-- whether airplane mode was enabled.
-
-Do not include participant identifiers, credentials, cryptographic private keys or sensitive payloads.
+Use the authority order in [Master Book v1.05](reference/master-book.qmd): Master Book, current app/tests, repository README/current guides, capability docs, then roadmap/archive/prototype material.

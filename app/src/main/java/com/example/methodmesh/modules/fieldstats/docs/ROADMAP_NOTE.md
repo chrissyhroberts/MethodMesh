@@ -1,0 +1,20 @@
+## Field Statistics — Development v0.1.0
+
+Added a local-first `fieldstats` capability family for pocket statistical methods:
+
+- diagnostic 2×2 accuracy metrics and prevalence-adjusted predictive values;
+- proportion + Wilson CI;
+- one-proportion sample-size planning with FPC/design effect/non-response;
+- detect-at-least-one and zero-event prevalence bounds, including finite-population hypergeometric mode;
+- two-group binary effect measures (RD/RR/OR/NNT/NNH);
+- descriptive summary statistics;
+- approximate two-proportion sample size;
+- diagnostic precision sample size;
+- interactive ROC/AUC threshold explorer using the persistent-dashboard pattern;
+- binomial/Poisson/normal quick probability calculations.
+
+Random sampling remains in the existing `sampling.run` capability and is not duplicated.
+
+Current MethodMesh value piping is not assumed by this module; methods are independently runnable and expose stable explicit output fields for future orchestration compatibility.
+
+Before Production: run full Android `:app:assembleDebug`, device/native and orientation tests, native preset tests, ROC protocol-closeout validation, and all supplied ODK Collect XLSForm round trips.

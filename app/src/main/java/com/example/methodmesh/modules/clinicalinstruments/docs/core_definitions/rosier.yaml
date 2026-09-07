@@ -1,0 +1,53 @@
+schema: methodmesh.clinical-instrument.v1
+id: rosier
+name: ROSIER stroke recognition scale
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [stroke, neurology, emergency, recognition]
+summary: Seven-item Recognition of Stroke in the Emergency Room scale for patients with suspected acute stroke.
+source_url: https://pubmed.ncbi.nlm.nih.gov/16239179/
+citation: "Nor AM, Davis J, Sen B, et al. The Recognition of Stroke in the Emergency Room (ROSIER) scale. Lancet Neurol. 2005;4:727-734."
+rights_status: factual_definition
+rights_note: Implements the seven factual scoring criteria from the published ROSIER rule using concise labels.
+questions:
+  - id: loss_of_consciousness_or_syncope
+    label: Loss of consciousness or syncope?
+    type: boolean
+  - id: seizure_activity
+    label: Seizure activity?
+    type: boolean
+  - id: asymmetric_facial_weakness
+    label: New asymmetric facial weakness?
+    type: boolean
+  - id: asymmetric_arm_weakness
+    label: New asymmetric arm weakness?
+    type: boolean
+  - id: asymmetric_leg_weakness
+    label: New asymmetric leg weakness?
+    type: boolean
+  - id: speech_disturbance
+    label: New speech disturbance?
+    type: boolean
+  - id: visual_field_defect
+    label: New visual field defect?
+    type: boolean
+scores:
+  - id: rosier
+    label: ROSIER
+    expression: asymmetric_facial_weakness + asymmetric_arm_weakness + asymmetric_leg_weakness + speech_disturbance + visual_field_defect - loss_of_consciousness_or_syncope - seizure_activity
+classifications:
+  - when: rosier > 0
+    value: stroke_likely
+    label: Stroke likely by ROSIER threshold
+  - when: rosier <= 0
+    value: stroke_less_likely_not_excluded
+    label: Stroke less likely by ROSIER threshold; not excluded
+tests:
+  - name: positive
+    input_json: '{"loss_of_consciousness_or_syncope":false,"seizure_activity":false,"asymmetric_facial_weakness":true,"asymmetric_arm_weakness":true,"asymmetric_leg_weakness":false,"speech_disturbance":true,"visual_field_defect":false}'
+    expect_json: '{"rosier":3,"classification":"stroke_likely"}'
+  - name: mimic_pattern
+    input_json: '{"loss_of_consciousness_or_syncope":true,"seizure_activity":true,"asymmetric_facial_weakness":false,"asymmetric_arm_weakness":false,"asymmetric_leg_weakness":false,"speech_disturbance":false,"visual_field_defect":false}'
+    expect_json: '{"rosier":-2,"classification":"stroke_less_likely_not_excluded"}'

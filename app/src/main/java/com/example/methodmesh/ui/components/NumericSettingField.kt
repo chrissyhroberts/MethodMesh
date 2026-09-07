@@ -7,7 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -33,15 +34,11 @@ fun NumericSettingField(
     decimals: Int = 1,
     onValueChange: (Float) -> Unit
 ) {
-    var text by remember(label) {
-        mutableStateOf(formatNumber(value, decimals))
-    }
+    var text by remember(label) { mutableStateOf(formatNumber(value, decimals)) }
 
     LaunchedEffect(value) {
         val formatted = formatNumber(value, decimals)
-        if (text.toFloatOrNull() != value) {
-            text = formatted
-        }
+        if (text.toFloatOrNull() != value) text = formatted
     }
 
     Column(
@@ -49,20 +46,18 @@ fun NumericSettingField(
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
-        Text(label)
+        Text(label, style = MaterialTheme.typography.labelLarge)
 
         Row(
+            modifier = Modifier.padding(top = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(
-                onClick = {
-                    onValueChange(
-                        (value - step).coerceIn(minimum, maximum)
-                    )
-                }
-            ) {
-                Text("−")
-            }
+            OutlinedButton(
+                onClick = { onValueChange((value - step).coerceIn(minimum, maximum)) },
+                modifier = Modifier.width(48.dp),
+                shape = MaterialTheme.shapes.small,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+            ) { Text("−") }
 
             Spacer(modifier = Modifier.width(8.dp))
 
@@ -70,48 +65,32 @@ fun NumericSettingField(
                 value = text,
                 onValueChange = { entered ->
                     text = entered
-
                     entered.toFloatOrNull()?.let { parsed ->
                         onValueChange(parsed.coerceIn(minimum, maximum))
                     }
                 },
-                suffix = {
-                    if (unit != null) {
-                        Text(unit)
-                    }
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number
-                ),
+                suffix = { if (unit != null) Text(unit) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
                 modifier = Modifier.weight(1f)
             )
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            Button(
-                onClick = {
-                    onValueChange(
-                        (value + step).coerceIn(minimum, maximum)
-                    )
-                }
-            ) {
-                Text("+")
-            }
+            OutlinedButton(
+                onClick = { onValueChange((value + step).coerceIn(minimum, maximum)) },
+                modifier = Modifier.width(48.dp),
+                shape = MaterialTheme.shapes.small,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+            ) { Text("+") }
         }
 
         Slider(
             value = value.coerceIn(minimum, maximum),
-            onValueChange = {
-                onValueChange(it.coerceIn(minimum, maximum))
-            },
+            onValueChange = { onValueChange(it.coerceIn(minimum, maximum)) },
             valueRange = minimum..maximum
         )
     }
 }
 
-private fun formatNumber(
-    value: Float,
-    decimals: Int
-): String {
-    return "%.${decimals}f".format(value)
-}
+private fun formatNumber(value: Float, decimals: Int): String = "%.${decimals}f".format(value)

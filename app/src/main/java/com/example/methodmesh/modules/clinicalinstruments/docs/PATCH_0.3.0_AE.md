@@ -1,0 +1,38 @@
+# Clinical Instruments v0.4.0 — A&E expansion
+
+This patch expands the immutable core catalogue from 19 to 28 executable linear instruments.
+
+## Added
+
+- Glasgow-Blatchford Bleeding Score
+- Pre-endoscopy Rockall score
+- ROSIER stroke recognition scale
+- NEXUS C-spine low-risk criteria
+- Ottawa ankle radiography rule
+- Ottawa foot radiography rule
+- HEART score
+- BISAP acute pancreatitis score
+
+All new instruments are represented as linear checklists/decision rules supported by the existing engine. No skip/relevance logic was added.
+
+## Deliberately not added: Glasgow Coma Scale
+
+GCS is clinically essential and its copyright holder explicitly permits clinical and research use without a licence, with attribution. It is nevertheless held back from v0.4 because the official structured GCS supports **non-testable (NT)** eye, verbal and motor components. The current Clinical Instruments scoring model assumes scored components are numerically testable. Forcing an intubated/paralysed/otherwise non-testable component into a numeric category would be clinically wrong.
+
+The next engine enhancement for GCS should be small and explicit: support a non-testable response and conditional suppression of a composite score while still returning the component assessments.
+
+## Safety/interpretation conventions
+
+- Decision rules return whether their cited criteria are met; they do not make treatment or disposition decisions.
+- Ottawa rules do not claim to rule in or rule out fracture; they report whether the radiography criteria are met.
+- NEXUS reports whether all five low-risk criteria are met; it does not replace clinical judgement.
+- ROSIER <=0 is labelled "stroke less likely; not excluded" rather than "no stroke".
+- Glasgow-Blatchford and pre-endoscopy Rockall report their numerical score and conservative score bands rather than embedding local admission/discharge policy.
+- HEART input explicitly asks the clinician to classify history, ECG, risk factors and troponin against the local assay reference limit; MethodMesh does not infer those clinical judgements.
+- BISAP explicitly records the SIRS component criteria rather than hiding them behind a single untraceable yes/no answer.
+
+## Validation
+
+The complete 27-definition core library was parsed and validated through the isolated Kotlin definition engine. All embedded regression cases passed.
+
+The Android repository build/device gate remains required after drop-in.

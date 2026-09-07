@@ -1,0 +1,5 @@
+MethodMesh Cryptography v0.2.1 static secret-state scan
+Generated: 2026-09-04
+
+PASS: no obvious password/secret/share/otpauth/plaintext/private-key state stored via rememberSaveable.
+PASS: encryption provenance design omits plaintext hashes (see SECURITY_MODEL.md).
