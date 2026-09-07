@@ -75,6 +75,8 @@ Where older project-wide MethodMesh documents conflict with this book, this book
   - [ODK Central rapid-test deployment](#odk-central-rapid-test-deployment)
   - [Kobo rapid-test deployment](#kobo-rapid-test-deployment)
   - [XLSForm batch validation](#xlsform-batch-validation)
+    - [MethodMesh XLSForm naming convention](#methodmesh-xlsform-naming-convention)
+    - [Reviewed 2026-09-07 module XLSForm baseline](#reviewed-2026-09-07-module-xlsform-baseline)
   - [Deployment diagnostics](#deployment-diagnostics)
 - [11. Output contract](#11-output-contract)
   - [Cross-surface output invariant](#cross-surface-output-invariant)
@@ -448,8 +450,11 @@ composition.
 
 ODK/XLSForm must be able to invoke every capability and request every
 declared output that MethodMesh itself can produce, including obscure or
-rarely used outputs. Example XLSForms may demonstrate only common
-outputs; the transport contract must not be limited to the examples.
+rarely used outputs. Broader/legacy example XLSForms may demonstrate only
+common outputs. Focused capability showcases should capture the declared
+returns relevant to that call plus the shared complete payload, while never
+inventing undeclared fields. In all cases the transport contract must not be
+limited to the examples.
 
 Transport-specific presentation is allowed. For example, a dashboard may
 render a map, a preset may ask for runtime inputs, and ODK may use
@@ -496,9 +501,9 @@ ODK Forms is a first-class top-level MethodMesh surface.
 
 It is a searchable library of module-owned XLSForm design templates and mirrors module organisation in the same way as Capabilities and Presets.
 
-A module may own zero, one or many XLSForms. Form count does not have to match capability count.
+A module may own zero, one or many XLSForms. There is no required one-to-one total form count because broader workflow/dashboard examples may coexist with focused showcases; however, each independently callable ODK-representable capability should have focused showcase coverage.
 
-The source of truth is the module's own `docs/` directory. Canonical example names use `example_odk_<purpose>.xlsx`; discovery must flag rather than silently hide structurally valid XLSForms with legacy/non-standard names.
+The source of truth is the module's own `docs/` directory. Canonical workbook names use `example_odk_<purpose>.xlsx` for broader/legacy examples and `example_odk_showcase_<purpose>.xlsx` for focused capability showcases. For a showcase, `<purpose>` is normally a lower-snake-case filename projection of the canonical method ID; the filename never renames the method contract. Discovery must flag rather than silently hide structurally valid XLSForms with legacy/non-standard names.
 
 Each library row may expose Save/export, Share, validation status, independent ODK Central deployment/access state and independent Kobo deployment state.
 
@@ -749,9 +754,10 @@ for the module:
 <module_name>/
 |-- docs/
 |   |-- README_<CapabilityA>.md
-|   |-- example_odk_<capability_a>.xlsx
+|   |-- example_odk_showcase_<capability_a>.xlsx
 |   |-- README_<CapabilityB>.md              # if the module exposes another capability
-|   |-- example_odk_<capability_b>.xlsx      # one example per capability
+|   |-- example_odk_showcase_<capability_b>.xlsx  # focused capability showcase
+|   |-- example_odk_<purpose>.xlsx           # optional broader/multi-capability example
 |   |-- VALIDATION.md                        # recommended where validation is meaningful
 |   |-- ROADMAP_NOTE.md                      # optional
 |   |-- THIRD_PARTY_NOTICES.md               # when required
@@ -792,11 +798,14 @@ If the handoff is zipped, the ZIP must open to exactly one top-level
   module, not shared-app files.
 - `docs/` contains **all documentation and ODK examples for the module**.
   Do not return a second documentation tree elsewhere.
-- Because every MethodMesh capability must be accessible through the
-  ODK/XLSForm roundtrip, provide an ODK example for every individual
-  capability. A combined example workbook is acceptable only if it
-  clearly demonstrates every method; otherwise use one
-  `example_odk_<capability>.xlsx` per capability.
+- Because every independently callable MethodMesh capability must remain
+  addressable through the ODK/XLSForm roundtrip, provide a focused showcase
+  workbook for each callable capability using
+  `example_odk_showcase_<purpose>.xlsx`. For showcases, `<purpose>` should
+  normally be derived from the canonical method ID using filename-safe lower
+  snake case. Broader `example_odk_<purpose>.xlsx` workbooks may additionally
+  demonstrate dashboards, workflows or multiple capabilities, but they do not
+  substitute for focused capability-contract coverage.
 - For a multi-capability module, repeat the per-capability README,
   ODK example, method implementation and native screen as appropriate.
   Do not collapse independent capabilities into a single private
@@ -924,7 +933,7 @@ A production capability:
 
 builds; runs; has native UX checked; has preset UX checked; has
 ODK/XLSForm checked; preserves state across rotation where relevant;
-returns beef-first outputs; has docs and example XLSForm; does not
+returns beef-first outputs; has module docs and focused XLSForm showcase coverage for independently callable ODK-representable capabilities; does not
 violate the golden rule; has any required attribution/licence notes; has
 a clear production method status.
 
@@ -1180,17 +1189,34 @@ collisions when several MethodMesh calls appear in one form.
 
 ## Flat + full JSON
 
-The ODK default pattern is:
+The current ODK showcase pattern is:
 
-main useful field(s) + methodmesh_full_json
+```text
+methodmesh_status + capability-relevant declared return fields + methodmesh_full_json
+```
 
-For media-producing capabilities:
+`methodmesh_full_json` is the shared complete execution/audit projection. A
+showcase retains it even when useful scalar/media fields are also projected.
+`methodmesh_status` is the shared transport status used by the showcase forms;
+it is not a substitute for capability-specific success semantics where those
+are separately declared.
 
-main media URI + useful scalar fields + methodmesh_full_json
+For media-producing capabilities, the useful return set normally includes the
+main attachment-compatible media field plus relevant scalar/hash fields and the
+shared full JSON payload.
 
 Example:
 
-redacted_image_uri redacted_image_sha256 methodmesh_full_json
+```text
+methodmesh_status redacted_image_uri redacted_image_sha256 methodmesh_full_json
+```
+
+Do not manufacture a uniform capability-specific success field, timestamp or
+`*_json` field in an XLSForm when the runtime does not declare one. The current
+capability contracts are heterogeneous in those fields. Any future universal
+success/time/capability-payload envelope must be defined centrally in the
+shared MethodMesh transport/canonical contract and then projected consistently;
+it must not emerge as an XLSForm-only convention.
 
 ## Binary artefacts
 
@@ -1241,7 +1267,7 @@ Canonical source discovery includes:
 src/main/java/com/example/methodmesh/modules/<module>/docs/**/*.xlsx
 ```
 
-Canonical `example_odk*.xlsx` names are preferred. The generator may also include other workbooks that structurally look like XLSForms as a safety net, while emitting naming findings rather than silently hiding them.
+Canonical `example_odk_<purpose>.xlsx` and `example_odk_showcase_<purpose>.xlsx` names are preferred. The generator may also include other workbooks that structurally look like XLSForms as a safety net, while emitting naming findings rather than silently hiding them. Existing broader forms and dedicated showcases may coexist and are catalogued independently.
 
 Generated runtime projection:
 
@@ -1314,19 +1340,95 @@ Do not turn validation warnings into silent automatic rewrites. In particular, d
 
 ### MethodMesh XLSForm naming convention
 
-Preferred filename:
+Module-owned XLSForms use two canonical filename forms:
 
 ```text
 example_odk_<purpose>.xlsx
+example_odk_showcase_<purpose>.xlsx
 ```
 
-Use lower snake case for new filenames.
+`example_odk_<purpose>.xlsx` is appropriate for a broader, legacy,
+dashboard-oriented or multi-capability example.
 
-`form_id` is a stable external identity. Once deployed, treat it as a contract.
+`example_odk_showcase_<purpose>.xlsx` is a focused capability-contract
+showcase: normally one form demonstrating one independently callable MethodMesh
+capability/method. For a showcase, `<purpose>` should normally be a
+filename-safe lower-snake-case projection of the canonical method ID. The
+filename does not rename the method contract.
 
-Titles are human-readable. Versions change when the form definition changes.
+Use lower snake case for new filenames. Periods, spaces, mixed case and other
+method-ID punctuation are normalized only in the filename token.
 
-Legacy/non-standard filenames are migration warnings, not grounds for excluding a valid form from the library.
+`form_id` is a stable external ODK identity. Once deployed, treat it as a
+contract. Existing nonblank `form_id` values are preserved even where they
+pre-date or do not satisfy current lower-snake-case recommendations. A filename
+cleanup must never silently create a new ODK form identity.
+
+For new showcase forms, prefer a unique lower-snake-case `form_id`, normally a
+module/method-derived identity such as `<module>_<method>`. This is a form
+identity convention, not a method-ID migration rule.
+
+The `settings` sheet should use the standard row-oriented XLSForm layout and
+provide nonblank `form_title`, `form_id` and `version` values. Repair malformed
+settings structure deliberately and preserve recoverable existing identity.
+
+Titles are human-readable and must not merely expose machine-token labels. A
+showcase title may include the canonical method ID for traceability after a
+human-readable module/capability label.
+
+For new forms and intentional form-definition revisions, prefer a monotonically
+increasing `YYYYMMDDrr` version string, where `rr` is a same-day revision
+counter. Historical version strings may be retained when a form definition is
+otherwise unchanged and rewriting the version solely for style would create
+needless deployment churn.
+
+Filename, title, version and `form_id` are distinct concerns. Where the XLSForm
+`settings` sheet provides identity metadata, catalogue and deployment code use
+that metadata rather than inferring identity from the filename.
+
+Legacy/non-standard filenames are migration warnings, not grounds for excluding
+a structurally valid form from the library. Naming/settings cleanup is separate
+from substantive survey-logic repair: do not silently alter method IDs, intent
+contracts, choices, calculations or return payloads merely while normalizing
+names/metadata.
+
+### Reviewed 2026-09-07 module XLSForm baseline
+
+The reviewed module bundle on 2026-09-07 contained **423 XLSForms**: **147**
+existing/broader examples plus **276** dedicated capability showcases across
+**66 modules**. The showcase pass was additive: existing forms were preserved
+and the focused showcase workbooks used distinct filenames.
+
+The legacy naming/identity cleanup renamed **118** files, cleaned title/version
+metadata in **63** forms and repaired **4** malformed `settings` sheets. After
+cleanup there were **0 filename convention violations**, **0 blank legacy
+`form_id` values**, **0 duplicate legacy `form_id` values**, **0 blank legacy
+titles**, **0 duplicate legacy titles**, **0 blank legacy versions**, and **0
+machine-token legacy titles**.
+
+Compatibility was intentionally preserved: **34** existing `form_id` values
+remain outside the current lower-snake-case recommendation, and **10** otherwise
+unchanged legacy forms retain historical version strings outside the
+`YYYYMMDDrr` recommendation. Those are compatibility decisions, not validation
+failures.
+
+The **276** generated capability showcase forms passed the MethodMesh structural
+and naming linter with **0 errors, 0 warnings and 0 naming issues**. That linter
+checked workbook presence, field names, duplicate names, `${field}` references,
+choice-list integrity, duplicate `form_id` values, JavaRosa `replace()` usage
+and MethodMesh filename/form-ID/version conventions. `pyxform` / ODK Validate
+was not available in that build environment, so this clean result does not
+replace the optional second validation layer. Existing substantive findings in
+legacy survey logic remain separate from this naming/identity cleanup and must
+not be inferred to have been repaired by the clean naming report.
+
+The showcase audit also identified a cross-cutting runtime contract gap: a
+universally named scalar success indicator, time field and capability-owned JSON
+field are not currently exposed consistently by every capability. The forms do
+not invent those fields. They capture `methodmesh_status`,
+`methodmesh_full_json`, and only capability-specific return fields resolved from
+the existing runtime contract. The universal envelope question belongs in
+shared MethodMesh transport architecture, not in individual XLSForms.
 
 ## Deployment diagnostics
 
@@ -1772,14 +1874,18 @@ documents live inside the returned module's `docs/` directory; there is
 no parallel top-level documentation handoff.
 
 For a module exposing several capabilities, documentation is
-capability-addressable: each method must be identifiable in the docs and
-each capability must have an ODK example that exercises its canonical
-contract.
+capability-addressable: each method must be identifiable in the docs and each
+independently callable capability must have a focused ODK showcase that
+exercises its canonical contract.
 
-Minimum:
+Minimum for an independently callable capability:
 
 - `docs/README_<Capability>.md`
-- `docs/example_odk_<capability>.xlsx`
+- `docs/example_odk_showcase_<purpose>.xlsx`
+
+Broader `docs/example_odk_<purpose>.xlsx` examples may coexist where useful and
+are preserved when they carry distinct workflow, dashboard or compatibility
+value.
 
 Recommended:
 
@@ -1809,13 +1915,29 @@ remain part of the canonical contract.
 
 ## Example XLSForms
 
-Example XLSForms should:
+Dedicated capability showcases should:
 
-use grouped intent calls; avoid return/input field name collisions;
-include main output fields; include methodmesh_full_json where audit
-metadata is expected; include media fields as real ODK attachment types
-where relevant; demonstrate realistic usage, not just a synthetic debug
-call.
+- invoke one resolved canonical MethodMesh method contract;
+- use a grouped intent call and the canonical MethodMesh execute action;
+- use only declared/relevant input parameters for that call;
+- request `input_payload_mode=FULL` where the resolved contract supports it;
+- capture `methodmesh_status` and `methodmesh_full_json`;
+- capture capability-specific scalar, media, status, time and JSON return fields
+  only where those fields are actually declared/resolved for that capability;
+- avoid unrelated JSON leaves from other capabilities in the same module;
+- avoid return/input field-name collisions;
+- use attachment-compatible ODK question types for returned media;
+- use human-readable titles, labels and hints while retaining the canonical
+  method ID for traceability; and
+- demonstrate realistic usage rather than a synthetic debug-only call.
+
+A showcase is an executable demonstration of the existing capability contract,
+not a second schema. If a desirable field is absent from the runtime contract,
+record the gap; do not manufacture the field in the workbook.
+
+Broader or legacy examples may remain alongside showcases. Preserve them when
+they demonstrate multi-capability workflows, dashboards, backwards
+compatibility or other useful patterns not represented by the focused showcase.
 
 Do not rewrite all example forms during architecture experiments unless
 explicitly asked. First prove the transport/contract works.
@@ -1898,7 +2020,7 @@ For every declared input/output verify intent key/name, type/semantics, return n
 
 The supplied XLSForms are part of the module contract. A module is not complete merely because native execution works.
 
-Run batch XLSForm validation and address genuine errors. Naming/convention warnings may be migrated deliberately, but deployed identities are never changed silently.
+Run batch XLSForm validation and address genuine errors. Validate focused showcases independently from broader/legacy examples so one class does not hide problems in the other. Naming/convention warnings may be migrated deliberately, but deployed identities are never changed silently. Do not resolve contract ambiguity by inventing return fields in the XLSForm; record shared/runtime gaps and fix them at the appropriate contract layer.
 
 ## Widget/schedule review
 
@@ -1969,7 +2091,37 @@ Do not document aspirational behaviour as implemented.
 
 ## Example XLSForms during review
 
-Where ODK use is plausible, include working example XLSForm(s). Multi-capability modules SHOULD demonstrate the independently callable capabilities adequately; one dashboard-oriented example does not substitute for the underlying contracts. Examples use grouped intent calls, correct input/return fields, namespace handling, media fields where relevant and `methodmesh_full_json` where appropriate.
+Where ODK use is plausible, include working module-owned XLSForm examples.
+
+Broader or legacy `example_odk_<purpose>.xlsx` forms may coexist with dedicated
+capability showcases. For independently callable capabilities, prefer a focused
+`example_odk_showcase_<purpose>.xlsx` demonstrating the actual callable
+contract. For a showcase, `<purpose>` normally reflects the canonical method ID
+in filename-safe lower snake case. A dashboard-oriented or multi-capability
+example does not substitute for the underlying capability contracts.
+
+A showcase XLSForm is a demonstration of the existing MethodMesh contract, not
+a second schema and not a place to invent missing runtime behaviour. It uses the
+canonical method ID, declared inputs, requested return namespace and only return
+fields that the runtime actually declares/resolves for that call.
+
+Showcases capture `methodmesh_status` and `methodmesh_full_json`. The latter is
+the shared complete structured/audit projection. Capability-specific status,
+success, time, JSON, scalar and media fields are included only where they are
+actually exposed by the capability/shared transport contract. Unrelated module
+JSON leaves are not added merely because they exist elsewhere in the module.
+
+Do not invent a success field, timestamp field, capability-owned JSON field or
+other return merely to make XLSForms look uniform. Where a desirable universal
+return envelope is absent or heterogeneous across capabilities, record that as
+a shared contract gap and resolve it centrally in MethodMesh rather than
+independently inside XLSForms.
+
+Showcases use grouped intent calls, correct namespace handling, correct media
+transport where relevant and human-readable labels/titles. Existing broader
+forms are preserved where they still provide distinct coverage; naming/identity
+cleanup must not silently change method IDs, invocation contracts, survey logic,
+choices or return payload semantics.
 
 ## Do not over-redesign
 
@@ -2034,8 +2186,9 @@ hand-maintained lists.
 build debug APK; exercise the dashboard presence; exercise direct native run; verify the production screen is capability-relevant rather than a raw generic form where richer UI is warranted; verify current results update in-place; verify tapping displayed results copies the intended value; verify Commit freezes the payload and reveals post-commit actions without forcing a generic result page; verify Home/Done routing for app and widget origins; verify ODK interactive and non-interactive routes return cleanly to ODK; verify every individual capability appears in preset creation;
 verify every individual capability appears in protocol creation;
 exercise native preset run; verify ODK can invoke each method and
-project every declared output; exercise the example XLSForm where
-possible; check canonical field names/types/semantics match across
+project every declared output; exercise each focused capability showcase where
+possible and retain broader/legacy examples as additional workflow coverage;
+check canonical field names/types/semantics match across
 surfaces; check share/copy/save behaviour; check no golden-rule or
 contract-parity violation.
 
@@ -2046,9 +2199,20 @@ Where feasible, tests verify that the same canonical method ID/input/output sema
 
 ## XLSForm validation tests
 
-The repository-level form validator is runnable in batch and makes invalid module-owned examples visible before deployment.
+The repository-level form validator is runnable in batch and makes invalid
+module-owned examples visible before deployment. Validation should report
+broader/legacy examples and dedicated capability showcases independently and
+attribute each finding to the exact module/workbook.
 
-A failing Central/Kobo upload is not an acceptable primary validation workflow; server diagnostics are a useful second line and remain visible/copyable.
+At minimum, repository checks cover workbook/sheet structure, duplicate/missing
+field names, group/repeat balance, `${field}` references, choice integrity,
+`form_id` uniqueness/settings metadata, MethodMesh naming/version conventions
+and known JavaRosa hazards such as unsupported XPath 2.0 `replace()` usage.
+
+A clean MethodMesh linter result is not equivalent to an ODK Validate result.
+Use `pyxform`/ODK Validate as a second layer where available. A failing
+Central/Kobo upload is not an acceptable primary validation workflow; server
+diagnostics are a useful later line and remain visible/copyable.
 
 # 22. Build, release and git hygiene
 
@@ -2192,7 +2356,7 @@ If another AI chat is writing a capability, give it these rules:
 
 5. For a multi-capability module, include clearly identifiable per-capability method implementations and documentation/ODK coverage. Dashboard aggregation must not collapse those capabilities into a single inaccessible private implementation.
 
-6. Put docs and ODK example XLSForm(s) inside that folder.
+6. Put docs and ODK XLSForms inside that folder. For each independently callable capability, provide a focused `example_odk_showcase_<purpose>.xlsx`; broader `example_odk_<purpose>.xlsx` examples may coexist where they add distinct workflow or compatibility value.
 
 7. Do not edit HomeScreen for capability-specific logic.
 
@@ -2208,7 +2372,7 @@ If another AI chat is writing a capability, give it these rules:
 
 13. Expose every individual capability independently for preset creation and protocol creation, even when the dashboard aggregates several capabilities.
 
-14. Make every declared capability and every declared output available to the ODK/XLSForm roundtrip; examples are not allow-lists.
+14. Make every declared capability and every declared output available to the ODK/XLSForm roundtrip; examples are not allow-lists. Showcase forms must use the existing runtime contract and must not invent success/time/JSON or other returns merely for uniformity.
 
 15. Keep method IDs and input/output field names, types and semantics canonical across all surfaces; only presentation/transport may differ.
 
@@ -2321,19 +2485,25 @@ These IDs are stable anchors for module reviews, migration scorecards and tests.
 - **`MM-ODK-003`** - Interactive ODK launches return directly to the calling form after Commit/Cancel.
 - **`MM-ODK-004`** - Binary returns use proper content URIs, ClipData/read grants and attachment-compatible form fields.
 - **`MM-ODK-005`** - ODK owns returned study data unless a capability has an independent persistence reason.
+- **`MM-ODK-006`** - `methodmesh_full_json` is the shared complete structured/audit return for ODK calls and remains available independently of any capability-owned `*_json` field; a universal scalar success/time envelope, if introduced, is defined centrally rather than per XLSForm.
 
 ## XLSForm
 
 - **`MM-XLS-001`** - Module-owned docs may contain zero, one or many XLSForms; each discovered form is catalogued independently.
-- **`MM-XLS-002`** - Canonical example filename is example_odk_<purpose>.xlsx; legacy names are warned, not silently excluded.
-- **`MM-XLS-003`** - form_id is a stable external identity and is never silently renamed for style.
+- **`MM-XLS-002`** - Canonical filenames are `example_odk_<purpose>.xlsx` for broader examples and `example_odk_showcase_<purpose>.xlsx` for focused capability showcases; legacy names are warned, not silently excluded.
+- **`MM-XLS-003`** - `form_id` is a stable external identity and is never silently renamed for filename/style cleanup.
 - **`MM-XLS-004`** - Batch validation reports form/module-specific structural, JavaRosa/ODK and naming findings and supports copy/export.
 - **`MM-XLS-005`** - Central access state, Kobo deployment state and collector-device state are represented separately.
+- **`MM-XLS-006`** - A showcase XLSForm demonstrates one resolved declared MethodMesh capability contract; it does not invent inputs, outputs, success fields, timestamps, JSON fields or other runtime behaviour.
+- **`MM-XLS-007`** - Filename, human-readable title, version and `form_id` are distinct concerns; identity metadata from the standard row-oriented XLSForm `settings` sheet is authoritative where present.
+- **`MM-XLS-008`** - New forms and intentional revisions prefer monotonically increasing `YYYYMMDDrr` versions; historical version strings may be retained where gratuitous rewriting would create deployment churn.
+- **`MM-XLS-009`** - Broader/legacy examples and focused capability showcases may coexist; a dashboard or multi-capability form does not substitute for focused independently callable capability coverage.
+- **`MM-XLS-010`** - Focused showcases capture `methodmesh_status`, `methodmesh_full_json` and only capability-specific return fields declared/resolved for that call; unrelated module leaves and synthetic uniformity fields are excluded.
 
 ## Outputs
 
 - **`MM-OUT-001`** - Native presentation may hide metadata but cannot remove canonical outputs from the contract.
-- **`MM-OUT-002`** - methodmesh_full_json remains available where complete structured/audit return is expected.
+- **`MM-OUT-002`** - `methodmesh_full_json` remains available as the shared complete structured/audit projection, including for ODK capability calls even when no capability-owned JSON field exists.
 - **`MM-OUT-003`** - Hashes identify the final bytes/canonical content they claim to identify.
 
 ## Offline
@@ -6580,6 +6750,7 @@ Standalone source documents should only be archived after the repository reorgan
 - added ODK Forms as a first-class top-level surface;
 - added ODK Central and Kobo rapid-test deployment semantics;
 - added XLSForm discovery, naming, batch validation and diagnostics standards;
+- aligned XLSForm doctrine with the 2026-09-07 module audit: 147 existing examples retained, 276 focused capability showcases across 66 modules, stable form identities preserved during naming cleanup, and runtime contract ambiguities explicitly kept out of XLSForm-only schema invention;
 - added destructive-action confirmation rules;
 - formalised minimalist shell/search/back-navigation direction;
 - formalised shared Android capability surfaces;
