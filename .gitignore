@@ -80,3 +80,7 @@ website/assets/screenshots/signed_attestation_video.mp4
 /MethodMesh_Master_Book_v*_Canonical/
 /MethodMesh_documentation_review*.zip
 /MethodMesh_Documentation_Review*.zip
+
+# MethodMesh documentation tooling
+documentation_reorg_dryrun*.txt
+__pycache__/
