@@ -44,33 +44,34 @@ internal fun decodeOrientedBitmap(file: File): Bitmap? {
         .also { if (it !== bitmap) bitmap.recycle() }
 }
 
-internal fun applyMagnifierFilter(source: Bitmap, filter: MagnifierFilter): Bitmap {
-    if (filter == MagnifierFilter.NORMAL) return source.copy(Bitmap.Config.ARGB_8888, false)
-
-    val matrix = when (filter) {
-        MagnifierFilter.MONOCHROME -> ColorMatrix().apply { setSaturation(0f) }
-        MagnifierFilter.HIGH_CONTRAST -> {
-            val contrast = 1.65f
-            val translate = 128f * (1f - contrast)
-            ColorMatrix(
-                floatArrayOf(
-                    contrast, 0f, 0f, 0f, translate,
-                    0f, contrast, 0f, 0f, translate,
-                    0f, 0f, contrast, 0f, translate,
-                    0f, 0f, 0f, 1f, 0f
-                )
-            )
-        }
-        MagnifierFilter.NEGATIVE -> ColorMatrix(
+internal fun magnifierColorMatrix(filter: MagnifierFilter): ColorMatrix? = when (filter) {
+    MagnifierFilter.NORMAL -> null
+    MagnifierFilter.MONOCHROME -> ColorMatrix().apply { setSaturation(0f) }
+    MagnifierFilter.HIGH_CONTRAST -> {
+        val contrast = 1.65f
+        val translate = 128f * (1f - contrast)
+        ColorMatrix(
             floatArrayOf(
-                -1f, 0f, 0f, 0f, 255f,
-                0f, -1f, 0f, 0f, 255f,
-                0f, 0f, -1f, 0f, 255f,
+                contrast, 0f, 0f, 0f, translate,
+                0f, contrast, 0f, 0f, translate,
+                0f, 0f, contrast, 0f, translate,
                 0f, 0f, 0f, 1f, 0f
             )
         )
-        MagnifierFilter.NORMAL -> ColorMatrix()
     }
+    MagnifierFilter.NEGATIVE -> ColorMatrix(
+        floatArrayOf(
+            -1f, 0f, 0f, 0f, 255f,
+            0f, -1f, 0f, 0f, 255f,
+            0f, 0f, -1f, 0f, 255f,
+            0f, 0f, 0f, 1f, 0f
+        )
+    )
+}
+
+internal fun applyMagnifierFilter(source: Bitmap, filter: MagnifierFilter): Bitmap {
+    val matrix = magnifierColorMatrix(filter)
+        ?: return source.copy(Bitmap.Config.ARGB_8888, false)
 
     val output = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
     Canvas(output).drawBitmap(

@@ -58,12 +58,20 @@ On at least two physical Android devices where possible:
 - first-run camera permission request works;
 - denial is recoverable;
 - rear-camera live preview opens;
+- front-camera live preview opens;
+- switching Rear ↔ Front rebinds cleanly without retaining torch/focus state from the previous camera;
+- a fixed `camera_facing` preset hides the selector during the native preset run, while a runtime `camera_facing` setting remains selectable;
 - zoom slider clamps to the device range without crashing;
 - 1×, mid zoom and maximum available zoom visibly work;
-- torch control appears only where supported/allowed;
+- Back light appears only where the selected camera provides a flash unit and the setting allows it;
+- Front light is available when allowed, raises screen brightness, produces a visible white illumination surround, and restores brightness when disabled/exiting;
+- Back light and Front light are mutually exclusive in the native controls;
+- a frozen capture records `magnifier_torch_mode` / `magnifier_front_light_mode` according to the light actually active at freeze time, then both lights shut off;
 - hold focus and release focus do not crash;
 - Freeze frame produces the expected orientation;
-- Normal / Contrast / Mono / Negative filters render correctly;
+- Normal / Contrast / Mono / Negative filters change the live camera immediately;
+- the frozen frame initially matches the live filter and can be switched between filters without recapture;
+- the final JPEG matches the selected filter;
 - frozen image pinch/drag works smoothly;
 - `Use this image` produces a JPEG and standard result screen;
 - Share shares the image by default;
@@ -99,16 +107,22 @@ The commitment must be to final JPEG bytes, not URI text.
 Import and exercise:
 
 ```text
-docs/example_odk_visual.magnifier.capture.xlsx
+docs/example_odk_showcase_visual_magnifier_capture.xlsx
 ```
 
 Confirm:
 
-- grouped `body::intent` launches MethodMesh;
+- the ODK camera choice exposes both `rear` and `front`;
+- the ODK light choice exposes `off`, `back`, and `front`;
+- the ODK starting-filter choice exposes `normal`, `high_contrast`, `monochrome`, and `negative`;
+- grouped `body::intent` launches MethodMesh and passes `input_camera_facing`, `input_default_light`, and `input_default_filter`;
 - the operator completes the interactive magnifier flow;
 - `magnifier_image_uri` is imported as an ODK image attachment;
 - `magnifier_status` returns `succeeded`;
 - `magnifier_image_sha256` is populated;
+- `magnifier_camera_facing` returns the selected camera value;
+- `magnifier_filter_mode` returns the filter actually selected for the returned image;
+- `magnifier_torch_mode` and `magnifier_front_light_mode` describe the illumination used for the frozen frame;
 - `methodmesh_full_json` is populated because the example requests `FULL`;
 - blank return fields do not overwrite input settings;
 - no extra MethodMesh archive copy is created for the ODK return.
@@ -118,9 +132,11 @@ Confirm:
 Specifically test at least one device with:
 
 - a low maximum digital zoom;
+- front and rear cameras with different zoom ranges;
 - no usable torch/flash on the selected camera if available;
 - a camera HAL with noticeably different autofocus behavior.
 
 ## Promotion gate
 
 Promote to Production only after the normal MethodMesh production checklist passes: build, native UX, preset UX, ODK example, rotation state, beef-first sharing, no golden-rule violation, permissions/offline/attribution review, and explicit production method status update.
+
