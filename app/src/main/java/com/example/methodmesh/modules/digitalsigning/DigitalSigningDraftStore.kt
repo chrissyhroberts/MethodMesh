@@ -83,35 +83,8 @@ object DigitalSigningDraftStore {
         currentPage: Int,
         committedResult: DigitalSigningCommittedResult?
     ) {
-        val root = JSONObject().apply {
-            put("source_path", workingPdf.sourceFile.absolutePath)
-            put("source_uri", workingPdf.sourceUriString)
-            put("display_name", workingPdf.displayName)
-            put("source_origin", workingPdf.sourceOrigin.id)
-            put("source_sha256", workingPdf.sourceSha256)
-            put("page_count", workingPdf.pageCount)
-            put("current_page", currentPage.coerceIn(0, (workingPdf.pageCount - 1).coerceAtLeast(0)))
-            put("strokes", JSONArray().apply {
-                strokes.forEach { stroke ->
-                    put(JSONObject().apply {
-                        put("id", stroke.id)
-                        put("page", stroke.pageIndex)
-                        put("width_pt", stroke.widthPt.toDouble())
-                        put("argb", stroke.argb)
-                        put("points", JSONArray().apply {
-                            stroke.points.forEach { point ->
-                                put(JSONArray().apply {
-                                    put(point.x.toDouble())
-                                    put(point.y.toDouble())
-                                })
-                            }
-                        })
-                    })
-                }
-            })
-            put("committed_result", committedResult?.let { JSONObject(DigitalSigningResultJson.fullJson(it)) } ?: JSONObject.NULL)
-        }
-        atomicWrite(File(workingDir(context), DRAFT_FILE), root.toString())
+        // Signing is an explicit live session. Do not cache drafts, strokes or results
+        // for later recovery; the caller receives the finished artifact immediately.
     }
 
     fun saveCommitted(context: Context, committedResult: DigitalSigningCommittedResult) {
@@ -125,41 +98,7 @@ object DigitalSigningDraftStore {
         )
     }
 
-    fun restore(context: Context): RestoredDraft? = runCatching {
-        val file = File(workingDir(context), DRAFT_FILE)
-        if (!file.exists()) return null
-        val root = JSONObject(file.readText())
-        val source = File(root.getString("source_path"))
-        if (!source.exists()) return null
-        val pageCount = root.optInt("page_count", 0).takeIf { it > 0 }
-            ?: DigitalSigningPdfEngine.pageCount(source)
-        val originId = root.optString("source_origin")
-        val working = WorkingPdf(
-            sourceFile = source,
-            sourceUriString = root.optString("source_uri"),
-            displayName = root.optString("display_name", "document.pdf"),
-            sourceOrigin = PdfInputOrigin.entries.firstOrNull { it.id == originId } ?: PdfInputOrigin.RestoredDraft,
-            sourceSha256 = root.optString("source_sha256").ifBlank { DigitalSigningHash.sha256(source) },
-            pageCount = pageCount
-        )
-        val strokes = root.optJSONArray("strokes").toStrokeList()
-        val committed = root.optJSONObject("committed_result")
-            ?.let { DigitalSigningResultJson.parse(it.toString()) }
-            ?.takeIf { resultUriStillValid(context, it.signedPdfUri) }
-            ?.let { result ->
-                if (result.verificationBundle.status == "created" && !resultUriStillValid(context, result.verificationBundle.uri.orEmpty())) {
-                    result.copy(verificationBundle = VerificationBundle.pending())
-                } else {
-                    result
-                }
-            }
-        RestoredDraft(
-            workingPdf = working.copy(sourceOrigin = if (working.sourceOrigin == PdfInputOrigin.Unknown) PdfInputOrigin.RestoredDraft else working.sourceOrigin),
-            strokes = strokes,
-            currentPage = root.optInt("current_page", 0).coerceIn(0, (pageCount - 1).coerceAtLeast(0)),
-            committedResult = committed
-        )
-    }.getOrNull()
+    fun restore(context: Context): RestoredDraft? = null
 
     private fun resultsDir(context: Context): File =
         File(context.cacheDir, "methodmesh/digital_signing/results").apply { mkdirs() }
@@ -199,10 +138,11 @@ object DigitalSigningDraftStore {
 
     fun clear(context: Context) {
         File(workingDir(context), DRAFT_FILE).delete()
+        File(context.filesDir, "methodmesh/digital_signing/work").deleteRecursively()
     }
 
     private fun workingDir(context: Context): File =
-        File(context.filesDir, "methodmesh/digital_signing/work").apply { mkdirs() }
+        File(context.cacheDir, "methodmesh/digital_signing/work").apply { mkdirs() }
 
     private fun copyUri(context: Context, uri: Uri, target: File) {
         target.parentFile?.mkdirs()

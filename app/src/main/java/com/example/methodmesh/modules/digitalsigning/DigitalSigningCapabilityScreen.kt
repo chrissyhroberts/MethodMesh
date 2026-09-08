@@ -35,6 +35,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -96,6 +97,9 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
     ) {
         val appContext = LocalContext.current
         val scope = rememberCoroutineScope()
+        DisposableEffect(Unit) {
+            onDispose { DigitalSigningDraftStore.clear(appContext) }
+        }
 
         fun initial(key: String, default: String): String =
             context.action.settings[key]
@@ -835,7 +839,7 @@ private fun PdfFullScreenPage(
                 val activePage = page ?: return@pointerInput
                 when (mode) {
                     DigitalSigningMode.Navigate -> detectTransformGestures { _, pan, gestureZoom, _ ->
-                        val newZoom = (zoom * gestureZoom).coerceIn(1f, 8f)
+                        val newZoom = (zoom * gestureZoom).coerceIn(1f, 16f)
                         val layout = pdfViewportLayout(
                             viewportSize,
                             activePage.bitmap.width,
