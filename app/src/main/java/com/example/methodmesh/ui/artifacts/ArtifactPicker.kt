@@ -172,7 +172,9 @@ fun FilesScreen() {
             previewImage = null
             val artifact = selected ?: return@LaunchedEffect
             val previewableText = artifact.mimeType.startsWith("text/") ||
-                artifact.mimeType in setOf("application/json", "application/xml", "text/csv")
+                artifact.mimeType in setOf("application/json", "application/jsonl", "application/xml", "text/csv") ||
+                artifact.displayName.endsWith(".json", ignoreCase = true) ||
+                artifact.displayName.endsWith(".jsonl", ignoreCase = true)
             val previewableImage = artifact.mimeType.startsWith("image/")
             val previewablePdf = artifact.mimeType.equals("application/pdf", ignoreCase = true) ||
                 artifact.displayName.endsWith(".pdf", ignoreCase = true)
