@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -64,6 +65,7 @@ fun FilesScreen() {
     var previewText by remember { mutableStateOf<String?>(null) }
     var previewImage by remember { mutableStateOf<Bitmap?>(null) }
     var previewLoading by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf<Artifact?>(null) }
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(
         selected?.mimeType ?: "application/octet-stream"
     )) { destination ->
@@ -105,7 +107,8 @@ fun FilesScreen() {
             val previewableText = artifact.mimeType.startsWith("text/") ||
                 artifact.mimeType in setOf("application/json", "application/xml", "text/csv")
             val previewableImage = artifact.mimeType.startsWith("image/")
-            val previewablePdf = artifact.mimeType.equals("application/pdf", ignoreCase = true)
+            val previewablePdf = artifact.mimeType.equals("application/pdf", ignoreCase = true) ||
+                artifact.displayName.endsWith(".pdf", ignoreCase = true)
             if (!previewableText && !previewableImage && !previewablePdf) return@LaunchedEffect
             previewLoading = true
             runCatching {
@@ -156,8 +159,36 @@ fun FilesScreen() {
                         )
                     }
                 },
-                confirmButton = { TextButton(onClick = { exporter.launch(artifact.displayName) }) { Text("Save a copy") } },
+                confirmButton = {
+                    Row {
+                        TextButton(onClick = { confirmDelete = artifact }) { Text("Delete") }
+                        TextButton(onClick = { exporter.launch(artifact.displayName) }) { Text("Save a copy") }
+                    }
+                },
                 dismissButton = { TextButton(onClick = { selected = null }) { Text("Close") } })
+        }
+        confirmDelete?.let { artifact ->
+            AlertDialog(
+                onDismissRequest = { confirmDelete = null },
+                title = { Text("Remove from Files?") },
+                text = { Text("${artifact.displayName} will be removed from MethodMesh Files. The original external file will not be deleted.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        runCatching { AndroidArtifacts.service(context).delete(artifact.ref) }
+                            .onSuccess {
+                                confirmDelete = null
+                                selected = null
+                                revision++
+                                status = "Removed from Files."
+                            }
+                            .onFailure { error ->
+                                confirmDelete = null
+                                status = error.message
+                            }
+                    }) { Text("Remove") }
+                },
+                dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("Cancel") } }
+            )
         }
     }
 }

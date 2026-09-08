@@ -75,6 +75,17 @@ class ArtifactService(private val store: File, private val workspace: File,
 
     @Synchronized fun query(request: ArtifactPickerRequest = ArtifactPickerRequest()) = records.values.filter(request::accepts)
     @Synchronized fun resolve(ref: ArtifactRef) = records[ref] ?: error("Artifact unavailable: $ref")
+
+    /** Remove an artifact from Files. External source files are never deleted. */
+    @Synchronized fun delete(ref: ArtifactRef) {
+        val artifact = records.remove(ref) ?: error("Artifact unavailable: $ref")
+        if (artifact.origin == ArtifactOrigin.MANAGED) {
+            File(workspace, artifact.location).delete()
+            File(store, artifact.location).delete()
+        }
+        File(store, "${ref.id}.properties").delete()
+    }
+
     fun open(ref: ArtifactRef): InputStream {
         val artifact = resolve(ref)
         return if (artifact.origin == ArtifactOrigin.MANAGED) File(workspace, artifact.location).inputStream()
