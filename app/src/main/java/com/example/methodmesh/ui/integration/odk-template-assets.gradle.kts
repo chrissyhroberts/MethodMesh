@@ -26,7 +26,8 @@ val generateMethodMeshOdkTemplateAssets = tasks.register<Exec>("generateMethodMe
         "python3",
         methodMeshOdkGenerator.asFile.absolutePath,
         "--source-root", methodMeshOdkSourceRoot.asFile.absolutePath,
-        "--assets-root", methodMeshOdkAssetsRoot.asFile.absolutePath
+        "--assets-root", methodMeshOdkAssetsRoot.asFile.absolutePath,
+        "--no-authoritative-validation"
     )
 
     doFirst {
@@ -51,4 +52,17 @@ tasks.register("validateMethodMeshOdkForms") {
     group = "methodmesh"
     description = "Regenerates and validates all module-owned MethodMesh XLSForms."
     dependsOn(generateMethodMeshOdkTemplateAssets)
+}
+
+tasks.register<Exec>("validateMethodMeshOdkFormsAuthoritative") {
+    group = "methodmesh"
+    description = "Runs optional pyxform/ODK Validate checks for every module-owned XLSForm."
+    inputs.files(fileTree(methodMeshOdkSourceRoot) { include("**/docs/**/*.xlsx") })
+    inputs.file(methodMeshOdkGenerator)
+    outputs.dir(methodMeshOdkAssetsRoot.dir("methodmesh/odk_templates"))
+    commandLine(
+        "python3", methodMeshOdkGenerator.asFile.absolutePath,
+        "--source-root", methodMeshOdkSourceRoot.asFile.absolutePath,
+        "--assets-root", methodMeshOdkAssetsRoot.asFile.absolutePath
+    )
 }

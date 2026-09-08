@@ -3,6 +3,7 @@ package com.example.methodmesh.core.artifacts
 import java.io.File
 import java.io.InputStream
 import java.security.MessageDigest
+import java.util.Properties
 import java.util.UUID
 
 enum class ArtifactOrigin { BUNDLED, MANAGED, EXTERNAL }
@@ -41,7 +42,22 @@ data class ArtifactPickerRequest(
 class ArtifactService(private val store: File, private val workspace: File,
     private val openExternal: (String) -> InputStream) {
     private val records = linkedMapOf<ArtifactRef, Artifact>()
-    init { store.mkdirs(); workspace.mkdirs() }
+    init {
+        store.mkdirs(); workspace.mkdirs()
+        store.listFiles { file -> file.extension == "properties" }.orEmpty().forEach { metadata ->
+            runCatching {
+                val properties = Properties().apply { metadata.inputStream().use(::load) }
+                val ref = ArtifactRef(properties.getProperty("id"))
+                records[ref] = Artifact(ref, properties.getProperty("name", ref.id),
+                    properties.getProperty("mime", "application/octet-stream"),
+                    ArtifactOrigin.valueOf(properties.getProperty("origin", ArtifactOrigin.MANAGED.name)),
+                    ArtifactLifecycle.valueOf(properties.getProperty("lifecycle", ArtifactLifecycle.PERSISTENT.name)),
+                    properties.getProperty("location", ref.id), properties.getProperty("sha256"),
+                    properties.getProperty("parent")?.takeIf(String::isNotBlank)?.let(::ArtifactRef),
+                    properties.getProperty("operation"), properties.getProperty("session")?.takeIf(String::isNotBlank))
+            }
+        }
+    }
 
     @Synchronized fun linkExternal(uri: String, name: String, mime: String, session: String): ArtifactRef {
         require(uri.startsWith("content://")); require(session.isNotBlank())
@@ -53,6 +69,7 @@ class ArtifactService(private val store: File, private val workspace: File,
         lifecycle: ArtifactLifecycle = ArtifactLifecycle.PERSISTENT): ArtifactRef {
         require(uri.startsWith("content://")); require(lifecycle != ArtifactLifecycle.TRANSIENT)
         records[ref] = Artifact(ref, name, mime, ArtifactOrigin.EXTERNAL, lifecycle, uri)
+        if (lifecycle == ArtifactLifecycle.PERSISTENT) writeMetadata(records.getValue(ref))
         return ref
     }
 
@@ -72,6 +89,7 @@ class ArtifactService(private val store: File, private val workspace: File,
         val persisted = Artifact(ArtifactRef(target.name), source.displayName, source.mimeType,
             ArtifactOrigin.MANAGED, ArtifactLifecycle.PERSISTENT, target.name, source.sha256, ref, "artifact.persist")
         records[persisted.ref] = persisted
+        writeMetadata(persisted)
         return persisted.ref
     }
 
@@ -92,6 +110,25 @@ class ArtifactService(private val store: File, private val workspace: File,
         File(workspace, a.location).delete(); records.remove(ref)
     }
     @Synchronized fun endSession(session: String) { records.values.filter { it.sessionId == session }.map { it.ref }.forEach(::release) }
+
+    private fun writeMetadata(artifact: Artifact) {
+        if (artifact.lifecycle != ArtifactLifecycle.PERSISTENT) return
+        val properties = Properties().apply {
+            setProperty("id", artifact.ref.id)
+            setProperty("name", artifact.displayName)
+            setProperty("mime", artifact.mimeType)
+            setProperty("origin", artifact.origin.name)
+            setProperty("lifecycle", artifact.lifecycle.name)
+            setProperty("location", artifact.location)
+            artifact.sha256?.let { setProperty("sha256", it) }
+            artifact.derivedFrom?.let { setProperty("parent", it.id) }
+            artifact.operation?.let { setProperty("operation", it) }
+            artifact.sessionId?.let { setProperty("session", it) }
+        }
+        val partial = File(store, "${artifact.ref.id}.properties.partial")
+        partial.outputStream().use { properties.store(it, null) }
+        check(partial.renameTo(File(store, "${artifact.ref.id}.properties")))
+    }
 }
 
 class ArtifactStore(private val service: ArtifactService) {
