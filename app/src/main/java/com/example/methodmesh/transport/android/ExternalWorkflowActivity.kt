@@ -20,6 +20,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -28,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,6 +49,7 @@ import com.example.methodmesh.transport.workflow.ConfirmedWorkflowStep
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
 import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
+import com.example.methodmesh.transport.workflow.PresetLogWriter
 import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
@@ -365,6 +369,8 @@ private fun CapabilityStepScreen(
     onConfirmed: (ExecutionResult) -> Unit,
     onCancel: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val appContext = LocalContext.current
     val screenContext = CapabilityScreenContext(
         action = action,
         request = request,
@@ -385,7 +391,12 @@ private fun CapabilityStepScreen(
     capabilityScreenFor(action).Render(
         context = screenContext,
         onBack = onBack,
-        onConfirmed = onConfirmed,
+        onConfirmed = { result ->
+            scope.launch {
+                runCatching { PresetLogWriter.record(appContext, request, result) }
+                onConfirmed(result)
+            }
+        },
         onCancel = onCancel
     )
 }
