@@ -4,7 +4,7 @@ subtitle: "Canonical architecture, capability runtime, integration, UX and revie
 date: "2026-09-08"
 ---
 
-Version: v1.07
+Version: v1.08
 Status: FINAL - canonical project-wide documentation
 Last updated: 2026-09-08
 Authority: sole normative project-wide MethodMesh documentation resource
@@ -415,6 +415,24 @@ Presets are saved capability setups.
 A preset stores configuration choices and runtime-input policy. It
 should not store accidental user text or run-specific values unless that
 is genuinely the intended fixed value.
+
+### Optional persistent logs
+
+A preset may explicitly opt into a persistent log. This is the user choice
+made through preset authoring; capabilities remain transient by default and
+must not silently persist their outputs.
+
+When enabled, the preset owns a named log bundle in Files. Each confirmed
+invocation receives a stable entry UUID and is recorded in three layers:
+
+- a human-readable summary file for ordinary users;
+- complete JSONL data containing the result and audit/provenance fields;
+- linked media artifacts identified by entry and media UUIDs.
+
+Repeated delivery of the same execution result is idempotent. Media-copy
+failures are recorded with the entry and must not be hidden. A log bundle is
+exportable and shareable as one package containing the summary, JSONL data and
+media.
 
 ## Protocols
 
@@ -1190,6 +1208,10 @@ With the option off:
 
 share/save/copy include only the beef and relevant media.
 
+For a preset with an explicit persistent log, each completed invocation also
+updates the log bundle. This logging is independent of whether the user
+shares or saves that individual result.
+
 Do not automatically save internal archive copies merely because the user committed a result. Commit finalises the execution; Share/Save are explicit persistence/export actions.
 
 ## Origin-aware Home, Done and closeout
@@ -1277,6 +1299,15 @@ Every working artifact belongs to a caller-supplied session. The producer defaul
 Module folders and their `docs/` XLSForms remain canonical, self-contained drag-and-drop packages. `generateMethodMeshArtifacts` uses Python 3 (standard library only) to discover workbooks, read row-oriented settings, hash and copy bytes, and generate `app/build/generated/methodmeshArtifacts/assets/methodmesh/artifacts/index.json`. No separate author-maintained central registry is required. Source workbooks are never moved or rewritten. Stable artifact identity uses the declared module ID and module-relative source path; `form_id`, title, version and content hash remain separate fields. Filename changes can change the artifact reference, but never silently change `form_id`.
 
 The ODK Forms catalogue reads this generated index; each workbook is independently indexed, including structurally recognisable legacy names. Duplicate filenames in different modules cannot overwrite each other. Gradle tracks XLSForms, module metadata sources and the compiler as inputs, skips unchanged generation, and removes stale generated workbook copies when sources are removed. Changes to ordinary capability implementation files do not invalidate the artifact task. This initial task uses Gradle up-to-date checking; it does not claim remote build-cache support.
+
+### Log bundles and Files
+
+Persistent preset logs are first-class Files collections. The human-readable
+summary is the primary preview and clipboard projection. The JSONL data and
+media members remain available for inspection, export and audit. Copying a
+preview copies only the readable summary; Save/Export and Share operate on
+the complete bundle. A log member may be selected by its artifact reference,
+but bundle export resolves the collection and includes all members.
 
 Malformed XLSX archives fail generation with source attribution. Non-XLSForm workbooks are reported and excluded. Naming and policy findings remain in each indexed entry rather than silently hiding migration debt. The compiler performs preliminary structural/policy checks, not full pyxform conversion, provider validation or runtime method-contract resolution. `structural_checks_passed` is not a claim of canonical capability coverage or provider admission.
 
@@ -7220,6 +7251,17 @@ Generated website output, packaged XLSForm assets, mirrored module reference pag
 Standalone source documents should only be archived after the repository reorganisation dry-run confirms their final disposition.
 
 # Appendix M. Version history
+
+## v1.08 - 2026-09-09
+
+- defined optional persistent preset logs while keeping capability outputs
+  transient by default;
+- defined log bundles with a human-readable summary, complete JSONL data and
+  UUID-linked media artifacts;
+- defined idempotent result logging, explicit media-error recording and
+  complete bundle export/share behaviour in Files;
+- clarified that copy exposes the readable summary while export/share carries
+  the complete bundle.
 
 ## v1.07 - 2026-09-08
 
