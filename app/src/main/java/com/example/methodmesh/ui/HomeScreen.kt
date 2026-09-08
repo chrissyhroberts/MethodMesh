@@ -173,6 +173,7 @@ private enum class DashboardDestination(val label: String) {
     RunProtocol("Run protocol"),
     Presets("Preset library"),
     OdkForms("ODK forms"),
+    Files("Files"),
     Protocols("Protocol library"),
     Scheduler("Scheduler"),
     Devices("Device registry"),
@@ -286,6 +287,7 @@ fun HomeScreen() {
                     DashboardDestination.Capabilities,
                     DashboardDestination.Presets,
                     DashboardDestination.OdkForms,
+                    DashboardDestination.Files,
                     DashboardDestination.Protocols,
                     DashboardDestination.Devices
                 ).forEach { destination ->
@@ -398,6 +400,7 @@ fun HomeScreen() {
                     DashboardDestination.Outputs -> item { OutputFolderCard(expandedByDefault = true) }
                     DashboardDestination.RunProtocol -> item { RunProtocolCard(protocolLibraryRevision, expandedByDefault = true) }
                     DashboardDestination.Presets -> item { ProtocolLibraryCard(protocolLibraryRevision, showPresets = true, showProtocols = false, expandedByDefault = true) }
+                    DashboardDestination.Files -> item { com.example.methodmesh.ui.artifacts.FilesScreen() }
                     DashboardDestination.OdkForms -> item { OdkTemplateLibrary(initialQuery = odkFormsSearchSeed) }
                     DashboardDestination.Protocols -> item { ProtocolLibraryCard(protocolLibraryRevision, showPresets = false, showProtocols = true, expandedByDefault = true) }
                     DashboardDestination.Scheduler -> {

@@ -46,7 +46,7 @@ import org.json.JSONObject
 import java.io.File
 
 private const val XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-private const val INDEX_ASSET = "methodmesh/odk_templates/index.json"
+private const val INDEX_ASSET = "methodmesh/artifacts/index.json"
 
 data class OdkTemplateDescriptor(
     val id: String,
@@ -65,7 +65,7 @@ object OdkTemplateCatalog {
     fun load(context: Context): List<OdkTemplateDescriptor> = runCatching {
         val json = context.assets.open(INDEX_ASSET).bufferedReader().use { it.readText() }
         val root = JSONObject(json)
-        val templates = root.optJSONArray("templates") ?: JSONArray()
+        val templates = root.optJSONArray("artifacts") ?: JSONArray()
         buildList {
             for (i in 0 until templates.length()) {
                 val item = templates.optJSONObject(i) ?: continue
@@ -127,7 +127,9 @@ object OdkTemplateCatalog {
     }
 
     fun saveTo(context: Context, template: OdkTemplateDescriptor, destination: Uri): Result<Unit> = runCatching {
-        context.assets.open(template.assetPath).use { input ->
+        com.example.methodmesh.core.artifacts.AndroidArtifacts.service(context).open(
+            com.example.methodmesh.core.artifacts.ArtifactRef(template.id)
+        ).use { input ->
             context.contentResolver.openOutputStream(destination)?.use { output ->
                 input.copyTo(output)
             } ?: error("Could not open destination")
@@ -135,10 +137,12 @@ object OdkTemplateCatalog {
     }
 
     private fun materialize(context: Context, template: OdkTemplateDescriptor): File {
-        val dir = File(context.cacheDir, "odk_templates").apply { mkdirs() }
+        val dir = File(context.cacheDir, "odk_templates/${template.id}").apply { mkdirs() }
         val safeName = template.sourceFileName.ifBlank { "${template.id}.xlsx" }
         val file = File(dir, safeName)
-        context.assets.open(template.assetPath).use { input -> file.outputStream().use { input.copyTo(it) } }
+        com.example.methodmesh.core.artifacts.AndroidArtifacts.service(context).open(
+            com.example.methodmesh.core.artifacts.ArtifactRef(template.id)
+        ).use { input -> file.outputStream().use { input.copyTo(it) } }
         return file
     }
 

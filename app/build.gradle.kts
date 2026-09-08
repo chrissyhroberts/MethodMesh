@@ -102,3 +102,24 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
+
+// Module folders remain canonical. Only XLSForms and owner metadata invalidate
+// this generated projection; ordinary capability edits do not re-index forms.
+val artifactAssets = layout.buildDirectory.dir("generated/methodmeshArtifacts/assets")
+val generateMethodMeshArtifacts = tasks.register<Exec>("generateMethodMeshArtifacts") {
+    val modules = file("src/main/java/com/example/methodmesh/modules")
+    val compiler = rootProject.file("tools/artifacts/compile_artifacts.py")
+    inputs.files(fileTree(modules) {
+        include { element ->
+            element.name.endsWith("Module.kt") ||
+                ("/docs/" in "/${element.relativePath.pathString}" && element.name.endsWith(".xlsx", ignoreCase = true))
+        }
+    })
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file(compiler).withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.dir(artifactAssets)
+    commandLine("python3", compiler.absolutePath, "--source", modules.absolutePath,
+        "--output", artifactAssets.get().asFile.absolutePath)
+}
+android.sourceSets["main"].assets.srcDir(artifactAssets.get().asFile)
+tasks.named("preBuild").configure { dependsOn(generateMethodMeshArtifacts) }
