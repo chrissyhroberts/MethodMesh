@@ -1,0 +1,29 @@
+---
+title: "Known consolidation issues"
+---
+
+Master Book v1.05 records several active consolidation concerns. These are not silently “fixed” by documentation.
+
+## ResearchOS-era sediment
+
+Older specifications and terminology still exist. The proposed archive pass is deliberate and should happen only after authority is settled; this website therefore labels the Master Book as normative and preserves source-local material as secondary reference.
+
+## Scattered module documentation
+
+The source contains README, validation, roadmap, patch and release-note material of mixed age. This refreshed site indexes those files rather than pretending every one has equal authority.
+
+## Lane consistency
+
+Method metadata and UI lane placement may drift. Lane display should derive from current metadata consistently.
+
+## Exchange-rate issue
+
+The Master Book records duplicate/ambiguous currency labels and value handling problems for non-1 exchange amounts as an open issue.
+
+## Home / Done and closeout
+
+Origin-aware completion has had regressions. The intended rule remains: app/preset → dashboard; widget → desktop; ODK → ODK; protocol/schedule → their runners.
+
+## Protocol/schedule completion
+
+Closeout semantics have improved for individual capabilities and presets, but protocols and schedules remain a central architectural priority.

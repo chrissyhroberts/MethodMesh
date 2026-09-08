@@ -1,0 +1,339 @@
+# Clinical Instruments
+
+**Method ID:** `clinical.instrument.run`  
+**Family:** Workflow / Clinical  
+**Status:** Development  
+**Network requirement:** none
+
+Clinical Instruments is an offline MethodMesh capability for running **curated or locally defined linear clinical checklists, screening instruments and deterministic clinical scores**.
+
+The core design principle is:
+
+> **MethodMesh owns and executes the established instrument; ODK owns the resulting study/clinical record.**
+
+An ODK/XLSForm caller should not need to reproduce qSOFA, CRB-65 or another established checklist question-by-question. It supplies the instrument ID and optional case context. MethodMesh presents the instrument, validates responses, calculates the result locally, and returns the raw observations plus derived values, classification and exact instrument provenance.
+
+## v0.1 scope
+
+v0.1 is intentionally narrow and useful:
+
+- linear ordered questions only;
+- one-question-at-a-time native UI;
+- Back and Next navigation;
+- autosave after response/navigation changes;
+- resumable **Active Instruments** registry;
+- optional patient/participant/case ID and session label;
+- integer, decimal, boolean, select-one and text responses;
+- required fields and simple numeric/choice validation;
+- deterministic derived variables;
+- deterministic scores;
+- ordered classification rules;
+- versioned YAML definitions;
+- exact SHA-256 of the definition used;
+- immutable bundled core instruments;
+- editable/removable user-created local instruments;
+- duplicate/fork core definitions into local definitions;
+- local YAML creation/import/export path;
+- structured MethodMesh/ODK return values;
+- no runtime network requirement.
+
+### Deliberate v0.1 exclusion: relevance and branching
+
+Clinical Instruments v0.1 does **not** implement:
+
+- `visible_if` / relevance;
+- skip logic;
+- required-if rules;
+- repeat groups;
+- dynamic sections;
+- branch-specific retained/inactive responses.
+
+Every question in a definition is part of the instrument and is presented in the declared order. A local YAML definition containing `visible_if` fails validation rather than silently running with incorrect semantics.
+
+This prevents the capability from accidentally becoming a partial second implementation of an XLSForm engine. A future protocol layer can add relevance only after semantics for cascading invalidation, navigation history, cross-field constraints, repeat groups and upstream answer changes are designed explicitly. See `FUTURE_PROTOCOL_ENGINE.md`.
+
+## Bundled core definitions in this prototype
+
+| Instrument | Category | Result |
+|---|---|---|
+| qSOFA | Acute bedside | 0–3 score + threshold classification |
+| CRB-65 | Acute bedside | 0–4 score + risk classification |
+| AVPU | Acute bedside | Responsiveness classification |
+| Adult BMI classification | Nutrition | BMI + category |
+
+These are prototype core definitions and remain **Development** until the main repository performs the clinical/source/rights and Android/device gates in `VALIDATION.md`.
+
+The intended curated library is considerably broader, particularly acute bedside, frailty/function, mental-health/neurodevelopment screening, nutrition and maternal/field tools. See `CORE_LIBRARY_CANDIDATES.md`.
+
+## Native workflow
+
+The normal native flow is:
+
+```text
+Clinical Instruments
+  ├── Library
+  ├── Active N
+  └── + New
+```
+
+Starting an instrument creates a local resumable run with:
+
+- generated run/session ID;
+- instrument ID and version;
+- exact YAML snapshot;
+- definition SHA-256;
+- optional subject/case ID;
+- optional user-facing session label;
+- current question;
+- responses so far;
+- start/update timestamps;
+- serialisable invocation context where supplied.
+
+The runner presents one question at a time. **Back** returns to the preceding question; **Next** validates the current response and moves forward. Changing an earlier answer updates the saved response and all final calculations are recomputed from the complete current response set.
+
+There is no explicit Save button for normal operation: session state is persisted to app-private storage during use.
+
+## Resumability
+
+Unfinished runs appear under **Active Instruments** and can be resumed later. A session stores the exact YAML snapshot and hash under which it began; an application/library update therefore cannot silently change the definition midway through a run.
+
+Completed runs return through the ordinary MethodMesh result contract. Temporary session retention/deletion after successful external handback should be checked during the main workflow integration review.
+
+## Core versus local library
+
+### Core
+
+Bundled definitions are:
+
+- immutable;
+- not deletable;
+- inspectable as YAML;
+- source/citation/rights annotated;
+- regression-tested;
+- duplicable into a local fork.
+
+### Local
+
+Users may:
+
+- create a definition from scratch;
+- duplicate a core definition;
+- edit a local definition;
+- delete a local definition;
+- import/export the canonical YAML representation.
+
+A local definition cannot silently replace a saved `id + version` with different content. The definition version must change. This keeps historical result provenance unambiguous.
+
+The current prototype editor exposes canonical YAML directly. A future guided editor should **generate the same YAML**, not create a second hidden definition format.
+
+See `INSTRUMENT_SCHEMA.md`.
+
+## ODK / XLSForm workflow
+
+The included `example_odk_ClinicalInstruments.xlsx` demonstrates the intended external-app contract.
+
+ODK collects only container/context fields such as:
+
+- subject/case ID;
+- optional session label;
+- instrument ID.
+
+Its external-app group requests:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(
+  method_id='clinical.instrument.run',
+  input_instrument_id=${instrument_id},
+  input_subject_id=${subject_id},
+  input_session_label=${session_label},
+  input_payload_mode='FULL',
+  return_mode='flat'
+)
+```
+
+MethodMesh then displays the established instrument itself. ODK does **not** contain the qSOFA/CRB-65/etc question wording or scoring formula.
+
+This lets MethodMesh provide one reviewed implementation while ODK remains the container into which the observations and result are written.
+
+A non-interactive path also exists for callers that already possess responses: supply `instrument_id` plus `answers_json`. The standard established-instrument ODK workflow is the interactive MethodMesh runner.
+
+## Inputs
+
+| Input | Meaning |
+|---|---|
+| `instrument_id` | Stable Clinical Instruments definition ID; direct external launches can open this instrument immediately |
+| `subject_id` | Optional patient/participant/case identifier |
+| `session_label` | Optional human-readable label for the Active registry |
+| `answers_json` | Optional non-interactive map of question IDs to values |
+
+The shared transport also accepts the usual `input_`-prefixed forms.
+
+## Outputs
+
+| Output | Meaning |
+|---|---|
+| `clinical_status` | `succeeded` or `failed` |
+| `clinical_result` | Headline human-readable score/classification |
+| `clinical_answers` | Ordered human-readable question/answer list |
+| `clinical_instrument` | Flat alias for stable instrument ID |
+| `clinical_version` | Flat alias for definition version |
+| `clinical_definition_fingerprint` | Flat alias for exact definition SHA-256 |
+| `clinical_session` | Flat alias for run/session ID |
+| `clinical_instrument_id` | Stable instrument ID in the full observation |
+| `clinical_instrument_name` | Display name |
+| `clinical_instrument_version` | Definition version |
+| `clinical_definition_sha256` | SHA-256 of exact YAML definition used |
+| `clinical_subject_id` | Caller/user subject ID |
+| `clinical_session_id` | MethodMesh resumable run ID |
+| `clinical_responses_json` | Canonical question response object |
+| `clinical_derived_json` | Derived criteria/variables |
+| `clinical_score` | First/primary score where present |
+| `clinical_classification` | Machine-readable classification value where present |
+| `clinical_result_json` | Full `methodmesh.clinical-result.v1` provenance payload |
+| `clinical_completed_time_iso` | Completion timestamp |
+| `clinical_error` | Failure/validation detail |
+
+For bundled definitions, flat mirrors are emitted where possible:
+
+- `clinical_response_<question_id>`
+- `clinical_derived_<derived_id>`
+- `clinical_score_<score_id>`
+
+For qSOFA this means ODK can receive the actual respiratory rate, systolic BP and altered-mentation response, each derived criterion, the score, classification, version and exact definition fingerprint as ordinary columns. The full JSON remains the stable generic contract for arbitrary local instruments.
+
+## Result/provenance payload
+
+A completed result contains enough information to reconstruct what was run:
+
+```json
+{
+  "schema": "methodmesh.clinical-result.v1",
+  "run": {
+    "id": "...",
+    "subject_id": "PATIENT-001",
+    "status": "completed"
+  },
+  "instrument": {
+    "id": "qsofa",
+    "name": "qSOFA",
+    "version": "1.0.0",
+    "definition_sha256": "...",
+    "type": "clinical_score",
+    "category": "acute_bedside"
+  },
+  "responses": {
+    "respiratory_rate": "24",
+    "systolic_bp": "96",
+    "altered_mentation": "false"
+  },
+  "derived": {
+    "rr_criterion": "true",
+    "sbp_criterion": "true",
+    "mentation_criterion": "false"
+  },
+  "scores": {
+    "qsofa": "2"
+  },
+  "classification": {
+    "value": "two_or_more_criteria",
+    "label": "2 or more qSOFA criteria"
+  },
+  "provenance": {
+    "source_url": "...",
+    "citation": "...",
+    "rights_status": "...",
+    "definition_sha256": "..."
+  }
+}
+```
+
+## Main result and sharing
+
+The ordinary MethodMesh completion/share surface is clinical-first. It shows the headline result and then every recorded answer in instrument order, for example:
+
+```text
+Headline score
+qSOFA — 2 · 2 or more qSOFA criteria
+
+Individual answers
+1. Respiratory rate — 24 breaths/min
+2. Systolic blood pressure — 96 mmHg
+3. Altered mentation — No
+```
+
+`clinical_result` carries the headline and `clinical_answers` carries the ordered answer list for simple transports. Raw response fields, derived variables, instrument version, definition hash, source/citation and full JSON remain available for ODK and audit/export without competing with the bedside result.
+
+## Offline and privacy behaviour
+
+Clinical Instruments contains no runtime network request or remote scoring dependency. Unfinished sessions and local definitions live in app-private `filesDir/clinical_instruments/` storage.
+
+Data leave the capability only through an explicit completed MethodMesh return/export/share action. The module requires no account, server, WebView, analytics service or telemetry service.
+
+MethodMesh as a whole may contain other modules that use Android networking, so the defensible module-level claim is that **Clinical Instruments itself has no network code or runtime network dependency**.
+
+Before Production, review Android cloud-backup/device-extraction behaviour for temporary clinical session data.
+
+## Sources for current prototype definitions
+
+### qSOFA
+
+Singer M, Deutschman CS, Seymour CW, et al. *The Third International Consensus Definitions for Sepsis and Septic Shock (Sepsis-3).* JAMA. 2016;315(8):801–810.  
+https://jamanetwork.com/journals/jama/fullarticle/2492881
+
+### CRB-65
+
+NICE. *Pneumonia: diagnosis and management (NG250).*  
+https://www.nice.org.uk/guidance/ng250
+
+### AVPU
+
+Resuscitation Council UK. *The ABCDE Approach.*  
+https://www.resus.org.uk/library/abcde-approach
+
+### Adult BMI classification
+
+World Health Organization. *Obesity and overweight* / BMI classification resources.  
+https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight
+
+## Future protocol engine / WHO verbal autopsy
+
+WHO Verbal Autopsy is **not part of the v0.1 library**. It remains a useful future target for a separately designed relevance/skip/repeat protocol layer. See `FUTURE_PROTOCOL_ENGINE.md`.
+
+## Permissions and services
+
+No new Android runtime permission is required by this prototype. No network, camera, Bluetooth, GPS or external service is used.
+
+## Development limitations
+
+1. The revised drop-in still requires `./gradlew :app:assembleDebug` in the main MethodMesh checkout.
+2. The YAML parser is deliberately constrained rather than general-purpose YAML.
+3. The expression evaluator is deliberately small and does not execute arbitrary code.
+4. The local-definition editor is raw YAML in the prototype; a guided editor can be layered over the same canonical representation.
+5. Relevance/skip/branch/repeats are intentionally unsupported in v0.1.
+6. The core library is deliberately small pending source/scoring/rights review.
+7. Clinical Instruments is an execution utility, not a diagnostic authority; instrument-specific intended-use and warning language must be preserved during curation.
+8. Temporary session backup/extraction behaviour requires app-level privacy review before Production.
+9. Re-attaching a long-resumed external session to an Android caller activity that no longer exists is a shared transport/workflow concern rather than an ODK-specific queue inside this module.
+
+See `VALIDATION.md` for the handoff checks.
+
+## Core library (v0.2 prototype)
+
+The bundled immutable library currently contains 19 executable instruments:
+
+- Acute/bedside: qSOFA, CRB-65, CURB-65, AVPU, 4AT, PERC, Wells PE, Wells DVT, Modified Centor, SIRS, Shock Index, Modified Shock Index.
+- Cardiovascular: CHA2DS2-VASc, HAS-BLED.
+- Mental health: PHQ-2, PHQ-9, GAD-2, GAD-7.
+- Nutrition: Adult BMI.
+
+See `CORE_LIBRARY_EXPANSION_v0.2.md` for admission criteria and deferred instruments whose rights or engine requirements are not yet clean enough for core.
+
+## v0.4 A&E expansion
+
+The bundled core library now contains 28 executable definitions. v0.4 adds Glasgow-Blatchford, pre-endoscopy Rockall, ROSIER, NEXUS C-spine, Ottawa ankle, Ottawa foot, HEART and BISAP. See `PATCH_0.3.0_AE.md` for interpretation constraints and the deliberate GCS deferral.
+
+## v0.4: non-testable components and GCS
+
+The linear engine now supports explicit non-testable component values for composite scores. A score may declare `requires_testable`; when any listed component is recorded with its question's `not_testable_value`, the score is suppressed rather than imputed.
+
+The Glasgow Coma Scale is bundled using this mechanism. Eye, Verbal and Motor responses are always returned individually. If any component is NT, MethodMesh does not report a GCS total.

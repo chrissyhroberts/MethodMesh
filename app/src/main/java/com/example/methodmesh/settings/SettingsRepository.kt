@@ -87,6 +87,7 @@ object SettingsRepository {
             is MethodSetting.ChoiceSetting -> {
                 if (storedValue in setting.choices) storedValue else setting.defaultValue
             }
+            is MethodSetting.MultiChoiceSetting -> storedValue
         }
     }
 }

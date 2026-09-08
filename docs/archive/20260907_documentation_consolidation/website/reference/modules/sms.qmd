@@ -1,0 +1,41 @@
+---
+title: "Send SMS"
+subtitle: "Module reference · sms"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Send a short templated SMS message to a phone number.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>sms</code></div>
+<div><strong>Source directory</strong><code>sms</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>1</div>
+<div><strong>Explicit source status labels</strong>No explicit status labels statically extracted at module scope</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `sms.send` | send SMS | Send a templated SMS message to a phone number | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_sms.send.xlsx](../source-docs/sms/example_odk_sms.send.xlsx)
+
+## Module-local documentation
+
+- [Send SMS](../source-docs/sms/README_Sms.qmd) — `README_Sms.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

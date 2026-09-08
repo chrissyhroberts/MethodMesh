@@ -1,0 +1,24 @@
+# Attribution and external components
+
+GPS target navigator is primarily module-owned MethodMesh code using Android platform/device services.
+
+## Google Play Services Location
+
+The module uses the Fused Location Provider (`com.google.android.gms.location`) for device location updates. Distribution must comply with the Google Play services SDK terms applicable to the host MethodMesh application.
+
+Location fixes are consumed locally by this capability; the module itself does not send the target or location to a remote navigation service.
+
+## Open Location Code / Plus Codes
+
+Full Plus Code decoding is performed locally through MethodMesh's existing `OpenLocationCode` implementation from the `pluscodecapture` module. The host repository should retain the attribution/licence notice associated with that implementation and the Open Location Code project.
+
+## Android camera and sensors
+
+The optional AR navigator uses MethodMesh's shared `LiveCameraPreview` and `PhoneSensorRepository`, which in turn use Android camera/sensor facilities. No remote AR/localisation service is introduced by this module.
+
+
+## OpenFreeMap / MapLibre GL JS
+
+The optional **Pick from map** screen loads an online basemap from OpenFreeMap and renders it in an Android WebView using MapLibre GL JS loaded from the public unpkg CDN. The map is convenience context only; the canonical selected output remains WGS84 latitude/longitude in the existing `gps_target_navigator` contract.
+
+Opening the map picker necessarily makes network requests for the map style, JavaScript/CSS assets and tiles. Those requests can reveal the approximate map area being viewed to the relevant providers. Core GPS navigation, direct coordinate entry and Plus Code decoding do not require these requests. The rendered map retains provider attribution controls.

@@ -1,16 +1,19 @@
 package com.example.methodmesh.modules.qrcode
 
-import com.example.methodmesh.modules.ModuleExample
 import com.example.methodmesh.modules.MethodMeshModule
+import com.example.methodmesh.modules.ModuleExample
 import com.example.methodmesh.modules.RilBinding
 import com.example.methodmesh.settings.MethodSetting
 
 object QrCodeModule : MethodMeshModule {
+    // Historical IDs are intentionally retained for saved presets, protocols,
+    // XLSForms and external callers.
     override val moduleId: String = "barcode"
     override val displayName: String = "Automatic code scanner"
-    override val summary: String = "Automatically capture QR, Data Matrix, and common 1D barcode evidence."
+    override val summary: String = "Scan QR, Data Matrix, Aztec, PDF417, and common 1D codes into canonical evidence."
+    override val iconKey: String = "tool"
 
-    override fun as100Methods() = listOf(As100BarcodeScanMethod, As100QrScanMethod)
+    override fun as100Methods() = listOf(As100BarcodeScanMethod)
 
     override fun rilBindings() = listOf(
         RilBinding("scan qr", As100BarcodeScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
@@ -22,36 +25,40 @@ object QrCodeModule : MethodMeshModule {
         RilBinding("scan data matrix", As100BarcodeScanMethod.ID, "Capture a Data Matrix code")
     )
 
-    override fun capabilityScreens() = listOf(BarcodeScanCapabilityScreen, LegacyQrScanCapabilityScreen)
+    override fun capabilityScreens() = listOf(BarcodeScanCapabilityScreen)
 
     private val scannerSettings = listOf(
-        MethodSetting.ChoiceSetting(
+        MethodSetting.MultiChoiceSetting(
             "barcode_formats",
             "Accepted code formats",
-            "Choose a supported scanner profile; automatic detection is usually best.",
+            "Leave automatic on to accept every supported format, or choose specific barcode formats.",
             "Scanner",
             "",
             listOf(
-                "",
                 "QR_CODE",
                 "DATA_MATRIX",
-                "QR_CODE|DATA_MATRIX",
-                "CODE_128|CODE_39|EAN_13|EAN_8|UPC_A|UPC_E",
-                "DATA_MATRIX|CODE_128"
-            )
+                "PDF_417",
+                "AZTEC",
+                "CODE_128",
+                "CODE_39",
+                "EAN_13",
+                "EAN_8",
+                "UPC_A",
+                "UPC_E"
+            ),
+            emptyMeansAll = true
         )
     )
 
     override fun capabilitySettings() = mapOf(
-        As100BarcodeScanMethod.ID to scannerSettings,
-        As100QrScanMethod.ID to scannerSettings
+        As100BarcodeScanMethod.ID to scannerSettings
     )
 
     override fun examples() = listOf(
         ModuleExample(
             title = "Capture a QR, Data Matrix, or barcode token",
             ril = "WHAT; scan barcode; WHERE; participant/P001; RESULT; return barcode_payload, barcode_format; format json",
-            notes = "This is a standalone code-scanning capability so other modules, including attestation, can depend on captured code evidence rather than reimplementing scanner behaviour."
+            notes = "The same barcode.scan contract is used by direct native runs, presets, protocols, schedules/widgets and ODK/XLSForm."
         )
     )
 }

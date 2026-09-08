@@ -1,0 +1,40 @@
+---
+title: "ODK / XLSForm integration"
+subtitle: "Call the same MethodMesh capability contract from a form"
+---
+
+## Contract parity
+
+ODK/XLSForm must be able to invoke every capability and request every declared output MethodMesh itself can produce. Example workbooks demonstrate common paths; they do not define the limits of the transport contract.
+
+## Invocation model
+
+MethodMesh uses grouped Android intent calls from XLSForm. The canonical method ID identifies the capability. Inputs are supplied as intent extras/settings, and results return into fields owned by the calling form.
+
+Prefer grouped intent calls so input fields and return fields are clearly separated and collisions are avoided.
+
+## Return namespaces
+
+The transport supports namespaced return projection. A form can request flat fields for convenient binding and the complete `methodmesh_full_json` envelope for audit/reconstruction.
+
+## Binary returns
+
+Images, PDFs and similar artefacts must return as Android-readable content URIs with the correct grants. The XLSForm should receive them into appropriate attachment question types.
+
+## Storage boundary
+
+When ODK calls a capability, ODK remains the data owner unless the capability has an independent reason to persist state. MethodMesh should not silently create a second permanent result store merely because it mediated the operation.
+
+## Interactive and non-interactive calls
+
+A calculation may execute and return directly. An interactive task may open its normal MethodMesh screen; after Commit or Cancel it returns to ODK rather than the MethodMesh dashboard.
+
+## Current web-form capabilities
+
+The supplied source also includes the **Web Actions** module, with canonical methods for ODK Central roundtrip, precooked Enketo sessions, generic web roundtrip and web open. The ODK Central roundtrip path accepts a Central web-form link and waits for explicit completion; this is distinct from the Android intent/XLSForm capability transport described above.
+
+::: {.callout-note}
+The supplied source snapshot shows web-form roundtrip support, but this documentation does not claim server-side form deployment/access management unless and until that is represented in the canonical source contract.
+:::
+
+Browse the [147 current module-owned example XLSForms](../reference/forms.qmd).

@@ -1,0 +1,22 @@
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-mm-filter]').forEach(input => {
+    const selector = input.getAttribute('data-mm-filter');
+    const table = document.querySelector(selector);
+    if (!table) return;
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    const count = document.querySelector(input.getAttribute('data-mm-count') || '');
+    const apply = () => {
+      const q = input.value.trim().toLowerCase();
+      let shown = 0;
+      rows.forEach(row => {
+        const ok = !q || row.innerText.toLowerCase().includes(q);
+        row.style.display = ok ? '' : 'none';
+        if (ok) shown++;
+      });
+      if (count) count.textContent = `${shown} of ${rows.length} entries shown`;
+    };
+    input.addEventListener('input', apply); apply();
+  });
+});
+</script>

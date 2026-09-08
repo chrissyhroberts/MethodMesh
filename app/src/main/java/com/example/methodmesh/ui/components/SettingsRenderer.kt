@@ -33,10 +33,12 @@ import com.example.methodmesh.settings.SettingsState
 fun SettingsRenderer(
     settings: List<MethodSetting>,
     settingsState: SettingsState,
-    capabilityId: String? = null
+    capabilityId: String? = null,
+    visibleWhen: (MethodSetting) -> Boolean = { true }
 ) {
     Column {
         settings.forEach { setting ->
+            if (!visibleWhen(setting)) return@forEach
             if (capabilityId == "sensor.read" && setting.id == "device_id") {
                 RegisteredSensorSetting(setting, settingsState)
                 return@forEach
@@ -134,6 +136,46 @@ fun SettingsRenderer(
                                         expanded = false
                                     }
                                 )
+                            }
+                        }
+                    }
+                }
+
+                is MethodSetting.MultiChoiceSetting -> {
+                    val selected = settingsState.getString(setting.id)
+                        .split(setting.delimiter, ",", ";")
+                        .map { it.trim() }
+                        .filter { it.isNotBlank() }
+                        .toSet()
+                    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                        Text(setting.label, fontWeight = FontWeight.SemiBold)
+                        setting.description?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
+                        }
+                        if (setting.emptyMeansAll) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                androidx.compose.material3.Checkbox(
+                                    checked = selected.isEmpty(),
+                                    onCheckedChange = { checked ->
+                                        if (checked) settingsState.setString(setting.id, "")
+                                    }
+                                )
+                                Text("Automatic / all")
+                            }
+                        }
+                        setting.choices.forEach { choice ->
+                            val checked = if (setting.emptyMeansAll && selected.isEmpty()) false else choice in selected
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                androidx.compose.material3.Checkbox(
+                                    checked = checked,
+                                    enabled = !(setting.emptyMeansAll && selected.isEmpty()),
+                                    onCheckedChange = { nowChecked ->
+                                        val next = selected.toMutableSet()
+                                        if (nowChecked) next += choice else next -= choice
+                                        settingsState.setString(setting.id, next.joinToString(setting.delimiter))
+                                    }
+                                )
+                                Text(choiceLabel(choice), style = androidx.compose.material3.MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }

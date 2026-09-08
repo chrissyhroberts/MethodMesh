@@ -1,0 +1,311 @@
+---
+title: "MethodMesh Game System Roadmap v0.01"
+subtitle: "Module source document · Arcade"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/arcade/docs/GAME_SYSTEM_ROADMAP.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+## 1. Capability family
+
+```text
+PLAY
+├── GameDeck          turn-based tabletop, cards, dice, puzzles
+├── Arcade            real-time low-weight games
+├── Playground        cellular automata, Life, mazes, physics, simulations
+├── Retro             optional emulator/runtime packs
+└── GameLab           simulation, generation, difficulty and balance tooling
+```
+
+The capability family must obey the MethodMesh golden rule: shared runtime code knows only generic capability contracts. It must never branch on GameDeck, Arcade or any other capability ID.
+
+## 2. Shared game-system concepts
+
+The present v0.050 GameDeck implementation proves several concepts locally. The next architectural step is to expose the genuinely cross-capability pieces through a public game-system boundary rather than importing capability internals.
+
+### Player identity
+
+```text
+PLAYER
+  id
+  display_name
+  avatar
+  created_at
+  games_played
+  wins / losses / draws
+  high_scores
+  achievements
+  skill_evidence
+  confidence
+```
+
+No cloud account is required. Local-first identity comes first; optional peer identity can be layered later.
+
+### Match record
+
+```text
+GAME_RECORD
+  record_id
+  game_id
+  ruleset_version
+  players
+  started_at
+  finished_at
+  result
+  scores
+  seed / RNG provenance
+  replay_event_stream
+  metadata
+```
+
+### Save game
+
+```text
+SAVE_GAME
+  game_id
+  ruleset_version
+  state
+  turn
+  rng_state_or_seed
+  timestamp
+```
+
+### Player model
+
+Initial dimensions:
+
+- deduction
+- spatial
+- planning
+- memory
+- wordplay
+- probability
+- tactics
+- reaction
+- risk
+- resource management
+
+Performance contributes evidence, not a simplistic hidden level. Evidence should carry uncertainty/confidence and eventually be difficulty-adjusted.
+
+## 3. CPU players / agents
+
+GameDeck v0.050 introduces the first agent boundary. The target model is:
+
+```text
+Game rules
+  legalActions(state)
+  applyAction(state, action)
+  status(state)
+
+Agent
+  observe(publicState, privateState?)
+  chooseAction(legalActions, budget)
+```
+
+Target reusable agent classes:
+
+- RANDOM
+- GREEDY
+- HEURISTIC
+- BOUNDED
+- OPTIMAL
+- NOISY_EXPERT
+- HUMAN_LIKE
+
+CPU difficulty should be explicit and inspectable. Avoid hidden mid-game cheating. Adaptive difficulty should normally happen between games by selecting an agent/profile or generated scenario.
+
+## 4. Simulator / CPU Arena
+
+GameDeck v0.050 contains the first executable CPU-vs-CPU series runner. Generalize this to:
+
+```text
+generate/select scenario
+        ↓
+assign agent A / agent B
+        ↓
+run deterministic event stream
+        ↓
+measure
+        ↓
+aggregate / compare / reject / accept
+```
+
+Useful outputs:
+
+- win probability
+- draw rate
+- first-player bias
+- expected score
+- score variance
+- mean game length
+- decision count
+- branching factor
+- comeback/recovery frequency
+- luck sensitivity
+- decision leverage / entropy
+- CPU profile sensitivity
+
+This becomes the engine for automated ruleset testing and procedural generation acceptance.
+
+## 5. GameLab
+
+Difficulty is a vector rather than one number. Candidate dimensions include:
+
+- randomness
+- opponent speed
+- information availability
+- action budget
+- resource scarcity
+- branching factor
+- map connectivity
+- recovery opportunities
+- enemy aggression
+- objective density
+- planning depth
+- execution demand
+- punishment
+- predictability
+- uncertainty
+
+Core loop:
+
+> generate → simulate → measure → reject/accept
+
+Never ship blindly randomized levels when a solver/simulator can establish minimum properties.
+
+Minesweeper already demonstrates this principle with first-click-safe generation and bounded solver validation.
+
+## 6. Tabletop interaction contract
+
+For two humans on one device:
+
+> Each player owns one end of the table.
+
+- P1 near/bottom rail, normal orientation.
+- P2 far/top rail, rotated 180 degrees.
+- Central board normally stays stable.
+- Player-specific controls belong to that player's end.
+- Inactive controls recede.
+- No gameplay scrolling.
+- Winner and score are always explicit.
+
+For 1P vs CPU, the CPU uses the far rail but remains upright.
+
+Hidden-information games can later use private reveal zones at each player's end.
+
+## 7. Real-time Arcade
+
+Arcade v0.01 establishes a separate fixed-step simulation model:
+
+- state is authoritative;
+- input is device-independent;
+- rendering cadence never determines outcomes;
+- simulation advances in explicit fixed steps;
+- CPU and human controllers produce the same input type;
+- state can eventually generate deterministic replay/network event streams.
+
+Near-term arcade targets:
+
+- Breakout-like brick game
+- vector asteroids-like game
+- maze chase
+- falling blocks
+- one-button reaction games
+- simple racing / lane dodging
+- rhythm timing tests
+
+## 8. Input abstraction
+
+Target input sources:
+
+- touchscreen gestures
+- on-screen controls
+- keyboard
+- Android gamepad
+- BLE HID
+- ESP32 custom controller
+- peer/network actions
+
+The game engine should receive semantic actions, not Android-specific key/touch events.
+
+## 9. P2P / networking
+
+The rules engine should not care whether an action originated locally, from a CPU, or from a peer.
+
+Deterministic games can synchronize:
+
+```text
+ruleset_version + initial_seed + ordered_actions
+```
+
+Hidden information needs public/private state separation. Fairness-sensitive randomness can use commit–reveal. Social deduction additionally needs private roles and public phase state.
+
+## 10. Records, achievements and high scores
+
+GameDeck v0.050 begins local play statistics. Expand to:
+
+- per-game records
+- best scores / fastest times
+- streaks
+- achievements
+- personal best deltas
+- opponent/CPU profile history
+- replay references
+- campaign records
+- character cards
+- HP / EXP counters
+
+High-score systems must record ruleset/version because scores across materially different rules should not silently share one table.
+
+## 11. Replay and provenance
+
+A game event stream can serve several purposes simultaneously:
+
+- replay
+- undo where rules permit
+- debugging
+- peer synchronization
+- simulation audit
+- player-model evidence
+
+Randomness provenance should include algorithm/version/seed mode where applicable. Existing MethodMesh Chance remains the source of truth for dice, coin and sampling primitives.
+
+## 12. Licensing / content boundaries
+
+Mechanics, engine code, art/content and trademarks are separate concerns. Exact adaptations should only ship when licensing permits it. Heavy/GPL emulator components should remain optional isolated packs. Commercial ROM/WAD/content should never be bundled by default.
+
+## 13. Immediate implementation sequence
+
+1. Stabilize GameDeck v0.050 build and tabletop layouts.
+2. Stabilize Arcade v0.01 fixed-step loop on-device.
+3. Extract cross-capability player/record/high-score contracts into a public game-system service boundary.
+4. Generalize CPU Arena around legal-action adapters.
+5. Add replay/event stream.
+6. Add difficulty vectors and simulation metrics.
+7. Add P2P transport adapter.
+8. Expand game catalogue using shared engines rather than bespoke monoliths.
+
+
+## Arcade v0.02 restoration
+
+Arcade is again an independent capability alongside GameDeck.
+
+Current executable slice:
+
+- Snake Sprint — solo, score/length records, secure/fixed-seed Chance-backed food placement.
+- Pong Table — CPU or two humans, first to seven, fixed-step real-time physics.
+
+Shared principles now proven on both capability families:
+
+- generic immersive hosting;
+- local-first execution;
+- capability-owned UX;
+- visible non-hidden primary controls;
+- modal pause;
+- explicit end-state actions;
+- state transitions authoritative over animation.
+
+Next cross-capability architecture step remains extraction of a public game-system identity / record / replay boundary. Do not solve that by importing GameDeck internals into Arcade or vice versa.
+

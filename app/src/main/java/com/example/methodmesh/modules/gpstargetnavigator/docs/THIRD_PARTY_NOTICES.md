@@ -1,0 +1,13 @@
+# Third-party notices
+
+## MapLibre GL JS
+
+The optional map picker loads MapLibre GL JS at runtime from the unpkg content-delivery network. MapLibre GL JS is an open-source web mapping library distributed under its upstream licence (BSD-3-Clause at the time of this module revision). Distribution/integration should retain the licence and notices required by the version actually shipped or loaded by the host application.
+
+## OpenFreeMap
+
+The optional map picker requests map style/tile resources from OpenFreeMap. Provider attribution is shown in the map. The host application should continue to comply with OpenFreeMap terms and the attribution requirements of the underlying map data/style sources.
+
+## Open Location Code / Plus Codes
+
+Plus Code decoding uses the existing MethodMesh Open Location Code implementation. Retain the upstream Open Location Code attribution/licence notices already carried by MethodMesh.

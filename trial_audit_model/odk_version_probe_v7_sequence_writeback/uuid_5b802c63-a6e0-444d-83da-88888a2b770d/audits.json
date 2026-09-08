@@ -1,0 +1,23 @@
+[
+  {
+    "acteeId": "1e0e040d-d931-45a8-8571-2f0e50ccc8d0",
+    "action": "submission.create",
+    "actor": {
+      "createdAt": "2026-07-27T10:10:49.825Z",
+      "deletedAt": null,
+      "displayName": "chrissy",
+      "id": 7592,
+      "type": "field_key",
+      "updatedAt": null
+    },
+    "actorId": 7592,
+    "details": {
+      "entity": {},
+      "instanceId": "uuid:5b802c63-a6e0-444d-83da-88888a2b770d",
+      "submissionDefId": 1833886,
+      "submissionId": 1824809
+    },
+    "loggedAt": "2026-09-04T07:37:28.512Z",
+    "notes": null
+  }
+]

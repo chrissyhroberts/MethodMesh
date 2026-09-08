@@ -1,0 +1,104 @@
+---
+title: "Ham Radio v0.4.0 — build / validation report"
+subtitle: "Module source document · Amateur radio"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/hamradio/docs/BUILD_REPORT.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+## Package reviewed against
+
+The prototype was aligned to the current MethodMesh `master` architecture on 2026-09-04, including `MethodMeshModule` auto-discovery, AS100/RIL, `CapabilityScreenScaffold`, current `MethodSetting` signatures, the shared HTTP boundary, and module-owned documentation/XLSForm conventions. No central registry special case is required.
+
+## Validation completed
+
+`HamRadioCalculations.kt` compiles independently with `kotlinc`. Calculation smoke tests pass for Maidenhead encode/decode, London→New York path, dipole dimensions, SWR, FSPL/horizon/Fresnel values, and broad daylight/night HF ranking behavior.
+
+The method/repository layer compiles against focused stubs matching the current public MethodMesh contracts. The module/settings layer compiles against focused current-contract stubs. The capability-screen source compiles against focused Compose/workflow stubs matching the current `CapabilityScreenSpec`/`CapabilityScreenScaffold` surface.
+
+The v0.3/v0.4 screens save stable input/result JSON with `rememberSaveable` and reconstruct AS100 results after configuration recreation. In-flight state itself is not persisted: if Android recreates an automatic-return screen before result values are saved, the new composition may retry. The provider boundary remains authoritative, so a PSK retry cannot breach its hard gate.
+
+
+## v0.4 dashboard capability
+
+The Astronomy v0.4.2 package supplied as the reference implementation was inspected before this change. The Ham Radio dashboard deliberately follows its dashboard-as-capability architecture:
+
+- `ham.dashboard` is a normal AS1.00 method with stable outputs and Development status;
+- the screen is a normal `CapabilityScreenSpec` and is registered by `HamRadioModule`, with no central registry edit;
+- dashboard presentation keeps refreshed provider/calculation values as preview state rather than treating every refresh as a captured observation;
+- **Use this snapshot** explicitly commits the visible dashboard state;
+- external/AutomaticReturn callers still receive a normal executable result;
+- Android GPS is used for automatic QTH and converted locally to a six-character Maidenhead locator; a manual locator remains available;
+- NOAA is fetched once per refresh, then those values are passed into `ham.band.recommend` as manual conditions so dashboard composition does not make a duplicate NOAA call;
+- PSK Reporter is optional and continues to use the existing repository-level hard 420-second upstream gate;
+- changing operating range or mode recalculates the band ranking locally from the current snapshot and does not itself refresh providers.
+
+The operator surface contains a best-band hero, ranked alternatives, space-weather metrics, QTH provenance and optional PSK activity. The dashboard score remains the existing relative HF heuristic score; it is not presented as QSO probability or MUF.
+
+Focused validation completed for v0.4:
+
+- `HamRadioDashboardMethod.kt` plus repository/calculation/method sources compile against current-contract Kotlin stubs;
+- `HamRadioDashboardCapabilityScreen.kt` compiles against focused Compose/workflow/Android/GMS stubs;
+- `HamRadioModule.kt` compiles against current `MethodMeshModule`, `RilBinding` and `MethodSetting` constructor stubs;
+- the screen preserves live component/result JSON with `rememberSaveable`;
+- the dashboard-specific target-distance value is normalized so a `FloatSetting` default such as `2500.0` still selects the `2500 km` quick-choice button.
+
+## PSK Reporter seven-minute gate
+
+PSK Reporter developer documentation was reviewed on 2026-09-04. Its retrieval API is `https://retrieve.pskreporter.info/query`, returns XML reception reports, and supports callsign/grid, time, mode, record-limit and frequency filters. Its documentation asks clients not to retrieve reception data more often than once every five minutes.
+
+MethodMesh deliberately uses a stricter **420-second / seven-minute minimum between upstream attempts**. The gate is reserved before network I/O and is shared across all `HamRadioRepository` instances within the running process.
+
+A deterministic fake-clock/fake-HTTP smoke test passed:
+
+1. first query -> one upstream GET, `succeeded`;
+2. identical query at +60 s -> cached result, no additional GET, `retry_after=360`;
+3. different query at +60 s -> `rate_limited`, no additional GET;
+4. a different repository instance at +60 s -> also `rate_limited`, proving instance construction cannot bypass the gate;
+5. a new query at exactly +420 s -> upstream GET allowed;
+6. a deliberately failed upstream GET -> failure consumes the slot, and a different query at +60 s remains `rate_limited` with no new GET.
+
+Matching response cache and rate-state are process-memory only in v0.4.0. Restarting the app process resets them.
+
+## Provider/parser review
+
+As of 2026-09-04, NOAA SWPC continues to expose the radio-relevant products used by the module. The NOAA parser accepts object-array and legacy header-array data shapes. PSK Reporter XML is parsed locally with external-entity expansion disabled.
+
+## v0.3 native UI redesign
+
+The native capability screens were refactored after operator feedback that the v0.2 screens worked but were difficult to understand and exposed too many editable strings. The v0.3 screen layer now:
+
+- renders finite settings as labelled choice buttons rather than free text;
+- adds a short **How to use it** workflow to every capability;
+- collapses uncommon provider/filter/link-budget controls behind **Advanced settings**;
+- keeps common workflows deliberately short (for example, Space weather requires no normal input);
+- gives PSK Reporter fixed, readable time-window/mode/direction choices while retaining advanced frequency/report controls;
+- uses compact, capability-specific result previews instead of handing every audit field to the primary result panel;
+- preserves `rememberSaveable` input/result state and the existing AutomaticReturn behavior.
+
+A focused Kotlin/Compose stub compile of the rewritten `HamRadioCapabilityScreens.kt` completed successfully. Field-constant references were also checked against `HamRadioMethods.kt`; no missing result-field references were found. Full Android/device UX validation remains required before Production.
+
+## v0.2 integration features retained in v0.3
+
+- Added `ham.activity.pskreporter` as the eighth public method, plus RIL binding, settings and native screen.
+- Added PSK provider/cache/rate-limit/audit fields, including `ham_psk_rate_limit_seconds=420` and `ham_psk_retry_after_seconds`.
+- Enforced the PSK floor at the repository network boundary rather than only in UI state.
+- Added explicit `location_mode` to `ham.band.recommend`, avoiding accidental 0°,0° when QTH is omitted.
+- Preserved result state through `rememberSaveable` JSON and left AutomaticReturn close-out to `CapabilityScreenScaffold`.
+- Kept the module dependency-free with respect to other capability modules.
+- Updated `example_odk_HamRadio.xlsx` to exercise PSK Reporter and expose the seven-minute policy/result fields.
+
+## Not validated in this environment
+
+A complete MethodMesh Android checkout is not mounted here, so the required integration build remains:
+
+```bash
+./gradlew :app:assembleDebug
+```
+
+Still requiring integration/device validation: full Android/Compose build of all nine screens; live NOAA/PSK calls; actual rotation; native presets; scheduler/protocol close-out; ODK Collect round trip; physical-device UX; and any decision to persist PSK rate-state across process restarts.
+
+Keep the module **Development** until those checks pass.
+

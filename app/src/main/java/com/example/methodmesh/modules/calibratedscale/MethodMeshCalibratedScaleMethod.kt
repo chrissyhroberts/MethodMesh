@@ -46,10 +46,10 @@ object As100CalibratedScaleMethod : As100Method {
         inputs = listOf("manual.scale.input"),
         outputs = listOf(
             "value",
-            "minimum",
-            "maximum",
             "lower_value",
             "upper_value",
+            "minimum",
+            "maximum",
             "use_range",
             "scale_length_mm",
             "scale_length_dp",
@@ -58,7 +58,7 @@ object As100CalibratedScaleMethod : As100Method {
         ),
         parameters = mapOf(
             "category" to "Measurement",
-            "status" to "Experimental",
+            "status" to "Production",
             "interaction" to "manual_calibrated_visual_scale",
             "physical_length" to "vas_length_mm × calibrated device dp_per_mm"
         )
@@ -141,21 +141,20 @@ object As100CalibratedScaleMethod : As100Method {
         val lengthMm = settingsState.getFloat("vas_length_mm").coerceIn(40f, 200f)
         val calibration = CalibrationRepository.current()
 
-        return linkedMapOf<String, Any?>(
-            "minimum" to minimum,
-            "maximum" to maximum,
-            "use_range" to useRange,
-            "scale_length_mm" to lengthMm,
-            "scale_length_dp" to scaleLengthDp(lengthMm, calibration.dpPerMm),
-            "dp_per_mm" to calibration.dpPerMm,
-            "vertical_mode" to settingsState.getBoolean("vertical_mode")
-        ).apply {
+        return linkedMapOf<String, Any?>().apply {
             if (useRange) {
                 put("lower_value", normalisedLower)
                 put("upper_value", normalisedUpper)
             } else {
                 put("value", value)
             }
+            put("minimum", minimum)
+            put("maximum", maximum)
+            put("use_range", useRange)
+            put("scale_length_mm", lengthMm)
+            put("scale_length_dp", scaleLengthDp(lengthMm, calibration.dpPerMm))
+            put("dp_per_mm", calibration.dpPerMm)
+            put("vertical_mode", settingsState.getBoolean("vertical_mode"))
         }
     }
 }

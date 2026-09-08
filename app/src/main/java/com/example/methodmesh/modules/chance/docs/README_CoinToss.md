@@ -1,0 +1,83 @@
+# Coin toss
+
+**Method ID:** `coin.toss`  
+**Module:** Chance (`chance`)  
+**Lane:** Development  
+**MethodMesh standard:** v1.05
+
+## Purpose
+
+Toss one or many fair coins using the Chance random engine.
+
+## Canonical surface parity
+
+This method is implemented once by the Chance module and is independently exposed for direct native launch, the generic dashboard capability surface, preset creation/execution and protocol composition. ODK/XLSForm invokes the same method ID and receives fields from the same declared output contract. There is no dashboard-only or ODK-only implementation.
+
+## Native UX and Commit
+
+Recorded mode deliberately tosses, animates a circular MethodMesh-styled coin (`:3` Heads, MethodMesh-mark Tails), shows the current result and then Commit freezes it. Up to ten coins animate individually; larger batches use an aggregate presentation. Single-coin `just_toss` is an established ephemeral convenience mode with Toss again/Done and no recorded committed session.
+
+Recorded working results remain mutable until **Commit**. Commit freezes the already-generated canonical payload and reveals beef-first Share/Copy/Save/Done/New run actions on the same screen. Audit/JSON inclusion is opt-in. Useful displayed scalar/text results are tappable to copy their useful value.
+
+## Presets and protocols
+
+All canonical settings are declared through `MethodSetting`. Fixed preset values are hidden on native preset execution; declared runtime fields remain visible. A fully fixed native preset can start the operation directly where appropriate. Protocols call `coin.toss` as an independent step and receive the same canonical result; completion is returned to the protocol runner through the supplied MethodMesh callback.
+
+## ODK/XLSForm
+
+Non-interactive when ODK supplies toss settings; executes and returns without native setup. `interaction_mode=just_toss` is a native convenience and external calls should use recorded semantics. Inputs use the standard `input_*` projection. `input_payload_mode='FULL'` makes the generic transport return `methodmesh_full_json` in addition to requested flat fields. Return namespace projection, ClipData/URI grants (not used by this non-media capability) and caller closeout are owned by the shared transport rather than Chance.
+
+Example: `example_odk_coin_toss.xlsx`.
+
+## Settings / runtime inputs
+
+- `toss_count` - 1-10000
+- `interaction_mode` - `record` or native `just_toss`
+- `history_output` - include full toss series
+- `rng_mode`
+- `seed`
+- `animation_mode`
+
+Preset authoring may mark applicable settings as fixed or runtime. ODK may supply the same values with `input_` prefixes.
+
+## Outputs
+
+**Primary beef:** `coin_result`
+
+Last toss, counts, CSV/JSON series and RNG metadata remain available.
+
+| Field | Role |
+|---|---|
+| `coin_status` | status/diagnostic |
+| `coin_result` | primary |
+| `coin_toss_count` | secondary |
+| `coin_last_toss` | secondary |
+| `coin_heads_count` | secondary |
+| `coin_tails_count` | secondary |
+| `coin_tosses_csv` | secondary |
+| `coin_tosses_json` | secondary |
+| `coin_rng_mode` | secondary |
+| `coin_seed` | audit/provenance |
+| `coin_seed_sha256` | audit/provenance |
+| `coin_rng_algorithm` | audit/provenance |
+| `coin_rng_algorithm_version` | audit/provenance |
+| `coin_engine_version` | audit/provenance |
+| `coin_generated_time_iso` | audit/provenance |
+| `coin_audit_json` | audit/provenance |
+| `coin_error` | status/diagnostic |
+
+`coin_audit_json`, RNG/seed fields, engine/algorithm versions and generated time.
+
+`methodmesh_full_json` is a generic FULL-payload transport field rather than a Chance descriptor field; it contains the complete projected execution when requested.
+
+## State, offline behavior and storage
+
+The operation is local/offline. Relevant configuration, working result, animation/turn progress and committed screen state are saveable across ordinary activity recreation/orientation changes. Chance does not automatically create durable records or Downloads copies. Save is explicit. ODK owns its surrounding form persistence.
+
+## Permissions and dependencies
+
+No capability-specific Android permission, network service or third-party runtime dependency is required.
+
+## Validation status
+
+See `VALIDATION.md`. The v1.05 migration is retained in the Development lane until it is built and exercised in the full MethodMesh app.

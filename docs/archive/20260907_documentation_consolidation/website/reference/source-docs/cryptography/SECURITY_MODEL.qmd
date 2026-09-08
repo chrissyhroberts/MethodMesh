@@ -1,0 +1,32 @@
+---
+title: "Security model"
+subtitle: "Module source document · Cryptography"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/cryptography/docs/SECURITY_MODEL.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+## Secrets and state
+
+Passwords, encryption plaintext, TOTP seeds and source Shamir secrets use in-memory Compose state rather than saveable UI state where practicable.
+
+Encryption provenance deliberately omits plaintext hashes. This avoids turning the provenance JSON for low-entropy fields such as names into an offline dictionary oracle. Ciphertext SHA-256 may be returned because it does not reveal the plaintext.
+
+The TOTP vault stores only AES-GCM ciphertext in `SharedPreferences`; its AES key is held in Android Keystore and configured for strong-biometric authentication on Android 11+.
+
+The signing private key is held by Android Keystore and is never exported. v0.3.1 does not biometric-gate signing; it is device-bound only.
+
+## Password JWE
+
+PBES2 cannot make a weak human password strong. The password generator should be used for high-value encryption passwords. A random salt and a configurable PBKDF2 iteration count slow offline guessing but do not prevent it.
+
+## File limitation
+
+JWE Compact Serialization base64url-encodes the whole ciphertext. This implementation therefore rejects inputs over 24 MiB. A future large-file capability should adopt an established streaming envelope format rather than inventing chunk semantics under the JWE name.
+
+## Shamir
+
+The secret-sharing arithmetic is standard Shamir over GF(256), but `mms1:` is a MethodMesh share transport encoding because there is no single universal interoperable share serialization. Treat Shamir as Development pending independent review.
+

@@ -1,0 +1,29 @@
+# Suggested `000_Roadmap.md` entry
+
+## Amateur radio / Ham Radio — Development
+
+`hamradio` capability pack updated to v0.4.0. The pack now includes a live dashboard capability following the Astronomy dashboard-as-capability pattern: refreshable QTH/NOAA/band/optional-PSK preview, explicit **Use this snapshot** capture, and the existing operator-first individual tools.
+
+Public methods:
+
+- `ham.dashboard` — GPS/QTH-aware live operating dashboard with best-band hero, ranked alternatives, space weather and optional PSK activity;
+- `ham.spaceweather.snapshot` — NOAA SWPC Kp/F10.7/solar-wind/G-R-S snapshot;
+- `ham.activity.pskreporter` — recent PSK Reporter reception activity with a hard process-wide 420-second upstream request floor, matching-query cache reuse and retry-after metadata;
+- `ham.band.recommend` — localised lightweight HF band ranking using path, solar geometry and live/manual space weather;
+- `ham.maidenhead.convert` — Maidenhead encode/decode;
+- `ham.path.calculate` — grid-to-grid great-circle distance/bearings;
+- `ham.antenna.calculate` — wavelength/antenna starting dimensions;
+- `ham.swr.calculate` — SWR/return-loss/mismatch-loss calculator;
+- `ham.link.calculate` — FSPL/horizon/Fresnel/optional EIRP calculator.
+
+Open before Production:
+
+- run `./gradlew :app:assembleDebug` in the current complete checkout;
+- device/emulator UX, rotation and preset/runtime-input testing;
+- ODK Collect round trip for `example_odk_HamRadio.xlsx`;
+- live NOAA and PSK Reporter regression/cache testing;
+- verify the 7-minute PSK gate under Android lifecycle/concurrency conditions;
+- decide whether the PSK gate must persist across process restarts and add durable rate-state if required;
+- review/tune the HF heuristic against observed/path-model scenarios.
+
+Potential follow-ons include VOACAP/REC533-style propagation; satellite/TLE/SGP4; repeater search; coax/dB/power calculators; jurisdiction-specific band edges; QSO/ADIF logging; and POTA/SOTA helpers.

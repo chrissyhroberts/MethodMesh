@@ -1,0 +1,60 @@
+schema: methodmesh.clinical-instrument.v1
+id: heart_score
+name: HEART score
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [chest_pain, acute_coronary_syndrome, emergency, cardiac]
+summary: Five-component HEART score for risk stratification of emergency-department patients with suspected acute coronary syndrome.
+source_url: https://pubmed.ncbi.nlm.nih.gov/20802272/
+citation: "Backus BE, Six AJ, Kelder JC, et al. Chest pain in the emergency room: a multicenter validation of the HEART Score. Crit Pathw Cardiol. 2010;9:164-169."
+rights_status: factual_definition
+rights_note: Implements the factual HEART scoring categories. History, ECG, risk-factor and troponin categories are entered explicitly so local clinical interpretation and assay reference limits remain visible.
+questions:
+  - id: history_points
+    label: History category
+    type: select_one
+    choices: [0|Slightly suspicious, 1|Moderately suspicious, 2|Highly suspicious]
+  - id: ecg_points
+    label: ECG category
+    type: select_one
+    choices: [0|Normal, 1|Non-specific repolarisation disturbance, 2|Significant ST-segment deviation]
+  - id: age_years
+    label: Age
+    type: integer
+    unit: years
+    min: 18
+    max: 130
+  - id: risk_factor_points
+    label: Cardiovascular risk-factor category
+    type: select_one
+    choices: [0|No known risk factors, 1|One or two risk factors, 2|Three or more risk factors or known atherosclerotic disease]
+  - id: troponin_points
+    label: Initial troponin relative to local upper reference limit
+    type: select_one
+    choices: [0|At or below upper reference limit, 1|Above 1 to 3 times upper reference limit, 2|Above 3 times upper reference limit]
+derived:
+  - id: age_points
+    expression: (age_years >= 45 and age_years < 65) + (age_years >= 65) * 2
+scores:
+  - id: heart
+    label: HEART
+    expression: history_points + ecg_points + age_points + risk_factor_points + troponin_points
+classifications:
+  - when: heart <= 3
+    value: low_score_group
+    label: HEART 0-3
+  - when: heart >= 4 and heart <= 6
+    value: intermediate_score_group
+    label: HEART 4-6
+  - when: heart >= 7
+    value: high_score_group
+    label: HEART 7-10
+tests:
+  - name: low
+    input_json: '{"history_points":"0","ecg_points":"0","age_years":40,"risk_factor_points":"0","troponin_points":"0"}'
+    expect_json: '{"heart":0,"classification":"low_score_group"}'
+  - name: high
+    input_json: '{"history_points":"2","ecg_points":"2","age_years":70,"risk_factor_points":"2","troponin_points":"2"}'
+    expect_json: '{"heart":10,"classification":"high_score_group"}'

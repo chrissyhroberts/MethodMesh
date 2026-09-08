@@ -1,0 +1,59 @@
+schema: methodmesh.clinical-instrument.v1
+id: qsofa
+name: qSOFA
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [sepsis, deterioration, bedside]
+summary: Three bedside criteria used in adults with suspected infection to prompt assessment for organ dysfunction.
+source_url: https://jamanetwork.com/journals/jama/fullarticle/2492881
+citation: "Singer M, Deutschman CS, Seymour CW, et al. The Third International Consensus Definitions for Sepsis and Septic Shock (Sepsis-3). JAMA. 2016;315(8):801-810."
+rights_status: factual_definition
+rights_note: Thresholds and scoring are implemented from the cited clinical definition; MethodMesh does not reproduce journal prose beyond short labels.
+questions:
+  - id: respiratory_rate
+    label: Respiratory rate
+    hint: Count breaths per minute.
+    type: integer
+    unit: breaths/min
+    required: true
+    min: 0
+    max: 100
+  - id: systolic_bp
+    label: Systolic blood pressure
+    type: integer
+    unit: mmHg
+    required: true
+    min: 20
+    max: 300
+  - id: altered_mentation
+    label: Altered mentation?
+    hint: Sepsis-3 operationalised this as Glasgow Coma Scale less than 15.
+    type: boolean
+    required: true
+derived:
+  - id: rr_criterion
+    expression: respiratory_rate >= 22
+  - id: sbp_criterion
+    expression: systolic_bp <= 100
+  - id: mentation_criterion
+    expression: altered_mentation == true
+scores:
+  - id: qsofa
+    label: qSOFA
+    expression: rr_criterion + sbp_criterion + mentation_criterion
+classifications:
+  - when: qsofa >= 2
+    value: two_or_more_criteria
+    label: 2 or more qSOFA criteria
+  - when: qsofa < 2
+    value: fewer_than_two_criteria
+    label: Fewer than 2 qSOFA criteria
+tests:
+  - name: all_negative
+    input_json: '{"respiratory_rate":18,"systolic_bp":120,"altered_mentation":false}'
+    expect_json: '{"qsofa":0,"classification":"fewer_than_two_criteria"}'
+  - name: exact_thresholds
+    input_json: '{"respiratory_rate":22,"systolic_bp":100,"altered_mentation":true}'
+    expect_json: '{"qsofa":3,"classification":"two_or_more_criteria"}'

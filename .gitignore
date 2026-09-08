@@ -5,12 +5,14 @@
 *.iml
 .gradle/
 .kotlin/
+.venv-firmware-tools/
 
 local.properties
 
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
+/.idea/vcs.xml
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
@@ -64,3 +66,21 @@ _site/
 
 # website/  <-- DO NOT IGNORE
 # docs/     <-- DO NOT IGNORE
+
+# Locally maintained documentation videos.
+docs/assets/screenshots/scheduled_event_chain.mp4
+docs/assets/screenshots/sensor_video.mp4
+docs/assets/screenshots/signed_attestation_video.mp4
+website/assets/screenshots/scheduled_event_chain.mp4
+website/assets/screenshots/sensor_video.mp4
+website/assets/screenshots/signed_attestation_video.mp4
+
+# MethodMesh documentation consolidation workspace
+.methodmesh-doc-review/
+/MethodMesh_Master_Book_v*_Canonical/
+/MethodMesh_documentation_review*.zip
+/MethodMesh_Documentation_Review*.zip
+
+# MethodMesh documentation tooling
+documentation_reorg_dryrun*.txt
+__pycache__/

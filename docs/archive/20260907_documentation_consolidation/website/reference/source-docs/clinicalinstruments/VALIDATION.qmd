@@ -1,0 +1,68 @@
+---
+title: "Clinical Instruments v0.4 prototype validation"
+subtitle: "Module source document · Clinical Instruments"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/clinicalinstruments/docs/VALIDATION.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+## Scope being validated
+
+v0.1 is a **linear checklist/scoring engine**. All declared questions are presented in order. There is no relevance, skip logic, repeat group or dynamic branching state.
+
+## Completed in the packaging environment
+
+- Constrained YAML parser compiled with Kotlin/JVM in the earlier prototype pass.
+- Expression evaluator compiled with Kotlin/JVM in the earlier prototype pass.
+- Bundled definitions parsed.
+- Embedded regression tests executed for bundled definitions.
+- qSOFA boundary case verifies equality at RR 22 and SBP 100.
+- CRB-65 boundary/risk cases pass.
+- AVPU classification case passes.
+- Adult BMI calculation/classification case passes.
+- Boolean-expression parser was corrected after regression tests exposed an operand-consumption bug in `or` handling.
+- v0.1 revision removes branch applicability/inactive-response semantics from model, engine and outputs.
+- Definitions using `visible_if` are explicitly rejected by validation.
+
+## Not claimed in this environment
+
+The final revised folder still requires the full MethodMesh Android build gate:
+
+```bash
+./gradlew :app:assembleDebug
+```
+
+## Main-repo review checklist
+
+1. Copy the folder to `app/src/main/java/com/example/methodmesh/modules/clinicalinstruments/`.
+2. Run `./gradlew :app:assembleDebug`.
+3. Resolve any current API/Compose drift without moving capability-specific code into shared UI.
+4. Confirm automatic module discovery sees `ClinicalInstrumentsModule` without a manual registry edit.
+5. Native qSOFA: Back/Next, change an earlier response, complete, inspect raw values + derived values + score + version/hash.
+6. Native: start a session, leave it open, kill/relaunch MethodMesh, resume from Active.
+7. Confirm a resumed session uses its stored YAML/hash snapshot.
+8. Duplicate qSOFA, edit the local fork, validate/save/run it; confirm core qSOFA remains unchanged.
+9. Confirm same local `id + version` cannot be silently overwritten with changed content.
+10. Confirm a local definition containing `visible_if` fails validation with the v0.1 branching-not-supported message.
+11. Import `example_odk_ClinicalInstruments.xlsx` into ODK and run qSOFA. Verify ODK contains no qSOFA questions but receives the observations/score/provenance from MethodMesh.
+12. Repeat ODK test for CRB-65/AVPU/BMI using the same generic container form.
+13. Verify direct external launch with `input_instrument_id` opens the selected checklist.
+14. Airplane-mode test: every current core definition works.
+15. Review Android cloud-backup/device-extraction policy for app-private temporary clinical session data before Production.
+16. Review clinical wording/scoring against authoritative sources and rights status before expanding core.
+17. Add repository roadmap entry from `ROADMAP_NOTE.md`.
+
+## Development status
+
+Keep the capability in **Development** until Android compile, device behaviour, ODK round-trip, clinical-definition review, privacy/backup review and documentation checks are complete.
+
+## v0.4 library regression
+
+- Core executable definitions: 27.
+- v0.4 added 8 A&E-focused definitions.
+- All 27 definitions parsed and validated in the isolated Kotlin harness.
+- All embedded definition tests passed.
+- GCS remains deferred pending explicit non-testable component support.
+

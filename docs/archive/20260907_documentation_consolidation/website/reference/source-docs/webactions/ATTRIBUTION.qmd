@@ -1,0 +1,21 @@
+---
+title: "Attribution and external standards"
+subtitle: "Module source document · Web Actions"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/webactions/docs/ATTRIBUTION.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+Web Actions module source is original MethodMesh integration code. It does not bundle third-party source code.
+
+Behavioral interoperability was implemented from public specifications/documentation:
+
+- ODK Central submissions / web-form link behavior: https://docs.getodk.org/central-submissions/
+- ODK Web Forms: https://docs.getodk.org/web-forms-intro/
+- ODK external apps: https://docs.getodk.org/collect-external-apps/
+- Enketo Smart Paper API v2: https://apidocs.enketo.org/v2
+
+ODK, ODK Central, ODK Web Forms, and Enketo are names of their respective projects/products; inclusion here indicates interoperability, not bundled ownership.
+

@@ -1,0 +1,27 @@
+---
+title: "Troubleshooting"
+---
+
+## A capability exists but is missing from a surface
+
+Treat this as a contract-parity problem first. Dashboard, direct capability discovery, presets, protocols and ODK should derive from the same canonical module/method metadata rather than separate lists.
+
+## ODK returns the wrong fields
+
+Check the canonical method ID, requested return namespace, field-name collisions, `methodmesh_full_json`, and whether the module actually declares the output. Example XLSForms are demonstrations, not a second schema.
+
+## Binary output cannot be opened
+
+Verify a content URI is returned with `ClipData` and read permission grants, and that the XLSForm target field is an appropriate attachment type.
+
+## Done goes to the wrong place
+
+Check launch-origin preservation. App/preset should return to dashboard, widget to desktop, ODK to ODK, and protocol/schedule to their runners.
+
+## A module page says “present in source” but not Production
+
+That is intentional. Presence in the supplied implementation snapshot is not automatic promotion. Use the [status page](reference/production-status.qmd) and current method metadata/review evidence.
+
+## Documentation conflicts
+
+Use the authority order in [Master Book v1.05](reference/master-book.qmd): Master Book, current app/tests, repository README/current guides, capability docs, then roadmap/archive/prototype material.

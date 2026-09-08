@@ -56,4 +56,15 @@ sealed class MethodSetting {
         val defaultValue: String,
         val choices: List<String>
     ) : MethodSetting()
+
+    data class MultiChoiceSetting(
+        override val id: String,
+        override val label: String,
+        override val description: String? = null,
+        override val group: String? = null,
+        val defaultValue: String,
+        val choices: List<String>,
+        val delimiter: String = "|",
+        val emptyMeansAll: Boolean = false
+    ) : MethodSetting()
 }

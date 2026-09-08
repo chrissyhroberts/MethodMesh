@@ -1,0 +1,47 @@
+---
+title: "Sampling"
+subtitle: "Module reference · sampling"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Build a population, sample or randomise it reproducibly, and return auditable CSV/JSON results.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>sampling</code></div>
+<div><strong>Source directory</strong><code>sampling</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>6</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `sampling.run` | sample items | Randomly select records from a population | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_Sampling.xlsx](../source-docs/sampling/example_odk_Sampling.xlsx)
+
+## Module-local documentation
+
+- [Capability-guide alignment — Sampling v0.1.1](../source-docs/sampling/ALIGNMENT_CAPABILITY_GUIDE_2026-09-03.qmd) — `ALIGNMENT_CAPABILITY_GUIDE_2026-09-03.md`
+- [Drop-in installation](../source-docs/sampling/DROP_IN.qmd) — `DROP_IN.md`
+- [Sampling](../source-docs/sampling/README_Sampling.qmd) — `README_Sampling.md`
+- [Sampling prototype review — 2026-09-03](../source-docs/sampling/REVIEW_2026-09-03.qmd) — `REVIEW_2026-09-03.md`
+- [Sampling roadmap entry](../source-docs/sampling/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [Sampling drop-in validation](../source-docs/sampling/VALIDATION.qmd) — `VALIDATION.md`
+
+### Additional source artefacts
+
+- [PACKAGE_CONTENTS.txt](../source-docs/sampling/PACKAGE_CONTENTS.txt)
+- [sampling_input_template.csv](../source-docs/sampling/sampling_input_template.csv)
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

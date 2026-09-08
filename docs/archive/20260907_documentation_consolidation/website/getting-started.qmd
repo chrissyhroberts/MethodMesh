@@ -1,0 +1,38 @@
+---
+title: "Getting started"
+subtitle: "Use the task surface that matches what you are trying to do"
+---
+
+MethodMesh is deliberately multi-surface. You do not have to begin at the dashboard, and the dashboard is not the implementation boundary for a capability.
+
+## Choose an entry point
+
+| Need | Best starting point |
+|---|---|
+| Run one task now | **Capabilities** or a dashboard quick action |
+| Reuse the same setup | **Preset** |
+| Chain several steps with rails | **Protocol** |
+| Run/toggle something from the Android desktop | **Widget** |
+| Trigger work on a cadence | **Schedule** |
+| Call a capability from a research form | **ODK/XLSForm** |
+| Inspect hardware, APIs or prototypes | **Workbench** |
+| Manage shared app-level services | **Settings** |
+
+## A normal native run
+
+1. Open the relevant capability or preset.
+2. Configure only the settings that matter for this run.
+3. Perform the task in a capability-specific screen.
+4. Watch the **live current result** update in place.
+5. Tap displayed useful values to copy them directly.
+6. Press **Commit** when the working result is the result you intend to finalise.
+7. Use share/save/copy/full-JSON actions after Commit where the capability exposes them.
+8. Press **Done/Home**. MethodMesh routes closeout according to where the run came from.
+
+The critical distinction is that a live result is editable/working state. **Commit freezes the canonical payload.** A generic result screen should not be inserted merely for architectural convenience.
+
+## External calls
+
+ODK/XLSForm calls the same canonical method ID and input/output contract. Interactive capabilities may open their normal MethodMesh screen and then return to ODK. Non-interactive methods may execute and return without showing a UI.
+
+See [ODK/XLSForm integration](workflows/odk-xlsform.qmd) and the [current XLSForm library](reference/forms.qmd).

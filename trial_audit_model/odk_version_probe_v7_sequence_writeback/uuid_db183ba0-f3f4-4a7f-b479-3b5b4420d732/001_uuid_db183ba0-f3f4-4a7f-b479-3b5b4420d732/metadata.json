@@ -1,0 +1,18 @@
+{
+  "createdAt": "2026-09-04T11:58:11.201Z",
+  "current": false,
+  "deviceId": "collect:FyYIBCfCy5VEAUGW",
+  "formVersion": "2026090407",
+  "instanceId": "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732",
+  "instanceName": "MethodMesh showcase - 555",
+  "submitter": {
+    "createdAt": "2026-07-27T10:10:49.825Z",
+    "deletedAt": null,
+    "displayName": "chrissy",
+    "id": 7592,
+    "type": "field_key",
+    "updatedAt": null
+  },
+  "submitterId": 7592,
+  "userAgent": "org.odk.collect.android/v2026.3.3 Dalvik/2.1.0 (Linux; U; Android 17; Pixel 7a Build/CP2A.260705.006)"
+}

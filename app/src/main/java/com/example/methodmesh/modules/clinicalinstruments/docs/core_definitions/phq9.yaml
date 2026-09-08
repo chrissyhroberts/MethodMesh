@@ -1,0 +1,83 @@
+schema: methodmesh.clinical-instrument.v1
+id: phq9
+name: PHQ-9
+version: 1.0.0
+status: core
+type: screening
+category: mental_health
+tags: [depression, severity, phq]
+summary: Nine-item depression symptom severity measure covering the previous two weeks.
+source_url: https://www.nih.gov/node/19946
+citation: "Kroenke K, Spitzer RL, Williams JBW. The PHQ-9. J Gen Intern Med. 2001;16:606-613."
+rights_status: no_permission_required
+rights_note: NIH lists PHQ-9 copyright as No; PHQ materials state no permission is required to reproduce, translate, display or distribute.
+questions:
+  - id: q1_interest
+    label: Little interest or pleasure in doing things
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q2_depressed
+    label: Feeling down, depressed, or hopeless
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q3_sleep
+    label: Trouble falling or staying asleep, or sleeping too much
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q4_energy
+    label: Feeling tired or having little energy
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q5_appetite
+    label: Poor appetite or overeating
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q6_self_worth
+    label: Feeling bad about yourself - or that you are a failure or have let yourself or your family down
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q7_concentration
+    label: Trouble concentrating on things, such as reading the newspaper or watching television
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q8_movement
+    label: Moving or speaking unusually slowly, or being unusually fidgety or restless
+    hint: Over the last 2 weeks, to a degree other people could have noticed.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q9_self_harm
+    label: Thoughts that you would be better off dead or of hurting yourself in some way
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+scores:
+  - id: phq9
+    label: PHQ-9
+    expression: q1_interest + q2_depressed + q3_sleep + q4_energy + q5_appetite + q6_self_worth + q7_concentration + q8_movement + q9_self_harm
+classifications:
+  - when: phq9 <= 4
+    value: minimal
+    label: Minimal symptoms
+  - when: phq9 >= 5 and phq9 <= 9
+    value: mild
+    label: Mild symptoms
+  - when: phq9 >= 10 and phq9 <= 14
+    value: moderate
+    label: Moderate symptoms
+  - when: phq9 >= 15 and phq9 <= 19
+    value: moderately_severe
+    label: Moderately severe symptoms
+  - when: phq9 >= 20
+    value: severe
+    label: Severe symptoms
+tests:
+  - name: zero
+    input_json: '{"q1_interest":"0","q2_depressed":"0","q3_sleep":"0","q4_energy":"0","q5_appetite":"0","q6_self_worth":"0","q7_concentration":"0","q8_movement":"0","q9_self_harm":"0"}'
+    expect_json: '{"phq9":0,"classification":"minimal"}'

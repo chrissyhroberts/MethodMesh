@@ -1,0 +1,19 @@
+---
+title: "Presets and protocols"
+---
+
+## Presets
+
+A preset is a reusable setup for one canonical capability. It can fix configuration values, declare runtime inputs and provide a fast launch path from the dashboard or a widget.
+
+A good preset avoids accidental capture of one-off operator text. If a value is fixed by the preset, the user should not be forced to enter it again during the run.
+
+## Protocols
+
+A protocol composes multiple capability/preset steps. The protocol does not own alternative versions of those capabilities; it invokes the same canonical method contracts.
+
+The runner must preserve explicit step state and give the operator rails: where they are, what just happened, what is next, and whether retry/cancel/continue is appropriate.
+
+## Results
+
+Individual step results are available to the protocol runner, and the final protocol result may combine useful outputs. Closeout semantics should be as clean as single-capability runs: no unnecessary generic result detours and no loss of launch-origin context.

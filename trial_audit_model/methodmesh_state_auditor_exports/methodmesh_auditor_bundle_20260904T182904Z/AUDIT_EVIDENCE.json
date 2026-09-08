@@ -1,0 +1,3418 @@
+{
+  "central_system": {
+    "endpoints": {
+      "actor_properties": {
+        "available": false,
+        "elapsed_ms": 24.3,
+        "reason": "{\"message\":\"Could not find the resource you were looking for.\",\"code\":404.1}",
+        "status_code": 404
+      },
+      "analytics_config": {
+        "available": true,
+        "data": {
+          "key": "[REDACTED_SECRET_METADATA]",
+          "setAt": "2023-03-08T16:10:06.944Z",
+          "value_redacted": true,
+          "value_sha256": "5acf3ff77b4420677b5923071f303facaba7a9273a346284a667a275df325146"
+        },
+        "elapsed_ms": 21.3,
+        "status_code": 200
+      },
+      "analytics_preview": {
+        "available": true,
+        "data": {
+          "installation_summary": {
+            "num_forms_recent_45d": 164,
+            "num_forms_total": 2674,
+            "num_projects": 216,
+            "num_submissions_edited_total": 6244,
+            "num_submissions_received_recent_45d": 37213,
+            "num_submissions_received_total": 1725644,
+            "num_submissions_with_comments_total": 1261
+          },
+          "projects": [
+            {
+              "datasets": [],
+              "forms": {
+                "num_closed_forms": {
+                  "recent": 0,
+                  "total": 0
+                },
+                "num_closing_forms": {
+                  "recent": 0,
+                  "total": 0
+                },
+                "num_entity_create_forms": 0,
+                "num_entity_create_update_forms": 0,
+                "num_entity_update_forms": 0,
+                "num_forms": {
+                  "recent": 27,
+                  "total": 38
+                },
+                "num_forms_webforms_enabled": 0,
+                "num_forms_with_audits": {
+                  "recent": 0,
+                  "total": 0
+                },
+                "num_forms_with_encryption": {
+                  "recent": 0,
+                  "total": 0
+                },
+                "num_forms_with_geospatial": {
+                  "recent": 0,
+                  "total": 0
+                },
+                "num_forms_with_repeats": {
+                  "recent": 0,
+                  "total": 0
+                },
+                "num_open_forms": {
+                  "recent": 27,
+                  "total": 38
+                },
+                "num_repeat_entity_create_forms": 0,
+                "num_repeat_entity_update_forms": 0,
+                "num_reused_form_ids": 3
+              },
+              "id": 231,
+              "other": {
+                "description_length": 0
+              },
+              "submissions": {
+                "num_submissions_approved": {
+                  "recent": 2,
+                  "total": 2
+                },
+                "num_submissions_edited": {
+                  "recent": 5,
+                  "total": 5
+                },
+                "num_submissions_from_app_users": {
+                  "recent": 99,
+                  "total": 99
+                },
+                "num_submissions_from_public_links": {
+                  "recent": 0,
+                  "total": 0
+                },
+                "num_submissions_from_web_users": {
+                  "recent": 0,
+                  "total": 0
+                },
+                "num_submissions_has_issues": {
+                  "recent": 0,
+                  "total": 0
+                },
+                "num_submissions_received": {
+                  "recent": 99,
+                  "total": 99
+                },
+                "num_submissions_rejected": {
+                  "recent": 0,
+                  "total": 0
+                },
+                "num_submissions_with_comments": {
+                  "recent": 6,
+                  "total": 6
+                },
+                "num_submissions_with_edits": {
+                  "recent": 6,
+                  "total": 6
+                }
+              },
+              "users": {
+                "num_app_users": {
+                  "recent": 1,
+                  "total": 1
+                },
+                "num_data_collectors": {
+                  "recent": 0,
+                  "total": 0
+                },
+                "num_device_ids": {
+                  "recent": 1,
+                  "total": 1
+                },
+                "num_managers": {
+                  "recent": 1,
+                  "total": 1
+                },
+                "num_public_access_links": {
+                  "recent": 0,
+                  "total": 1
+                },
+                "num_viewers": {
+                  "recent": 0,
+                  "total": 0
+                }
+              }
+            }
+          ],
+          "system": {
+            "avg_entity_submission_delay": 20.459,
+            "database_size": 639520178979,
+            "max_entity_branch_delay": 771645.567,
+            "max_entity_submission_delay": 64679.992,
+            "max_geo_per_form": 28136,
+            "num_admins": {
+              "recent": 2,
+              "total": 4
+            },
+            "num_archived_projects": 135,
+            "num_audit_log_entries": {
+              "recent": 71614,
+              "total": 3617490
+            },
+            "num_audits_failed": 72,
+            "num_audits_failed5": 48,
+            "num_audits_unprocessed": 0,
+            "num_blob_files": 1372410,
+            "num_blob_files_on_s3": 0,
+            "num_client_audit_attachments": 307443,
+            "num_client_audit_attachments_failures": 0,
+            "num_client_audit_rows": 18967607,
+            "num_datasets_with_geometry": 10,
+            "num_entity_bulk_deletes": {
+              "recent": 0,
+              "total": 17
+            },
+            "num_multi_entity_errors": 0,
+            "num_offline_entity_branches": 472,
+            "num_offline_entity_interrupted_branches": 1,
+            "num_offline_entity_submissions_force_processed": 0,
+            "num_offline_entity_submissions_reprocessed": 19,
+            "num_owner_only_datasets": 0,
+            "num_projects_encryption": {
+              "recent": 3,
+              "total": 66
+            },
+            "num_questions_biggest_form": 1184,
+            "num_reset_failed_to_pending_count": 0,
+            "num_unique_collectors": 3,
+            "num_unique_managers": 185,
+            "num_unique_viewers": 20,
+            "num_xml_only_form_defs": 145,
+            "sso_enabled": 0,
+            "uses_external_blob_store": 0,
+            "uses_external_db": 1
+          }
+        },
+        "elapsed_ms": 13570.8,
+        "scope": "SYSTEM_AGGREGATES_PLUS_SELECTED_PROJECT_ONLY",
+        "status_code": 200
+      },
+      "app_users": {
+        "available": true,
+        "data": [
+          {
+            "createdAt": "2026-07-27T10:10:49.825Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "deletedAt": null,
+            "displayName": "chrissy",
+            "id": 7592,
+            "lastUsed": "2026-09-04T13:11:11.443Z",
+            "projectId": 231,
+            "token": "[REDACTED_SECRET_METADATA]",
+            "type": "field_key",
+            "updatedAt": null
+          }
+        ],
+        "elapsed_ms": 424.0,
+        "status_code": 200
+      },
+      "form": {
+        "available": true,
+        "data": {
+          "createdAt": "2026-09-04T08:00:59.163Z",
+          "createdBy": {
+            "createdAt": "2020-10-09T16:44:09.730Z",
+            "deletedAt": null,
+            "displayName": "Chrissy h. Roberts (User)",
+            "id": 15,
+            "type": "user",
+            "updatedAt": "2020-10-16T11:26:08.533Z"
+          },
+          "draftToken": "[REDACTED_SECRET_METADATA]",
+          "enketoId": "7Dnix1E63QcqKc1xhPS2T0df70X1UWp",
+          "enketoOnceId": "7c7c12718f527fcab283b0143e9753daac240ea176e6709f903ad694a0b27506",
+          "entityRelated": false,
+          "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "hash": "583a50fa2092c663dbace4151ab326e2",
+          "keyId": "[REDACTED_SECRET_METADATA]",
+          "lastSubmission": "2026-09-04T13:11:11.439Z",
+          "name": "MethodMesh Capability Chain Showcase",
+          "projectId": 231,
+          "publicLinks": 0,
+          "publishedAt": "2026-09-04T11:56:28.032Z",
+          "reviewStates": {
+            "edited": 0,
+            "hasIssues": 0,
+            "received": 0
+          },
+          "sha": "c301bc046922b54e4b3b4e8bdd331fd0f057cc27",
+          "sha256": "bc564305eff544797c8ace1d7b0499676b80471b2b5c0ca8b150f52d493f34ad",
+          "state": "open",
+          "submissions": 2,
+          "updatedAt": "2026-09-04T12:10:29.190Z",
+          "version": "2026090407",
+          "webformsEnabled": false,
+          "xmlFormId": "methodmesh_capability_chain_showcase"
+        },
+        "elapsed_ms": 254.8,
+        "status_code": 200
+      },
+      "form_assignments": {
+        "available": true,
+        "data": [
+          {
+            "actor": {
+              "createdAt": "2026-09-04T08:01:08.560Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 9986c499-984d-4618-8b16-a011d9eef007",
+              "id": 7736,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7736,
+            "roleId": 7
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2
+          }
+        ],
+        "elapsed_ms": 19.9,
+        "status_code": 200
+      },
+      "form_versions": {
+        "available": true,
+        "data": [
+          {
+            "createdAt": "2026-09-04T08:00:59.163Z",
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "7Dnix1E63QcqKc1xhPS2T0df70X1UWp",
+            "enketoOnceId": "7c7c12718f527fcab283b0143e9753daac240ea176e6709f903ad694a0b27506",
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "583a50fa2092c663dbace4151ab326e2",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "name": "MethodMesh Capability Chain Showcase",
+            "projectId": 231,
+            "publishedAt": "2026-09-04T11:56:28.032Z",
+            "publishedBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "sha": "c301bc046922b54e4b3b4e8bdd331fd0f057cc27",
+            "sha256": "bc564305eff544797c8ace1d7b0499676b80471b2b5c0ca8b150f52d493f34ad",
+            "state": "open",
+            "updatedAt": "2026-09-04T12:10:29.190Z",
+            "version": "2026090407",
+            "webformsEnabled": false,
+            "xmlFormId": "methodmesh_capability_chain_showcase"
+          },
+          {
+            "createdAt": "2026-09-04T08:00:59.163Z",
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": null,
+            "enketoOnceId": null,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "f2fac6c4d3413b161cd81d59711650bc",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "name": "MethodMesh Capability Chain Showcase",
+            "projectId": 231,
+            "publishedAt": "2026-09-04T11:40:19.487Z",
+            "publishedBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "sha": "b91fbec828c8ae5676fae5007be618132f0dca7f",
+            "sha256": "89ec008137fe21446453679347eb417887be6e4c0cce6eb74feed33f38e3cf39",
+            "state": "open",
+            "updatedAt": "2026-09-04T12:10:29.190Z",
+            "version": "2026090405a",
+            "webformsEnabled": false,
+            "xmlFormId": "methodmesh_capability_chain_showcase"
+          },
+          {
+            "createdAt": "2026-09-04T08:00:59.163Z",
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": null,
+            "enketoOnceId": null,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "e6d02a784ee18a4e9f12bba60ff7be99",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "name": "MethodMesh Capability Chain Showcase",
+            "projectId": 231,
+            "publishedAt": "2026-09-04T11:31:00.415Z",
+            "publishedBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "sha": "ee28af3ff00209cda854b4417f53e7c649969932",
+            "sha256": "51f5f01e9823e2bab01ecdfc8172a638e2688fe364807a3b311a80f2da7e8c55",
+            "state": "open",
+            "updatedAt": "2026-09-04T12:10:29.190Z",
+            "version": "2026090405",
+            "webformsEnabled": false,
+            "xmlFormId": "methodmesh_capability_chain_showcase"
+          },
+          {
+            "createdAt": "2026-09-04T08:00:59.163Z",
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": null,
+            "enketoOnceId": null,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "22f2c7b6384194fae275a28d22208c7c",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "name": "MethodMesh Capability Chain Showcase",
+            "projectId": 231,
+            "publishedAt": "2026-09-04T08:01:08.576Z",
+            "publishedBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "sha": "0efca5d8af8e585cc45d3feef2d4ccdd5bc22463",
+            "sha256": "74f1dfaff68b2076f419ad6c69188c02fc5b1bce760d46a087813bb891cedd37",
+            "state": "open",
+            "updatedAt": "2026-09-04T12:10:29.190Z",
+            "version": "2026090404",
+            "webformsEnabled": false,
+            "xmlFormId": "methodmesh_capability_chain_showcase"
+          }
+        ],
+        "elapsed_ms": 20.9,
+        "status_code": 200
+      },
+      "forms": {
+        "available": true,
+        "data": [
+          {
+            "createdAt": "2026-07-27T12:24:58.860Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "VohwXlYKwyGBsro1U2ZsqyE2lbCxa9L",
+            "enketoOnceId": "306ef007442aa44ae872958a75652b6459b5232c51f45e452d04e4bbfc24f04b",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "a1b72451dfccf9c3919074606936bfdb",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-08-30T20:38:24.826Z",
+            "name": "admin_fingerprint_confirmation",
+            "projectId": 231,
+            "publicLinks": 1,
+            "publishedAt": "2026-07-27T12:25:02.353Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 4
+            },
+            "sha": "522be524feb974cd23d9f842469a794bd6c456a8",
+            "sha256": "d5c1bbd2aaa65437b754255c97f44613de91a0815100b21b68a9c69166961dc8",
+            "state": "open",
+            "submissions": 4,
+            "updatedAt": "2026-09-04T12:10:29.179Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "admin_fingerprint_confirmation"
+          },
+          {
+            "createdAt": "2026-07-27T12:26:43.123Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "5w65pNR0MTHprgNxsXbFwNcInAiMnj7",
+            "enketoOnceId": "02e3090532ba9bc1b338212eb20d3d2c64f0739a8838ccfcd003954d1275fd8f",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "4d146fd23b9084a471ac3c2455b1466d",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-08-03T15:13:37.817Z",
+            "name": "attestation.anchor_bundle",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T12:26:56.938Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 3
+            },
+            "sha": "162af7c8f5602643e952cc6602683bb29ed0c7b5",
+            "sha256": "5c86084dc7b061e981956b14c9f740a8004ea962040c3c1eaa8d4f9c399063be",
+            "state": "open",
+            "submissions": 3,
+            "updatedAt": "2026-09-04T12:10:29.180Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "attestation_anchor_bundle"
+          },
+          {
+            "createdAt": "2026-07-27T12:27:40.878Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "RtN6cDK4eiwML5tBwCxCDG8WC60hGHc",
+            "enketoOnceId": "64c40af57a9ff7806a2005f9aaf4eb61d59d6fe2c6691565f4cd51d59ebf9320",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "ad4e74ba4009027bcab2ab1b48c750a7",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-08-06T08:43:12.713Z",
+            "name": "attestation.create_Fingerprint",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T12:27:49.484Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 3
+            },
+            "sha": "abd917500aa4f74605f9b5fe498c12e0d72f834b",
+            "sha256": "7f5fd2b09fbd2c79d86b56fcc7dd1dd519d2494b517e2f66d923ef7f2b0a68e8",
+            "state": "open",
+            "submissions": 3,
+            "updatedAt": "2026-09-04T12:10:29.181Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "attestation_create_Fingerprint"
+          },
+          {
+            "createdAt": "2026-07-27T12:29:02.793Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "tyt7XYwQ7lo4ybeqzGRUUhyMb4si6rk",
+            "enketoOnceId": "5badb92f15129dc0eee545bf5448c44399740b8afa0accb34a38558cc77d4988",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "5bf318af1981cc803383245feda404b9",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-09-04T08:16:48.785Z",
+            "name": "attestation.create_Nfc",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T12:29:05.773Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 2
+            },
+            "sha": "73e6b636e363db342762315c7b0a6b835575cf20",
+            "sha256": "c3630429567f3a84e6b7cfd940fe401b4480f39ea9b07d769f7bf0ce100c38ec",
+            "state": "open",
+            "submissions": 2,
+            "updatedAt": "2026-09-04T12:10:29.181Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "attestation_create_Nfc"
+          },
+          {
+            "createdAt": "2026-07-27T12:30:09.806Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "Z9AzNYZVTI4dL2cmnFr3OGcPml6wdXq",
+            "enketoOnceId": "09ef3b3b85e6488548ce21ce84e796eed6f5679b3dcc6d8a75154cac638482a7",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "20e1291b339d9b410d30c3d30a3943e9",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-07-27T12:30:59.972Z",
+            "name": "attestation.create_Password",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T12:30:21.443Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 1
+            },
+            "sha": "e6472a33e2b0c4ca1d4bfa986727026353f0903c",
+            "sha256": "647331759c240093a3993f4819b35750bf0eddc61b1feca8964befbbc18e34c8",
+            "state": "open",
+            "submissions": 1,
+            "updatedAt": "2026-09-04T12:10:29.182Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "attestation_create_Password"
+          },
+          {
+            "createdAt": "2026-07-27T12:31:33.862Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "eXdbGgbx09sdv6fgD9qoPgHmQTkl5cL",
+            "enketoOnceId": "5e713dc02ee64b0862f32056b98e499098be09f6fbc774f28f5bda1a8563809b",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "ed0cdd21541084a673c16dd5b2d78fcd",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-07-27T12:32:30.167Z",
+            "name": "attestation.create_Pin",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T12:31:39.069Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 2
+            },
+            "sha": "5152ec543493fae5b884f0f0a89a29587a99e7a7",
+            "sha256": "dc1aeb2adf838688075569f837bbddf495f5ba3916a2af1b8ae5b78607fc3c7d",
+            "state": "open",
+            "submissions": 2,
+            "updatedAt": "2026-09-04T12:10:29.182Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "attestation_create_Pin"
+          },
+          {
+            "createdAt": "2026-07-27T12:32:49.752Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "ELq4CLecPqqvguZQXMdyEQwjZfbggTW",
+            "enketoOnceId": "f783941e0755887101d8026551b06ebede51ada55c3117b21740d968d525f3f4",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "b5c097bfebe949525177fb6476d50f57",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-07-27T12:33:30.883Z",
+            "name": "attestation.create_Qr",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T12:32:53.645Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 1
+            },
+            "sha": "aaa414c3ee9866a056c89d4e975d1251947101c7",
+            "sha256": "a1e3aa128216cb7fac55d664b0a602ef7e63830fc735ac183e353e321a487768",
+            "state": "open",
+            "submissions": 1,
+            "updatedAt": "2026-09-04T12:10:29.183Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "attestation_create_Qr"
+          },
+          {
+            "createdAt": "2026-07-27T12:34:00.234Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "2Vz9JVi2pSQHZ69jPHopqpGR3sm23qA",
+            "enketoOnceId": "767bdc091465228b28abb88b05c4d61f3571354ff0694ed26712a8c963e2d7c0",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "a36329c86af7150146f45782457d4fe0",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-09-04T08:16:48.673Z",
+            "name": "calibrated_scale",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-09-01T10:52:58.608Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 30
+            },
+            "sha": "5b5342d7534090d3300a36c7aceffbfa9d5d0319",
+            "sha256": "6ae46387aa8673ab41354f4a9cb7ba096d5bc4913bd770275cff49585ef4d404",
+            "state": "open",
+            "submissions": 30,
+            "updatedAt": "2026-09-04T12:10:29.183Z",
+            "version": "2026072709a",
+            "webformsEnabled": false,
+            "xmlFormId": "calibrated_scale"
+          },
+          {
+            "createdAt": "2026-07-27T12:34:12.219Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "DcXTofgW0OJABO1twdWYqL8gAFUn3cd",
+            "enketoOnceId": "bd92e26d5602acd65928c2f33112efddcf3cae7743f4db3bb7f3cf5bb904bf58",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "73e7f898f108734048d1db15946392b8",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-08-03T15:13:38.026Z",
+            "name": "calibrated_scale_MinMax",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T12:47:25.989Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 4
+            },
+            "sha": "207faac96b2e9a531d49fa219b65812d93c419f6",
+            "sha256": "aa3d9c10203fcd24154e2e04530a57b9d0461a48c15e55938ba3b2e8c1168183",
+            "state": "open",
+            "submissions": 4,
+            "updatedAt": "2026-09-04T12:10:29.183Z",
+            "version": "2026072709",
+            "webformsEnabled": false,
+            "xmlFormId": "calibrated_scale_MinMax"
+          },
+          {
+            "createdAt": "2026-07-27T12:34:48.985Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "P9cPQsFI6K3t1G7dRXXt0CCJ2hunU6r",
+            "enketoOnceId": "dc6c5c0fab7282a4f67bbbc2e23e9ac138a4579bfb23544fd519b0c0639b5aa3",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "caf665d69bd79b80a89522fb3d898f39",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-08-03T15:13:38.232Z",
+            "name": "calibrated_scale_Range",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T12:47:48.078Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 3
+            },
+            "sha": "22a3d90d1b58bd527c49e5d4fec2345ca713801d",
+            "sha256": "32814554e0a80a09b85120d755fa768e1e66d1dba0786fac50315f995e10fc80",
+            "state": "open",
+            "submissions": 3,
+            "updatedAt": "2026-09-04T12:10:29.184Z",
+            "version": "2026072709",
+            "webformsEnabled": false,
+            "xmlFormId": "calibrated_scale_Range"
+          },
+          {
+            "createdAt": "2026-07-27T12:34:58.674Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "ea3gfYOVsNmeMeV8JrQGwoemRVNwKdJ",
+            "enketoOnceId": "8c84a9a23b24a67dd6a8fea7c5ac8452254648f9dc5ef72386f686bb8372e910",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "bc164685d079f4821b4491c275eb701d",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-08-03T15:13:38.170Z",
+            "name": "calibrated_scale_Vertical",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T12:48:07.056Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 2
+            },
+            "sha": "23095921fd4d3c112cd279ac741b70d3ed90a0a8",
+            "sha256": "9b13abbfa7a34a487a1d9b48ff5d6ae2402b75d5c71594fd44c8787ca1d5d56d",
+            "state": "open",
+            "submissions": 2,
+            "updatedAt": "2026-09-04T12:10:29.184Z",
+            "version": "2026072709",
+            "webformsEnabled": false,
+            "xmlFormId": "calibrated_scale_Vertical"
+          },
+          {
+            "createdAt": "2026-08-05T16:26:47.062Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "4KcvuMnNOPMULhHiKuql2cDtDnxGyeu",
+            "enketoOnceId": "b211065adeceac32ba7810bf624a0d17e07a1aa63aaa112ccd04d0af518eebe8",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "ce30d7719b4588e339a5a94df7273583",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": null,
+            "name": "dce.conjoint",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-08-05T16:26:50.752Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 0
+            },
+            "sha": "264307fa09f590f46bcb8110ec5a9a62670108b4",
+            "sha256": "63b93072fc100abe6452f8289f6997e039ae203e53d78e205998e99624cfe1ca",
+            "state": "open",
+            "submissions": 0,
+            "updatedAt": "2026-09-04T12:10:29.185Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "dce_conjoint"
+          },
+          {
+            "createdAt": "2026-08-05T16:27:01.824Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "z3VyUjiWA2XvrrMro6m8ZV64ODM0hDB",
+            "enketoOnceId": "776506663cf66d19c13f9eb8313d5d97e9bc22f9092aacd6d0b471187b6289af",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "b231c4a406eb70072cf3ae058f3799c1",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": null,
+            "name": "dce.maxdiff",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-08-05T16:27:04.688Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 0
+            },
+            "sha": "e6e3889cbcb0d89877f3d96e234898f028b0e4c7",
+            "sha256": "715ed227d7ffbd72c401a99833c631bd726720b2b5e19782bca9933cc6b1d169",
+            "state": "open",
+            "submissions": 0,
+            "updatedAt": "2026-09-04T12:10:29.185Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "dce_maxdiff"
+          },
+          {
+            "createdAt": "2026-08-05T16:27:15.059Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "3g4vMY7ufy3xWUForRc2ihnnn9Z0yJX",
+            "enketoOnceId": "ef16ec9d196c2e2608561ede1e8ddf4beed0467202080ed44f0d60d1b7a2cbe9",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "558cec2d8b8749c944f88ad8aee4c0d2",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": null,
+            "name": "dce.pairwise",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-08-05T16:27:20.259Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 0
+            },
+            "sha": "9e81e5cf79f4389294bca4d78051bbed4bada851",
+            "sha256": "e3c6bba7fe579ddbb5fa69ef5dde650c3125d7297f98e3e5f14aaf10dfdb3618",
+            "state": "open",
+            "submissions": 0,
+            "updatedAt": "2026-09-04T12:10:29.185Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "dce_pairwise"
+          },
+          {
+            "createdAt": "2026-08-05T16:27:31.839Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "J6C0AhZhpOKflsWh1p9C4nbQm2Zkjhg",
+            "enketoOnceId": "a9eb3869e3b576409429b2668eb87e5a152dbea66d5908a71b585dd175c68a6c",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "25d1a12dc4b28ccc314af646be642add",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": null,
+            "name": "dce.points",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-08-05T16:27:35.258Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 0
+            },
+            "sha": "78ad7169b2057ba90dcb660c6b4b5a3e2cbc0dd8",
+            "sha256": "2b611f3c3076d27243b028fd19607d4e0670c813f945c65426f4c79f6d80f129",
+            "state": "open",
+            "submissions": 0,
+            "updatedAt": "2026-09-04T12:10:29.186Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "dce_points"
+          },
+          {
+            "createdAt": "2026-08-05T16:27:44.557Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "aRTBVZ4wtp62ZoqcTeG1OPALQWX0xJB",
+            "enketoOnceId": "2b515e935802a5bbdd27e4cc4b2b27ff0562322874719addcfd8a42f7b218d97",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "651fb4230ea25667c0d2a66b8f5deb98",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": null,
+            "name": "dce.ranking",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-08-05T16:27:48.392Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 0
+            },
+            "sha": "a5cc2df5bc6af36c0b199e55a9c67a9a7743aa57",
+            "sha256": "7562c2eb551a1dbc8d69d8e7bedb705cc4e9b61302190cdc96012bec75d9c956",
+            "state": "open",
+            "submissions": 0,
+            "updatedAt": "2026-09-04T12:10:29.186Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "dce_ranking"
+          },
+          {
+            "createdAt": "2026-09-04T12:10:16.573Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "N8Y2yCAWs3lddwq966tSrBTxX01ASvC",
+            "enketoOnceId": "44cf7fa259dd259d6ac73fd65411331c29d38e6d3adfe095393f583110ee3169",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "e7741d1691256c7b03469f6da2d71754",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-09-04T12:11:30.709Z",
+            "name": "Enketo SHA-256 Diagnostic Matrix",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-09-04T12:10:20.625Z",
+            "reviewStates": {
+              "edited": 1,
+              "hasIssues": 0,
+              "received": 0
+            },
+            "sha": "b2361992e35c35452d9e68465503a3627d3a7756",
+            "sha256": "94448debec03c73518466dc59ac7c6e14c8f8a89205816a4c08285415041db56",
+            "state": "open",
+            "submissions": 1,
+            "updatedAt": "2026-09-04T12:10:29.187Z",
+            "version": "2026090401",
+            "webformsEnabled": false,
+            "xmlFormId": "enketo_sha256_diagnostic_matrix"
+          },
+          {
+            "createdAt": "2026-08-05T16:43:42.144Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "VhQgzwfrA9aX3e8Ihz8if2oglNdyF07",
+            "enketoOnceId": "8f91c709274ba40cce5465d3940a22b93b3ecd67733dbdb35445284d1158c6bd",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "49f18b78c9077d3201b22fbb6ac5202d",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": null,
+            "name": "form_id",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-08-05T16:49:40.324Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 0
+            },
+            "sha": "3545708f78733d3278898ae65be2c5bbf8afa2f7",
+            "sha256": "60324115f3fea979d8d6b1f16609dec09e7de5bc1dab175596e463411660256f",
+            "state": "open",
+            "submissions": 0,
+            "updatedAt": "2026-09-04T12:10:29.189Z",
+            "version": "aaa",
+            "webformsEnabled": false,
+            "xmlFormId": "example_odk_odk_form_launcher"
+          },
+          {
+            "createdAt": "2026-07-27T13:42:52.726Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "Ic5r6ZxSl77eBKwvDxynv62EkNrSg0j",
+            "enketoOnceId": "85bb08e096c1df947ca4910e491cdad47725eb6a3de1e363b580d932ed962660",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "f80fd5ff0585b137f04e9027d3518e78",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-07-27T14:09:12.486Z",
+            "name": "gps_target_navigator",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T13:42:59.180Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 2
+            },
+            "sha": "445d44dc8753a8afc216411507f94146f72bf623",
+            "sha256": "c49250c618b852ce30bb9d28e91bd5a9aa85169dc6e16ed07997c599224b9133",
+            "state": "open",
+            "submissions": 2,
+            "updatedAt": "2026-09-04T12:10:29.189Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "gps_target_navigator"
+          },
+          {
+            "createdAt": "2026-09-04T08:00:59.163Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "7Dnix1E63QcqKc1xhPS2T0df70X1UWp",
+            "enketoOnceId": "7c7c12718f527fcab283b0143e9753daac240ea176e6709f903ad694a0b27506",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "583a50fa2092c663dbace4151ab326e2",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-09-04T13:11:11.439Z",
+            "name": "MethodMesh Capability Chain Showcase",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-09-04T11:56:28.032Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 0
+            },
+            "sha": "c301bc046922b54e4b3b4e8bdd331fd0f057cc27",
+            "sha256": "bc564305eff544797c8ace1d7b0499676b80471b2b5c0ca8b150f52d493f34ad",
+            "state": "open",
+            "submissions": 2,
+            "updatedAt": "2026-09-04T12:10:29.190Z",
+            "version": "2026090407",
+            "webformsEnabled": false,
+            "xmlFormId": "methodmesh_capability_chain_showcase"
+          },
+          {
+            "createdAt": "2026-09-04T07:10:28.161Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "QkQkmWHlWSeg9LtoSIp5g7ykeQB7f3M",
+            "enketoOnceId": "796170512b2b79905249a4ec3b3910ef1a1447cddca31037202a120814e67e55",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "4b8b123014b3d7d40f8c5db9e5c69132",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-09-04T08:16:48.869Z",
+            "name": "MethodMesh Clinical Instruments example",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-09-04T07:10:33.942Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 1
+            },
+            "sha": "e71ab38e848bb6378b543b671717d088fe643ef1",
+            "sha256": "8bc5890ddba29e8c192954a01757a8ecc1c534fddf3ee999d5c62c83a29758af",
+            "state": "open",
+            "submissions": 1,
+            "updatedAt": "2026-09-04T12:10:29.191Z",
+            "version": "2026090302",
+            "webformsEnabled": false,
+            "xmlFormId": "methodmesh_clinical_instruments_example"
+          },
+          {
+            "createdAt": "2026-09-01T09:17:35.591Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "rCeZAh2rtfQQ7x6KNhBwkxz2K4b4Hfn",
+            "enketoOnceId": "7e52ee77c61993603709c4bc230b22f6567848a751d72d1bb961b0da1b658ecc",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "fc2b551482686eaa66936d811f340532",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-09-04T08:16:48.591Z",
+            "name": "MethodMesh conversation translator",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-09-01T09:19:42.209Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 1
+            },
+            "sha": "5fee9a825a5883b374e39eb08c4b53c4c63647e2",
+            "sha256": "55f230980996e23a8343b98026a645fda3d2b8c511145a0f1cfad90c89d4d338",
+            "state": "open",
+            "submissions": 1,
+            "updatedAt": "2026-09-04T12:10:29.191Z",
+            "version": "2026090101a",
+            "webformsEnabled": false,
+            "xmlFormId": "example_odk_conversation_translate"
+          },
+          {
+            "createdAt": "2026-07-27T14:52:22.386Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "fpKbFBmkkdyWevuevsWQtyBfMXtjYaD",
+            "enketoOnceId": "4a68438df593530eb8a9df5cb473b8acc09ca7983076997140c66bd081b19219",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "813c9f7f3b44a40131c2954f32e869be",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-07-27T15:28:46.822Z",
+            "name": "nfc_credential_provisioning",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T14:52:25.776Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 5
+            },
+            "sha": "b62178d7721f37ae6a8d0c7c8d9cb10f171582b6",
+            "sha256": "b22fe6671a796649235aff7dbf5629f2c6f57f5f05b9bbd16cb7dd3ee206c15c",
+            "state": "open",
+            "submissions": 5,
+            "updatedAt": "2026-09-04T12:10:29.192Z",
+            "version": "2026072701",
+            "webformsEnabled": false,
+            "xmlFormId": "nfc_credential_provisioning"
+          },
+          {
+            "createdAt": "2026-07-27T14:52:33.663Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "pHEs2UsLurHtQcdPZEYd4tW9YAWhFDy",
+            "enketoOnceId": "c3c37ae5fa1b259ee3f6bc6d64b15d9c2b9d1aa8d7fd331fb35ccc70e126427c",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "9e47fa9f5cce1ee58482a12d32580742",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-08-03T15:13:38.299Z",
+            "name": "nfc_credential_verification",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T14:52:36.478Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 2
+            },
+            "sha": "66046b8950afc2cd275659574a2e38d9b2e22cd7",
+            "sha256": "ead9a5f764c3b7a2c860e05bc8aebb2f66332d69ee1de5c34cff896439a34225",
+            "state": "open",
+            "submissions": 2,
+            "updatedAt": "2026-09-04T12:10:29.192Z",
+            "version": "2026072701",
+            "webformsEnabled": false,
+            "xmlFormId": "nfc_credential_verification"
+          },
+          {
+            "createdAt": "2026-07-27T14:10:35.219Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "rnxVbLNE2pZCz5T3OfnVAUyJMq0m9XU",
+            "enketoOnceId": "b513b095ba85761b660a458d5398c6b1f36a80ce5926060059f52a205395066f",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "f8e2e835416879471adee1b00eab1643",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-07-31T10:59:15.808Z",
+            "name": "nfc_tag_read",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T14:10:38.853Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 6
+            },
+            "sha": "fa34bb815abb34c6f8f7ffe5c10b627dca8b7f79",
+            "sha256": "b6c61b690d9f871273c8e039eeb50d54c6c497354bf3934b30624de5747de3b7",
+            "state": "open",
+            "submissions": 6,
+            "updatedAt": "2026-09-04T12:10:29.193Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "nfc_tag_read"
+          },
+          {
+            "createdAt": "2026-07-27T15:09:03.858Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "txpis7XBu0afUoTkevcFJnYwelaVLIN",
+            "enketoOnceId": "1f7c6def55498b71e1f40fa75e301a4460c3f3d753fb2a0f4df4d196057f6907",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "b622099553c22ce91b6c24af7e37120f",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-07-27T15:31:16.113Z",
+            "name": "nfc_tag_wipe",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T15:09:07.491Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 1
+            },
+            "sha": "785e8881310fb6cc35e4d17d4ef5588b57a580ab",
+            "sha256": "d398ad134d74749db61b4755683f31c46612afe7f6d7a71c929c5fda0d40698e",
+            "state": "open",
+            "submissions": 1,
+            "updatedAt": "2026-09-04T12:10:29.193Z",
+            "version": "2026072701",
+            "webformsEnabled": false,
+            "xmlFormId": "nfc_tag_wipe"
+          },
+          {
+            "createdAt": "2026-07-27T14:10:46.150Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "14okt5P8qkUro8exRPnHycdc36iOd4w",
+            "enketoOnceId": "a2b0b96907c894932586b94ae5bc75638501e3fd6ed4370686c92401bad632b9",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "78e78d8d399e15306573ed45d5206325",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-07-27T14:53:02.868Z",
+            "name": "nfc_tag_write",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T14:11:21.402Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 5
+            },
+            "sha": "a562be75bed7edc30fda724aca984cf66dffacd2",
+            "sha256": "fffa2a8758dd1293a9bab2a789ddffc982a1c765ec8384ff969a14c7d57f3e19",
+            "state": "open",
+            "submissions": 5,
+            "updatedAt": "2026-09-04T12:10:29.193Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "nfc_tag_write"
+          },
+          {
+            "createdAt": "2026-08-03T14:32:10.132Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "6AkhBCh74yYRNUU8y66h2sOn7SEQqnV",
+            "enketoOnceId": "6e81cb6e038337a012196972b91c88e4b6ca9906e5ce98290e07eb0e02ba5a53",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "d8726012b2a75ca3994ee63ea69d9538",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": null,
+            "name": "protocol_nfc_check",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-08-03T14:32:13.612Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 0
+            },
+            "sha": "71f7a1dff061bcecb12edbc0f5a17689e12e7653",
+            "sha256": "5c0a10120ee19b265119fdd44eb35943c3fb0895717c5c8daeae958bea433087",
+            "state": "open",
+            "submissions": 0,
+            "updatedAt": "2026-09-04T12:10:29.194Z",
+            "version": "",
+            "webformsEnabled": false,
+            "xmlFormId": "researchos_protocol_nfc_check_example"
+          },
+          {
+            "createdAt": "2026-08-03T14:32:37.461Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "mLaF7hfaOQBcRKLcaTrKJCPbTca2oO8",
+            "enketoOnceId": "6de6566570e1caea38a3bf89c5476de84ccbaea4d3c55c3cf52bc4c4628df95f",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "c0c7a9a784326b752478c2c37e08d220",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": null,
+            "name": "protocol_nfc_complete",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-08-03T14:32:41.079Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 0
+            },
+            "sha": "b32c2d8e7d51546bd5dd24b1a1fd3c86391874ed",
+            "sha256": "bb5deaab73aa0872d839f18ee54af050de4a01545dbeb5a1ffc5e9461b06be94",
+            "state": "open",
+            "submissions": 0,
+            "updatedAt": "2026-09-04T12:10:29.194Z",
+            "version": "",
+            "webformsEnabled": false,
+            "xmlFormId": "researchos_protocol_nfc_complete_example"
+          },
+          {
+            "createdAt": "2026-07-27T15:34:02.410Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "0MlKp3G78nW6dQmKzuCkXueM9shX5Nf",
+            "enketoOnceId": "2dad5b1db32e86e101b49e29b512010d3deeda17527c1adb0867104f456a5aba",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "2df3c232435925195d774628ba83e7e4",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-07-27T15:34:41.439Z",
+            "name": "qr.scan",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-27T15:34:05.344Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 1
+            },
+            "sha": "986d91e0fecb6bbdbdfd28bd941b89e697526e4b",
+            "sha256": "5e4d1361983f34a61f0c254f9c7833f9d101d5e364cf476a3a46eeb0110ec9f1",
+            "state": "open",
+            "submissions": 1,
+            "updatedAt": "2026-09-04T12:10:29.195Z",
+            "version": "2026072707",
+            "webformsEnabled": false,
+            "xmlFormId": "qr_scan"
+          },
+          {
+            "createdAt": "2026-07-31T17:38:14.898Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "eNbyuLzbFdPmmjv3aobfDTGIgyqP7o2",
+            "enketoOnceId": "cc59382f4c3c7fbe189fa87a4dee9cd73ced0c4967152841fdf54fbd3be4fde8",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "baac45b9020571231724c15fc3ef91e2",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-07-31T17:39:26.051Z",
+            "name": "Scaled photo selector",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-07-31T17:38:21.260Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 1
+            },
+            "sha": "ee85df576d144424d957d9a6f8e2b5e35591d136",
+            "sha256": "2988fe3b5d7607c8b2e3d6c25c438016d27f823779983e8289bef8114730f201",
+            "state": "open",
+            "submissions": 1,
+            "updatedAt": "2026-09-04T12:10:29.195Z",
+            "version": "2b",
+            "webformsEnabled": false,
+            "xmlFormId": "scaled_photo.capture"
+          },
+          {
+            "createdAt": "2026-08-03T15:04:19.676Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "f5iPgRMcFdncgz8VkwpG4AnqyWk505o",
+            "enketoOnceId": "8e35654b8d91aa734ec800b03870b6d8b62633580bb44e878f2d1c4ebdbfadbc",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "602c8b695c869b8b62e99c28adc7c34a",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-08-06T08:43:12.612Z",
+            "name": "sensor_read",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-08-03T15:04:23.236Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 6
+            },
+            "sha": "b6bf5e2aaec9f165a26cbccc312dded11979f102",
+            "sha256": "f7c9ed424a1694f516887e6deaca279d9223608905cc2d52ca026b95e53ff6c2",
+            "state": "open",
+            "submissions": 6,
+            "updatedAt": "2026-09-04T12:10:29.195Z",
+            "version": "2026080301",
+            "webformsEnabled": false,
+            "xmlFormId": "sensor_read"
+          },
+          {
+            "createdAt": "2026-08-03T14:38:20.937Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "scPrAvZ7ccrjfoedXuPJiFaBeBuPUuo",
+            "enketoOnceId": "efa3d785805d79096321edd18dbf1fca8d74f842378e092ea5190c06449f6d36",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "6b600ef04a992eeec4f96b8c6176f250",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-08-03T14:40:59.066Z",
+            "name": "sms.send",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-08-03T14:38:24.473Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 1
+            },
+            "sha": "87036cc14d51e1ccee648d8fbb8ad2ee332bcca6",
+            "sha256": "347a4f59e7ce79f6702ebbfe33e8ca0526f0df2c75a7dd5fd85b83c67f94517c",
+            "state": "open",
+            "submissions": 1,
+            "updatedAt": "2026-09-04T12:10:29.196Z",
+            "version": "2026080201",
+            "webformsEnabled": false,
+            "xmlFormId": "example_odk_sms_send"
+          },
+          {
+            "createdAt": "2026-08-03T14:42:58.394Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "IHOzucSKAXh8l5fxPOatZLvdRu2hhmB",
+            "enketoOnceId": "e8bbcca51d5fc9ef28937f586ed200ae1825681c115131d7d7d4a3f30a871494",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "b25b4b95d120ae590c2e9a0a76aff900",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": null,
+            "name": "spatialgeometry",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-08-03T14:43:01.470Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 0
+            },
+            "sha": "59430ae1c418055570c7e0cfa873b2e1fb1ebc1d",
+            "sha256": "46f758b3f057db0d1e3967887d7132b458213bc07b13efe06b11e537e8893a04",
+            "state": "open",
+            "submissions": 0,
+            "updatedAt": "2026-09-04T12:10:29.196Z",
+            "version": "1",
+            "webformsEnabled": false,
+            "xmlFormId": "example_odk_spatialgeometry"
+          },
+          {
+            "createdAt": "2026-08-03T15:12:12.150Z",
+            "createdBy": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "draftToken": "[REDACTED_SECRET_METADATA]",
+            "enketoId": "ZmoT68Z8e7l8svrOTd9pkaVeVr2C9Qr",
+            "enketoOnceId": "be2c2bb02ff832da0595b30aea2bfd8320c76d5bb1f3c23fc58e1e11df4bdccb",
+            "entityRelated": false,
+            "excelContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "hash": "c76c78c2654dae7eecdae50917f45f49",
+            "keyId": "[REDACTED_SECRET_METADATA]",
+            "lastSubmission": "2026-08-19T19:23:11.019Z",
+            "name": "svg.select",
+            "projectId": 231,
+            "publicLinks": 0,
+            "publishedAt": "2026-08-03T15:12:15.771Z",
+            "reviewStates": {
+              "edited": 0,
+              "hasIssues": 0,
+              "received": 3
+            },
+            "sha": "5c29fe0be658f6448308d8f2905063779b40c9ae",
+            "sha256": "3e96569ef770bec51ab4bb86b4320895f184af2011413e2084962abbe566d11b",
+            "state": "open",
+            "submissions": 3,
+            "updatedAt": "2026-09-04T12:10:29.197Z",
+            "version": "1",
+            "webformsEnabled": false,
+            "xmlFormId": "svg_select"
+          }
+        ],
+        "elapsed_ms": 268.4,
+        "status_code": 200
+      },
+      "methodmesh_event_ledger": {
+        "available": true,
+        "data": [],
+        "status_code": 200
+      },
+      "methodmesh_forms_state": {
+        "available": true,
+        "data": [
+          {
+            "deleted_at": "2026-08-05T16:43:32.076Z",
+            "form_id": "example_odk_odk_form_launcher",
+            "form_numeric_id": 6830,
+            "last_seen_at": "2026-09-04T18:29:04.417192+00:00",
+            "name": "form_id",
+            "project_id": 231,
+            "state": "open",
+            "version": "a"
+          },
+          {
+            "deleted_at": null,
+            "form_id": "methodmesh_capability_chain_showcase",
+            "form_numeric_id": null,
+            "last_seen_at": "2026-09-04T18:29:04.417192+00:00",
+            "name": "MethodMesh Capability Chain Showcase",
+            "project_id": 231,
+            "state": "open",
+            "version": "2026090407"
+          }
+        ],
+        "status_code": 200
+      },
+      "project": {
+        "available": true,
+        "data": {
+          "appUsers": 1,
+          "archived": null,
+          "createdAt": "2026-07-27T10:05:27.915Z",
+          "datasets": 0,
+          "deletedAt": null,
+          "description": null,
+          "forms": 35,
+          "id": 231,
+          "keyId": "[REDACTED_SECRET_METADATA]",
+          "lastEntity": null,
+          "lastSubmission": "2026-09-04T13:11:11.439Z",
+          "name": "MethodMesh__Chrissy_Roberts",
+          "updatedAt": "2026-09-04T12:10:29.175Z",
+          "verbs": [
+            "public_link.read",
+            "entity.delete",
+            "user.delete",
+            "submission.list",
+            "submission.delete",
+            "audit.read",
+            "role.update",
+            "dataset.read",
+            "form.restore",
+            "session.end",
+            "submission.restore",
+            "assignment.create",
+            "project.read",
+            "entity.read",
+            "dataset.list",
+            "dataset.update",
+            "form.list",
+            "public_link.delete",
+            "entity.create",
+            "form.read",
+            "user.read",
+            "entity.list",
+            "user.list",
+            "submission.update",
+            "user.create",
+            "dataset.create",
+            "field_key.list",
+            "project.delete",
+            "field_key.delete",
+            "role.create",
+            "user.update",
+            "public_link.update",
+            "project.update",
+            "submission.create",
+            "assignment.list",
+            "user.password.invalidate",
+            "role.delete",
+            "submission.read",
+            "field_key.create",
+            "form.create",
+            "config.read",
+            "public_link.create",
+            "form.delete",
+            "project.create",
+            "entity.restore",
+            "entity.update",
+            "form.update",
+            "backup.run",
+            "config.set",
+            "public_link.list",
+            "assignment.delete",
+            "analytics.read"
+          ]
+        },
+        "elapsed_ms": 224.6,
+        "status_code": 200
+      },
+      "project_assignments": {
+        "available": true,
+        "data": [
+          {
+            "actor": {
+              "createdAt": "2020-10-09T16:44:09.730Z",
+              "deletedAt": null,
+              "displayName": "Chrissy h. Roberts (User)",
+              "id": 15,
+              "type": "user",
+              "updatedAt": "2020-10-16T11:26:08.533Z"
+            },
+            "actorId": 15,
+            "roleId": 5
+          }
+        ],
+        "elapsed_ms": 22.5,
+        "status_code": 200
+      },
+      "project_form_assignments": {
+        "available": true,
+        "data": [
+          {
+            "actor": {
+              "createdAt": "2026-07-27T12:25:02.344Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 9d38fcad-f33b-4620-a967-e3bd7b279fc2",
+              "id": 7607,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7607,
+            "roleId": 7,
+            "xmlFormId": "admin_fingerprint_confirmation"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "admin_fingerprint_confirmation"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T12:26:56.931Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for b3576d08-2d8e-48db-b380-d751026c7f07",
+              "id": 7609,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7609,
+            "roleId": 7,
+            "xmlFormId": "attestation_anchor_bundle"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "attestation_anchor_bundle"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T12:27:49.473Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for b6b4bf77-a37f-41c8-8ce4-5974d24a5ba1",
+              "id": 7610,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7610,
+            "roleId": 7,
+            "xmlFormId": "attestation_create_Fingerprint"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "attestation_create_Fingerprint"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T12:29:05.763Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 7815c6fa-5287-4491-bc8f-d0b543a7c29f",
+              "id": 7611,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7611,
+            "roleId": 7,
+            "xmlFormId": "attestation_create_Nfc"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "attestation_create_Nfc"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T12:30:21.435Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 47278a8e-6a04-4f30-bd8f-e93db57df4f4",
+              "id": 7612,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7612,
+            "roleId": 7,
+            "xmlFormId": "attestation_create_Password"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "attestation_create_Password"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T12:31:39.058Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for d174a423-b6b6-486f-b731-447ec00f35ce",
+              "id": 7613,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7613,
+            "roleId": 7,
+            "xmlFormId": "attestation_create_Pin"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "attestation_create_Pin"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T12:32:53.637Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for c02ac9d5-0d6b-4ff2-a2f4-e0e9bc067e0a",
+              "id": 7614,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7614,
+            "roleId": 7,
+            "xmlFormId": "attestation_create_Qr"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "attestation_create_Qr"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T12:34:15.261Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 125a097d-4796-48a2-8482-51af80993364",
+              "id": 7615,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7615,
+            "roleId": 7,
+            "xmlFormId": "calibrated_scale_MinMax"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T12:34:51.429Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 1c17f8ab-6daf-4b3f-ac34-078b82eac630",
+              "id": 7616,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7616,
+            "roleId": 7,
+            "xmlFormId": "calibrated_scale_Range"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T12:35:01.764Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 49c0ce13-0f7d-40d4-afa7-10dfcc85c3c4",
+              "id": 7617,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7617,
+            "roleId": 7,
+            "xmlFormId": "calibrated_scale_Vertical"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "calibrated_scale"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "calibrated_scale_MinMax"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "calibrated_scale_Range"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "calibrated_scale_Vertical"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T12:36:36.062Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 2d6e1012-7ca8-4b3e-b345-85639bd2bb97",
+              "id": 7618,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7618,
+            "roleId": 7,
+            "xmlFormId": "calibrated_scale"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T13:42:59.172Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for a9b4b548-0f08-4313-b14b-62b3083cd5b1",
+              "id": 7619,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7619,
+            "roleId": 7,
+            "xmlFormId": "gps_target_navigator"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "gps_target_navigator"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T14:10:38.846Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 1ac59242-6f94-4106-80d4-bc19db8dcd10",
+              "id": 7620,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7620,
+            "roleId": 7,
+            "xmlFormId": "nfc_tag_read"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T14:11:21.393Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for b9f6d73c-08c7-470b-a5de-86a3047c4586",
+              "id": 7621,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7621,
+            "roleId": 7,
+            "xmlFormId": "nfc_tag_write"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "nfc_tag_read"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "nfc_tag_write"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T14:52:25.767Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for a75ccede-eaff-4f7a-b168-4abb95fc7c9c",
+              "id": 7623,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7623,
+            "roleId": 7,
+            "xmlFormId": "nfc_credential_provisioning"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T14:52:36.472Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for a4cdf303-c6c1-495d-988b-a28c3c6ccbf3",
+              "id": 7624,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7624,
+            "roleId": 7,
+            "xmlFormId": "nfc_credential_verification"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "nfc_credential_provisioning"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "nfc_credential_verification"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T15:09:07.486Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 9ba35215-91f8-4ab9-a207-34352ce0a281",
+              "id": 7625,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7625,
+            "roleId": 7,
+            "xmlFormId": "nfc_tag_wipe"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "nfc_tag_wipe"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T15:34:05.339Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 9893b959-e245-4ca5-b656-c4c507e7e2b7",
+              "id": 7626,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7626,
+            "roleId": 7,
+            "xmlFormId": "qr_scan"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "qr_scan"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-31T17:38:21.241Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for ce505aa8-093f-45cb-9892-25743cca3355",
+              "id": 7636,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7636,
+            "roleId": 7,
+            "xmlFormId": "scaled_photo.capture"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "scaled_photo.capture"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-08-03T14:32:13.591Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 3d24693f-cc8f-466c-a8be-992ded3dfbf5",
+              "id": 7637,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7637,
+            "roleId": 7,
+            "xmlFormId": "researchos_protocol_nfc_check_example"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-08-03T14:32:41.070Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 7f57d1bf-add9-479d-8d4d-a2526a92ac01",
+              "id": 7638,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7638,
+            "roleId": 7,
+            "xmlFormId": "researchos_protocol_nfc_complete_example"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "researchos_protocol_nfc_check_example"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "researchos_protocol_nfc_complete_example"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-08-03T14:38:24.464Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for d6e35ff3-3325-4e24-b06c-1779f15790de",
+              "id": 7639,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7639,
+            "roleId": 7,
+            "xmlFormId": "example_odk_sms_send"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "example_odk_sms_send"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-08-03T14:43:01.456Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 48d221a0-10f2-461a-a33c-5d12db53285e",
+              "id": 7640,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7640,
+            "roleId": 7,
+            "xmlFormId": "example_odk_spatialgeometry"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "example_odk_spatialgeometry"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-08-03T15:04:23.226Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for cd4f5c0f-1533-4bb0-bc45-c4a51dc11432",
+              "id": 7641,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7641,
+            "roleId": 7,
+            "xmlFormId": "sensor_read"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "sensor_read"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-08-03T15:12:15.762Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 6de3544e-d0fd-4eff-911b-4b0cf3856692",
+              "id": 7642,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7642,
+            "roleId": 7,
+            "xmlFormId": "svg_select"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "svg_select"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-08-05T16:26:50.739Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for dd0fb8bc-055c-427d-b765-69300cbe9055",
+              "id": 7656,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7656,
+            "roleId": 7,
+            "xmlFormId": "dce_conjoint"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-08-05T16:27:04.678Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 814152a0-3d7e-48a6-abb5-c59d3f980359",
+              "id": 7657,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7657,
+            "roleId": 7,
+            "xmlFormId": "dce_maxdiff"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-08-05T16:27:20.249Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 20e6716f-8c45-4861-a4ae-cd27efbd1602",
+              "id": 7658,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7658,
+            "roleId": 7,
+            "xmlFormId": "dce_pairwise"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-08-05T16:27:35.248Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 38e5a864-31bc-4ca0-8d3f-7cee1b3f6751",
+              "id": 7659,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7659,
+            "roleId": 7,
+            "xmlFormId": "dce_points"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-08-05T16:27:48.385Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 8184b467-4e95-430d-8fef-bf502c01461a",
+              "id": 7660,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7660,
+            "roleId": 7,
+            "xmlFormId": "dce_ranking"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "dce_conjoint"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "dce_maxdiff"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "dce_pairwise"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "dce_points"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "dce_ranking"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-08-05T16:43:59.200Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 03da5ee7-5c4d-4125-991e-9935c219c6c9",
+              "id": 7665,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7665,
+            "roleId": 7,
+            "xmlFormId": "example_odk_odk_form_launcher"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "example_odk_odk_form_launcher"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-09-01T09:17:39.542Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 7da30b35-243f-4a1f-ad23-0619d6eb8c53",
+              "id": 7716,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7716,
+            "roleId": 7,
+            "xmlFormId": "example_odk_conversation_translate"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "example_odk_conversation_translate"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-09-03T15:01:19.346Z",
+              "deletedAt": null,
+              "displayName": "test",
+              "id": 7733,
+              "type": "public_link",
+              "updatedAt": null
+            },
+            "actorId": 7733,
+            "roleId": 9,
+            "xmlFormId": "admin_fingerprint_confirmation"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-09-04T07:10:33.899Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 6f027737-2f84-478a-a72e-ded6f4ce7f52",
+              "id": 7734,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7734,
+            "roleId": 7,
+            "xmlFormId": "methodmesh_clinical_instruments_example"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "methodmesh_clinical_instruments_example"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-09-04T08:01:08.560Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 9986c499-984d-4618-8b16-a011d9eef007",
+              "id": 7736,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7736,
+            "roleId": 7,
+            "xmlFormId": "methodmesh_capability_chain_showcase"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "methodmesh_capability_chain_showcase"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-09-04T12:10:20.617Z",
+              "deletedAt": null,
+              "displayName": "Enketo sync token for 959761d9-0c02-4b7d-8f58-9db4a92d01fa",
+              "id": 7737,
+              "type": "singleUse",
+              "updatedAt": null
+            },
+            "actorId": 7737,
+            "roleId": 7,
+            "xmlFormId": "enketo_sha256_diagnostic_matrix"
+          },
+          {
+            "actor": {
+              "createdAt": "2026-07-27T10:10:49.825Z",
+              "deletedAt": null,
+              "displayName": "chrissy",
+              "id": 7592,
+              "type": "field_key",
+              "updatedAt": null
+            },
+            "actorId": 7592,
+            "roleId": 2,
+            "xmlFormId": "enketo_sha256_diagnostic_matrix"
+          }
+        ],
+        "elapsed_ms": 25.7,
+        "status_code": 200
+      },
+      "project_scope_policy": {
+        "available": true,
+        "data": {
+          "analytics_other_project_rows_included": false,
+          "analytics_system_aggregates_included": true,
+          "cross_project_assignments_included": false,
+          "cross_project_audit_events_included": false,
+          "cross_project_project_list_included": false,
+          "cross_project_user_list_included": false,
+          "project_id": 231,
+          "schema": "methodmesh.project_scope_policy.v1"
+        },
+        "status_code": 200
+      },
+      "roles": {
+        "available": true,
+        "data": [
+          {
+            "createdAt": "2020-10-09T15:33:59.993Z",
+            "id": 3,
+            "name": "Password Reset Token",
+            "system": "pwreset",
+            "updatedAt": null,
+            "verbs": [
+              "user.password.reset"
+            ]
+          },
+          {
+            "createdAt": null,
+            "id": 6,
+            "name": "Project Viewer",
+            "system": "viewer",
+            "updatedAt": null,
+            "verbs": [
+              "project.read",
+              "form.list",
+              "form.read",
+              "submission.read",
+              "submission.list",
+              "dataset.list",
+              "entity.list",
+              "dataset.read",
+              "entity.read"
+            ]
+          },
+          {
+            "createdAt": "2020-10-09T15:33:59.959Z",
+            "id": 2,
+            "name": "App User",
+            "system": "app-user",
+            "updatedAt": null,
+            "verbs": [
+              "open_form.read",
+              "submission.create"
+            ]
+          },
+          {
+            "createdAt": null,
+            "id": 7,
+            "name": "Form Viewer (system internal)",
+            "system": "formview",
+            "updatedAt": null,
+            "verbs": [
+              "open_form.read"
+            ]
+          },
+          {
+            "createdAt": null,
+            "id": 8,
+            "name": "Data Collector",
+            "system": "formfill",
+            "updatedAt": null,
+            "verbs": [
+              "project.read",
+              "open_form.list",
+              "open_form.read",
+              "submission.create"
+            ]
+          },
+          {
+            "createdAt": "2020-10-09T15:34:00.248Z",
+            "id": 9,
+            "name": "Public Link",
+            "system": "pub-link",
+            "updatedAt": null,
+            "verbs": [
+              "open_form.read",
+              "submission.create"
+            ]
+          },
+          {
+            "createdAt": "2020-10-09T15:33:59.959Z",
+            "id": 1,
+            "name": "Administrator",
+            "system": "admin",
+            "updatedAt": null,
+            "verbs": [
+              "config.read",
+              "field_key.create",
+              "field_key.delete",
+              "field_key.list",
+              "form.create",
+              "form.delete",
+              "form.list",
+              "form.read",
+              "form.update",
+              "project.create",
+              "project.delete",
+              "project.read",
+              "project.update",
+              "session.end",
+              "submission.create",
+              "submission.read",
+              "submission.list",
+              "user.create",
+              "user.list",
+              "user.password.invalidate",
+              "user.read",
+              "user.update",
+              "role.create",
+              "role.update",
+              "role.delete",
+              "assignment.list",
+              "assignment.create",
+              "assignment.delete",
+              "user.delete",
+              "audit.read",
+              "public_link.create",
+              "public_link.list",
+              "public_link.read",
+              "public_link.update",
+              "public_link.delete",
+              "backup.run",
+              "config.set",
+              "analytics.read",
+              "form.restore",
+              "dataset.list",
+              "entity.list",
+              "dataset.read",
+              "entity.read",
+              "entity.create",
+              "entity.update",
+              "dataset.update",
+              "entity.delete",
+              "submission.update",
+              "dataset.create",
+              "submission.delete",
+              "submission.restore",
+              "entity.restore"
+            ]
+          },
+          {
+            "createdAt": null,
+            "id": 5,
+            "name": "Project Manager",
+            "system": "manager",
+            "updatedAt": null,
+            "verbs": [
+              "project.read",
+              "project.update",
+              "project.delete",
+              "form.create",
+              "form.delete",
+              "form.list",
+              "form.read",
+              "form.update",
+              "submission.create",
+              "submission.read",
+              "submission.list",
+              "field_key.create",
+              "field_key.delete",
+              "field_key.list",
+              "assignment.list",
+              "assignment.create",
+              "assignment.delete",
+              "public_link.create",
+              "public_link.list",
+              "public_link.read",
+              "public_link.update",
+              "public_link.delete",
+              "session.end",
+              "form.restore",
+              "dataset.list",
+              "entity.list",
+              "dataset.read",
+              "entity.read",
+              "entity.create",
+              "entity.update",
+              "dataset.update",
+              "entity.delete",
+              "submission.update",
+              "dataset.create",
+              "submission.delete",
+              "submission.restore",
+              "entity.restore"
+            ]
+          }
+        ],
+        "elapsed_ms": 18.6,
+        "status_code": 200
+      },
+      "server_audits": {
+        "available": true,
+        "complete": true,
+        "data": [],
+        "event_count": 1,
+        "page_status": [
+          {
+            "available": true,
+            "elapsed_ms": 357.2,
+            "offset": 0,
+            "status_code": 200
+          }
+        ],
+        "pages_read": 1,
+        "project_events_included": 0,
+        "scope": "SELECTED_PROJECT_ONLY",
+        "server_wide_events_read": 1,
+        "status_code": 200
+      },
+      "submitters": {
+        "available": true,
+        "data": [
+          {
+            "createdAt": "2026-07-27T10:10:49.825Z",
+            "deletedAt": null,
+            "displayName": "chrissy",
+            "id": 7592,
+            "type": "field_key",
+            "updatedAt": null
+          }
+        ],
+        "elapsed_ms": 19.7,
+        "status_code": 200
+      }
+    },
+    "project_id": 231,
+    "scope": "PROJECT_SAFE",
+    "window_end_utc": "2026-09-04T18:29:04.525693+00:00",
+    "window_start_utc": "2026-09-04T18:05:38.274672+00:00"
+  },
+  "central_url": "https://central.lshtm.ac.uk",
+  "daily_checkpoint": {
+    "central_url": "https://central.lshtm.ac.uk",
+    "daily_checkpoint_sha256": "780557b043d85e9f2fba7f4280b588b56a90ba417216f90d8e0bb544ad8c05d7",
+    "evidence_merkle_root": "e89c290ce9dc912251c5f0e092b4f218085d6b227503fb337128a27b3c03b224",
+    "form_id": "__PROJECT_LEVEL__",
+    "generated_at_utc": "2026-09-04T18:29:04.525693+00:00",
+    "leaf_count": 26,
+    "previous_daily_checkpoint_sha256": "7e1944d57a0e286096ae3712208fb0b053a0f3296ded9176426005caa6cb9dc2",
+    "previous_evidence_merkle_root": "a6c80c460e4132ff70a591987970aaa3b5d3646972d2cfdc2bc4c4232d918ffb",
+    "project_id": 231,
+    "research_values_included": false,
+    "schema": "methodmesh.daily_checkpoint.v1",
+    "timestamp_status": "VERIFIED",
+    "trusted_timestamp_attested_hash": "780557b043d85e9f2fba7f4280b588b56a90ba417216f90d8e0bb544ad8c05d7",
+    "trusted_timestamp_authority": "https://freetsa.org/tsr",
+    "trusted_timestamp_request_base64": "MEMCAQEwMTANBglghkgBZQMEAgEFAAQgeAVXsEPYXp8vun9CgLWItWqQukFyFvkNjgu1RK2MBdcCCDwNZcICwxCqAQH/",
+    "trusted_timestamp_request_sha256": "80a6fcf88ebbca87b02df8fa7ddae694721cbbf1dc9ba09ee2673090496c1bde",
+    "trusted_timestamp_response_base64": "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",
+    "trusted_timestamp_response_sha256": "e52c4f6d01eae1b8a2d281786de77eafe633e0060def8b33cfd6a5ed9dc14342",
+    "trusted_timestamp_serial": "78ddc66",
+    "trusted_timestamp_status": "rfc3161_verified",
+    "trusted_timestamp_time_iso": "2026-09-04T18:29:20+00:00",
+    "trusted_timestamp_token_base64": "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",
+    "trusted_timestamp_token_sha256": "5df1d6fd56c93f385c508ae8e12b111ac58ada4fc2065e87111e0782900fda57",
+    "trusted_timestamp_trust_source": "OPERATOR_SUPPLIED",
+    "window_end_utc": "2026-09-04T18:29:04.525693+00:00",
+    "window_start_utc": "2026-09-04T18:05:38.274672+00:00"
+  },
+  "evidence_merkle_root": "e89c290ce9dc912251c5f0e092b4f218085d6b227503fb337128a27b3c03b224",
+  "form_id": "__PROJECT_LEVEL__",
+  "generated_at_utc": "2026-09-04T18:29:04.525693+00:00",
+  "privacy_policy": {
+    "analytics_other_project_rows_included": false,
+    "analytics_system_aggregates_included": true,
+    "attachments_included": false,
+    "central_diffs_endpoint_queried": false,
+    "central_is_authoritative_data_store": true,
+    "changed_fields_are_names_only": true,
+    "comment_body_included_as_reason_evidence": true,
+    "comment_body_is_operator_entered_free_text": true,
+    "cross_project_metadata_included": false,
+    "images_included": false,
+    "persistent_state_is_non_data_ledger": true,
+    "raw_methodmesh_full_json_included": false,
+    "raw_submission_xml_included": false,
+    "research_values_included": false,
+    "server_audits_project_scoped": true
+  },
+  "project_id": 231,
+  "schema": "methodmesh.auditor_export.v1",
+  "service_probes": [
+    {
+      "authenticated_api": {
+        "elapsed_ms": 258.3,
+        "status": "PASS",
+        "status_code": 200
+      },
+      "central_url": "https://central.lshtm.ac.uk",
+      "dns": {
+        "addresses": [
+          "194.80.41.67"
+        ],
+        "elapsed_ms": 2.0,
+        "status": "PASS"
+      },
+      "expected_public_ports": [
+        80,
+        443
+      ],
+      "expected_public_ports_not_open": [],
+      "hostname": "central.lshtm.ac.uk",
+      "http_version_endpoint": {
+        "content_type": "text/plain",
+        "elapsed_ms": 43.0,
+        "final_url": "https://central.lshtm.ac.uk/version.txt",
+        "server_header": "nginx",
+        "status": "PASS",
+        "status_code": 200,
+        "version_text": "versions:\n896ceca5a1936faaf4d4b83264551a3acab29be8 (v2025.4.0-2-g896ceca)\n bd1be46611410f2c1f441b154f4d625b27e093c5 client (v2025.4.0)\n 97981e9694f392e5b3df90a2d28c6f7d3aefef17 server (v2025.4.0)",
+        "version_text_sha256": "a43c9152f560d62f61c25a4fbd818da34931178d20e3c9f25a5beade6beb8170"
+      },
+      "icmp": {
+        "elapsed_ms": 5031.6,
+        "status": "TIMEOUT"
+      },
+      "interpretation_note": "Port observations describe reachability from this verifier host at this instant only. CLOSED/TIMEOUT is not a complete firewall assessment.",
+      "observed_at_utc": "2026-09-04T18:28:58.388903+00:00",
+      "schema": "methodmesh.service_probe.v1",
+      "tcp_ports": [
+        {
+          "elapsed_ms": 2006.9,
+          "port": 22,
+          "state": "TIMEOUT_FILTERED_OR_UNREACHABLE"
+        },
+        {
+          "elapsed_ms": 14.7,
+          "port": 80,
+          "state": "OPEN"
+        },
+        {
+          "elapsed_ms": 14.9,
+          "port": 443,
+          "state": "OPEN"
+        },
+        {
+          "elapsed_ms": 2014.3,
+          "port": 3000,
+          "state": "TIMEOUT_FILTERED_OR_UNREACHABLE"
+        },
+        {
+          "elapsed_ms": 2005.5,
+          "port": 5432,
+          "state": "TIMEOUT_FILTERED_OR_UNREACHABLE"
+        },
+        {
+          "elapsed_ms": 80.4,
+          "port": 8080,
+          "state": "CLOSED_REFUSED"
+        },
+        {
+          "elapsed_ms": 2004.7,
+          "port": 8443,
+          "state": "TIMEOUT_FILTERED_OR_UNREACHABLE"
+        }
+      ],
+      "tls": {
+        "certificate_sha256": "c7b10ed75f81fe1f5956c8a11d2d190e9937556efa57eb2f14aceacb6784cd89",
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "elapsed_ms": 51.3,
+        "issuer": [
+          [
+            [
+              "countryName",
+              "GB"
+            ]
+          ],
+          [
+            [
+              "organizationName",
+              "Sectigo Limited"
+            ]
+          ],
+          [
+            [
+              "commonName",
+              "Sectigo Public Server Authentication CA OV R36"
+            ]
+          ]
+        ],
+        "notAfter": "Jan 24 23:59:59 2027 GMT",
+        "notBefore": "Jul 10 00:00:00 2026 GMT",
+        "serialNumber": "5631F532D50A590795FAF81CE4667C2C",
+        "status": "PASS",
+        "subject": [
+          [
+            [
+              "countryName",
+              "GB"
+            ]
+          ],
+          [
+            [
+              "stateOrProvinceName",
+              "London"
+            ]
+          ],
+          [
+            [
+              "organizationName",
+              "London School of Hygiene & Tropical Medicine"
+            ]
+          ],
+          [
+            [
+              "commonName",
+              "central.lshtm.ac.uk"
+            ]
+          ]
+        ],
+        "subjectAltName": [
+          [
+            "DNS",
+            "central.lshtm.ac.uk"
+          ]
+        ],
+        "tls_version": "TLSv1.3"
+      },
+      "unexpected_open_ports": []
+    }
+  ],
+  "service_summary": {
+    "api_success_count": 1,
+    "http_success_count": 1,
+    "interpretation_note": "These are observed probe success fractions, not continuous availability unless probes are scheduled at the declared cadence.",
+    "observation_count": 1,
+    "observed_api_success_fraction": 1.0,
+    "observed_http_success_fraction": 1.0,
+    "unexpected_open_ports_seen": []
+  },
+  "source_daily_evidence_schema": "methodmesh.delta_state_snapshot.v1",
+  "submissions": [
+    {
+      "created_at": "2026-09-04T13:11:11.439Z",
+      "current_payload_commitment_sha256": "aa3cfb4707e85b1d22836845f033d8110167eba489dd0346e5538169b17d251e",
+      "current_version_id_post_run": "uuid:074b4913-9620-41d4-a74c-09df9bea5e95",
+      "deleted_at": null,
+      "desktop_receipt_sha256": null,
+      "edit_events": [],
+      "form_id": "methodmesh_capability_chain_showcase",
+      "last_verified_at": "2026-09-04T15:51:50.603721+00:00",
+      "logical_submission_id": "uuid:074b4913-9620-41d4-a74c-09df9bea5e95",
+      "original_attestation_hash": "ebec0c2ccfd10456f7292dad6f1bea4e49f6042b160569bed52151fa38519383",
+      "overall_status": "CURRENT_VERSION_ATTESTED",
+      "post_run_review_state": "approved",
+      "research_values_included": false,
+      "status": "VERIFIED_PRESENT",
+      "updated_at": "2026-09-04T13:15:48.354Z",
+      "version_count_post_run": 1
+    },
+    {
+      "created_at": "2026-09-04T11:42:24.097Z",
+      "current_payload_commitment_sha256": null,
+      "current_version_id_post_run": "uuid:f103886d-aa28-4497-a9a4-e9d2156c2f2e",
+      "deleted_at": "2026-09-04T11:55:32.774Z",
+      "desktop_receipt_sha256": null,
+      "edit_events": [],
+      "form_id": "methodmesh_capability_chain_showcase",
+      "last_verified_at": null,
+      "logical_submission_id": "uuid:0a424b3c-4219-47c2-83fc-47bab0a884cb",
+      "original_attestation_hash": null,
+      "overall_status": null,
+      "post_run_review_state": "edited",
+      "research_values_included": false,
+      "status": "DELETED",
+      "updated_at": "2026-09-04T11:43:00.367Z",
+      "version_count_post_run": null
+    },
+    {
+      "created_at": "2026-09-04T08:23:29.855Z",
+      "current_payload_commitment_sha256": null,
+      "current_version_id_post_run": "uuid:b0c8e1f4-aa2c-421d-8701-7c1880ac1640",
+      "deleted_at": "2026-09-04T11:31:22.880Z",
+      "desktop_receipt_sha256": null,
+      "edit_events": [],
+      "form_id": "methodmesh_capability_chain_showcase",
+      "last_verified_at": null,
+      "logical_submission_id": "uuid:428cc98c-23a1-4b88-89bb-415a1083bf8c",
+      "original_attestation_hash": null,
+      "overall_status": null,
+      "post_run_review_state": "edited",
+      "research_values_included": false,
+      "status": "DELETED",
+      "updated_at": "2026-09-04T08:43:15.238Z",
+      "version_count_post_run": null
+    },
+    {
+      "created_at": "2026-09-04T07:37:28.505Z",
+      "current_payload_commitment_sha256": null,
+      "current_version_id_post_run": "uuid:5b802c63-a6e0-444d-83da-88888a2b770d",
+      "deleted_at": null,
+      "desktop_receipt_sha256": null,
+      "edit_events": [],
+      "form_id": "methodmesh_capability_chain_showcase",
+      "last_verified_at": null,
+      "logical_submission_id": "uuid:5b802c63-a6e0-444d-83da-88888a2b770d",
+      "original_attestation_hash": null,
+      "overall_status": "ZERO_VERSION_ANOMALY",
+      "post_run_review_state": null,
+      "research_values_included": false,
+      "status": "ZERO_VERSION_ANOMALY",
+      "updated_at": null,
+      "version_count_post_run": 0
+    },
+    {
+      "created_at": "2026-09-04T08:16:43.117Z",
+      "current_payload_commitment_sha256": null,
+      "current_version_id_post_run": "uuid:983f8bd5-dcce-4111-920c-95a882ad2d11",
+      "deleted_at": "2026-09-04T11:31:21.447Z",
+      "desktop_receipt_sha256": null,
+      "edit_events": [],
+      "form_id": "methodmesh_capability_chain_showcase",
+      "last_verified_at": null,
+      "logical_submission_id": "uuid:983f8bd5-dcce-4111-920c-95a882ad2d11",
+      "original_attestation_hash": null,
+      "overall_status": null,
+      "post_run_review_state": null,
+      "research_values_included": false,
+      "status": "DELETED",
+      "updated_at": null,
+      "version_count_post_run": null
+    },
+    {
+      "created_at": "2026-09-04T11:34:06.834Z",
+      "current_payload_commitment_sha256": null,
+      "current_version_id_post_run": "uuid:c15bac3a-112f-45d5-bd4c-50824652a19f",
+      "deleted_at": "2026-09-04T11:39:44.006Z",
+      "desktop_receipt_sha256": null,
+      "edit_events": [],
+      "form_id": "methodmesh_capability_chain_showcase",
+      "last_verified_at": null,
+      "logical_submission_id": "uuid:b5d4d718-cee0-4905-963b-9a95cbb3011d",
+      "original_attestation_hash": null,
+      "overall_status": null,
+      "post_run_review_state": "edited",
+      "research_values_included": false,
+      "status": "DELETED",
+      "updated_at": "2026-09-04T11:34:27.150Z",
+      "version_count_post_run": null
+    },
+    {
+      "created_at": "2026-09-04T09:20:57.894Z",
+      "current_payload_commitment_sha256": null,
+      "current_version_id_post_run": "uuid:06f5b83a-3208-475e-a4e6-256bf5673aa4",
+      "deleted_at": "2026-09-04T11:31:20.020Z",
+      "desktop_receipt_sha256": null,
+      "edit_events": [],
+      "form_id": "methodmesh_capability_chain_showcase",
+      "last_verified_at": null,
+      "logical_submission_id": "uuid:b9b2a66d-ebca-4dfd-b515-3fcd692dd8f8",
+      "original_attestation_hash": null,
+      "overall_status": null,
+      "post_run_review_state": "edited",
+      "research_values_included": false,
+      "status": "DELETED",
+      "updated_at": "2026-09-04T09:22:24.932Z",
+      "version_count_post_run": null
+    },
+    {
+      "created_at": "2026-09-04T11:58:11.201Z",
+      "current_payload_commitment_sha256": "0ba7e22ad2e32961d5ba4d2bafa782296074755234aa99aad74dcd60c91f7a21",
+      "current_version_id_post_run": "uuid:9101c009-3c8e-480f-a937-5b09abd0c23b",
+      "deleted_at": null,
+      "desktop_receipt_sha256": "53679845903549a58af4825f43270ed0e4535b4d65c99bccf1d7929035d3822f",
+      "edit_events": [
+        {
+          "actor": "Chrissy h. Roberts (User)",
+          "changed_fields": [
+            {
+              "change_type": "FIELD_VALUE_CHANGED",
+              "display_name": "Age in years",
+              "field_name": "age_years"
+            },
+            {
+              "change_type": "FIELD_VALUE_CHANGED",
+              "display_name": "Showcase run label",
+              "field_name": "showcase_id"
+            }
+          ],
+          "created_at": "2026-09-04T11:58:32.691Z",
+          "previous_version_id": "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732",
+          "reason": {
+            "association_basis": "CENTRAL_COMMENTS_HAVE_NO_NATIVE_VERSION_FOREIGN_KEY",
+            "association_status": "UNRESOLVED",
+            "body": null,
+            "body_sha256": null,
+            "central_native_version_link": false
+          },
+          "research_values_included": false,
+          "version_id": "uuid:a24c6154-a44b-4fe4-bcff-1102534a1e95"
+        },
+        {
+          "actor": "Chrissy h. Roberts (User)",
+          "changed_fields": [
+            {
+              "change_type": "FIELD_VALUE_CHANGED",
+              "display_name": "Showcase run label",
+              "field_name": "showcase_id"
+            }
+          ],
+          "created_at": "2026-09-04T11:59:02.402Z",
+          "previous_version_id": "uuid:a24c6154-a44b-4fe4-bcff-1102534a1e95",
+          "reason": {
+            "association_basis": "CENTRAL_COMMENTS_HAVE_NO_NATIVE_VERSION_FOREIGN_KEY",
+            "association_status": "UNRESOLVED",
+            "body": null,
+            "body_sha256": null,
+            "central_native_version_link": false
+          },
+          "research_values_included": false,
+          "version_id": "uuid:d0e35d52-348f-4876-b34f-44bd6c1b7135"
+        },
+        {
+          "actor": "Chrissy h. Roberts (User)",
+          "changed_fields": [
+            {
+              "change_type": "FIELD_VALUE_CHANGED",
+              "display_name": "One-line note",
+              "field_name": "short_note"
+            }
+          ],
+          "created_at": "2026-09-04T13:09:10.535Z",
+          "previous_version_id": "uuid:411e7499-f798-415f-842e-25f4131c8391",
+          "reason": {
+            "association_basis": "CENTRAL_COMMENTS_HAVE_NO_NATIVE_VERSION_FOREIGN_KEY",
+            "association_status": "UNRESOLVED",
+            "body": null,
+            "body_sha256": null,
+            "central_native_version_link": false
+          },
+          "research_values_included": false,
+          "version_id": "uuid:b49d1f96-b4e2-4f98-bd8e-3175f864473f"
+        },
+        {
+          "actor": "Chrissy h. Roberts (User)",
+          "changed_fields": [
+            {
+              "change_type": "FIELD_VALUE_CHANGED",
+              "display_name": "Showcase run label",
+              "field_name": "showcase_id"
+            }
+          ],
+          "created_at": "2026-09-04T13:27:59.390Z",
+          "previous_version_id": "uuid:28ceb8bb-8139-49d8-803e-9a45f476edbe",
+          "reason": {
+            "association_basis": "CENTRAL_COMMENTS_HAVE_NO_NATIVE_VERSION_FOREIGN_KEY",
+            "association_status": "UNRESOLVED",
+            "body": null,
+            "body_sha256": null,
+            "central_native_version_link": false
+          },
+          "research_values_included": false,
+          "version_id": "uuid:8a29f105-128b-419d-9ffb-6e7bf4c58836"
+        }
+      ],
+      "form_id": "methodmesh_capability_chain_showcase",
+      "last_verified_at": "2026-09-04T15:51:50.603721+00:00",
+      "logical_submission_id": "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732",
+      "original_attestation_hash": "f1733d332e557fb947e08702de105d35c35b70240740a2a2d21e782c83247d90",
+      "overall_status": "EDIT_HISTORY_PRESENT_CURRENT_VERSION_DESKTOP_VERIFIED",
+      "post_run_review_state": "approved",
+      "research_values_included": false,
+      "status": "VERIFIED_PRESENT",
+      "updated_at": "2026-09-04T13:28:30.002Z",
+      "version_count_post_run": 8
+    }
+  ],
+  "window_end_utc": "2026-09-04T18:29:04.525693+00:00",
+  "window_start_utc": "2026-09-04T18:05:38.274672+00:00"
+}

@@ -1,0 +1,14 @@
+---
+title: "Third-party notices"
+subtitle: "Module source document · Multi-counter"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/multicounter/docs/THIRD_PARTY_NOTICES.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+The Multi-counter prototype adds no third-party library, remote service, data provider or network dependency of its own.
+
+It uses the Android/Kotlin/Jetpack Compose and MethodMesh runtime dependencies already present in the application. No off-device data transfer is introduced by this module.
+

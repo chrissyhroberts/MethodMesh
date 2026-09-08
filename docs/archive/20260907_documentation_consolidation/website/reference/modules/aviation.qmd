@@ -1,0 +1,50 @@
+---
+title: "Aviation tools"
+subtitle: "Module reference · aviation"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Pilot-oriented flight deck, emergency phone-reference instruments, airfield/runway context and offline planning calculations with GPS-aware inputs and audit outputs.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>aviation</code></div>
+<div><strong>Source directory</strong><code>aviation</code></div>
+<div><strong>Indexed methods</strong>6</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>5</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `aviation.airfield.nearby` | find nearby airfields | Find aerodromes around current or supplied coordinates | <span class="badge-source">current source</span> | RIL binding, capability screen, module docs, module registry |
+| `aviation.altitude.calculate` | calculate density altitude | Calculate pressure and density altitude | <span class="badge-source">current source</span> | RIL binding, capability screen, module docs, module registry |
+| `aviation.dashboard` | open aviation dashboard | Open a persistent GPS-aware aviation dashboard | <span class="badge-source">current source</span> | RIL binding, capability screen, module docs, module registry |
+| `aviation.e6b.calculate` | calculate e6b | Run common electronic flight-computer calculations | <span class="badge-source">current source</span> | RIL binding, capability screen, module docs, module registry |
+| `aviation.emergency.instruments` | open emergency instrument panel | Open a persistent supplementary phone-sensor emergency reference panel | <span class="badge-source">current source</span> | RIL binding, capability screen, module docs, module registry |
+| `aviation.runway.wind` | calculate runway wind | Calculate runway headwind, tailwind and crosswind components | <span class="badge-source">current source</span> | RIL binding, capability screen, module docs, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_Aviation.xlsx](../source-docs/aviation/example_odk_Aviation.xlsx)
+
+## Module-local documentation
+
+- [Aviation v0.3.2 build / validation report](../source-docs/aviation/BUILD_REPORT.qmd) — `BUILD_REPORT.md`
+- [MethodMesh Aviation tools](../source-docs/aviation/README_Aviation.qmd) — `README_Aviation.md`
+- [Aviation v0.3 — emergency reference panel](../source-docs/aviation/RELEASE_NOTES_v0.3.qmd) — `RELEASE_NOTES_v0.3.md`
+- [Aviation roadmap after v0.3](../source-docs/aviation/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [Aviation emergency panel — UX design review v0.3](../source-docs/aviation/UX_DESIGN_REVIEW_v0.3.qmd) — `UX_DESIGN_REVIEW_v0.3.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

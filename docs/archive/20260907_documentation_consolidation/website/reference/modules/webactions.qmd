@@ -1,0 +1,50 @@
+---
+title: "Web Actions"
+subtitle: "Module reference · webactions"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Run ODK Central and other web workflows with explicit completion; create precooked Enketo sessions when runtime prefill is needed.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>webactions</code></div>
+<div><strong>Source directory</strong><code>webactions</code></div>
+<div><strong>Indexed methods</strong>4</div>
+<div><strong>XLSForms</strong>4</div>
+<div><strong>Source docs</strong>4</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `web.odk_central_roundtrip` | complete ODK Central form | Paste a Central web-form link, complete the submission, and return after Central's explicit return URL | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `web.open` | open web page | Open an HTTP or HTTPS page in the Android browser | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `web.precooked_enketo` | create precooked Enketo session | Advanced: create a fresh Enketo single-submit session with runtime prefill and return after explicit completion | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `web.roundtrip` | run web roundtrip | Run a web workflow with a one-shot return URL | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_web.odk_central_roundtrip.xlsx](../source-docs/webactions/example_odk_web.odk_central_roundtrip.xlsx)
+- [example_odk_web.open.xlsx](../source-docs/webactions/example_odk_web.open.xlsx)
+- [example_odk_web.precooked_enketo.xlsx](../source-docs/webactions/example_odk_web.precooked_enketo.xlsx)
+- [example_odk_web.roundtrip.xlsx](../source-docs/webactions/example_odk_web.roundtrip.xlsx)
+
+## Module-local documentation
+
+- [Attribution and external standards](../source-docs/webactions/ATTRIBUTION.qmd) — `ATTRIBUTION.md`
+- [MethodMesh Web Actions module v0.06](../source-docs/webactions/README_WebActions.qmd) — `README_WebActions.md`
+- [Web Actions v0.10 security review](../source-docs/webactions/SECURITY_REVIEW.qmd) — `SECURITY_REVIEW.md`
+- [Web Actions v0.10 validation record](../source-docs/webactions/VALIDATION.qmd) — `VALIDATION.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

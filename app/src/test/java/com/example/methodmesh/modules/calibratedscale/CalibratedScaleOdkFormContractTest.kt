@@ -36,6 +36,8 @@ class CalibratedScaleOdkFormContractTest {
                 requiredIntent in xml
             )
             assertTrue("$fileName must route directly to calibrated_scale", "method_id='calibrated_scale'" in xml)
+            assertTrue("$fileName must request main results plus background metadata JSON", "input_payload_mode='FULL'" in xml)
+            assertTrue("$fileName must return the background audit JSON", ">methodmesh_full_json<" in xml)
             assertFalse(
                 "$fileName must not depend on an interpolated method ID",
                 "\${method_id}" in xml
@@ -72,12 +74,15 @@ class CalibratedScaleOdkFormContractTest {
         assertFalse("Range example must not create a scalar value column", ">value<" in rangeXml)
         assertTrue("Range example must return the lower value", ">lower_value<" in rangeXml)
         assertTrue("Range example must return the upper value", ">upper_value<" in rangeXml)
+        assertFalse("Range example must not expose minimum as a separate ODK return column", ">minimum<" in rangeXml)
+        assertFalse("Range example must not expose calibration as a separate ODK return column", ">dp_per_mm<" in rangeXml)
 
         val minMaxXml = workbookXml("example_odk_calibrated_scale_MinMax.xlsx")
         assertTrue("Min/max example must supply both bounds", "input_minimum='0'" in minMaxXml && "input_maximum='10'" in minMaxXml)
         assertTrue("Scalar examples must return value", ">value<" in minMaxXml)
         assertFalse("Scalar examples must not create lower-value columns", ">lower_value<" in minMaxXml)
         assertFalse("Scalar examples must not create upper-value columns", ">upper_value<" in minMaxXml)
+        assertFalse("Scalar examples must not expose maximum as a separate ODK return column", ">maximum<" in minMaxXml)
 
         val verticalXml = workbookXml("example_odk_calibrated_scale_Vertical.xlsx")
         assertTrue(

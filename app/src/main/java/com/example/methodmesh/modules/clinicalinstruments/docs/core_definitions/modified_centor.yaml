@@ -1,0 +1,45 @@
+schema: methodmesh.clinical-instrument.v1
+id: modified_centor
+name: Modified Centor (McIsaac) score
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [pharyngitis, strep, primary_care]
+summary: Modified Centor point score for clinical features associated with group A streptococcal pharyngitis.
+source_url: https://www.aafp.org/pubs/afp/issues/2022/1200/antibiotics-upper-respiratory-tract-infections.pdf
+citation: "Modified Centor (McIsaac) criteria as summarized by American Family Physician."
+rights_status: factual_definition
+rights_note: Returns the score only; testing and treatment decisions should follow the current local guideline.
+questions:
+  - id: fever_38
+    label: Fever at least 38 C?
+    type: boolean
+  - id: tonsillar_exudate_swelling
+    label: Tonsillar exudate or swelling?
+    type: boolean
+  - id: tender_anterior_cervical_nodes
+    label: Tender anterior cervical lymphadenopathy?
+    type: boolean
+  - id: cough_absent
+    label: Cough absent?
+    type: boolean
+  - id: age_years
+    label: Age
+    type: integer
+    unit: years
+    min: 3
+    max: 130
+derived:
+  - id: age_points_young
+    expression: age_years >= 3 and age_years <= 14
+  - id: age_points_old
+    expression: (age_years > 45) * -1
+scores:
+  - id: modified_centor
+    label: Modified Centor score
+    expression: fever_38 + tonsillar_exudate_swelling + tender_anterior_cervical_nodes + cough_absent + age_points_young + age_points_old
+tests:
+  - name: all_adult
+    input_json: '{"fever_38":true,"tonsillar_exudate_swelling":true,"tender_anterior_cervical_nodes":true,"cough_absent":true,"age_years":30}'
+    expect_json: '{"modified_centor":4}'

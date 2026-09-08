@@ -1,0 +1,49 @@
+---
+title: "Discrete choice experiments"
+subtitle: "Module reference · choiceexperiment"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Interactive discrete-choice, MaxDiff, ranking, points-allocation and conjoint tasks adapted from the XLSForm DCE tooling.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>choiceexperiment</code></div>
+<div><strong>Source directory</strong><code>choiceexperiment</code></div>
+<div><strong>Indexed methods</strong>5</div>
+<div><strong>XLSForms</strong>5</div>
+<div><strong>Source docs</strong>1</div>
+<div><strong>Explicit source status labels</strong>No explicit status labels statically extracted at module scope</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `dce.conjoint` | run conjoint | Run a conjoint selection task | <span class="badge-source">current source</span> | RIL binding, intent example, module registry |
+| `dce.maxdiff` | run maxdiff | Run a MaxDiff / best-worst task | <span class="badge-source">current source</span> | RIL binding, intent example, module registry |
+| `dce.pairwise` | run pairwise | Run a pairwise comparison task | <span class="badge-source">current source</span> | RIL binding, intent example, module registry |
+| `dce.points` | allocate points | Run a points-allocation task | <span class="badge-source">current source</span> | RIL binding, intent example, module registry |
+| `dce.ranking` | run ranking | Run a ranking task | <span class="badge-source">current source</span> | RIL binding, intent example, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_dce.conjoint.xlsx](../source-docs/choiceexperiment/example_odk_dce.conjoint.xlsx)
+- [example_odk_dce.maxdiff.xlsx](../source-docs/choiceexperiment/example_odk_dce.maxdiff.xlsx)
+- [example_odk_dce.pairwise.xlsx](../source-docs/choiceexperiment/example_odk_dce.pairwise.xlsx)
+- [example_odk_dce.points.xlsx](../source-docs/choiceexperiment/example_odk_dce.points.xlsx)
+- [example_odk_dce.ranking.xlsx](../source-docs/choiceexperiment/example_odk_dce.ranking.xlsx)
+
+## Module-local documentation
+
+- [Choice experiments](../source-docs/choiceexperiment/README_ChoiceExperiment.qmd) — `README_ChoiceExperiment.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

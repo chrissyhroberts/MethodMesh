@@ -1,0 +1,56 @@
+schema: methodmesh.clinical-instrument.v1
+id: wells_pe_2level
+name: Wells score - pulmonary embolism (2-level)
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [pulmonary_embolism, vte, emergency]
+summary: Two-level Wells clinical probability score for suspected pulmonary embolism.
+source_url: https://www.nice.org.uk/guidance/ng158/chapter/Recommendations
+citation: "NICE NG158. Venous thromboembolic diseases: diagnosis, management and thrombophilia testing. Two-level PE Wells score."
+rights_status: factual_definition
+rights_note: Numerical criteria and weights are implemented from the cited clinical prediction rule.
+questions:
+  - id: clinical_signs_dvt
+    label: Clinical signs and symptoms of DVT?
+    type: boolean
+  - id: pe_more_likely
+    label: Is pulmonary embolism judged more likely than an alternative diagnosis?
+    type: boolean
+  - id: heart_rate
+    label: Heart rate
+    type: integer
+    unit: beats/min
+    min: 20
+    max: 250
+  - id: immobilisation_or_surgery_4w
+    label: Immobilisation for at least 3 days or surgery in previous 4 weeks?
+    type: boolean
+  - id: previous_dvt_pe
+    label: Previous DVT or pulmonary embolism?
+    type: boolean
+  - id: hemoptysis
+    label: Hemoptysis?
+    type: boolean
+  - id: malignancy
+    label: Malignancy with treatment within 6 months or palliative treatment?
+    type: boolean
+derived:
+  - id: tachycardia_points
+    expression: (heart_rate > 100) * 1.5
+scores:
+  - id: wells_pe
+    label: Wells PE score
+    expression: clinical_signs_dvt * 3 + pe_more_likely * 3 + tachycardia_points + immobilisation_or_surgery_4w * 1.5 + previous_dvt_pe * 1.5 + hemoptysis + malignancy
+classifications:
+  - when: wells_pe <= 4
+    value: pe_unlikely
+    label: PE unlikely
+  - when: wells_pe > 4
+    value: pe_likely
+    label: PE likely
+tests:
+  - name: zero
+    input_json: '{"clinical_signs_dvt":false,"pe_more_likely":false,"heart_rate":80,"immobilisation_or_surgery_4w":false,"previous_dvt_pe":false,"hemoptysis":false,"malignancy":false}'
+    expect_json: '{"wells_pe":0,"classification":"pe_unlikely"}'

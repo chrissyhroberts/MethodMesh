@@ -1,0 +1,24 @@
+Field Statistics v0.1.0 canonical capability package
+
+fieldstats/
+  FieldStatsEngine.kt
+  FieldStatsMethod.kt
+  FieldStatsModule.kt
+  FieldStatsCapabilityScreen.kt
+  docs/
+    README_FieldStats.md
+    VALIDATION.md
+    TEST_VECTORS.md
+    ROADMAP_NOTE.md
+    DROP_IN.md
+    PACKAGE_CONTENTS.txt
+    example_odk_FieldStats_Diagnostic2x2.xlsx
+    example_odk_FieldStats_Proportion.xlsx
+    example_odk_FieldStats_SampleSizeProportion.xlsx
+    example_odk_FieldStats_DetectionLimit.xlsx
+    example_odk_FieldStats_CompareBinary.xlsx
+    example_odk_FieldStats_Summary.xlsx
+    example_odk_FieldStats_SampleSizeTwoProportions.xlsx
+    example_odk_FieldStats_SampleSizeDiagnostic.xlsx
+    example_odk_FieldStats_ROC.xlsx
+    example_odk_FieldStats_Probability.xlsx

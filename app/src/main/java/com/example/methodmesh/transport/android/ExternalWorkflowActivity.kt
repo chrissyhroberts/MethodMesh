@@ -1,9 +1,6 @@
 package com.example.methodmesh.transport.android
 
-import com.example.methodmesh.platform.devices.PlatformDeviceBootstrap
-import android.content.ClipData
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
@@ -35,6 +32,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import com.example.methodmesh.platform.devices.PlatformDeviceBootstrap
 import com.example.methodmesh.core.ResearchRuntime
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.TransformationStatus
@@ -43,10 +41,12 @@ import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.calibration.CalibrationRepository
 import com.example.methodmesh.settings.DisplaySettingsRepository
 import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.ReturnNamespaceProjector
 import com.example.methodmesh.transport.workflow.ConfirmedWorkflowStep
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
 import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
+import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
 import com.example.methodmesh.ui.theme.MethodMeshTheme
@@ -88,37 +88,54 @@ class ExternalWorkflowActivity : FragmentActivity() {
     private fun finishWithResult(confirmed: List<ConfirmedWorkflowStep>) {
         if (resultReturned) return
         resultReturned = true
+        val returnNamespace = ReturnNamespaceProjector.namespaceFrom(request.settings)
+        runCatching { ReturnNamespaceProjector.validate(returnNamespace) }
+            .onFailure {
+                resultReturned = false
+                finishWithCancel(it.message ?: "Invalid MethodMesh return namespace.")
+                return
+            }
         val combined = combineResults(confirmed.map { it.result })
-        val fields = OutputFormatter.selectedFields(
+        val payloadMode = request.settings["payload_mode"]
+            ?: request.settings["input_payload_mode"]
+            ?: request.settings["return_payload"]
+            ?: request.settings["input_return_payload"]
+            ?: OutputFormatter.PayloadMode.FULL
+        val selectedFields = OutputFormatter.selectedFields(
             result = combined,
             selectors = request.returns,
             graph = ResearchRuntime.session.graph(),
             includeProvenance = true
         )
+        val fields = OutputFormatter.projectFields(selectedFields, payloadMode, combined.status)
         val output = OutputFormatter.format(
             result = combined,
             returnMode = request.returnMode,
             includeProvenance = true,
             selectors = request.returns,
-            graph = ResearchRuntime.session.graph()
+            graph = ResearchRuntime.session.graph(),
+            payloadMode = payloadMode
         )
-        val data = Intent().apply {
-            putExtra("value", output)
-            putExtra("return_mode", request.returnMode.id)
-            putExtra("methodmesh_execution_id", combined.request.id.value)
-            putExtra("methodmesh_status", combined.status.name)
-            putExtra("context_entity_id", request.invocationContext.canonicalEntityId)
-            fields.forEach { (key, value) -> putExtra(key, value?.toString()) }
+        val flatReturnFields = linkedMapOf<String, String?>(
+            "methodmesh_closeout_status" to "completed",
+            "methodmesh_closeout_step_count" to confirmed.size.toString(),
+            "methodmesh_closeout_has_payload" to hasMeaningfulPayload(fields).toString(),
+            "value" to output,
+            "return_mode" to request.returnMode.id,
+            "payload_mode" to OutputFormatter.PayloadMode.normalize(payloadMode)
+        )
+        if (OutputFormatter.PayloadMode.normalize(payloadMode) != OutputFormatter.PayloadMode.CORE) {
+            flatReturnFields["methodmesh_execution_id"] = combined.request.id.value
+            flatReturnFields["methodmesh_status"] = combined.status.name
+            flatReturnFields["context_entity_id"] = request.invocationContext.canonicalEntityId
         }
-        val binaryUris = fields.filter { (key, value) ->
-            key.endsWith("_uri") && value?.toString()?.startsWith("content://") == true
-        }.mapNotNull { (key, value) -> value?.toString()?.let { key to Uri.parse(it) } }
-        if (binaryUris.isNotEmpty()) {
-            val clip = ClipData.newUri(contentResolver, binaryUris.first().first, binaryUris.first().second)
-            binaryUris.drop(1).forEach { (key, uri) -> clip.addItem(ClipData.Item(uri)) }
-            data.clipData = clip
-            data.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
+        fields.forEach { (key, value) -> flatReturnFields[key] = value?.toString() }
+        val data = Intent()
+        ReturnIntentProjector.applyTo(
+            intent = data,
+            contentResolver = contentResolver,
+            projected = ReturnIntentProjector.projectFlatReturn(flatReturnFields, returnNamespace)
+        )
         setResult(RESULT_OK, data)
         finish()
     }
@@ -145,10 +162,37 @@ class ExternalWorkflowActivity : FragmentActivity() {
     private fun finishWithCancel(message: String) {
         if (resultReturned) return
         resultReturned = true
-        setResult(RESULT_CANCELED, Intent().apply { putExtra("error", message) })
+        val returnNamespace = runCatching { ReturnNamespaceProjector.namespaceFrom(request.settings) }.getOrDefault("")
+        val safeNamespace = runCatching {
+            ReturnNamespaceProjector.validate(returnNamespace)
+            returnNamespace
+        }.getOrDefault("")
+        val data = Intent()
+        ReturnIntentProjector.applyTo(
+            intent = data,
+            contentResolver = contentResolver,
+            projected = ReturnIntentProjector.projectFlatReturn(
+                linkedMapOf(
+                    "methodmesh_closeout_status" to "cancelled",
+                    "methodmesh_closeout_step_count" to "0",
+                    "methodmesh_closeout_has_payload" to "false",
+                    "error" to message
+                ),
+                safeNamespace
+            )
+        )
+        setResult(RESULT_CANCELED, data)
         finish()
     }
 }
+
+private fun hasMeaningfulPayload(fields: Map<String, Any?>): Boolean =
+    fields.any { (key, value) ->
+        value?.toString()?.isNotBlank() == true &&
+            key !in setOf("return_mode", "payload_mode") &&
+            !key.startsWith("methodmesh_") &&
+            !key.startsWith("diagnostic_")
+    }
 
 @Composable
 private fun ExternalWorkflowScreen(
@@ -158,6 +202,7 @@ private fun ExternalWorkflowScreen(
 ) {
     val confirmed = remember { mutableStateListOf<ConfirmedWorkflowStep>() }
     var index by remember { mutableIntStateOf(0) }
+    var acceptedIndex by remember { mutableIntStateOf(-1) }
     val actions = request.actions
 
     Column(
@@ -180,30 +225,41 @@ private fun ExternalWorkflowScreen(
         }
 
         if (index < actions.size) {
-            val action = actions[index]
-            CapabilityStepScreen(
-                action = action,
-                request = request,
-                stepNumber = index + 1,
-                totalSteps = actions.size,
-                canGoBack = index > 0,
-                onBack = { if (index > 0) index -= 1 },
-                onConfirmed = { result ->
-                    val recorded = ResearchRuntime.session.record(result.withInvocationContext(request.invocationContext))
-                    val completedStep = ConfirmedWorkflowStep(action, recorded)
-                    if (confirmed.size > index) {
-                        confirmed[index] = completedStep
-                    } else {
-                        confirmed.add(completedStep)
-                    }
-                    if (index == actions.lastIndex) {
-                        onReturn(confirmed.toList())
-                    } else {
-                        index += 1
-                    }
-                },
-                onCancel = onCancel
-            )
+            val action = actions[index].withPipeSettings(confirmed)
+            if (actions.size > 1 && acceptedIndex != index) {
+                ExternalStepIntroScreen(
+                    stepNumber = index + 1,
+                    totalSteps = actions.size,
+                    title = action.requestedId,
+                    lastCompleted = confirmed.lastOrNull()?.let(::externalLastCompletedSummary).orEmpty(),
+                    onGo = { acceptedIndex = index },
+                    onCancel = onCancel
+                )
+            } else {
+                CapabilityStepScreen(
+                    action = action,
+                    request = request,
+                    stepNumber = index + 1,
+                    totalSteps = actions.size,
+                    canGoBack = index > 0,
+                    onBack = { if (index > 0) index -= 1 },
+                    onConfirmed = { result ->
+                        val recorded = ResearchRuntime.session.record(result.withInvocationContext(request.invocationContext))
+                        val completedStep = ConfirmedWorkflowStep(action, recorded)
+                        if (confirmed.size > index) {
+                            confirmed[index] = completedStep
+                        } else {
+                            confirmed.add(completedStep)
+                        }
+                        if (index == actions.lastIndex) {
+                            onReturn(confirmed.toList())
+                        } else {
+                            index += 1
+                        }
+                    },
+                    onCancel = onCancel
+                )
+            }
         } else {
             ReturnSummaryScreen(
                 request = request,
@@ -214,6 +270,66 @@ private fun ExternalWorkflowScreen(
             )
         }
     }
+}
+
+@Composable
+private fun ExternalStepIntroScreen(
+    stepNumber: Int,
+    totalSteps: Int,
+    title: String,
+    lastCompleted: String,
+    onGo: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Text("Step $stepNumber of $totalSteps", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(10.dp))
+        if (lastCompleted.isNotBlank()) {
+            Text(lastCompleted, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(18.dp))
+        }
+        Text("Next step", style = MaterialTheme.typography.labelLarge)
+        Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(20.dp))
+        Button(onClick = onGo, modifier = Modifier.fillMaxWidth()) { Text("Go") }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel run") }
+    }
+}
+
+private fun externalLastCompletedSummary(step: ConfirmedWorkflowStep): String {
+    val fields = OutputFormatter.projectFields(
+        OutputFormatter.fields(step.result, includeProvenance = false),
+        OutputFormatter.PayloadMode.CORE,
+        step.result.status
+    ).filterValues { it?.toString()?.isNotBlank() == true }
+    val first = fields.entries.firstOrNull()
+    return if (first == null) {
+        "Last step completed."
+    } else {
+        "Last step completed: ${first.key.replace('_', ' ')} ${first.value}"
+    }
+}
+
+private fun ExternalActionRequest.withPipeSettings(confirmed: List<ConfirmedWorkflowStep>): ExternalActionRequest {
+    if (confirmed.isEmpty()) return this
+    return copy(settings = pipeSettings(confirmed) + settings)
+}
+
+private fun pipeSettings(confirmed: List<ConfirmedWorkflowStep>): Map<String, String> {
+    val piped = linkedMapOf<String, String>()
+    confirmed.forEachIndexed { index, step ->
+        val fields = OutputFormatter.fields(step.result, includeProvenance = false)
+        fields.forEach { (key, value) ->
+            val text = value?.toString().orEmpty()
+            if (text.isNotBlank()) {
+                piped["step_${index + 1}_$key"] = text
+                piped["previous_$key"] = text
+                piped.putIfAbsent(key, text)
+            }
+        }
+    }
+    return piped
 }
 
 
@@ -253,7 +369,18 @@ private fun CapabilityStepScreen(
         action = action,
         request = request,
         stepNumber = stepNumber,
-        totalSteps = totalSteps
+        totalSteps = totalSteps,
+        completionMode = if (
+            (request.settings["methodmesh_native_preset_run"] == "true" || request.settings["input_methodmesh_native_preset_run"] == "true") &&
+            request.settings["methodmesh_protocol_step_run"] != "true" &&
+            request.settings["input_methodmesh_protocol_step_run"] != "true" &&
+            request.settings["methodmesh_sequence_step_run"] != "true" &&
+            request.settings["input_methodmesh_sequence_step_run"] != "true"
+        ) {
+            CapabilityCompletionMode.ManualConfirmation
+        } else {
+            CapabilityCompletionMode.AutomaticReturn
+        }
     )
     capabilityScreenFor(action).Render(
         context = screenContext,

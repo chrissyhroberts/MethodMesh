@@ -1,0 +1,301 @@
+# Lab Bench
+
+**Module:** `labbench`  
+**Status:** Development  
+**Version:** `0.1.0`  
+**Canonical folder:** `app/src/main/java/com/example/methodmesh/modules/labbench/`
+
+Lab Bench is an offline family of deterministic laboratory calculations for common bench work. It exposes twelve atomic methods plus a persistent native dashboard. The atomic methods and dashboard use the same pure calculation engine; the dashboard does not invoke or simulate the atomic capability screens.
+
+No network access, Android permission, external service, or laboratory database is required.
+
+## Capabilities
+
+| Method ID | Purpose |
+|---|---|
+| `labbench.dilution` | Unit-aware `C1V1 = C2V2` dilution planning. |
+| `labbench.molar_solution` | Calculate mass, molarity or volume for molar solution preparation. |
+| `labbench.reconstitute` | Calculate the final reconstitution volume for dry/vial material. |
+| `labbench.serial_dilution` | Generate a factor-based serial dilution series. |
+| `labbench.master_mix` | Scale multi-reagent reaction mixes with overage and excluded components. |
+| `labbench.centrifuge` | Convert RCF (×g) and RPM using rotational radius. |
+| `labbench.concentration` | Convert molar, mass/volume and percent concentration units. |
+| `labbench.nucleic_acid` | DNA/RNA molarity, mass, molecule-count and reconstitution calculations. |
+| `labbench.cell_dilution` | Calculate cell-suspension or OD dilution volumes. |
+| `labbench.hemocytometer` | Convert chamber counts to cells/mL and optional viability. |
+| `labbench.aliquot` | Calculate aliquot count or maximum aliquot size with reserve/dead-volume allowances. |
+| `labbench.percent_solution` | Prepare % w/v, % v/v or % w/w solutions. |
+| `labbench.dashboard` | Persistent native dashboard exposing all twelve calculations; external calls are single-shot. |
+
+All methods are intentionally **Development** until native, preset, ODK, protocol, orientation-state and device-level validation is complete.
+
+## Native workflow
+
+Atomic calculators open a focused input screen. Enter or adjust values, select **Calculate**, inspect the useful result, and confirm through the normal MethodMesh result flow. Input and calculation state are stored with `rememberSaveable` so values/results can be reconstructed after configuration changes.
+
+`labbench.dashboard` is different. It keeps all twelve calculators in one bench-oriented screen and preserves each calculator's current inputs while switching tools during the session. A successful calculation is retained as a real `ExecutionResult`, but while the capability is being used as a normal native dashboard or native preset it is withheld from `CapabilityScreenScaffold` so the scaffold cannot replace the live dashboard with the generic result page. **Use this calculation** or **Finish** explicitly commits the current snapshot.
+
+For a true external/ODK invocation, the dashboard runs the selected calculator once and returns normally. An internal `intent_test` launch remains interactive rather than being mistaken for a machine caller.
+
+## Preset workflow
+
+Every atomic method exposes its inputs through MethodMesh capability settings. Fixed preset values are hidden during the native preset run and fields declared as runtime inputs remain visible.
+
+The dashboard exposes `calculator` plus the union of the atomic input settings. This allows a dashboard preset to fix a calculator and any stable values while leaving selected fields as runtime inputs. In a native preset the dashboard stays visible and uses **Finish** to return the latest valid calculation snapshot.
+
+## Android intent
+
+Use the standard MethodMesh execution boundary:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD
+```
+
+A method is selected with `method_id`; capability inputs use `input_*` names. For example:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(
+  method_id='labbench.dilution',
+  input_stock_concentration='10',
+  input_stock_concentration_unit='mM',
+  input_target_concentration='250',
+  input_target_concentration_unit='uM',
+  input_final_volume='2',
+  input_final_volume_unit='mL',
+  return_mode='flat'
+)
+```
+
+A dashboard single-shot invocation adds `input_calculator`, for example `input_calculator='centrifuge'`, plus the selected calculator's normal inputs. For ODK and protocols, calling the atomic method directly is preferred because its input and output contract is more explicit.
+
+Complete minimal examples for every public method:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.dilution', input_stock_concentration='10', input_stock_concentration_unit='mM', input_target_concentration='250', input_target_concentration_unit='uM', input_final_volume='2', input_final_volume_unit='mL', return_mode='flat')
+
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.molar_solution', input_mode='mass_required', input_molecular_weight_g_mol='58.44', input_molarity='0.1', input_molarity_unit='M', input_volume='500', input_volume_unit='mL', return_mode='flat')
+
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.reconstitute', input_material_amount='25', input_material_unit='mg', input_target_concentration='5', input_target_concentration_unit='mg/mL', return_mode='flat')
+
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.serial_dilution', input_starting_concentration='100', input_concentration_unit='uM', input_dilution_factor='2', input_number_of_levels='8', input_prepared_volume='1000', input_prepared_volume_unit='uL', input_overage_percent='0', return_mode='flat')
+
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.master_mix', input64_components='W3sibmFtZSI6IjJ4IG1peCIsInZvbHVtZSI6MTAuMCwiZXhjbHVkZSI6ZmFsc2V9LHsibmFtZSI6IlByaW1lciBGIiwidm9sdW1lIjowLjUsImV4Y2x1ZGUiOmZhbHNlfSx7Im5hbWUiOiJQcmltZXIgUiIsInZvbHVtZSI6MC41LCJleGNsdWRlIjpmYWxzZX0seyJuYW1lIjoiV2F0ZXIiLCJ2b2x1bWUiOjguMCwiZXhjbHVkZSI6ZmFsc2V9LHsibmFtZSI6IlRlbXBsYXRlIiwidm9sdW1lIjoxLjAsImV4Y2x1ZGUiOnRydWV9XQ', input_component_volume_unit='uL', input_number_of_reactions='24', input_overage_mode='percent', input_overage_value='10', input_declared_final_volume='20', return_mode='flat')
+
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.centrifuge', input_mode='rcf_to_rpm', input_radius='8.45', input_radius_unit='cm', input_rcf='12000', return_mode='flat')
+
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.concentration', input_value='1', input_from_unit='mg/mL', input_to_unit='g/L', return_mode='flat')
+
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.nucleic_acid', input_mode='mass_conc_to_molarity', input_nucleic_acid_type='dsDNA', input_length='5000', input_mass_concentration='20', input_mass_concentration_unit='ng/uL', return_mode='flat')
+
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.cell_dilution', input_starting_concentration='20000000', input_target_concentration='2500000', input_concentration_unit='cells/mL', input_final_volume='10', input_final_volume_unit='mL', return_mode='flat')
+
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.hemocytometer', input_total_cells='280', input_number_of_regions='4', input_dilution_factor='1', input_region_volume_ul='0.1', return_mode='flat')
+
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.aliquot', input_mode='size_to_count', input_available_volume='10', input_volume_unit='mL', input_aliquot_volume='0.2', input_reserve_volume='0.5', input_dead_volume='0.1', input_overage_percent='0', return_mode='flat')
+
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.percent_solution', input_mode='w_v', input_percent='4', input_final_amount='250', input_final_amount_unit='mL', return_mode='flat')
+
+com.example.methodmesh.EXECUTE_METHOD(method_id='labbench.dashboard', input_calculator='centrifuge', input_mode='rcf_to_rpm', input_radius='8.45', input_radius_unit='cm', input_rcf='12000', return_mode='flat')
+```
+
+## Inputs
+
+All numeric inputs accept decimal strings. The engine also accepts the MethodMesh `input_` prefix when invoked externally. Blank optional values are ignored. Non-finite, negative or physically incoherent values are rejected rather than silently repaired.
+
+### `labbench.dilution`
+
+- `stock_concentration`, `stock_concentration_unit`
+- `target_concentration`, `target_concentration_unit`
+- `final_volume`, `final_volume_unit`
+- optional `molecular_weight_g_mol` and `density_g_ml` for conversions that genuinely require them
+- supported concentration units: `M`, `mM`, `uM`, `nM`, `pM`, `g/L`, `mg/mL`, `ug/mL`, `ng/uL`, `ng/mL`, `percent_wv`, `percent_vv`, `x`
+- target concentration must not exceed the stock concentration after valid unit normalisation
+- molar ↔ mass/volume dilution is supported when `molecular_weight_g_mol` is supplied
+- `% w/w` is deliberately excluded from volumetric dilution because `C1V1=C2V2` is not dimensionally valid for mass fractions
+
+### `labbench.molar_solution`
+
+- `mode`: `mass_required`, `molarity_from_mass`, or `volume_from_mass`
+- `molecular_weight_g_mol`
+- `molarity`, `molarity_unit`
+- `volume`, `volume_unit`
+- `mass`, `mass_unit` where required by the selected mode
+
+Preparation wording uses **make up to final volume**, not “add final volume of solvent”.
+
+### `labbench.reconstitute`
+
+- `material_amount`
+- `material_unit`: mass (`g`, `mg`, `ug`, `ng`, `pg`) or amount of substance (`mol`, `mmol`, `umol`, `nmol`, `pmol`)
+- `target_concentration` and `target_concentration_unit`
+- `molecular_weight_g_mol` when crossing mass and molar dimensions
+
+### `labbench.serial_dilution`
+
+- `starting_concentration`, `concentration_unit`
+- `dilution_factor` (>1)
+- `number_of_levels`
+- `prepared_volume`, `prepared_volume_unit`
+- `overage_percent`
+
+v0.1 generates a uniform factor series. `% w/w` is deliberately excluded because this planner uses volumetric transfers. `prepared_volume` is the amount prepared at each level before onward transfer; intermediate tubes therefore lose the onward-transfer volume unless extra material is explicitly included via overage.
+
+### `labbench.master_mix`
+
+- `components`: either one `Name=volume` entry per line or a JSON array of component objects
+- append `*` to a line-name to mark a component as excluded from the shared mix, e.g. `Template*=1`; excluded components are scaled to the actual reaction count rather than the overaged shared-mix reaction equivalents
+- JSON components can use `exclude=true` or `excluded_from_master_mix=true`
+- `component_volume_unit`
+- `number_of_reactions`
+- `overage_mode`: `percent` or `extra_reactions`
+- `overage_value`
+- optional `declared_final_volume`; a mismatch with summed components is returned as a warning
+
+### `labbench.centrifuge`
+
+- `mode`: `rcf_to_rpm` or `rpm_to_rcf`
+- `radius` and `radius_unit` (`mm`, `cm`, `m`)
+- `rcf` or `rpm`
+
+Radius means the distance from the axis of rotation to the sample position used for the calculation.
+
+### `labbench.concentration`
+
+- `value`, `from_unit`, `to_unit`
+- optional `molecular_weight_g_mol` for molar ↔ mass concentration
+- optional `density_g_ml` for conversions involving % w/w and volume-based concentration
+
+MethodMesh never assumes density = 1 g/mL. Cross-dimensional conversions without the required molecular weight or density fail explicitly.
+
+### `labbench.nucleic_acid`
+
+- `mode`: `mass_conc_to_molarity`, `molarity_to_mass_conc`, `mass_to_copies`, `copies_per_ul`, `reconstitution`
+- `nucleic_acid_type`: `dsDNA`, `ssDNA`, `RNA`
+- `length` in bp or nt
+- optional `molecular_weight_override` in g/mol
+- mode-dependent `mass_concentration`, `mass_concentration_unit`, `molarity`, `molarity_unit`, `mass`, `mass_unit`, `target_molarity`, `target_molarity_unit`
+
+If no molecular-weight override is supplied, v0.1 uses approximate average residue conventions of 660 g/mol per dsDNA bp, 330 g/mol per ssDNA nt and 340 g/mol per RNA nt. These are approximations, not sequence-specific molecular weights.
+
+### `labbench.cell_dilution`
+
+- `starting_concentration`
+- `target_concentration`
+- `concentration_unit`: `cells/mL`, `cells/uL`, or `OD`
+- `final_volume`, `final_volume_unit`
+
+OD is treated only as an arbitrary concentration-like scale. MethodMesh does not invent an OD-to-cell-count conversion.
+
+### `labbench.hemocytometer`
+
+- `total_cells`
+- `number_of_regions`
+- `dilution_factor`
+- `region_volume_ul`: explicit volume represented by one counted region
+- optional `live_cells`, `dead_cells`
+
+The calculation uses the supplied counted-region volume rather than embedding an unexplained chamber multiplier. A default 0.1 µL region is provided in the native UI, but users must choose the value appropriate to their chamber/counting scheme.
+
+### `labbench.aliquot`
+
+- `mode`: `size_to_count` or `count_to_size`
+- `available_volume`, `volume_unit`
+- `aliquot_volume` for size-to-count mode
+- `number_of_aliquots` for count-to-size mode
+- optional `reserve_volume`, `dead_volume`, `overage_percent`
+- when overage is used, the result distinguishes the target aliquot volume from the larger allocation/dispense volume used for stock planning
+
+### `labbench.percent_solution`
+
+- `mode`: `w_v`, `v_v`, `w_w`
+- `percent`
+- `final_amount`
+- `final_amount_unit`: a volume unit for w/v and v/v, a mass unit for w/w
+
+w/v and v/v instructions use **make up to** the requested final volume.
+
+## Outputs
+
+Every atomic method returns:
+
+- `<prefix>_status`: `succeeded` or `failed`;
+- useful method-specific numeric outputs;
+- `<prefix>_instruction`: a bench-oriented sentence describing what to do or what the result means;
+- `<prefix>_audit_json`: complete method-owned calculation audit JSON;
+- `<prefix>_error`: failure detail, blank on success.
+
+The audit JSON records the method/version, calculation/formula label, supplied inputs, core outputs, assumptions and warnings. It intentionally does not invent a timestamp because MethodMesh execution provenance already provides temporal context.
+
+Key method-specific outputs are:
+
+| Method | Core output fields |
+|---|---|
+| dilution | `lab_dilution_stock_volume`, `lab_dilution_stock_volume_unit`, `lab_dilution_diluent_volume`, `lab_dilution_diluent_volume_unit`, `lab_dilution_final_volume`, `lab_dilution_factor` |
+| molar solution | `lab_molar_solution_mass`, `lab_molar_solution_molarity`, `lab_molar_solution_volume`, `lab_molar_solution_moles` plus unit/mode fields |
+| reconstitute | `lab_reconstitute_final_volume`, `lab_reconstitute_final_volume_unit` |
+| serial dilution | step count, start/end concentration, transfer/diluent volumes, total diluent, `lab_serial_dilution_steps_json` |
+| master mix | effective reaction count, per-reaction shared mix, total shared mix, reaction total, `lab_master_mix_components_json`, warning |
+| centrifuge | `lab_centrifuge_rpm`, `lab_centrifuge_rcf`, `lab_centrifuge_radius_cm` |
+| concentration | input value/unit, converted value/unit, explicit assumptions |
+| nucleic acid | molecular weight, explicit molecular-weight assumption, molarity, mass concentration, copy number, copies/µL and/or final volume depending on mode |
+| cell dilution | sample volume, medium volume, final volume and concentration unit |
+| hemocytometer | cells/mL, mean cells/region, optional viability % |
+| aliquot | count, target aliquot volume, allocation/dispense volume, remainder and reserve |
+| percent solution | component amount/unit and, where meaningful, remainder amount/unit |
+
+`labbench.dashboard` returns:
+
+- `labbench_dashboard_status`
+- `labbench_dashboard_tool`
+- `labbench_dashboard_value`
+- `labbench_dashboard_instruction`
+- `labbench_dashboard_audit_json`
+- `labbench_dashboard_error`
+
+The dashboard audit JSON embeds the selected atomic calculation result.
+
+## Main result and sharing
+
+The human-facing result is the method's `*_instruction` field (and the associated concise numeric outputs). Structured JSON is suffixed `_audit_json`, so normal core projection/share behaviour does not dump the audit payload into the primary result. The audit payload remains available for explicit audit/full return modes and direct named-field capture.
+
+## ODK example
+
+The `docs/` directory contains one real XLSForm workbook for every public method, named from the canonical method ID, for example:
+
+```text
+example_odk_labbench.dilution.xlsx
+example_odk_labbench.master_mix.xlsx
+example_odk_labbench.dashboard.xlsx
+```
+
+Each workbook contains `survey`, `choices`, and `settings` sheets; `settings.form_title` is exactly the method ID. Each example places `com.example.methodmesh.EXECUTE_METHOD(...)` on a `begin_group` with `appearance=field-list`, supplies a minimal static example through `input_*` arguments, and provides read-only child fields whose names match returned intent extras.
+
+For dynamic study values, replace the static value in `body::intent` with an XLSForm expression such as `input_final_volume=${final_volume}`. Structured static values such as master-mix component JSON should use the `input64_` URL-safe Base64 convention if punctuation makes ordinary intent syntax unsafe.
+
+Always inspect the capability-specific status field rather than treating “returned to Collect” as evidence that a calculation succeeded.
+
+## Protocol and scheduling behaviour
+
+Atomic methods are ordinary deterministic calculation steps and can be used directly in protocols/schedules. They never require native dialogs for an external caller.
+
+The persistent dashboard is interactive only in native dashboard/preset/`intent_test` presentation. A protocol or true external call follows normal automatic completion and therefore cannot be trapped waiting for the dashboard's **Finish** button.
+
+## Permissions, services and offline behaviour
+
+- Android permissions: none.
+- Network: none.
+- External providers/services: none.
+- Local hardware: none.
+- Offline: fully supported.
+
+## Known limitations
+
+1. These are deterministic calculation aids, not validated clinical or manufacturing software. Users remain responsible for laboratory SOPs, calibration, reagent specifications and appropriate significant figures.
+2. v0.1 serial dilution supports a uniform factor series, not an arbitrary target-concentration list.
+3. Nucleic-acid molecular weights are average approximations unless explicitly overridden.
+4. No density is silently assumed. Conversions that need density fail until it is supplied.
+5. No activity coefficients, ionic strength, temperature correction, buffer chemistry or pH-equilibrium model is attempted.
+6. OD is not converted to cells without an explicit biological calibration; v0.1 therefore keeps OD as its own scale.
+7. Hemocytometer calculations depend on the user-supplied region volume and counting design.
+8. Master-mix v0.1 accepts one shared component-volume unit per calculation.
+9. Native/device validation, ODK round-trip testing and full Gradle build validation are required before Production promotion.

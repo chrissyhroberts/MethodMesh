@@ -1,0 +1,47 @@
+---
+title: "Emergency"
+subtitle: "Module reference · emergency"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Offline-first emergency reference, local risk status, emergency location and strategic exit planning.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>emergency</code></div>
+<div><strong>Source directory</strong><code>emergency</code></div>
+<div><strong>Indexed methods</strong>5</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>3</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `emergency.exit.find` | find emergency exit | Rank offline strategic exit options | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `emergency.location` | share emergency location | Capture GPS and Plus Code for emergency sharing | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `emergency.pack.prepare` | prepare emergency location | Inspect or prepare a regional emergency pack | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `emergency.reference.open` | open emergency guide | Open an offline emergency reference card | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `emergency.status` | check emergency status | Check explainable local risk and preparedness | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_Emergency.xlsx](../source-docs/emergency/example_odk_Emergency.xlsx)
+
+## Module-local documentation
+
+- [Emergency v2 capability handoff](../source-docs/emergency/CAPABILITY_HANDOFF.qmd) — `CAPABILITY_HANDOFF.md`
+- [MethodMesh Emergency module](../source-docs/emergency/README_Emergency.qmd) — `README_Emergency.md`
+- [Emergency source review ledger — Development](../source-docs/emergency/SOURCE_REVIEW.qmd) — `SOURCE_REVIEW.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

@@ -55,7 +55,7 @@ object DocumentScannerFields {
 
 object As100DocumentScannerMethod : As100Method {
     const val ID = "document.scan"
-    private const val VERSION = "0.1.0"
+    private const val VERSION = "1.0.0"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Document scan")
@@ -67,7 +67,12 @@ object As100DocumentScannerMethod : As100Method {
         description = "Scan paper documents using ML Kit document scanner, OCR pages, and return PDF/text attachments.",
         outputs = DocumentScannerFields.outputs,
         graphOutputs = listOf("document.scan"),
-        parameters = mapOf("category" to "Recognition")
+        parameters = mapOf(
+            "category" to "Recognition",
+            "status" to "Production",
+            "core_return" to "document_scan_searchable_pdf_uri, document_scan_ocr_text",
+            "audit_return" to "scanner mode, gallery import flag, page limit, page count, original scanner PDF, OCR text file, timestamp, error"
+        )
     )
     override val contract = MethodContract(
         method = ref,

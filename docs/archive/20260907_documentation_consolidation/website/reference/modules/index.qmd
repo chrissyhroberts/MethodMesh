@@ -1,0 +1,96 @@
+---
+title: "Capability & module catalogue"
+subtitle: "Current source-derived library"
+toc: false
+---
+
+This catalogue is generated from the supplied Android module tree, not from the older hand-maintained website list. It indexes each directory that currently exposes a `MethodMeshModule` object and links its method IDs, source documentation and module-owned XLSForms.
+
+<input class="reference-filter" placeholder="Filter modules, IDs or status…" data-mm-filter="#module-catalogue" data-mm-count="#module-count" />
+<div id="module-count" class="reference-count"></div>
+
+<div id="module-catalogue">
+
+| Module | Module ID | Methods | XLSForms | Docs | Status evidence |
+| --- | --- | --- | --- | --- | --- |
+| [Acoustics](./acoustics.qmd) | `acoustics` | 4 | 1 | 3 | Source module; status evidence: Development |
+| [Local device authentication](./adminfingerprint.qmd) | `adminfingerprint` | 1 | 1 | 1 | Known polished production method |
+| [Online API GET](./apiget.qmd) | `apiget` | 1 | 0 | 0 | Source module; status evidence: Development |
+| [Android app inspector](./appinspector.qmd) | `appinspector` | 1 | 1 | 1 | Source module; status evidence: Prototype |
+| [Aquatic fieldwork](./aquaticfield.qmd) | `aquaticfield` | 16 | 1 | 3 | Source module; status evidence: Development |
+| [Arcade](./arcade.qmd) | `arcade` | 1 | 1 | 2 | Source module; status evidence: Development |
+| [Astronomy](./astronomy.qmd) | `astronomy` | 12 | 1 | 3 | Source module; status evidence: Development |
+| [Traceable attestation](./attestation.qmd) | `attestation` | 2 | 6 | 1 | Source module; status evidence: Experimental |
+| [Aviation tools](./aviation.qmd) | `aviation` | 6 | 1 | 5 | Source module; status evidence: Development |
+| [Bluetooth device inspector](./bluetoothinspector.qmd) | `bluetoothinspector` | 1 | 1 | 1 | Source module; status evidence: Prototype |
+| [Bluetooth printer](./bluetoothprinter.qmd) | `bluetoothprinter` | 1 | 0 | 6 | Source module; status evidence: Production |
+| [Calibrated scale](./calibratedscale.qmd) | `calibratedscale` | 1 | 4 | 1 | Known polished production method |
+| [Chance](./chance.qmd) | `chance` | 6 | 6 | 11 | Source module; status evidence: Development |
+| [Discrete choice experiments](./choiceexperiment.qmd) | `choiceexperiment` | 5 | 5 | 1 | Source module |
+| [Clinical Instruments](./clinicalinstruments.qmd) | `clinicalinstruments` | 1 | 1 | 14 | Source module; status evidence: Development |
+| [Compass](./compass.qmd) | `compass` | 1 | 1 | 3 | Source module; status evidence: Development |
+| [Conversation translator](./conversationtranslate.qmd) | `conversationtranslate` | 1 | 1 | 1 | Known polished production method |
+| [Conversions / General Calculator](./conversions.qmd) | `conversions` | 1 | 1 | 2 | Source module; status evidence: Development |
+| [Cryptography](./cryptography.qmd) | `cryptography` | 20 | 2 | 9 | Source module; status evidence: Development |
+| [Data tools](./datatools.qmd) | `datatools` | 1 | 1 | 2 | Source module; status evidence: Development |
+| [Digital signing](./digitalsigning.qmd) | `digitalsigning` | 1 | 1 | 1 | Source module; status evidence: Development |
+| [Diving](./diving.qmd) | `diving` | 18 | 1 | 1 | Source module; status evidence: Development |
+| [Document scanner](./documentscanner.qmd) | `documentscanner` | 1 | 1 | 1 | Known polished production method |
+| [Earth science utilities](./earthscience.qmd) | `earthscience` | 12 | 1 | 5 | Source module; status evidence: Development |
+| [Electrical](./electrical.qmd) | `electrical` | 1 | 0 | 1 | Source module; status evidence: Development |
+| [Emergency](./emergency.qmd) | `emergency` | 5 | 1 | 3 | Source module; status evidence: Development |
+| [Expenses](./expenses.qmd) | `expenses` | 1 | 1 | 1 | Source module; status evidence: Development |
+| [Field Statistics](./fieldstats.qmd) | `fieldstats` | 10 | 10 | 5 | Source module; status evidence: Development |
+| [GameDeck](./gamedeck.qmd) | `gamedeck` | 1 | 1 | 2 | Source module; status evidence: Development |
+| [GPS target navigator](./gpstargetnavigator.qmd) | `gpstargetnavigator` | 1 | 1 | 4 | Known polished production method |
+| [Amateur radio](./hamradio.qmd) | `hamradio` | 9 | 1 | 5 | Source module; status evidence: Development |
+| [Image annotation and redaction](./imageredaction.qmd) | `imageredaction` | 1 | 1 | 1 | Known polished production method |
+| [Lab Bench](./labbench.qmd) | `labbench` | 13 | 13 | 1 | Source module; status evidence: Development |
+| [Magnifier](./magnifier.qmd) | `magnifier` | 1 | 1 | 3 | Source module; status evidence: Development |
+| [ML Kit translation](./mlkittranslate.qmd) | `mlkittranslate` | 1 | 0 | 1 | Known polished production method |
+| [ML Kit vision](./mlkitvision.qmd) | `mlkitvision` | 1 | 0 | 1 | Known polished production method |
+| [Multi-counter](./multicounter.qmd) | `multicounter` | 1 | 1 | 5 | Source module; status evidence: Development |
+| [Music](./music.qmd) | `music` | 33 | 33 | 41 | Source module; status evidence: Development |
+| [Network tools](./networktools.qmd) | `networktools` | 1 | 1 | 3 | Source module; status evidence: Development |
+| [NFC](./nfc.qmd) | `nfc` | 10 | 7 | 1 | Source module; status evidence: Experimental |
+| [ODK form launcher](./odkformlauncher.qmd) | `odkformlauncher` | 1 | 1 | 1 | Known polished production method |
+| [Plus Code capture](./pluscodecapture.qmd) | `pluscodecapture` | 1 | 1 | 1 | Known polished production method |
+| [External command library](./providercommands.qmd) | `providercommands` | 1 | 0 | 1 | Source module |
+| [Psychomotor vigilance test (PVT)](./psychomotorvigilance.qmd) | `psychomotorvigilance` | 1 | 1 | 5 | Source module; status evidence: Development |
+| [Automatic code scanner](./barcode.qmd) | `barcode` | 1 | 1 | 4 | Known polished production method |
+| [Question primitives](./questionprimitives.qmd) | `questionprimitives` | 4 | 0 | 0 | Source module |
+| [Random number generator](./randomnumber.qmd) | `randomnumber` | 1 | 0 | 1 | Known polished production method |
+| [Reference library](./referencelibrary.qmd) | `referencelibrary` | 2 | 1 | 2 | Source module; status evidence: Development |
+| [Sampling](./sampling.qmd) | `sampling` | 1 | 1 | 6 | Source module; status evidence: Development |
+| [Image annotation and redaction](./scaledphoto.qmd) | `scaledphoto` | 1 | 1 | 1 | Source module |
+| [Scoring & counters](./scoring.qmd) | `scoring` | 11 | 11 | 3 | Source module; status evidence: Development |
+| [ESP32 sensor framework](./sensorfirmwareinstaller.qmd) | `sensorfirmwareinstaller` | 1 | 0 | 1 | Source module; status evidence: Prototype |
+| [ESP32 sensor framework](./sensorprovisioner.qmd) | `sensorprovisioner` | 1 | 0 | 1 | Source module; status evidence: Production |
+| [ESP32 sensor framework](./sensorread.qmd) | `sensorread` | 1 | 1 | 1 | Source module |
+| [Send SMS](./sms.qmd) | `sms` | 1 | 1 | 1 | Source module |
+| [Sound generator](./soundgenerator.qmd) | `soundgenerator` | 1 | 1 | 4 | Source module; status evidence: Development |
+| [Spatial geometry](./spatialgeometry.qmd) | `spatialgeometry` | 3 | 1 | 1 | Source module |
+| [Speech transcription](./speechtranscription.qmd) | `speechtranscription` | 1 | 0 | 1 | Source module |
+| [Surveying](./surveying.qmd) | `surveying` | 13 | 3 | 4 | Source module; status evidence: Development |
+| [SVG polygon selector](./svgselector.qmd) | `svgselector` | 1 | 1 | 1 | Source module |
+| [Tabletop utilities](./tabletoputilities.qmd) | `tabletoputilities` | 1 | 1 | 6 | Source module; status evidence: Development |
+| [Text tools](./texttools.qmd) | `texttools` | 10 | 1 | 2 | Source module; status evidence: Development |
+| [Time Tools](./time_tools.qmd) | `time_tools` | 6 | 1 | 4 | Source module |
+| [Trusted timestamp](./trustedtimestamp.qmd) | `trustedtimestamp` | 1 | 1 | 2 | Source module; status evidence: Development |
+| [Visual acuity](./visualacuity.qmd) | `visualacuity` | 1 | 1 | 4 | Source module; status evidence: Development |
+| [Web Actions](./webactions.qmd) | `webactions` | 4 | 4 | 4 | Source module; status evidence: Development |
+
+</div>
+
+::: {.callout-important}
+**Source presence is not Production status.** The Master Book names a smaller known polished production set. This catalogue deliberately preserves the distinction. See [production and implementation status](../production-status.qmd).
+:::
+
+### Coverage in this snapshot
+
+- **66** discoverable module objects
+- **276** module-owned capability/method IDs indexed from registry/RIL/method/screen evidence
+- **147** module-owned XLSForms
+- **218** module-local Markdown documents
+
+The [method index](../methods.qmd) is better when you already know a canonical method ID.

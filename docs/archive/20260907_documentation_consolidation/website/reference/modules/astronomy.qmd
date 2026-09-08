@@ -1,0 +1,56 @@
+---
+title: "Astronomy"
+subtitle: "Module reference · astronomy"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Plan, assess and document astronomical observing and imaging without duplicating a planetarium.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>astronomy</code></div>
+<div><strong>Source directory</strong><code>astronomy</code></div>
+<div><strong>Indexed methods</strong>12</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>3</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `astronomy.conditions` | assess astronomy conditions | Score imaging conditions | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `astronomy.dashboard` | show astronomy dashboard | Refresh current observing, dew, upper-atmosphere and tonight conditions | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `astronomy.dew_risk` | check dew risk | Calculate condensation risk | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `astronomy.exposure_limit` | calculate exposure limit | Estimate untracked exposure limit | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `astronomy.focus` | assist focus | Minimise point-source FWHM | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `astronomy.image_scale` | calculate image scale | Calculate field of view and sampling | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `astronomy.imaging_window` | plan imaging window | Find the best imaging period tonight | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `astronomy.light_pollution` | check light pollution | Download, map and sample NASA VIIRS nighttime radiance around a location | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `astronomy.mount_stability` | test mount stability | Measure telescope or tripod vibration | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `astronomy.polar_align` | polar align | Find true/celestial north or south and Polaris clock position | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `astronomy.session` | record astronomy session | Run a resumable observing session and create a shareable record | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `astronomy.sky_test` | test sky quality | Measure the sky against a good-night calibration | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_Astronomy.xlsx](../source-docs/astronomy/example_odk_Astronomy.xlsx)
+
+## Module-local documentation
+
+- [Astronomy preset / workflow recipes — v0.3](../source-docs/astronomy/PRESET_RECIPES.qmd) — `PRESET_RECIPES.md`
+- [Astronomy](../source-docs/astronomy/README_Astronomy.qmd) — `README_Astronomy.md`
+- [Astronomy v0.6.0 validation](../source-docs/astronomy/VALIDATION.qmd) — `VALIDATION.md`
+
+### Additional source artefacts
+
+- [AstronomyMathSmoke.kt](../source-docs/astronomy/AstronomyMathSmoke.kt)
+- [build_light_pollution_region.py](../source-docs/astronomy/build_light_pollution_region.py)
+- [openmeteo_astronomy_hourly.methodmesh-api.json](../source-docs/astronomy/openmeteo_astronomy_hourly.methodmesh-api.json)
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

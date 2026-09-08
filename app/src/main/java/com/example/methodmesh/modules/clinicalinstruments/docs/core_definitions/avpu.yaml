@@ -1,0 +1,35 @@
+schema: methodmesh.clinical-instrument.v1
+id: avpu
+name: AVPU consciousness scale
+version: 1.0.0
+status: core
+type: structured_assessment
+category: acute_bedside
+tags: [neurology, consciousness, triage]
+summary: Rapid categorical assessment of responsiveness.
+source_url: https://www.resus.org.uk/library/abcde-approach
+citation: "Resuscitation Council UK. The ABCDE Approach."
+rights_status: factual_definition
+rights_note: Implements the conventional AVPU categories without reproducing extended copyrighted teaching material.
+questions:
+  - id: avpu
+    label: Level of responsiveness
+    type: select_one
+    choices: [alert|Alert, voice|Responds to voice, pain|Responds to pain, unresponsive|Unresponsive]
+classifications:
+  - when: avpu == 'alert'
+    value: alert
+    label: Alert
+  - when: avpu == 'voice'
+    value: voice
+    label: Responds to voice
+  - when: avpu == 'pain'
+    value: pain
+    label: Responds to pain
+  - when: avpu == 'unresponsive'
+    value: unresponsive
+    label: Unresponsive
+tests:
+  - name: unresponsive
+    input_json: '{"avpu":"unresponsive"}'
+    expect_json: '{"classification":"unresponsive"}'

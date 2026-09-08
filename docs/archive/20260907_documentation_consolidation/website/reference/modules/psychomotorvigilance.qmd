@@ -1,0 +1,45 @@
+---
+title: "Psychomotor vigilance test (PVT)"
+subtitle: "Module reference · psychomotorvigilance"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Run a standard 10-minute PVT or 3-minute PVT-B reaction-time/vigilance assessment locally on the device.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>psychomotorvigilance</code></div>
+<div><strong>Source directory</strong><code>psychomotorvigilance</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>5</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `psychomotor.vigilance.run` | measure psychomotor vigilance | Run a visual psychomotor vigilance test | <span class="badge-source">current source</span> | RIL binding, capability screen, module docs, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_psychomotor_vigilance.xlsx](../source-docs/psychomotorvigilance/example_odk_psychomotor_vigilance.xlsx)
+
+## Module-local documentation
+
+- [Capability handoff](../source-docs/psychomotorvigilance/CAPABILITY_HANDOFF.qmd) — `CAPABILITY_HANDOFF.md`
+- [Psychomotor vigilance test (PVT)](../source-docs/psychomotorvigilance/README_PsychomotorVigilance.qmd) — `README_PsychomotorVigilance.md`
+- [Repository roadmap note — Psychomotor vigilance test v0.1.0](../source-docs/psychomotorvigilance/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [Third-party review and attribution](../source-docs/psychomotorvigilance/THIRD_PARTY_NOTICES.qmd) — `THIRD_PARTY_NOTICES.md`
+- [Validation record — module handoff](../source-docs/psychomotorvigilance/VALIDATION.qmd) — `VALIDATION.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

@@ -1,0 +1,43 @@
+---
+title: "Spatial geometry"
+subtitle: "Module reference · spatialgeometry"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Measure heights, slopes, and distances with phone orientation sensors.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>spatialgeometry</code></div>
+<div><strong>Source directory</strong><code>spatialgeometry</code></div>
+<div><strong>Indexed methods</strong>3</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>1</div>
+<div><strong>Explicit source status labels</strong>No explicit status labels statically extracted at module scope</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `geometry_distance_estimation` | estimate distance | Estimate distance from a known reference height and angular size | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `slope_inclination_measurement` | measure slope | Measure slope and inclination from phone orientation | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `tree_height_measurement` | estimate height | Triangulate object height from distance and top/base angles | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_spatialgeometry.xlsx](../source-docs/spatialgeometry/example_odk_spatialgeometry.xlsx)
+
+## Module-local documentation
+
+- [Spatial geometry](../source-docs/spatialgeometry/README_SpatialGeometry.qmd) — `README_SpatialGeometry.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

@@ -1,0 +1,61 @@
+# Emergency v2 capability handoff
+
+This folder is intentionally under `incoming_capability_prototypes/emergency`
+until a real Android/Gradle build has run. MethodMesh auto-discovers every
+`*Module.kt` beneath the canonical modules path, so an uncompiled prototype must
+not be copied there blindly.
+
+## Admission target
+
+After successful Android build/review, move the complete folder to:
+
+`app/src/main/java/com/example/methodmesh/modules/emergency/`
+
+No central registration edit should be required.
+
+## What is implemented
+
+- Emergency module declaration and five AS1.00 methods.
+- Explainable GREEN/AMBER/RED/GREY status engine.
+- Separate READY/PARTIAL/MINIMAL preparedness state.
+- Source authority/corroboration gate.
+- GPS + Plus Code emergency location capture UI.
+- Offline strategic POI repository/parser and exit ranking engine.
+- Deterministic sparse-core data build pipeline and manifest.
+- Versioned emergency reference model and CPR/AED Development card.
+- Prepare-location pack contract/readiness UI.
+- AES-GCM Android Keystore emergency vault backend and authenticated import/delete UI.
+- Monitoring session state without background notification/shade.
+- ODK example workbook.
+- Pure Kotlin self-test.
+
+## Deliberately deferred
+
+- Persistent notification shade / foreground monitoring service.
+- Rich live-status home-screen widget extension.
+- Provider-specific live hazard adapters.
+- Regional map/POI downloader.
+- Production global airport/port/border/diplomatic asset snapshot.
+- Production emergency-number dataset.
+- Medical guide content beyond the explicitly marked CPR/AED Development adaptation.
+
+## Required first reviewer action
+
+1. Copy into a disposable branch or local checkout under the canonical module path.
+2. Run the normal Gradle unit/build/instrumentation suite.
+3. Correct any API drift against current `master` before admission.
+4. Keep status `Development`.
+5. Do not solve a compile issue by adding Emergency-specific branches to shared
+   UI/runtime code.
+
+
+## v2.03
+Added shared Emergency control-centre navigation to every native pane, human-readable ISO country selectors for nationality and pack preparation, and settings propagation for preset configuration. Persistent notification shade remains deferred.
+
+## v2.04 dashboard refresh
+
+- The app-launched `emergency.status` route is now the consolidated Emergency hero dashboard.
+- The dashboard shows risk first, then a primary location/SOS action, first-aid/CPR, exit, offline pack and document actions, plus preparedness/monitoring state.
+- Cross-capability six-button navigation was removed from direct capability screens. Direct Location/Exit/Guide/Pack launches stay focused on their canonical method contract.
+- Dashboard operations hold a live working result in-place and expose `Commit current result` before entering the generic share/save result flow.
+- Persistent notification shade remains intentionally deferred.

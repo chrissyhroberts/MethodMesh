@@ -1,0 +1,32 @@
+---
+title: "Architecture reference"
+---
+
+## Runtime discovery
+
+`MethodMeshApplication` discovers module objects at startup and installs them into `MethodMeshModuleRegistry`. The registry asserts uniqueness of module IDs, method IDs, capability-screen IDs and shared Settings-section IDs before installing methods into the runtime method registry.
+
+## Core + module methods
+
+Discovered modules contribute their own `As100Method` lists. The shared runtime additionally contributes scheduler create/export/import methods and screens. This is one reason documentation should distinguish module capabilities from shared runtime facilities.
+
+## Module contract surface
+
+A `MethodMeshModule` may expose:
+
+- `moduleId`, `displayName`, `summary`, `iconKey`;
+- `as100Methods()`;
+- `rilBindings()`;
+- `capabilityScreens()`;
+- `capabilitySettings()`;
+- shared `settingsSections()` where genuinely module-owned;
+- module dependencies;
+- examples.
+
+## Discovery, not a hand-written central list
+
+Adding a capability should not require teaching dashboard/shared UI about its internals. The module advertises generic metadata; shared surfaces render/project that metadata.
+
+## Transport architecture
+
+ODK/Android return projection, namespace handling, binary grants and full-JSON formatting belong to shared transport code. Capability modules declare outputs; they do not maintain a separate ODK result model.

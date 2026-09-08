@@ -1,0 +1,44 @@
+[
+  {
+    "acteeId": "9986c499-984d-4618-8b16-a011d9eef007",
+    "action": "submission.update",
+    "actor": {
+      "createdAt": "2020-10-09T16:44:09.730Z",
+      "deletedAt": null,
+      "displayName": "Chrissy h. Roberts (User)",
+      "id": 15,
+      "type": "user",
+      "updatedAt": "2020-10-16T11:26:08.533Z"
+    },
+    "actorId": 15,
+    "details": {
+      "entity": {},
+      "reviewState": "approved",
+      "submissionDefId": 1834405,
+      "submissionId": 1825315
+    },
+    "loggedAt": "2026-09-04T13:15:48.356Z",
+    "notes": null
+  },
+  {
+    "acteeId": "9986c499-984d-4618-8b16-a011d9eef007",
+    "action": "submission.create",
+    "actor": {
+      "createdAt": "2026-07-27T10:10:49.825Z",
+      "deletedAt": null,
+      "displayName": "chrissy",
+      "id": 7592,
+      "type": "field_key",
+      "updatedAt": null
+    },
+    "actorId": 7592,
+    "details": {
+      "entity": {},
+      "instanceId": "uuid:074b4913-9620-41d4-a74c-09df9bea5e95",
+      "submissionDefId": 1834405,
+      "submissionId": 1825315
+    },
+    "loggedAt": "2026-09-04T13:11:11.443Z",
+    "notes": null
+  }
+]

@@ -9,7 +9,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlin.math.atan2
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 object PhoneSensorRepository : SensorEventListener {
 
@@ -23,6 +25,16 @@ object PhoneSensorRepository : SensorEventListener {
     val readings = mutableStateMapOf<String, SensorReading>()
 
     var headingDegrees by mutableStateOf<Float?>(null)
+        private set
+
+    /**
+     * Horizontal bearing of the rear camera optical axis.
+     *
+     * This is the heading AR-style views need when the phone is held upright.
+     * `headingDegrees` remains the conventional compass bearing of the top edge
+     * of the device, which is most useful when the phone is held flat.
+     */
+    var rearCameraHeadingDegrees by mutableStateOf<Float?>(null)
         private set
 
     /** Phone tilt relative to the horizon, derived from the rotation vector. */
@@ -59,6 +71,8 @@ object PhoneSensorRepository : SensorEventListener {
         sensorManager?.unregisterListener(this)
         started = false
         status = "Stopped"
+        headingDegrees = null
+        rearCameraHeadingDegrees = null
         pitchDegrees = null
         rollDegrees = null
     }
@@ -180,6 +194,7 @@ object PhoneSensorRepository : SensorEventListener {
             val orientation = FloatArray(3)
             SensorManager.getOrientation(rotationMatrix, orientation)
             headingDegrees = normaliseDegrees(Math.toDegrees(orientation[0].toDouble()).toFloat())
+            rearCameraHeadingDegrees = rearCameraHeadingFromRotationMatrix(rotationMatrix)
             pitchDegrees = normaliseSignedDegrees(Math.toDegrees(orientation[1].toDouble()).toFloat())
             rollDegrees = normaliseSignedDegrees(Math.toDegrees(orientation[2].toDouble()).toFloat())
         }
@@ -192,7 +207,25 @@ object PhoneSensorRepository : SensorEventListener {
         SensorManager.getOrientation(rotationMatrix, orientation)
         pitchDegrees = normaliseSignedDegrees(Math.toDegrees(orientation[1].toDouble()).toFloat())
         rollDegrees = normaliseSignedDegrees(Math.toDegrees(orientation[2].toDouble()).toFloat())
+        rearCameraHeadingDegrees = rearCameraHeadingFromRotationMatrix(rotationMatrix)
         return normaliseDegrees(Math.toDegrees(orientation[0].toDouble()).toFloat())
+    }
+
+    private fun rearCameraHeadingFromRotationMatrix(rotationMatrix: FloatArray): Float? {
+        if (rotationMatrix.size < 9) return null
+
+        // SensorManager's 3x3 rotation matrix maps device axes into world axes:
+        // world X = east, Y = north, Z = up. The rear camera looks along the
+        // device -Z axis, so its world vector is the negative third column.
+        val east = -rotationMatrix[2]
+        val north = -rotationMatrix[5]
+        val horizontalMagnitude = sqrt(east * east + north * north)
+
+        // When the camera is facing mostly up/down the horizontal bearing is not
+        // meaningful; fall back to the ordinary flat compass heading instead.
+        if (horizontalMagnitude < 0.18f || east.isNaN() || north.isNaN()) return null
+
+        return normaliseDegrees(Math.toDegrees(atan2(east, north).toDouble()).toFloat())
     }
 
     private fun normaliseDegrees(value: Float): Float {

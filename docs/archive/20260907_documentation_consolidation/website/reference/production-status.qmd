@@ -1,0 +1,31 @@
+---
+title: "Production and implementation status"
+---
+
+The current source tree is much broader than the Master Book's explicitly named polished Production set. The website therefore uses two separate statements:
+
+1. **Present in current source** — a module/method is represented in the supplied implementation snapshot.
+2. **Known polished production** — v1.05 explicitly identifies the method as part of the known polished production set.
+
+## Known polished production set in Master Book v1.05
+
+| Method ID | Capability |
+| --- | --- |
+| `admin_fingerprint_confirmation` | Admin Fingerprint Confirmation |
+| `barcode.scan` | Barcode · Scan |
+| `calibrated_scale` | Calibrated Scale |
+| `conversation.translate` | Conversation · Translate |
+| `document.scan` | Document · Scan |
+| `gps_target_navigator` | Gps Target Navigator |
+| `image.redact` | Image · Redact |
+| `mlkit.translate` | Mlkit · Translate |
+| `mlkit.vision.analyze` | Mlkit · Vision · Analyze |
+| `odk_form_launcher` | Odk Form Launcher |
+| `plus_code.capture` | Plus Code · Capture |
+| `random.number.generate` | Random · Number · Generate |
+
+That list is not a claim that every other implemented capability is unusable. Many current modules carry Development, Experimental, Workbench or mixed status evidence and may be actively maturing. Promotion should be based on current method metadata plus review/testing rather than inferred from presence in the repository.
+
+## Promotion expectations
+
+A production capability should satisfy parity across dashboard, direct run, presets, protocols and ODK; use capability-relevant native UI; keep live results visible; support tap-to-copy; use Commit correctly; preserve state; close out according to launch origin; project every declared output to ODK; and pass appropriate build/contract tests.

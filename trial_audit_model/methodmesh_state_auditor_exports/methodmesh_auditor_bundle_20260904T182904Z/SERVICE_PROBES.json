@@ -1,0 +1,140 @@
+[
+  {
+    "authenticated_api": {
+      "elapsed_ms": 258.3,
+      "status": "PASS",
+      "status_code": 200
+    },
+    "central_url": "https://central.lshtm.ac.uk",
+    "dns": {
+      "addresses": [
+        "194.80.41.67"
+      ],
+      "elapsed_ms": 2.0,
+      "status": "PASS"
+    },
+    "expected_public_ports": [
+      80,
+      443
+    ],
+    "expected_public_ports_not_open": [],
+    "hostname": "central.lshtm.ac.uk",
+    "http_version_endpoint": {
+      "content_type": "text/plain",
+      "elapsed_ms": 43.0,
+      "final_url": "https://central.lshtm.ac.uk/version.txt",
+      "server_header": "nginx",
+      "status": "PASS",
+      "status_code": 200,
+      "version_text": "versions:\n896ceca5a1936faaf4d4b83264551a3acab29be8 (v2025.4.0-2-g896ceca)\n bd1be46611410f2c1f441b154f4d625b27e093c5 client (v2025.4.0)\n 97981e9694f392e5b3df90a2d28c6f7d3aefef17 server (v2025.4.0)",
+      "version_text_sha256": "a43c9152f560d62f61c25a4fbd818da34931178d20e3c9f25a5beade6beb8170"
+    },
+    "icmp": {
+      "elapsed_ms": 5031.6,
+      "status": "TIMEOUT"
+    },
+    "interpretation_note": "Port observations describe reachability from this verifier host at this instant only. CLOSED/TIMEOUT is not a complete firewall assessment.",
+    "observed_at_utc": "2026-09-04T18:28:58.388903+00:00",
+    "schema": "methodmesh.service_probe.v1",
+    "tcp_ports": [
+      {
+        "elapsed_ms": 2006.9,
+        "port": 22,
+        "state": "TIMEOUT_FILTERED_OR_UNREACHABLE"
+      },
+      {
+        "elapsed_ms": 14.7,
+        "port": 80,
+        "state": "OPEN"
+      },
+      {
+        "elapsed_ms": 14.9,
+        "port": 443,
+        "state": "OPEN"
+      },
+      {
+        "elapsed_ms": 2014.3,
+        "port": 3000,
+        "state": "TIMEOUT_FILTERED_OR_UNREACHABLE"
+      },
+      {
+        "elapsed_ms": 2005.5,
+        "port": 5432,
+        "state": "TIMEOUT_FILTERED_OR_UNREACHABLE"
+      },
+      {
+        "elapsed_ms": 80.4,
+        "port": 8080,
+        "state": "CLOSED_REFUSED"
+      },
+      {
+        "elapsed_ms": 2004.7,
+        "port": 8443,
+        "state": "TIMEOUT_FILTERED_OR_UNREACHABLE"
+      }
+    ],
+    "tls": {
+      "certificate_sha256": "c7b10ed75f81fe1f5956c8a11d2d190e9937556efa57eb2f14aceacb6784cd89",
+      "cipher": "TLS_AES_256_GCM_SHA384",
+      "elapsed_ms": 51.3,
+      "issuer": [
+        [
+          [
+            "countryName",
+            "GB"
+          ]
+        ],
+        [
+          [
+            "organizationName",
+            "Sectigo Limited"
+          ]
+        ],
+        [
+          [
+            "commonName",
+            "Sectigo Public Server Authentication CA OV R36"
+          ]
+        ]
+      ],
+      "notAfter": "Jan 24 23:59:59 2027 GMT",
+      "notBefore": "Jul 10 00:00:00 2026 GMT",
+      "serialNumber": "5631F532D50A590795FAF81CE4667C2C",
+      "status": "PASS",
+      "subject": [
+        [
+          [
+            "countryName",
+            "GB"
+          ]
+        ],
+        [
+          [
+            "stateOrProvinceName",
+            "London"
+          ]
+        ],
+        [
+          [
+            "organizationName",
+            "London School of Hygiene & Tropical Medicine"
+          ]
+        ],
+        [
+          [
+            "commonName",
+            "central.lshtm.ac.uk"
+          ]
+        ]
+      ],
+      "subjectAltName": [
+        [
+          "DNS",
+          "central.lshtm.ac.uk"
+        ]
+      ],
+      "tls_version": "TLSv1.3"
+    },
+    "unexpected_open_ports": []
+  }
+]

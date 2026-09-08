@@ -1,0 +1,41 @@
+---
+title: "Digital signing"
+subtitle: "Module reference · digitalsigning"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Open a PDF, add handwritten ink, commit a new version, and optionally obtain an RFC 3161 trusted timestamp.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>digitalsigning</code></div>
+<div><strong>Source directory</strong><code>digitalsigning</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>1</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `document.sign_pdf` | sign pdf | Ink-sign a PDF and commit a new document | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_document.sign_pdf.xlsx](../source-docs/digitalsigning/example_odk_document.sign_pdf.xlsx)
+
+## Module-local documentation
+
+- [Digital signing](../source-docs/digitalsigning/README_DigitalSigning.qmd) — `README_DigitalSigning.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

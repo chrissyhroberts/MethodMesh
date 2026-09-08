@@ -1,0 +1,19 @@
+---
+title: "Schedules and widgets"
+---
+
+## Schedules
+
+Scheduling is part of the shared runtime rather than a capability-specific subsystem. The core registry currently contributes scheduler create/export/import methods and their screens alongside discovered module methods.
+
+Schedules should invoke canonical capability/preset/protocol contracts. Their eventual closeout rules should mirror the same origin-aware semantics as direct runs.
+
+## Widgets
+
+The intended Android desktop widget patterns are:
+
+- 1×1 preset trigger;
+- 1×1 protocol trigger;
+- 1×1 schedule toggle.
+
+A widget does not create a new capability path. It records a different launch origin. If an interactive capability opens, it uses its normal polished screen and Done returns to the Android desktop.

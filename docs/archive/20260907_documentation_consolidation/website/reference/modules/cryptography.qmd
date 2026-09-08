@@ -1,0 +1,69 @@
+---
+title: "Cryptography"
+subtitle: "Module reference · cryptography"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Guided privacy, signing, verification, authenticator and recovery tools with expert details kept out of the normal path.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>cryptography</code></div>
+<div><strong>Source directory</strong><code>cryptography</code></div>
+<div><strong>Indexed methods</strong>20</div>
+<div><strong>XLSForms</strong>2</div>
+<div><strong>Source docs</strong>9</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `crypto.challenge.create` | create challenge | Create an expiring proof-of-possession challenge | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `crypto.challenge.respond` | sign challenge | Respond to a challenge with the local identity | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `crypto.challenge.verify` | verify challenge | Verify a signed challenge response | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `crypto.dashboard` | describe cryptography status | Show non-secret cryptography status | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `crypto.file.decrypt` | decrypt file | Decrypt a JWE file | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `crypto.file.encrypt` | encrypt file | Encrypt a file as JWE | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `crypto.hash` | hash content | Hash exact content | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `crypto.identity.export` | export cryptographic identity | Create a public NFC/QR identity token | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `crypto.key.generate` | create signing key | Create a device-bound ES256 identity | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `crypto.password.generate` | create password | Create a cryptographically random password or passphrase | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `crypto.secret.combine` | merge secret shares | Recover a Shamir-shared secret | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `crypto.secret.split` | split secret | Split a secret into Shamir shares | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `crypto.sign` | sign content | Create a detached ES256 JWS | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `crypto.signature.verify` | verify signature | Verify a detached ES256 JWS | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `crypto.text.decrypt` | decrypt text | Decrypt password-protected JWE text | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `crypto.text.encrypt` | encrypt text | Encrypt text as password-protected JWE | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `otp.totp.delete` | delete totp account | Delete a TOTP account | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `otp.totp.export` | export totp backup | Export a password-protected JWE TOTP backup | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `otp.totp.generate` | create totp code | Generate a TOTP code | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `otp.totp.import` | import totp account | Import a TOTP account | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_crypto.file.encrypt.xlsx](../source-docs/cryptography/example_odk_crypto.file.encrypt.xlsx)
+- [example_odk_crypto.text.encrypt.xlsx](../source-docs/cryptography/example_odk_crypto.text.encrypt.xlsx)
+
+## Module-local documentation
+
+- [Architecture alignment](../source-docs/cryptography/ARCHITECTURE_ALIGNMENT.qmd) — `ARCHITECTURE_ALIGNMENT.md`
+- [Cryptography dashboard](../source-docs/cryptography/DASHBOARD.qmd) — `DASHBOARD.md`
+- [Interoperability](../source-docs/cryptography/INTEROPERABILITY.qmd) — `INTEROPERABILITY.md`
+- [ODK / XLSForm handoffs](../source-docs/cryptography/ODK_HANDOFFS.qmd) — `ODK_HANDOFFS.md`
+- [Cryptography capability](../source-docs/cryptography/README_Cryptography.qmd) — `README_Cryptography.md`
+- [Security model](../source-docs/cryptography/SECURITY_MODEL.qmd) — `SECURITY_MODEL.md`
+- [Standalone capability rule](../source-docs/cryptography/STANDALONE_RULE.qmd) — `STANDALONE_RULE.md`
+- [Testing](../source-docs/cryptography/TESTING.qmd) — `TESTING.md`
+- [Cryptography UX redesign v0.3.1](../source-docs/cryptography/UX_DESIGN_v0.3.0.qmd) — `UX_DESIGN_v0.3.0.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

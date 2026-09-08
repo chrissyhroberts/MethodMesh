@@ -111,6 +111,192 @@ class OutputFormatterTest {
         assertEquals("timeout", fields["diagnostic_reason"])
     }
 
+    @Test
+    fun `core projection keeps redacted image uri without redaction metadata`() {
+        val fields = mapOf(
+            "redacted_image_uri" to "content://com.example.methodmesh/redacted.jpg",
+            "redacted_image_sha256" to "abc123",
+            "redacted_image_name" to "redacted.jpg",
+            "redaction_mask_json" to "[\"r1c1\"]",
+            "redaction_grid_rows" to "10",
+            "redaction_grid_columns" to "10",
+            "redaction_style" to "black",
+            "image_redaction_status" to "succeeded"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.CORE, TransformationStatus.Succeeded)
+
+        assertEquals(
+            mapOf(
+                "redacted_image_uri" to "content://com.example.methodmesh/redacted.jpg",
+                "redacted_image_sha256" to "abc123"
+            ),
+            projected
+        )
+    }
+
+    @Test
+    fun `full projection keeps redacted image uri and sha as flat fields and in full json`() {
+        val fields = mapOf(
+            "redacted_image_uri" to "content://com.example.methodmesh/redacted.jpg",
+            "redacted_image_sha256" to "abc123",
+            "redacted_image_name" to "redacted.jpg",
+            "redaction_mask_json" to "[\"r1c1\"]",
+            "image_redaction_status" to "succeeded",
+            "methodmesh_execution_id" to "exec-redact",
+            "methodmesh_status" to "Succeeded"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.FULL, TransformationStatus.Succeeded)
+
+        assertEquals("content://com.example.methodmesh/redacted.jpg", projected["redacted_image_uri"])
+        assertEquals("abc123", projected["redacted_image_sha256"])
+        val fullJson = projected["methodmesh_full_json"].toString()
+        assertTrue(fullJson.contains("redacted_image_uri"))
+        assertTrue(fullJson.contains("redacted_image_sha256"))
+        assertTrue(fullJson.contains("abc123"))
+    }
+
+    @Test
+    fun `core projection keeps document scan media and text without scanner metadata`() {
+        val fields = mapOf(
+            "document_scan_searchable_pdf_uri" to "content://com.example.methodmesh/document.pdf",
+            "document_scan_ocr_text" to "Page 1\nHello",
+            "document_scan_page_count" to "1",
+            "document_scan_mode" to "full",
+            "document_scan_gallery_import_allowed" to "true",
+            "document_scan_page_limit" to "10",
+            "document_scan_time_iso" to "2026-09-01T00:00:00Z"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.CORE, TransformationStatus.Succeeded)
+
+        assertEquals(
+            mapOf(
+                "document_scan_searchable_pdf_uri" to "content://com.example.methodmesh/document.pdf",
+                "document_scan_ocr_text" to "Page 1\nHello"
+            ),
+            projected
+        )
+    }
+
+    @Test
+    fun `core projection keeps calibrated scale value without calibration metadata`() {
+        val fields = mapOf(
+            "value" to "43.5",
+            "minimum" to "0",
+            "maximum" to "100",
+            "use_range" to "false",
+            "scale_length_mm" to "50",
+            "scale_length_dp" to "157.5",
+            "dp_per_mm" to "3.15",
+            "vertical_mode" to "false"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.CORE, TransformationStatus.Succeeded)
+
+        assertEquals(mapOf("value" to "43.5"), projected)
+    }
+
+    @Test
+    fun `full projection keeps calibrated scale result plus metadata json`() {
+        val fields = mapOf(
+            "lower_value" to "21.0",
+            "upper_value" to "64.0",
+            "minimum" to "0",
+            "maximum" to "100",
+            "use_range" to "true",
+            "scale_length_mm" to "50",
+            "dp_per_mm" to "3.15",
+            "methodmesh_execution_id" to "exec-1",
+            "methodmesh_status" to "Succeeded"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.FULL, TransformationStatus.Succeeded)
+
+        assertEquals("21.0", projected["lower_value"])
+        assertEquals("64.0", projected["upper_value"])
+        assertEquals("exec-1", projected["methodmesh_execution_id"])
+        val fullJson = projected["methodmesh_full_json"].toString()
+        assertTrue(fullJson.contains("dp_per_mm"))
+        assertTrue(fullJson.contains("3.15"))
+        assertFalse(projected.containsKey("minimum"))
+        assertFalse(projected.containsKey("maximum"))
+    }
+
+    @Test
+    fun `core projection keeps only plus code from plus code capture`() {
+        val fields = mapOf(
+            "plus_code" to "9C4X3WHR+4R",
+            "plus_code_centroid_latitude" to "52.0775313",
+            "plus_code_centroid_longitude" to "-0.0579969",
+            "plus_code_gps_latitude" to "52.0777679",
+            "plus_code_gps_longitude" to "-0.0579428",
+            "plus_code_gps_accuracy_m" to "12",
+            "plus_code_basemap_mode" to "satellite",
+            "plus_code_audit_json" to "{\"plus_code\":\"9C4X3WHR+4R\"}"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.CORE, TransformationStatus.Succeeded)
+
+        assertEquals(mapOf("plus_code" to "9C4X3WHR+4R"), projected)
+    }
+
+    @Test
+    fun `full projection keeps plus code and background json`() {
+        val fields = mapOf(
+            "plus_code" to "9C4X3WHR+4R",
+            "plus_code_centroid_latitude" to "52.0775313",
+            "plus_code_centroid_longitude" to "-0.0579969",
+            "plus_code_gps_accuracy_m" to "12",
+            "methodmesh_execution_id" to "exec-plus",
+            "methodmesh_status" to "Succeeded"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.FULL, TransformationStatus.Succeeded)
+
+        assertEquals("9C4X3WHR+4R", projected["plus_code"])
+        assertEquals("exec-plus", projected["methodmesh_execution_id"])
+        assertTrue(projected["methodmesh_full_json"].toString().contains("plus_code_centroid_latitude"))
+        assertFalse(projected.containsKey("plus_code_centroid_latitude"))
+    }
+
+    @Test
+    fun `conversation translation core projection keeps only transcript`() {
+        val fields = mapOf(
+            "conversation_transcript" to "Speak (en): hello\nes · Spanish: hola",
+            "conversation_turns_json" to """[{"original_text":"hello","translated_text":"hola"}]""",
+            "conversation_language_a" to "en",
+            "conversation_language_b" to "es",
+            "conversation_spoken_output" to "true",
+            "conversation_turn_count" to "1",
+            "conversation_status" to "succeeded"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.CORE, TransformationStatus.Succeeded)
+
+        assertEquals(mapOf("conversation_transcript" to "Speak (en): hello\nes · Spanish: hola"), projected)
+    }
+
+    @Test
+    fun `conversation translation full projection keeps transcript and background json`() {
+        val fields = mapOf(
+            "conversation_transcript" to "Speak (en): hello\nes · Spanish: hola",
+            "conversation_turns_json" to """[{"original_text":"hello","translated_text":"hola"}]""",
+            "conversation_language_a" to "en",
+            "conversation_language_b" to "es",
+            "methodmesh_execution_id" to "exec-conversation",
+            "methodmesh_status" to "Succeeded"
+        )
+
+        val projected = OutputFormatter.projectFields(fields, OutputFormatter.PayloadMode.FULL, TransformationStatus.Succeeded)
+
+        assertEquals("Speak (en): hello\nes · Spanish: hola", projected["conversation_transcript"])
+        assertEquals("exec-conversation", projected["methodmesh_execution_id"])
+        assertTrue(projected["methodmesh_full_json"].toString().contains("conversation_turns_json"))
+        assertFalse(projected.containsKey("conversation_turns_json"))
+    }
+
     // ── OutputFormatter.format – ReturnMode formatting ───────────────────────
 
     @Test
@@ -125,7 +311,12 @@ class OutputFormatterTest {
     @Test
     fun `Fields format produces key=value lines`() {
         val result = makeResult(methodId = As100NfcReadMethod.ID)
-        val output = OutputFormatter.format(result, ReturnMode.Fields, includeProvenance = false)
+        val output = OutputFormatter.format(
+            result,
+            ReturnMode.Fields,
+            includeProvenance = false,
+            payloadMode = OutputFormatter.PayloadMode.CORE
+        )
         assertTrue("each line has =", output.lines().filter { it.isNotBlank() }.all { "=" in it })
     }
 

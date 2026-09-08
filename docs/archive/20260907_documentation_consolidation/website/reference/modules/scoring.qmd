@@ -1,0 +1,63 @@
+---
+title: "Scoring & counters"
+subtitle: "Module reference · scoring"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Persistent counters, tallies, sports scoring, rounds, targets and high-score records.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>scoring</code></div>
+<div><strong>Source directory</strong><code>scoring</code></div>
+<div><strong>Indexed methods</strong>11</div>
+<div><strong>XLSForms</strong>11</div>
+<div><strong>Source docs</strong>3</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `score.counter` | count score | Run a persistent multi-entity counter | <span class="badge-source">current source</span> | RIL binding, method source |
+| `score.high_score` | record high score | Explicitly save a score record | <span class="badge-source">current source</span> | RIL binding, method source |
+| `score.match` | score match | Run a generic match scoreboard | <span class="badge-source">current source</span> | RIL binding, method source |
+| `score.race_to` | race to score | Run a race-to-target score | <span class="badge-source">current source</span> | RIL binding, method source |
+| `score.rounds` | score rounds | Accumulate round scores | <span class="badge-source">current source</span> | RIL binding, method source |
+| `score.session.finish` | finish score session | Finish and return a persistent score session | <span class="badge-source">current source</span> | RIL binding, method source |
+| `score.session.read` | read score session | Read persistent score state | <span class="badge-source">current source</span> | RIL binding, method source |
+| `score.session.resume` | resume score session | Resume a persistent score session | <span class="badge-source">current source</span> | RIL binding, method source |
+| `score.set_match` | score set match | Run hierarchical set scoring | <span class="badge-source">current source</span> | RIL binding, method source |
+| `score.sports` | score sport | Run a ruleset-aware sports scoreboard | <span class="badge-source">current source</span> | RIL binding, method source |
+| `score.tally` | tally observations | Run a fast categorical tally | <span class="badge-source">current source</span> | RIL binding, method source |
+
+## ODK / XLSForm examples
+
+- [example_odk_score.counter.xlsx](../source-docs/scoring/example_odk_score.counter.xlsx)
+- [example_odk_score.high_score.xlsx](../source-docs/scoring/example_odk_score.high_score.xlsx)
+- [example_odk_score.match.xlsx](../source-docs/scoring/example_odk_score.match.xlsx)
+- [example_odk_score.race_to.xlsx](../source-docs/scoring/example_odk_score.race_to.xlsx)
+- [example_odk_score.rounds.xlsx](../source-docs/scoring/example_odk_score.rounds.xlsx)
+- [example_odk_score.session.finish.xlsx](../source-docs/scoring/example_odk_score.session.finish.xlsx)
+- [example_odk_score.session.read.xlsx](../source-docs/scoring/example_odk_score.session.read.xlsx)
+- [example_odk_score.session.resume.xlsx](../source-docs/scoring/example_odk_score.session.resume.xlsx)
+- [example_odk_score.set_match.xlsx](../source-docs/scoring/example_odk_score.set_match.xlsx)
+- [example_odk_score.sports.xlsx](../source-docs/scoring/example_odk_score.sports.xlsx)
+- [example_odk_score.tally.xlsx](../source-docs/scoring/example_odk_score.tally.xlsx)
+
+## Module-local documentation
+
+- [Scoring & counters](../source-docs/scoring/README_Scoring.qmd) — `README_Scoring.md`
+- [Scoring roadmap](../source-docs/scoring/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [Scoring module validation](../source-docs/scoring/VALIDATION.qmd) — `VALIDATION.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

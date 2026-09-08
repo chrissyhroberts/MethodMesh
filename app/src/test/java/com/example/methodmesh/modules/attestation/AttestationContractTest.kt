@@ -21,6 +21,8 @@ class AttestationContractTest {
             eventType = "form_submission",
             eventPayloadHash = "a".repeat(64),
             eventPayloadMode = "supplied_hash",
+            commitmentRecipe = DEFAULT_ATTESTATION_COMMITMENT_RECIPE,
+            commitmentRecipeSha256 = AttestationCommitmentRecipe.sha256(DEFAULT_ATTESTATION_COMMITMENT_RECIPE),
             verificationMethod = AttestationVerificationMethod.Qr,
             verificationEvidenceFormat = evidence.format,
             verificationEvidenceHash = evidence.hash,
@@ -41,7 +43,52 @@ class AttestationContractTest {
         assertFalse(record.asOutputMap().containsKey("verification_evidence_payload"))
         assertFalse(record.canonicalPayload.contains(secret))
         assertTrue(record.canonicalPayload.contains("event_payload_hash=${"a".repeat(64)}"))
+        assertTrue(record.canonicalPayload.contains("commitment_recipe_sha256=${AttestationCommitmentRecipe.sha256(DEFAULT_ATTESTATION_COMMITMENT_RECIPE)}"))
+        assertFalse(record.canonicalPayload.contains(DEFAULT_ATTESTATION_COMMITMENT_RECIPE))
+        assertEquals(DEFAULT_ATTESTATION_COMMITMENT_RECIPE, record.asOutputMap()["commitment_recipe"])
         assertTrue(record.canonicalPayload.contains("verification_evidence_hash=${evidence.hash}"))
+    }
+
+    @Test
+    fun `changing only commitment recipe hash changes canonical attestation payload`() {
+        val first = AttestationRecord.canonicalPayload(
+            attestationId = "att_test",
+            studyId = "study",
+            operatorId = "geoff",
+            subjectRef = "participant/P001",
+            eventType = "form_submission",
+            eventPayloadHash = "a".repeat(64),
+            eventPayloadMode = "supplied_hash",
+            commitmentRecipeSha256 = "b".repeat(64),
+            verificationMethod = AttestationVerificationMethod.Qr.name,
+            verificationEvidenceFormat = "qr_payload_utf8_sha256_v1",
+            verificationEvidenceHash = "c".repeat(64),
+            deviceEventTimeIso = "2026-07-27T12:00:00Z",
+            deviceMonotonicCounter = 1,
+            previousAttestationHash = "GENESIS",
+            publicKeyId = "key"
+        )
+        val second = AttestationRecord.canonicalPayload(
+            attestationId = "att_test",
+            studyId = "study",
+            operatorId = "geoff",
+            subjectRef = "participant/P001",
+            eventType = "form_submission",
+            eventPayloadHash = "a".repeat(64),
+            eventPayloadMode = "supplied_hash",
+            commitmentRecipeSha256 = "d".repeat(64),
+            verificationMethod = AttestationVerificationMethod.Qr.name,
+            verificationEvidenceFormat = "qr_payload_utf8_sha256_v1",
+            verificationEvidenceHash = "c".repeat(64),
+            deviceEventTimeIso = "2026-07-27T12:00:00Z",
+            deviceMonotonicCounter = 1,
+            previousAttestationHash = "GENESIS",
+            publicKeyId = "key"
+        )
+
+        assertFalse(first == second)
+        assertTrue(first.contains("commitment_recipe_sha256=${"b".repeat(64)}"))
+        assertTrue(second.contains("commitment_recipe_sha256=${"d".repeat(64)}"))
     }
 
     @Test

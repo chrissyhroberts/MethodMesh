@@ -15,6 +15,8 @@ data class CapabilityPreset(
     val name: String,
     val methodId: String,
     val settingsJson: String = "{}",
+    val payloadMode: String = ProtocolPayloadMode.CORE,
+    val resultAction: String = PresetResultAction.HOME,
     val description: String = "",
     val createdAtIso: String = Instant.now().toString(),
     val updatedAtIso: String = Instant.now().toString(),
@@ -25,8 +27,45 @@ data class ProtocolStep(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
     val presetId: String,
-    val order: Int
+    val order: Int,
+    val outputMode: String = ProtocolOutputMode.SAVE
 )
+
+object ProtocolOutputMode {
+    const val SAVE = "SAVE"
+    const val NONE = "NONE"
+    const val SHARE = "SHARE"
+
+    fun normalize(value: String): String = when (value.trim().uppercase(Locale.ROOT)) {
+        NONE -> NONE
+        SHARE -> SHARE
+        else -> SAVE
+    }
+}
+
+object ProtocolPayloadMode {
+    const val CORE = "CORE"
+    const val AUDIT = "AUDIT"
+    const val FULL = "FULL"
+
+    fun normalize(value: String): String = when (value.trim().uppercase(Locale.ROOT)) {
+        AUDIT -> AUDIT
+        FULL -> FULL
+        else -> CORE
+    }
+}
+
+object PresetResultAction {
+    const val HOME = "HOME"
+    const val SHARE = "SHARE"
+    const val SAVE = "SAVE"
+
+    fun normalize(value: String): String = when (value.trim().uppercase(Locale.ROOT)) {
+        SHARE -> SHARE
+        SAVE -> SAVE
+        else -> HOME
+    }
+}
 
 data class ProtocolDefinition(
     val id: String = UUID.randomUUID().toString(),
@@ -189,6 +228,8 @@ object ProtocolLibraryRepository {
         put("name", preset.name)
         put("method_id", preset.methodId)
         put("settings_json", preset.settingsJson.ifBlank { "{}" })
+        put("payload_mode", ProtocolPayloadMode.normalize(preset.payloadMode))
+        put("result_action", PresetResultAction.normalize(preset.resultAction))
         put("description", preset.description)
         put("created_at_iso", preset.createdAtIso)
         put("updated_at_iso", preset.updatedAtIso)
@@ -201,6 +242,8 @@ object ProtocolLibraryRepository {
         name = o.optString("name"),
         methodId = o.optString("method_id"),
         settingsJson = o.optString("settings_json", "{}"),
+        payloadMode = ProtocolPayloadMode.normalize(o.optString("payload_mode", ProtocolPayloadMode.CORE)),
+        resultAction = PresetResultAction.normalize(o.optString("result_action", PresetResultAction.HOME)),
         description = o.optString("description"),
         createdAtIso = o.optString("created_at_iso", Instant.now().toString()),
         updatedAtIso = o.optString("updated_at_iso", Instant.now().toString()),
@@ -233,13 +276,15 @@ object ProtocolLibraryRepository {
         put("name", step.name)
         put("preset_id", step.presetId)
         put("order", step.order)
+        put("output_mode", ProtocolOutputMode.normalize(step.outputMode))
     }
 
     private fun decodeStep(o: JSONObject) = ProtocolStep(
         id = o.optString("id").ifBlank { UUID.randomUUID().toString() },
         name = o.optString("name"),
         presetId = o.optString("preset_id"),
-        order = o.optInt("order")
+        order = o.optInt("order"),
+        outputMode = ProtocolOutputMode.normalize(o.optString("output_mode", ProtocolOutputMode.SAVE))
     )
 
     private fun JSONArray?.orEmptyObjects(): List<JSONObject> {

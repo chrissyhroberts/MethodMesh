@@ -71,14 +71,14 @@ object SpeechTranscriptionCapabilityScreen : CapabilityScreenSpec {
             val execution = As100SpeechTranscriptionMethod.result(request, values, context.request.invocationContext)
             result = execution
             status = if (succeeded) "Speech captured." else values[SpeechTranscriptionFields.ERROR] ?: "Speech capture failed."
-            if (context.startsImmediately && succeeded) onConfirmed(execution)
+            if (context.submitsImmediately && succeeded) onConfirmed(execution)
         }
 
         val recognizer = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { activityResult ->
             if (activityResult.resultCode != Activity.RESULT_OK) {
                 val values = speechValues(language, prompt, preferOffline, "", emptyList(), "cancelled", "Speech capture was cancelled.")
                 complete(values, false)
-                if (context.startsImmediately) onCancel()
+                if (context.submitsImmediately) onCancel()
                 return@rememberLauncherForActivityResult
             }
             val matches = activityResult.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS).orEmpty()

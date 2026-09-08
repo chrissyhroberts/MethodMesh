@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">MethodMesh</string>
+    <string name="methodmesh_widget_description">Run a MethodMesh preset or protocol, or toggle a schedule.</string>
 </resources>

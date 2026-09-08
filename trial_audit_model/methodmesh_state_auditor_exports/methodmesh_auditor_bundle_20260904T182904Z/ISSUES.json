@@ -1,0 +1,275 @@
+[
+  {
+    "category": "ZERO_VERSION_ANOMALY",
+    "evidence_points": [
+      [
+        "Record",
+        "uuid:5b802c63-a6e0-444d-83da-88888a2b770d"
+      ],
+      [
+        "Form",
+        "methodmesh_capability_chain_showcase"
+      ],
+      [
+        "Central/ledger status",
+        "ZERO_VERSION_ANOMALY"
+      ],
+      [
+        "Retained versions observed",
+        0
+      ],
+      [
+        "Created",
+        "2026-09-04T07:37:28.505Z"
+      ],
+      [
+        "Updated",
+        null
+      ]
+    ],
+    "form_id": "methodmesh_capability_chain_showcase",
+    "issue_id": "ISSUE-000001",
+    "occurred_at": "2026-09-04T07:37:28.505Z",
+    "record_id": "uuid:5b802c63-a6e0-444d-83da-88888a2b770d",
+    "research_values_included": false,
+    "scope": "RECORD",
+    "severity": "ATTENTION",
+    "title": "Central lists this record, but no retained version is available",
+    "what_happened": "ODK Central lists this logical submission as present, but when MethodMesh asked Central for its retained version history, Central returned zero versions.",
+    "what_to_do": "Investigate why Central exposes the logical submission without a retained version. Until that is explained or resolved, do not describe this record as independently verified by MethodMesh.",
+    "why_it_matters": "MethodMesh has no retained record version from which to reconstruct and independently verify the record's provenance. This does not show that the research data are wrong; it means the provenance chain is incomplete for this record."
+  },
+  {
+    "actor": "Chrissy h. Roberts (User)",
+    "category": "UNRESOLVED_EDIT_REASON",
+    "changed_fields": [
+      "Age in years",
+      "Showcase run label"
+    ],
+    "evidence_points": [
+      [
+        "Record",
+        "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732"
+      ],
+      [
+        "Form",
+        "methodmesh_capability_chain_showcase"
+      ],
+      [
+        "Edited version",
+        "uuid:a24c6154-a44b-4fe4-bcff-1102534a1e95"
+      ],
+      [
+        "Previous version",
+        "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732"
+      ],
+      [
+        "Edit time",
+        "2026-09-04T11:58:32.691Z"
+      ],
+      [
+        "Actor",
+        "Chrissy h. Roberts (User)"
+      ],
+      [
+        "Changed fields (names only)",
+        "Age in years, Showcase run label"
+      ],
+      [
+        "Reason association",
+        "UNRESOLVED"
+      ],
+      [
+        "Why association is unresolved",
+        "CENTRAL_COMMENTS_HAVE_NO_NATIVE_VERSION_FOREIGN_KEY"
+      ]
+    ],
+    "form_id": "methodmesh_capability_chain_showcase",
+    "issue_id": "ISSUE-000002",
+    "occurred_at": "2026-09-04T11:58:32.691Z",
+    "previous_version_id": "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732",
+    "record_id": "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732",
+    "research_values_included": false,
+    "scope": "RECORD_EDIT",
+    "severity": "ATTENTION",
+    "title": "The reason for this edit cannot be proven against the specific version",
+    "version_id": "uuid:a24c6154-a44b-4fe4-bcff-1102534a1e95",
+    "what_happened": "Central records an edit to this submission. MethodMesh can show that the edit changed these field(s) by name: Age in years, Showcase run label. However, Central comments do not provide a native foreign-key link to a particular submission version, so MethodMesh cannot prove which recorded reason belongs to this exact edit.",
+    "what_to_do": "Review the Central comment and audit history around this edit. If the reason can be established, document the association explicitly; otherwise retain this as an unresolved reason-for-change finding.",
+    "why_it_matters": "The edit itself is represented in the provenance history. The unresolved point is the attribution of a human reason-for-change to this particular version. If your audit policy requires a reason for each edit, this remains an open audit finding."
+  },
+  {
+    "actor": "Chrissy h. Roberts (User)",
+    "category": "UNRESOLVED_EDIT_REASON",
+    "changed_fields": [
+      "Showcase run label"
+    ],
+    "evidence_points": [
+      [
+        "Record",
+        "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732"
+      ],
+      [
+        "Form",
+        "methodmesh_capability_chain_showcase"
+      ],
+      [
+        "Edited version",
+        "uuid:d0e35d52-348f-4876-b34f-44bd6c1b7135"
+      ],
+      [
+        "Previous version",
+        "uuid:a24c6154-a44b-4fe4-bcff-1102534a1e95"
+      ],
+      [
+        "Edit time",
+        "2026-09-04T11:59:02.402Z"
+      ],
+      [
+        "Actor",
+        "Chrissy h. Roberts (User)"
+      ],
+      [
+        "Changed fields (names only)",
+        "Showcase run label"
+      ],
+      [
+        "Reason association",
+        "UNRESOLVED"
+      ],
+      [
+        "Why association is unresolved",
+        "CENTRAL_COMMENTS_HAVE_NO_NATIVE_VERSION_FOREIGN_KEY"
+      ]
+    ],
+    "form_id": "methodmesh_capability_chain_showcase",
+    "issue_id": "ISSUE-000003",
+    "occurred_at": "2026-09-04T11:59:02.402Z",
+    "previous_version_id": "uuid:a24c6154-a44b-4fe4-bcff-1102534a1e95",
+    "record_id": "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732",
+    "research_values_included": false,
+    "scope": "RECORD_EDIT",
+    "severity": "ATTENTION",
+    "title": "The reason for this edit cannot be proven against the specific version",
+    "version_id": "uuid:d0e35d52-348f-4876-b34f-44bd6c1b7135",
+    "what_happened": "Central records an edit to this submission. MethodMesh can show that the edit changed these field(s) by name: Showcase run label. However, Central comments do not provide a native foreign-key link to a particular submission version, so MethodMesh cannot prove which recorded reason belongs to this exact edit.",
+    "what_to_do": "Review the Central comment and audit history around this edit. If the reason can be established, document the association explicitly; otherwise retain this as an unresolved reason-for-change finding.",
+    "why_it_matters": "The edit itself is represented in the provenance history. The unresolved point is the attribution of a human reason-for-change to this particular version. If your audit policy requires a reason for each edit, this remains an open audit finding."
+  },
+  {
+    "actor": "Chrissy h. Roberts (User)",
+    "category": "UNRESOLVED_EDIT_REASON",
+    "changed_fields": [
+      "One-line note"
+    ],
+    "evidence_points": [
+      [
+        "Record",
+        "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732"
+      ],
+      [
+        "Form",
+        "methodmesh_capability_chain_showcase"
+      ],
+      [
+        "Edited version",
+        "uuid:b49d1f96-b4e2-4f98-bd8e-3175f864473f"
+      ],
+      [
+        "Previous version",
+        "uuid:411e7499-f798-415f-842e-25f4131c8391"
+      ],
+      [
+        "Edit time",
+        "2026-09-04T13:09:10.535Z"
+      ],
+      [
+        "Actor",
+        "Chrissy h. Roberts (User)"
+      ],
+      [
+        "Changed fields (names only)",
+        "One-line note"
+      ],
+      [
+        "Reason association",
+        "UNRESOLVED"
+      ],
+      [
+        "Why association is unresolved",
+        "CENTRAL_COMMENTS_HAVE_NO_NATIVE_VERSION_FOREIGN_KEY"
+      ]
+    ],
+    "form_id": "methodmesh_capability_chain_showcase",
+    "issue_id": "ISSUE-000004",
+    "occurred_at": "2026-09-04T13:09:10.535Z",
+    "previous_version_id": "uuid:411e7499-f798-415f-842e-25f4131c8391",
+    "record_id": "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732",
+    "research_values_included": false,
+    "scope": "RECORD_EDIT",
+    "severity": "ATTENTION",
+    "title": "The reason for this edit cannot be proven against the specific version",
+    "version_id": "uuid:b49d1f96-b4e2-4f98-bd8e-3175f864473f",
+    "what_happened": "Central records an edit to this submission. MethodMesh can show that the edit changed these field(s) by name: One-line note. However, Central comments do not provide a native foreign-key link to a particular submission version, so MethodMesh cannot prove which recorded reason belongs to this exact edit.",
+    "what_to_do": "Review the Central comment and audit history around this edit. If the reason can be established, document the association explicitly; otherwise retain this as an unresolved reason-for-change finding.",
+    "why_it_matters": "The edit itself is represented in the provenance history. The unresolved point is the attribution of a human reason-for-change to this particular version. If your audit policy requires a reason for each edit, this remains an open audit finding."
+  },
+  {
+    "actor": "Chrissy h. Roberts (User)",
+    "category": "UNRESOLVED_EDIT_REASON",
+    "changed_fields": [
+      "Showcase run label"
+    ],
+    "evidence_points": [
+      [
+        "Record",
+        "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732"
+      ],
+      [
+        "Form",
+        "methodmesh_capability_chain_showcase"
+      ],
+      [
+        "Edited version",
+        "uuid:8a29f105-128b-419d-9ffb-6e7bf4c58836"
+      ],
+      [
+        "Previous version",
+        "uuid:28ceb8bb-8139-49d8-803e-9a45f476edbe"
+      ],
+      [
+        "Edit time",
+        "2026-09-04T13:27:59.390Z"
+      ],
+      [
+        "Actor",
+        "Chrissy h. Roberts (User)"
+      ],
+      [
+        "Changed fields (names only)",
+        "Showcase run label"
+      ],
+      [
+        "Reason association",
+        "UNRESOLVED"
+      ],
+      [
+        "Why association is unresolved",
+        "CENTRAL_COMMENTS_HAVE_NO_NATIVE_VERSION_FOREIGN_KEY"
+      ]
+    ],
+    "form_id": "methodmesh_capability_chain_showcase",
+    "issue_id": "ISSUE-000005",
+    "occurred_at": "2026-09-04T13:27:59.390Z",
+    "previous_version_id": "uuid:28ceb8bb-8139-49d8-803e-9a45f476edbe",
+    "record_id": "uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732",
+    "research_values_included": false,
+    "scope": "RECORD_EDIT",
+    "severity": "ATTENTION",
+    "title": "The reason for this edit cannot be proven against the specific version",
+    "version_id": "uuid:8a29f105-128b-419d-9ffb-6e7bf4c58836",
+    "what_happened": "Central records an edit to this submission. MethodMesh can show that the edit changed these field(s) by name: Showcase run label. However, Central comments do not provide a native foreign-key link to a particular submission version, so MethodMesh cannot prove which recorded reason belongs to this exact edit.",
+    "what_to_do": "Review the Central comment and audit history around this edit. If the reason can be established, document the association explicitly; otherwise retain this as an unresolved reason-for-change finding.",
+    "why_it_matters": "The edit itself is represented in the provenance history. The unresolved point is the attribution of a human reason-for-change to this particular version. If your audit policy requires a reason for each edit, this remains an open audit finding."
+  }
+]

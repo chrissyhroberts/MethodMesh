@@ -1,0 +1,79 @@
+# Clinical Instruments — curated core library candidates
+
+This is a curation roadmap, not a claim that every named instrument may immediately be redistributed. Each candidate needs exact source/version verification, scoring review, rights/attribution review and boundary tests before entering immutable core.
+
+v0.1 candidates should be **linear checklists/scales/scores**. Instruments requiring substantial conditional relevance or repeat logic belong to the future protocol engine.
+
+## Acute bedside — priority
+
+High-value candidates include:
+
+- qSOFA — implemented
+- CRB-65 — implemented
+- AVPU — implemented
+- Glasgow Coma Scale
+- NEWS2
+- CURB-65
+- Wells DVT
+- Wells PE
+- PERC
+- CHA2DS2-VASc
+- HAS-BLED
+- other short, established bedside scores where wording/scoring rights permit bundling
+
+## Frailty, function and geriatric assessment
+
+Strong candidate class:
+
+- Clinical Frailty Scale, subject to usage/licensing terms
+- short mobility/falls assessments
+- activities-of-daily-living measures where redistribution is permitted
+- delirium screens such as 4AT, subject to exact rights/version review
+
+## Mental health and neurodevelopment
+
+Potential curated branches:
+
+- PHQ-2 / PHQ-9
+- GAD-2 / GAD-7
+- autism screening such as AQ-10, subject to exact source/rights review
+- adult ADHD rapid screening such as ASRS, subject to exact source/rights review
+- alcohol/substance-use screens where permitted
+- selected DSM-associated measures where redistribution terms support bundling
+
+MethodMesh must preserve each instrument's intended-use wording and must not convert screening thresholds into diagnoses.
+
+## Nutrition / anthropometry
+
+- Adult BMI classification — implemented
+- MUAC classifications where population/threshold context is explicit
+- simple validated malnutrition/frailty-nutrition screens
+- other deterministic anthropometric classifications using pinned reference data where needed
+
+## Maternal / child / field clinical tools
+
+Prioritise short, authoritative checklists and scores that can be represented linearly in v0.1. More complex WHO algorithms with substantial conditional flow should wait for the future protocol engine.
+
+## Explicitly outside v0.1
+
+- WHO Verbal Autopsy 2022
+- IMCI/other complex branching algorithms where exact relevance semantics are essential
+- protocols requiring repeat groups or dynamic section routing
+
+These remain desirable MethodMesh targets, but implementing them correctly requires a separate protocol-language design. See `FUTURE_PROTOCOL_ENGINE.md`.
+
+## Core promotion checklist
+
+Before a local/candidate definition becomes immutable core:
+
+1. Authoritative source/version pinned.
+2. Intended population/context recorded.
+3. Exact item wording/labels reviewed.
+4. Scoring/calculation independently checked.
+5. Classification wording independently checked.
+6. Boundary regression tests included.
+7. Redistribution/licence position documented.
+8. Citation/source URL included.
+9. Native Back/Forward and resume tested.
+10. ODK return fields checked where relevant.
+11. Airplane-mode execution confirmed.

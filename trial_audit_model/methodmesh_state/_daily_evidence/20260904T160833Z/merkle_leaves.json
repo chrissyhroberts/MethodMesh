@@ -1,0 +1,170 @@
+[
+  {
+    "id": "methodmesh_capability_chain_showcase::uuid:074b4913-9620-41d4-a74c-09df9bea5e95",
+    "leaf_sha256": "50b76ba51ff7525c66739d7f8c6ce0f18905b311558395f7404f6c1cd701ce69",
+    "payload_sha256": "700a765b0db957b0e37eaa0224c4ad38bf23ac2ef67591fca887aeefef149c28",
+    "type": "submission"
+  },
+  {
+    "id": "methodmesh_capability_chain_showcase::uuid:0a424b3c-4219-47c2-83fc-47bab0a884cb",
+    "leaf_sha256": "e501f5adbf9b33312dc6c20480ff8fe56b913cec64d6434a8be945444cd6341d",
+    "payload_sha256": "fdec740bb3dc5650aefc3b4e2db1ad6bd7f787cf7f36f1e20c65c7959b42be18",
+    "type": "submission"
+  },
+  {
+    "id": "methodmesh_capability_chain_showcase::uuid:428cc98c-23a1-4b88-89bb-415a1083bf8c",
+    "leaf_sha256": "bf11147422d26b2f9217c94828512862ee364edb984286fb878049af9cdba84e",
+    "payload_sha256": "4ec2c1091880e9289a9c5defe422a425c64008a9cd58a6033f2c9280f71cc3d3",
+    "type": "submission"
+  },
+  {
+    "id": "methodmesh_capability_chain_showcase::uuid:5b802c63-a6e0-444d-83da-88888a2b770d",
+    "leaf_sha256": "7f9749cfdf405d379e0dc7b86a615404b4487b8379fe474f255b32ccbfd506ef",
+    "payload_sha256": "14a6fdf809055a7adc9e005587795b91693af06c6f5a1ebe67b56bf62f0385cc",
+    "type": "submission"
+  },
+  {
+    "id": "methodmesh_capability_chain_showcase::uuid:983f8bd5-dcce-4111-920c-95a882ad2d11",
+    "leaf_sha256": "ed9941281cbc0b9da81cb0cf8669d1ce442a378817949a2e07d420ca6942c074",
+    "payload_sha256": "28958121b5e6634533c97951cdc5d6e8def519816235c15ecf8b2766fdb301ac",
+    "type": "submission"
+  },
+  {
+    "id": "methodmesh_capability_chain_showcase::uuid:b5d4d718-cee0-4905-963b-9a95cbb3011d",
+    "leaf_sha256": "894c93dd4bd5eeb98334495b9b3ff9738ca44fd8d0c41081ca069dd58ec6ab1d",
+    "payload_sha256": "cdf888749090c56a39a4749193d60f0fcdde49e78105aa084de9bd00e419bd37",
+    "type": "submission"
+  },
+  {
+    "id": "methodmesh_capability_chain_showcase::uuid:b9b2a66d-ebca-4dfd-b515-3fcd692dd8f8",
+    "leaf_sha256": "d80987e114d50d2c3c0ec332dfa47faa5802db30d768f80f7fbdc0bd94155171",
+    "payload_sha256": "3c520c82721ef44970e318df36719f9ddb92c99ee29f20725d8c8cb3ea5b9f73",
+    "type": "submission"
+  },
+  {
+    "id": "methodmesh_capability_chain_showcase::uuid:db183ba0-f3f4-4a7f-b479-3b5b4420d732",
+    "leaf_sha256": "a3823710afa86eb8db0da39aea362ca8073ad363039a9cb38f25b61a2a683fe3",
+    "payload_sha256": "b981fbd291cd13238082a71fe49068e5e6b338dc5bbeb220a01b306ba934fc7a",
+    "type": "submission"
+  },
+  {
+    "id": "actor_properties",
+    "leaf_sha256": "8d1c6ba22065a2b85400cd1c6612fcdaa493d9ae8de1a92082ef5c7f4c1e706c",
+    "payload_sha256": "606fd5e74a355cb32feb0d47777c4e5f102963750d6123145303b6392c4aa823",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "analytics_config",
+    "leaf_sha256": "6c8f3be8d70859df3e9bc18fc25a3606a95c62a339e7eee5d796fed93214c15d",
+    "payload_sha256": "9e11a2b0b4a714a783b405496c2d1fe6f0b8d278473cf6b5815c25d51074f0bb",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "analytics_preview",
+    "leaf_sha256": "1d288a26ff08a8647adb98a659a6d397dc2d7bc09de81ca8ac29aba59f89a4df",
+    "payload_sha256": "abc092e97df3c3a331324f0b29c9b00b3828b11c3e8402592739fda9024ae7a8",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "app_users",
+    "leaf_sha256": "9e1886119de08ca8d4530b73918fb84eb2e8391d00e916df725c5ff57410e398",
+    "payload_sha256": "f32ff01e973339415d5648f6062c8bc41cf3e641e3aba70bd27c035c1106c562",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "form",
+    "leaf_sha256": "42f7213e0870f14991be3b6c626d7d708e89c70cbf56b39821cac0f9fdafd7ce",
+    "payload_sha256": "9f13e2f5d0c5c35bed5258be61e70ddc6412674f05efa6f4a66bf438881cc85b",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "form_assignments",
+    "leaf_sha256": "f3d3a83d23ad0c81750a3bd1e630bf04dc6868c09eb7952719fb7f0ff270cf5c",
+    "payload_sha256": "8576284d4125fb9472554e09318ddec3b3c92ee5c5621b6e135f5fa14aeeab3f",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "form_versions",
+    "leaf_sha256": "499b7d5e44b4b8741ff8f4ab2f17aa28091e6df0f4c58fe931961f23de6d3c1b",
+    "payload_sha256": "a56781974541340d85ace174cbf114672f6885c542df7a72ccc25d45fff66b66",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "forms",
+    "leaf_sha256": "c74861f6f59c6653df59c6d928e740fed5c8ea091636f7ea76d438337b6939b9",
+    "payload_sha256": "cf2a255f9ebf4cd564e4c8a7629b0620af911c8a3907857d7e7e7b1528b1443c",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "methodmesh_event_ledger",
+    "leaf_sha256": "8567da52a2bcdd80b77834fd93b184112bf8165370e2f5ce8f0af64d08a3b757",
+    "payload_sha256": "4bf0b993cc0828fe6884ee745497aeed4fb144de0435fc3679dd077215017bc2",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "methodmesh_forms_state",
+    "leaf_sha256": "a9b3633cf08127203292979e39dde027ceb655d0e63719fc80f829ed9f108698",
+    "payload_sha256": "9f699783330e55885eff4328e0e73662a6f7aee4d4a62ecbf33be5a43a7a042a",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "project",
+    "leaf_sha256": "f623e83148262778ffc6677c0722b758575dc24f34f5216b14a38d07a1fd79f1",
+    "payload_sha256": "3bb8343336abfd37456f393d80a9a3f17e277475d154b445a685761c76097a5e",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "project_assignments",
+    "leaf_sha256": "f5181010ab40eaf39f3907756b1e178dec864127ad14d170b587f2d0a938d746",
+    "payload_sha256": "3647d444303ccd5993530d4c7a486bd6576e74a6276e8e6a71b885a927d11470",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "project_form_assignments",
+    "leaf_sha256": "787c8b4dc991204c9f8cefbd99122ea17a341af70c87ea729943558aabb136e5",
+    "payload_sha256": "73a18b80d1945999f608f2c28a945c1f138f7561f32ddd12abc896a4af345de7",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "projects",
+    "leaf_sha256": "935511db923c753ca12daefbb299d6995b70fb6aa12d3b36bce75f314852bb08",
+    "payload_sha256": "4be24d544d1474030415f41ffb7716f8a2f483d1a623a37bf5016d99eb3a4161",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "roles",
+    "leaf_sha256": "261592a8200042d0a4ef58f82f5e0e6b75ff0d93af78a0d70ab9c84d202329d7",
+    "payload_sha256": "1ec9eefe64d636a0d9515ce3e92d352b6d012dcd3ec23abb952e4342a08022d7",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "server_audits",
+    "leaf_sha256": "55793ffb928216661e2c4f5e9ba9fdcda3771cafba1d8343d03a8646ac4d9d05",
+    "payload_sha256": "d85931749d90e9be907499cb624a2dfbb5bce8b5a3bdf4b1eff71d2aa85bb9b3",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "submitters",
+    "leaf_sha256": "504a5b5b9d2aa8e3585dd03da819042f28a2882eb396b2f3a9f12034bfcfc5ae",
+    "payload_sha256": "4fa17147864355df8961cf477f9cfbebeb0442451d5439036d7ea05d31351ecb",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "system_assignments",
+    "leaf_sha256": "e3abdfea916ecdbb58f84736cee446f329bf22a0379469f332758f52fb3c7f12",
+    "payload_sha256": "38a210fc235bf11850e907c3459e3a246b66dfbf985c2e6af8c1ef268c4401c3",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "users",
+    "leaf_sha256": "68f2b1943bfdbaf8169ff85a9042b6636907319479d077be5883084dc6d954cc",
+    "payload_sha256": "34d3ee8bd39f8a07d69afb838685103cb8e952645aa0bcc6f7c51c41beb4c53e",
+    "type": "central_endpoint"
+  },
+  {
+    "id": "2026-09-04T16:08:27.338843+00:00",
+    "leaf_sha256": "3873bb132798f54eda18ff978d8d99b82634901e85fa1b5ce5cf0a40f72397c2",
+    "payload_sha256": "690b4a72ccac2ee02d1670bd77fc7025915ce2d74127e724be90b9f50bc565c2",
+    "type": "service_probe"
+  }
+]

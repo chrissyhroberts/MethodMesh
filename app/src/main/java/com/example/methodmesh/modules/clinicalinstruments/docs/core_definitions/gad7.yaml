@@ -1,0 +1,70 @@
+schema: methodmesh.clinical-instrument.v1
+id: gad7
+name: GAD-7
+version: 1.0.0
+status: core
+type: screening
+category: mental_health
+tags: [anxiety, severity, gad]
+summary: Seven-item anxiety symptom severity measure covering the previous two weeks.
+source_url: https://www.nih.gov/node/19876
+citation: "Spitzer RL, Kroenke K, Williams JBW, Lowe B. A brief measure for assessing generalized anxiety disorder. Arch Intern Med. 2006;166:1092-1097."
+rights_status: public_domain
+rights_note: NIH lists GAD-7 copyright as No; published reviews describe GAD-7/GAD-2 as public-domain instruments.
+questions:
+  - id: q1_nervous
+    label: Feeling nervous, anxious, or on edge
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q2_control_worry
+    label: Not being able to stop or control worrying
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q3_worrying
+    label: Worrying too much about different things
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q4_relaxing
+    label: Trouble relaxing
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q5_restless
+    label: Being so restless that it is hard to sit still
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q6_irritable
+    label: Becoming easily annoyed or irritable
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: q7_afraid
+    label: Feeling afraid as if something awful might happen
+    hint: Over the last 2 weeks.
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+scores:
+  - id: gad7
+    label: GAD-7
+    expression: q1_nervous + q2_control_worry + q3_worrying + q4_relaxing + q5_restless + q6_irritable + q7_afraid
+classifications:
+  - when: gad7 <= 4
+    value: minimal
+    label: Minimal anxiety
+  - when: gad7 >= 5 and gad7 <= 9
+    value: mild
+    label: Mild anxiety
+  - when: gad7 >= 10 and gad7 <= 14
+    value: moderate
+    label: Moderate anxiety
+  - when: gad7 >= 15
+    value: severe
+    label: Severe anxiety
+tests:
+  - name: moderate
+    input_json: '{"q1_nervous":"2","q2_control_worry":"2","q3_worrying":"2","q4_relaxing":"1","q5_restless":"1","q6_irritable":"1","q7_afraid":"1"}'
+    expect_json: '{"gad7":10,"classification":"moderate"}'

@@ -1,0 +1,43 @@
+---
+title: "MethodMesh"
+toc: false
+---
+
+<div class="hero-banner">
+<div class="kicker">Offline-first Android capability runtime</div>
+<h1>MethodMesh</h1>
+<div class="hero-sub">Research and field methods as reusable phone capabilities — run directly, compose into workflows, or call from ODK/XLSForm through the same contract.</div>
+<div class="hero-do">Do stuff. Return the beef. Keep the audit trail available when it is actually wanted.</div>
+</div>
+
+<div class="mm-grid">
+<div class="mm-card"><div class="mm-stat">66</div><div class="mm-stat-label">discoverable module objects in the supplied source snapshot</div></div>
+<div class="mm-card"><div class="mm-stat">279</div><div class="mm-stat-label">canonical method IDs indexed from modules plus the shared scheduler runtime</div></div>
+<div class="mm-card"><div class="mm-stat">147</div><div class="mm-stat-label">module-owned XLSForm examples in the current source tree</div></div>
+<div class="mm-card"><div class="mm-stat">218</div><div class="mm-stat-label">module-local documentation files preserved in the reference library</div></div>
+</div>
+
+## What MethodMesh is now
+
+MethodMesh has two equal jobs. It lets a person use the phone as a practical field toolbox, and it lets external systems call those same capabilities through a stable method contract. The dashboard is important, but it is only one projection of that contract. Capabilities must remain independently addressable from direct native use, presets, protocols, schedules, widgets and ODK/XLSForm.
+
+<div class="mm-rule"><strong>Canonical rule:</strong> define a capability once. Project it into every interaction surface. Do not create dashboard-only behaviour, preset-only outputs, or a second ODK schema.</div>
+
+## Start with the task
+
+<div class="mm-grid">
+<div class="mm-card"><h3>[Use MethodMesh](getting-started.qmd)</h3><p>Understand the app surfaces and the shortest path from task to committed result.</p></div>
+<div class="mm-card"><h3>[Browse capabilities](reference/modules/index.qmd)</h3><p>Search the complete source-derived module and capability catalogue.</p></div>
+<div class="mm-card"><h3>[Build with ODK/XLSForm](workflows/odk-xlsform.qmd)</h3><p>Use grouped intent calls, canonical inputs and namespaced flat/full-JSON returns.</p></div>
+<div class="mm-card"><h3>[Download example forms](reference/forms.qmd)</h3><p>Browse all current module-owned XLSForms by owning module.</p></div>
+<div class="mm-card"><h3>[Understand Commit](system/native-lifecycle.qmd)</h3><p>See how live working results become a frozen canonical payload and close out correctly by launch origin.</p></div>
+<div class="mm-card"><h3>[Write or review a module](development/module-authoring.qmd)</h3><p>Follow the self-contained module contract, parity rules, documentation requirements and build/test gates.</p></div>
+</div>
+
+## Product model
+
+The top-level app model is **Dashboard · Presets · Protocols · Capabilities · Workbench · Device registry · Settings · Widgets**. The phone should feel like a toolbox rather than a database-management application. Results are primary; provenance, diagnostics, manifests and raw JSON remain available without dominating routine use.
+
+The [Master Book v1.05](reference/master-book.qmd) is the normative working doctrine used for this refresh. The [current reference library](reference/modules/index.qmd) is additionally reconciled against the supplied `src` snapshot so it documents capabilities that have appeared since the older website catalogue was written.
+
+<div class="source-note">Reference snapshot refreshed 7 September 2026 from the supplied MethodMesh Master Book v1.05, Android <code>src</code> tree and previous website source.</div>

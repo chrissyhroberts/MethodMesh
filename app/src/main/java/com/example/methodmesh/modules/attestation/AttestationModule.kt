@@ -33,6 +33,7 @@ object AttestationModule : MethodMeshModule {
     override fun capabilitySettings() = mapOf(
         As100CreateAttestationMethod.ID to listOf(
             MethodSetting.TextSetting("event_payload_hash", "Event payload hash", defaultValue = ""),
+            MethodSetting.TextSetting("commitment_recipe", "Commitment recipe", defaultValue = DEFAULT_ATTESTATION_COMMITMENT_RECIPE),
             MethodSetting.ChoiceSetting("verification_method", "Verification method", defaultValue = "Fingerprint", choices = listOf("Fingerprint", "Pin", "Qr", "Nfc", "Password")),
             MethodSetting.ChoiceSetting("trusted_timestamp", "Trusted timestamp", defaultValue = "preferred", choices = listOf("disabled", "preferred", "required")),
             MethodSetting.TextSetting("trusted_timestamp_authority", "Trusted timestamp authority URL", defaultValue = DEFAULT_TRUSTED_TIMESTAMP_AUTHORITY_URL),

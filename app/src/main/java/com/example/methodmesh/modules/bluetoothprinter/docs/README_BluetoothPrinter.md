@@ -1,36 +1,62 @@
-# Bluetooth printer
+# Bluetooth printer module — Qutie family
 
-## Capabilities
+Method ID: `bluetooth_print`
 
-`bluetooth_print` sends a text or raw hexadecimal payload to a paired Bluetooth thermal printer. It is intended for small labels, identifiers, and scheduler-triggered print jobs. The first profile targets the common BLE thermal-printer layout exposed by Qutie-like devices: service `FF00` and writable characteristic `FF02`.
+This module is a self-contained MethodMesh capability for the Qutie printer and compatible low-cost BLE thermal printers using the FF00/LuckPrinter-style transport.
 
-## Android intent
+## Architecture
 
-```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='bluetooth_print',input_printer_payload='MethodMesh test label',input_printer_payload_format='text',return_mode='flat')
-```
+Everything printer-specific is contained inside `modules/bluetoothprinter/`.
 
-The current prototype is primarily interactive so the operator can select and inspect the paired printer. The endpoint UUIDs remain editable because printer firmware variants may differ.
+The module uses only MethodMesh contracts that already exist for every capability:
 
-## Inputs
+- `MethodMeshModule.as100Methods()`
+- `MethodMeshModule.rilBindings()`
+- `MethodMeshModule.capabilityScreens()`
+- `MethodMeshModule.capabilitySettings()`
+- `CapabilityScreenContext.onSettingsChanged()`
+- the existing MethodMesh execution/result model
 
-- `input_printer_payload`: text or hexadecimal bytes to send.
-- `input_printer_payload_format`: `text` or `hex`.
-- `input_printer_device_address`: optional paired-device address.
-- `input_printer_service_uuid`: optional GATT service UUID; defaults to the Qutie-style `FF00` service.
-- `input_printer_write_uuid`: optional writable characteristic UUID; defaults to `FF02`.
+It does not require changes to `HomeScreen`, the module registry, preset UI, settings renderer, or any other capability.
 
-## Outputs
+## Current hardware defaults
 
-- selected printer name and address;
-- service and write characteristic UUIDs;
-- payload format and byte count;
-- `printer_status` and print time.
+- BLE service: `FF00`
+- write characteristic: `FF02`
+- notification characteristic: `FF01`
+- print-head width: 96 px
+- density: 1
+- continuous paper mode
+- blank-raster eject: 150 px
+- text direction: along the label
+- text alignment: centred across the label
 
-## ODK example
+The 150 px eject default is hardware-calibrated on the tested Qutie. Blank raster rows are used because post-raster `ESC J` feed was not effective on that firmware.
 
-Open `example_odk_bluetooth_print.xlsx` and install it in ODK Collect. The workbook demonstrates an explicit `bluetooth_print` intent and fields for the payload and returned status.
+## Label composition
 
-## Notes
+Text labels support up to two lines, font size, line spacing, Sans/Serif/Monospace, regular/bold/italic/bold-italic, along/across-label orientation, centring, offsets and automatic minimum-length growth.
 
-The endpoint layout is not, by itself, proof that the Qutie firmware accepts ESC/POS commands. The prototype sends a conservative generic thermal-text payload; reliable label graphics, barcodes, and cutter control will require confirmation against the Qutie hardware.
+QR codes can optionally print their payload as human-readable text after the QR. The readable text has its own font size, typeface, style and QR-to-text gap.
+
+Code 128 and raw hexadecimal output are also supported.
+
+## Presets and settings
+
+The module exports typed `MethodSetting` metadata through `capabilitySettings()`. This is the same contract used by other standalone MethodMesh capabilities. The capability screen additionally provides dynamic controls that static settings metadata cannot provide, notably the paired-Bluetooth-device picker and live label preview.
+
+No capability-specific preset implementation exists outside this folder.
+
+## Installation
+
+Overlay the `bluetoothprinter/` directory onto:
+
+`app/src/main/java/com/example/methodmesh/modules/bluetoothprinter/`
+
+Do not apply any core patch.
+
+If your existing module folder contains `docs/example_odk_bluetooth_print.xlsx`, retain that file when overlaying this update. It is a binary example workbook from the existing repository and is not recreated by this source-only package.
+
+## Licensing and attribution
+
+See `ATTRIBUTION.md` and `THIRD_PARTY_NOTICES.md`.

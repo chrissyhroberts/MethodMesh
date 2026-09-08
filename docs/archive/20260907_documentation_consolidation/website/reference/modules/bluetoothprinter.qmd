@@ -1,0 +1,46 @@
+---
+title: "Bluetooth printer"
+subtitle: "Module reference · bluetoothprinter"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Qutie-family FF00/LuckPrinter BLE thermal printing with text, QR and Code 128 composition.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>bluetoothprinter</code></div>
+<div><strong>Source directory</strong><code>bluetoothprinter</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>0</div>
+<div><strong>Source docs</strong>6</div>
+<div><strong>Explicit source status labels</strong>Production</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `bluetooth_print` | print with Qutie-family Bluetooth printer | Print to a Qutie or compatible FF00/LuckPrinter-family BLE thermal printer | <span class="badge-source">current source</span> | RIL binding, capability screen, module docs, module registry |
+
+## ODK / XLSForm examples
+
+_No module-owned XLSForm was present in this supplied `docs/` directory._
+
+## Module-local documentation
+
+- [Standalone capability architecture](../source-docs/bluetoothprinter/ARCHITECTURE.qmd) — `ARCHITECTURE.md`
+- [Protocol provenance and attribution](../source-docs/bluetoothprinter/ATTRIBUTION.qmd) — `ATTRIBUTION.md`
+- [v2.12.0 — standalone capability refactor](../source-docs/bluetoothprinter/CHANGES_v2_12.qmd) — `CHANGES_v2_12.md`
+- [Migration to v2.12](../source-docs/bluetoothprinter/MIGRATION.qmd) — `MIGRATION.md`
+- [Bluetooth printer module — Qutie family](../source-docs/bluetoothprinter/README_BluetoothPrinter.qmd) — `README_BluetoothPrinter.md`
+- [Third-party notices](../source-docs/bluetoothprinter/THIRD_PARTY_NOTICES.qmd) — `THIRD_PARTY_NOTICES.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

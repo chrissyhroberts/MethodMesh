@@ -1,0 +1,76 @@
+schema: methodmesh.clinical-instrument.v1
+id: sirs
+name: SIRS criteria
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [systemic_inflammation, infection, acute]
+summary: Count of the four classic systemic inflammatory response syndrome criteria.
+source_url: https://pubmed.ncbi.nlm.nih.gov/1303622/
+citation: "Bone RC, Balk RA, Cerra FB, et al. ACCP/SCCM Consensus Conference definitions. Chest. 1992."
+rights_status: factual_definition
+rights_note: Implements physiological thresholds from the consensus definition. SIRS is not synonymous with sepsis.
+questions:
+  - id: temperature_c
+    label: Temperature
+    type: decimal
+    unit: C
+    min: 20
+    max: 45
+  - id: heart_rate
+    label: Heart rate
+    type: integer
+    unit: beats/min
+    min: 20
+    max: 250
+  - id: respiratory_rate
+    label: Respiratory rate
+    type: integer
+    unit: breaths/min
+    min: 0
+    max: 100
+  - id: paco2_mmhg
+    label: PaCO2 if available
+    type: decimal
+    unit: mmHg
+    required: false
+    min: 5
+    max: 100
+  - id: wbc_10e9_l
+    label: White blood cell count
+    type: decimal
+    unit: x10^9/L
+    min: 0
+    max: 100
+  - id: bands_percent
+    label: Immature band forms if available
+    type: decimal
+    unit: percent
+    required: false
+    min: 0
+    max: 100
+derived:
+  - id: temperature_criterion
+    expression: temperature_c > 38 or temperature_c < 36
+  - id: heart_rate_criterion
+    expression: heart_rate > 90
+  - id: respiratory_criterion
+    expression: respiratory_rate > 20 or paco2_mmhg < 32
+  - id: wbc_criterion
+    expression: wbc_10e9_l > 12 or wbc_10e9_l < 4 or bands_percent > 10
+scores:
+  - id: sirs
+    label: SIRS criteria present
+    expression: temperature_criterion + heart_rate_criterion + respiratory_criterion + wbc_criterion
+classifications:
+  - when: sirs >= 2
+    value: two_or_more
+    label: Two or more SIRS criteria
+  - when: sirs < 2
+    value: fewer_than_two
+    label: Fewer than two SIRS criteria
+tests:
+  - name: two
+    input_json: '{"temperature_c":39,"heart_rate":100,"respiratory_rate":18,"wbc_10e9_l":8}'
+    expect_json: '{"sirs":2,"classification":"two_or_more"}'

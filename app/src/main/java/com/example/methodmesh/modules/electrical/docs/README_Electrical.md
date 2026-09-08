@@ -1,0 +1,64 @@
+# MethodMesh Electrical module
+
+Status: v0.2 implementation candidate  
+Target: current MethodMesh master / AS1.00 module contract
+
+## Product intent
+
+Electrical is an offline-first field/bench workbench. The native path is deliberately short: choose a tool, enter the minimum useful values, calculate, then tap the result to copy it or use Share. The screen does not foreground graph IDs, provenance or audit detail; those remain available through the normal MethodMesh execution result.
+
+The v0.2 workbench exposes one stable AS1.00 method: `electrical.workbench`. The `tool` input selects a deterministic calculation. This keeps the native UI coherent while still allowing ODK, RIL, presets and protocols to invoke the same calculation engine.
+
+## Tools
+
+| `tool` | Purpose | Required inputs |
+|---|---|---|
+| `ohms_law` | Solve V/I/R/P | any two of `voltage_v`, `current_a`, `resistance_ohm`, `power_w` |
+| `ac_power` | Single/three-phase real, apparent and reactive power | `voltage_v`, `current_a`; optional `phase`, `power_factor` |
+| `voltage_drop` | Resistance-only conductor voltage-drop estimate | `voltage_v`, `current_a`, `length_m`, `conductor_area_mm2`; optional material/temperature/PF/phase |
+| `network` | Series/parallel equivalent R or C | `values`, `network_type`, `arrangement` |
+| `energy` | Power, energy and simple battery runtime | power or V+I; optional duration/capacity |
+| `rc` | RC time constant and cutoff | `resistance_ohm`, `capacitance_f` |
+| `rl` | RL time constant | `resistance_ohm`, `inductance_h` |
+| `resistor_code` | 4/5-band resistor colour decoder | `bands` |
+
+## Core outputs
+
+`electrical_result` is the primary "beef" string for clipboard/share use. Structured outputs include `electrical_primary_value`, `electrical_primary_unit`, voltage/current/resistance/power fields, AC power fields, voltage-drop fields, equivalent network value, energy/runtime, time constant/cutoff, tolerance, status/error and a short warning.
+
+## UI/UX rules implemented
+
+- One polished workbench rather than eight unrelated form screens.
+- Tool picker exposes the task in user language.
+- Only fields relevant to the selected tool are visible.
+- Main result is visually dominant.
+- Tapping the result copies the exact useful value string.
+- Explicit Copy and Share controls are also present for discoverability/accessibility.
+- Safety/compliance caveat is inline only where it materially changes interpretation (not as a generic wall of warning text).
+- No network dependency.
+- All calculations return structured AS1.00 observations as well as the human-facing result.
+
+## Safety boundary
+
+This module performs calculations; it does not certify an electrical installation. `voltage_drop` is explicitly a resistance-only engineering estimate. It does not infer BS 7671 (or another jurisdiction's) installation method, cable grouping, ambient correction, protective-device characteristics, disconnection time, fault-loop impedance, thermal constraints or other compliance inputs.
+
+A later standards pack should be versioned and jurisdiction-selectable rather than silently embedded in this calculator.
+
+## V2 supervisory changes already applied
+
+The first pass used nonblank numeric capability-setting defaults. Review identified that this could fabricate extra Ohm's-law inputs when a preset/ODK invocation intended to supply only two values. v0.2 changes numeric settings to blank text inputs and validates over-specified Ohm's-law values for consistency.
+
+The first pass also exposed an `efficiency` input inside AC power. Review removed it because electrical real power is `S × PF`; motor/load efficiency is a separate downstream conversion and should not be silently folded into the core electrical power result.
+
+Voltage drop language was tightened to state that the present calculation is resistance-only and non-compliance-determining.
+
+## Candidate V3 additions
+
+- Prefix-aware entry/display (mA, kΩ, µF, mH, kW) rather than base-SI-only text fields.
+- AWG ↔ mm² and conductor resistance-per-length helper.
+- Transformer/turns-ratio tool.
+- Loaded voltage divider.
+- SMD resistor decoder.
+- Dedicated test-record protocol (continuity, insulation, polarity, loop/RCD fields) with export/share.
+- Instrument adapters for Bluetooth/USB multimeters and clamp meters using the existing MethodMesh device/service architecture.
+- Versioned jurisdiction standards packs, kept separate from deterministic calculator outputs.

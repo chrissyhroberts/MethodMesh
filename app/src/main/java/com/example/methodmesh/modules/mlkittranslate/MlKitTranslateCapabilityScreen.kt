@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -27,7 +28,9 @@ import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
+import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
+import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.transport.workflow.ui.IntentExample
 import com.example.methodmesh.transport.workflow.ui.IntentExampleDropdown
@@ -51,15 +54,33 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
         onConfirmed: (ExecutionResult) -> Unit,
         onCancel: () -> Unit
     ) {
-        var source by rememberSaveable { mutableStateOf(context.action.settings["source_language"] ?: context.action.settings["input_source_language"] ?: "en") }
-        var target by rememberSaveable { mutableStateOf(context.action.settings["target_language"] ?: context.action.settings["input_target_language"] ?: "fr") }
-        var text by rememberSaveable { mutableStateOf(context.action.settings["input_text"] ?: context.action.settings["input_input_text"] ?: "hello world") }
+        var source by rememberSaveable {
+            mutableStateOf(MlKitLanguageCatalog.canonicalCode(context.action.settings["source_language"] ?: context.action.settings["input_source_language"], "en"))
+        }
+        var target by rememberSaveable {
+            mutableStateOf(MlKitLanguageCatalog.canonicalCode(context.action.settings["target_language"] ?: context.action.settings["input_target_language"], "fr"))
+        }
+        var text by rememberSaveable { mutableStateOf(context.action.settings["input_text"] ?: context.action.settings["input_input_text"] ?: "") }
         val action = context.action.settings["model_action"] ?: context.action.settings["input_model_action"] ?: "translate"
-        val modelLanguage = context.action.settings["model_language"] ?: context.action.settings["input_model_language"]
+        val modelLanguage = MlKitLanguageCatalog.canonicalCode(context.action.settings["model_language"] ?: context.action.settings["input_model_language"])
+        val hasSuppliedText = remember(context.action.settings, context.request.settings) {
+            listOf("input_text", "input_input_text", "text")
+                .any { key -> context.action.settings[key].orEmpty().isNotBlank() || context.request.settings[key].orEmpty().isNotBlank() }
+        }
+        val needsRuntimeText = action == "translate" && (
+            text.isBlank() ||
+                context.settingIsRuntimeInput("input_text") ||
+                context.settingIsRuntimeInput("text")
+            )
+        val needsRuntimeSource = context.settingIsRuntimeInput("source_language")
+        val needsRuntimeTarget = context.settingIsRuntimeInput("target_language")
+        val needsRuntimeLanguages = needsRuntimeSource || needsRuntimeTarget
+        val compactInputOnly = context.presentationMode == CapabilityPresentationMode.IntentLaunch && needsRuntimeText && !needsRuntimeLanguages
         var sourceMenuOpen by rememberSaveable { mutableStateOf(false) }
         var targetMenuOpen by rememberSaveable { mutableStateOf(false) }
-        var status by rememberSaveable { mutableStateOf("Choose languages. Downloaded models can be managed here.") }
+        var status by rememberSaveable { mutableStateOf(if (needsRuntimeText) "Enter text to translate." else "Ready.") }
         var downloaded by rememberSaveable { mutableStateOf("") }
+        var busyModelCode by rememberSaveable { mutableStateOf<String?>(null) }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
@@ -70,7 +91,7 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
                     put("target_language", target)
                     put("input_text", text)
                     put("model_action", action)
-                    modelLanguage?.takeIf { it.isNotBlank() }?.let { put("model_language", it) }
+                    modelLanguage.takeIf { it.isNotBlank() }?.let { put("model_language", it) }
                 }
             )
         }
@@ -85,7 +106,7 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
             val execution = As100MlKitTranslateMethod.result(request, values, context.request.invocationContext)
             result = execution
             status = if (succeeded) "ML Kit translation action complete." else values[MlKitTranslateFields.ERROR] ?: "Translation failed."
-            if (context.startsImmediately && succeeded) onConfirmed(execution)
+            if (context.completionMode == CapabilityCompletionMode.AutomaticReturn && succeeded && (!needsRuntimeText || hasSuppliedText)) onConfirmed(execution)
         }
 
         fun values(action: String, translated: String = "", error: String = "", state: String = "succeeded") = linkedMapOf(
@@ -116,35 +137,57 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun download(code: String) {
-            status = "Downloading $code model…"
-            val model = TranslateRemoteModel.Builder(code).build()
+            val canonical = MlKitLanguageCatalog.canonicalCode(code)
+            if (canonical !in MlKitLanguageCatalog.supportedCodes()) {
+                complete(values("download", error = "${languageLabel(code)} is not available in ML Kit translation.", state = "failed"), false)
+                return
+            }
+            busyModelCode = canonical
+            status = "Downloading ${languageLabel(canonical)}…"
+            val model = TranslateRemoteModel.Builder(canonical).build()
             RemoteModelManager.getInstance()
                 .download(model, DownloadConditions.Builder().build())
                 .addOnSuccessListener {
+                    busyModelCode = null
                     refreshModels()
                     complete(values("download"), true)
                 }
                 .addOnFailureListener { error ->
+                    busyModelCode = null
                     complete(values("download", error = "Download failed: ${error.message.orEmpty()}", state = "failed"), false)
                 }
         }
 
         fun delete(code: String) {
-            status = "Removing $code model…"
-            val model = TranslateRemoteModel.Builder(code).build()
+            val canonical = MlKitLanguageCatalog.canonicalCode(code)
+            if (canonical !in MlKitLanguageCatalog.supportedCodes()) {
+                complete(values("delete", error = "${languageLabel(code)} is not available in ML Kit translation.", state = "failed"), false)
+                return
+            }
+            busyModelCode = canonical
+            status = "Removing ${languageLabel(canonical)} model…"
+            val model = TranslateRemoteModel.Builder(canonical).build()
             RemoteModelManager.getInstance()
                 .deleteDownloadedModel(model)
                 .addOnSuccessListener {
+                    busyModelCode = null
                     refreshModels()
                     complete(values("delete"), true)
                 }
                 .addOnFailureListener { error ->
+                    busyModelCode = null
                     complete(values("delete", error = "Delete failed: ${error.message.orEmpty()}", state = "failed"), false)
                 }
         }
 
         fun translate() {
+            if (text.isBlank()) {
+                status = "Enter text to translate."
+                return
+            }
             status = "Preparing translation models…"
+            source = MlKitLanguageCatalog.canonicalCode(source, "en")
+            target = MlKitLanguageCatalog.canonicalCode(target, "fr")
             val options = TranslatorOptions.Builder()
                 .setSourceLanguage(source)
                 .setTargetLanguage(target)
@@ -169,15 +212,16 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
                 }
         }
 
-        LaunchedEffect(context.startsImmediately) {
-            if (context.startsImmediately && !launched) {
+        LaunchedEffect(context.startsImmediately, context.isNativePresetRun, hasSuppliedText, needsRuntimeText, needsRuntimeLanguages) {
+            val shouldAutoRun = context.startsImmediately || (context.isNativePresetRun && !needsRuntimeText && !needsRuntimeLanguages)
+            if (shouldAutoRun && !launched && (!needsRuntimeText || hasSuppliedText)) {
                 launched = true
                 when (action) {
                     "list" -> refreshModels(thenComplete = true)
-                    "download", "download_target" -> download(modelLanguage ?: target)
-                    "download_source" -> download(modelLanguage ?: source)
-                    "delete", "delete_target" -> delete(modelLanguage ?: target)
-                    "delete_source" -> delete(modelLanguage ?: source)
+                    "download", "download_target" -> download(modelLanguage.ifBlank { target })
+                    "download_source" -> download(modelLanguage.ifBlank { source })
+                    "delete", "delete_target" -> delete(modelLanguage.ifBlank { target })
+                    "delete_source" -> delete(modelLanguage.ifBlank { source })
                     else -> translate()
                 }
             }
@@ -195,39 +239,76 @@ object MlKitTranslateCapabilityScreen : CapabilityScreenSpec {
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
-            Text("Translation models are downloaded to the device and can be removed again here.", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                if (needsRuntimeText) "Enter text to translate. Powered by Google ML Kit." else "Translation runs on device. Powered by Google ML Kit.",
+                style = MaterialTheme.typography.bodyMedium
+            )
             Spacer(Modifier.height(10.dp))
-            LanguagePicker("Source language", source, sourceMenuOpen, { sourceMenuOpen = it }) { source = it }
-            Spacer(Modifier.height(8.dp))
-            LanguagePicker("Target language", target, targetMenuOpen, { targetMenuOpen = it }) { target = it }
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(value = text, onValueChange = { text = it }, label = { Text("Text") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-            Spacer(Modifier.height(10.dp))
-            Row(Modifier.fillMaxWidth()) {
-                Button(onClick = { translate() }, modifier = Modifier.weight(1f)) { Text("Translate") }
+            if (!compactInputOnly || needsRuntimeLanguages) {
+                if (needsRuntimeSource || !context.isNativePresetRun) {
+                LanguagePicker("Source language", source, sourceMenuOpen, { sourceMenuOpen = it }) { source = MlKitLanguageCatalog.canonicalCode(it, "en") }
+                Spacer(Modifier.height(8.dp))
+                }
+                if (needsRuntimeTarget || !context.isNativePresetRun) {
+                LanguagePicker("Target language", target, targetMenuOpen, { targetMenuOpen = it }) { target = MlKitLanguageCatalog.canonicalCode(it, "fr") }
+                Spacer(Modifier.height(8.dp))
+                }
+            } else {
+                Text("${languageLabel(source)} → ${languageLabel(target)}", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+            }
+            if (needsRuntimeText || !context.isNativePresetRun) {
+                OutlinedTextField(value = text, onValueChange = { text = it }, label = { Text("Text to translate") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                Spacer(Modifier.height(10.dp))
             }
             Row(Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = { download(source) }, modifier = Modifier.weight(1f)) { Text("Download source") }
-                Spacer(Modifier.padding(4.dp))
-                OutlinedButton(onClick = { download(target) }, modifier = Modifier.weight(1f)) { Text("Download target") }
+                Button(onClick = { translate() }, modifier = Modifier.weight(1f), enabled = text.isNotBlank()) { Text("Translate") }
             }
-            Row(Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = { delete(source) }, modifier = Modifier.weight(1f)) { Text("Remove source") }
-                Spacer(Modifier.padding(4.dp))
-                OutlinedButton(onClick = { refreshModels(thenComplete = true) }, modifier = Modifier.weight(1f)) { Text("List models") }
+            if (!compactInputOnly) {
+                Row(Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { download(source) }, modifier = Modifier.weight(1f)) { Text("Download source") }
+                    Spacer(Modifier.padding(4.dp))
+                    OutlinedButton(onClick = { download(target) }, modifier = Modifier.weight(1f)) { Text("Download target") }
+                }
+                Row(Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { delete(source) }, modifier = Modifier.weight(1f)) { Text("Remove source") }
+                    Spacer(Modifier.padding(4.dp))
+                    OutlinedButton(onClick = { refreshModels(thenComplete = true) }, modifier = Modifier.weight(1f)) { Text("List models") }
+                }
             }
             Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
+            busyModelCode?.let { code ->
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(4.dp))
+                Text("Working on ${languageLabel(code)}. Keep this screen open.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+            }
+            result?.let { execution ->
+                val translated = OutputFormatter.fields(
+                    execution,
+                    includeProvenance = false,
+                    payloadMode = OutputFormatter.PayloadMode.CORE
+                )[MlKitTranslateFields.TRANSLATED_TEXT]
+                    ?.toString()
+                    .orEmpty()
+                if (translated.isNotBlank()) {
+                    Text("Translated text", fontWeight = FontWeight.SemiBold)
+                    Text(translated, style = MaterialTheme.typography.titleMedium)
+                }
+            }
             if (downloaded.isNotBlank()) {
                 Text("Downloaded: $downloaded", style = MaterialTheme.typography.bodySmall)
             }
-            IntentExampleDropdown(
-                capabilityId = capabilityId,
-                examples = listOf(
-                    IntentExample("Translate text", "Translate text on device, downloading models if needed.", "com.example.methodmesh.EXECUTE_METHOD(method_id='mlkit.translate',input_source_language='en',input_target_language='fr',input_text='hello world',return_mode='flat')"),
-                    IntentExample("List language models", "Return installed ML Kit translation languages.", "com.example.methodmesh.EXECUTE_METHOD(method_id='mlkit.translate',input_model_action='list',return_mode='flat')"),
-                    IntentExample("Download one language", "Download a translation model for later offline use.", "com.example.methodmesh.EXECUTE_METHOD(method_id='mlkit.translate',input_model_action='download',input_model_language='fr',return_mode='flat')")
+            if (!compactInputOnly) {
+                IntentExampleDropdown(
+                    capabilityId = capabilityId,
+                    examples = listOf(
+                        IntentExample("Translate text", "Translate text on device, downloading models if needed.", "com.example.methodmesh.EXECUTE_METHOD(method_id='mlkit.translate',input_source_language='en',input_target_language='fr',input_text='hello world',return_mode='flat')"),
+                        IntentExample("List language models", "Return installed ML Kit translation languages.", "com.example.methodmesh.EXECUTE_METHOD(method_id='mlkit.translate',input_model_action='list',return_mode='flat')"),
+                        IntentExample("Download one language", "Download a translation model for later offline use.", "com.example.methodmesh.EXECUTE_METHOD(method_id='mlkit.translate',input_model_action='download',input_model_language='fr',return_mode='flat')")
+                    )
                 )
-            )
+            }
         }
     }
 }
@@ -249,26 +330,8 @@ private fun LanguagePicker(label: String, selected: String, expanded: Boolean, s
 }
 
 private fun mlKitLanguages(): List<String> =
-    runCatching { TranslateLanguage.getAllLanguages().sorted() }.getOrElse { commonMlKitLanguageCodes }
+    MlKitLanguageCatalog.supportedLanguages().map { it.code }
 
 private fun availableLanguagesText(): String = mlKitLanguages().joinToString(",")
 
-private fun languageLabel(code: String): String = "$code${languageName(code)?.let { " · $it" }.orEmpty()}"
-
-private fun languageName(code: String): String? = when (code) {
-    "en" -> "English"
-    "fr" -> "French"
-    "es" -> "Spanish"
-    "pt" -> "Portuguese"
-    "de" -> "German"
-    "it" -> "Italian"
-    "ar" -> "Arabic"
-    "hi" -> "Hindi"
-    "sw" -> "Swahili"
-    "zh" -> "Chinese"
-    "ja" -> "Japanese"
-    "ko" -> "Korean"
-    "ru" -> "Russian"
-    "uk" -> "Ukrainian"
-    else -> null
-}
+private fun languageLabel(code: String): String = MlKitLanguageCatalog.label(code)

@@ -1,0 +1,8 @@
+# Validation note — Music v0.2.0
+
+- `MusicAlgorithms.kt` + `MusicCreationAlgorithms.kt` compiled with `kotlinc`.
+- Smoke tests exercised 5/16 Euclidean rhythm, tapped-rhythm quantisation, I–V–vi–IV progression, arpeggio generation, root/fifth bassline generation and motif transformations.
+- A bassline octave-boundary issue found by the smoke test was corrected (e.g. F2→C3).
+- Android Compose/audio sources are source-reviewed but not compiled against the full MethodMesh Android repository here.
+- Drum/looper audio remains **Development** pending physical-device tests for latency, audio focus, microphone permissions and Bluetooth routing.
+- XLSForm examples are provided for every new capability/dashboard.

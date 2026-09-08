@@ -1,0 +1,17 @@
+---
+title: "Settings and shared services"
+---
+
+Settings is reserved for shared app-level controls and services. Capability-specific parameters belong to module-owned capability settings so they project consistently into direct runs and preset authoring.
+
+## Current/shared service patterns
+
+- ML Kit language model download/availability;
+- output/export preferences;
+- shared hardware/service controls;
+- credentials for online services where appropriate;
+- future shared resource packs such as offline map tiles.
+
+## Fixed, runtime and operational inputs
+
+A capability setting may be fixed by a preset, requested at runtime, or treated as an operational input. Preset authoring decides that policy without changing the canonical input name or semantics.

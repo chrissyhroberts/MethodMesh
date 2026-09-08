@@ -1,0 +1,54 @@
+---
+title: "Installation and device preparation"
+---
+
+## Build from the current repository
+
+The previous website documents MethodMesh as a sideloaded Android application rather than a Play Store release. For development/testing, build from the trusted repository and install the resulting APK on the device.
+
+### Requirements
+
+You need Android Studio or the Android command-line build environment, the SDK/JDK versions required by the current project, and a local checkout of MethodMesh. Let Gradle resolve the project before treating build errors as capability defects.
+
+### Standard debug build
+
+Master Book v1.05 uses the app-scoped build command:
+
+```bash
+./gradlew :app:assembleDebug
+```
+
+For test plus build:
+
+```bash
+./gradlew :app:testDebugUnitTest
+./gradlew :app:assembleDebug
+```
+
+The debug APK is normally under `app/build/outputs/apk/debug/`.
+
+## Install on a development device
+
+You can run directly from Android Studio with USB debugging enabled, or install with ADB:
+
+```bash
+adb devices
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+Only approve USB debugging on trusted computers. If Android refuses an update because the installed build was signed with a different key, uninstalling the old package will remove its local MethodMesh app data.
+
+## Sideloading
+
+If an APK is transferred manually, use only a build you created or obtained from an approved MethodMesh source. Android may require temporary **Allow from this source** permission for the file manager/browser used to open the APK. Managed research devices may prohibit sideloading; do not bypass device-management policy.
+
+## Smoke check after installation
+
+1. Open MethodMesh and confirm the dashboard loads.
+2. Open the capability catalogue.
+3. Grant only permissions required for the capability being exercised.
+4. Run a direct native capability.
+5. Test at least one ODK → MethodMesh → ODK roundtrip.
+6. Repeat relevant tests in airplane mode where offline operation is expected.
+
+For capability-specific permissions/hardware requirements, use the [module reference library](reference/modules/index.qmd).

@@ -1,0 +1,59 @@
+schema: methodmesh.clinical-instrument.v1
+id: pre_endoscopy_rockall
+name: Pre-endoscopy Rockall score
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [gastrointestinal, bleeding, upper_gi, emergency]
+summary: Clinical Rockall score using age, haemodynamic shock and major comorbidity before endoscopy.
+source_url: https://portal.e-lfh.org.uk/AICC_Content/ACU_06_011/d/ELFH_Session/_/tab_670.html
+citation: "Rockall TA, Logan RFA, Devlin HB, Northfield TC. Risk assessment after acute upper gastrointestinal haemorrhage. Gut. 1996;38:316-321. Clinical score cross-checked against NHS e-Learning for Healthcare."
+rights_status: factual_definition
+rights_note: Implements the numerical clinical Rockall criteria without reproducing explanatory source material.
+questions:
+  - id: age_years
+    label: Age
+    type: integer
+    unit: years
+    min: 16
+    max: 130
+  - id: pulse
+    label: Pulse
+    type: integer
+    unit: beats/min
+    min: 0
+    max: 300
+  - id: systolic_bp
+    label: Systolic blood pressure
+    type: integer
+    unit: mmHg
+    min: 20
+    max: 300
+  - id: comorbidity
+    label: Major comorbidity category
+    type: select_one
+    choices: [0|No major comorbidity, 2|Heart failure / ischaemic heart disease / other major comorbidity, 3|Renal failure / liver failure / disseminated malignancy]
+derived:
+  - id: age_points
+    expression: (age_years >= 60 and age_years < 80) + (age_years >= 80) * 2
+  - id: shock_points
+    expression: (systolic_bp < 100) * 2 + (systolic_bp >= 100 and pulse >= 100)
+scores:
+  - id: pre_endoscopy_rockall
+    label: Pre-endoscopy Rockall
+    expression: age_points + shock_points + comorbidity
+classifications:
+  - when: pre_endoscopy_rockall == 0
+    value: score_zero
+    label: Clinical Rockall score 0
+  - when: pre_endoscopy_rockall > 0
+    value: score_above_zero
+    label: Clinical Rockall score above 0
+tests:
+  - name: zero
+    input_json: '{"age_years":45,"pulse":80,"systolic_bp":120,"comorbidity":"0"}'
+    expect_json: '{"pre_endoscopy_rockall":0,"classification":"score_zero"}'
+  - name: maximum_clinical
+    input_json: '{"age_years":85,"pulse":120,"systolic_bp":90,"comorbidity":"3"}'
+    expect_json: '{"pre_endoscopy_rockall":7,"classification":"score_above_zero"}'

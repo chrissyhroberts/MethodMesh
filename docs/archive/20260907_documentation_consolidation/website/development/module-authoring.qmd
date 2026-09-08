@@ -1,0 +1,31 @@
+---
+title: "Module authoring contract"
+---
+
+## Handoff shape
+
+A capability implementation is returned as exactly one self-contained `<module_name>/` folder, not a whole app/repository tree. Code sits at that folder root and documentation/examples live beneath its `docs/` directory. Exceptional shared-framework changes should be called out separately rather than hidden inside a fake full-tree handoff.
+
+## Minimum architecture
+
+1. Implement a `MethodMeshModule` object.
+2. Expose canonical `As100Method` implementations with unique method IDs.
+3. Own capability-specific screens/settings inside the module.
+4. Expose every individual capability for direct use, presets, protocols and ODK.
+5. Supply dashboard presence without moving capability logic into shared dashboard code.
+6. Keep output names/types/semantics identical across projections.
+7. Start in Development unless explicitly promoted.
+
+## UX obligations
+
+- use capability-specific polished UI where warranted;
+- keep current results visible while working;
+- make displayed returnable values tap-to-copy;
+- use Commit as finalisation;
+- reveal post-commit actions without forcing a generic result screen;
+- preserve meaningful state across rotation;
+- preserve launch origin for closeout.
+
+## Offline and attribution
+
+Document permissions, offline/online behaviour, third-party libraries/services, licence/terms, attribution and privacy/data egress.

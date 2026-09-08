@@ -1,0 +1,72 @@
+schema: methodmesh.clinical-instrument.v1
+id: crb65
+name: CRB-65
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [pneumonia, respiratory, mortality_risk, primary_care]
+summary: Mortality-risk score for adults with community-acquired pneumonia in primary care.
+source_url: https://www.nice.org.uk/guidance/NG250/chapter/recommendations
+citation: "NICE NG250 Pneumonia: diagnosis and management, recommendation 1.2 and CRB65 box. Updated 2025."
+rights_status: factual_definition
+rights_note: MethodMesh implements the numerical criteria and cites NICE; clinical use requires judgement alongside the score.
+questions:
+  - id: confusion
+    label: New confusion or disorientation?
+    hint: NICE includes abbreviated Mental Test score 8 or less, or new disorientation in person, place or time.
+    type: boolean
+  - id: respiratory_rate
+    label: Respiratory rate
+    type: integer
+    unit: breaths/min
+    min: 0
+    max: 100
+  - id: systolic_bp
+    label: Systolic blood pressure
+    type: integer
+    unit: mmHg
+    min: 20
+    max: 300
+  - id: diastolic_bp
+    label: Diastolic blood pressure
+    type: integer
+    unit: mmHg
+    min: 10
+    max: 200
+  - id: age_years
+    label: Age
+    type: integer
+    unit: years
+    min: 18
+    max: 130
+derived:
+  - id: confusion_criterion
+    expression: confusion == true
+  - id: rr_criterion
+    expression: respiratory_rate >= 30
+  - id: bp_criterion
+    expression: systolic_bp < 90 or diastolic_bp <= 60
+  - id: age_criterion
+    expression: age_years >= 65
+scores:
+  - id: crb65
+    label: CRB-65
+    expression: confusion_criterion + rr_criterion + bp_criterion + age_criterion
+classifications:
+  - when: crb65 == 0
+    value: low_risk
+    label: Low mortality risk
+  - when: crb65 >= 1 and crb65 <= 2
+    value: intermediate_risk
+    label: Intermediate mortality risk
+  - when: crb65 >= 3
+    value: high_risk
+    label: High mortality risk
+tests:
+  - name: zero
+    input_json: '{"confusion":false,"respiratory_rate":20,"systolic_bp":120,"diastolic_bp":80,"age_years":50}'
+    expect_json: '{"crb65":0,"classification":"low_risk"}'
+  - name: four
+    input_json: '{"confusion":true,"respiratory_rate":30,"systolic_bp":89,"diastolic_bp":60,"age_years":65}'
+    expect_json: '{"crb65":4,"classification":"high_risk"}'

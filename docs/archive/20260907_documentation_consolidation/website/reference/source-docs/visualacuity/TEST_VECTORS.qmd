@@ -1,0 +1,65 @@
+---
+title: "Visual acuity engine test vectors"
+subtitle: "Module source document · Visual acuity"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/visualacuity/docs/TEST_VECTORS.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+Algorithm: `methodmesh.vahome_fast_staircase` version `1.0.0`.
+
+## Geometry
+
+At 2 m:
+
+```text
+logMAR 0.0 -> E = 2.9089 mm, limb = 0.5818 mm
+logMAR 1.0 -> E = 29.089 mm, limb = 5.8179 mm
+```
+
+Formula:
+
+```text
+E_mm = 2*d*tan(((5*10^logMAR) arcmin in radians)/2)
+```
+
+## Staircase
+
+Each row below uses five identical correctness values per tested level for clarity. Real orientations are independently randomized.
+
+### Full pass
+
+```text
+1.0 P -> 0.8 P -> 0.5 P -> 0.2 P -> 0.0 P
+expected threshold = 0.0
+expected trials = 25
+```
+
+### Below floor
+
+```text
+1.0 F
+expected result = poorer than 1.0 logMAR / <6/60
+expected trials = 5
+```
+
+### First refinement
+
+```text
+1.0 P -> 0.8 F -> 0.9 P
+expected threshold = 0.9
+expected trials = 15
+```
+
+### Wider refinement
+
+```text
+1.0 P -> 0.8 P -> 0.5 F -> 0.7 P -> 0.6 P
+expected threshold = 0.6
+expected trials = 25
+```
+
+`P` means at least 4/5 correct; `F` means fewer than 4/5 correct.
+

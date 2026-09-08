@@ -1,0 +1,44 @@
+---
+title: "Automatic code scanner"
+subtitle: "Module reference · barcode"
+---
+
+<div class="status-box status-production"><strong>Master Book production evidence:</strong> <code>barcode.scan</code></div>
+
+Scan QR, Data Matrix, Aztec, PDF417, and common 1D codes into canonical evidence.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>barcode</code></div>
+<div><strong>Source directory</strong><code>qrcode</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>4</div>
+<div><strong>Explicit source status labels</strong>Production</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `barcode.scan` | scan qr | Capture a QR token as verifiable workflow evidence | <span class="badge-prod">polished production</span> | RIL binding, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_barcode.scan.xlsx](../source-docs/barcode/example_odk_barcode.scan.xlsx)
+
+## Module-local documentation
+
+- [Attribution](../source-docs/barcode/ATTRIBUTION.qmd) — `ATTRIBUTION.md`
+- [Automatic code scanner](../source-docs/barcode/README_QrCode.qmd) — `README_QrCode.md`
+- [Third-party notices](../source-docs/barcode/THIRD_PARTY_NOTICES.qmd) — `THIRD_PARTY_NOTICES.md`
+- [qrcode v1.05 migration validation](../source-docs/barcode/VALIDATION.qmd) — `VALIDATION.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

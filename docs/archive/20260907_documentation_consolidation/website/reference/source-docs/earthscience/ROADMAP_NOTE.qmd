@@ -1,0 +1,33 @@
+---
+title: "Proposed 000Roadmap.md entry — Earth science utilities"
+subtitle: "Module source document · Earth science utilities"
+search: true
+---
+
+::: {.callout-note}
+**Source-local reference.** This document is preserved from `modules/earthscience/docs/ROADMAP_NOTE.md` in the supplied source snapshot. The Master Book remains authoritative for cross-cutting architecture.
+:::
+
+# Proposed 000_Roadmap.md entry — Earth science utilities
+
+## Earth science utilities — Development
+
+- Added self-contained `earthscience` module prototype.
+- Geodesy: WGS84 inverse distance/bearings, destination projection, WGS84 ↔ UTM.
+- GNSS: repeated-fix averaging with accuracy threshold, accepted/rejected counts, and independent RMS/max spatial spread.
+- Structural geology: strike/dip normalisation, pole derivation, trend/plunge, plane intersection, and Development-stage phone strike/dip capture using shared `PhoneSensorRepository`.
+- Geological time: offline ICS 2026/06 eon/era/period/epoch-style lookup with source-version provenance and CC BY 4.0 attribution.
+- Earth materials: USDA soil-texture classification and Wentworth/phi grain-size conversion.
+- Pure Kotlin smoke tests pass.
+- Open: full Android Gradle build; ODK round trip; preset/orientation tests; multi-device GNSS testing; physical structural-compass validation.
+- Follow-ons: MGRS/UPS/arbitrary CRS, geodesic area/perimeter, stereonet/rose plots, GPX track log, external NMEA/RTK, Macrostrat point geology, DEM elevation/profile, geotagged field photo, USGS seismic lookup.
+
+
+## v0.1.1 usability pass
+
+- Show calculation errors rather than blank previews.
+- Parse complete UTM result strings for reverse conversion.
+- Add geological-time slider + segmented eon/era/period visual.
+- Add live GNSS current-average and convergence/spread visual.
+- Explain structural plane capture in plain language for non-geologists.
+

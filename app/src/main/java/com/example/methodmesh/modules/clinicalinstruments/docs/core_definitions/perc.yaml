@@ -1,0 +1,69 @@
+schema: methodmesh.clinical-instrument.v1
+id: perc
+name: PERC rule
+version: 1.0.0
+status: core
+type: decision_rule
+category: acute_bedside
+tags: [pulmonary_embolism, vte, emergency]
+summary: Eight-item pulmonary embolism rule-out criteria for patients already assessed as low pre-test probability.
+source_url: https://pubmed.ncbi.nlm.nih.gov/18318689/
+citation: "Kline JA, Courtney DM, Kabrhel C, et al. Prospective multicenter evaluation of the pulmonary embolism rule-out criteria. J Thromb Haemost. 2008."
+rights_status: factual_definition
+rights_note: Implements the published factual criteria. PERC is only intended after a clinician has established low pre-test probability.
+questions:
+  - id: age_years
+    label: Age
+    type: integer
+    unit: years
+    min: 18
+    max: 130
+  - id: pulse_bpm
+    label: Pulse
+    type: integer
+    unit: beats/min
+    min: 20
+    max: 250
+  - id: oxygen_saturation_percent
+    label: Oxygen saturation
+    type: decimal
+    unit: percent
+    min: 0
+    max: 100
+  - id: hemoptysis
+    label: Hemoptysis?
+    type: boolean
+  - id: estrogen_use
+    label: Estrogen use?
+    type: boolean
+  - id: recent_surgery_trauma
+    label: Surgery or trauma requiring hospitalisation within 4 weeks?
+    type: boolean
+  - id: prior_vte
+    label: Previous DVT or pulmonary embolism?
+    type: boolean
+  - id: unilateral_leg_swelling
+    label: Unilateral leg swelling?
+    type: boolean
+derived:
+  - id: age_positive
+    expression: age_years >= 50
+  - id: pulse_positive
+    expression: pulse_bpm >= 100
+  - id: saturation_positive
+    expression: oxygen_saturation_percent < 95
+scores:
+  - id: perc_positive_criteria
+    label: PERC positive criteria
+    expression: age_positive + pulse_positive + saturation_positive + hemoptysis + estrogen_use + recent_surgery_trauma + prior_vte + unilateral_leg_swelling
+classifications:
+  - when: perc_positive_criteria == 0
+    value: perc_negative
+    label: PERC negative - all eight criteria absent; valid only in low-risk patients
+  - when: perc_positive_criteria >= 1
+    value: perc_positive
+    label: One or more PERC criteria present
+tests:
+  - name: all_negative
+    input_json: '{"age_years":40,"pulse_bpm":80,"oxygen_saturation_percent":98,"hemoptysis":false,"estrogen_use":false,"recent_surgery_trauma":false,"prior_vte":false,"unilateral_leg_swelling":false}'
+    expect_json: '{"perc_positive_criteria":0,"classification":"perc_negative"}'

@@ -1,0 +1,17 @@
+---
+title: "RIL — ResearchOS/MethodMesh intent language"
+---
+
+RIL bindings remain a module-owned way to map human-readable action phrases to canonical method IDs. They are not a second capability implementation.
+
+In the current module contract a binding contains:
+
+```text
+phrase → canonical action/method ID → description
+```
+
+The registry can resolve either a RIL phrase or a canonical method ID to the same action. Module examples may provide RIL snippets for debug/documentation workflows.
+
+The architecture rule remains the same: RIL, dashboard, presets, protocols and ODK all converge on the canonical method contract.
+
+For the complete current set of phrases, browse the individual [module pages](modules/index.qmd); their method tables include RIL labels/descriptions extracted from module metadata where available.

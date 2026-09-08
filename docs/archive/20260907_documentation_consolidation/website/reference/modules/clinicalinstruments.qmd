@@ -1,0 +1,54 @@
+---
+title: "Clinical Instruments"
+subtitle: "Module reference · clinicalinstruments"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Run curated or local versioned clinical checklists and scores entirely offline and return structured observations plus results.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>clinicalinstruments</code></div>
+<div><strong>Source directory</strong><code>clinicalinstruments</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>14</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `clinical.instrument.run` | run clinical instrument | Run a versioned clinical instrument | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_ClinicalInstruments.xlsx](../source-docs/clinicalinstruments/example_odk_ClinicalInstruments.xlsx)
+
+## Module-local documentation
+
+- [Clinical Instruments — curated core library candidates](../source-docs/clinicalinstruments/CORE_LIBRARY_CANDIDATES.qmd) — `CORE_LIBRARY_CANDIDATES.md`
+- [Clinical Instruments core library expansion v0.2](../source-docs/clinicalinstruments/CORE_LIBRARY_EXPANSION_v0.2.qmd) — `CORE_LIBRARY_EXPANSION_v0.2.md`
+- [Core library expansion v0.4](../source-docs/clinicalinstruments/CORE_LIBRARY_EXPANSION_v0.3.qmd) — `CORE_LIBRARY_EXPANSION_v0.3.md`
+- [Future protocol engine — relevance, constraints and WHO Verbal Autopsy](../source-docs/clinicalinstruments/FUTURE_PROTOCOL_ENGINE.qmd) — `FUTURE_PROTOCOL_ENGINE.md`
+- [Clinical Instruments constrained YAML schema — v0.1](../source-docs/clinicalinstruments/INSTRUMENT_SCHEMA.qmd) — `INSTRUMENT_SCHEMA.md`
+- [Clinical Instruments v0.1.1 launch-crash patch](../source-docs/clinicalinstruments/PATCH_0.1.1.qmd) — `PATCH_0.1.1.md`
+- [Clinical Instruments v0.1.2 detail/output patch](../source-docs/clinicalinstruments/PATCH_0.1.2.qmd) — `PATCH_0.1.2.md`
+- [Clinical Instruments v0.1.3 — Focus-mode question runner](../source-docs/clinicalinstruments/PATCH_0.1.3.qmd) — `PATCH_0.1.3.md`
+- [Patch 0.2.0 - core library expansion](../source-docs/clinicalinstruments/PATCH_0.2.0_LIBRARY.qmd) — `PATCH_0.2.0_LIBRARY.md`
+- [Clinical Instruments v0.4.0 — A&E expansion](../source-docs/clinicalinstruments/PATCH_0.3.0_AE.qmd) — `PATCH_0.3.0_AE.md`
+- [Clinical Instruments v0.4.0 — Not-testable components + Glasgow Coma Scale](../source-docs/clinicalinstruments/PATCH_0.4.0_GCS_NT.qmd) — `PATCH_0.4.0_GCS_NT.md`
+- [Clinical Instruments](../source-docs/clinicalinstruments/README_ClinicalInstruments.qmd) — `README_ClinicalInstruments.md`
+- [ROADMAP NOTE](../source-docs/clinicalinstruments/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [Clinical Instruments v0.4 prototype validation](../source-docs/clinicalinstruments/VALIDATION.qmd) — `VALIDATION.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

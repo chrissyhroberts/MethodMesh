@@ -1,0 +1,47 @@
+schema: methodmesh.clinical-instrument.v1
+id: nexus_cspine
+name: NEXUS C-spine low-risk criteria
+version: 1.0.0
+status: core
+type: decision_rule
+category: acute_bedside
+tags: [trauma, cervical_spine, imaging, emergency]
+summary: Five NEXUS low-risk criteria used in blunt trauma assessment for cervical-spine injury.
+source_url: https://pubmed.ncbi.nlm.nih.gov/10891516/
+citation: "Hoffman JR, Mower WR, Wolfson AB, Todd KH, Zucker MI. Validity of a set of clinical criteria to rule out injury to the cervical spine in patients with blunt trauma. N Engl J Med. 2000;343:94-99."
+rights_status: factual_definition
+rights_note: Implements the five factual NEXUS criteria from the validation study; does not reproduce source prose.
+questions:
+  - id: midline_cervical_tenderness
+    label: Posterior midline cervical tenderness?
+    type: boolean
+  - id: focal_neurologic_deficit
+    label: Focal neurologic deficit?
+    type: boolean
+  - id: altered_alertness
+    label: Altered level of alertness?
+    type: boolean
+  - id: intoxication
+    label: Evidence of intoxication?
+    type: boolean
+  - id: painful_distracting_injury
+    label: Painful distracting injury?
+    type: boolean
+scores:
+  - id: nexus_positive_criteria
+    label: NEXUS positive criteria
+    expression: midline_cervical_tenderness + focal_neurologic_deficit + altered_alertness + intoxication + painful_distracting_injury
+classifications:
+  - when: nexus_positive_criteria == 0
+    value: all_low_risk_criteria_met
+    label: All five NEXUS low-risk criteria met
+  - when: nexus_positive_criteria > 0
+    value: low_risk_criteria_not_met
+    label: NEXUS low-risk criteria not all met
+tests:
+  - name: all_low_risk
+    input_json: '{"midline_cervical_tenderness":false,"focal_neurologic_deficit":false,"altered_alertness":false,"intoxication":false,"painful_distracting_injury":false}'
+    expect_json: '{"nexus_positive_criteria":0,"classification":"all_low_risk_criteria_met"}'
+  - name: one_positive
+    input_json: '{"midline_cervical_tenderness":true,"focal_neurologic_deficit":false,"altered_alertness":false,"intoxication":false,"painful_distracting_injury":false}'
+    expect_json: '{"nexus_positive_criteria":1,"classification":"low_risk_criteria_not_met"}'

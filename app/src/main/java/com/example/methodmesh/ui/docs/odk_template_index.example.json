@@ -1,0 +1,17 @@
+{
+  "schema": "methodmesh.odk_template_index.v1",
+  "templates": [
+    {
+      "id": "music.polyrhythm.example",
+      "moduleId": "music",
+      "moduleName": "Music",
+      "displayName": "Polyrhythm",
+      "description": "Example XLSForm for the polyrhythm capability.",
+      "sourceFileName": "example_odk_Polyrhythm.xlsx",
+      "centralFormId": "music_polyrhythm_test",
+      "assetPath": "methodmesh/odk_templates/music/example_odk_Polyrhythm.xlsx",
+      "capabilityIds": ["music.polyrhythm"],
+      "tags": ["music", "rhythm", "ratio"]
+    }
+  ]
+}

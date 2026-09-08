@@ -32,7 +32,8 @@ object As100CreateAttestationMethod : As100Method {
         description = "Create a tamper-evident event attestation signed by the phone's non-exportable private key.",
         outputs = listOf(
             "attestation_schema_version", "attestation_id", "study_id", "event_type",
-            "event_payload_hash", "event_payload_mode", "verification_method", "verification_evidence_format", "verification_evidence_hash",
+            "event_payload_hash", "event_payload_mode", "commitment_recipe", "commitment_recipe_sha256",
+            "verification_method", "verification_evidence_format", "verification_evidence_hash",
             "device_event_time_iso", "device_monotonic_counter", "previous_attestation_hash",
             "attestation_hash", "hash_algorithm", "public_key_id", "public_key_algorithm",
             "public_key_format", "public_key_base64", "signature", "signature_algorithm",
@@ -47,6 +48,7 @@ object As100CreateAttestationMethod : As100Method {
         method = ref,
         requiredContext = listOf(
             "event_payload_hash",
+            "commitment_recipe",
             "verification_method",
             "verification_evidence_format",
             "verification_evidence_hash"
@@ -105,6 +107,7 @@ object As100CreateAttestationMethod : As100Method {
                 subjectRef = c["subject_ref"].orEmpty().ifBlank { InvocationContext.from(c)?.subjectRef()?.id?.value.orEmpty() },
                 eventType = c["event_type"].orEmpty(),
                 eventPayloadHash = c["event_payload_hash"],
+                commitmentRecipe = c["commitment_recipe"],
                 verificationMethod = method,
                 verificationEvidence = verificationEvidence,
                 trustedTimestampPolicy = timestampPolicy,

@@ -1,0 +1,181 @@
+# Magnifier
+
+Capability ID: `visual.magnifier.capture`
+
+Status: **Development**.
+
+## Purpose
+
+Use the rear camera as a handheld visual magnifier. The operator can zoom the live camera, use the torch when available, hold centre focus, freeze a frame, inspect that frozen frame with optional filters, and return the chosen filtered image.
+
+The module deliberately remains a visual-inspection primitive. It does **not** add OCR, measurement, object recognition, image libraries, remote vision services, or automatic interpretation.
+
+## MethodMesh architecture
+
+This folder is a self-contained MethodMesh capability module:
+
+- `MagnifierModule.kt` owns discovery metadata, settings, RIL binding and icon hint.
+- `MagnifierMethod.kt` owns the method/output contract.
+- `MagnifierCapabilityScreen.kt` owns the interactive CameraX workflow.
+- `MagnifierImageProcessing.kt` owns orientation correction and local image filters.
+- `docs/` owns the implementation documentation and ODK example.
+
+No capability-specific registration or `HomeScreen` branch is required. The module uses the existing MethodMesh `MethodMeshModule`, `CapabilityScreenSpec`, result scaffold, CameraX dependencies and `FileProvider` conventions.
+
+## Native UX
+
+The normal run is intentionally direct:
+
+1. The camera opens.
+2. Adjust zoom.
+3. Optionally toggle the torch and hold/release centre focus.
+4. Tap **Freeze frame**.
+5. Pinch/drag the frozen image to inspect it and choose a filter.
+6. Tap **Use this image**.
+7. The standard MethodMesh result screen shows the image as the main result, with Share / Save to Downloads / Done / Retry behavior supplied by the shared scaffold.
+
+For dedicated intent/preset presentation the module locally requests immersive system-bar hiding and restores the bars when it exits. It does not add camera-specific behavior to the shared host.
+
+The frozen inspection zoom/pan is display-only. It does not crop or resample the returned file. The returned file is the full frozen frame with the selected filter applied.
+
+## Presets
+
+Preset configuration fields are:
+
+| Setting | Type | Default | Meaning |
+|---|---|---:|---|
+| `initial_zoom` | FloatSetting | `2.0` | Starting digital zoom ratio. UI limit is 1×–10×; device limits still apply. |
+| `default_filter` | ChoiceSetting | `normal` | Filter selected when the frame is first frozen. |
+| `allow_torch` | BooleanSetting | `true` | Whether the torch control is offered when the camera supports it. |
+
+These values configure the starting state. Zoom, filter and focus remain operator controls during an inspection; a preset does not lock the operator into its initial visual state.
+
+## Android intent
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='visual.magnifier.capture',input_initial_zoom='2.0',input_default_filter='normal',input_allow_torch='true',input_payload_mode='FULL',return_mode='flat')
+```
+
+External/ODK execution is intentionally interactive: the operator must choose the frame to return.
+
+## Inputs
+
+| Intent field | Allowed values | Notes |
+|---|---|---|
+| `input_initial_zoom` | `1.0`–`10.0` | CameraX/device min/max zoom still wins. |
+| `input_default_filter` | `normal`, `high_contrast`, `monochrome`, `negative` | Applied to frozen/captured image; live preview stays unfiltered. |
+| `input_allow_torch` | `true`, `false` | Torch control appears only when allowed and supported. |
+| `input_payload_mode` | normally `CORE` or `FULL` | `FULL` exposes `methodmesh_full_json` through shared transport. |
+| `return_mode` | normally `flat` for ODK | Shared MethodMesh transport setting. |
+
+## Output contract
+
+### Core result — the beef
+
+| Field | Description |
+|---|---|
+| `magnifier_image_uri` | `content://` URI for the final filtered JPEG. |
+
+The main native result is the image. Default sharing/saving should therefore act on the image rather than on a block of metadata.
+
+### Audit/detail fields
+
+| Field | Description |
+|---|---|
+| `magnifier_status` | `succeeded` for a completed capture. |
+| `magnifier_image_sha256` | SHA-256 of the exact final JPEG bytes. |
+| `magnifier_filter_mode` | Filter applied to the returned JPEG. |
+| `magnifier_zoom_requested_ratio` | Operator-requested zoom ratio. |
+| `magnifier_zoom_actual_ratio` | Last CameraX zoom ratio observed after clamping/application. |
+| `magnifier_torch_mode` | `on` or `off` at capture completion. |
+| `magnifier_focus_mode` | `held` or `continuous` at capture completion. |
+| `magnifier_frozen_time_iso` | ISO-8601 time the inspection frame was frozen. |
+| `magnifier_captured_time_iso` | ISO-8601 time the final filtered JPEG was created. |
+| `magnifier_metadata_json` | Compact module-owned JSON containing the same result metadata. |
+| `magnifier_error` | Failure diagnostic when applicable. |
+
+The audit names intentionally follow the shared MethodMesh projection conventions (`status`, `sha`, `requested`/`actual`, `*_mode`, `*_time_iso`, `*_json`, `*_error`) so they stay out of the default CORE/native result without a magnifier-specific exception in shared code.
+
+### Full JSON
+
+For ODK or explicit full export, request:
+
+```text
+input_payload_mode='FULL'
+```
+
+Shared transport then adds:
+
+- `methodmesh_full_json`
+
+This is the complete auditable payload. It is not the main native display.
+
+## Media / attachment behavior
+
+The final JPEG is written to MethodMesh cache as the source artefact for `FileProvider` exposure. This is not an automatic archive save.
+
+The capability returns the `content://` URI. Shared Android transport is responsible for adding returned binary URIs to `ClipData` and granting `FLAG_GRANT_READ_URI_PERMISSION` to external callers such as ODK Collect.
+
+The temporary frozen source frame is cache-only. It is not returned, shared or saved to Downloads by the capability.
+
+## ODK / XLSForm
+
+`example_odk_visual.magnifier.capture.xlsx` demonstrates the recommended grouped intent pattern:
+
+- `begin_group` with `appearance=field-list`;
+- MethodMesh action in `body::intent`;
+- an `image` child named `magnifier_image_uri` so ODK can import the returned media attachment;
+- explicit `magnifier_status` and `magnifier_image_sha256` fields;
+- `methodmesh_full_json` for complete audit metadata.
+
+The example requests `input_payload_mode='FULL'`.
+
+## Permissions
+
+Requires:
+
+```text
+android.permission.CAMERA
+```
+
+The module requests camera permission at runtime when required. A denial is shown clearly and the operator can retry the permission request.
+
+No storage permission is required for the cache/FileProvider path.
+
+## Offline / online behavior
+
+**Fully offline.**
+
+No network connection is required. No image, metadata, location or device identifier is sent off-device by this capability.
+
+## Dependencies
+
+Uses dependencies already present in MethodMesh:
+
+- AndroidX CameraX (`camera2`, `lifecycle`, `view`);
+- Jetpack Compose / Material 3;
+- Android `ExifInterface`;
+- existing MethodMesh `Digests`, `CapabilityScreenScaffold`, `OutputFormatter`, `SettingsState` and `FileProvider` infrastructure.
+
+No new Maven dependency is required by the module as written.
+
+## Camera behavior and limitations
+
+- The UI requests zoom from 1× to 10×, but CameraX/device limits are authoritative. `magnifier_zoom_actual_ratio` records the last zoom ratio observed from CameraX after application.
+- **Hold focus** starts a centre `FocusMeteringAction` with CameraX auto-cancel disabled. Camera HAL behavior differs between devices, so this is a practical focus hold rather than a claim that all hardware provides identical optical AF-lock semantics.
+- Torch availability depends on the rear camera flash unit.
+- Live preview is unfiltered. Filters are applied locally to the frozen frame and final JPEG. This avoids GPU/render-effect dependencies and makes the returned file deterministic from the frozen source + chosen filter.
+- High-contrast, monochrome and negative processing are simple local colour-matrix transforms, not diagnostic image enhancement.
+- The module does not promise optical magnification beyond the phone camera hardware; digital zoom may reduce effective detail.
+
+## Hash semantics
+
+`magnifier_image_sha256` hashes the exact bytes of the final JPEG written to the cache artefact. It does **not** hash the URI string, bitmap object, metadata JSON or source frame.
+
+## Attribution / licensing
+
+See `THIRD_PARTY_NOTICES.md`.
+
+## Validation status
+
+See `VALIDATION.md`.

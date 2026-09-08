@@ -1,0 +1,43 @@
+{
+  "audit_event_count": 1,
+  "central_diff_endpoint_queried": false,
+  "logical_submission_id": "uuid:5b802c63-a6e0-444d-83da-88888a2b770d",
+  "status": "NO_RETAINED_VERSIONS_RETURNED",
+  "submission_metadata": {
+    "createdAt": "2026-09-04T07:37:28.505Z",
+    "currentVersion": {
+      "createdAt": "2026-09-04T07:37:28.505Z",
+      "current": true,
+      "deviceId": "collect:FyYIBCfCy5VEAUGW",
+      "instanceId": "uuid:5b802c63-a6e0-444d-83da-88888a2b770d",
+      "instanceName": "MethodMesh showcase - 001",
+      "submitter": {
+        "createdAt": "2026-07-27T10:10:49.825Z",
+        "deletedAt": null,
+        "displayName": "chrissy",
+        "id": 7592,
+        "type": "field_key",
+        "updatedAt": null
+      },
+      "submitterId": 7592,
+      "userAgent": "org.odk.collect.android/v2026.3.3 Dalvik/2.1.0 (Linux; U; Android 17; Pixel 7a Build/CP2A.260705.006)"
+    },
+    "deletedAt": null,
+    "deviceId": "collect:FyYIBCfCy5VEAUGW",
+    "instanceId": "uuid:5b802c63-a6e0-444d-83da-88888a2b770d",
+    "reviewState": null,
+    "submitter": {
+      "createdAt": "2026-07-27T10:10:49.825Z",
+      "deletedAt": null,
+      "displayName": "chrissy",
+      "id": 7592,
+      "type": "field_key",
+      "updatedAt": null
+    },
+    "submitterId": 7592,
+    "updatedAt": null,
+    "userAgent": "org.odk.collect.android/v2026.3.3 Dalvik/2.1.0 (Linux; U; Android 17; Pixel 7a Build/CP2A.260705.006)"
+  },
+  "version_count": 0,
+  "versions": []
+}

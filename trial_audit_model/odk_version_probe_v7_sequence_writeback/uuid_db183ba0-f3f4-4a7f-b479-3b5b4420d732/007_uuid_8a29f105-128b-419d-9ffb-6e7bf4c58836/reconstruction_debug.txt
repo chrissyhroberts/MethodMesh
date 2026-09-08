@@ -1,0 +1,431 @@
+METHODMESH RECONSTRUCTION DEBUG
+==============================================================================
+classification: EDITED_AFTER_ATTESTATION
+xml_sha256: fcc6b8c268705086dc237f82b28f369992562d146bca224fc835e068f8058ebe
+stored_showcase_payload_sha256: 245a6a526abb8b427d1d6e5363dfea25bab6a3fefd0be1ad2c4ee955231e855e
+attestation_event_payload_hash: 2eec1873ddc170f805601e8082eb45f8025a8c7afc094de6df98f91b73c9f9d2
+rebuilt_payload_sha256: 0ba7e22ad2e32961d5ba4d2bafa782296074755234aa99aad74dcd60c91f7a21
+stored_member_payload_sha256: 245a6a526abb8b427d1d6e5363dfea25bab6a3fefd0be1ad2c4ee955231e855e
+
+MEMBER-BY-MEMBER CHECKS
+------------------------------------------------------------------------------
+[1] showcase_commitment_schema
+  commitment: value
+  type: string
+  source_field: showcase_commitment_schema
+  artifact_field: None
+  source: showcase_commitment_schema
+  source_raw_value: methodmesh.showcase.submission.v1
+  stored_value: methodmesh.showcase.submission.v1
+  source_derived_value: methodmesh.showcase.submission.v1
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[2] showcase_id
+  commitment: value
+  type: string
+  source_field: showcase_id
+  artifact_field: None
+  source: showcase_id
+  source_raw_value: asasas
+  stored_value: asasas
+  source_derived_value: asasas
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[3] age_years
+  commitment: value
+  type: integer
+  source_field: age_years
+  artifact_field: None
+  source: age_years
+  source_raw_value: 57
+  stored_value: 57
+  source_derived_value: 57
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[4] favourite_colour
+  commitment: value
+  type: string
+  source_field: favourite_colour
+  artifact_field: None
+  source: favourite_colour
+  source_raw_value: yellow
+  stored_value: yellow
+  source_derived_value: yellow
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[5] short_note
+  commitment: value
+  type: string
+  source_field: short_note
+  artifact_field: None
+  source: short_note
+  source_raw_value: This is text boop
+  stored_value: This is text boop
+  source_derived_value: This is text boop
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[6] auth_auth_method
+  commitment: value
+  type: string
+  source_field: auth_auth_method
+  artifact_field: None
+  source: auth_auth_method
+  source_raw_value: biometric
+  stored_value: biometric
+  source_derived_value: biometric
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[7] auth_timestamp_iso
+  commitment: value
+  type: string
+  source_field: auth_timestamp_iso
+  artifact_field: None
+  source: auth_timestamp_iso
+  source_raw_value: 2026-09-04T11:56:47.319Z
+  stored_value: 2026-09-04T11:56:47.319Z
+  source_derived_value: 2026-09-04T11:56:47.319Z
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[8] auth_json_sha256
+  commitment: json-utf8-sha256
+  type: sha256
+  source_field: auth_methodmesh_full_json
+  artifact_field: None
+  source: auth_methodmesh_full_json
+  source_raw_value: {
+  "methodmesh_execution_id": "535baf6b-e62c-4447-bda5-93a52a9fca04",
+  "methodmesh_method_id": "admin_fingerprint_confirmation",
+  "methodmesh_status": "Succeeded",
+  "confirmed": "true",
+  "verification_status": "verified",
+  "auth_method": "biometric",
+  "authentication_policy": "biometric",
+  "assurance_scope": "local_device_access",
+  "identity_claimed": "false",
+  "timestamp_ms": "1788523007319",
+  "timestamp_iso": "2026-09-04T11:56:47.319Z",
+  "reason": "local_access_authorisation",
+  "message": "Local access authorised",
+  "biometric_device_service": "device.biometric.android",
+  "biometric_signal_type": "biometric.authentication.result",
+  "biometric_execution_id": "535baf6b-e62c-4447-bda5-93a52a9fca04",
+  "biometric_provenance_json": "{\"provider\":\"android.biometric_prompt\",\"method_id\":\"admin_fingerprint_confirmation\",\"method_version\":\"1.1.0\",\"source_service\":\"device.biometric.android\",\"signal_type\":\"biometric.authentication.result\",\"signal_id\":\"c775992f-01e0-418c-86c3-3e8bcc7cef60\",\"timestamp_ms\":1788523007319}"
+}
+  stored_value: cd345eb8c6acf1dbfd3bbbda1db00069ff82c310580a57012c4e7d0c2871b428
+  source_derived_value: cd345eb8c6acf1dbfd3bbbda1db00069ff82c310580a57012c4e7d0c2871b428
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[9] photo_redacted_image_sha256
+  commitment: artifact-bytes-sha256
+  type: sha256
+  source_field: None
+  artifact_field: photo_redacted_image_uri
+  source: photo_redacted_image_uri -> 1788523026891.jpg
+  source_raw_value: 1788523026891.jpg
+  stored_value: b1664674a827590062fbe639f87cec7ec5a19f041ff5295ce0a93b9004b9eda5
+  source_derived_value: b1664674a827590062fbe639f87cec7ec5a19f041ff5295ce0a93b9004b9eda5
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[10] photo_json_sha256
+  commitment: json-utf8-sha256
+  type: sha256
+  source_field: photo_methodmesh_full_json
+  artifact_field: None
+  source: photo_methodmesh_full_json
+  source_raw_value: {
+  "methodmesh_execution_id": "8a024d04-4eba-48a3-be25-0a67a8122fc8",
+  "methodmesh_method_id": "image.redact",
+  "methodmesh_status": "Succeeded",
+  "image_redaction_status": "succeeded",
+  "redacted_image_uri": "content://com.example.methodmesh.fileprovider/shared_cache/methodmesh-redacted-1788523026818.jpg",
+  "redacted_image_name": "methodmesh-redacted-1788523026818.jpg",
+  "redacted_image_sha256": "b1664674a827590062fbe639f87cec7ec5a19f041ff5295ce0a93b9004b9eda5",
+  "redaction_mask_json": "[\"r1c10\",\"r1c7\",\"r1c9\",\"r2c5\",\"r2c6\",\"r2c7\",\"r2c8\",\"r2c9\",\"r3c5\",\"r3c6\",\"r3c7\",\"r3c8\",\"r3c9\",\"r4c5\",\"r4c6\",\"r4c7\",\"r4c8\",\"r4c9\",\"r5c5\",\"r5c6\",\"r5c7\",\"r5c8\",\"r5c9\",\"r6c5\",\"r6c6\",\"r6c7\",\"r6c8\",\"r6c9\",\"r7c5\",\"r7c6\",\"r7c7\",\"r7c8\",\"r7c9\",\"r8c5\",\"r8c6\",\"r8c9\"]",
+  "redacted_cells": "36",
+  "redaction_grid_rows": "10",
+  "redaction_grid_columns": "10",
+  "redaction_style": "black",
+  "redaction_input_source": "camera",
+  "redaction_created_time_iso": "2026-09-04T11:57:06.819815Z",
+  "image_redaction_error": ""
+}
+  stored_value: 59a9ba2fdbdbd9fced099b92d1adb9b615376c5a0f1cc94c3b62b8ff3d07b90e
+  source_derived_value: 59a9ba2fdbdbd9fced099b92d1adb9b615376c5a0f1cc94c3b62b8ff3d07b90e
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[11] location_plus_code
+  commitment: value
+  type: string
+  source_field: location_plus_code
+  artifact_field: None
+  source: location_plus_code
+  source_raw_value: 9C4X3WHR+5X
+  stored_value: 9C4X3WHR+5X
+  source_derived_value: 9C4X3WHR+5X
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[12] location_json_sha256
+  commitment: json-utf8-sha256
+  type: sha256
+  source_field: location_methodmesh_full_json
+  artifact_field: None
+  source: location_methodmesh_full_json
+  source_raw_value: {
+  "methodmesh_execution_id": "9384f881-4357-4c14-9597-e1c5a194c8d9",
+  "methodmesh_method_id": "plus_code.capture",
+  "methodmesh_status": "Succeeded",
+  "subject_id": "plus-code:9C4X3WHR+5X",
+  "plus_code_status": "succeeded",
+  "plus_code": "9C4X3WHR+5X",
+  "plus_code_length": "10",
+  "plus_code_centroid_latitude": "52.0779375",
+  "plus_code_centroid_longitude": "-0.0575625",
+  "plus_code_gps_latitude": "52.07773903",
+  "plus_code_gps_longitude": "-0.0579041",
+  "plus_code_gps_accuracy_m": "112.04",
+  "plus_code_gps_fix_count": "4",
+  "plus_code_basemap_mode": "auto",
+  "plus_code_basemap_actual_source": "openfreemap_online_or_cache",
+  "plus_code_selected_time_iso": "2026-09-04T11:57:20.050877Z",
+  "plus_code_audit_json": "{\"methodmesh_method_id\":\"plus_code.capture\",\"status\":\"succeeded\",\"plus_code\":\"9C4X3WHR+5X\",\"code_length\":10,\"selected_cell\":{\"south\":52.077875,\"west\":-0.057624999999999975,\"north\":52.077999999999996,\"east\":-0.057499999999999975,\"center_latitude\":52.0779375,\"center_longitude\":-0.057562499999999975},\"gps\":{\"latitude\":52.07773903,\"longitude\":-0.0579041,\"accuracy_m\":112.04,\"fix_count\":4},\"basemap\":{\"mode\":\"auto\",\"actual_source\":\"openfreemap_online_or_cache\",\"fallback_used\":true},\"timestamp_iso\":\"2026-09-04T11:57:20.050877Z\"}",
+  "plus_code_error": ""
+}
+  stored_value: d29885828cf4b49e8d027a91a2debedd31ee12ef932167191a58d28c502d95a7
+  source_derived_value: d29885828cf4b49e8d027a91a2debedd31ee12ef932167191a58d28c502d95a7
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[13] polygon_value
+  commitment: value
+  type: string
+  source_field: polygon_value
+  artifact_field: None
+  source: polygon_value
+  source_raw_value: {
+  "methodmesh_execution_id": "206e21d2-ea44-42d6-a9c9-6efd3e516a1b",
+  "methodmesh_method_id": "svg.select",
+  "methodmesh_status": "Succeeded",
+  "svg_name": "bodymap_black.svg",
+  "selected_polygons": "[{\"polygon_id\":\"Dorsal_Buttock_Left\",\"sequence_index\":1}]",
+  "methodmesh_full_json": "{\n  \"methodmesh_execution_id\": \"206e21d2-ea44-42d6-a9c9-6efd3e516a1b\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selection_mode\": \"single\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Dorsal_Buttock_Left\\\",\\\"sequence_index\\\":1}]\",\n  \"selection_events\": \"[{\\\"type\\\":\\\"select\\\",\\\"polygon_id\\\":\\\"Dorsal_Buttock_Left\\\",\\\"sequence_index\\\":1,\\\"time_iso\\\":\\\"2026-09-04T11:57:25.739264Z\\\"}]\",\n  \"selection_audit_hash\": \"dd2bf92ab36b134d9b10602c05baa40688124092301ed3ddb3a71568c12ae2c0\",\n  \"selection_started_at\": \"2026-09-04T11:57:24.384803Z\",\n  \"selection_completed_at\": \"2026-09-04T11:57:26.356709Z\"\n}"
+}
+  stored_value: {
+  "methodmesh_execution_id": "206e21d2-ea44-42d6-a9c9-6efd3e516a1b",
+  "methodmesh_method_id": "svg.select",
+  "methodmesh_status": "Succeeded",
+  "svg_name": "bodymap_black.svg",
+  "selected_polygons": "[{\"polygon_id\":\"Dorsal_Buttock_Left\",\"sequence_index\":1}]",
+  "methodmesh_full_json": "{\n  \"methodmesh_execution_id\": \"206e21d2-ea44-42d6-a9c9-6efd3e516a1b\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selection_mode\": \"single\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Dorsal_Buttock_Left\\\",\\\"sequence_index\\\":1}]\",\n  \"selection_events\": \"[{\\\"type\\\":\\\"select\\\",\\\"polygon_id\\\":\\\"Dorsal_Buttock_Left\\\",\\\"sequence_index\\\":1,\\\"time_iso\\\":\\\"2026-09-04T11:57:25.739264Z\\\"}]\",\n  \"selection_audit_hash\": \"dd2bf92ab36b134d9b10602c05baa40688124092301ed3ddb3a71568c12ae2c0\",\n  \"selection_started_at\": \"2026-09-04T11:57:24.384803Z\",\n  \"selection_completed_at\": \"2026-09-04T11:57:26.356709Z\"\n}"
+}
+  source_derived_value: {
+  "methodmesh_execution_id": "206e21d2-ea44-42d6-a9c9-6efd3e516a1b",
+  "methodmesh_method_id": "svg.select",
+  "methodmesh_status": "Succeeded",
+  "svg_name": "bodymap_black.svg",
+  "selected_polygons": "[{\"polygon_id\":\"Dorsal_Buttock_Left\",\"sequence_index\":1}]",
+  "methodmesh_full_json": "{\n  \"methodmesh_execution_id\": \"206e21d2-ea44-42d6-a9c9-6efd3e516a1b\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selection_mode\": \"single\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Dorsal_Buttock_Left\\\",\\\"sequence_index\\\":1}]\",\n  \"selection_events\": \"[{\\\"type\\\":\\\"select\\\",\\\"polygon_id\\\":\\\"Dorsal_Buttock_Left\\\",\\\"sequence_index\\\":1,\\\"time_iso\\\":\\\"2026-09-04T11:57:25.739264Z\\\"}]\",\n  \"selection_audit_hash\": \"dd2bf92ab36b134d9b10602c05baa40688124092301ed3ddb3a71568c12ae2c0\",\n  \"selection_started_at\": \"2026-09-04T11:57:24.384803Z\",\n  \"selection_completed_at\": \"2026-09-04T11:57:26.356709Z\"\n}"
+}
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[14] polygon_json_sha256
+  commitment: json-utf8-sha256
+  type: sha256
+  source_field: polygon_methodmesh_full_json
+  artifact_field: None
+  source: polygon_methodmesh_full_json
+  source_raw_value: {
+  "methodmesh_execution_id": "206e21d2-ea44-42d6-a9c9-6efd3e516a1b",
+  "methodmesh_method_id": "svg.select",
+  "methodmesh_status": "Succeeded",
+  "svg_name": "bodymap_black.svg",
+  "selection_mode": "single",
+  "selected_polygons": "[{\"polygon_id\":\"Dorsal_Buttock_Left\",\"sequence_index\":1}]",
+  "selection_events": "[{\"type\":\"select\",\"polygon_id\":\"Dorsal_Buttock_Left\",\"sequence_index\":1,\"time_iso\":\"2026-09-04T11:57:25.739264Z\"}]",
+  "selection_audit_hash": "dd2bf92ab36b134d9b10602c05baa40688124092301ed3ddb3a71568c12ae2c0",
+  "selection_started_at": "2026-09-04T11:57:24.384803Z",
+  "selection_completed_at": "2026-09-04T11:57:26.356709Z"
+}
+  stored_value: deaf6eb3c0a41e34eef582beaeccdd25df2e1b975959015f4a182f0aefbffac0
+  source_derived_value: deaf6eb3c0a41e34eef582beaeccdd25df2e1b975959015f4a182f0aefbffac0
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[15] conversation_transcript_sha256
+  commitment: text-utf8-sha256
+  type: sha256
+  source_field: conversation_conversation_transcript
+  artifact_field: None
+  source: conversation_conversation_transcript
+  source_raw_value: Speak (en): I don't need to sell my soul
+Spanish (Es): No necesito vender mi alma
+
+Habla (es): no necesito vender mi alma
+English (En): I do not need to sell my soul
+  stored_value: e78843211bd769bf91d7347b0ddacb6d0281d9af8a1ee18dd4084c2251ae8e02
+  source_derived_value: e78843211bd769bf91d7347b0ddacb6d0281d9af8a1ee18dd4084c2251ae8e02
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[16] conversation_json_sha256
+  commitment: json-utf8-sha256
+  type: sha256
+  source_field: conversation_methodmesh_full_json
+  artifact_field: None
+  source: conversation_methodmesh_full_json
+  source_raw_value: {
+  "methodmesh_execution_id": "3e770535-57bd-4ff6-bc04-a89dc540e10b",
+  "methodmesh_method_id": "conversation.translate",
+  "methodmesh_status": "Succeeded",
+  "subject_id": "conversation-translation:1788523064372",
+  "conversation_transcript": "Speak (en): I don't need to sell my soul\nSpanish (Es): No necesito vender mi alma\n\nHabla (es): no necesito vender mi alma\nEnglish (En): I do not need to sell my soul",
+  "conversation_turns_json": "[{\"side\":\"a\",\"speaker\":\"Speak\",\"source_language\":\"en\",\"target_language\":\"es\",\"original_text\":\"I don't need to sell my soul\",\"translated_text\":\"No necesito vender mi alma\",\"time_iso\":\"2026-09-04T11:57:35.016276Z\"},{\"side\":\"b\",\"speaker\":\"Habla\",\"source_language\":\"es\",\"target_language\":\"en\",\"original_text\":\"no necesito vender mi alma\",\"translated_text\":\"I do not need to sell my soul\",\"time_iso\":\"2026-09-04T11:57:41.794650Z\"}]",
+  "conversation_language_a": "en",
+  "conversation_language_b": "es",
+  "conversation_label_a": "Speak",
+  "conversation_label_b": "Habla",
+  "conversation_spoken_output": "true",
+  "conversation_prefer_offline": "true",
+  "conversation_turn_count": "2",
+  "conversation_started_time_iso": "2026-09-04T11:57:30.422057Z",
+  "conversation_finished_time_iso": "2026-09-04T11:57:44.371847Z",
+  "conversation_status": "succeeded",
+  "conversation_error": ""
+}
+  stored_value: 56b1508b1792d9d050f23b30ab061639be96a2b92cf059dff52815266f8039b4
+  source_derived_value: 56b1508b1792d9d050f23b30ab061639be96a2b92cf059dff52815266f8039b4
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[17] fourat_clinical_score
+  commitment: value
+  type: string
+  source_field: fourat_clinical_score
+  artifact_field: None
+  source: fourat_clinical_score
+  source_raw_value: 10
+  stored_value: 10
+  source_derived_value: 10
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[18] fourat_clinical_classification
+  commitment: value
+  type: string
+  source_field: fourat_clinical_classification
+  artifact_field: None
+  source: fourat_clinical_classification
+  source_raw_value: possible_delirium
+  stored_value: possible_delirium
+  source_derived_value: possible_delirium
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[19] fourat_clinical_definition_fingerprint
+  commitment: value
+  type: sha256
+  source_field: fourat_clinical_definition_fingerprint
+  artifact_field: None
+  source: fourat_clinical_definition_fingerprint
+  source_raw_value: 9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8
+  stored_value: 9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8
+  source_derived_value: 9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8
+  stored_matches_source: True
+  source_ok: True
+  error: None
+
+[20] fourat_json_sha256
+  commitment: json-utf8-sha256
+  type: sha256
+  source_field: fourat_methodmesh_full_json
+  artifact_field: None
+  source: fourat_methodmesh_full_json
+  source_raw_value: {
+  "methodmesh_execution_id": "f250a3b3-2a7f-4d25-b9e6-455b6db6f731",
+  "methodmesh_method_id": "clinical.instrument.run",
+  "methodmesh_status": "Succeeded",
+  "subject_id": "555",
+  "clinical_status": "succeeded",
+  "clinical_result": "4AT delirium assessment: 10 — Possible delirium +/- cognitive impairment",
+  "clinical_answers": "1. Alertness — Clearly abnormal alertness\n2. AMT4 orientation — One mistake\n3. Attention - months backwards — Starts but fewer than seven or refuses\n4. Acute change or fluctuating course — Yes",
+  "clinical_instrument": "four_at",
+  "clinical_version": "1.2.0",
+  "clinical_definition_fingerprint": "9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8",
+  "clinical_session": "9d71a548-d827-4054-8dfd-e341e5c3f265",
+  "clinical_instrument_id": "four_at",
+  "clinical_instrument_name": "4AT delirium assessment",
+  "clinical_instrument_version": "1.2.0",
+  "clinical_definition_sha256": "9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8",
+  "clinical_subject_id": "555",
+  "clinical_session_id": "9d71a548-d827-4054-8dfd-e341e5c3f265",
+  "clinical_responses_json": "{\"alertness\":\"4\",\"amt4\":\"1\",\"attention\":\"1\",\"acute_change\":\"4\"}",
+  "clinical_derived_json": "{}",
+  "clinical_score": "10",
+  "clinical_classification": "possible_delirium",
+  "clinical_result_json": "{\"schema\":\"methodmesh.clinical-result.v1\",\"run\":{\"id\":\"9d71a548-d827-4054-8dfd-e341e5c3f265\",\"subject_id\":\"555\",\"status\":\"completed\"},\"instrument\":{\"id\":\"four_at\",\"name\":\"4AT delirium assessment\",\"version\":\"1.2.0\",\"definition_sha256\":\"9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8\",\"type\":\"clinical_score\",\"category\":\"acute_bedside\"},\"responses\":{\"alertness\":\"4\",\"amt4\":\"1\",\"attention\":\"1\",\"acute_change\":\"4\"},\"derived\":{},\"scores\":{\"four_at\":\"10\"},\"classification\":{\"value\":\"possible_delirium\",\"label\":\"Possible delirium +\\/- cognitive impairment\"},\"provenance\":{\"source_url\":\"https:\\/\\/www.the4at.com\\/\",\"citation\":\"4AT version 1.2. MacLullich A, Ryan T, Cash H. © 2011-2014.\",\"rights_status\":\"CC_BY_4_0\",\"definition_sha256\":\"9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8\"}}",
+  "clinical_completed_time_iso": "2026-09-04T11:57:53.641391Z",
+  "clinical_error": "",
+  "clinical_response_alertness": "4",
+  "clinical_response_amt4": "1",
+  "clinical_response_attention": "1",
+  "clinical_response_acute_change": "4",
+  "clinical_score_four_at": "10",
+  "entity_id": "clinical-instrument:9d71a548-d827-4054-8dfd-e341e5c3f265",
+  "entity_type": "ClinicalInstrumentRun"
+}
+  stored_value: 5113f4884c8cb2b8b8c3007bd689b4ba8e7221f7d2ccd8fc9982cde56429c759
+  source_derived_value: f01f3f4ac6642374e19010796ae93ceb0782373ee98ec92a06cda2b25c8ab80d
+  stored_matches_source: False
+  source_ok: True
+  error: None
+
+RECONSTRUCTED CANONICAL PAYLOAD
+------------------------------------------------------------------------------
+showcase_commitment_schema=methodmesh.showcase.submission.v1|showcase_id=asasas|age_years=57|favourite_colour=yellow|short_note=This is text boop|auth_auth_method=biometric|auth_timestamp_iso=2026-09-04T11:56:47.319Z|auth_json_sha256=cd345eb8c6acf1dbfd3bbbda1db00069ff82c310580a57012c4e7d0c2871b428|photo_redacted_image_sha256=b1664674a827590062fbe639f87cec7ec5a19f041ff5295ce0a93b9004b9eda5|photo_json_sha256=59a9ba2fdbdbd9fced099b92d1adb9b615376c5a0f1cc94c3b62b8ff3d07b90e|location_plus_code=9C4X3WHR+5X|location_json_sha256=d29885828cf4b49e8d027a91a2debedd31ee12ef932167191a58d28c502d95a7|polygon_value={
+  "methodmesh_execution_id": "206e21d2-ea44-42d6-a9c9-6efd3e516a1b",
+  "methodmesh_method_id": "svg.select",
+  "methodmesh_status": "Succeeded",
+  "svg_name": "bodymap_black.svg",
+  "selected_polygons": "[{\"polygon_id\":\"Dorsal_Buttock_Left\",\"sequence_index\":1}]",
+  "methodmesh_full_json": "{\n  \"methodmesh_execution_id\": \"206e21d2-ea44-42d6-a9c9-6efd3e516a1b\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selection_mode\": \"single\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Dorsal_Buttock_Left\\\",\\\"sequence_index\\\":1}]\",\n  \"selection_events\": \"[{\\\"type\\\":\\\"select\\\",\\\"polygon_id\\\":\\\"Dorsal_Buttock_Left\\\",\\\"sequence_index\\\":1,\\\"time_iso\\\":\\\"2026-09-04T11:57:25.739264Z\\\"}]\",\n  \"selection_audit_hash\": \"dd2bf92ab36b134d9b10602c05baa40688124092301ed3ddb3a71568c12ae2c0\",\n  \"selection_started_at\": \"2026-09-04T11:57:24.384803Z\",\n  \"selection_completed_at\": \"2026-09-04T11:57:26.356709Z\"\n}"
+}|polygon_json_sha256=deaf6eb3c0a41e34eef582beaeccdd25df2e1b975959015f4a182f0aefbffac0|conversation_transcript_sha256=e78843211bd769bf91d7347b0ddacb6d0281d9af8a1ee18dd4084c2251ae8e02|conversation_json_sha256=56b1508b1792d9d050f23b30ab061639be96a2b92cf059dff52815266f8039b4|fourat_clinical_score=10|fourat_clinical_classification=possible_delirium|fourat_clinical_definition_fingerprint=9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8|fourat_json_sha256=f01f3f4ac6642374e19010796ae93ceb0782373ee98ec92a06cda2b25c8ab80d
+
+STORED-MEMBER CANONICAL PAYLOAD
+------------------------------------------------------------------------------
+showcase_commitment_schema=methodmesh.showcase.submission.v1|showcase_id=asasas|age_years=57|favourite_colour=yellow|short_note=This is text boop|auth_auth_method=biometric|auth_timestamp_iso=2026-09-04T11:56:47.319Z|auth_json_sha256=cd345eb8c6acf1dbfd3bbbda1db00069ff82c310580a57012c4e7d0c2871b428|photo_redacted_image_sha256=b1664674a827590062fbe639f87cec7ec5a19f041ff5295ce0a93b9004b9eda5|photo_json_sha256=59a9ba2fdbdbd9fced099b92d1adb9b615376c5a0f1cc94c3b62b8ff3d07b90e|location_plus_code=9C4X3WHR+5X|location_json_sha256=d29885828cf4b49e8d027a91a2debedd31ee12ef932167191a58d28c502d95a7|polygon_value={
+  "methodmesh_execution_id": "206e21d2-ea44-42d6-a9c9-6efd3e516a1b",
+  "methodmesh_method_id": "svg.select",
+  "methodmesh_status": "Succeeded",
+  "svg_name": "bodymap_black.svg",
+  "selected_polygons": "[{\"polygon_id\":\"Dorsal_Buttock_Left\",\"sequence_index\":1}]",
+  "methodmesh_full_json": "{\n  \"methodmesh_execution_id\": \"206e21d2-ea44-42d6-a9c9-6efd3e516a1b\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selection_mode\": \"single\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Dorsal_Buttock_Left\\\",\\\"sequence_index\\\":1}]\",\n  \"selection_events\": \"[{\\\"type\\\":\\\"select\\\",\\\"polygon_id\\\":\\\"Dorsal_Buttock_Left\\\",\\\"sequence_index\\\":1,\\\"time_iso\\\":\\\"2026-09-04T11:57:25.739264Z\\\"}]\",\n  \"selection_audit_hash\": \"dd2bf92ab36b134d9b10602c05baa40688124092301ed3ddb3a71568c12ae2c0\",\n  \"selection_started_at\": \"2026-09-04T11:57:24.384803Z\",\n  \"selection_completed_at\": \"2026-09-04T11:57:26.356709Z\"\n}"
+}|polygon_json_sha256=deaf6eb3c0a41e34eef582beaeccdd25df2e1b975959015f4a182f0aefbffac0|conversation_transcript_sha256=e78843211bd769bf91d7347b0ddacb6d0281d9af8a1ee18dd4084c2251ae8e02|conversation_json_sha256=56b1508b1792d9d050f23b30ab061639be96a2b92cf059dff52815266f8039b4|fourat_clinical_score=10|fourat_clinical_classification=possible_delirium|fourat_clinical_definition_fingerprint=9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8|fourat_json_sha256=5113f4884c8cb2b8b8c3007bd689b4ba8e7221f7d2ccd8fc9982cde56429c759

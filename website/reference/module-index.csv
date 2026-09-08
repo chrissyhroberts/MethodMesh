@@ -1,0 +1,67 @@
+module_id,display_name,summary,method_count,form_count,doc_count,source_dir
+acoustics,Acoustics,"Analyse tones, tune instruments, estimate sound level, and compare measured tones with target frequencies.",4,1,3,acoustics
+adminfingerprint,Local device authentication,,1,1,1,adminfingerprint
+apiget,Online API GET,Run declared online API/RSS-style data links with compact returns and audit JSON.,1,0,0,apiget
+appinspector,Android app inspector,Inspect public app components and test authorised Android intents.,1,1,1,appinspector
+aquaticfield,Aquatic fieldwork,"Offline oceanography and limnology calculations, sampling records, field QC and station workflow.",16,1,3,aquaticfield
+arcade,Arcade,Lightweight real-time touch games on a fixed-step local-first runtime.,1,1,2,arcade
+astronomy,Astronomy,"Plan, assess and document astronomical observing and imaging without duplicating a planetarium.",12,1,3,astronomy
+attestation,Traceable attestation,"Signed, hash-chained field attestations with nightly ODK chain anchoring.",2,6,1,attestation
+aviation,Aviation tools,"Pilot-oriented flight deck, emergency phone-reference instruments, airfield/runway context and offline planning calculations with GPS-aware inputs and audit outputs.",6,1,5,aviation
+bluetoothinspector,Bluetooth device inspector,Discover nearby Bluetooth devices and inspect authorised BLE endpoints.,1,1,1,bluetoothinspector
+bluetoothprinter,Bluetooth printer,"Qutie-family FF00/LuckPrinter BLE thermal printing with text, QR and Code 128 composition.",1,0,6,bluetoothprinter
+calibratedscale,Calibrated scale,,1,4,1,calibratedscale
+chance,Chance,"Dice, coins, cards, concealed picks, spinners and weighted random choices.",6,6,11,chance
+choiceexperiment,Discrete choice experiments,"Interactive discrete-choice, MaxDiff, ranking, points-allocation and conjoint tasks adapted from the XLSForm DCE tooling.",5,5,1,choiceexperiment
+clinicalinstruments,Clinical Instruments,Run curated or local versioned clinical checklists and scores entirely offline and return structured observations plus results.,1,1,14,clinicalinstruments
+compass,Compass,Live magnetic compass and bearing sight with explicit Commit capture.,1,1,3,compass
+conversationtranslate,Conversation translator,Run an operator-controlled bilingual conversation translator and transcript.,1,1,1,conversationtranslate
+conversions,Conversions / General Calculator,"Offline units, percentages, ratios, date arithmetic and simple geometry.",1,1,2,conversions
+cryptography,Cryptography,"Guided privacy, signing, verification, authenticator and recovery tools with expert details kept out of the normal path.",20,2,9,cryptography
+datatools,Data tools,"JSON, Base64, URL, hex, timestamp and CSV/JSON transformations.",1,1,2,datatools
+digitalsigning,Digital signing,"Open a PDF, add handwritten ink, commit a new version, and optionally obtain an RFC 3161 trusted timestamp.",1,1,1,digitalsigning
+diving,Diving,"Recreational and technical diving physics, gas planning, cylinder/log records, and persistent planning dashboards.",18,1,1,diving
+documentscanner,Document scanner,"Scan paper pages, crop/align them, OCR them, and return PDF/text attachments.",1,1,1,documentscanner
+earthscience,Earth science utilities,"Field geodesy, GNSS averaging, structural geology, geological time and earth-material classification.",12,1,5,earthscience
+electrical,Electrical,"Solve common electrical calculations for field and bench work, with compact copy/share-first results.",1,0,1,electrical
+emergency,Emergency,"Offline-first emergency reference, local risk status, emergency location and strategic exit planning.",5,1,3,emergency
+expenses,Expenses,"Manage persistent trip and business expense ledgers with receipt evidence, transparent FX conversion, and export/share, editable ledger settings, and document scanning.",1,1,1,expenses
+fieldstats,Field Statistics,"Pocket statistical calculators for field epidemiology, diagnostics, surveys and quick quantitative checks.",10,10,5,fieldstats
+gamedeck,GameDeck,A lightweight game shelf with shared MethodMesh randomness and reproducible GameLab scenarios.,1,1,2,gamedeck
+gpstargetnavigator,GPS target navigator,"Target-first GPS navigation with live compass, distance and coordinate/Plus Code setup.",1,1,4,gpstargetnavigator
+hamradio,Amateur radio,"A live operating dashboard plus space weather, PSK activity, HF band guidance, Maidenhead/path and practical RF calculators.",9,1,5,hamradio
+imageredaction,Image annotation and redaction,Mask selected image regions and return only a redacted image attachment.,1,1,1,imageredaction
+labbench,Lab Bench,"Offline laboratory calculators for dilutions, solution preparation, master mixes, centrifugation, cell work and common bench planning.",13,13,1,labbench
+magnifier,Magnifier,"Use the rear camera as a handheld magnifier, freeze the inspected frame, apply a viewing filter, and return the captured image.",1,1,3,magnifier
+mlkittranslate,ML Kit translation,"Download, remove, list and use ML Kit on-device translation language models.",1,0,1,mlkittranslate
+mlkitvision,ML Kit vision,Use ML Kit for OCR and barcode/Data Matrix/1D code detection from camera or image files.,1,0,1,mlkitvision
+multicounter,Multi-counter,Track several named counts or scores with optional independent and staggered timers in one compact board.,1,1,5,multicounter
+music,Music,"Tempo, pitch, harmony, rhythm creation, looping, beat making, composition, practice and live performance tools.",33,33,41,music
+networktools,Network tools,"Bounded one-host network diagnostics, interface information, Wi-Fi status and IPv4 CIDR calculation.",1,1,3,networktools
+nfc,NFC,,10,7,1,nfc
+odkformlauncher,ODK form launcher,Open a named form already available in ODK Collect.,1,1,1,odkformlauncher
+pluscodecapture,Plus Code capture,Capture full offline Open Location Codes using GPS and a selectable local grid.,1,1,1,pluscodecapture
+providercommands,External command library,"Save, test, import, export, and run named commands for external Android apps.",1,0,1,providercommands
+psychomotorvigilance,Psychomotor vigilance test (PVT),Run a standard 10-minute PVT or 3-minute PVT-B reaction-time/vigilance assessment locally on the device.,1,1,5,psychomotorvigilance
+barcode,Automatic code scanner,"Scan QR, Data Matrix, Aztec, PDF417, and common 1D codes into canonical evidence.",1,1,4,qrcode
+questionprimitives,Question primitives,"Reusable text, number, select-one and select-multiple question blocks for native MethodMesh protocols.",4,0,0,questionprimitives
+randomnumber,Random number generator,"Generate secure or fixed-seed random numbers with count, range and step controls.",1,0,1,randomnumber
+referencelibrary,Reference library,"Keep useful field references, manuals and document packs accessible offline.",2,1,2,referencelibrary
+sampling,Sampling,"Build a population, sample or randomise it reproducibly, and return auditable CSV/JSON results.",1,1,6,sampling
+scaledphoto,Image annotation and redaction,Capture a ruler-calibrated photo and an optional grid-based region selection.,1,1,1,scaledphoto
+scoring,Scoring & counters,"Persistent counters, tallies, sports scoring, rounds, targets and high-score records.",11,11,3,scoring
+sensorfirmwareinstaller,ESP32 sensor framework,Install bundled MethodMesh ESP32-C3 sensor images.,1,0,1,sensorfirmwareinstaller
+sensorprovisioner,ESP32 sensor framework,Provision MethodMesh ESP32-C3 BLE sensor nodes and save them into the device registry.,1,0,1,sensorprovisioner
+sensorread,ESP32 sensor framework,"Read single, trace, averaged, or interactive live measurements from registered MethodMesh BLE sensor nodes.",1,1,1,sensorread
+sms,Send SMS,Send a short templated SMS message to a phone number.,1,1,1,sms
+soundgenerator,Sound generator,"Generate local tones, noise and sweeps with explicit digital level, routing and playback provenance.",1,1,4,soundgenerator
+spatialgeometry,Spatial geometry,"Measure heights, slopes, and distances with phone orientation sensors.",3,1,1,spatialgeometry
+speechtranscription,Speech transcription,Capture a voice note through Android speech recognition and return text.,1,0,1,speechtranscription
+surveying,Surveying,"Traverse, coordinates, offsets, levelling, area, GPS QC and field-book tools.",13,3,4,surveying
+svgselector,SVG polygon selector,"Select one, multiple, or ordered SVG polygons with timestamped audit events.",1,1,1,svgselector
+tabletoputilities,Tabletop utilities,"Persistent game workspaces with counters, characters, initiative, effects, scores and session audit history.",1,1,6,tabletoputilities
+texttools,Text tools,"Clean, transform, inspect, extract, truncate, slug, encode, split and join text locally.",10,1,2,texttools
+time_tools,Time Tools,,6,1,4,time_tools
+trustedtimestamp,Trusted timestamp,Create portable RFC 3161 proof-of-existence bundles without uploading the source content.,1,1,2,trustedtimestamp
+visualacuity,Visual acuity,Rapid calibrated tumbling-E visual acuity measurement with logMAR and Snellen results.,1,1,4,visualacuity
+webactions,Web Actions,Run ODK Central and other web workflows with explicit completion; create precooked Enketo sessions when runtime prefill is needed.,4,4,4,webactions

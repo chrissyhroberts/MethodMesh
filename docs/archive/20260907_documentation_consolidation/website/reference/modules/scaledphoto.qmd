@@ -1,0 +1,41 @@
+---
+title: "Image annotation and redaction"
+subtitle: "Module reference · scaledphoto"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Capture a ruler-calibrated photo and an optional grid-based region selection.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>scaledphoto</code></div>
+<div><strong>Source directory</strong><code>scaledphoto</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>1</div>
+<div><strong>Explicit source status labels</strong>No explicit status labels statically extracted at module scope</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `scaled_photo.capture` | capture scaled photo | Capture a calibrated photograph and optional grid selection | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_scaled_photo.capture.xlsx](../source-docs/scaledphoto/example_odk_scaled_photo.capture.xlsx)
+
+## Module-local documentation
+
+- [Scaled photo selector capability](../source-docs/scaledphoto/README_ScaledPhoto.qmd) — `README_ScaledPhoto.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

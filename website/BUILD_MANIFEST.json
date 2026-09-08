@@ -1,8 +1,15 @@
 {
-  "generated_from": [
-    "dc.zip",
-    "ex.zip"
-  ],
-  "capability_pages_including_index": 25,
-  "example_xlsforms": 38
+  "refreshed": "2026-09-07",
+  "master_book": "v1.05",
+  "modules": 66,
+  "module_owned_indexed_methods": 276,
+  "indexed_methods_total": 279,
+  "xlsforms": 147,
+  "module_markdown_docs": 218,
+  "known_polished_production_methods": 12,
+  "source_basis": [
+    "MethodMesh_Master_Book_v1.05_2026-09-06.md",
+    "src.zip",
+    "website.zip"
+  ]
 }

@@ -1,0 +1,56 @@
+# Earth science v0.1 validation record
+
+Status: **Development**
+
+## Completed in prototype environment
+
+- `EarthScienceMath.kt` compiled with local `kotlinc`.
+- `EarthScienceMathSmoke.kt` executed successfully.
+- Method layer compiled against lightweight local stubs matching the current public MethodMesh method/runtime signatures inspected from the repository.
+- Capability-screen layer (Compose, location and shared sensor calls) compiled against lightweight API-shaped stubs after inspection of the current MethodMesh screen/location/sensor boundaries.
+- The complete module source (math + methods + module declaration + screens) passed the same stubbed Kotlin compile pass.
+- The XLSForm workbook was generated with `artifact_tool`, inspected across key survey rows, and scanned for spreadsheet formula/reference errors (none found).
+- Source tree contains only module-owned files.
+
+Smoke-test command used:
+
+```bash
+kotlinc EarthScienceMath.kt docs/EarthScienceMathSmoke.kt -include-runtime -d earthscience-smoke.jar
+java -jar earthscience-smoke.jar
+```
+
+Result:
+
+```text
+EarthScienceMath smoke tests passed
+```
+
+## v0.1.1 checks in this environment
+
+- Re-ran the pure Kotlin calculation-core smoke tests successfully, including geodesic direct/inverse round-trip.
+- Exercised the new complete-UTM parser against `30N 699316.2 E 5710164.4 N`, compact no-letter form, and equatorial UTM input.
+- Regenerated the XLSForm with the optional complete-UTM paste field and scanned it for spreadsheet formula/reference errors (none found).
+- Confirmed the geological-time screen has a single module registration after replacing the generic calculation screen.
+
+The v0.1.1 Compose changes (timeline slider/bands, GNSS convergence graphic, revised structural-plane instructions) still require compilation in the real Android project and device-level testing.
+
+## Not completed in this environment
+
+A complete MethodMesh checkout was not locally available and outbound Git access from the execution container was unavailable, so the following could not be run here:
+
+```bash
+./gradlew :app:assembleDebug
+```
+
+The connected GitHub integration was read-only for repository content/ref creation, so the prototype could not be committed to a branch for GitHub Actions validation.
+
+## Required next validation
+
+1. Copy this folder to `app/src/main/java/com/example/methodmesh/modules/earthscience/`.
+2. Run `./gradlew :app:assembleDebug`.
+3. Exercise each calculation screen natively.
+4. Test preset fixed/runtime input behaviour.
+5. Test `docs/example_odk_EarthScience.xlsx` in ODK Collect.
+6. Test GNSS permission and location-provider failure paths.
+7. Compare averaged positions against reference points.
+8. Validate `structural.plane_capture` against a physical geological compass before Production.

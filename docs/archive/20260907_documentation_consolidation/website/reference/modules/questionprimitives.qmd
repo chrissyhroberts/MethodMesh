@@ -1,0 +1,44 @@
+---
+title: "Question primitives"
+subtitle: "Module reference · questionprimitives"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Reusable text, number, select-one and select-multiple question blocks for native MethodMesh protocols.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>questionprimitives</code></div>
+<div><strong>Source directory</strong><code>questionprimitives</code></div>
+<div><strong>Indexed methods</strong>4</div>
+<div><strong>XLSForms</strong>0</div>
+<div><strong>Source docs</strong>0</div>
+<div><strong>Explicit source status labels</strong>No explicit status labels statically extracted at module scope</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `question.number` | ask number question | Capture a validated numeric answer | <span class="badge-source">current source</span> | RIL binding, method source |
+| `question.select_multiple` | ask select multiple question | Capture multiple selected answers | <span class="badge-source">current source</span> | RIL binding, method source |
+| `question.select_one` | ask select one question | Capture one selected answer | <span class="badge-source">current source</span> | RIL binding, method source |
+| `question.text` | ask text question | Capture a validated text answer | <span class="badge-source">current source</span> | RIL binding, method source |
+
+## ODK / XLSForm examples
+
+_No module-owned XLSForm was present in this supplied `docs/` directory._
+
+## Module-local documentation
+
+_No module-local Markdown documentation was present in this source snapshot._
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

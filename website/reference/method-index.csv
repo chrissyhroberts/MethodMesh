@@ -1,0 +1,280 @@
+method_id,module_id,module,label,description,master_book_polished_production
+acoustic.analyse,acoustics,Acoustics,analyse acoustic signal,"Measure pitch, waveform, spectrum and amplitude",False
+acoustic.compare,acoustics,Acoustics,compare tone,Compare a measured tone with a target frequency and tolerance,False
+acoustic.level,acoustics,Acoustics,measure sound level,Measure relative or calibrated acoustic level,False
+acoustic.tune,acoustics,Acoustics,tune instrument,Tune a chromatic or preset string instrument,False
+ham.activity.pskreporter,hamradio,Amateur radio,read psk reporter,Read recent observed PSK Reporter reception activity,False
+ham.antenna.calculate,hamradio,Amateur radio,calculate antenna length,Calculate wavelength-derived antenna starting dimensions,False
+ham.band.recommend,hamradio,Amateur radio,recommend ham band,Rank HF amateur bands for current conditions,False
+ham.dashboard,hamradio,Amateur radio,show ham radio dashboard,"Refresh QTH, current HF band guidance, space weather and optional PSK activity",False
+ham.link.calculate,hamradio,Amateur radio,calculate radio link,"Calculate FSPL, horizon and Fresnel-zone values",False
+ham.maidenhead.convert,hamradio,Amateur radio,convert maidenhead,Encode or decode a Maidenhead locator,False
+ham.path.calculate,hamradio,Amateur radio,calculate radio path,Calculate distance and bearings between two Maidenhead locators,False
+ham.spaceweather.snapshot,hamradio,Amateur radio,read space weather,Read current radio-relevant NOAA space weather,False
+ham.swr.calculate,hamradio,Amateur radio,calculate swr,Calculate SWR from forward and reflected power,False
+android_app_inspector,appinspector,Android app inspector,inspect android app,Inspect public Android app interfaces,False
+aquatic.ctd.cast,aquaticfield,Aquatic fieldwork,record ctd cast,Record a CTD or sonde cast,False
+aquatic.depth_plan.generate,aquaticfield,Aquatic fieldwork,generate aquatic depth plan,Generate planned sampling depths,False
+aquatic.field_qc.run,aquaticfield,Aquatic fieldwork,run aquatic field qc,Run field completeness and plausibility checks,False
+aquatic.instrument.check,aquaticfield,Aquatic fieldwork,record aquatic instrument check,Record calibration or field verification,False
+aquatic.mooring.record,aquaticfield,Aquatic fieldwork,record aquatic mooring,Record a mooring event,False
+aquatic.pressure_depth.convert,aquaticfield,Aquatic fieldwork,convert pressure depth,Convert aquatic pressure and depth,False
+aquatic.profile.summarise,aquaticfield,Aquatic fieldwork,summarise aquatic profile,Summarise a processed vertical profile,False
+aquatic.rosette.fire,aquaticfield,Aquatic fieldwork,record rosette fire,Record a water-sampler bottle firing,False
+aquatic.salinity.convert,aquaticfield,Aquatic fieldwork,convert salinity,Convert conductivity or calculate Practical Salinity,False
+aquatic.sample.record,aquaticfield,Aquatic fieldwork,record water sample,Record a discrete water sample,False
+aquatic.sample_id.generate,aquaticfield,Aquatic fieldwork,generate sample id,Generate an aquatic sample identifier,False
+aquatic.secchi.measure,aquaticfield,Aquatic fieldwork,measure secchi depth,Record a Secchi observation,False
+aquatic.sediment.record,aquaticfield,Aquatic fieldwork,record sediment sample,Record a sediment core or grab,False
+aquatic.station.dashboard,aquaticfield,Aquatic fieldwork,aquatic station dashboard,Open or return the current station snapshot,False
+aquatic.station.visit,aquaticfield,Aquatic fieldwork,record aquatic station,Record a station visit,False
+aquatic.transect.record,aquaticfield,Aquatic fieldwork,record aquatic transect,Record a transect,False
+arcade.snapshot,arcade,Arcade,open arcade,Open the Arcade game shelf,False
+astronomy.conditions,astronomy,Astronomy,assess astronomy conditions,Score imaging conditions,False
+astronomy.dashboard,astronomy,Astronomy,show astronomy dashboard,"Refresh current observing, dew, upper-atmosphere and tonight conditions",False
+astronomy.dew_risk,astronomy,Astronomy,check dew risk,Calculate condensation risk,False
+astronomy.exposure_limit,astronomy,Astronomy,calculate exposure limit,Estimate untracked exposure limit,False
+astronomy.focus,astronomy,Astronomy,assist focus,Minimise point-source FWHM,False
+astronomy.image_scale,astronomy,Astronomy,calculate image scale,Calculate field of view and sampling,False
+astronomy.imaging_window,astronomy,Astronomy,plan imaging window,Find the best imaging period tonight,False
+astronomy.light_pollution,astronomy,Astronomy,check light pollution,"Download, map and sample NASA VIIRS nighttime radiance around a location",False
+astronomy.mount_stability,astronomy,Astronomy,test mount stability,Measure telescope or tripod vibration,False
+astronomy.polar_align,astronomy,Astronomy,polar align,Find true/celestial north or south and Polaris clock position,False
+astronomy.session,astronomy,Astronomy,record astronomy session,Run a resumable observing session and create a shareable record,False
+astronomy.sky_test,astronomy,Astronomy,test sky quality,Measure the sky against a good-night calibration,False
+barcode.scan,barcode,Automatic code scanner,scan qr,Capture a QR token as verifiable workflow evidence,True
+aviation.airfield.nearby,aviation,Aviation tools,find nearby airfields,Find aerodromes around current or supplied coordinates,False
+aviation.altitude.calculate,aviation,Aviation tools,calculate density altitude,Calculate pressure and density altitude,False
+aviation.dashboard,aviation,Aviation tools,open aviation dashboard,Open a persistent GPS-aware aviation dashboard,False
+aviation.e6b.calculate,aviation,Aviation tools,calculate e6b,Run common electronic flight-computer calculations,False
+aviation.emergency.instruments,aviation,Aviation tools,open emergency instrument panel,Open a persistent supplementary phone-sensor emergency reference panel,False
+aviation.runway.wind,aviation,Aviation tools,calculate runway wind,"Calculate runway headwind, tailwind and crosswind components",False
+bluetooth_device_inspector,bluetoothinspector,Bluetooth device inspector,inspect bluetooth devices,Discover and assay Bluetooth devices,False
+bluetooth_print,bluetoothprinter,Bluetooth printer,print with Qutie-family Bluetooth printer,Print to a Qutie or compatible FF00/LuckPrinter-family BLE thermal printer,False
+calibrated_scale,calibratedscale,Calibrated scale,,,True
+chance.cards.draw,chance,Chance,draw card,Draw a card from a standard deck,False
+chance.pick.one,chance,Chance,pick one,Lay out concealed choices and let the user pick one,False
+chance.spinner.spin,chance,Chance,spin wheel,Spin an equal-segment choice wheel,False
+chance.weighted.choose,chance,Chance,weighted choice,Choose from labelled options using numeric weights,False
+coin.toss,chance,Chance,toss coin,Toss a fair coin one or more times,False
+dice.simulate,chance,Chance,roll dice,Roll one or more dice,False
+clinical.instrument.run,clinicalinstruments,Clinical Instruments,run clinical instrument,Run a versioned clinical instrument,False
+compass.read,compass,Compass,read compass,Read and capture a compass bearing,False
+conversation.translate,conversationtranslate,Conversation translator,translate conversation,Run a bilingual speech translation session,True
+conversion.calculate,conversions,Conversions / General Calculator,convert units,Convert units or run a general calculation,False
+crypto.challenge.create,cryptography,Cryptography,create challenge,Create an expiring proof-of-possession challenge,False
+crypto.challenge.respond,cryptography,Cryptography,sign challenge,Respond to a challenge with the local identity,False
+crypto.challenge.verify,cryptography,Cryptography,verify challenge,Verify a signed challenge response,False
+crypto.dashboard,cryptography,Cryptography,describe cryptography status,Show non-secret cryptography status,False
+crypto.file.decrypt,cryptography,Cryptography,decrypt file,Decrypt a JWE file,False
+crypto.file.encrypt,cryptography,Cryptography,encrypt file,Encrypt a file as JWE,False
+crypto.hash,cryptography,Cryptography,hash content,Hash exact content,False
+crypto.identity.export,cryptography,Cryptography,export cryptographic identity,Create a public NFC/QR identity token,False
+crypto.key.generate,cryptography,Cryptography,create signing key,Create a device-bound ES256 identity,False
+crypto.password.generate,cryptography,Cryptography,create password,Create a cryptographically random password or passphrase,False
+crypto.secret.combine,cryptography,Cryptography,merge secret shares,Recover a Shamir-shared secret,False
+crypto.secret.split,cryptography,Cryptography,split secret,Split a secret into Shamir shares,False
+crypto.sign,cryptography,Cryptography,sign content,Create a detached ES256 JWS,False
+crypto.signature.verify,cryptography,Cryptography,verify signature,Verify a detached ES256 JWS,False
+crypto.text.decrypt,cryptography,Cryptography,decrypt text,Decrypt password-protected JWE text,False
+crypto.text.encrypt,cryptography,Cryptography,encrypt text,Encrypt text as password-protected JWE,False
+otp.totp.delete,cryptography,Cryptography,delete totp account,Delete a TOTP account,False
+otp.totp.export,cryptography,Cryptography,export totp backup,Export a password-protected JWE TOTP backup,False
+otp.totp.generate,cryptography,Cryptography,create totp code,Generate a TOTP code,False
+otp.totp.import,cryptography,Cryptography,import totp account,Import a TOTP account,False
+data.tools,datatools,Data tools,transform data,Run an offline data encoding or format operation,False
+document.sign_pdf,digitalsigning,Digital signing,sign pdf,Ink-sign a PDF and commit a new document,False
+dce.conjoint,choiceexperiment,Discrete choice experiments,run conjoint,Run a conjoint selection task,False
+dce.maxdiff,choiceexperiment,Discrete choice experiments,run maxdiff,Run a MaxDiff / best-worst task,False
+dce.pairwise,choiceexperiment,Discrete choice experiments,run pairwise,Run a pairwise comparison task,False
+dce.points,choiceexperiment,Discrete choice experiments,allocate points,Run a points-allocation task,False
+dce.ranking,choiceexperiment,Discrete choice experiments,run ranking,Run a ranking task,False
+diving.bailout.plan,diving,Diving,plan diving bailout gas,Calculate simplified bailout ascent gas requirement,False
+diving.cylinder.capacity,diving,Diving,calculate cylinder gas,Calculate nominal cylinder gas and reserve,False
+diving.cylinder.record,diving,Diving,record diving cylinder,Create or update a local diving cylinder record,False
+diving.dashboard,diving,Diving,open dive planner dashboard,Open the persistent diving planning dashboard,False
+diving.ead,diving,Diving,calculate equivalent air depth,Calculate EAD for nitrox,False
+diving.end,diving,Diving,calculate equivalent narcotic depth,Calculate END for helium mixes,False
+diving.gas.analysis.record,diving,Diving,record diving gas analysis,Record an analysed O2/He mix for a cylinder,False
+diving.gas.dashboard,diving,Diving,open diving gas dashboard,Summarise local cylinders and gas analyses,False
+diving.gas.density,diving,Diving,calculate diving gas density,Estimate ideal-gas breathing density at depth,False
+diving.gas.plan,diving,Diving,plan diving gas,Calculate multi-segment gas requirement and reserve margin,False
+diving.lift,diving,Diving,calculate lift bag gas,Estimate minimum lift-bag displacement and inflation gas,False
+diving.log.dashboard,diving,Diving,open dive log dashboard,Summarise locally recorded dives,False
+diving.log.record,diving,Diving,record dive,Record a dive in the local MethodMesh dive log,False
+diving.mod,diving,Diving,calculate diving MOD,Calculate maximum operating depth from analysed FO2 and configured ppO2 limit,False
+diving.navigation,diving,Diving,calculate dive navigation,Calculate reciprocal heading and simple time/distance navigation,False
+diving.nitrox.best_mix,diving,Diving,calculate nitrox best mix,Calculate maximum FO2 at a planned depth for a configured ppO2 limit,False
+diving.ppo2,diving,Diving,calculate diving ppO2,Calculate oxygen partial pressure at depth,False
+diving.sac_rmv,diving,Diving,calculate diving SAC RMV,Calculate SAC and RMV from a dive and cylinder pressure drop,False
+document.scan,documentscanner,Document scanner,scan paper document,Capture paper pages and return searchable PDF/OCR outputs,True
+geodesy.destination,earthscience,Earth science utilities,calculate destination coordinate,Project a WGS84 coordinate by bearing and distance,False
+geodesy.distance_bearing,earthscience,Earth science utilities,calculate geodesic distance,Calculate WGS84 ellipsoidal distance and bearings between two positions,False
+geodesy.utm_to_wgs84,earthscience,Earth science utilities,convert UTM to WGS84,Convert UTM coordinates to latitude/longitude,False
+geodesy.wgs84_to_utm,earthscience,Earth science utilities,convert WGS84 to UTM,Convert latitude/longitude to UTM,False
+geotime.lookup,earthscience,Earth science utilities,lookup geological time,Classify a numerical geological age using the bundled ICS hierarchy,False
+gnss.average_position,earthscience,Earth science utilities,average GNSS position,Collect and average repeated GNSS fixes,False
+sediment.grain_size,earthscience,Earth science utilities,classify sediment grain size,Convert millimetres and phi and classify Wentworth grain size,False
+soil.texture_usda,earthscience,Earth science utilities,classify soil texture,"Classify sand, silt and clay percentages using USDA textural classes",False
+structural.line,earthscience,Earth science utilities,normalise geological line,Normalise trend and plunge,False
+structural.plane,earthscience,Earth science utilities,normalise geological plane,Normalise strike and dip and derive dip direction and pole,False
+structural.plane_capture,earthscience,Earth science utilities,capture geological plane,Capture a Development-stage strike and dip estimate from phone orientation,False
+structural.plane_intersection,earthscience,Earth science utilities,intersect geological planes,Calculate the trend and plunge of the intersection of two planes,False
+electrical.workbench,electrical,Electrical,electrical workbench,Open the electrical calculation workbench,False
+emergency.exit.find,emergency,Emergency,find emergency exit,Rank offline strategic exit options,False
+emergency.location,emergency,Emergency,share emergency location,Capture GPS and Plus Code for emergency sharing,False
+emergency.pack.prepare,emergency,Emergency,prepare emergency location,Inspect or prepare a regional emergency pack,False
+emergency.reference.open,emergency,Emergency,open emergency guide,Open an offline emergency reference card,False
+emergency.status,emergency,Emergency,check emergency status,Check explainable local risk and preparedness,False
+esp32.sensor_profile_install,sensorfirmwareinstaller,ESP32 sensor framework,,,False
+sensor.read,sensorread,ESP32 sensor framework,read sensor,Read a registered or nearby MethodMesh sensor,False
+sensor_node_provisioner,sensorprovisioner,ESP32 sensor framework,provision sensor node,Configure a MethodMesh BLE sensor node,False
+expenses.manage,expenses,Expenses,,,False
+provider.command.run,providercommands,External command library,run provider command,Run a saved external app command by command ID,False
+fieldstats.compare_binary,fieldstats,Field Statistics,compare binary groups,"Calculate RD, RR, OR and NNT/NNH",False
+fieldstats.detection_limit,fieldstats,Field Statistics,detection limit,Plan detection of at least one event or bound prevalence after zero events,False
+fieldstats.diagnostic_2x2,fieldstats,Field Statistics,diagnostic 2 by 2,"Calculate sensitivity, specificity, predictive values and likelihood ratios",False
+fieldstats.probability,fieldstats,Field Statistics,probability distribution,"Calculate binomial, Poisson or normal probabilities",False
+fieldstats.proportion,fieldstats,Field Statistics,calculate proportion,Calculate a proportion and Wilson confidence interval,False
+fieldstats.roc,fieldstats,Field Statistics,roc threshold,Explore ROC AUC and threshold performance,False
+fieldstats.sample_size_diagnostic,fieldstats,Field Statistics,diagnostic sample size,Plan recruitment for sensitivity and specificity precision,False
+fieldstats.sample_size_proportion,fieldstats,Field Statistics,sample size for proportion,Plan a prevalence or coverage sample size,False
+fieldstats.sample_size_two_proportions,fieldstats,Field Statistics,sample size two proportions,Plan a two-group comparison of proportions,False
+fieldstats.summary,fieldstats,Field Statistics,summarise numbers,Calculate quick descriptive statistics,False
+gamedeck.snapshot,gamedeck,GameDeck,open gamedeck,Open the GameDeck game shelf,False
+gps_target_navigator,gpstargetnavigator,GPS target navigator,navigate gps,Navigate to a configured GPS target,True
+image.redact,imageredaction,Image annotation and redaction,redact image,Mask selected image regions and return a redacted image,True
+scaled_photo.capture,scaledphoto,Image annotation and redaction,capture scaled photo,Capture a calibrated photograph and optional grid selection,False
+labbench.aliquot,labbench,Lab Bench,plan aliquots,Plan aliquot count or size,False
+labbench.cell_dilution,labbench,Lab Bench,calculate cell dilution,Calculate cell or OD dilution,False
+labbench.centrifuge,labbench,Lab Bench,convert centrifuge rcf rpm,Convert RCF and RPM,False
+labbench.concentration,labbench,Lab Bench,convert concentration,Convert laboratory concentration units,False
+labbench.dashboard,labbench,Lab Bench,open lab bench,Open the persistent laboratory calculator dashboard,False
+labbench.dilution,labbench,Lab Bench,calculate dilution,Calculate stock and diluent volumes,False
+labbench.hemocytometer,labbench,Lab Bench,calculate hemocytometer count,Calculate cells per mL and viability,False
+labbench.master_mix,labbench,Lab Bench,calculate master mix,Scale a reaction master mix,False
+labbench.molar_solution,labbench,Lab Bench,prepare molar solution,Calculate molar solution preparation,False
+labbench.nucleic_acid,labbench,Lab Bench,calculate nucleic acid,Calculate DNA/RNA molarity or copy number,False
+labbench.percent_solution,labbench,Lab Bench,prepare percent solution,Prepare percent solutions,False
+labbench.reconstitute,labbench,Lab Bench,reconstitute reagent,Calculate reagent reconstitution volume,False
+labbench.serial_dilution,labbench,Lab Bench,plan serial dilution,Plan a serial dilution series,False
+admin_fingerprint_confirmation,adminfingerprint,Local device authentication,authorize local access,Authorise access using a device biometric or credential,True
+visual.magnifier.capture,magnifier,Magnifier,,,False
+mlkit.translate,mlkittranslate,ML Kit translation,translate text with ML Kit,Translate text using downloaded ML Kit language models,True
+mlkit.vision.analyze,mlkitvision,ML Kit vision,read text with ML Kit,Capture or select an image and run ML Kit OCR,True
+counter.multientity,multicounter,Multi-counter,track multiple counters,Open a compact board for several counters,False
+music.arpeggiator,music,Music,arpeggiate chord,Turn a chord into an arpeggio,False
+music.bassline,music,Music,generate bassline,Generate a bassline from chord symbols,False
+music.beat_pads,music,Music,open beat pads,Finger drum and capture a hit sequence,False
+music.chord,music,Music,identify chord,Build or identify a chord,False
+music.chord_guide,music,Music,show chord shape,Show a compact guitar chord fingering,False
+music.chord_progression,music,Music,build chord progression,Build or generate a diatonic chord progression,False
+music.delay_time,music,Music,calculate delay time,Calculate tempo-synchronised delay time,False
+music.drum_machine,music,Music,open drum machine,Open the synthesized step sequencer,False
+music.euclidean_rhythm,music,Music,generate euclidean rhythm,Distribute rhythmic hits evenly over a grid,False
+music.harmonics,music,Music,explore harmonics,Calculate a harmonic series,False
+music.interval,music,Music,identify interval,Identify the interval between two notes,False
+music.jam_dashboard,music,Music,open jam dashboard,Open the live music creation dashboard,False
+music.live_looper,music,Music,open live looper,Record a master phrase and overdub loop layers,False
+music.melody_sequence,music,Music,make melody,Create a scale-locked melody from degrees,False
+music.metronome,music,Music,run metronome,"Run an audio, visual and haptic metronome",False
+music.motif_generator,music,Music,vary motif,Generate transformations of a melodic motif,False
+music.note_frequency,music,Music,convert note frequency,Convert between scientific pitch notation and frequency,False
+music.pattern_mutation,music,Music,mutate beat,Create a variation of a rhythmic pattern,False
+music.performance_dashboard,music,Music,open performance dashboard,Open the persistent set-list dashboard,False
+music.polyrhythm,music,Music,generate polyrhythm,Generate an A:B polyrhythm cycle,False
+music.practice_dashboard,music,Music,open practice dashboard,Open the live music practice dashboard,False
+music.probability_pattern,music,Music,probability beat,Realise a seeded probability rhythm,False
+music.reference,music,Music,music reference,Show scale notes and diatonic triads,False
+music.reference_dashboard,music,Music,open music reference dashboard,"Open the key, scale and chord reference dashboard",False
+music.rhythm_capture,music,Music,tap a rhythm,Capture and quantise a tapped rhythm,False
+music.setlist_timing,music,Music,time set list,Calculate total performance duration,False
+music.song_sketch,music,Music,make song sketch,"Combine rhythm, harmony, melody and structure into a sketch",False
+music.song_sketch_dashboard,music,Music,open song sketch dashboard,Open the persistent composition sketch dashboard,False
+music.tap_tempo,music,Music,tap tempo,Tap repeatedly to estimate BPM,False
+music.temperament,music,Music,calculate temperament,Calculate an equal-temperament step,False
+music.tempo_convert,music,Music,convert tempo,Convert BPM to note durations,False
+music.tempo_trainer,music,Music,train tempo,Generate a stepped practice tempo progression,False
+music.transpose,music,Music,transpose music,Transpose notes or chord symbols,False
+network.tools,networktools,Network tools,network tools,Run a bounded network diagnostic,False
+nfc_credential_provisioning,nfc,NFC,provision nfc credential,Create a PIN-protected portable NFC credential,False
+nfc_credential_verification,nfc,NFC,verify nfc credential,Verify a portable NFC credential and PIN,False
+nfc_tag_read,nfc,NFC,scan nfc,Read an NFC tag,False
+nfc_tag_wipe,nfc,NFC,wipe nfc,Remove NDEF user content from an NFC tag,False
+nfc_tag_write,nfc,NFC,write nfc,Write an NFC tag,False
+protocol_nfc_check,nfc,NFC,check protocol card,Check whether a protocol step is allowed on an NFC card,False
+protocol_nfc_complete,nfc,NFC,complete protocol card,Mark a completed protocol step on an NFC card,False
+protocol_nfc_override,nfc,NFC,override protocol card,Apply a justified manual protocol-card override,False
+protocol_nfc_provision,nfc,NFC,provision protocol card,Create the initial protocol receipt on an NFC card,False
+protocol_nfc_reconstruct,nfc,NFC,reconstruct protocol card,Restore a protocol receipt to a replacement NFC card,False
+odk_form_launcher,odkformlauncher,ODK form launcher,open odk form,Open a named ODK Collect form,True
+api.get,apiget,Online API GET,get online api data,Run a declared online API definition,False
+plus_code.capture,pluscodecapture,Plus Code capture,capture plus code,Capture a full Open Location Code from GPS and a selected grid cell,True
+psychomotor.vigilance.run,psychomotorvigilance,Psychomotor vigilance test (PVT),measure psychomotor vigilance,Run a visual psychomotor vigilance test,False
+question.number,questionprimitives,Question primitives,ask number question,Capture a validated numeric answer,False
+question.select_multiple,questionprimitives,Question primitives,ask select multiple question,Capture multiple selected answers,False
+question.select_one,questionprimitives,Question primitives,ask select one question,Capture one selected answer,False
+question.text,questionprimitives,Question primitives,ask text question,Capture a validated text answer,False
+random.number.generate,randomnumber,Random number generator,generate random number,Generate a configurable random number,True
+reference.library.email,referencelibrary,Reference library,email reference documents,Prepare an email with library or piped document attachments,False
+reference.library.open,referencelibrary,Reference library,open reference library,Open the offline reference library,False
+sampling.run,sampling,Sampling,sample items,Randomly select records from a population,False
+score.counter,scoring,Scoring & counters,count score,Run a persistent multi-entity counter,False
+score.high_score,scoring,Scoring & counters,record high score,Explicitly save a score record,False
+score.match,scoring,Scoring & counters,score match,Run a generic match scoreboard,False
+score.race_to,scoring,Scoring & counters,race to score,Run a race-to-target score,False
+score.rounds,scoring,Scoring & counters,score rounds,Accumulate round scores,False
+score.session.finish,scoring,Scoring & counters,finish score session,Finish and return a persistent score session,False
+score.session.read,scoring,Scoring & counters,read score session,Read persistent score state,False
+score.session.resume,scoring,Scoring & counters,resume score session,Resume a persistent score session,False
+score.set_match,scoring,Scoring & counters,score set match,Run hierarchical set scoring,False
+score.sports,scoring,Scoring & counters,score sport,Run a ruleset-aware sports scoreboard,False
+score.tally,scoring,Scoring & counters,tally observations,Run a fast categorical tally,False
+sms.send,sms,Send SMS,send SMS,Send a templated SMS message to a phone number,False
+scheduler.create,core-scheduling,Shared scheduling runtime,create schedule,"Schedule an ODK form, web form, or future MethodMesh process.",False
+scheduler.export,core-scheduling,Shared scheduling runtime,export schedules,Export schedules as a portable integrity-checked bundle.,False
+scheduler.import,core-scheduling,Shared scheduling runtime,import schedules,"Import a portable schedule bundle, directly or through QR/NFC.",False
+sound.play,soundgenerator,Sound generator,play sound,Generate and play a configured sound stimulus,False
+geometry_distance_estimation,spatialgeometry,Spatial geometry,estimate distance,Estimate distance from a known reference height and angular size,False
+slope_inclination_measurement,spatialgeometry,Spatial geometry,measure slope,Measure slope and inclination from phone orientation,False
+tree_height_measurement,spatialgeometry,Spatial geometry,estimate height,Triangulate object height from distance and top/base angles,False
+speech.transcribe,speechtranscription,Speech transcription,transcribe speech,Open Android speech recognition and return a transcript,False
+survey.area,surveying,Surveying,calculate area from coordinates,"Shoelace area, perimeter and centroid",False
+survey.bearing_distance,surveying,Surveying,calculate bearing and distance,Bearing/distance between two coordinates,False
+survey.chainage_offset,surveying,Surveying,calculate chainage offset,Project a coordinate onto a baseline,False
+survey.forward_coordinate,surveying,Surveying,project survey coordinate,Forward coordinate from azimuth and distance,False
+survey.gps_average,surveying,Surveying,average gps fixes,Average repeated GPS fixes and report scatter,False
+survey.grade,surveying,Surveying,calculate grade,"Rise/fall, percent grade, angle and 1:n",False
+survey.intersection,surveying,Surveying,intersect survey bearings,Bearing-bearing intersection from two control points,False
+survey.level_reduce,surveying,Surveying,reduce levelling book,Reduce BS/IS/FS observations and closure,False
+survey.levelling_book,surveying,Surveying,open levelling field book,Persistent levelling dashboard,False
+survey.offset_point,surveying,Surveying,calculate survey offset,Coordinate from baseline chainage and signed offset,False
+survey.setout,surveying,Surveying,set out survey point,Grid bearing and distance to a target,False
+survey.traverse,surveying,Surveying,calculate traverse,"Traverse coordinates, closure and adjustment",False
+survey.traverse_book,surveying,Surveying,open traverse field book,Persistent traverse dashboard,False
+svg.select,svgselector,SVG polygon selector,select svg polygons,Select polygons on a stored SVG,False
+tabletop.state.manage,tabletoputilities,Tabletop utilities,tabletop workspace,Open or inspect a persistent tabletop game workspace,False
+text.case,texttools,Text tools,change text case,Change upper/lower/title/sentence/toggle case,False
+text.clean,texttools,Text tools,clean text,"Normalize whitespace, line endings and Unicode",False
+text.count,texttools,Text tools,count text,"Count words, characters, lines and bytes",False
+text.encode,texttools,Text tools,encode text,"Encode or decode Base64, URL, hex or HTML entities",False
+text.extract,texttools,Text tools,extract text,Extract structural parts or syntactic patterns,False
+text.lines,texttools,Text tools,process text lines,"Sort, deduplicate, filter or subset lines",False
+text.replace,texttools,Text tools,replace text,Find and replace literal text or regex matches,False
+text.slug,texttools,Text tools,make text slug,Create a filename- or identifier-friendly slug,False
+text.split_join,texttools,Text tools,split text,Split or join delimited text,False
+text.truncate,texttools,Text tools,truncate text,Restrict text to a deterministic length,False
+time.countdown,time_tools,Time Tools,countdown,Count down a duration.,False
+time.duration.calculate,time_tools,Time Tools,duration calculator,Add or subtract durations.,False
+time.elapsed,time_tools,Time Tools,elapsed time,Calculate elapsed time between timestamps.,False
+time.interval,time_tools,Time Tools,interval timer,Run labelled timed phases and repeated cycles.,False
+time.stopwatch,time_tools,Time Tools,stopwatch,Measure elapsed time with optional laps.,False
+time.until,time_tools,Time Tools,until,Count down to a wall-clock instant.,False
+attestation.anchor_bundle,attestation,Traceable attestation,create nightly anchor,Export ODK fields for a nightly chain anchor,False
+attestation.create,attestation,Traceable attestation,create attestation,Sign a field event with the device attestation key,False
+integrity.trusted_timestamp,trustedtimestamp,Trusted timestamp,prove existence,Create an RFC 3161 proof of existence,False
+visual_acuity.measure,visualacuity,Visual acuity,measure visual acuity,Measure calibrated visual acuity,False
+web.odk_central_roundtrip,webactions,Web Actions,complete ODK Central form,"Paste a Central web-form link, complete the submission, and return after Central's explicit return URL",False
+web.open,webactions,Web Actions,open web page,Open an HTTP or HTTPS page in the Android browser,False
+web.precooked_enketo,webactions,Web Actions,create precooked Enketo session,Advanced: create a fresh Enketo single-submit session with runtime prefill and return after explicit completion,False
+web.roundtrip,webactions,Web Actions,run web roundtrip,Run a web workflow with a one-shot return URL,False

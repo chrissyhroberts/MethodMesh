@@ -15,7 +15,7 @@ An example demonstrates the current call shape; it is not automatically a valida
 `admin_fingerprint_confirmation`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',input_authentication_method=${authentication_method})
+com.example.methodmesh.EXECUTE_METHOD(method_id='admin_fingerprint_confirmation',input_authentication_method=${authentication_method},return_mode='flat')
 ```
 
 ### [example_odk_android_app_inspector.xlsx](example_odk_android_app_inspector.xlsx)
@@ -115,7 +115,7 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='bluetooth_print')
 `calibrated_scale`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_payload_mode='FULL',return_mode='flat')
 ```
 
 ### [example_odk_calibrated_scale_MinMax.xlsx](example_odk_calibrated_scale_MinMax.xlsx)
@@ -125,7 +125,7 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt=
 `calibrated_scale`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_minimum='0',input_maximum='10',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_minimum='0',input_maximum='10',input_payload_mode='FULL',return_mode='flat')
 ```
 
 ### [example_odk_calibrated_scale_Range.xlsx](example_odk_calibrated_scale_Range.xlsx)
@@ -135,7 +135,7 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt=
 `calibrated_scale`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_use_range='true',input_lower_label='Least pain',input_upper_label='Worst pain',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_use_range='true',input_lower_label='Least pain',input_upper_label='Worst pain',input_payload_mode='FULL',return_mode='flat')
 ```
 
 ### [example_odk_calibrated_scale_Vertical.xlsx](example_odk_calibrated_scale_Vertical.xlsx)
@@ -145,7 +145,7 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt=
 `calibrated_scale`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_vertical_mode='true',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='calibrated_scale',input_prompt='Rate your pain',input_hint='0 means no pain; 100 means the worst pain you can imagine',input_vas_length_mm='50',input_vertical_mode='true',input_payload_mode='FULL',return_mode='flat')
 ```
 
 ### [example_odk_dce.conjoint.xlsx](example_odk_dce.conjoint.xlsx)
@@ -198,6 +198,16 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='dce.points',input_points='100',
 com.example.methodmesh.EXECUTE_METHOD(method_id='dce.ranking',input_rounds='3',input64_items='Q2xpbmljIEEKQ2xpbmljIEIKQ2xpbmljIEMKQ2xpbmljIEQ',input_seed='participant_001',return_mode='flat')
 ```
 
+### [example_odk_conversation.translate.xlsx](example_odk_conversation.translate.xlsx)
+
+**example_odk_conversation.translate**
+
+`conversation.translate`
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='conversation.translate',input_language_a=${language_a_input},input_language_b=${language_b_input},input_spoken_output=${spoken_output_input},input_prefer_offline=${prefer_offline_input},input_payload_mode='FULL',return_mode='flat')
+```
+
 ### [example_odk_gps_target_navigator.xlsx](example_odk_gps_target_navigator.xlsx)
 
 **example_odk_gps_target_navigator**
@@ -205,7 +215,17 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='dce.ranking',input_rounds='3',i
 `gps_target_navigator`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='gps_target_navigator',input_target_latitude=${target_latitude_input},input_target_longitude=${target_longitude_input},input_arrival_radius_m=${arrival_radius_input})
+com.example.methodmesh.EXECUTE_METHOD(method_id='gps_target_navigator',input_target_name=${target_name_input},input_target_plus_code=${target_plus_code_input},input_target_latitude=${target_latitude_input},input_target_longitude=${target_longitude_input},input_arrival_radius_m=${arrival_radius_input},input_payload_mode='FULL',return_mode='flat')
+```
+
+### [example_odk_plus_code.capture.xlsx](example_odk_plus_code.capture.xlsx)
+
+**MethodMesh Plus Code capture**
+
+`plus_code.capture`
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='plus_code.capture',input_code_length=${code_length_input},input_gps_average_seconds=${gps_average_seconds_input},input_basemap_mode=${basemap_mode_input},input_grid_span_cells=${grid_span_cells_input},input_payload_mode='FULL',return_mode='flat')
 ```
 
 ### [example_odk_nfc_credential_provisioning.xlsx](example_odk_nfc_credential_provisioning.xlsx)
@@ -290,22 +310,32 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='protocol_nfc_complete',input_pr
 
 ### [example_odk_barcode.scan.xlsx](example_odk_barcode.scan.xlsx)
 
-**example_odk_barcode.scan**
+**barcode.scan**
 
 `barcode.scan`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='barcode.scan')
+com.example.methodmesh.EXECUTE_METHOD(method_id='barcode.scan',input_barcode_formats=${barcode_formats_input},return_mode='flat')
 ```
 
-### [example_odk_qr.scan.xlsx](example_odk_qr.scan.xlsx)
+### [example_odk_document.scan.xlsx](example_odk_document.scan.xlsx)
 
-**Deprecated compatibility example**
+**document.scan**
 
-`qr.scan`
+`document.scan`
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='qr.scan')
+com.example.methodmesh.EXECUTE_METHOD(method_id='document.scan',input_page_limit='10',input_scanner_mode='full',input_allow_gallery_import='true',input_run_ocr='true',input_return_searchable_pdf='true',input_return_text_file='true',input_payload_mode='FULL',return_mode='flat')
+```
+
+### [example_odk_image.redact.xlsx](example_odk_image.redact.xlsx)
+
+**image.redact**
+
+`image.redact`
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='image.redact',input_source='camera',input_grid_rows='10',input_grid_columns='10',input_redaction_style='black',input_payload_mode='FULL',return_mode='flat')
 ```
 
 ### [example_odk_scaled_photo.capture.xlsx](example_odk_scaled_photo.capture.xlsx)

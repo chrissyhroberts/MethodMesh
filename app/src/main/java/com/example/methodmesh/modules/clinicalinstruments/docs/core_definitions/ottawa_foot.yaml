@@ -1,0 +1,43 @@
+schema: methodmesh.clinical-instrument.v1
+id: ottawa_foot
+name: Ottawa foot radiography rule
+version: 1.0.0
+status: core
+type: decision_rule
+category: acute_bedside
+tags: [trauma, foot, imaging, emergency]
+summary: Ottawa criteria for deciding whether foot radiography is indicated after acute midfoot trauma.
+source_url: https://aci.health.nsw.gov.au/ecat/appendices/ottawa-ankle-adult
+citation: "Stiell IG, McKnight RD, Greenberg GH, et al. Implementation of the Ottawa Ankle Rules. JAMA. 1994;271:827-832. Criteria cross-checked against NSW Agency for Clinical Innovation."
+rights_status: factual_definition
+rights_note: Implements factual examination criteria; concise labels are MethodMesh wording.
+questions:
+  - id: midfoot_zone_pain
+    label: Pain in the midfoot zone?
+    type: boolean
+  - id: fifth_metatarsal_tenderness
+    label: Bone tenderness at base of fifth metatarsal?
+    type: boolean
+  - id: navicular_tenderness
+    label: Bone tenderness at navicular?
+    type: boolean
+  - id: unable_four_steps
+    label: Unable to bear weight for four steps both immediately after injury and in the department?
+    type: boolean
+derived:
+  - id: foot_radiography_rule_positive
+    expression: midfoot_zone_pain and (fifth_metatarsal_tenderness or navicular_tenderness or unable_four_steps)
+classifications:
+  - when: foot_radiography_rule_positive == true
+    value: radiography_criteria_met
+    label: Ottawa foot radiography criteria met
+  - when: foot_radiography_rule_positive == false
+    value: radiography_criteria_not_met
+    label: Ottawa foot radiography criteria not met
+tests:
+  - name: positive
+    input_json: '{"midfoot_zone_pain":true,"fifth_metatarsal_tenderness":false,"navicular_tenderness":true,"unable_four_steps":false}'
+    expect_json: '{"foot_radiography_rule_positive":true,"classification":"radiography_criteria_met"}'
+  - name: negative
+    input_json: '{"midfoot_zone_pain":true,"fifth_metatarsal_tenderness":false,"navicular_tenderness":false,"unable_four_steps":false}'
+    expect_json: '{"foot_radiography_rule_positive":false,"classification":"radiography_criteria_not_met"}'

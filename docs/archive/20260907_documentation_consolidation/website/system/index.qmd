@@ -1,0 +1,22 @@
+---
+title: "System model"
+---
+
+MethodMesh is an offline-first Android toolbox and capability runtime. Its design is intentionally asymmetric: the everyday UI should be minimal and task-focused, while the underlying contract remains rich enough for reproducibility, audit, external orchestration and composition.
+
+## Beef and salad
+
+**Beef** is the primary useful result: barcode text, translated text, a redacted image, OCR text/PDF, Plus Code, sensor value, navigation result, scale value, signature or attestation hash.
+
+**Salad** is provenance, diagnostics, raw JSON, traces, manifests, internal identifiers and supporting audit fields. Salad is not discarded; it is kept available without overwhelming direct use.
+
+## Architectural consequences
+
+- Modules own capability behaviour, settings, screens, RIL bindings and documentation.
+- Shared UI understands generic contracts, not capability-specific facts.
+- Dashboard, presets, protocols, schedules, widgets and ODK are projections over the same method contract.
+- Offline-first is the default where the task is reasonably possible offline.
+- MethodMesh should not store external-form results merely because it mediated a call.
+- Capability-specific native UI is required where a generic form would make the task clumsy.
+
+Continue with [app surfaces](surfaces.qmd), the [canonical capability contract](capability-contract.qmd), [native lifecycle](native-lifecycle.qmd) and [output contract](output-contract.qmd).

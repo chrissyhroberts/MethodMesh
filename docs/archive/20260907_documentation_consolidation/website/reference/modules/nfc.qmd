@@ -1,0 +1,56 @@
+---
+title: "NFC"
+subtitle: "Module reference · nfc"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Current MethodMesh module.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>nfc</code></div>
+<div><strong>Source directory</strong><code>nfc</code></div>
+<div><strong>Indexed methods</strong>10</div>
+<div><strong>XLSForms</strong>7</div>
+<div><strong>Source docs</strong>1</div>
+<div><strong>Explicit source status labels</strong>Experimental</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `nfc_credential_provisioning` | provision nfc credential | Create a PIN-protected portable NFC credential | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `nfc_credential_verification` | verify nfc credential | Verify a portable NFC credential and PIN | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `nfc_tag_read` | scan nfc | Read an NFC tag | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `nfc_tag_wipe` | wipe nfc | Remove NDEF user content from an NFC tag | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `nfc_tag_write` | write nfc | Write an NFC tag | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+| `protocol_nfc_check` | check protocol card | Check whether a protocol step is allowed on an NFC card | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `protocol_nfc_complete` | complete protocol card | Mark a completed protocol step on an NFC card | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `protocol_nfc_override` | override protocol card | Apply a justified manual protocol-card override | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `protocol_nfc_provision` | provision protocol card | Create the initial protocol receipt on an NFC card | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `protocol_nfc_reconstruct` | reconstruct protocol card | Restore a protocol receipt to a replacement NFC card | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_nfc_credential_provisioning.xlsx](../source-docs/nfc/example_odk_nfc_credential_provisioning.xlsx)
+- [example_odk_nfc_credential_verification.xlsx](../source-docs/nfc/example_odk_nfc_credential_verification.xlsx)
+- [example_odk_nfc_tag_read.xlsx](../source-docs/nfc/example_odk_nfc_tag_read.xlsx)
+- [example_odk_nfc_tag_wipe.xlsx](../source-docs/nfc/example_odk_nfc_tag_wipe.xlsx)
+- [example_odk_nfc_tag_write.xlsx](../source-docs/nfc/example_odk_nfc_tag_write.xlsx)
+- [example_odk_protocol_nfc_check.xlsx](../source-docs/nfc/example_odk_protocol_nfc_check.xlsx)
+- [example_odk_protocol_nfc_complete.xlsx](../source-docs/nfc/example_odk_protocol_nfc_complete.xlsx)
+
+## Module-local documentation
+
+- [NFC capabilities](../source-docs/nfc/README_Nfc.qmd) — `README_Nfc.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

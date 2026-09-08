@@ -1,0 +1,45 @@
+# Cryptography UX redesign v0.3.1
+
+## Product principle
+
+Native cryptography screens are organised around the user's intended outcome, not around algorithm names. The Method IDs and interoperable formats remain stable for ODK, RIL, automation and expert use.
+
+The normal path follows four rails:
+
+1. **Goal** — what real-world outcome is the user trying to achieve?
+2. **Requirements** — what must the user possess before the operation can succeed?
+3. **Result** — what artefact or assurance will this operation actually produce?
+4. **Boundary** — what does this operation explicitly *not* prove or protect?
+
+Technical settings are hidden under **Expert options** unless a calling workflow explicitly supplies them.
+
+## Iteration record
+
+### Pass 1 — terminology audit
+The v0.2.x UI exposed implementation terms (`JWK`, `JWS`, `PBES2`, key alias, raw challenge JSON) as primary controls. These were classified as interoperability metadata rather than user goals.
+
+### Pass 2 — task architecture
+The capability family was reorganised conceptually into five user goals: Privacy; Authenticity & integrity; Live proof; Authenticator; Recovery & checking. The dashboard now presents this decision map before technical status.
+
+### Pass 3 — misuse rails
+Encryption now requires password confirmation. Signing explicitly states that it does not encrypt. Signature verification distinguishes key validity from human identity. Live challenge screens distinguish proof of current key control from identity proof. Recovery shares warn against co-location.
+
+### Pass 4 — progressive disclosure
+Algorithm choices, password-hardening iteration count, local key aliases, raw JWK overrides, expected thumbprints and manual TOTP algorithm parameters are moved behind Expert options in native screens.
+
+### Pass 5 — human entry paths
+Password generation uses fixed purpose choices rather than a free-text mode. TOTP import supports manual service/account/secret entry in addition to an `otpauth://` setup link. File selectors replace raw URI entry in the normal path.
+
+### Pass 6 — aesthetics and hierarchy
+Shared guidance, route and status cards provide consistent spacing, hierarchy and visual grouping using only Material 3 components already available to MethodMesh. No icon/font/library dependency was introduced.
+
+### Pass 7 — adversarial review
+Wording was reviewed against common category errors: encryption vs signing; signature validity vs verified person; hash vs authorship; challenge-response vs legal identity; authenticator code vs seed; Shamir share vs harmless fragment. Each affected screen now states the relevant boundary close to the action.
+
+## Dashboard boundary
+
+The dashboard is a decision and status surface only. It never contains plaintext payloads, passwords, private keys, TOTP seeds or Shamir shares. It does not become a privileged key-management console.
+
+## Standalone rule
+
+v0.3.1 introduces no Maven/Gradle dependency, host patch, manifest change or source edit outside `modules/cryptography/`.

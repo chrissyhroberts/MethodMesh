@@ -1,0 +1,63 @@
+---
+title: "Field Statistics"
+subtitle: "Module reference · fieldstats"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Pocket statistical calculators for field epidemiology, diagnostics, surveys and quick quantitative checks.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>fieldstats</code></div>
+<div><strong>Source directory</strong><code>fieldstats</code></div>
+<div><strong>Indexed methods</strong>10</div>
+<div><strong>XLSForms</strong>10</div>
+<div><strong>Source docs</strong>5</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `fieldstats.compare_binary` | compare binary groups | Calculate RD, RR, OR and NNT/NNH | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `fieldstats.detection_limit` | detection limit | Plan detection of at least one event or bound prevalence after zero events | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `fieldstats.diagnostic_2x2` | diagnostic 2 by 2 | Calculate sensitivity, specificity, predictive values and likelihood ratios | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `fieldstats.probability` | probability distribution | Calculate binomial, Poisson or normal probabilities | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `fieldstats.proportion` | calculate proportion | Calculate a proportion and Wilson confidence interval | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `fieldstats.roc` | roc threshold | Explore ROC AUC and threshold performance | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `fieldstats.sample_size_diagnostic` | diagnostic sample size | Plan recruitment for sensitivity and specificity precision | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `fieldstats.sample_size_proportion` | sample size for proportion | Plan a prevalence or coverage sample size | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `fieldstats.sample_size_two_proportions` | sample size two proportions | Plan a two-group comparison of proportions | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `fieldstats.summary` | summarise numbers | Calculate quick descriptive statistics | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_FieldStats_CompareBinary.xlsx](../source-docs/fieldstats/example_odk_FieldStats_CompareBinary.xlsx)
+- [example_odk_FieldStats_DetectionLimit.xlsx](../source-docs/fieldstats/example_odk_FieldStats_DetectionLimit.xlsx)
+- [example_odk_FieldStats_Diagnostic2x2.xlsx](../source-docs/fieldstats/example_odk_FieldStats_Diagnostic2x2.xlsx)
+- [example_odk_FieldStats_Probability.xlsx](../source-docs/fieldstats/example_odk_FieldStats_Probability.xlsx)
+- [example_odk_FieldStats_Proportion.xlsx](../source-docs/fieldstats/example_odk_FieldStats_Proportion.xlsx)
+- [example_odk_FieldStats_ROC.xlsx](../source-docs/fieldstats/example_odk_FieldStats_ROC.xlsx)
+- [example_odk_FieldStats_SampleSizeDiagnostic.xlsx](../source-docs/fieldstats/example_odk_FieldStats_SampleSizeDiagnostic.xlsx)
+- [example_odk_FieldStats_SampleSizeProportion.xlsx](../source-docs/fieldstats/example_odk_FieldStats_SampleSizeProportion.xlsx)
+- [example_odk_FieldStats_SampleSizeTwoProportions.xlsx](../source-docs/fieldstats/example_odk_FieldStats_SampleSizeTwoProportions.xlsx)
+- [example_odk_FieldStats_Summary.xlsx](../source-docs/fieldstats/example_odk_FieldStats_Summary.xlsx)
+
+## Module-local documentation
+
+- [Drop-in instructions](../source-docs/fieldstats/DROP_IN.qmd) — `DROP_IN.md`
+- [Field Statistics](../source-docs/fieldstats/README_FieldStats.qmd) — `README_FieldStats.md`
+- [ROADMAP NOTE](../source-docs/fieldstats/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [Field Statistics v0.1.0 — reference test vectors](../source-docs/fieldstats/TEST_VECTORS.qmd) — `TEST_VECTORS.md`
+- [Field Statistics v0.1.0 — validation report](../source-docs/fieldstats/VALIDATION.qmd) — `VALIDATION.md`
+
+### Additional source artefacts
+
+- [PACKAGE_CONTENTS.txt](../source-docs/fieldstats/PACKAGE_CONTENTS.txt)
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

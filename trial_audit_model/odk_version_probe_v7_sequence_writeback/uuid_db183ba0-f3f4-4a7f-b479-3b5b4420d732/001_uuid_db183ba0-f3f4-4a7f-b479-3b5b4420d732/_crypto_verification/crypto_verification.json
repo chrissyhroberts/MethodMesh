@@ -1,0 +1,119 @@
+{
+  "attestation_hash_calculated": "f1733d332e557fb947e08702de105d35c35b70240740a2a2d21e782c83247d90",
+  "attestation_hash_stored": "f1733d332e557fb947e08702de105d35c35b70240740a2a2d21e782c83247d90",
+  "attestation_hash_valid": true,
+  "attestation_schema_version_is_4": true,
+  "canonical_payload_sha256": "5de598bcde1f5cfebcb5034dfc6871401b30f01a875916e868dc9b6c0a661c14",
+  "commitment_recipe_hash_valid": true,
+  "declared_timestamp_status_consistent": true,
+  "definitive_failures": [],
+  "device_to_tsa_offset_seconds": 0.529,
+  "ecdsa_signature_valid": true,
+  "errors": [],
+  "hash_algorithm_is_sha256": true,
+  "openssl_ecdsa_verify": {
+    "available": true,
+    "command": [
+      "openssl",
+      "dgst",
+      "-sha256",
+      "-verify",
+      "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/001_uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/_crypto_verification/methodmesh_public_key.pem",
+      "-signature",
+      "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/001_uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/_crypto_verification/methodmesh_signature.der",
+      "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/001_uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/_crypto_verification/attestation_canonical_payload.txt"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "Verified OK\n"
+  },
+  "openssl_public_key_parse": {
+    "available": true,
+    "command": [
+      "openssl",
+      "pkey",
+      "-pubin",
+      "-inform",
+      "DER",
+      "-in",
+      "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/001_uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/_crypto_verification/methodmesh_public_key.der",
+      "-out",
+      "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/001_uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/_crypto_verification/methodmesh_public_key.pem"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "openssl_rfc3161_verify": {
+    "available": true,
+    "command": [
+      "openssl",
+      "ts",
+      "-verify",
+      "-token_in",
+      "-in",
+      "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/001_uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/_crypto_verification/timestamp_token.tsr",
+      "-digest",
+      "f1733d332e557fb947e08702de105d35c35b70240740a2a2d21e782c83247d90",
+      "-CAfile",
+      "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/cacert.pem",
+      "-untrusted",
+      "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt"
+    ],
+    "returncode": 0,
+    "stderr": "Using configuration from /usr/local/Caskroom/miniforge/base/ssl/openssl.cnf\nWarning: certificate from 'odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt' with subject '/O=Free TSA/OU=TSA/description=This certificate digitally signs documents and time stamp requests made using the freetsa.org online services/CN=www.freetsa.org/emailAddress=busilezas@mailbox.org/L=Wuerzburg/C=DE/ST=Bayern' is not a CA cert\n",
+    "stdout": "Verification: OK\n"
+  },
+  "openssl_timestamp_parse": {
+    "available": true,
+    "command": [
+      "openssl",
+      "ts",
+      "-reply",
+      "-token_in",
+      "-in",
+      "odk_version_probe_v7_sequence_writeback/uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/001_uuid_db183ba0-f3f4-4a7f-b479-3b5b4420d732/_crypto_verification/timestamp_token.tsr",
+      "-text"
+    ],
+    "returncode": 0,
+    "stderr": "Using configuration from /usr/local/Caskroom/miniforge/base/ssl/openssl.cnf\n",
+    "stdout": "Status info:\nStatus: Granted.\nStatus description: unspecified\nFailure info: unspecified\n\nTST info:\nVersion: 1\nPolicy OID: tsa_policy1\nHash Algorithm: sha256\nMessage data:\n    0000 - f1 73 3d 33 2e 55 7f b9-47 e0 87 02 de 10 5d 35   .s=3.U..G.....]5\n    0010 - c3 5b 70 24 07 40 a2 a2-d2 1e 78 2c 83 24 7d 90   .[p$.@....x,.$}.\nSerial number: 0x078AE04F\nTime stamp: Sep  4 11:58:01 2026 GMT\nAccuracy: unspecified\nOrdering: yes\nNonce: 0x4069EFE8BC9F3DE3\nTSA: DirName:/O=Free TSA/OU=TSA/description=This certificate digitally signs documents and time stamp requests made using the freetsa.org online services/CN=www.freetsa.org/emailAddress=busilezas@mailbox.org/L=Wuerzburg/C=DE/ST=Bayern\nExtensions:\n"
+  },
+  "openssl_version": "OpenSSL 3.6.1 27 Jan 2026 (Library: OpenSSL 3.6.1 27 Jan 2026)",
+  "overall_valid": true,
+  "public_key_algorithm_is_ec": true,
+  "public_key_format_is_x509": true,
+  "public_key_id_calculated": "d9df69ee1754c00c",
+  "public_key_id_stored": "d9df69ee1754c00c",
+  "public_key_id_valid": true,
+  "rfc3161_signature_and_chain_valid": true,
+  "signature_algorithm_is_sha256_ecdsa": true,
+  "timestamp_attested_hash_valid": true,
+  "timestamp_precedes_central_creation": true,
+  "timestamp_serial_matches_json": true,
+  "timestamp_time_matches_json": true,
+  "timestamp_token_fields": {
+    "hash_algorithm": "sha256",
+    "serial_hex": "78ae04f",
+    "time_iso": "2026-09-04T11:58:01+00:00"
+  },
+  "timestamp_token_sha256_calculated": "10fecaaee06dccffad31e8763abaf13c8c73a38d5d33978dc6ad79153e709d2f",
+  "timestamp_token_sha256_stored": "10fecaaee06dccffad31e8763abaf13c8c73a38d5d33978dc6ad79153e709d2f",
+  "timestamp_token_sha256_valid": true,
+  "tsa_trust": {
+    "authority": "https://freetsa.org/tsr",
+    "available": true,
+    "ca_cache_source": "PINNED_CACHE",
+    "ca_file": "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/cacert.pem",
+    "ca_file_sha256": "2151b61137ffa86bf664691ba67e7da0b19f98c758e3d228d5d8ebf27e044438",
+    "source": "FREETSA_PINNED",
+    "tsa_cache_source": "PINNED_CACHE",
+    "tsa_cert_file": "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt",
+    "tsa_cert_file_sha256": "8bfb0305bb64e2571ca507552ef3245cb1c2fee8728e0ff8689225081ea13467"
+  },
+  "tsa_trust_source": "FREETSA_PINNED",
+  "verification_basis": "independent_ecdsa_plus_rfc3161_certificate_chain",
+  "verification_complete": true,
+  "verification_status": "VERIFIED",
+  "warnings": []
+}

@@ -1,0 +1,170 @@
+---
+title: "ODK / XLSForm library"
+subtitle: "147 current module-owned example workbooks"
+toc: false
+---
+
+The v1.05 documentation contract puts capability examples inside each module's `docs/` directory. This library mirrors that ownership: every workbook below is copied from the supplied current `src` tree and remains associated with its module.
+
+<input class="reference-filter" placeholder="Filter form filenames or modules…" data-mm-filter="#form-catalogue" data-mm-count="#form-count" />
+<div id="form-count" class="reference-count"></div>
+
+<div id="form-catalogue">
+
+| XLSForm | Owning module | Module ID |
+| --- | --- | --- |
+| [example_odk_Acoustics.xlsx](source-docs/acoustics/example_odk_Acoustics.xlsx) | [Acoustics](modules/acoustics.qmd) | `acoustics` |
+| [example_odk_admin_fingerprint_confirmation.xlsx](source-docs/adminfingerprint/example_odk_admin_fingerprint_confirmation.xlsx) | [Local device authentication](modules/adminfingerprint.qmd) | `adminfingerprint` |
+| [example_odk_android_app_inspector.xlsx](source-docs/appinspector/example_odk_android_app_inspector.xlsx) | [Android app inspector](modules/appinspector.qmd) | `appinspector` |
+| [example_odk_aquaticfield.xlsx](source-docs/aquaticfield/example_odk_aquaticfield.xlsx) | [Aquatic fieldwork](modules/aquaticfield.qmd) | `aquaticfield` |
+| [example_odk_Arcade.xlsx](source-docs/arcade/example_odk_Arcade.xlsx) | [Arcade](modules/arcade.qmd) | `arcade` |
+| [example_odk_Astronomy.xlsx](source-docs/astronomy/example_odk_Astronomy.xlsx) | [Astronomy](modules/astronomy.qmd) | `astronomy` |
+| [example_odk_attestation.anchor_bundle.xlsx](source-docs/attestation/example_odk_attestation.anchor_bundle.xlsx) | [Traceable attestation](modules/attestation.qmd) | `attestation` |
+| [example_odk_attestation.create_Fingerprint.xlsx](source-docs/attestation/example_odk_attestation.create_Fingerprint.xlsx) | [Traceable attestation](modules/attestation.qmd) | `attestation` |
+| [example_odk_attestation.create_Nfc.xlsx](source-docs/attestation/example_odk_attestation.create_Nfc.xlsx) | [Traceable attestation](modules/attestation.qmd) | `attestation` |
+| [example_odk_attestation.create_Password.xlsx](source-docs/attestation/example_odk_attestation.create_Password.xlsx) | [Traceable attestation](modules/attestation.qmd) | `attestation` |
+| [example_odk_attestation.create_Pin.xlsx](source-docs/attestation/example_odk_attestation.create_Pin.xlsx) | [Traceable attestation](modules/attestation.qmd) | `attestation` |
+| [example_odk_attestation.create_Qr.xlsx](source-docs/attestation/example_odk_attestation.create_Qr.xlsx) | [Traceable attestation](modules/attestation.qmd) | `attestation` |
+| [example_odk_Aviation.xlsx](source-docs/aviation/example_odk_Aviation.xlsx) | [Aviation tools](modules/aviation.qmd) | `aviation` |
+| [example_odk_bluetooth_device_inspector.xlsx](source-docs/bluetoothinspector/example_odk_bluetooth_device_inspector.xlsx) | [Bluetooth device inspector](modules/bluetoothinspector.qmd) | `bluetoothinspector` |
+| [example_odk_calibrated_scale.xlsx](source-docs/calibratedscale/example_odk_calibrated_scale.xlsx) | [Calibrated scale](modules/calibratedscale.qmd) | `calibratedscale` |
+| [example_odk_calibrated_scale_MinMax.xlsx](source-docs/calibratedscale/example_odk_calibrated_scale_MinMax.xlsx) | [Calibrated scale](modules/calibratedscale.qmd) | `calibratedscale` |
+| [example_odk_calibrated_scale_Range.xlsx](source-docs/calibratedscale/example_odk_calibrated_scale_Range.xlsx) | [Calibrated scale](modules/calibratedscale.qmd) | `calibratedscale` |
+| [example_odk_calibrated_scale_Vertical.xlsx](source-docs/calibratedscale/example_odk_calibrated_scale_Vertical.xlsx) | [Calibrated scale](modules/calibratedscale.qmd) | `calibratedscale` |
+| [example_odk_chance_cards_draw.xlsx](source-docs/chance/example_odk_chance_cards_draw.xlsx) | [Chance](modules/chance.qmd) | `chance` |
+| [example_odk_chance_pick_one.xlsx](source-docs/chance/example_odk_chance_pick_one.xlsx) | [Chance](modules/chance.qmd) | `chance` |
+| [example_odk_chance_spinner_spin.xlsx](source-docs/chance/example_odk_chance_spinner_spin.xlsx) | [Chance](modules/chance.qmd) | `chance` |
+| [example_odk_chance_weighted_choose.xlsx](source-docs/chance/example_odk_chance_weighted_choose.xlsx) | [Chance](modules/chance.qmd) | `chance` |
+| [example_odk_coin_toss.xlsx](source-docs/chance/example_odk_coin_toss.xlsx) | [Chance](modules/chance.qmd) | `chance` |
+| [example_odk_dice_simulate.xlsx](source-docs/chance/example_odk_dice_simulate.xlsx) | [Chance](modules/chance.qmd) | `chance` |
+| [example_odk_dce.conjoint.xlsx](source-docs/choiceexperiment/example_odk_dce.conjoint.xlsx) | [Discrete choice experiments](modules/choiceexperiment.qmd) | `choiceexperiment` |
+| [example_odk_dce.maxdiff.xlsx](source-docs/choiceexperiment/example_odk_dce.maxdiff.xlsx) | [Discrete choice experiments](modules/choiceexperiment.qmd) | `choiceexperiment` |
+| [example_odk_dce.pairwise.xlsx](source-docs/choiceexperiment/example_odk_dce.pairwise.xlsx) | [Discrete choice experiments](modules/choiceexperiment.qmd) | `choiceexperiment` |
+| [example_odk_dce.points.xlsx](source-docs/choiceexperiment/example_odk_dce.points.xlsx) | [Discrete choice experiments](modules/choiceexperiment.qmd) | `choiceexperiment` |
+| [example_odk_dce.ranking.xlsx](source-docs/choiceexperiment/example_odk_dce.ranking.xlsx) | [Discrete choice experiments](modules/choiceexperiment.qmd) | `choiceexperiment` |
+| [example_odk_ClinicalInstruments.xlsx](source-docs/clinicalinstruments/example_odk_ClinicalInstruments.xlsx) | [Clinical Instruments](modules/clinicalinstruments.qmd) | `clinicalinstruments` |
+| [example_odk_Compass.xlsx](source-docs/compass/example_odk_Compass.xlsx) | [Compass](modules/compass.qmd) | `compass` |
+| [example_odk_conversation.translate.xlsx](source-docs/conversationtranslate/example_odk_conversation.translate.xlsx) | [Conversation translator](modules/conversationtranslate.qmd) | `conversationtranslate` |
+| [example_odk_conversion.calculate.xlsx](source-docs/conversions/example_odk_conversion.calculate.xlsx) | [Conversions / General Calculator](modules/conversions.qmd) | `conversions` |
+| [example_odk_crypto.file.encrypt.xlsx](source-docs/cryptography/example_odk_crypto.file.encrypt.xlsx) | [Cryptography](modules/cryptography.qmd) | `cryptography` |
+| [example_odk_crypto.text.encrypt.xlsx](source-docs/cryptography/example_odk_crypto.text.encrypt.xlsx) | [Cryptography](modules/cryptography.qmd) | `cryptography` |
+| [example_odk_data.tools.xlsx](source-docs/datatools/example_odk_data.tools.xlsx) | [Data tools](modules/datatools.qmd) | `datatools` |
+| [example_odk_document.sign_pdf.xlsx](source-docs/digitalsigning/example_odk_document.sign_pdf.xlsx) | [Digital signing](modules/digitalsigning.qmd) | `digitalsigning` |
+| [example_odk_Diving.xlsx](source-docs/diving/example_odk_Diving.xlsx) | [Diving](modules/diving.qmd) | `diving` |
+| [example_odk_document.scan.xlsx](source-docs/documentscanner/example_odk_document.scan.xlsx) | [Document scanner](modules/documentscanner.qmd) | `documentscanner` |
+| [example_odk_EarthScience.xlsx](source-docs/earthscience/example_odk_EarthScience.xlsx) | [Earth science utilities](modules/earthscience.qmd) | `earthscience` |
+| [example_odk_Emergency.xlsx](source-docs/emergency/example_odk_Emergency.xlsx) | [Emergency](modules/emergency.qmd) | `emergency` |
+| [example_odk_Expenses.xlsx](source-docs/expenses/example_odk_Expenses.xlsx) | [Expenses](modules/expenses.qmd) | `expenses` |
+| [example_odk_FieldStats_CompareBinary.xlsx](source-docs/fieldstats/example_odk_FieldStats_CompareBinary.xlsx) | [Field Statistics](modules/fieldstats.qmd) | `fieldstats` |
+| [example_odk_FieldStats_DetectionLimit.xlsx](source-docs/fieldstats/example_odk_FieldStats_DetectionLimit.xlsx) | [Field Statistics](modules/fieldstats.qmd) | `fieldstats` |
+| [example_odk_FieldStats_Diagnostic2x2.xlsx](source-docs/fieldstats/example_odk_FieldStats_Diagnostic2x2.xlsx) | [Field Statistics](modules/fieldstats.qmd) | `fieldstats` |
+| [example_odk_FieldStats_Probability.xlsx](source-docs/fieldstats/example_odk_FieldStats_Probability.xlsx) | [Field Statistics](modules/fieldstats.qmd) | `fieldstats` |
+| [example_odk_FieldStats_Proportion.xlsx](source-docs/fieldstats/example_odk_FieldStats_Proportion.xlsx) | [Field Statistics](modules/fieldstats.qmd) | `fieldstats` |
+| [example_odk_FieldStats_ROC.xlsx](source-docs/fieldstats/example_odk_FieldStats_ROC.xlsx) | [Field Statistics](modules/fieldstats.qmd) | `fieldstats` |
+| [example_odk_FieldStats_SampleSizeDiagnostic.xlsx](source-docs/fieldstats/example_odk_FieldStats_SampleSizeDiagnostic.xlsx) | [Field Statistics](modules/fieldstats.qmd) | `fieldstats` |
+| [example_odk_FieldStats_SampleSizeProportion.xlsx](source-docs/fieldstats/example_odk_FieldStats_SampleSizeProportion.xlsx) | [Field Statistics](modules/fieldstats.qmd) | `fieldstats` |
+| [example_odk_FieldStats_SampleSizeTwoProportions.xlsx](source-docs/fieldstats/example_odk_FieldStats_SampleSizeTwoProportions.xlsx) | [Field Statistics](modules/fieldstats.qmd) | `fieldstats` |
+| [example_odk_FieldStats_Summary.xlsx](source-docs/fieldstats/example_odk_FieldStats_Summary.xlsx) | [Field Statistics](modules/fieldstats.qmd) | `fieldstats` |
+| [example_odk_GameDeck.xlsx](source-docs/gamedeck/example_odk_GameDeck.xlsx) | [GameDeck](modules/gamedeck.qmd) | `gamedeck` |
+| [example_odk_gps_target_navigator.xlsx](source-docs/gpstargetnavigator/example_odk_gps_target_navigator.xlsx) | [GPS target navigator](modules/gpstargetnavigator.qmd) | `gpstargetnavigator` |
+| [example_odk_HamRadio.xlsx](source-docs/hamradio/example_odk_HamRadio.xlsx) | [Amateur radio](modules/hamradio.qmd) | `hamradio` |
+| [example_odk_image.redact.xlsx](source-docs/imageredaction/example_odk_image.redact.xlsx) | [Image annotation and redaction](modules/imageredaction.qmd) | `imageredaction` |
+| [example_odk_labbench.aliquot.xlsx](source-docs/labbench/example_odk_labbench.aliquot.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_labbench.cell_dilution.xlsx](source-docs/labbench/example_odk_labbench.cell_dilution.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_labbench.centrifuge.xlsx](source-docs/labbench/example_odk_labbench.centrifuge.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_labbench.concentration.xlsx](source-docs/labbench/example_odk_labbench.concentration.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_labbench.dashboard.xlsx](source-docs/labbench/example_odk_labbench.dashboard.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_labbench.dilution.xlsx](source-docs/labbench/example_odk_labbench.dilution.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_labbench.hemocytometer.xlsx](source-docs/labbench/example_odk_labbench.hemocytometer.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_labbench.master_mix.xlsx](source-docs/labbench/example_odk_labbench.master_mix.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_labbench.molar_solution.xlsx](source-docs/labbench/example_odk_labbench.molar_solution.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_labbench.nucleic_acid.xlsx](source-docs/labbench/example_odk_labbench.nucleic_acid.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_labbench.percent_solution.xlsx](source-docs/labbench/example_odk_labbench.percent_solution.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_labbench.reconstitute.xlsx](source-docs/labbench/example_odk_labbench.reconstitute.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_labbench.serial_dilution.xlsx](source-docs/labbench/example_odk_labbench.serial_dilution.xlsx) | [Lab Bench](modules/labbench.qmd) | `labbench` |
+| [example_odk_visual.magnifier.capture.xlsx](source-docs/magnifier/example_odk_visual.magnifier.capture.xlsx) | [Magnifier](modules/magnifier.qmd) | `magnifier` |
+| [example_odk_Multicounter.xlsx](source-docs/multicounter/example_odk_Multicounter.xlsx) | [Multi-counter](modules/multicounter.qmd) | `multicounter` |
+| [example_odk_Arpeggiator.xlsx](source-docs/music/example_odk_Arpeggiator.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_Bassline.xlsx](source-docs/music/example_odk_Bassline.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_BeatPads.xlsx](source-docs/music/example_odk_BeatPads.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_Chord.xlsx](source-docs/music/example_odk_Chord.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_ChordGuide.xlsx](source-docs/music/example_odk_ChordGuide.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_ChordProgression.xlsx](source-docs/music/example_odk_ChordProgression.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_DelayTime.xlsx](source-docs/music/example_odk_DelayTime.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_DrumMachine.xlsx](source-docs/music/example_odk_DrumMachine.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_EuclideanRhythm.xlsx](source-docs/music/example_odk_EuclideanRhythm.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_Harmonics.xlsx](source-docs/music/example_odk_Harmonics.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_Interval.xlsx](source-docs/music/example_odk_Interval.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_JamDashboard.xlsx](source-docs/music/example_odk_JamDashboard.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_LiveLooper.xlsx](source-docs/music/example_odk_LiveLooper.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_MelodySequence.xlsx](source-docs/music/example_odk_MelodySequence.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_Metronome.xlsx](source-docs/music/example_odk_Metronome.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_MotifGenerator.xlsx](source-docs/music/example_odk_MotifGenerator.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_MusicReference.xlsx](source-docs/music/example_odk_MusicReference.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_NoteFrequency.xlsx](source-docs/music/example_odk_NoteFrequency.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_PatternMutation.xlsx](source-docs/music/example_odk_PatternMutation.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_PerformanceDashboard.xlsx](source-docs/music/example_odk_PerformanceDashboard.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_Polyrhythm.xlsx](source-docs/music/example_odk_Polyrhythm.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_PracticeDashboard.xlsx](source-docs/music/example_odk_PracticeDashboard.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_ProbabilityPattern.xlsx](source-docs/music/example_odk_ProbabilityPattern.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_ReferenceDashboard.xlsx](source-docs/music/example_odk_ReferenceDashboard.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_RhythmCapture.xlsx](source-docs/music/example_odk_RhythmCapture.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_SetListTiming.xlsx](source-docs/music/example_odk_SetListTiming.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_SongSketch.xlsx](source-docs/music/example_odk_SongSketch.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_SongSketchDashboard.xlsx](source-docs/music/example_odk_SongSketchDashboard.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_TapTempo.xlsx](source-docs/music/example_odk_TapTempo.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_Temperament.xlsx](source-docs/music/example_odk_Temperament.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_TempoConvert.xlsx](source-docs/music/example_odk_TempoConvert.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_TempoTrainer.xlsx](source-docs/music/example_odk_TempoTrainer.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_Transpose.xlsx](source-docs/music/example_odk_Transpose.xlsx) | [Music](modules/music.qmd) | `music` |
+| [example_odk_network.tools.xlsx](source-docs/networktools/example_odk_network.tools.xlsx) | [Network tools](modules/networktools.qmd) | `networktools` |
+| [example_odk_nfc_credential_provisioning.xlsx](source-docs/nfc/example_odk_nfc_credential_provisioning.xlsx) | [NFC](modules/nfc.qmd) | `nfc` |
+| [example_odk_nfc_credential_verification.xlsx](source-docs/nfc/example_odk_nfc_credential_verification.xlsx) | [NFC](modules/nfc.qmd) | `nfc` |
+| [example_odk_nfc_tag_read.xlsx](source-docs/nfc/example_odk_nfc_tag_read.xlsx) | [NFC](modules/nfc.qmd) | `nfc` |
+| [example_odk_nfc_tag_wipe.xlsx](source-docs/nfc/example_odk_nfc_tag_wipe.xlsx) | [NFC](modules/nfc.qmd) | `nfc` |
+| [example_odk_nfc_tag_write.xlsx](source-docs/nfc/example_odk_nfc_tag_write.xlsx) | [NFC](modules/nfc.qmd) | `nfc` |
+| [example_odk_protocol_nfc_check.xlsx](source-docs/nfc/example_odk_protocol_nfc_check.xlsx) | [NFC](modules/nfc.qmd) | `nfc` |
+| [example_odk_protocol_nfc_complete.xlsx](source-docs/nfc/example_odk_protocol_nfc_complete.xlsx) | [NFC](modules/nfc.qmd) | `nfc` |
+| [example_odk_odk_form_launcher.xlsx](source-docs/odkformlauncher/example_odk_odk_form_launcher.xlsx) | [ODK form launcher](modules/odkformlauncher.qmd) | `odkformlauncher` |
+| [example_odk_plus_code.capture.xlsx](source-docs/pluscodecapture/example_odk_plus_code.capture.xlsx) | [Plus Code capture](modules/pluscodecapture.qmd) | `pluscodecapture` |
+| [example_odk_psychomotor_vigilance.xlsx](source-docs/psychomotorvigilance/example_odk_psychomotor_vigilance.xlsx) | [Psychomotor vigilance test (PVT)](modules/psychomotorvigilance.qmd) | `psychomotorvigilance` |
+| [example_odk_barcode.scan.xlsx](source-docs/barcode/example_odk_barcode.scan.xlsx) | [Automatic code scanner](modules/barcode.qmd) | `barcode` |
+| [example_odk_reference_library.xlsx](source-docs/referencelibrary/example_odk_reference_library.xlsx) | [Reference library](modules/referencelibrary.qmd) | `referencelibrary` |
+| [example_odk_Sampling.xlsx](source-docs/sampling/example_odk_Sampling.xlsx) | [Sampling](modules/sampling.qmd) | `sampling` |
+| [example_odk_scaled_photo.capture.xlsx](source-docs/scaledphoto/example_odk_scaled_photo.capture.xlsx) | [Image annotation and redaction](modules/scaledphoto.qmd) | `scaledphoto` |
+| [example_odk_score.counter.xlsx](source-docs/scoring/example_odk_score.counter.xlsx) | [Scoring & counters](modules/scoring.qmd) | `scoring` |
+| [example_odk_score.high_score.xlsx](source-docs/scoring/example_odk_score.high_score.xlsx) | [Scoring & counters](modules/scoring.qmd) | `scoring` |
+| [example_odk_score.match.xlsx](source-docs/scoring/example_odk_score.match.xlsx) | [Scoring & counters](modules/scoring.qmd) | `scoring` |
+| [example_odk_score.race_to.xlsx](source-docs/scoring/example_odk_score.race_to.xlsx) | [Scoring & counters](modules/scoring.qmd) | `scoring` |
+| [example_odk_score.rounds.xlsx](source-docs/scoring/example_odk_score.rounds.xlsx) | [Scoring & counters](modules/scoring.qmd) | `scoring` |
+| [example_odk_score.session.finish.xlsx](source-docs/scoring/example_odk_score.session.finish.xlsx) | [Scoring & counters](modules/scoring.qmd) | `scoring` |
+| [example_odk_score.session.read.xlsx](source-docs/scoring/example_odk_score.session.read.xlsx) | [Scoring & counters](modules/scoring.qmd) | `scoring` |
+| [example_odk_score.session.resume.xlsx](source-docs/scoring/example_odk_score.session.resume.xlsx) | [Scoring & counters](modules/scoring.qmd) | `scoring` |
+| [example_odk_score.set_match.xlsx](source-docs/scoring/example_odk_score.set_match.xlsx) | [Scoring & counters](modules/scoring.qmd) | `scoring` |
+| [example_odk_score.sports.xlsx](source-docs/scoring/example_odk_score.sports.xlsx) | [Scoring & counters](modules/scoring.qmd) | `scoring` |
+| [example_odk_score.tally.xlsx](source-docs/scoring/example_odk_score.tally.xlsx) | [Scoring & counters](modules/scoring.qmd) | `scoring` |
+| [example_odk_sensorread.xlsx](source-docs/sensorread/example_odk_sensorread.xlsx) | [ESP32 sensor framework](modules/sensorread.qmd) | `sensorread` |
+| [example_odk_sms.send.xlsx](source-docs/sms/example_odk_sms.send.xlsx) | [Send SMS](modules/sms.qmd) | `sms` |
+| [example_odk_SoundGenerator.xlsx](source-docs/soundgenerator/example_odk_SoundGenerator.xlsx) | [Sound generator](modules/soundgenerator.qmd) | `soundgenerator` |
+| [example_odk_spatialgeometry.xlsx](source-docs/spatialgeometry/example_odk_spatialgeometry.xlsx) | [Spatial geometry](modules/spatialgeometry.qmd) | `spatialgeometry` |
+| [example_odk_survey_bearing_distance.xlsx](source-docs/surveying/example_odk_survey_bearing_distance.xlsx) | [Surveying](modules/surveying.qmd) | `surveying` |
+| [example_odk_survey_level_reduce.xlsx](source-docs/surveying/example_odk_survey_level_reduce.xlsx) | [Surveying](modules/surveying.qmd) | `surveying` |
+| [example_odk_survey_traverse.xlsx](source-docs/surveying/example_odk_survey_traverse.xlsx) | [Surveying](modules/surveying.qmd) | `surveying` |
+| [example_odk_svg.select.xlsx](source-docs/svgselector/example_odk_svg.select.xlsx) | [SVG polygon selector](modules/svgselector.qmd) | `svgselector` |
+| [example_odk_TabletopUtilities.xlsx](source-docs/tabletoputilities/example_odk_TabletopUtilities.xlsx) | [Tabletop utilities](modules/tabletoputilities.qmd) | `tabletoputilities` |
+| [example_odk_text_tools.xlsx](source-docs/texttools/example_odk_text_tools.xlsx) | [Text tools](modules/texttools.qmd) | `texttools` |
+| [example_odk_time_tools.xlsx](source-docs/time_tools/example_odk_time_tools.xlsx) | [Time Tools](modules/time_tools.qmd) | `time_tools` |
+| [example_odk_integrity.trusted_timestamp.xlsx](source-docs/trustedtimestamp/example_odk_integrity.trusted_timestamp.xlsx) | [Trusted timestamp](modules/trustedtimestamp.qmd) | `trustedtimestamp` |
+| [example_odk_VisualAcuity.xlsx](source-docs/visualacuity/example_odk_VisualAcuity.xlsx) | [Visual acuity](modules/visualacuity.qmd) | `visualacuity` |
+| [example_odk_web.odk_central_roundtrip.xlsx](source-docs/webactions/example_odk_web.odk_central_roundtrip.xlsx) | [Web Actions](modules/webactions.qmd) | `webactions` |
+| [example_odk_web.open.xlsx](source-docs/webactions/example_odk_web.open.xlsx) | [Web Actions](modules/webactions.qmd) | `webactions` |
+| [example_odk_web.precooked_enketo.xlsx](source-docs/webactions/example_odk_web.precooked_enketo.xlsx) | [Web Actions](modules/webactions.qmd) | `webactions` |
+| [example_odk_web.roundtrip.xlsx](source-docs/webactions/example_odk_web.roundtrip.xlsx) | [Web Actions](modules/webactions.qmd) | `webactions` |
+
+</div>
+
+## What an example proves — and what it does not
+
+A workbook demonstrates a useful invocation/return pattern. It does **not** limit the canonical transport contract to only the fields shown in that workbook. ODK must remain able to request every output declared by the capability.
+
+Good examples use grouped intent calls, avoid input/return collisions, include primary outputs, include `methodmesh_full_json` where audit metadata is expected, and use real attachment fields for binary outputs.

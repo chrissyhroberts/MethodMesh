@@ -1,0 +1,39 @@
+schema: methodmesh.clinical-instrument.v1
+id: phq2
+name: PHQ-2
+version: 1.0.0
+status: core
+type: screening
+category: mental_health
+tags: [depression, screening, phq]
+summary: Two-item depression screener covering the previous two weeks.
+source_url: https://cde.nlm.nih.gov/formView?tinyId=XkZqYRlqKf
+citation: "Kroenke K, Spitzer RL, Williams JBW. The Patient Health Questionnaire-2. Med Care. 2003;41:1284-1292."
+rights_status: no_permission_required
+rights_note: NIH CDE records state no permission is required to reproduce, translate, display or distribute the PHQ instruments.
+questions:
+  - id: little_interest
+    label: Little interest or pleasure in doing things
+    hint: Over the last 2 weeks, how often have you been bothered by this problem?
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+  - id: depressed_mood
+    label: Feeling down, depressed, or hopeless
+    hint: Over the last 2 weeks, how often have you been bothered by this problem?
+    type: select_one
+    choices: [0|Not at all, 1|Several days, 2|More than half the days, 3|Nearly every day]
+scores:
+  - id: phq2
+    label: PHQ-2
+    expression: little_interest + depressed_mood
+classifications:
+  - when: phq2 >= 3
+    value: positive_screen
+    label: Positive screening threshold - assess further
+  - when: phq2 < 3
+    value: below_screening_threshold
+    label: Below usual PHQ-2 screening threshold
+tests:
+  - name: threshold
+    input_json: '{"little_interest":"1","depressed_mood":"2"}'
+    expect_json: '{"phq2":3,"classification":"positive_screen"}'

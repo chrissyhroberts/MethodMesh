@@ -1,0 +1,2 @@
+id,name,latitude,longitude,country_code,represented_country_codes,code,source_id,source_version
+example:1,Example reviewed infrastructure,0.0,0.0,AA,GB|IE,EX1,reviewed_source,YYYY-MM-DD

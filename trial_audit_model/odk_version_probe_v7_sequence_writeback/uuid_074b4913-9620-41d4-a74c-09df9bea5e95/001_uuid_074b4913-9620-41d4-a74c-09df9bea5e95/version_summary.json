@@ -1,0 +1,619 @@
+{
+  "actor": "chrissy",
+  "archive_status": "NEW_OR_INCOMPLETE_ARCHIVE",
+  "attachments": [
+    {
+      "archive_source": "central_first_observation",
+      "bytes": 2098772,
+      "content_type": "image/jpeg",
+      "etag": "\"b7375ec8dd30102a3e695bd8b892eaa4\"",
+      "exists": true,
+      "matches_methodmesh_image_sha256": true,
+      "name": "1788527387611.jpg",
+      "sha256": "8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268"
+    }
+  ],
+  "classification": "CRYPTOGRAPHICALLY_VERIFIED_ATTESTED_VERSION",
+  "created_at": "2026-09-04T13:11:11.439Z",
+  "current": true,
+  "device_id": "collect:FyYIBCfCy5VEAUGW",
+  "form_archive": {
+    "directory": "_form_versions/2026090407",
+    "xform_xml_sha256": "bc564305eff544797c8ace1d7b0499676b80471b2b5c0ca8b150f52d493f34ad",
+    "xlsform_available": true,
+    "xlsform_sha256": "a5cec3dfd4822bf4af23c3203b9faaa77b79fc8b3c26499083cf92800a63da74"
+  },
+  "form_version": "2026090407",
+  "label": "ORIGINAL / CURRENT",
+  "methodmesh": {
+    "attestation_closeout_status": "completed",
+    "attestation_event_payload_hash": "aa3cfb4707e85b1d22836845f033d8110167eba489dd0346e5538169b17d251e",
+    "attestation_hash": "ebec0c2ccfd10456f7292dad6f1bea4e49f6042b160569bed52151fa38519383",
+    "attestation_json": {
+      "attestation_hash": "ebec0c2ccfd10456f7292dad6f1bea4e49f6042b160569bed52151fa38519383",
+      "attestation_id": "att_19348ffa-969f-40c4-97d3-0e14419942ec",
+      "attestation_schema_version": "4",
+      "commitment_recipe": "{\"schema\":\"methodmesh.commitment_recipe.v1\",\"canonicalization\":\"ordered-kv-v1\",\"hash_algorithm\":\"SHA-256\",\"members\":[{\"path\":\"showcase_commitment_schema\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"showcase_id\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"age_years\",\"type\":\"integer\",\"commitment\":\"value\"},{\"path\":\"favourite_colour\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"short_note\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"auth_auth_method\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"auth_timestamp_iso\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"auth_json_sha256\",\"type\":\"sha256\",\"commitment\":\"json-utf8-sha256\",\"source_field\":\"auth_methodmesh_full_json\"},{\"path\":\"photo_redacted_image_sha256\",\"type\":\"sha256\",\"commitment\":\"artifact-bytes-sha256\",\"artifact_field\":\"photo_redacted_image_uri\"},{\"path\":\"photo_json_sha256\",\"type\":\"sha256\",\"commitment\":\"json-utf8-sha256\",\"source_field\":\"photo_methodmesh_full_json\"},{\"path\":\"location_plus_code\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"location_json_sha256\",\"type\":\"sha256\",\"commitment\":\"json-utf8-sha256\",\"source_field\":\"location_methodmesh_full_json\"},{\"path\":\"polygon_value\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"polygon_json_sha256\",\"type\":\"sha256\",\"commitment\":\"json-utf8-sha256\",\"source_field\":\"polygon_methodmesh_full_json\"},{\"path\":\"conversation_transcript_sha256\",\"type\":\"sha256\",\"commitment\":\"text-utf8-sha256\",\"source_field\":\"conversation_conversation_transcript\"},{\"path\":\"conversation_json_sha256\",\"type\":\"sha256\",\"commitment\":\"json-utf8-sha256\",\"source_field\":\"conversation_methodmesh_full_json\"},{\"path\":\"fourat_clinical_score\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"fourat_clinical_classification\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"fourat_clinical_definition_fingerprint\",\"type\":\"sha256\",\"commitment\":\"value\"},{\"path\":\"fourat_json_sha256\",\"type\":\"sha256\",\"commitment\":\"json-utf8-sha256\",\"source_field\":\"fourat_methodmesh_full_json\"}]}",
+      "commitment_recipe_sha256": "2b1282822eec1f9a5a8fbe4808e0fb33d176cf038aec282fd7db1bf9f3a64b54",
+      "device_event_time_iso": "2026-09-04T13:10:59.725Z",
+      "device_monotonic_counter": "1",
+      "event_payload_hash": "aa3cfb4707e85b1d22836845f033d8110167eba489dd0346e5538169b17d251e",
+      "event_payload_mode": "supplied_hash",
+      "event_type": "odk_showcase_submission",
+      "hash_algorithm": "SHA-256",
+      "methodmesh_execution_id": "1b7cad48-e35b-4528-8bf2-d6c90b433e95",
+      "methodmesh_method_id": "attestation.create",
+      "methodmesh_status": "Succeeded",
+      "operator_id": "",
+      "previous_attestation_hash": "GENESIS",
+      "public_key_algorithm": "EC",
+      "public_key_base64": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIeZ23bd/B7yF4xpSLOQW8TztxrI4tt2SmrPOjS/QbAzIGvISHsgqXsggF6iPBg4tHgM1vWsW5FYEVjMW4f9HMA==",
+      "public_key_format": "X.509",
+      "public_key_id": "d9df69ee1754c00c",
+      "signature": "MEUCIQDjn2bJil2z5k4C2Ub2FgBi84c7nf5f92YIXt8I41auPwIgANpYEzCpZqichcryTKRRkbEo3cb7G4DF15nIxmuXnmI=",
+      "signature_algorithm": "SHA256withECDSA",
+      "study_id": "",
+      "trusted_timestamp_attested_hash": "ebec0c2ccfd10456f7292dad6f1bea4e49f6042b160569bed52151fa38519383",
+      "trusted_timestamp_authority": "https://freetsa.org/tsr",
+      "trusted_timestamp_policy": "required",
+      "trusted_timestamp_serial": "78b609b",
+      "trusted_timestamp_status": "rfc3161_verified",
+      "trusted_timestamp_time_iso": "2026-09-04T13:11:00Z",
+      "trusted_timestamp_token_base64": "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",
+      "trusted_timestamp_token_sha256": "3ed7503764a77c95e621bd8e15a29a8d46e6538966a7cf91e23abcddaa57538a",
+      "verification_evidence_format": "android_biometric_result_sha256_v1",
+      "verification_evidence_hash": "3b521973ca9cae6994ad14430dd8d8419ee420f48d85505749f2b9e831c4e4c5",
+      "verification_method": "Fingerprint"
+    },
+    "attestation_present": true,
+    "commitment_recipe": {
+      "canonicalization": "ordered-kv-v1",
+      "hash_algorithm": "SHA-256",
+      "members": [
+        {
+          "commitment": "value",
+          "path": "showcase_commitment_schema",
+          "type": "string"
+        },
+        {
+          "commitment": "value",
+          "path": "showcase_id",
+          "type": "string"
+        },
+        {
+          "commitment": "value",
+          "path": "age_years",
+          "type": "integer"
+        },
+        {
+          "commitment": "value",
+          "path": "favourite_colour",
+          "type": "string"
+        },
+        {
+          "commitment": "value",
+          "path": "short_note",
+          "type": "string"
+        },
+        {
+          "commitment": "value",
+          "path": "auth_auth_method",
+          "type": "string"
+        },
+        {
+          "commitment": "value",
+          "path": "auth_timestamp_iso",
+          "type": "string"
+        },
+        {
+          "commitment": "json-utf8-sha256",
+          "path": "auth_json_sha256",
+          "source_field": "auth_methodmesh_full_json",
+          "type": "sha256"
+        },
+        {
+          "artifact_field": "photo_redacted_image_uri",
+          "commitment": "artifact-bytes-sha256",
+          "path": "photo_redacted_image_sha256",
+          "type": "sha256"
+        },
+        {
+          "commitment": "json-utf8-sha256",
+          "path": "photo_json_sha256",
+          "source_field": "photo_methodmesh_full_json",
+          "type": "sha256"
+        },
+        {
+          "commitment": "value",
+          "path": "location_plus_code",
+          "type": "string"
+        },
+        {
+          "commitment": "json-utf8-sha256",
+          "path": "location_json_sha256",
+          "source_field": "location_methodmesh_full_json",
+          "type": "sha256"
+        },
+        {
+          "commitment": "value",
+          "path": "polygon_value",
+          "type": "string"
+        },
+        {
+          "commitment": "json-utf8-sha256",
+          "path": "polygon_json_sha256",
+          "source_field": "polygon_methodmesh_full_json",
+          "type": "sha256"
+        },
+        {
+          "commitment": "text-utf8-sha256",
+          "path": "conversation_transcript_sha256",
+          "source_field": "conversation_conversation_transcript",
+          "type": "sha256"
+        },
+        {
+          "commitment": "json-utf8-sha256",
+          "path": "conversation_json_sha256",
+          "source_field": "conversation_methodmesh_full_json",
+          "type": "sha256"
+        },
+        {
+          "commitment": "value",
+          "path": "fourat_clinical_score",
+          "type": "string"
+        },
+        {
+          "commitment": "value",
+          "path": "fourat_clinical_classification",
+          "type": "string"
+        },
+        {
+          "commitment": "value",
+          "path": "fourat_clinical_definition_fingerprint",
+          "type": "sha256"
+        },
+        {
+          "commitment": "json-utf8-sha256",
+          "path": "fourat_json_sha256",
+          "source_field": "fourat_methodmesh_full_json",
+          "type": "sha256"
+        }
+      ],
+      "schema": "methodmesh.commitment_recipe.v1"
+    },
+    "commitment_recipe_hash_matches_raw": true,
+    "commitment_recipe_raw": "{\"schema\":\"methodmesh.commitment_recipe.v1\",\"canonicalization\":\"ordered-kv-v1\",\"hash_algorithm\":\"SHA-256\",\"members\":[{\"path\":\"showcase_commitment_schema\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"showcase_id\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"age_years\",\"type\":\"integer\",\"commitment\":\"value\"},{\"path\":\"favourite_colour\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"short_note\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"auth_auth_method\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"auth_timestamp_iso\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"auth_json_sha256\",\"type\":\"sha256\",\"commitment\":\"json-utf8-sha256\",\"source_field\":\"auth_methodmesh_full_json\"},{\"path\":\"photo_redacted_image_sha256\",\"type\":\"sha256\",\"commitment\":\"artifact-bytes-sha256\",\"artifact_field\":\"photo_redacted_image_uri\"},{\"path\":\"photo_json_sha256\",\"type\":\"sha256\",\"commitment\":\"json-utf8-sha256\",\"source_field\":\"photo_methodmesh_full_json\"},{\"path\":\"location_plus_code\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"location_json_sha256\",\"type\":\"sha256\",\"commitment\":\"json-utf8-sha256\",\"source_field\":\"location_methodmesh_full_json\"},{\"path\":\"polygon_value\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"polygon_json_sha256\",\"type\":\"sha256\",\"commitment\":\"json-utf8-sha256\",\"source_field\":\"polygon_methodmesh_full_json\"},{\"path\":\"conversation_transcript_sha256\",\"type\":\"sha256\",\"commitment\":\"text-utf8-sha256\",\"source_field\":\"conversation_conversation_transcript\"},{\"path\":\"conversation_json_sha256\",\"type\":\"sha256\",\"commitment\":\"json-utf8-sha256\",\"source_field\":\"conversation_methodmesh_full_json\"},{\"path\":\"fourat_clinical_score\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"fourat_clinical_classification\",\"type\":\"string\",\"commitment\":\"value\"},{\"path\":\"fourat_clinical_definition_fingerprint\",\"type\":\"sha256\",\"commitment\":\"value\"},{\"path\":\"fourat_json_sha256\",\"type\":\"sha256\",\"commitment\":\"json-utf8-sha256\",\"source_field\":\"fourat_methodmesh_full_json\"}]}",
+    "commitment_recipe_sha256": "2b1282822eec1f9a5a8fbe4808e0fb33d176cf038aec282fd7db1bf9f3a64b54",
+    "cryptographic_verification": {
+      "attestation_hash_calculated": "ebec0c2ccfd10456f7292dad6f1bea4e49f6042b160569bed52151fa38519383",
+      "attestation_hash_stored": "ebec0c2ccfd10456f7292dad6f1bea4e49f6042b160569bed52151fa38519383",
+      "attestation_hash_valid": true,
+      "attestation_schema_version_is_4": true,
+      "canonical_payload_sha256": "e2d28f120db02ce0315ccd284e803bb8050dc5e62152aaaaa67f3e10694a7429",
+      "commitment_recipe_hash_valid": true,
+      "declared_timestamp_status_consistent": true,
+      "definitive_failures": [],
+      "device_to_tsa_offset_seconds": -0.275,
+      "ecdsa_signature_valid": true,
+      "errors": [],
+      "hash_algorithm_is_sha256": true,
+      "openssl_ecdsa_verify": {
+        "available": true,
+        "command": [
+          "openssl",
+          "dgst",
+          "-sha256",
+          "-verify",
+          "odk_version_probe_v7_sequence_writeback/uuid_074b4913-9620-41d4-a74c-09df9bea5e95/001_uuid_074b4913-9620-41d4-a74c-09df9bea5e95/_crypto_verification/methodmesh_public_key.pem",
+          "-signature",
+          "odk_version_probe_v7_sequence_writeback/uuid_074b4913-9620-41d4-a74c-09df9bea5e95/001_uuid_074b4913-9620-41d4-a74c-09df9bea5e95/_crypto_verification/methodmesh_signature.der",
+          "odk_version_probe_v7_sequence_writeback/uuid_074b4913-9620-41d4-a74c-09df9bea5e95/001_uuid_074b4913-9620-41d4-a74c-09df9bea5e95/_crypto_verification/attestation_canonical_payload.txt"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "Verified OK\n"
+      },
+      "openssl_public_key_parse": {
+        "available": true,
+        "command": [
+          "openssl",
+          "pkey",
+          "-pubin",
+          "-inform",
+          "DER",
+          "-in",
+          "odk_version_probe_v7_sequence_writeback/uuid_074b4913-9620-41d4-a74c-09df9bea5e95/001_uuid_074b4913-9620-41d4-a74c-09df9bea5e95/_crypto_verification/methodmesh_public_key.der",
+          "-out",
+          "odk_version_probe_v7_sequence_writeback/uuid_074b4913-9620-41d4-a74c-09df9bea5e95/001_uuid_074b4913-9620-41d4-a74c-09df9bea5e95/_crypto_verification/methodmesh_public_key.pem"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "openssl_rfc3161_verify": {
+        "available": true,
+        "command": [
+          "openssl",
+          "ts",
+          "-verify",
+          "-token_in",
+          "-in",
+          "odk_version_probe_v7_sequence_writeback/uuid_074b4913-9620-41d4-a74c-09df9bea5e95/001_uuid_074b4913-9620-41d4-a74c-09df9bea5e95/_crypto_verification/timestamp_token.tsr",
+          "-digest",
+          "ebec0c2ccfd10456f7292dad6f1bea4e49f6042b160569bed52151fa38519383",
+          "-CAfile",
+          "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/cacert.pem",
+          "-untrusted",
+          "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt"
+        ],
+        "returncode": 0,
+        "stderr": "Using configuration from /usr/local/Caskroom/miniforge/base/ssl/openssl.cnf\nWarning: certificate from 'odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt' with subject '/O=Free TSA/OU=TSA/description=This certificate digitally signs documents and time stamp requests made using the freetsa.org online services/CN=www.freetsa.org/emailAddress=busilezas@mailbox.org/L=Wuerzburg/C=DE/ST=Bayern' is not a CA cert\n",
+        "stdout": "Verification: OK\n"
+      },
+      "openssl_timestamp_parse": {
+        "available": true,
+        "command": [
+          "openssl",
+          "ts",
+          "-reply",
+          "-token_in",
+          "-in",
+          "odk_version_probe_v7_sequence_writeback/uuid_074b4913-9620-41d4-a74c-09df9bea5e95/001_uuid_074b4913-9620-41d4-a74c-09df9bea5e95/_crypto_verification/timestamp_token.tsr",
+          "-text"
+        ],
+        "returncode": 0,
+        "stderr": "Using configuration from /usr/local/Caskroom/miniforge/base/ssl/openssl.cnf\n",
+        "stdout": "Status info:\nStatus: Granted.\nStatus description: unspecified\nFailure info: unspecified\n\nTST info:\nVersion: 1\nPolicy OID: tsa_policy1\nHash Algorithm: sha256\nMessage data:\n    0000 - eb ec 0c 2c cf d1 04 56-f7 29 2d ad 6f 1b ea 4e   ...,...V.)-.o..N\n    0010 - 49 f6 04 2b 16 05 69 be-d5 21 51 fa 38 51 93 83   I..+..i..!Q.8Q..\nSerial number: 0x078B609B\nTime stamp: Sep  4 13:11:00 2026 GMT\nAccuracy: unspecified\nOrdering: yes\nNonce: 0x04A7E05799A13DC1\nTSA: DirName:/O=Free TSA/OU=TSA/description=This certificate digitally signs documents and time stamp requests made using the freetsa.org online services/CN=www.freetsa.org/emailAddress=busilezas@mailbox.org/L=Wuerzburg/C=DE/ST=Bayern\nExtensions:\n"
+      },
+      "openssl_version": "OpenSSL 3.6.1 27 Jan 2026 (Library: OpenSSL 3.6.1 27 Jan 2026)",
+      "overall_valid": true,
+      "public_key_algorithm_is_ec": true,
+      "public_key_format_is_x509": true,
+      "public_key_id_calculated": "d9df69ee1754c00c",
+      "public_key_id_stored": "d9df69ee1754c00c",
+      "public_key_id_valid": true,
+      "rfc3161_signature_and_chain_valid": true,
+      "signature_algorithm_is_sha256_ecdsa": true,
+      "timestamp_attested_hash_valid": true,
+      "timestamp_precedes_central_creation": true,
+      "timestamp_serial_matches_json": true,
+      "timestamp_time_matches_json": true,
+      "timestamp_token_fields": {
+        "hash_algorithm": "sha256",
+        "serial_hex": "78b609b",
+        "time_iso": "2026-09-04T13:11:00+00:00"
+      },
+      "timestamp_token_sha256_calculated": "3ed7503764a77c95e621bd8e15a29a8d46e6538966a7cf91e23abcddaa57538a",
+      "timestamp_token_sha256_stored": "3ed7503764a77c95e621bd8e15a29a8d46e6538966a7cf91e23abcddaa57538a",
+      "timestamp_token_sha256_valid": true,
+      "tsa_trust": {
+        "authority": "https://freetsa.org/tsr",
+        "available": true,
+        "ca_cache_source": "PINNED_DOWNLOAD",
+        "ca_file": "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/cacert.pem",
+        "ca_file_sha256": "2151b61137ffa86bf664691ba67e7da0b19f98c758e3d228d5d8ebf27e044438",
+        "source": "FREETSA_PINNED",
+        "tsa_cache_source": "PINNED_DOWNLOAD",
+        "tsa_cert_file": "odk_version_probe_v7_sequence_writeback/_tsa_trust/freetsa/tsa.crt",
+        "tsa_cert_file_sha256": "8bfb0305bb64e2571ca507552ef3245cb1c2fee8728e0ff8689225081ea13467"
+      },
+      "tsa_trust_source": "FREETSA_PINNED",
+      "verification_basis": "independent_ecdsa_plus_rfc3161_certificate_chain",
+      "verification_complete": true,
+      "verification_status": "VERIFIED",
+      "warnings": []
+    },
+    "desktop_audit_receipt": null,
+    "device_monotonic_counter": "1",
+    "payload_matches_attestation": true,
+    "photo_attachment_field": "1788527387611.jpg",
+    "photo_redacted_image_sha256": "8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268",
+    "previous_attestation_hash": "GENESIS",
+    "public_key_id": "d9df69ee1754c00c",
+    "showcase_payload_canonical": "showcase_commitment_schema=methodmesh.showcase.submission.v1|showcase_id=TJ FF|age_years=66|favourite_colour=yellow|short_note=The du|auth_auth_method=biometric|auth_timestamp_iso=2026-09-04T13:09:27.200Z|auth_json_sha256=dd38784f29992089f51e6ddf40a28bd30dd42a2a3aee1e3c8f92eeb6fe35dc21|photo_redacted_image_sha256=8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268|photo_json_sha256=bcff5549d6d3cf75b7e4a0207ca5e5404e46fe60157b7fd50726169d433429c8|location_plus_code=6FG22228+5M|location_json_sha256=5faf8ba312329ead3b3afcc9a2b66cf249d5ebc09eef1234406f8034b2f4c8b9|polygon_value={\n  \"methodmesh_execution_id\": \"e8c7c911-dabd-4500-99a8-041f047607f6\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1}]\",\n  \"methodmesh_full_json\": \"{\\n  \\\"methodmesh_execution_id\\\": \\\"e8c7c911-dabd-4500-99a8-041f047607f6\\\",\\n  \\\"methodmesh_method_id\\\": \\\"svg.select\\\",\\n  \\\"methodmesh_status\\\": \\\"Succeeded\\\",\\n  \\\"svg_name\\\": \\\"bodymap_black.svg\\\",\\n  \\\"selection_mode\\\": \\\"single\\\",\\n  \\\"selected_polygons\\\": \\\"[{\\\\\\\"polygon_id\\\\\\\":\\\\\\\"Ventral_Abdomen_Lower_Central\\\\\\\",\\\\\\\"sequence_index\\\\\\\":1}]\\\",\\n  \\\"selection_events\\\": \\\"[{\\\\\\\"type\\\\\\\":\\\\\\\"select\\\\\\\",\\\\\\\"polygon_id\\\\\\\":\\\\\\\"Ventral_Abdomen_Lower_Central\\\\\\\",\\\\\\\"sequence_index\\\\\\\":1,\\\\\\\"time_iso\\\\\\\":\\\\\\\"2026-09-04T13:10:17.661498Z\\\\\\\"}]\\\",\\n  \\\"selection_audit_hash\\\": \\\"4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2\\\",\\n  \\\"selection_started_at\\\": \\\"2026-09-04T13:10:16.695836Z\\\",\\n  \\\"selection_completed_at\\\": \\\"2026-09-04T13:10:18.385428Z\\\"\\n}\"\n}|polygon_json_sha256=090075527cffc6d8b6009e38b8bac2359edb9bc84f64ec0706080ea7e5619a1f|conversation_transcript_sha256=cfeb2ec6917bd4c7ec7ba116674c176beac9df993e2cea0b69be92900c3bacfb|conversation_json_sha256=7d11ca9b9cb33c637607a99aa999cf7572882cc56127e8621a93a2a2617e9352|fourat_clinical_score=1|fourat_clinical_classification=possible_cognitive_impairment|fourat_clinical_definition_fingerprint=9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8|fourat_json_sha256=ee2ae7c58432b296cd900e7068e52d179f87d0f62e03f53fa752e86f5183efa1",
+    "showcase_payload_sha256": "aa3cfb4707e85b1d22836845f033d8110167eba489dd0346e5538169b17d251e",
+    "trusted_timestamp_attested_hash": "ebec0c2ccfd10456f7292dad6f1bea4e49f6042b160569bed52151fa38519383",
+    "trusted_timestamp_status": "rfc3161_verified",
+    "trusted_timestamp_time_iso": "2026-09-04T13:11:00Z",
+    "tsa_attests_attestation_hash": true
+  },
+  "reconstruction": {
+    "all_indirect_commitments_match": true,
+    "available": true,
+    "complete": true,
+    "errors": [],
+    "member_count": 20,
+    "members": [
+      {
+        "artifact_field": null,
+        "commitment": "value",
+        "error": null,
+        "path": "showcase_commitment_schema",
+        "source": "showcase_commitment_schema",
+        "source_derived_value": "methodmesh.showcase.submission.v1",
+        "source_field": "showcase_commitment_schema",
+        "source_ok": true,
+        "source_raw_value": "methodmesh.showcase.submission.v1",
+        "stored_matches_source": true,
+        "stored_value": "methodmesh.showcase.submission.v1",
+        "type": "string"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "value",
+        "error": null,
+        "path": "showcase_id",
+        "source": "showcase_id",
+        "source_derived_value": "TJ FF",
+        "source_field": "showcase_id",
+        "source_ok": true,
+        "source_raw_value": "TJ FF",
+        "stored_matches_source": true,
+        "stored_value": "TJ FF",
+        "type": "string"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "value",
+        "error": null,
+        "path": "age_years",
+        "source": "age_years",
+        "source_derived_value": "66",
+        "source_field": "age_years",
+        "source_ok": true,
+        "source_raw_value": "66",
+        "stored_matches_source": true,
+        "stored_value": "66",
+        "type": "integer"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "value",
+        "error": null,
+        "path": "favourite_colour",
+        "source": "favourite_colour",
+        "source_derived_value": "yellow",
+        "source_field": "favourite_colour",
+        "source_ok": true,
+        "source_raw_value": "yellow",
+        "stored_matches_source": true,
+        "stored_value": "yellow",
+        "type": "string"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "value",
+        "error": null,
+        "path": "short_note",
+        "source": "short_note",
+        "source_derived_value": "The du",
+        "source_field": "short_note",
+        "source_ok": true,
+        "source_raw_value": "The du",
+        "stored_matches_source": true,
+        "stored_value": "The du",
+        "type": "string"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "value",
+        "error": null,
+        "path": "auth_auth_method",
+        "source": "auth_auth_method",
+        "source_derived_value": "biometric",
+        "source_field": "auth_auth_method",
+        "source_ok": true,
+        "source_raw_value": "biometric",
+        "stored_matches_source": true,
+        "stored_value": "biometric",
+        "type": "string"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "value",
+        "error": null,
+        "path": "auth_timestamp_iso",
+        "source": "auth_timestamp_iso",
+        "source_derived_value": "2026-09-04T13:09:27.200Z",
+        "source_field": "auth_timestamp_iso",
+        "source_ok": true,
+        "source_raw_value": "2026-09-04T13:09:27.200Z",
+        "stored_matches_source": true,
+        "stored_value": "2026-09-04T13:09:27.200Z",
+        "type": "string"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "json-utf8-sha256",
+        "error": null,
+        "path": "auth_json_sha256",
+        "source": "auth_methodmesh_full_json",
+        "source_derived_value": "dd38784f29992089f51e6ddf40a28bd30dd42a2a3aee1e3c8f92eeb6fe35dc21",
+        "source_field": "auth_methodmesh_full_json",
+        "source_ok": true,
+        "source_raw_value": "{\n  \"methodmesh_execution_id\": \"677687f4-8f22-445e-84a1-c4396f6dfeb1\",\n  \"methodmesh_method_id\": \"admin_fingerprint_confirmation\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"confirmed\": \"true\",\n  \"verification_status\": \"verified\",\n  \"auth_method\": \"biometric\",\n  \"authentication_policy\": \"biometric\",\n  \"assurance_scope\": \"local_device_access\",\n  \"identity_claimed\": \"false\",\n  \"timestamp_ms\": \"1788527367200\",\n  \"timestamp_iso\": \"2026-09-04T13:09:27.200Z\",\n  \"reason\": \"local_access_authorisation\",\n  \"message\": \"Local access authorised\",\n  \"biometric_device_service\": \"device.biometric.android\",\n  \"biometric_signal_type\": \"biometric.authentication.result\",\n  \"biometric_execution_id\": \"677687f4-8f22-445e-84a1-c4396f6dfeb1\",\n  \"biometric_provenance_json\": \"{\\\"provider\\\":\\\"android.biometric_prompt\\\",\\\"method_id\\\":\\\"admin_fingerprint_confirmation\\\",\\\"method_version\\\":\\\"1.1.0\\\",\\\"source_service\\\":\\\"device.biometric.android\\\",\\\"signal_type\\\":\\\"biometric.authentication.result\\\",\\\"signal_id\\\":\\\"650fdde5-51a5-433c-ac23-c816221602f4\\\",\\\"timestamp_ms\\\":1788527367200}\"\n}",
+        "stored_matches_source": true,
+        "stored_value": "dd38784f29992089f51e6ddf40a28bd30dd42a2a3aee1e3c8f92eeb6fe35dc21",
+        "type": "sha256"
+      },
+      {
+        "artifact_field": "photo_redacted_image_uri",
+        "commitment": "artifact-bytes-sha256",
+        "error": null,
+        "path": "photo_redacted_image_sha256",
+        "source": "photo_redacted_image_uri -> 1788527387611.jpg",
+        "source_derived_value": "8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268",
+        "source_field": null,
+        "source_ok": true,
+        "source_raw_value": "1788527387611.jpg",
+        "stored_matches_source": true,
+        "stored_value": "8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268",
+        "type": "sha256"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "json-utf8-sha256",
+        "error": null,
+        "path": "photo_json_sha256",
+        "source": "photo_methodmesh_full_json",
+        "source_derived_value": "bcff5549d6d3cf75b7e4a0207ca5e5404e46fe60157b7fd50726169d433429c8",
+        "source_field": "photo_methodmesh_full_json",
+        "source_ok": true,
+        "source_raw_value": "{\n  \"methodmesh_execution_id\": \"c5f9ec67-700f-4ffb-bdcf-6c6658fdfb9c\",\n  \"methodmesh_method_id\": \"image.redact\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"image_redaction_status\": \"succeeded\",\n  \"redacted_image_uri\": \"content://com.example.methodmesh.fileprovider/shared_cache/methodmesh-redacted-1788527387478.jpg\",\n  \"redacted_image_name\": \"methodmesh-redacted-1788527387478.jpg\",\n  \"redacted_image_sha256\": \"8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268\",\n  \"redaction_mask_json\": \"[\\\"r1c10\\\",\\\"r1c5\\\",\\\"r1c6\\\",\\\"r1c7\\\",\\\"r1c8\\\",\\\"r1c9\\\",\\\"r2c10\\\",\\\"r2c5\\\",\\\"r2c6\\\",\\\"r2c7\\\",\\\"r2c8\\\",\\\"r2c9\\\",\\\"r3c10\\\",\\\"r3c5\\\",\\\"r3c6\\\",\\\"r3c7\\\",\\\"r3c8\\\",\\\"r3c9\\\",\\\"r4c10\\\",\\\"r4c5\\\",\\\"r4c6\\\",\\\"r4c7\\\",\\\"r4c8\\\",\\\"r4c9\\\",\\\"r5c10\\\",\\\"r5c4\\\",\\\"r5c6\\\",\\\"r5c7\\\",\\\"r5c9\\\",\\\"r6c10\\\",\\\"r6c5\\\",\\\"r6c6\\\",\\\"r6c7\\\",\\\"r6c9\\\"]\",\n  \"redacted_cells\": \"34\",\n  \"redaction_grid_rows\": \"10\",\n  \"redaction_grid_columns\": \"10\",\n  \"redaction_style\": \"black\",\n  \"redaction_input_source\": \"camera\",\n  \"redaction_created_time_iso\": \"2026-09-04T13:09:47.479716Z\",\n  \"image_redaction_error\": \"\"\n}",
+        "stored_matches_source": true,
+        "stored_value": "bcff5549d6d3cf75b7e4a0207ca5e5404e46fe60157b7fd50726169d433429c8",
+        "type": "sha256"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "value",
+        "error": null,
+        "path": "location_plus_code",
+        "source": "location_plus_code",
+        "source_derived_value": "6FG22228+5M",
+        "source_field": "location_plus_code",
+        "source_ok": true,
+        "source_raw_value": "6FG22228+5M",
+        "stored_matches_source": true,
+        "stored_value": "6FG22228+5M",
+        "type": "string"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "json-utf8-sha256",
+        "error": null,
+        "path": "location_json_sha256",
+        "source": "location_methodmesh_full_json",
+        "source_derived_value": "5faf8ba312329ead3b3afcc9a2b66cf249d5ebc09eef1234406f8034b2f4c8b9",
+        "source_field": "location_methodmesh_full_json",
+        "source_ok": true,
+        "source_raw_value": "{\n  \"methodmesh_execution_id\": \"09684886-0771-4d28-9964-635fcaa12a23\",\n  \"methodmesh_method_id\": \"plus_code.capture\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"subject_id\": \"plus-code:6FG22228+5M\",\n  \"plus_code_status\": \"succeeded\",\n  \"plus_code\": \"6FG22228+5M\",\n  \"plus_code_length\": \"10\",\n  \"plus_code_centroid_latitude\": \"0.0004375\",\n  \"plus_code_centroid_longitude\": \"0.0166875\",\n  \"plus_code_gps_latitude\": \"52.077924\",\n  \"plus_code_gps_longitude\": \"-0.05627923\",\n  \"plus_code_gps_accuracy_m\": \"83.842\",\n  \"plus_code_gps_fix_count\": \"3\",\n  \"plus_code_basemap_mode\": \"auto\",\n  \"plus_code_basemap_actual_source\": \"openfreemap_online_or_cache\",\n  \"plus_code_selected_time_iso\": \"2026-09-04T13:10:12.588875Z\",\n  \"plus_code_audit_json\": \"{\\\"methodmesh_method_id\\\":\\\"plus_code.capture\\\",\\\"status\\\":\\\"succeeded\\\",\\\"plus_code\\\":\\\"6FG22228+5M\\\",\\\"code_length\\\":10,\\\"selected_cell\\\":{\\\"south\\\":3.75E-4,\\\"west\\\":0.016625,\\\"north\\\":5.0E-4,\\\"east\\\":0.01675,\\\"center_latitude\\\":4.375E-4,\\\"center_longitude\\\":0.0166875},\\\"gps\\\":{\\\"latitude\\\":52.077924,\\\"longitude\\\":-0.05627923,\\\"accuracy_m\\\":83.842,\\\"fix_count\\\":3},\\\"basemap\\\":{\\\"mode\\\":\\\"auto\\\",\\\"actual_source\\\":\\\"openfreemap_online_or_cache\\\",\\\"fallback_used\\\":true},\\\"timestamp_iso\\\":\\\"2026-09-04T13:10:12.588875Z\\\"}\",\n  \"plus_code_error\": \"\"\n}",
+        "stored_matches_source": true,
+        "stored_value": "5faf8ba312329ead3b3afcc9a2b66cf249d5ebc09eef1234406f8034b2f4c8b9",
+        "type": "sha256"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "value",
+        "error": null,
+        "path": "polygon_value",
+        "source": "polygon_value",
+        "source_derived_value": "{\n  \"methodmesh_execution_id\": \"e8c7c911-dabd-4500-99a8-041f047607f6\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1}]\",\n  \"methodmesh_full_json\": \"{\\n  \\\"methodmesh_execution_id\\\": \\\"e8c7c911-dabd-4500-99a8-041f047607f6\\\",\\n  \\\"methodmesh_method_id\\\": \\\"svg.select\\\",\\n  \\\"methodmesh_status\\\": \\\"Succeeded\\\",\\n  \\\"svg_name\\\": \\\"bodymap_black.svg\\\",\\n  \\\"selection_mode\\\": \\\"single\\\",\\n  \\\"selected_polygons\\\": \\\"[{\\\\\\\"polygon_id\\\\\\\":\\\\\\\"Ventral_Abdomen_Lower_Central\\\\\\\",\\\\\\\"sequence_index\\\\\\\":1}]\\\",\\n  \\\"selection_events\\\": \\\"[{\\\\\\\"type\\\\\\\":\\\\\\\"select\\\\\\\",\\\\\\\"polygon_id\\\\\\\":\\\\\\\"Ventral_Abdomen_Lower_Central\\\\\\\",\\\\\\\"sequence_index\\\\\\\":1,\\\\\\\"time_iso\\\\\\\":\\\\\\\"2026-09-04T13:10:17.661498Z\\\\\\\"}]\\\",\\n  \\\"selection_audit_hash\\\": \\\"4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2\\\",\\n  \\\"selection_started_at\\\": \\\"2026-09-04T13:10:16.695836Z\\\",\\n  \\\"selection_completed_at\\\": \\\"2026-09-04T13:10:18.385428Z\\\"\\n}\"\n}",
+        "source_field": "polygon_value",
+        "source_ok": true,
+        "source_raw_value": "{\n  \"methodmesh_execution_id\": \"e8c7c911-dabd-4500-99a8-041f047607f6\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1}]\",\n  \"methodmesh_full_json\": \"{\\n  \\\"methodmesh_execution_id\\\": \\\"e8c7c911-dabd-4500-99a8-041f047607f6\\\",\\n  \\\"methodmesh_method_id\\\": \\\"svg.select\\\",\\n  \\\"methodmesh_status\\\": \\\"Succeeded\\\",\\n  \\\"svg_name\\\": \\\"bodymap_black.svg\\\",\\n  \\\"selection_mode\\\": \\\"single\\\",\\n  \\\"selected_polygons\\\": \\\"[{\\\\\\\"polygon_id\\\\\\\":\\\\\\\"Ventral_Abdomen_Lower_Central\\\\\\\",\\\\\\\"sequence_index\\\\\\\":1}]\\\",\\n  \\\"selection_events\\\": \\\"[{\\\\\\\"type\\\\\\\":\\\\\\\"select\\\\\\\",\\\\\\\"polygon_id\\\\\\\":\\\\\\\"Ventral_Abdomen_Lower_Central\\\\\\\",\\\\\\\"sequence_index\\\\\\\":1,\\\\\\\"time_iso\\\\\\\":\\\\\\\"2026-09-04T13:10:17.661498Z\\\\\\\"}]\\\",\\n  \\\"selection_audit_hash\\\": \\\"4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2\\\",\\n  \\\"selection_started_at\\\": \\\"2026-09-04T13:10:16.695836Z\\\",\\n  \\\"selection_completed_at\\\": \\\"2026-09-04T13:10:18.385428Z\\\"\\n}\"\n}",
+        "stored_matches_source": true,
+        "stored_value": "{\n  \"methodmesh_execution_id\": \"e8c7c911-dabd-4500-99a8-041f047607f6\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1}]\",\n  \"methodmesh_full_json\": \"{\\n  \\\"methodmesh_execution_id\\\": \\\"e8c7c911-dabd-4500-99a8-041f047607f6\\\",\\n  \\\"methodmesh_method_id\\\": \\\"svg.select\\\",\\n  \\\"methodmesh_status\\\": \\\"Succeeded\\\",\\n  \\\"svg_name\\\": \\\"bodymap_black.svg\\\",\\n  \\\"selection_mode\\\": \\\"single\\\",\\n  \\\"selected_polygons\\\": \\\"[{\\\\\\\"polygon_id\\\\\\\":\\\\\\\"Ventral_Abdomen_Lower_Central\\\\\\\",\\\\\\\"sequence_index\\\\\\\":1}]\\\",\\n  \\\"selection_events\\\": \\\"[{\\\\\\\"type\\\\\\\":\\\\\\\"select\\\\\\\",\\\\\\\"polygon_id\\\\\\\":\\\\\\\"Ventral_Abdomen_Lower_Central\\\\\\\",\\\\\\\"sequence_index\\\\\\\":1,\\\\\\\"time_iso\\\\\\\":\\\\\\\"2026-09-04T13:10:17.661498Z\\\\\\\"}]\\\",\\n  \\\"selection_audit_hash\\\": \\\"4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2\\\",\\n  \\\"selection_started_at\\\": \\\"2026-09-04T13:10:16.695836Z\\\",\\n  \\\"selection_completed_at\\\": \\\"2026-09-04T13:10:18.385428Z\\\"\\n}\"\n}",
+        "type": "string"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "json-utf8-sha256",
+        "error": null,
+        "path": "polygon_json_sha256",
+        "source": "polygon_methodmesh_full_json",
+        "source_derived_value": "090075527cffc6d8b6009e38b8bac2359edb9bc84f64ec0706080ea7e5619a1f",
+        "source_field": "polygon_methodmesh_full_json",
+        "source_ok": true,
+        "source_raw_value": "{\n  \"methodmesh_execution_id\": \"e8c7c911-dabd-4500-99a8-041f047607f6\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selection_mode\": \"single\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1}]\",\n  \"selection_events\": \"[{\\\"type\\\":\\\"select\\\",\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1,\\\"time_iso\\\":\\\"2026-09-04T13:10:17.661498Z\\\"}]\",\n  \"selection_audit_hash\": \"4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2\",\n  \"selection_started_at\": \"2026-09-04T13:10:16.695836Z\",\n  \"selection_completed_at\": \"2026-09-04T13:10:18.385428Z\"\n}",
+        "stored_matches_source": true,
+        "stored_value": "090075527cffc6d8b6009e38b8bac2359edb9bc84f64ec0706080ea7e5619a1f",
+        "type": "sha256"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "text-utf8-sha256",
+        "error": null,
+        "path": "conversation_transcript_sha256",
+        "source": "conversation_conversation_transcript",
+        "source_derived_value": "cfeb2ec6917bd4c7ec7ba116674c176beac9df993e2cea0b69be92900c3bacfb",
+        "source_field": "conversation_conversation_transcript",
+        "source_ok": true,
+        "source_raw_value": "Speak (en): Hello\nSpanish (Es): Hola\n\nHabla (es): hola\nEnglish (En): hi there",
+        "stored_matches_source": true,
+        "stored_value": "cfeb2ec6917bd4c7ec7ba116674c176beac9df993e2cea0b69be92900c3bacfb",
+        "type": "sha256"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "json-utf8-sha256",
+        "error": null,
+        "path": "conversation_json_sha256",
+        "source": "conversation_methodmesh_full_json",
+        "source_derived_value": "7d11ca9b9cb33c637607a99aa999cf7572882cc56127e8621a93a2a2617e9352",
+        "source_field": "conversation_methodmesh_full_json",
+        "source_ok": true,
+        "source_raw_value": "{\n  \"methodmesh_execution_id\": \"2f9d683a-8808-4930-8227-9075fe3e2db8\",\n  \"methodmesh_method_id\": \"conversation.translate\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"subject_id\": \"conversation-translation:1788527442302\",\n  \"conversation_transcript\": \"Speak (en): Hello\\nSpanish (Es): Hola\\n\\nHabla (es): hola\\nEnglish (En): hi there\",\n  \"conversation_turns_json\": \"[{\\\"side\\\":\\\"a\\\",\\\"speaker\\\":\\\"Speak\\\",\\\"source_language\\\":\\\"en\\\",\\\"target_language\\\":\\\"es\\\",\\\"original_text\\\":\\\"Hello\\\",\\\"translated_text\\\":\\\"Hola\\\",\\\"time_iso\\\":\\\"2026-09-04T13:10:30.374025Z\\\"},{\\\"side\\\":\\\"b\\\",\\\"speaker\\\":\\\"Habla\\\",\\\"source_language\\\":\\\"es\\\",\\\"target_language\\\":\\\"en\\\",\\\"original_text\\\":\\\"hola\\\",\\\"translated_text\\\":\\\"hi there\\\",\\\"time_iso\\\":\\\"2026-09-04T13:10:38.363832Z\\\"}]\",\n  \"conversation_language_a\": \"en\",\n  \"conversation_language_b\": \"es\",\n  \"conversation_label_a\": \"Speak\",\n  \"conversation_label_b\": \"Habla\",\n  \"conversation_spoken_output\": \"true\",\n  \"conversation_prefer_offline\": \"true\",\n  \"conversation_turn_count\": \"2\",\n  \"conversation_started_time_iso\": \"2026-09-04T13:10:23.217262Z\",\n  \"conversation_finished_time_iso\": \"2026-09-04T13:10:42.302360Z\",\n  \"conversation_status\": \"succeeded\",\n  \"conversation_error\": \"\"\n}",
+        "stored_matches_source": true,
+        "stored_value": "7d11ca9b9cb33c637607a99aa999cf7572882cc56127e8621a93a2a2617e9352",
+        "type": "sha256"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "value",
+        "error": null,
+        "path": "fourat_clinical_score",
+        "source": "fourat_clinical_score",
+        "source_derived_value": "1",
+        "source_field": "fourat_clinical_score",
+        "source_ok": true,
+        "source_raw_value": "1",
+        "stored_matches_source": true,
+        "stored_value": "1",
+        "type": "string"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "value",
+        "error": null,
+        "path": "fourat_clinical_classification",
+        "source": "fourat_clinical_classification",
+        "source_derived_value": "possible_cognitive_impairment",
+        "source_field": "fourat_clinical_classification",
+        "source_ok": true,
+        "source_raw_value": "possible_cognitive_impairment",
+        "stored_matches_source": true,
+        "stored_value": "possible_cognitive_impairment",
+        "type": "string"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "value",
+        "error": null,
+        "path": "fourat_clinical_definition_fingerprint",
+        "source": "fourat_clinical_definition_fingerprint",
+        "source_derived_value": "9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8",
+        "source_field": "fourat_clinical_definition_fingerprint",
+        "source_ok": true,
+        "source_raw_value": "9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8",
+        "stored_matches_source": true,
+        "stored_value": "9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8",
+        "type": "sha256"
+      },
+      {
+        "artifact_field": null,
+        "commitment": "json-utf8-sha256",
+        "error": null,
+        "path": "fourat_json_sha256",
+        "source": "fourat_methodmesh_full_json",
+        "source_derived_value": "ee2ae7c58432b296cd900e7068e52d179f87d0f62e03f53fa752e86f5183efa1",
+        "source_field": "fourat_methodmesh_full_json",
+        "source_ok": true,
+        "source_raw_value": "{\n  \"methodmesh_execution_id\": \"984197d1-1a56-4fb1-ac09-b6c1be9718ea\",\n  \"methodmesh_method_id\": \"clinical.instrument.run\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"subject_id\": \"TJ FF\",\n  \"clinical_status\": \"succeeded\",\n  \"clinical_result\": \"4AT delirium assessment: 1 — Possible cognitive impairment\",\n  \"clinical_answers\": \"1. Alertness — Normal or brief mild sleepiness after waking\\n2. AMT4 orientation — One mistake\\n3. Attention - months backwards — Seven or more months correct\\n4. Acute change or fluctuating course — No\",\n  \"clinical_instrument\": \"four_at\",\n  \"clinical_version\": \"1.2.0\",\n  \"clinical_definition_fingerprint\": \"9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8\",\n  \"clinical_session\": \"82484153-9d24-46de-b91b-9d597eba1c02\",\n  \"clinical_instrument_id\": \"four_at\",\n  \"clinical_instrument_name\": \"4AT delirium assessment\",\n  \"clinical_instrument_version\": \"1.2.0\",\n  \"clinical_definition_sha256\": \"9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8\",\n  \"clinical_subject_id\": \"TJ FF\",\n  \"clinical_session_id\": \"82484153-9d24-46de-b91b-9d597eba1c02\",\n  \"clinical_responses_json\": \"{\\\"alertness\\\":\\\"0\\\",\\\"amt4\\\":\\\"1\\\",\\\"attention\\\":\\\"0\\\",\\\"acute_change\\\":\\\"0\\\"}\",\n  \"clinical_derived_json\": \"{}\",\n  \"clinical_score\": \"1\",\n  \"clinical_classification\": \"possible_cognitive_impairment\",\n  \"clinical_result_json\": \"{\\\"schema\\\":\\\"methodmesh.clinical-result.v1\\\",\\\"run\\\":{\\\"id\\\":\\\"82484153-9d24-46de-b91b-9d597eba1c02\\\",\\\"subject_id\\\":\\\"TJ FF\\\",\\\"status\\\":\\\"completed\\\"},\\\"instrument\\\":{\\\"id\\\":\\\"four_at\\\",\\\"name\\\":\\\"4AT delirium assessment\\\",\\\"version\\\":\\\"1.2.0\\\",\\\"definition_sha256\\\":\\\"9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8\\\",\\\"type\\\":\\\"clinical_score\\\",\\\"category\\\":\\\"acute_bedside\\\"},\\\"responses\\\":{\\\"alertness\\\":\\\"0\\\",\\\"amt4\\\":\\\"1\\\",\\\"attention\\\":\\\"0\\\",\\\"acute_change\\\":\\\"0\\\"},\\\"derived\\\":{},\\\"scores\\\":{\\\"four_at\\\":\\\"1\\\"},\\\"classification\\\":{\\\"value\\\":\\\"possible_cognitive_impairment\\\",\\\"label\\\":\\\"Possible cognitive impairment\\\"},\\\"provenance\\\":{\\\"source_url\\\":\\\"https:\\\\/\\\\/www.the4at.com\\\\/\\\",\\\"citation\\\":\\\"4AT version 1.2. MacLullich A, Ryan T, Cash H. © 2011-2014.\\\",\\\"rights_status\\\":\\\"CC_BY_4_0\\\",\\\"definition_sha256\\\":\\\"9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8\\\"}}\",\n  \"clinical_completed_time_iso\": \"2026-09-04T13:10:52.532661Z\",\n  \"clinical_error\": \"\",\n  \"clinical_response_alertness\": \"0\",\n  \"clinical_response_amt4\": \"1\",\n  \"clinical_response_attention\": \"0\",\n  \"clinical_response_acute_change\": \"0\",\n  \"clinical_score_four_at\": \"1\",\n  \"entity_id\": \"clinical-instrument:82484153-9d24-46de-b91b-9d597eba1c02\",\n  \"entity_type\": \"ClinicalInstrumentRun\"\n}",
+        "stored_matches_source": true,
+        "stored_value": "ee2ae7c58432b296cd900e7068e52d179f87d0f62e03f53fa752e86f5183efa1",
+        "type": "sha256"
+      }
+    ],
+    "reconstructed_payload": "showcase_commitment_schema=methodmesh.showcase.submission.v1|showcase_id=TJ FF|age_years=66|favourite_colour=yellow|short_note=The du|auth_auth_method=biometric|auth_timestamp_iso=2026-09-04T13:09:27.200Z|auth_json_sha256=dd38784f29992089f51e6ddf40a28bd30dd42a2a3aee1e3c8f92eeb6fe35dc21|photo_redacted_image_sha256=8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268|photo_json_sha256=bcff5549d6d3cf75b7e4a0207ca5e5404e46fe60157b7fd50726169d433429c8|location_plus_code=6FG22228+5M|location_json_sha256=5faf8ba312329ead3b3afcc9a2b66cf249d5ebc09eef1234406f8034b2f4c8b9|polygon_value={\n  \"methodmesh_execution_id\": \"e8c7c911-dabd-4500-99a8-041f047607f6\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1}]\",\n  \"methodmesh_full_json\": \"{\\n  \\\"methodmesh_execution_id\\\": \\\"e8c7c911-dabd-4500-99a8-041f047607f6\\\",\\n  \\\"methodmesh_method_id\\\": \\\"svg.select\\\",\\n  \\\"methodmesh_status\\\": \\\"Succeeded\\\",\\n  \\\"svg_name\\\": \\\"bodymap_black.svg\\\",\\n  \\\"selection_mode\\\": \\\"single\\\",\\n  \\\"selected_polygons\\\": \\\"[{\\\\\\\"polygon_id\\\\\\\":\\\\\\\"Ventral_Abdomen_Lower_Central\\\\\\\",\\\\\\\"sequence_index\\\\\\\":1}]\\\",\\n  \\\"selection_events\\\": \\\"[{\\\\\\\"type\\\\\\\":\\\\\\\"select\\\\\\\",\\\\\\\"polygon_id\\\\\\\":\\\\\\\"Ventral_Abdomen_Lower_Central\\\\\\\",\\\\\\\"sequence_index\\\\\\\":1,\\\\\\\"time_iso\\\\\\\":\\\\\\\"2026-09-04T13:10:17.661498Z\\\\\\\"}]\\\",\\n  \\\"selection_audit_hash\\\": \\\"4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2\\\",\\n  \\\"selection_started_at\\\": \\\"2026-09-04T13:10:16.695836Z\\\",\\n  \\\"selection_completed_at\\\": \\\"2026-09-04T13:10:18.385428Z\\\"\\n}\"\n}|polygon_json_sha256=090075527cffc6d8b6009e38b8bac2359edb9bc84f64ec0706080ea7e5619a1f|conversation_transcript_sha256=cfeb2ec6917bd4c7ec7ba116674c176beac9df993e2cea0b69be92900c3bacfb|conversation_json_sha256=7d11ca9b9cb33c637607a99aa999cf7572882cc56127e8621a93a2a2617e9352|fourat_clinical_score=1|fourat_clinical_classification=possible_cognitive_impairment|fourat_clinical_definition_fingerprint=9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8|fourat_json_sha256=ee2ae7c58432b296cd900e7068e52d179f87d0f62e03f53fa752e86f5183efa1",
+    "reconstructed_payload_sha256": "aa3cfb4707e85b1d22836845f033d8110167eba489dd0346e5538169b17d251e",
+    "stored_member_payload": "showcase_commitment_schema=methodmesh.showcase.submission.v1|showcase_id=TJ FF|age_years=66|favourite_colour=yellow|short_note=The du|auth_auth_method=biometric|auth_timestamp_iso=2026-09-04T13:09:27.200Z|auth_json_sha256=dd38784f29992089f51e6ddf40a28bd30dd42a2a3aee1e3c8f92eeb6fe35dc21|photo_redacted_image_sha256=8364f458da4a12e8eb423e5c49c3676864481b063ba91b34a40cce1f111c6268|photo_json_sha256=bcff5549d6d3cf75b7e4a0207ca5e5404e46fe60157b7fd50726169d433429c8|location_plus_code=6FG22228+5M|location_json_sha256=5faf8ba312329ead3b3afcc9a2b66cf249d5ebc09eef1234406f8034b2f4c8b9|polygon_value={\n  \"methodmesh_execution_id\": \"e8c7c911-dabd-4500-99a8-041f047607f6\",\n  \"methodmesh_method_id\": \"svg.select\",\n  \"methodmesh_status\": \"Succeeded\",\n  \"svg_name\": \"bodymap_black.svg\",\n  \"selected_polygons\": \"[{\\\"polygon_id\\\":\\\"Ventral_Abdomen_Lower_Central\\\",\\\"sequence_index\\\":1}]\",\n  \"methodmesh_full_json\": \"{\\n  \\\"methodmesh_execution_id\\\": \\\"e8c7c911-dabd-4500-99a8-041f047607f6\\\",\\n  \\\"methodmesh_method_id\\\": \\\"svg.select\\\",\\n  \\\"methodmesh_status\\\": \\\"Succeeded\\\",\\n  \\\"svg_name\\\": \\\"bodymap_black.svg\\\",\\n  \\\"selection_mode\\\": \\\"single\\\",\\n  \\\"selected_polygons\\\": \\\"[{\\\\\\\"polygon_id\\\\\\\":\\\\\\\"Ventral_Abdomen_Lower_Central\\\\\\\",\\\\\\\"sequence_index\\\\\\\":1}]\\\",\\n  \\\"selection_events\\\": \\\"[{\\\\\\\"type\\\\\\\":\\\\\\\"select\\\\\\\",\\\\\\\"polygon_id\\\\\\\":\\\\\\\"Ventral_Abdomen_Lower_Central\\\\\\\",\\\\\\\"sequence_index\\\\\\\":1,\\\\\\\"time_iso\\\\\\\":\\\\\\\"2026-09-04T13:10:17.661498Z\\\\\\\"}]\\\",\\n  \\\"selection_audit_hash\\\": \\\"4732cf2c11f850962c5a5134f54b9c27378127e72affee07c8e8ac27080c3bb2\\\",\\n  \\\"selection_started_at\\\": \\\"2026-09-04T13:10:16.695836Z\\\",\\n  \\\"selection_completed_at\\\": \\\"2026-09-04T13:10:18.385428Z\\\"\\n}\"\n}|polygon_json_sha256=090075527cffc6d8b6009e38b8bac2359edb9bc84f64ec0706080ea7e5619a1f|conversation_transcript_sha256=cfeb2ec6917bd4c7ec7ba116674c176beac9df993e2cea0b69be92900c3bacfb|conversation_json_sha256=7d11ca9b9cb33c637607a99aa999cf7572882cc56127e8621a93a2a2617e9352|fourat_clinical_score=1|fourat_clinical_classification=possible_cognitive_impairment|fourat_clinical_definition_fingerprint=9aae775fe479f85a24eb47cb311df3e79f9786ff1ed5e6a2d9bfb215798e09b8|fourat_json_sha256=ee2ae7c58432b296cd900e7068e52d179f87d0f62e03f53fa752e86f5183efa1",
+    "stored_member_payload_sha256": "aa3cfb4707e85b1d22836845f033d8110167eba489dd0346e5538169b17d251e"
+  },
+  "sequence": 1,
+  "submitter_id": 7592,
+  "user_agent": "org.odk.collect.android/v2026.3.3 Dalvik/2.1.0 (Linux; U; Android 17; Pixel 7a Build/CP2A.260705.006)",
+  "version_id": "uuid:074b4913-9620-41d4-a74c-09df9bea5e95",
+  "xml_bytes": 28961,
+  "xml_sha256": "dc11f01ba9070dfe496f76379699acf99122e9af72fc8bb04832024a74e4aada"
+}

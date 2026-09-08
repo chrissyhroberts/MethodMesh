@@ -1,0 +1,46 @@
+---
+title: "Tabletop utilities"
+subtitle: "Module reference · tabletoputilities"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Persistent game workspaces with counters, characters, initiative, effects, scores and session audit history.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>tabletoputilities</code></div>
+<div><strong>Source directory</strong><code>tabletoputilities</code></div>
+<div><strong>Indexed methods</strong>1</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>6</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `tabletop.state.manage` | tabletop workspace | Open or inspect a persistent tabletop game workspace | <span class="badge-source">current source</span> | RIL binding, capability screen, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_TabletopUtilities.xlsx](../source-docs/tabletoputilities/example_odk_TabletopUtilities.xlsx)
+
+## Module-local documentation
+
+- [Tabletop Utilities v0.1.1 build-fix note](../source-docs/tabletoputilities/BUILD_FIX_v0.1.1.qmd) — `BUILD_FIX_v0.1.1.md`
+- [Drop-in installation](../source-docs/tabletoputilities/DROP_IN.qmd) — `DROP_IN.md`
+- [Tabletop Utilities](../source-docs/tabletoputilities/README_TabletopUtilities.qmd) — `README_TabletopUtilities.md`
+- [Tabletop Utilities — repository roadmap note](../source-docs/tabletoputilities/ROADMAP_NOTE.qmd) — `ROADMAP_NOTE.md`
+- [Runtime fix — v0.1.2](../source-docs/tabletoputilities/RUNTIME_FIX_v0.1.2.qmd) — `RUNTIME_FIX_v0.1.2.md`
+- [Tabletop Utilities state-engine regression vectors](../source-docs/tabletoputilities/STATE_ENGINE_TEST_VECTORS.qmd) — `STATE_ENGINE_TEST_VECTORS.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

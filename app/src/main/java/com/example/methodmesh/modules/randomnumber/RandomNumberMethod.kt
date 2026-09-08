@@ -57,7 +57,7 @@ object As100RandomNumberMethod : As100Method {
         description = "Generate one or more random numbers with fixed-seed or secure-random modes.",
         outputs = RandomNumberFields.outputs,
         graphOutputs = listOf("random.number.generate"),
-        parameters = mapOf("category" to "Randomisation")
+        parameters = mapOf("category" to "Randomisation", "status" to "Production")
     )
     override val contract = MethodContract(
         method = ref,

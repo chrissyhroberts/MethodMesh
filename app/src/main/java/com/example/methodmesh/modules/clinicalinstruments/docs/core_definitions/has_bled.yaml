@@ -1,0 +1,67 @@
+schema: methodmesh.clinical-instrument.v1
+id: has_bled
+name: HAS-BLED
+version: 1.0.0
+status: core
+type: clinical_score
+category: cardiovascular
+tags: [atrial_fibrillation, bleeding_risk, anticoagulation]
+summary: Bleeding-risk factor score used in atrial fibrillation.
+source_url: https://www.escardio.org/static-file/Escardio/Guidelines/Documents/ehaa612.pdf
+citation: "European Society of Cardiology. 2020 AF guideline, HAS-BLED clinical risk factors."
+rights_status: factual_definition
+rights_note: Score is for identifying bleeding-risk factors requiring review and follow-up; it is not a standalone instruction to withhold anticoagulation.
+questions:
+  - id: systolic_bp
+    label: Systolic blood pressure
+    type: integer
+    unit: mmHg
+    min: 20
+    max: 300
+  - id: abnormal_renal
+    label: Abnormal renal function?
+    type: boolean
+  - id: abnormal_liver
+    label: Abnormal liver function?
+    type: boolean
+  - id: prior_stroke
+    label: Previous stroke?
+    type: boolean
+  - id: bleeding_history
+    label: Major bleeding history or bleeding predisposition?
+    type: boolean
+  - id: labile_inr
+    label: Labile INR while receiving a vitamin K antagonist?
+    type: boolean
+  - id: age_years
+    label: Age
+    type: integer
+    unit: years
+    min: 18
+    max: 130
+  - id: drugs_predispose_bleeding
+    label: Concomitant antiplatelet or NSAID use?
+    type: boolean
+  - id: excessive_alcohol
+    label: Excessive alcohol use?
+    type: boolean
+derived:
+  - id: hypertension_point
+    expression: systolic_bp > 160
+  - id: elderly_point
+    expression: age_years > 65
+scores:
+  - id: has_bled
+    label: HAS-BLED
+    expression: hypertension_point + abnormal_renal + abnormal_liver + prior_stroke + bleeding_history + labile_inr + elderly_point + drugs_predispose_bleeding + excessive_alcohol
+classifications:
+  - when: has_bled >= 3
+    value: high_risk_flag
+    label: Score 3 or more - increased bleeding risk; review modifiable factors and follow closely
+  - when: has_bled < 3
+    value: below_high_risk_threshold
+    label: Score below 3
+tests:
+  - name: high
+    input_json: '{"systolic_bp":170,"abnormal_renal":true,"abnormal_liver":false,"prior_stroke":false,"bleeding_history":false,"labile_inr":false,"age_years":70,"drugs_predispose_bleeding":false,"excessive_alcohol":false}'
+    expect_json: '{"has_bled":3,"classification":"high_risk_flag"}'

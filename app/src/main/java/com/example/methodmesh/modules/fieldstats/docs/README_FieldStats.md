@@ -1,0 +1,233 @@
+# Field Statistics
+
+Pocket statistical calculators for MethodMesh: quick methods that are useful in a clinic, laboratory, survey, outbreak investigation, field office, or other setting where opening a full statistical package would be disproportionate.
+
+**Status:** Development  
+**Module:** `fieldstats`  
+**Version:** `0.1.0`  
+**Network required:** No  
+**Android permissions:** None
+
+The module is deliberately **not** an embedded R-like analysis environment. Each public method performs one recognisable calculation, returns a compact main result, and also exposes explicit numeric fields plus `fieldstats_audit_json`.
+
+## Public methods
+
+| Method ID | Native title | Purpose |
+|---|---|---|
+| `fieldstats.diagnostic_2x2` | Diagnostic 2×2 table | Sensitivity, specificity, PPV, NPV, prevalence, accuracy, LR+/LR− and diagnostic odds ratio; optional PPV/NPV recalculation at another prevalence |
+| `fieldstats.proportion` | Proportion and confidence interval | Proportion plus Wilson confidence interval |
+| `fieldstats.sample_size_proportion` | Sample size: proportion | Precision-based sample size for a single proportion, with optional finite-population correction, design effect and non-response inflation |
+| `fieldstats.detection_limit` | Detect at least one / zero events | Sample size to detect ≥1 event at a chosen minimum prevalence, or an upper prevalence bound after observing zero events |
+| `fieldstats.compare_binary` | Compare two binary groups | Risks, risk difference, risk ratio, odds ratio and NNT/NNH where interpretable |
+| `fieldstats.summary` | Quick descriptive statistics | n, invalid count, mean, sample SD, median, quartiles, IQR, range, CV, P5 and P95 |
+| `fieldstats.sample_size_two_proportions` | Sample size: two proportions | Approximate two-sided sample size for two independent proportions, unequal allocation, design effect and attrition |
+| `fieldstats.sample_size_diagnostic` | Diagnostic study sample size | Precision-based counts of disease-positive and disease-negative observations and implied total recruitment |
+| `fieldstats.roc` | ROC threshold explorer | AUC, ROC curve, threshold-specific operating characteristics, Youden J and Youden-optimal threshold |
+| `fieldstats.probability` | Quick distributions | Binomial, Poisson and normal probability/quantile calculations |
+
+## Shared output contract
+
+Every method returns these common fields:
+
+| Field | Meaning |
+|---|---|
+| `fieldstats_status` | `succeeded` or `failed` |
+| `fieldstats_value` | Compact main result intended for the normal user-facing result/share surface |
+| `fieldstats_summary` | Slightly fuller human-readable summary |
+| `fieldstats_audit_json` | Method ID/version, engine version, supplied inputs, and calculation notes |
+| `fieldstats_error` | Error message on failure |
+
+Each method also returns calculation-specific numeric fields so ODK or other external callers do not need to parse the display string.
+
+All proportions, probabilities, confidence levels, non-response and attrition inputs are represented as fractions from `0` to `1`, not percentages.
+
+## Native workflow
+
+Open the required Field Statistics capability, enter the values, and calculate. Standard calculators use the normal MethodMesh result screen after calculation.
+
+`fieldstats.roc` is intentionally different. In native use it is a persistent interactive dashboard:
+
+1. paste two-column truth/score data;
+2. move the threshold slider or type a threshold;
+3. inspect AUC, sensitivity, specificity, PPV, NPV, Youden J and the ROC curve;
+4. optionally jump to the Youden-optimal threshold;
+5. choose **Use this snapshot** when the current threshold should become the MethodMesh result.
+
+A native preset remains on the ROC dashboard and uses **Finish**. External/ODK execution remains single-shot and returns the requested threshold result without requiring interaction.
+
+## Presets
+
+All settings are declared through `FieldStatsModule.capabilitySettings()` so they can participate in MethodMesh presets. Fixed preset settings are hidden at runtime through `CapabilityScreenContext.settingShouldBeShown(...)`; runtime fields remain editable.
+
+The ROC threshold is treated as an operational control in the interactive ROC screen and remains available while exploring the dataset.
+
+## ODK / XLSForm
+
+The `docs/` folder contains one example XLSForm per public method. Each uses a **group intent** with:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(...)
+```
+
+and requests `input_payload_mode='FULL'` with `return_mode='flat'` so the form can capture both useful scalar outputs and the complete MethodMesh envelope.
+
+Example workbooks:
+
+- `example_odk_FieldStats_Diagnostic2x2.xlsx`
+- `example_odk_FieldStats_Proportion.xlsx`
+- `example_odk_FieldStats_SampleSizeProportion.xlsx`
+- `example_odk_FieldStats_DetectionLimit.xlsx`
+- `example_odk_FieldStats_CompareBinary.xlsx`
+- `example_odk_FieldStats_Summary.xlsx`
+- `example_odk_FieldStats_SampleSizeTwoProportions.xlsx`
+- `example_odk_FieldStats_SampleSizeDiagnostic.xlsx`
+- `example_odk_FieldStats_ROC.xlsx`
+- `example_odk_FieldStats_Probability.xlsx`
+
+The examples are intentionally small demonstrations rather than complete study forms.
+
+## Statistical methods
+
+### Diagnostic 2×2
+
+Input cells are `tp`, `fp`, `fn`, and `tn`.
+
+- sensitivity, specificity, PPV, NPV, prevalence and accuracy use Wilson score confidence intervals;
+- false-positive rate = `1 − specificity`;
+- false-negative rate = `1 − sensitivity`;
+- LR+ and LR− use log-scale confidence intervals;
+- diagnostic odds ratio uses a log-scale confidence interval;
+- where any 2×2 cell is zero, likelihood-ratio and odds-ratio calculations use a Haldane–Anscombe `0.5` correction, recorded in the output/audit metadata;
+- PPV or NPV may legitimately be undefined when there are no test-positive or no test-negative observations; in that case the undefined field is returned blank rather than failing the whole table;
+- the optional prevalence override recalculates predictive PPV/NPV from observed sensitivity and specificity without pretending that the study's observed prevalence has changed.
+
+The method requires at least one disease-positive and one disease-negative observation because otherwise sensitivity or specificity is not estimable.
+
+### Proportion and CI
+
+`fieldstats.proportion` uses the Wilson score interval. Wald intervals are not offered as the default pocket calculation because they behave poorly with small n and proportions near 0 or 1.
+
+### Sample size for a proportion
+
+The initial precision calculation is:
+
+```text
+n0 = z² p(1-p) / d²
+```
+
+where `p` is the expected proportion and `d` is absolute precision. If a finite population size is supplied, the finite-population correction is then applied. Design effect is multiplied after FPC, and non-response is inflated last.
+
+Set `population_size = 0` to omit finite-population correction. If the expected proportion is genuinely unknown, `0.5` is the conservative default.
+
+### Detect at least one / zero events
+
+Two modes are exposed by the same method.
+
+**Plan detection** answers: “If prevalence is at least p, how many independent/randomly sampled units do I need for probability C of finding at least one?”
+
+For an effectively infinite population it uses:
+
+```text
+n = ceil(log(1-C) / log(1-p))
+```
+
+When a finite population is supplied, the calculation switches to a without-replacement hypergeometric model and searches for the minimum sample size meeting the requested detection probability.
+
+**Zero events** answers: “After n observations with zero events, what is the one-sided upper prevalence bound?” For an effectively infinite population it solves the exact zero-event binomial expression and also reports the rule-of-three approximation `3/n`. With a finite population it uses the corresponding hypergeometric zero-event probability.
+
+This is a detection/zero-event method. It is **not** a generic interim-analysis or sequential clinical-trial stopping rule.
+
+### Compare two binary groups
+
+For each group the risk interval is Wilson. The risk-difference interval uses a Newcombe-style hybrid score construction from the two Wilson intervals. Risk ratio and odds ratio use log-scale confidence intervals. A Haldane–Anscombe correction is used for RR/OR calculations when a 2×2 cell is zero.
+
+NNT/NNH is calculated from the absolute risk difference. If the risk-difference confidence interval includes zero, the NNT/NNH interval crosses infinity and is reported as such rather than as a misleading finite interval.
+
+### Descriptive statistics
+
+Input can be separated by whitespace, newlines, comma, semicolon or pipe. Non-numeric tokens are counted as invalid. The method reports sample SD (`n-1` denominator). Quantiles use linear interpolation on position `p × (n−1)`; CV is `sample SD / |mean|` and is blank when the mean is zero or SD is undefined.
+
+### Sample size for two proportions
+
+This is an approximate two-sided normal-theory calculation for **two independent proportions**, with configurable allocation ratio `B:A`, power, design effect and attrition. It is intended for quick planning, not as a substitute for a design-specific trial power analysis.
+
+It does not currently implement cluster correlation directly, continuity corrections, non-inferiority/equivalence margins, repeated looks, matched data or exact tests. A design effect may be supplied when the analyst has independently justified one.
+
+### Diagnostic sample size
+
+The method calculates the disease-positive count needed to estimate expected sensitivity to the requested absolute precision and the disease-negative count needed for specificity. Expected prevalence converts those two requirements into total recruitment; the larger recruitment requirement governs. An unusable/missing-result fraction can then inflate the final target.
+
+This is a precision-based planning approximation, not a complete diagnostic-study design package.
+
+### ROC threshold explorer
+
+Input is two columns:
+
+```text
+truth,score
+1,0.91
+0,0.33
+true,0.82
+negative,0.14
+```
+
+Accepted truth tokens include `1/0`, `true/false`, `yes/no`, `positive/negative`, and related short forms. A common `truth,score`-style header is ignored. Other malformed rows are counted in `roc_invalid_rows`.
+
+The positive classification rule is:
+
+```text
+score >= threshold
+```
+
+AUC is computed from the Mann–Whitney rank statistic with average ranks for tied scores. The dashboard displays the empirical ROC curve and computes the threshold with maximum Youden J (`sensitivity + specificity − 1`), preferring the higher threshold when J ties.
+
+The current version returns a point estimate for AUC; it does not provide an AUC confidence interval or compare correlated ROC curves.
+
+### Probability distributions
+
+Supported questions are intentionally small:
+
+- **Binomial:** exactly `k`, at most `k`, at least `k`;
+- **Poisson:** exactly `k`, at most `k`, at least `k`;
+- **Normal:** below/equal `x`, above/equal `x`, between two bounds, or quantile.
+
+The engine is local and deterministic. It is not a random-number generator.
+
+## Random sampling
+
+Random record/person/specimen selection is **not duplicated here**. MethodMesh already has `sampling.run`, which covers simple, weighted, stratified and systematic sampling, shuffling and partitioning. Field Statistics focuses on statistical calculation methods.
+
+## Current orchestration boundary
+
+This version does **not** assume a value-piping model between capabilities. Every Field Statistics method is independently runnable from native MethodMesh, a preset, or an external/ODK intent. Outputs use stable explicit field names so they can remain compatible with future MethodMesh orchestration features without making those features a requirement today.
+
+## Offline / privacy behaviour
+
+All calculations are local. The module:
+
+- makes no network requests;
+- requests no Android permissions;
+- sends no statistical input to an external service;
+- creates no local repository/database;
+- does not automatically persist source data beyond normal MethodMesh result/preset behaviour.
+
+## Known limitations and intentional exclusions
+
+Field Statistics is a collection of pocket methods, not a general analysis system. This version intentionally excludes:
+
+- linear/logistic regression;
+- ANOVA and general hypothesis-test selection;
+- survival analysis;
+- mixed/multilevel models;
+- bootstrap frameworks;
+- Bayesian models;
+- meta-analysis;
+- formal group-sequential, alpha-spending or SPRT stopping rules;
+- cluster-randomised trial power beyond user-supplied design-effect inflation;
+- diagnostic ROC confidence intervals and curve comparisons.
+
+If a calculation requires modelling assumptions beyond a small, explicit field method, it belongs in a proper statistical workflow rather than being hidden behind a pocket calculator.
+
+## Development status
+
+The pure Kotlin engine and capability sources have focused compiler/smoke validation, documented in `VALIDATION.md`. The module remains **Development** until it is copied into a complete MethodMesh checkout and the full Android/ODK integration checklist is completed, including `./gradlew :app:assembleDebug`, native/preset execution, orientation-change validation and ODK Collect round trips.

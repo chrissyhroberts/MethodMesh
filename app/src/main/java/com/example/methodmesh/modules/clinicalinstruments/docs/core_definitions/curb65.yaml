@@ -1,0 +1,79 @@
+schema: methodmesh.clinical-instrument.v1
+id: curb65
+name: CURB-65
+version: 1.0.0
+status: core
+type: clinical_score
+category: acute_bedside
+tags: [pneumonia, respiratory, mortality_risk, hospital]
+summary: Five-item mortality-risk score for adults with community-acquired pneumonia assessed in hospital.
+source_url: https://www.nice.org.uk/guidance/NG250/chapter/recommendations
+citation: "NICE NG250. Pneumonia: diagnosis and management. CURB65 score, recommendation 1.2.8."
+rights_status: factual_definition
+rights_note: Numerical criteria and score bands are implemented from NICE; use clinical judgement alongside the score.
+questions:
+  - id: confusion
+    label: New confusion or disorientation?
+    type: boolean
+  - id: urea_mmol_l
+    label: Blood urea
+    type: decimal
+    unit: mmol/L
+    min: 0
+    max: 100
+  - id: respiratory_rate
+    label: Respiratory rate
+    type: integer
+    unit: breaths/min
+    min: 0
+    max: 100
+  - id: systolic_bp
+    label: Systolic blood pressure
+    type: integer
+    unit: mmHg
+    min: 20
+    max: 300
+  - id: diastolic_bp
+    label: Diastolic blood pressure
+    type: integer
+    unit: mmHg
+    min: 10
+    max: 200
+  - id: age_years
+    label: Age
+    type: integer
+    unit: years
+    min: 18
+    max: 130
+derived:
+  - id: confusion_criterion
+    expression: confusion == true
+  - id: urea_criterion
+    expression: urea_mmol_l > 7
+  - id: rr_criterion
+    expression: respiratory_rate >= 30
+  - id: bp_criterion
+    expression: systolic_bp < 90 or diastolic_bp <= 60
+  - id: age_criterion
+    expression: age_years >= 65
+scores:
+  - id: curb65
+    label: CURB-65
+    expression: confusion_criterion + urea_criterion + rr_criterion + bp_criterion + age_criterion
+classifications:
+  - when: curb65 <= 1
+    value: low_risk
+    label: Low mortality risk
+  - when: curb65 == 2
+    value: intermediate_risk
+    label: Intermediate mortality risk
+  - when: curb65 >= 3
+    value: high_risk
+    label: High mortality risk
+tests:
+  - name: zero
+    input_json: '{"confusion":false,"urea_mmol_l":5,"respiratory_rate":20,"systolic_bp":120,"diastolic_bp":80,"age_years":50}'
+    expect_json: '{"curb65":0,"classification":"low_risk"}'
+  - name: five
+    input_json: '{"confusion":true,"urea_mmol_l":8,"respiratory_rate":30,"systolic_bp":89,"diastolic_bp":60,"age_years":65}'
+    expect_json: '{"curb65":5,"classification":"high_risk"}'

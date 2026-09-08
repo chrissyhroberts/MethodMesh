@@ -1,0 +1,22 @@
+---
+title: "Capability documentation standard"
+---
+
+Every admitted capability should have module-local documentation. This refresh found **218 Markdown documents** and **147 XLSForms** under the current module `docs/` directories and mirrors them into the searchable source library.
+
+## Minimum per capability
+
+```text
+docs/README_<Capability>.md
+docs/example_odk_<capability>.xlsx
+```
+
+Recommended supporting files include `VALIDATION.md`, `ROADMAP_NOTE.md`, `THIRD_PARTY_NOTICES.md` and `ATTRIBUTION.md`.
+
+A capability README should cover purpose, method ID, lane/status, native UX, preset behaviour, ODK behaviour, settings/runtime inputs, outputs, core result, audit/full-JSON fields, media rules, permissions, offline/online behaviour, dependencies, examples, validation and attribution/licensing.
+
+Documentation must explicitly state that dashboard is one projection and identify how each individual capability remains exposed for direct native use, presets, protocols and ODK/XLSForm.
+
+## Authority
+
+Module docs describe capability-local implementation. They do not override the Master Book's architecture doctrine. Roadmap and patch notes are evidence/context, not automatically current requirements.

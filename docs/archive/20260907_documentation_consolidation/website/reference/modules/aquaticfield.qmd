@@ -1,0 +1,58 @@
+---
+title: "Aquatic fieldwork"
+subtitle: "Module reference · aquaticfield"
+---
+
+<div class="status-box status-development"><strong>Implementation reference:</strong> this module is present in the supplied current source. Presence alone is not a Production claim.</div>
+
+Offline oceanography and limnology calculations, sampling records, field QC and station workflow.
+
+<div class="module-metadata">
+<div><strong>Module ID</strong><code>aquaticfield</code></div>
+<div><strong>Source directory</strong><code>aquaticfield</code></div>
+<div><strong>Indexed methods</strong>16</div>
+<div><strong>XLSForms</strong>1</div>
+<div><strong>Source docs</strong>3</div>
+<div><strong>Explicit source status labels</strong>Development</div>
+</div>
+
+## Canonical methods
+
+| Method ID | Label / RIL phrase | Description | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `aquatic.ctd.cast` | record ctd cast | Record a CTD or sonde cast | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.depth_plan.generate` | generate aquatic depth plan | Generate planned sampling depths | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.field_qc.run` | run aquatic field qc | Run field completeness and plausibility checks | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.instrument.check` | record aquatic instrument check | Record calibration or field verification | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.mooring.record` | record aquatic mooring | Record a mooring event | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.pressure_depth.convert` | convert pressure depth | Convert aquatic pressure and depth | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.profile.summarise` | summarise aquatic profile | Summarise a processed vertical profile | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.rosette.fire` | record rosette fire | Record a water-sampler bottle firing | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.salinity.convert` | convert salinity | Convert conductivity or calculate Practical Salinity | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.sample.record` | record water sample | Record a discrete water sample | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.sample_id.generate` | generate sample id | Generate an aquatic sample identifier | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.secchi.measure` | measure secchi depth | Record a Secchi observation | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.sediment.record` | record sediment sample | Record a sediment core or grab | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.station.dashboard` | aquatic station dashboard | Open or return the current station snapshot | <span class="badge-source">current source</span> | RIL binding, capability screen, method source, module registry |
+| `aquatic.station.visit` | record aquatic station | Record a station visit | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+| `aquatic.transect.record` | record aquatic transect | Record a transect | <span class="badge-source">current source</span> | RIL binding, method source, module registry |
+
+## ODK / XLSForm examples
+
+- [example_odk_aquaticfield.xlsx](../source-docs/aquaticfield/example_odk_aquaticfield.xlsx)
+
+## Module-local documentation
+
+- [MethodMesh Aquatic Fieldwork Capability Package](../source-docs/aquaticfield/AQUATIC_FIELDWORK_SPEC.qmd) — `AQUATIC_FIELDWORK_SPEC.md`
+- [Aquatic Fieldwork — MethodMesh module](../source-docs/aquaticfield/README_AquaticFieldwork.qmd) — `README_AquaticFieldwork.md`
+- [Aquatic Fieldwork scientific methods](../source-docs/aquaticfield/SCIENTIFIC_METHODS.qmd) — `SCIENTIFIC_METHODS.md`
+
+### Additional source artefacts
+
+_No additional module-local artefacts._
+
+## Surface rule
+
+Regardless of how rich this module's dashboard/control-centre UI becomes, its individual capabilities remain canonical primitives. Direct native use, presets, protocols and ODK/XLSForm must project the same method IDs, input semantics and output contract.
+
+<div class="source-note">Module metadata and links are derived from the supplied `src` snapshot. Source-local docs are preserved for detailed implementation evidence but may contain development/roadmap history; resolve cross-cutting conflicts using the Master Book authority order.</div>

@@ -139,7 +139,7 @@ object ScaledPhotoCapabilityScreen : CapabilityScreenSpec {
                 "hud_scale_ratio" to hudRatio.toString(), "hud_display_length_mm" to settings.getFloat("ruler_length_mm").toString(), "ruler_target_length_mm" to (settings.getFloat("ruler_length_mm") * hudRatio).toString(),
                 "photo_captured_at" to Instant.now().toString(), "overlay_completed_at" to Instant.now().toString()
             )), transport = context.request.source).withInvocationContext(context.request.invocationContext)
-            status = "Original and annotated images saved."; if (context.startsImmediately) onConfirmed(result!!)
+            status = "Original and annotated images saved."; if (context.submitsImmediately) onConfirmed(result!!)
         }
         CapabilityScreenScaffold(title = title, capabilityId = capabilityId, context = context, canGoBack = context.stepNumber > 1, capturedResult = result, resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(), onBack = onBack, onRetry = { capturedFile = null; annotatedFile = null; bitmap = null; selected = emptySet(); result = null; status = "Align the physical ruler with the HUD, then capture." }, onConfirm = { result?.let(onConfirmed) }, onCancel = onCancel) {
             Text(status)

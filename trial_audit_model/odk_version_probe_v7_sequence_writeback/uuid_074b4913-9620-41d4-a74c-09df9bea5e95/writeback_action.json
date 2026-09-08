@@ -1,0 +1,18 @@
+{
+  "classification": "CRYPTOGRAPHICALLY_VERIFIED_ATTESTED_VERSION",
+  "current_version_id": "uuid:074b4913-9620-41d4-a74c-09df9bea5e95",
+  "mode": "WRITEBACK",
+  "prior_checkpoint": null,
+  "receipt_action": "ORIGINAL_ATTESTATION_IS_CURRENT",
+  "review_state_action": "ALREADY_APPROVED",
+  "sequence_verification": {
+    "complete": true,
+    "failures": [],
+    "prior_checkpoint": null,
+    "reason": "ALL_UNSEEN_VERSIONS_RECONSTRUCTED",
+    "start_index": 1,
+    "unseen_count": 0,
+    "versions": []
+  },
+  "server_review_state_before": "approved"
+}

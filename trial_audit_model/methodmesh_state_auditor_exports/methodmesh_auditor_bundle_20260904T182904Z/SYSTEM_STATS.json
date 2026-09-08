@@ -1,0 +1,166 @@
+{
+  "audit_health": {
+    "any_failure": 72,
+    "client_audit_attachment_failures": 0,
+    "client_audit_attachments": 307443,
+    "entries_recent_45d": 71614,
+    "entries_total": 3617490,
+    "failed_after_retries": 48,
+    "unprocessed": 0
+  },
+  "central_url": "https://central.lshtm.ac.uk",
+  "expected_public_ports": [
+    80,
+    443
+  ],
+  "installation": {
+    "database_size_bytes": 639520178979,
+    "database_size_human": "639.5 GB",
+    "num_admins_recent_45d": 2,
+    "num_admins_total": 4,
+    "num_archived_projects": 135,
+    "num_blob_files": 1372410,
+    "num_blob_files_on_s3": 0,
+    "num_client_audit_rows": 18967607,
+    "num_forms_recent_45d": 164,
+    "num_forms_total": 2674,
+    "num_projects": 216,
+    "num_questions_biggest_form": 1184,
+    "num_submissions_edited_total": 6244,
+    "num_submissions_received_recent_45d": 37213,
+    "num_submissions_received_total": 1725644,
+    "num_submissions_with_comments_total": 1261,
+    "num_unique_collectors": 3,
+    "num_unique_managers": 185,
+    "num_unique_viewers": 20,
+    "num_xml_only_form_defs": 145,
+    "sso_enabled": 0,
+    "uses_external_blob_store": 0,
+    "uses_external_db": 1
+  },
+  "observed_at_utc": "2026-09-04T18:28:58.388903+00:00",
+  "ports": [
+    {
+      "elapsed_ms": 2006.9,
+      "port": 22,
+      "state": "TIMEOUT_FILTERED_OR_UNREACHABLE"
+    },
+    {
+      "elapsed_ms": 14.7,
+      "port": 80,
+      "state": "OPEN"
+    },
+    {
+      "elapsed_ms": 14.9,
+      "port": 443,
+      "state": "OPEN"
+    },
+    {
+      "elapsed_ms": 2014.3,
+      "port": 3000,
+      "state": "TIMEOUT_FILTERED_OR_UNREACHABLE"
+    },
+    {
+      "elapsed_ms": 2005.5,
+      "port": 5432,
+      "state": "TIMEOUT_FILTERED_OR_UNREACHABLE"
+    },
+    {
+      "elapsed_ms": 80.4,
+      "port": 8080,
+      "state": "CLOSED_REFUSED"
+    },
+    {
+      "elapsed_ms": 2004.7,
+      "port": 8443,
+      "state": "TIMEOUT_FILTERED_OR_UNREACHABLE"
+    }
+  ],
+  "privacy": {
+    "project_names_included": false,
+    "research_values_included": false,
+    "statistics_are_aggregate": true,
+    "user_identity_list_included": false
+  },
+  "schema": "methodmesh.system_validation_stats.v1",
+  "server": {
+    "api_code": 200,
+    "api_elapsed_ms": 258.3,
+    "api_status": "PASS",
+    "dns_addresses": [
+      "194.80.41.67"
+    ],
+    "dns_status": "PASS",
+    "hostname": "central.lshtm.ac.uk",
+    "http_code": 200,
+    "http_elapsed_ms": 43.0,
+    "http_status": "PASS",
+    "server_header": "nginx",
+    "version_sha256": "a43c9152f560d62f61c25a4fbd818da34931178d20e3c9f25a5beade6beb8170",
+    "version_text": "versions:\n896ceca5a1936faaf4d4b83264551a3acab29be8 (v2025.4.0-2-g896ceca)\n bd1be46611410f2c1f441b154f4d625b27e093c5 client (v2025.4.0)\n 97981e9694f392e5b3df90a2d28c6f7d3aefef17 server (v2025.4.0)"
+  },
+  "service_history": {
+    "api_success_count": 1,
+    "http_success_count": 1,
+    "interpretation_note": "These are observed probe success fractions, not continuous availability unless probes are scheduled at the declared cadence.",
+    "observation_count": 1,
+    "observed_api_success_fraction": 1.0,
+    "observed_http_success_fraction": 1.0,
+    "unexpected_open_ports_seen": []
+  },
+  "tls": {
+    "certificate_sha256": "c7b10ed75f81fe1f5956c8a11d2d190e9937556efa57eb2f14aceacb6784cd89",
+    "cipher": "TLS_AES_256_GCM_SHA384",
+    "issuer": [
+      [
+        [
+          "countryName",
+          "GB"
+        ]
+      ],
+      [
+        [
+          "organizationName",
+          "Sectigo Limited"
+        ]
+      ],
+      [
+        [
+          "commonName",
+          "Sectigo Public Server Authentication CA OV R36"
+        ]
+      ]
+    ],
+    "not_after": "Jan 24 23:59:59 2027 GMT",
+    "not_before": "Jul 10 00:00:00 2026 GMT",
+    "protocol": null,
+    "status": "PASS",
+    "subject": [
+      [
+        [
+          "countryName",
+          "GB"
+        ]
+      ],
+      [
+        [
+          "stateOrProvinceName",
+          "London"
+        ]
+      ],
+      [
+        [
+          "organizationName",
+          "London School of Hygiene & Tropical Medicine"
+        ]
+      ],
+      [
+        [
+          "commonName",
+          "central.lshtm.ac.uk"
+        ]
+      ]
+    ]
+  },
+  "unexpected_open_ports": []
+}

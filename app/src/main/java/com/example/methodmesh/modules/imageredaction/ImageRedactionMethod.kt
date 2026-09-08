@@ -23,6 +23,7 @@ object ImageRedactionFields {
     const val STATUS = "image_redaction_status"
     const val REDACTED_IMAGE_URI = "redacted_image_uri"
     const val REDACTED_IMAGE_NAME = "redacted_image_name"
+    const val REDACTED_IMAGE_SHA256 = "redacted_image_sha256"
     const val MASK_JSON = "redaction_mask_json"
     const val SELECTED_CELLS = "redacted_cells"
     const val GRID_ROWS = "redaction_grid_rows"
@@ -32,7 +33,7 @@ object ImageRedactionFields {
     const val CREATED_TIME_ISO = "redaction_created_time_iso"
     const val ERROR = "image_redaction_error"
 
-    val outputs = listOf(STATUS, REDACTED_IMAGE_URI, REDACTED_IMAGE_NAME, MASK_JSON, SELECTED_CELLS, GRID_ROWS, GRID_COLUMNS, STYLE, SOURCE, CREATED_TIME_ISO, ERROR)
+    val outputs = listOf(STATUS, REDACTED_IMAGE_URI, REDACTED_IMAGE_NAME, REDACTED_IMAGE_SHA256, MASK_JSON, SELECTED_CELLS, GRID_ROWS, GRID_COLUMNS, STYLE, SOURCE, CREATED_TIME_ISO, ERROR)
 }
 
 object As100ImageRedactionMethod : As100Method {
@@ -49,7 +50,10 @@ object As100ImageRedactionMethod : As100Method {
         description = "Apply an irreversible grid mask and return a redacted image attachment.",
         outputs = ImageRedactionFields.outputs,
         graphOutputs = listOf("image.redacted"),
-        parameters = mapOf("category" to "Image")
+        parameters = mapOf(
+            "category" to "Image",
+            "status" to "Production"
+        )
     )
     override val contract = MethodContract(
         method = ref,

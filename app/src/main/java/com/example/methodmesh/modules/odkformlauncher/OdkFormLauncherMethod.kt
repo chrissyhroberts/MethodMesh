@@ -57,7 +57,7 @@ object As100OdkFormLauncherMethod : As100Method {
         description = "Open a locally available ODK Collect form by its form ID or display name.",
         outputs = OdkFormLaunchFields.outputFields,
         graphOutputs = listOf("odk.form.launch"),
-        parameters = mapOf("category" to "Interoperability", "status" to "Experimental")
+        parameters = mapOf("category" to "Interoperability", "status" to "Production")
     )
     override val contract = MethodContract(
         method = ref, requiredContext = listOf(OdkFormLaunchFields.FORM_SELECTOR),

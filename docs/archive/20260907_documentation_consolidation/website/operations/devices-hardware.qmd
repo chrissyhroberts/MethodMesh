@@ -1,0 +1,19 @@
+---
+title: "Devices, sensors and hardware"
+---
+
+## Workbench-oriented hardware tools
+
+The source snapshot includes BLE/Bluetooth inspection, sensor provisioning, sensor reading and ESP32-C3 firmware installation. These belong primarily in Workbench unless a capability is sufficiently polished for routine field use.
+
+## Device registry
+
+The target model is a live registry rather than a static manifest. For known sensors, useful current values should be visible and refreshable — for example AHT20 temperature/humidity and radar presence/distance/energy values.
+
+## Sensor consistency
+
+Firmware profile, provisioning state, app protocol and registry identity must agree. A proper reset must not leave stale device names or sensor profiles behind.
+
+## Shared Android hardware
+
+Other modules use NFC, camera, microphone, sensors, GPS, Bluetooth, USB and local authentication. Permissions and hardware requirements belong in module-local documentation and should be surfaced only when the task needs them.

@@ -67,7 +67,7 @@ object As100VerifyFingerprintMethod : As100Method {
         ),
         parameters = mapOf(
             "category" to "Access control",
-            "status" to "Experimental",
+            "status" to "Production",
             "device_service" to AndroidBiometricDeviceService.SERVICE_ID,
             "authentication_method" to "biometric|device_credential|biometric_or_device_credential"
         )
