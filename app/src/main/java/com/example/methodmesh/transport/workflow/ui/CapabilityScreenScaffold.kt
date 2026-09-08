@@ -218,8 +218,15 @@ fun CapabilityScreenScaffold(
         if (!context.isNativePresetRun || refId.isBlank()) return@LaunchedEffect
         runCatching {
             withContext(Dispatchers.IO) {
-                val entryId = UUID.randomUUID().toString()
+                val service = AndroidArtifacts.service(appContext)
+                val entryId = result.request.id.value
+                val existing = service.open(ArtifactRef(refId)).bufferedReader().useLines { lines ->
+                    lines.any { line -> runCatching { JSONObject(line).optString("entry_id") == entryId }.getOrDefault(false) }
+                }
+                if (existing) return@withContext
                 val media = org.json.JSONArray()
+                val mediaErrors = org.json.JSONArray()
+                val createdMediaRefs = mutableListOf<ArtifactRef>()
                 mediaResultUris.forEach { uri ->
                     runCatching {
                         val mediaId = UUID.randomUUID().toString()
@@ -227,7 +234,7 @@ fun CapabilityScreenScaffold(
                             ?: "media-$mediaId"
                         val mime = appContext.contentResolver.getType(uri) ?: "application/octet-stream"
                         val mediaRef = appContext.contentResolver.openInputStream(uri)?.use { input ->
-                            AndroidArtifacts.service(appContext).createPersistent(
+                            service.createPersistent(
                                 name = "${refId.take(12)}/media/${entryId}-${displayName.substringAfterLast('/')}",
                                 mime = mime,
                                 input = input,
@@ -235,12 +242,17 @@ fun CapabilityScreenScaffold(
                                 entryId = entryId,
                                 mediaId = mediaId
                             )
-                        } ?: return@runCatching
+                        } ?: error("Media URI could not be opened")
+                        createdMediaRefs += mediaRef
                         media.put(JSONObject()
                             .put("media_id", mediaId)
                             .put("artifact_ref", mediaRef.id)
                             .put("filename", displayName)
                             .put("mime_type", mime))
+                    }.onFailure { error ->
+                        mediaErrors.put(JSONObject()
+                            .put("uri", uri.toString())
+                            .put("error", error.message ?: "media copy failed"))
                     }
                 }
                 val record = JSONObject()
@@ -251,8 +263,13 @@ fun CapabilityScreenScaffold(
                     .put("status", result.status)
                     .put("fields", JSONObject(resultPreview.mapValues { it.value?.toString().orEmpty() }))
                     .put("media", media)
+                    .put("media_errors", mediaErrors)
                     .toString() + "\n"
-                AndroidArtifacts.service(appContext).appendPersistent(ArtifactRef(refId), record.toByteArray())
+                runCatching { service.appendPersistent(ArtifactRef(refId), record.toByteArray()) }
+                    .onFailure { error ->
+                        createdMediaRefs.forEach { ref -> runCatching { service.delete(ref) } }
+                        throw error
+                    }
             }
         }
     }
