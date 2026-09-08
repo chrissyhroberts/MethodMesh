@@ -1,5 +1,7 @@
 package com.example.methodmesh.ui.components
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +14,8 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,14 +49,18 @@ fun SettingsRenderer(
             }
             when (setting) {
                 is MethodSetting.TextSetting -> {
-                    OutlinedTextField(
-                        value = settingsState.getString(setting.id),
-                        onValueChange = { settingsState.setString(setting.id, it) },
-                        label = { Text(setting.label) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                    )
+                    if (capabilityId == "document.sign_pdf" && setting.id == "pdf_uri") {
+                        DeviceFileSetting(setting, settingsState)
+                    } else {
+                        OutlinedTextField(
+                            value = settingsState.getString(setting.id),
+                            onValueChange = { settingsState.setString(setting.id, it) },
+                            label = { Text(setting.label) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp)
+                        )
+                    }
                 }
 
                 is MethodSetting.BooleanSetting -> {
@@ -181,6 +189,39 @@ fun SettingsRenderer(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DeviceFileSetting(setting: MethodSetting.TextSetting, settingsState: SettingsState) {
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        settingsState.setString(setting.id, uri.toString())
+    }
+    val value = settingsState.getString(setting.id)
+    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Text(setting.label, fontWeight = FontWeight.SemiBold)
+        Text(
+            setting.description.orEmpty(),
+            style = androidx.compose.material3.MaterialTheme.typography.labelSmall
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = value.substringAfterLast('/').ifBlank { "No PDF selected" },
+                onValueChange = {},
+                readOnly = true,
+                modifier = Modifier.weight(1f),
+                singleLine = true
+            )
+            Button(onClick = { launcher.launch(arrayOf("application/pdf")) }) { Text("Choose") }
+        }
+        if (value.isNotBlank()) {
+            OutlinedButton(onClick = { settingsState.setString(setting.id, "") }) { Text("Clear") }
         }
     }
 }
