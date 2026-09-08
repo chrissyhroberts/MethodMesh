@@ -1,11 +1,15 @@
 package com.example.methodmesh.ui.artifacts
 
+import android.content.ClipData
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -16,7 +20,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import com.example.methodmesh.core.artifacts.*
+import com.example.methodmesh.core.config.MethodMeshConfigurationBackup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,6 +32,8 @@ import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import java.io.File
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.util.UUID
 
 /** Shared selection surface for any capability. Selection returns identity, not a saved copy. */
@@ -66,6 +74,30 @@ fun FilesScreen() {
     var previewImage by remember { mutableStateOf<Bitmap?>(null) }
     var previewLoading by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf<Artifact?>(null) }
+    val backupExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(MethodMeshConfigurationBackup.MIME_TYPE)) { destination ->
+        if (destination != null) scope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(destination)?.use {
+                        MethodMeshConfigurationBackup.write(context, it)
+                    } ?: error("Cannot open backup destination")
+                }
+            }.onSuccess { status = "Configuration backup exported." }
+                .onFailure { status = "Backup export failed: ${it.message ?: "storage error"}" }
+        }
+    }
+    val backupImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use {
+                        MethodMeshConfigurationBackup.restore(context, it)
+                    } ?: error("Cannot open backup")
+                }
+            }.onSuccess { revision++; status = "Configuration restored. Restart MethodMesh to apply it." }
+                .onFailure { status = "Restore failed: ${it.message ?: "invalid backup"}" }
+        }
+    }
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(
         selected?.mimeType ?: "application/octet-stream"
     )) { destination ->
@@ -95,7 +127,38 @@ fun FilesScreen() {
         }
     }
     Column {
-        Button(onClick = { importer.launch(arrayOf("*/*")) }, modifier = Modifier.padding(16.dp)) { Text("Import file") }
+        Row(Modifier.fillMaxWidth().padding(16.dp)) {
+            Button(onClick = { importer.launch(arrayOf("*/*")) }, modifier = Modifier.weight(1f)) { Text("Import file") }
+            Spacer(Modifier.width(8.dp))
+            OutlinedButton(onClick = {
+                runCatching {
+                    val bytes = ByteArrayOutputStream().also { MethodMeshConfigurationBackup.write(context, it) }.toByteArray()
+                    AndroidArtifacts.service(context).createPersistent(
+                        name = "MethodMesh configuration backup.zip",
+                        mime = MethodMeshConfigurationBackup.MIME_TYPE,
+                        input = ByteArrayInputStream(bytes)
+                    )
+                }.onSuccess { revision++; status = "Configuration backup saved to Files." }
+                    .onFailure { status = "Backup failed: ${it.message ?: "storage error"}" }
+            }, modifier = Modifier.weight(1f)) { Text("Backup") }
+        }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            TextButton(onClick = { backupExporter.launch(MethodMeshConfigurationBackup.FILE_NAME) }, modifier = Modifier.weight(1f)) { Text("Export backup") }
+            TextButton(onClick = {
+                runCatching {
+                    val backup = File(context.cacheDir, "MethodMesh-Configuration-Backup.zip")
+                    backup.outputStream().use { MethodMeshConfigurationBackup.write(context, it) }
+                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", backup)
+                    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                        type = MethodMeshConfigurationBackup.MIME_TYPE
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        clipData = ClipData.newUri(context.contentResolver, backup.name, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }, "Share configuration backup"))
+                }.onFailure { status = "Share failed: ${it.message ?: "could not create backup"}" }
+            }, modifier = Modifier.weight(1f)) { Text("Share backup") }
+            TextButton(onClick = { backupImporter.launch(arrayOf(MethodMeshConfigurationBackup.MIME_TYPE, "application/zip")) }, modifier = Modifier.weight(1f)) { Text("Restore backup") }
+        }
         status?.let { Text(it, modifier = Modifier.padding(horizontal = 16.dp)) }
         ArtifactPicker(ArtifactPickerRequest(lifecycles = setOf(ArtifactLifecycle.PERSISTENT)), { ref ->
             scope.launch { selected = withContext(Dispatchers.IO) { AndroidArtifacts.service(context).resolve(ref) } }
@@ -161,6 +224,25 @@ fun FilesScreen() {
                 },
                 confirmButton = {
                     Row {
+                        if (artifact.mimeType == MethodMeshConfigurationBackup.MIME_TYPE) {
+                            TextButton(onClick = {
+                                scope.launch {
+                                    runCatching {
+                                        withContext(Dispatchers.IO) {
+                                            AndroidArtifacts.service(context).open(artifact.ref).use {
+                                                MethodMeshConfigurationBackup.restore(context, it)
+                                            }
+                                        }
+                                    }.onSuccess {
+                                        selected = null
+                                        revision++
+                                        status = "Configuration restored. Restart MethodMesh to apply it."
+                                    }.onFailure { error ->
+                                        status = "Restore failed: ${error.message ?: "invalid backup"}"
+                                    }
+                                }
+                            }) { Text("Restore") }
+                        }
                         TextButton(onClick = { confirmDelete = artifact }) { Text("Delete") }
                         TextButton(onClick = { exporter.launch(artifact.displayName) }) { Text("Save a copy") }
                     }

@@ -116,6 +116,16 @@ class ArtifactService(private val store: File, private val workspace: File,
         return ref
     }
 
+    @Synchronized fun createPersistent(name: String, mime: String, input: InputStream): ArtifactRef {
+        val ref = ArtifactRef(UUID.randomUUID().toString())
+        val file = File(store, ref.id)
+        input.use { source -> file.outputStream().use { target -> source.copyTo(target) } }
+        val artifact = Artifact(ref, name, mime, ArtifactOrigin.MANAGED, ArtifactLifecycle.PERSISTENT, file.name)
+        records[ref] = artifact
+        writeMetadata(artifact)
+        return ref
+    }
+
     @Synchronized fun release(ref: ArtifactRef) {
         val a = resolve(ref); require(a.lifecycle != ArtifactLifecycle.PERSISTENT)
         File(workspace, a.location).delete(); records.remove(ref)
