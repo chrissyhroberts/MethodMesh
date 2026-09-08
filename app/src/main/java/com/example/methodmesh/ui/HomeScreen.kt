@@ -138,6 +138,8 @@ import com.example.methodmesh.ui.odk.OdkTemplateCatalog
 import com.example.methodmesh.ui.odk.OdkTemplateDescriptor
 import com.example.methodmesh.ui.odk.OdkTemplateLibrary
 import com.example.methodmesh.ui.odkcentral.OdkCentralSettingsScreen
+import com.example.methodmesh.ui.artifacts.FilesScreen
+import com.example.methodmesh.ui.kobo.KoboSettingsScreen
 import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.common.model.RemoteModelManager
 import com.google.mlkit.nl.translate.TranslateRemoteModel
@@ -172,6 +174,7 @@ private enum class DashboardDestination(val label: String) {
     RunProtocol("Run protocol"),
     Presets("Preset library"),
     OdkForms("ODK forms"),
+    Files("Files"),
     Protocols("Protocol library"),
     Scheduler("Scheduler"),
     Devices("Device registry"),
@@ -285,6 +288,7 @@ fun HomeScreen() {
                     DashboardDestination.Capabilities,
                     DashboardDestination.Presets,
                     DashboardDestination.OdkForms,
+                    DashboardDestination.Files,
                     DashboardDestination.Protocols,
                     DashboardDestination.Devices
                 ).forEach { destination ->
@@ -398,6 +402,7 @@ fun HomeScreen() {
                     DashboardDestination.RunProtocol -> item { RunProtocolCard(protocolLibraryRevision, expandedByDefault = true) }
                     DashboardDestination.Presets -> item { ProtocolLibraryCard(protocolLibraryRevision, showPresets = true, showProtocols = false, expandedByDefault = true) }
                     DashboardDestination.OdkForms -> item { OdkTemplateLibrary(initialQuery = odkFormsSearchSeed) }
+                    DashboardDestination.Files -> item { FilesScreen() }
                     DashboardDestination.Protocols -> item { ProtocolLibraryCard(protocolLibraryRevision, showPresets = false, showProtocols = true, expandedByDefault = true) }
                     DashboardDestination.Scheduler -> {
                         item {
@@ -3551,6 +3556,7 @@ private fun RuntimeStateCard(expandedByDefault: Boolean = false) {
 private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
     var displayExpanded by rememberSaveable { mutableStateOf(false) }
     var odkCentralExpanded by rememberSaveable { mutableStateOf(false) }
+    var koboExpanded by rememberSaveable { mutableStateOf(false) }
     var languageExpanded by rememberSaveable { mutableStateOf(false) }
     var calibrationExpanded by rememberSaveable { mutableStateOf(false) }
     var signalsExpanded by rememberSaveable { mutableStateOf(false) }
@@ -3581,6 +3587,13 @@ private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
             expanded = odkCentralExpanded,
             onToggle = { odkCentralExpanded = !odkCentralExpanded }
         ) { OdkCentralSettingsScreen() }
+
+        PageSection(
+            title = "KoboToolbox",
+            subtitle = "Deploy module XLSForms for KoboCollect testing",
+            expanded = koboExpanded,
+            onToggle = { koboExpanded = !koboExpanded }
+        ) { KoboSettingsScreen() }
 
         PageSection(
             title = "Language packs",

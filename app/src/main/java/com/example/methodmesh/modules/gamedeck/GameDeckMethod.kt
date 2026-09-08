@@ -19,6 +19,7 @@ import com.example.methodmesh.core.methodmesh.runtime.As100ExecutionEngine
 import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.settings.SettingsState
+import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
 
@@ -30,6 +31,9 @@ object GameDeckFields {
     const val TURN = "gamedeck_turn"
     const val WINNER = "gamedeck_winner"
     const val MOVE_COUNT = "gamedeck_move_count"
+    const val SCORE = "gamedeck_score"
+    const val PLAYER_STATS_JSON = "gamedeck_player_stats_json"
+    const val MOVE_DATA_JSON = "gamedeck_move_data_json"
     const val RNG_MODE = "gamedeck_rng_mode"
     const val SEED = "gamedeck_seed"
     const val GENERATED_TIME_ISO = "gamedeck_generated_time_iso"
@@ -38,13 +42,14 @@ object GameDeckFields {
 
     val outputs = listOf(
         STATUS, RESULT, GAME, STATE_JSON, TURN, WINNER, MOVE_COUNT,
+        SCORE, PLAYER_STATS_JSON, MOVE_DATA_JSON,
         RNG_MODE, SEED, GENERATED_TIME_ISO, AUDIT_JSON, ERROR
     )
 }
 
 object As100GameDeckMethod : As100Method {
     const val ID = "gamedeck.snapshot"
-    private const val VERSION = "0.0.11"
+    private const val VERSION = "0.0.12"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "GameDeck snapshot")
@@ -95,7 +100,8 @@ object As100GameDeckMethod : As100Method {
         moveCount: Int,
         rngMode: String,
         seed: String,
-        session: GameDeckSession? = null
+        session: GameDeckSession? = null,
+        playerStatsJson: String = ""
     ): Map<String, String> {
         val generatedAt = Instant.now().toString()
         val publicStateJson = GameDeckSessionCodec.publicStateJson(stateJson)
@@ -104,6 +110,10 @@ object As100GameDeckMethod : As100Method {
         val publicSessionJson = session?.let {
             GameDeckSessionCodec.publicSessionJson(it, stateJson)
         }.orEmpty()
+        val publicState = runCatching { JSONObject(publicStateJson) }.getOrElse { JSONObject() }
+        val score = scoreFor(game, publicState)
+        val moveDataJson = moveDataFor(game, publicState)
+
         val resultText = when {
             winner.isNotBlank() -> "$game — winner: $winner"
             turn.isNotBlank() -> "$game — $moveCount moves — turn: $turn"
@@ -131,12 +141,65 @@ object As100GameDeckMethod : As100Method {
             GameDeckFields.TURN to turn,
             GameDeckFields.WINNER to winner,
             GameDeckFields.MOVE_COUNT to moveCount.toString(),
+            GameDeckFields.SCORE to score,
+            GameDeckFields.PLAYER_STATS_JSON to playerStatsJson,
+            GameDeckFields.MOVE_DATA_JSON to moveDataJson,
             GameDeckFields.RNG_MODE to rngMode,
             GameDeckFields.SEED to publicSeed,
             GameDeckFields.GENERATED_TIME_ISO to generatedAt,
             GameDeckFields.AUDIT_JSON to audit.toString(),
             GameDeckFields.ERROR to ""
         )
+    }
+
+    private fun scoreFor(game: String, state: JSONObject): String = when (game) {
+        GameDeckExtraEngine.GO_9X9 -> {
+            val black = state.opt("black_score")
+            val white = state.opt("white_score")
+            if (black == null || black == JSONObject.NULL || white == null || white == JSONObject.NULL) {
+                ""
+            } else {
+                "black=${state.optDouble("black_score")};white=${state.optDouble("white_score")}"
+            }
+        }
+        GameDeckExtraEngine.REVERSI -> {
+            val board = state.optJSONArray("board") ?: JSONArray()
+            var p1 = 0
+            var p2 = 0
+            for (i in 0 until board.length()) {
+                when (board.optInt(i)) {
+                    1 -> p1 += 1
+                    2 -> p2 += 1
+                }
+            }
+            "p1=$p1;p2=$p2"
+        }
+        GameDeckExtraEngine.MEMORY -> {
+            val scores = state.optJSONArray("scores") ?: JSONArray()
+            "p1=${scores.optInt(0)};p2=${scores.optInt(1)}"
+        }
+        else -> if (state.has("score")) state.opt("score")?.toString().orEmpty() else ""
+    }
+
+    private fun moveDataFor(game: String, state: JSONObject): String {
+        val out = JSONObject()
+            .put("game", game)
+            .put("move_count", state.optInt("moves", 0))
+
+        when {
+            state.has("move_log") -> {
+                out.put("moves", state.optJSONArray("move_log") ?: JSONArray())
+            }
+            game == GameDeckExtraEngine.CODEBREAKER && state.has("history") -> {
+                out.put("moves", state.optJSONArray("history") ?: JSONArray())
+            }
+            else -> {
+                // Every game still returns useful terminal play data even when
+                // that engine predates the explicit event-log contract.
+                out.put("final_state", state)
+            }
+        }
+        return out.toString()
     }
 
     private fun snapshotFromSettings(settings: Map<String, String>): Map<String, String> {

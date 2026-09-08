@@ -26,9 +26,10 @@ The source SHA-256 can be tapped in the document overlay to copy it.
 The PDF can come from either route:
 
 - **Direct/native:** Android `OpenDocument` picker (`application/pdf`).
-- **ODK/external/protocol:** `input_pdf_uri` / `pdf_uri` supplied as an Android URI. MethodMesh immediately copies the readable input into its own files area so the working draft does not depend on temporary caller URI permissions.
+- **ODK:** the PDF is selected **inside the MethodMesh signing workspace** with Android's document picker. ODK-pushed file paths are deliberately ignored because Collect/Central may expose transient or app-private attachment paths that another app cannot open, producing errors such as `ENOENT`.
+- **Other Android/protocol callers:** a stable `input_pdf_uri` / `pdf_uri` may still be supplied. MethodMesh immediately copies a readable URI into its own files area so the working draft does not depend on temporary caller URI permissions.
 
-When a PDF URI is supplied by an ODK launch, the document opens directly without a redundant picker step.
+This means the ODK route is intentionally **launch tool → choose PDF in MethodMesh → sign → return Deliverable A + Deliverable B to ODK**.
 
 ## Draft persistence
 
@@ -70,14 +71,14 @@ If `input_request_tsa=true`, MethodMesh:
 6. checks the token message imprint against the signed PDF SHA-256;
 7. locates the included signer certificate and validates the timestamp token signature;
 8. reports whether the signer certificate was valid at the token generation time;
-9. creates Deliverable B, a portable provenance ZIP containing the PDF copy and timestamp evidence.
+9. creates Deliverable B, a portable provenance/verification ZIP containing hashes, the raw timestamp token, TSA certificate PEMs and reproducible verification instructions.
 
 If TSA is unavailable, the PDF commit still succeeds. Deliverable B records the failure and omits the raw token.
 
 ## Deliverables
 
 - **Deliverable A — Signed PDF:** the primary signed/marked-up document. This is always the first media result.
-- **Deliverable B — Provenance ZIP:** companion evidence containing the committed PDF copy, hashes, TSA material and independent verification instructions.
+- **Deliverable B — Provenance ZIP:** companion verification kit containing hashes, TSA material, PEM certificates and independent verification instructions. It does not duplicate Deliverable A.
 
 The provenance ZIP is supporting evidence and should not replace or visually compete with Deliverable A in the normal result flow.
 
@@ -85,20 +86,24 @@ The provenance ZIP is supporting evidence and should not replace or visually com
 
 Every successful Commit creates `digital_signing_verification_bundle_uri`, the **Deliverable B provenance ZIP** companion to the Deliverable A signed PDF. It contains:
 
-- the exact committed signed PDF;
-- `manifest.json` with document/source hashes and TSA metadata;
+- `manifest.json` with Deliverable A filename/hash, source provenance and TSA metadata;
 - `tsa.json` with the complete timestamp result;
 - `timestamp-token.tst` when an RFC 3161 token was obtained;
-- `SHA256SUMS.txt`;
-- `VERIFY.txt` with step-by-step SHA-256 and OpenSSL verification commands and an explanation of the TSA trust-chain requirement.
+- `certificates/tsa-signer.pem` and the certificates embedded in the RFC 3161 token, both combined and individually;
+- `certificates/CERTIFICATES.txt` with subject, issuer, validity and SHA-256 fingerprints;
+- `SIGNED_PDF_SHA256.txt` and `SHA256SUMS.txt`;
+- `verify.sh`, a portable shell verifier;
+- `VERIFY.txt`, beginning with the simple workflow: extract B, put Deliverable A in the folder, then run `sh verify.sh '<signed filename>.pdf'`.
+
+Deliverable B intentionally does **not** contain a second copy of Deliverable A. This keeps the two deliverables semantically clean: A is the document; B is the evidence required to verify A.
 
 The ZIP itself is SHA-256 hashed and returned as `digital_signing_verification_bundle_sha256`.
 
-The raw timestamp token is the DER-encoded RFC 3161 CMS token. `VERIFY.txt` explains how to inspect it with `openssl ts -reply -token_in` and verify it against the bundled PDF with `openssl ts -verify -token_in` using an independently trusted TSA certificate chain.
+The raw timestamp token is the DER-encoded RFC 3161 CMS token. `verify.sh` first checks Deliverable A's exact SHA-256, then uses `openssl ts -verify -token_in` to verify the token/document binding against the bundled TSA signer certificate. For independent TSA trust validation, a trusted CA/root bundle can be supplied as the script's second argument. Bundled PEMs are never silently treated as independent trust anchors.
 
 ## Inputs
 
-- `input_pdf_uri` — input PDF URI. ODK/external callers normally supply this; direct native use can use the file picker.
+- `input_pdf_uri` — optional stable input PDF URI for non-ODK protocol/Android callers. ODK launches ignore this field and use the in-tool file picker.
 - `input_finalise_pdf` — request Finalised mode. ODK forces this true regardless of a false input.
 - `input_request_tsa` — `true` to request RFC 3161 attestation after Commit.
 - `input_tsa_url` — optional RFC 3161 endpoint override. Blank/missing values fall back to the baked-in default TSA.
@@ -109,7 +114,7 @@ The raw timestamp token is the DER-encoded RFC 3161 CMS token. `VERIFY.txt` expl
 
 - `digital_signing_signed_pdf_uri` — **Deliverable A:** FileProvider URI of the new committed signed PDF.
 - `digital_signing_signed_sha256` — SHA-256 of the exact committed PDF.
-- `digital_signing_verification_bundle_uri` — **Deliverable B:** provenance ZIP containing the signed PDF copy, TSA evidence and verification instructions.
+- `digital_signing_verification_bundle_uri` — **Deliverable B:** provenance/verification ZIP containing TSA token/certificate evidence and verification instructions for Deliverable A.
 - `digital_signing_verification_bundle_sha256` — SHA-256 of the ZIP.
 - `digital_signing_result_json` — structured signing/provenance record, including TSA and bundle objects.
 - `digital_signing_tsa_json` — TSA-only JSON object, always present (`requested=false`/`not_requested` when unused).
@@ -132,14 +137,18 @@ Additional audit fields:
 - `digital_signing_tsa_authority`
 - `digital_signing_error`
 
+## Native completion
+
+After **Commit** (including optional TSA work), native/dashboard runs close the full-screen editor and return the committed result to the standard MethodMesh result handler. The native main result is deliberately only two file URIs: **Deliverable A — Signed PDF** and **Deliverable B — Provenance ZIP**. Therefore Share/Save sends the two files rather than manufacturing a companion text attachment from audit fields. Hashes and JSON remain available in Deliverable B, FULL output and technical details. ODK and other automatic-return callers continue to return immediately once both deliverables are ready.
+
 ## ODK/XLSForm workflow
 
-Use an XLSForm `begin_group` Android intent. The PDF question supplies its Android URI as `input_pdf_uri`. The TSA URL does not need to be supplied unless the study deliberately overrides the MethodMesh default.
+Use an XLSForm `begin_group` Android intent **without pushing the PDF attachment into MethodMesh**. The signing capability opens and the operator chooses the PDF with Android's document picker. This avoids ODK attachment paths that exist only inside Collect's storage context. The TSA URL does not need to be supplied unless the study deliberately overrides the MethodMesh default.
 
 Example intent:
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='document.sign_pdf',caller='odk_collect',input_pdf_uri=${source_pdf},input_finalise_pdf='true',input_request_tsa=${request_tsa},input_payload_mode='FULL',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='document.sign_pdf',caller='odk_collect',input_finalise_pdf='true',input_request_tsa=${request_tsa},input_payload_mode='FULL',return_mode='flat')
 ```
 
 The module includes `docs/example_odk_document.sign_pdf.xlsx`.
@@ -165,3 +174,24 @@ RFC 3161 support uses the Bouncy Castle dependencies already present in the Meth
 - Finalisation does not prevent a capable editor adding new markup; subsequent byte changes are detected through SHA-256/TSA verification.
 - TSA requires network connectivity and a compatible RFC 3161 endpoint.
 - Independent cryptographic trust of a TSA requires a trust chain obtained/validated according to the verifier's own policy; an embedded signer certificate is not by itself a trust anchor.
+
+
+## v1.08 viewer refinement
+
+- PDF pages open at fit-page scale so the complete page is visible initially.
+- Page navigation uses a compact inline control: previous, editable page number, total pages, Go, next.
+- Pinch zoom and pan remain available after opening.
+
+
+## v1.09 verification ergonomics
+
+- Deliverable B now contains both `verify.sh` and `verify.py`.
+- `VERIFY.txt` explicitly states that `verify.sh` is a shell script and must not be invoked with Python.
+- macOS/Linux users may verify with either `sh verify.sh "<signed.pdf>"` or `python3 verify.py "<signed.pdf>"`.
+- Both verifier routes perform the committed SHA-256 check and, when TSA evidence is present, the RFC 3161 token/imprint verification through OpenSSL.
+- An independently trusted TSA CA/root bundle can be supplied as the second argument to either verifier.
+
+
+## v1.10 ODK PDF selection
+
+ODK no longer pushes a PDF URI/path into `document.sign_pdf`. On an ODK launch, MethodMesh intentionally ignores any supplied PDF-path setting and requires the document to be selected with Android's document picker inside the signing workspace. This is a compatibility hardening change for ODK attachment paths that may be private to Collect and therefore unreadable from MethodMesh. Deliverable A (signed PDF) and Deliverable B (provenance ZIP) are still returned to ODK exactly as before.

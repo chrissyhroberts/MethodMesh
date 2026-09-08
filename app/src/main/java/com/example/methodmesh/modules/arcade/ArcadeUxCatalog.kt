@@ -20,23 +20,23 @@ internal object ArcadeUxCatalog {
             objective = "Collect food for points and survive for as long as you can.",
             steps = listOf(
                 "Press START when you are ready.",
-                "Swipe the board or use the arrow controls to turn.",
+                "Swipe anywhere on the board to turn.",
                 "Eat the gold food to grow. Hitting a wall or your own body ends the run."
             ),
-            tip = "A queued turn is applied on the next movement step, so rapid taps cannot secretly reverse the snake."
+            tip = "Use the speed slider at any time. The 18×30 board gives much finer steering than the original coarse grid."
         ),
         ArcadeGameInfo(
             id = ArcadeEngine.BREAKOUT,
-            title = "Brick Breaker",
-            subtitle = "Keep the ball alive and clear the wall",
+            title = "Wall Break",
+            subtitle = "Aim with paddle position and motion across five walls",
             badge = "1P",
-            objective = "Clear all thirty bricks before you run out of balls.",
+            objective = "Clear five different brick layouts before you run out of balls.",
             steps = listOf(
                 "Press START when you are ready.",
                 "Drag or tap across the court to position the paddle.",
-                "Bounce the ball through the brick wall. Missing the paddle costs a life."
+                "Where the ball lands on the paddle sets the return angle; moving the paddle adds extra horizontal 'english'."
             ),
-            tip = "Where the ball hits the paddle changes its horizontal direction."
+            tip = "Centre hits return steeply; edge hits aim wide. Moving into the ball pushes the shot further in that direction."
         ),
         ArcadeGameInfo(
             id = ArcadeEngine.DODGE,
@@ -62,7 +62,7 @@ internal object ArcadeUxCatalog {
                 "Drag or tap your half of the court to move your paddle.",
                 "In two-player mode the far player controls the upper half of the screen."
             ),
-            tip = "The ball pauses briefly at centre after each point so both players can reset."
+            tip = "Paddle contact is skill-based: hit position and paddle motion determine the return trajectory. The CPU predicts where that trajectory reaches its end."
         )
     )
 

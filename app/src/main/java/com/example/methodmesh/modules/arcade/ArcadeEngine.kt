@@ -4,7 +4,12 @@ import com.example.methodmesh.modules.chance.As100DiceSimulationMethod
 import com.example.methodmesh.modules.chance.DiceSimulationFields
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.floor
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 object ArcadeEngine {
     const val LAUNCHER = "launcher"
@@ -17,12 +22,15 @@ object ArcadeEngine {
         game: String,
         rngMode: String = "secure_random",
         seed: String = "",
-        snakeSpeed: String = ArcadeSnakeSpeed.RELAXED
+        snakeSpeedCps: Int = ArcadeSnakeSpeed.DEFAULT_CPS,
+        pongCpuDifficulty: String = "standard",
+        breakoutStartLevel: Int = 1,
+        dodgeDifficulty: String = "normal"
     ): String = when (game) {
-        SNAKE -> snakeInitial(rngMode, seed, snakeSpeed)
-        PONG -> pongInitial()
-        BREAKOUT -> breakoutInitial()
-        DODGE -> dodgeInitial()
+        SNAKE -> snakeInitial(rngMode, seed, snakeSpeedCps)
+        PONG -> pongInitial(pongCpuDifficulty)
+        BREAKOUT -> breakoutInitial(breakoutStartLevel)
+        DODGE -> dodgeInitial(dodgeDifficulty)
         else -> JSONObject()
             .put("game", LAUNCHER)
             .put("score", 0)
@@ -43,7 +51,7 @@ object ArcadeEngine {
                 "Score ${s.optInt("score", 0)} • length $length"
             }
             PONG -> "P1 ${s.optInt("p1_score", 0)} : ${s.optInt("p2_score", 0)} P2"
-            BREAKOUT -> "Score ${s.optInt("score", 0)} • lives ${s.optInt("lives", 0)}"
+            BREAKOUT -> "Level ${s.optInt("level", 1)}/${s.optInt("total_levels", 5)} • score ${s.optInt("score", 0)} • lives ${s.optInt("lives", 0)}"
             DODGE -> "Dodged ${s.optInt("score", 0)} • ${s.optLong("tick", 0L) / 62L}s"
             else -> ""
         }
@@ -61,19 +69,32 @@ object ArcadeEngine {
     // Snake Sprint
     // -----------------------------------------------------------------
 
+    const val SNAKE_COLS = 18
+    const val SNAKE_ROWS = 30
+    private const val SNAKE_CELLS = SNAKE_COLS * SNAKE_ROWS
+
     private fun snakeInitial(
         rngMode: String,
         seed: String,
-        speed: String
+        speedCps: Int
     ): String {
-        val body = JSONArray(listOf(42, 41, 40))
+        val row = SNAKE_ROWS / 2
+        val headCol = SNAKE_COLS / 2
+        val body = JSONArray(
+            listOf(
+                row * SNAKE_COLS + headCol,
+                row * SNAKE_COLS + headCol - 1,
+                row * SNAKE_COLS + headCol - 2,
+                row * SNAKE_COLS + headCol - 3
+            )
+        )
         return JSONObject()
             .put("game", SNAKE)
             .put("body", body)
             .put("dir", 1)
             .put("queued_dir", 1)
             .put("food_index", 0)
-            .put("speed", ArcadeSnakeSpeed.normalize(speed))
+            .put("speed_cps", ArcadeSnakeSpeed.normalizeCps(speedCps))
             .put("food", chanceCell(rngMode, seed, 0, body))
             .put("score", 0)
             .put("lives", 1)
@@ -85,12 +106,10 @@ object ArcadeEngine {
             .toString()
     }
 
-    fun snakeSetSpeed(stateJson: String, speed: String): String {
+    fun snakeSetSpeed(stateJson: String, speedCps: Int): String {
         val s = JSONObject(stateJson)
-        if (s.optBoolean("started", false) || s.optBoolean("finished", false)) {
-            return stateJson
-        }
-        s.put("speed", ArcadeSnakeSpeed.normalize(speed))
+        if (s.optBoolean("finished", false)) return stateJson
+        s.put("speed_cps", ArcadeSnakeSpeed.normalizeCps(speedCps))
         return s.toString()
     }
 
@@ -102,7 +121,7 @@ object ArcadeEngine {
 
     /**
      * Queue a turn without changing the committed direction until the next step.
-     * This prevents two rapid taps between ticks from producing a hidden 180° turn.
+     * This prevents two rapid swipes between ticks from producing a hidden 180° turn.
      */
     fun snakeTurn(stateJson: String, requestedDir: Int): String {
         val s = JSONObject(stateJson)
@@ -110,9 +129,7 @@ object ArcadeEngine {
 
         val committed = s.optInt("dir", 1).coerceIn(0, 3)
         val opposite = (committed + 2) % 4
-        if (requestedDir != opposite) {
-            s.put("queued_dir", requestedDir)
-        }
+        if (requestedDir != opposite) s.put("queued_dir", requestedDir)
         return s.toString()
     }
 
@@ -128,13 +145,14 @@ object ArcadeEngine {
 
         val bodyJson = s.getJSONArray("body")
         val body = MutableList(bodyJson.length()) { bodyJson.optInt(it) }
-        if (body.isEmpty()) return s.put("finished", true).put("reason", "invalid_body").toString()
+        if (body.isEmpty()) {
+            return s.put("finished", true).put("reason", "invalid_body").toString()
+        }
 
         val dir = s.optInt("queued_dir", s.optInt("dir", 1)).coerceIn(0, 3)
         val head = body.first()
-        val row = head / 10
-        val col = head % 10
-
+        val row = head / SNAKE_COLS
+        val col = head % SNAKE_COLS
         val next = when (dir) {
             0 -> (row - 1) to col
             1 -> row to (col + 1)
@@ -143,7 +161,7 @@ object ArcadeEngine {
         }
 
         val nextTick = s.optLong("tick", 0L) + 1L
-        if (next.first !in 0..9 || next.second !in 0..9) {
+        if (next.first !in 0 until SNAKE_ROWS || next.second !in 0 until SNAKE_COLS) {
             return s
                 .put("dir", dir)
                 .put("queued_dir", dir)
@@ -155,12 +173,9 @@ object ArcadeEngine {
                 .toString()
         }
 
-        val cell = next.first * 10 + next.second
+        val cell = next.first * SNAKE_COLS + next.second
         val food = s.optInt("food", -1)
         val grows = cell == food
-
-        // The tail vacates on a normal move, so entering the current tail cell is
-        // legal when the snake is not growing.
         val collisionBody = if (grows) body else body.dropLast(1)
         if (cell in collisionBody) {
             return s
@@ -175,15 +190,12 @@ object ArcadeEngine {
         }
 
         body.add(0, cell)
-
         if (grows) {
             val score = s.optInt("score", 0) + 10
             val nextFoodIndex = s.optInt("food_index", 0) + 1
+            s.put("score", score).put("food_index", nextFoodIndex)
 
-            s.put("score", score)
-                .put("food_index", nextFoodIndex)
-
-            if (body.size >= 100) {
+            if (body.size >= SNAKE_CELLS) {
                 return s
                     .put("body", JSONArray(body))
                     .put("dir", dir)
@@ -195,11 +207,7 @@ object ArcadeEngine {
                     .put("reason", "board_cleared")
                     .toString()
             }
-
-            s.put(
-                "food",
-                chanceCell(rngMode, seed, nextFoodIndex, JSONArray(body))
-            )
+            s.put("food", chanceCell(rngMode, seed, nextFoodIndex, JSONArray(body)))
         } else {
             body.removeAt(body.lastIndex)
         }
@@ -219,7 +227,7 @@ object ArcadeEngine {
         occupied: JSONArray
     ): Int {
         val used = (0 until occupied.length()).map { occupied.optInt(it) }.toSet()
-        val free = (0 until 100).filter { it !in used }
+        val free = (0 until SNAKE_CELLS).filter { it !in used }
         if (free.isEmpty()) return 0
 
         val mode = if (rngMode.equals("fixed_seed", ignoreCase = true)) {
@@ -248,14 +256,16 @@ object ArcadeEngine {
     // Pong Table
     // -----------------------------------------------------------------
 
-    private fun pongInitial(): String = JSONObject()
+    private fun pongInitial(cpuDifficulty: String = "standard"): String = JSONObject()
         .put("game", PONG)
         .put("ball_x", .5)
         .put("ball_y", .5)
-        .put("vx", .30)
-        .put("vy", .44)
+        .put("vx", .20)
+        .put("vy", .48)
         .put("p1", .5)
         .put("p2", .5)
+        .put("p1_v", 0.0)
+        .put("p2_v", 0.0)
         .put("p1_score", 0)
         .put("p2_score", 0)
         .put("score", 0)
@@ -265,27 +275,39 @@ object ArcadeEngine {
         .put("finished", false)
         .put("winner", "")
         .put("cpu", true)
+        .put("cpu_difficulty", normalizePongCpuDifficulty(cpuDifficulty))
         .put("serve_ticks", 0)
         .put("last_point", 0)
         .put("rally", 0)
         .toString()
+
+    private fun normalizePongCpuDifficulty(value: String): String =
+        value.lowercase().takeIf { it in setOf("casual", "standard", "sharp") } ?: "standard"
+
+    fun pongSetCpuDifficulty(stateJson: String, difficulty: String): String {
+        val s = JSONObject(stateJson)
+        if (!s.optBoolean("started", false) &&
+            s.optInt("p1_score", 0) == 0 &&
+            s.optInt("p2_score", 0) == 0
+        ) {
+            s.put("cpu_difficulty", normalizePongCpuDifficulty(difficulty))
+        }
+        return s.toString()
+    }
 
     fun pongSetCpu(stateJson: String, cpu: Boolean): String {
         val s = JSONObject(stateJson)
         if (!s.optBoolean("started", false) &&
             s.optInt("p1_score", 0) == 0 &&
             s.optInt("p2_score", 0) == 0
-        ) {
-            s.put("cpu", cpu)
-        }
+        ) s.put("cpu", cpu)
         return s.toString()
     }
 
     fun pongStart(stateJson: String): String {
         val s = JSONObject(stateJson)
         if (!s.optBoolean("finished", false)) {
-            s.put("started", true)
-                .put("serve_ticks", 42)
+            s.put("started", true).put("serve_ticks", 42)
         }
         return s.toString()
     }
@@ -296,7 +318,11 @@ object ArcadeEngine {
         if (player == 2 && s.optBoolean("cpu", true)) return stateJson
 
         val key = if (player == 2) "p2" else "p1"
-        s.put(key, x.coerceIn(.14f, .86f).toDouble())
+        val velocityKey = if (player == 2) "p2_v" else "p1_v"
+        val next = x.coerceIn(.14f, .86f).toDouble()
+        val old = s.optDouble(key, .5)
+        s.put(key, next)
+        s.put(velocityKey, (next - old).coerceIn(-.12, .12))
         return s.toString()
     }
 
@@ -311,22 +337,54 @@ object ArcadeEngine {
 
         var x = s.optDouble("ball_x", .5)
         var y = s.optDouble("ball_y", .5)
-        var vx = s.optDouble("vx", .30)
-        var vy = s.optDouble("vy", .44)
+        var vx = s.optDouble("vx", .20)
+        var vy = s.optDouble("vy", .48)
         val p1 = s.optDouble("p1", .5)
         var p2 = s.optDouble("p2", .5)
+        var p1v = s.optDouble("p1_v", 0.0)
+        var p2v = s.optDouble("p2_v", 0.0)
         val nextTick = s.optLong("tick", 0L) + 1L
         var rally = s.optInt("rally", 0)
 
         if (s.optBoolean("cpu", true)) {
-            val delta = x - p2
-            p2 += delta.coerceIn(-.018, .018)
+            // Predict the intercept at the CPU paddle, including side-wall reflections.
+            // Difficulty changes reaction rate and prediction error, not the ball rules.
+            val target = if (vy < -0.02) {
+                val time = ((y - .07) / -vy).coerceAtLeast(0.0)
+                reflectedCoordinate(x + vx * time, .04, .96)
+            } else {
+                .5
+            }
+            val difficulty = normalizePongCpuDifficulty(
+                s.optString("cpu_difficulty", "standard")
+            )
+            val maxStep = when (difficulty) {
+                "casual" -> .009
+                "sharp" -> .020
+                else -> .014
+            }
+            val errorAmplitude = when (difficulty) {
+                "casual" -> .055
+                "sharp" -> .006
+                else -> .022
+            }
+            val old = p2
+            val error = if (rally < 2) {
+                0.0
+            } else {
+                errorAmplitude * sin(nextTick * .071)
+            }
+            val desired = (target + error).coerceIn(.14, .86)
+            p2 += (desired - p2).coerceIn(-maxStep, maxStep)
+            p2v = (p2 - old).coerceIn(-.06, .06)
         }
 
         val serveTicks = s.optInt("serve_ticks", 0)
         if (serveTicks > 0) {
             return s
                 .put("p2", p2)
+                .put("p1_v", p1v * .55)
+                .put("p2_v", p2v * .55)
                 .put("serve_ticks", serveTicks - 1)
                 .put("tick", nextTick)
                 .toString()
@@ -344,19 +402,40 @@ object ArcadeEngine {
         }
 
         val paddleHalf = .14
-        if (y > .93 && vy > 0 && abs(x - p1) < paddleHalf) {
-            y = .93
+        if (y > .900 && y < .965 && vy > 0 && abs(x - p1) < paddleHalf) {
+            y = .910
+            val bounced = paddleBounce(
+                incomingVx = vx,
+                incomingVy = vy,
+                hitOffset = ((x - p1) / paddleHalf).coerceIn(-1.0, 1.0),
+                paddleVelocity = p1v,
+                verticalDirection = -1.0,
+                speedBoost = 1.035,
+                maxSpeed = 1.08
+            )
+            vx = bounced.first
+            vy = bounced.second
             rally += 1
-            vy = (-abs(vy) * 1.045).coerceAtLeast(-.86)
-            vx = ((vx + (x - p1) * .30) * 1.018).coerceIn(-.72, .72)
         }
 
-        if (y < .07 && vy < 0 && abs(x - p2) < paddleHalf) {
-            y = .07
+        if (y < .100 && y > .035 && vy < 0 && abs(x - p2) < paddleHalf) {
+            y = .090
+            val bounced = paddleBounce(
+                incomingVx = vx,
+                incomingVy = vy,
+                hitOffset = ((x - p2) / paddleHalf).coerceIn(-1.0, 1.0),
+                paddleVelocity = p2v,
+                verticalDirection = 1.0,
+                speedBoost = 1.035,
+                maxSpeed = 1.08
+            )
+            vx = bounced.first
+            vy = bounced.second
             rally += 1
-            vy = (abs(vy) * 1.045).coerceAtMost(.86)
-            vx = ((vx + (x - p2) * .30) * 1.018).coerceIn(-.72, .72)
         }
+
+        p1v *= .72
+        p2v *= .72
 
         var p1Score = s.optInt("p1_score", 0)
         var p2Score = s.optInt("p2_score", 0)
@@ -367,16 +446,16 @@ object ArcadeEngine {
             lastPoint = 1
             x = .5
             y = .5
-            vx = .24
-            vy = .44
+            vx = -.18
+            vy = .48
             rally = 0
         } else if (y > 1) {
             p2Score++
             lastPoint = 2
             x = .5
             y = .5
-            vx = -.24
-            vy = -.44
+            vx = .18
+            vy = -.48
             rally = 0
         }
 
@@ -394,6 +473,8 @@ object ArcadeEngine {
             .put("vy", vy)
             .put("p1", p1)
             .put("p2", p2)
+            .put("p1_v", p1v)
+            .put("p2_v", p2v)
             .put("p1_score", p1Score)
             .put("p2_score", p2Score)
             .put("score", p1Score)
@@ -408,31 +489,101 @@ object ArcadeEngine {
     }
 
     // -----------------------------------------------------------------
-    // Breakout
+    // Breakout / Wall Break
     // -----------------------------------------------------------------
 
-    private fun breakoutInitial(): String = JSONObject()
-        .put("game", BREAKOUT)
-        .put("ball_x", .5)
-        .put("ball_y", .72)
-        .put("vx", .27)
-        .put("vy", -.40)
-        .put("paddle", .5)
-        .put("bricks", JSONArray(List(30) { 1 }))
-        .put("score", 0)
-        .put("lives", 3)
-        .put("tick", 0L)
-        .put("started", false)
-        .put("finished", false)
-        .put("winner", "")
-        .put("serve_ticks", 0)
-        .toString()
+    private data class BreakoutLevel(
+        val name: String,
+        val rows: Int,
+        val cols: Int,
+        val bricks: List<Int>
+    )
+
+    private val breakoutLevels: List<BreakoutLevel> by lazy {
+        listOf(
+            makeBreakoutLevel("WALL", 5, 6) { _, _ -> 1 },
+            makeBreakoutLevel("CHECKER", 6, 7) { r, c -> if ((r + c) % 2 == 0 || r == 0) 1 else 0 },
+            makeBreakoutLevel("FORTRESS", 6, 8) { r, c ->
+                when {
+                    r == 0 || r == 5 || c == 0 || c == 7 -> 2
+                    r in 2..3 && c in 2..5 -> 1
+                    else -> 0
+                }
+            },
+            makeBreakoutLevel("CHEVRON", 7, 8) { r, c ->
+                val centre = 3.5
+                val distance = abs(c - centre)
+                if (abs(distance - (r % 4)) < 1.1) if (r >= 4) 2 else 1 else 0
+            },
+            makeBreakoutLevel("CROWN", 7, 9) { r, c ->
+                when {
+                    r == 0 && c in listOf(0, 2, 4, 6, 8) -> 2
+                    r == 1 && c % 2 == 0 -> 2
+                    r in 2..3 && c in 1..7 -> if (c in 3..5) 2 else 1
+                    r in 4..6 && c in 2..6 -> if (r == 6) 2 else 1
+                    else -> 0
+                }
+            }
+        )
+    }
+
+    private fun makeBreakoutLevel(
+        name: String,
+        rows: Int,
+        cols: Int,
+        hp: (Int, Int) -> Int
+    ): BreakoutLevel = BreakoutLevel(
+        name = name,
+        rows = rows,
+        cols = cols,
+        bricks = List(rows * cols) { index -> hp(index / cols, index % cols) }
+    )
+
+    private fun breakoutStateForLevel(
+        levelNumber: Int,
+        score: Int = 0,
+        lives: Int = 3,
+        tick: Long = 0L,
+        startLevel: Int = levelNumber
+    ): JSONObject {
+        val levelIndex = (levelNumber - 1).coerceIn(0, breakoutLevels.lastIndex)
+        val level = breakoutLevels[levelIndex]
+        return JSONObject()
+            .put("game", BREAKOUT)
+            .put("level", levelIndex + 1)
+            .put("start_level", startLevel.coerceIn(1, breakoutLevels.size))
+            .put("total_levels", breakoutLevels.size)
+            .put("level_name", level.name)
+            .put("rows", level.rows)
+            .put("cols", level.cols)
+            .put("ball_x", .5)
+            .put("ball_y", .76)
+            .put("vx", .15)
+            .put("vy", -.50)
+            .put("paddle", .5)
+            .put("paddle_v", 0.0)
+            .put("bricks", JSONArray(level.bricks))
+            .put("score", score)
+            .put("lives", lives)
+            .put("tick", tick)
+            .put("started", false)
+            .put("finished", false)
+            .put("winner", "")
+            .put("serve_ticks", 0)
+    }
+
+    private fun breakoutInitial(startLevel: Int = 1): String {
+        val normalized = startLevel.coerceIn(1, breakoutLevels.size)
+        return breakoutStateForLevel(
+            levelNumber = normalized,
+            startLevel = normalized
+        ).toString()
+    }
 
     fun breakoutStart(stateJson: String): String {
         val s = JSONObject(stateJson)
         if (!s.optBoolean("finished", false)) {
-            s.put("started", true)
-                .put("serve_ticks", 34)
+            s.put("started", true).put("serve_ticks", 34)
         }
         return s.toString()
     }
@@ -440,7 +591,10 @@ object ArcadeEngine {
     fun breakoutPaddle(stateJson: String, x: Float): String {
         val s = JSONObject(stateJson)
         if (s.optBoolean("finished", false)) return stateJson
-        s.put("paddle", x.coerceIn(.15f, .85f).toDouble())
+        val next = x.coerceIn(.15f, .85f).toDouble()
+        val old = s.optDouble("paddle", .5)
+        s.put("paddle", next)
+        s.put("paddle_v", (next - old).coerceIn(-.12, .12))
         return s.toString()
     }
 
@@ -456,75 +610,153 @@ object ArcadeEngine {
         val nextTick = s.optLong("tick", 0L) + 1L
         val serveTicks = s.optInt("serve_ticks", 0)
         if (serveTicks > 0) {
-            return s.put("serve_ticks", serveTicks - 1)
+            return s
+                .put("paddle_v", s.optDouble("paddle_v", 0.0) * .55)
+                .put("serve_ticks", serveTicks - 1)
                 .put("tick", nextTick)
                 .toString()
         }
 
         var x = s.optDouble("ball_x", .5)
-        var y = s.optDouble("ball_y", .72)
-        var vx = s.optDouble("vx", .27)
-        var vy = s.optDouble("vy", -.40)
+        var y = s.optDouble("ball_y", .76)
+        var vx = s.optDouble("vx", .15)
+        var vy = s.optDouble("vy", -.50)
+        val previousX = x
+        val previousY = y
         val paddle = s.optDouble("paddle", .5)
+        var paddleV = s.optDouble("paddle_v", 0.0)
         var score = s.optInt("score", 0)
         var lives = s.optInt("lives", 3)
+        val rows = s.optInt("rows", 5).coerceAtLeast(1)
+        val cols = s.optInt("cols", 6).coerceAtLeast(1)
         val brickArray = s.getJSONArray("bricks")
-        val bricks = MutableList(30) { brickArray.optInt(it, 1) }
+        val bricks = MutableList(rows * cols) { brickArray.optInt(it, 0) }
 
         x += vx * dt
         y += vy * dt
 
-        if (x < .025) {
-            x = .025
+        val radius = ArcadeBreakoutRules.BALL_RADIUS
+        if (x - radius < .02) {
+            x = .02 + radius
             vx = abs(vx)
-        } else if (x > .975) {
-            x = .975
+        } else if (x + radius > .98) {
+            x = .98 - radius
             vx = -abs(vx)
         }
-        if (y < .025) {
-            y = .025
+        if (y - radius < .02) {
+            y = .02 + radius
             vy = abs(vy)
         }
 
-        // Paddle occupies the lower part of the court.
-        if (y > .90 && y < .955 && vy > 0 && abs(x - paddle) < .17) {
-            y = .90
-            vy = (-abs(vy) * 1.025).coerceAtLeast(-.86)
-            vx = ((vx + (x - paddle) * .34) * 1.012).coerceIn(-.72, .72)
+        val paddleTop = ArcadeBreakoutRules.PADDLE_Y
+        val paddleBottom = paddleTop + ArcadeBreakoutRules.PADDLE_HEIGHT
+        if (
+            vy > 0 &&
+            y + radius >= paddleTop &&
+            previousY + radius < paddleTop + .018 &&
+            y - radius <= paddleBottom &&
+            abs(x - paddle) <= ArcadeBreakoutRules.PADDLE_HALF + radius
+        ) {
+            y = paddleTop - radius - .001
+            val bounced = paddleBounce(
+                incomingVx = vx,
+                incomingVy = vy,
+                hitOffset = ((x - paddle) / ArcadeBreakoutRules.PADDLE_HALF).coerceIn(-1.0, 1.0),
+                paddleVelocity = paddleV,
+                verticalDirection = -1.0,
+                speedBoost = 1.018,
+                maxSpeed = 1.12
+            )
+            vx = bounced.first
+            vy = bounced.second
         }
 
-        // Six columns by five rows. The collision model deliberately uses the
-        // ball centre: simple, deterministic and stable at the current speed.
-        if (y in 0.11..0.43) {
-            val col = (x * 6.0).toInt().coerceIn(0, 5)
-            val row = ((y - .11) / .064).toInt().coerceIn(0, 4)
-            val index = row * 6 + col
-            if (bricks[index] == 1) {
-                bricks[index] = 0
-                score += 10
-                val direction = if (vy > 0) -1.0 else 1.0
-                vy = (abs(vy) * 1.012).coerceAtMost(.86) * direction
-                vx = (vx * 1.008).coerceIn(-.72, .72)
+        // Circle-vs-rectangle collision. The closest point gives corner-aware
+        // contact; previous position is used to choose the reflection axis when
+        // the centre has moved into the brick rectangle during a fast step.
+        var hitBrick = -1
+        for (index in bricks.indices) {
+            if (bricks[index] <= 0) continue
+            val rect = ArcadeBreakoutRules.brickRect(index, rows, cols)
+            val closestX = x.coerceIn(rect.left, rect.right)
+            val closestY = y.coerceIn(rect.top, rect.bottom)
+            val dx = x - closestX
+            val dy = y - closestY
+            if (dx * dx + dy * dy <= radius * radius) {
+                hitBrick = index
+                val cameFromLeft = previousX + radius <= rect.left
+                val cameFromRight = previousX - radius >= rect.right
+                val cameFromTop = previousY + radius <= rect.top
+                val cameFromBottom = previousY - radius >= rect.bottom
+
+                when {
+                    cameFromLeft -> {
+                        x = rect.left - radius - .001
+                        vx = -abs(vx)
+                    }
+                    cameFromRight -> {
+                        x = rect.right + radius + .001
+                        vx = abs(vx)
+                    }
+                    cameFromTop -> {
+                        y = rect.top - radius - .001
+                        vy = -abs(vy)
+                    }
+                    cameFromBottom -> {
+                        y = rect.bottom + radius + .001
+                        vy = abs(vy)
+                    }
+                    abs(dx) > abs(dy) -> vx = -vx
+                    else -> vy = -vy
+                }
+                break
             }
         }
+
+        if (hitBrick >= 0) {
+            bricks[hitBrick] = (bricks[hitBrick] - 1).coerceAtLeast(0)
+            score += 10
+            val speed = sqrt(vx * vx + vy * vy).coerceAtLeast(.45)
+            val boosted = (speed * 1.006).coerceAtMost(1.12)
+            vx *= boosted / speed
+            vy *= boosted / speed
+        }
+
+        paddleV *= .72
 
         var finished = false
         var winner = ""
         var serve = 0
 
-        if (bricks.none { it == 1 }) {
-            finished = true
-            winner = "cleared"
-        } else if (y > 1.02) {
+        if (bricks.none { it > 0 }) {
+            val currentLevel = s.optInt("level", 1)
+            if (currentLevel < breakoutLevels.size) {
+                val next = breakoutStateForLevel(
+                    levelNumber = currentLevel + 1,
+                    score = score + 100,
+                    lives = (lives + 1).coerceAtMost(5),
+                    tick = nextTick,
+                    startLevel = s.optInt("start_level", 1)
+                )
+                return next
+                    .put("started", true)
+                    .put("serve_ticks", 52)
+                    .toString()
+            } else {
+                finished = true
+                winner = "cleared"
+                score += 500
+            }
+        } else if (y - radius > 1.0) {
             lives -= 1
             if (lives <= 0) {
                 finished = true
                 winner = "failed"
             } else {
                 x = .5
-                y = .72
-                vx = if (lives % 2 == 0) -.27 else .27
-                vy = -.40
+                y = .76
+                vx = if (lives % 2 == 0) -.15 else .15
+                vy = -.50
                 serve = 34
             }
         }
@@ -534,6 +766,7 @@ object ArcadeEngine {
             .put("ball_y", y)
             .put("vx", vx)
             .put("vy", vy)
+            .put("paddle_v", paddleV)
             .put("bricks", JSONArray(bricks))
             .put("score", score)
             .put("lives", lives.coerceAtLeast(0))
@@ -549,8 +782,12 @@ object ArcadeEngine {
     // Lane Dodge
     // -----------------------------------------------------------------
 
-    private fun dodgeInitial(): String = JSONObject()
+    private fun normalizeDodgeDifficulty(value: String): String =
+        value.lowercase().takeIf { it in setOf("easy", "normal", "hard") } ?: "normal"
+
+    private fun dodgeInitial(difficulty: String = "normal"): String = JSONObject()
         .put("game", DODGE)
+        .put("difficulty", normalizeDodgeDifficulty(difficulty))
         .put("lane", 2)
         .put("hazards", JSONArray())
         .put("spawn_index", 0)
@@ -590,9 +827,15 @@ object ArcadeEngine {
         var score = s.optInt("score", 0)
         var spawnIndex = s.optInt("spawn_index", 0)
 
-        // A visible level increase about every eight seconds. Both fall speed and
-        // spawn pressure tighten, so progression can be felt rather than inferred.
-        val level = (1 + (tick / 500L).toInt()).coerceAtMost(10)
+        // Difficulty changes the starting pressure; the game still becomes harder
+        // through play. Easy starts at level 1, Normal at 3, Hard at 5.
+        val difficulty = normalizeDodgeDifficulty(s.optString("difficulty", "normal"))
+        val difficultyOffset = when (difficulty) {
+            "easy" -> 0
+            "hard" -> 4
+            else -> 2
+        }
+        val level = (1 + difficultyOffset + (tick / 500L).toInt()).coerceAtMost(10)
         val speedPerTick = (.0056 + (level - 1) * .00072).coerceAtMost(.0121)
 
         val hazards = mutableListOf<JSONObject>()
@@ -673,6 +916,51 @@ object ArcadeEngine {
         )
         return ((out[DiceSimulationFields.TOTAL]?.toIntOrNull() ?: 1) - 1)
             .coerceIn(0, bound - 1)
+    }
+
+
+    /**
+     * Deliberately game-like paddle physics rather than mirror reflection.
+     * Impact position aims the shot; paddle motion adds "english". The outgoing
+     * speed is conserved/boosted then capped, with a minimum vertical component.
+     */
+    private fun paddleBounce(
+        incomingVx: Double,
+        incomingVy: Double,
+        hitOffset: Double,
+        paddleVelocity: Double,
+        verticalDirection: Double,
+        speedBoost: Double,
+        maxSpeed: Double
+    ): Pair<Double, Double> {
+        val incomingSpeed = sqrt(incomingVx * incomingVx + incomingVy * incomingVy)
+            .coerceAtLeast(.42)
+        val speed = (incomingSpeed * speedBoost + abs(paddleVelocity) * 1.15)
+            .coerceAtMost(maxSpeed)
+        val english = (paddleVelocity * 4.5).coerceIn(-.48, .48)
+        val aim = (hitOffset + english).coerceIn(-1.0, 1.0)
+        val angle = aim * (64.0 * PI / 180.0)
+        var outVx = sin(angle) * speed
+        var outVy = verticalDirection * cos(angle) * speed
+
+        // Prevent near-horizontal dead rallies while preserving the aim direction.
+        val minVertical = speed * .42
+        if (abs(outVy) < minVertical) {
+            outVy = verticalDirection * minVertical
+            val horizontal = sqrt((speed * speed - outVy * outVy).coerceAtLeast(0.0))
+            outVx = if (outVx < 0) -horizontal else horizontal
+        }
+        return outVx to outVy
+    }
+
+    /** Reflect a projected coordinate between two side walls (triangle wave). */
+    private fun reflectedCoordinate(value: Double, minimum: Double, maximum: Double): Double {
+        val width = maximum - minimum
+        if (width <= 0.0) return minimum
+        val period = width * 2.0
+        var t = (value - minimum) % period
+        if (t < 0.0) t += period
+        return if (t <= width) minimum + t else maximum - (t - width)
     }
 
 }

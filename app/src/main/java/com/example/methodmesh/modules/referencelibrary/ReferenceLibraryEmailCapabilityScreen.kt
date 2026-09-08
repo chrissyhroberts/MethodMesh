@@ -607,16 +607,7 @@ private fun ReadOnlyValue(label: String, value: String) {
 private fun shelfLabel(id: String, shelves: List<LibraryShelf>): String =
     shelves.firstOrNull { it.id == id }?.label ?: id.replace('_', ' ').replaceFirstChar { it.uppercase() }
 
-private val BUILT_IN_EMAIL_SHELVES = listOf(
-    LibraryShelf("all", "All shelves"),
-    LibraryShelf("first_aid", "First aid"),
-    LibraryShelf("medical", "Medical"),
-    LibraryShelf("safety", "Safety"),
-    LibraryShelf("fieldwork", "Fieldwork"),
-    LibraryShelf("equipment", "Equipment"),
-    LibraryShelf("travel", "Travel"),
-    LibraryShelf("personal", "Personal")
-)
+private val BUILT_IN_EMAIL_SHELVES = listOf(LibraryShelf("all", "All shelves")) + REFERENCE_LIBRARY_BUILT_IN_SHELVES
 
 private fun parseAddresses(raw: String): Array<String> = raw
     .split(',', ';', '\n')

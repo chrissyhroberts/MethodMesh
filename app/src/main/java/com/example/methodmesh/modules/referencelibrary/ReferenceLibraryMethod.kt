@@ -36,7 +36,7 @@ object ReferenceLibraryFields {
 
 object As100ReferenceLibraryMethod : As100Method {
     const val ID = "reference.library.open"
-    private const val VERSION = "0.2.6"
+    private const val VERSION = "0.3.0"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Reference library")
@@ -48,7 +48,7 @@ object As100ReferenceLibraryMethod : As100Method {
         description = "Select a locally available reference document.",
         outputs = ReferenceLibraryFields.outputs,
         graphOutputs = listOf(ID),
-        parameters = mapOf("category" to "Reference", "status" to "Development")
+        parameters = mapOf("category" to "Reference", "status" to "Development", "maturity" to "DEVELOPMENT", "connectivity" to "OFFLINE")
     )
     override val contract = MethodContract(
         method = ref,

@@ -78,3 +78,34 @@ New checks covered:
 - XLSForm game/speed choices and formula-error scan.
 
 A full real-project Gradle compile is still authoritative.
+
+
+## v0.033 focused review
+
+Static checks cover:
+
+- 18×30 Snake rules/render geometry and Chance-backed food selection across 540 cells;
+- granular `snake_speed_cps` state/settings with old-preset compatibility;
+- no on-screen Snake direction buttons;
+- position + paddle-motion angular return model for Pong and Wall Break;
+- predictive Pong CPU intercept using reflected side-wall trajectory;
+- shared Wall Break rule/render brick geometry;
+- circle-vs-rectangle brick collision;
+- five level configurations including two-hit bricks;
+- no GameDeck imports and no runtime capability special cases.
+
+The real MethodMesh Gradle build and on-device play test remain authoritative.
+
+
+## v0.034 ODK roundtrip checks
+
+Static checks confirm:
+
+- no external completion call remains in the startup effect;
+- external execution keeps `capturedResult` null while play is in progress;
+- completion is gated to one return per finished session;
+- the final session is persisted before `arcade_player_stats_json` is built;
+- final output includes score, player stats, play data and final state;
+- example XLSForm uses play semantics and declares the returned fields.
+
+A real MethodMesh Gradle build plus ODK Collect roundtrip remains authoritative.

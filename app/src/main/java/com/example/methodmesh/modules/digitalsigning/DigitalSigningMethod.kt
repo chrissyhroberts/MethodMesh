@@ -70,7 +70,7 @@ object DigitalSigningFields {
 
 object As100DigitalSigningMethod : As100Method {
     const val ID = "document.sign_pdf"
-    const val VERSION = "1.5.0"
+    const val VERSION = "1.10.0"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "PDF ink signing")
@@ -87,8 +87,8 @@ object As100DigitalSigningMethod : As100Method {
             "category" to "Documents",
             "status" to "Development",
             "interactive" to "true",
-            "core_return" to "${DigitalSigningFields.SIGNED_PDF_URI}, ${DigitalSigningFields.VERIFICATION_BUNDLE_URI}, ${DigitalSigningFields.SIGNED_SHA256}, ${DigitalSigningFields.RESULT_JSON}, ${DigitalSigningFields.TSA_JSON}",
-            "audit_return" to "source hash, source origin, page count, finalisation state, TSA verification details, verification bundle hash",
+            "core_return" to "${DigitalSigningFields.SIGNED_PDF_URI}, ${DigitalSigningFields.VERIFICATION_BUNDLE_URI}",
+            "audit_return" to "signed hash, source hash/origin, page count, finalisation state, TSA JSON/result JSON, verification bundle hash",
             "signature_semantics" to "visible handwritten electronic ink/markup; not certificate-backed signer identity",
             "timestamp_semantics" to "RFC3161 attestation over the SHA-256 of the exact committed PDF",
             "deliverable_a" to DigitalSigningFields.SIGNED_PDF_URI,

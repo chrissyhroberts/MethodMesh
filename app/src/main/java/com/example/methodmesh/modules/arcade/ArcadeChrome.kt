@@ -88,7 +88,7 @@ internal fun ArcadeLauncher(
                         value = records.snakeBestScore.toString()
                     )
                     ArcadeRecordStat(
-                        label = "Breakout",
+                        label = "Wall Break",
                         value = records.breakoutBestScore.toString()
                     )
                     ArcadeRecordStat(
@@ -105,7 +105,7 @@ internal fun ArcadeLauncher(
                         value = "${records.pongCpuWins}–${records.pongCpuLosses}"
                     )
                     ArcadeRecordStat(
-                        label = "Breakout clears",
+                        label = "Wall clears",
                         value = records.breakoutClears.toString()
                     )
                     ArcadeRecordStat(
@@ -123,7 +123,7 @@ internal fun ArcadeLauncher(
         }
 
         Text(
-            "Snake, Brick Breaker and Lane Dodge are solo. Pong supports CPU or across-the-table two-player play.",
+            "Snake, Wall Break and Lane Dodge are solo. Pong supports CPU or across-the-table two-player play.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -404,9 +404,9 @@ internal fun ArcadeResultPanel(
 
         ArcadeEngine.BREAKOUT -> {
             title =
-                if (state.optString("winner") == "cleared") "WALL CLEARED!"
+                if (state.optString("winner") == "cleared") "ALL WALLS CLEARED!"
                 else "OUT OF BALLS"
-            detail = "Score ${state.optInt("score", 0)}"
+            detail = "Level ${state.optInt("level", 1)}/${state.optInt("total_levels", 5)} • score ${state.optInt("score", 0)}"
         }
 
         ArcadeEngine.DODGE -> {

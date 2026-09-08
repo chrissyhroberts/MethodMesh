@@ -13,13 +13,16 @@ object ReferenceLibraryModule : MethodMeshModule {
 
     override fun as100Methods() = listOf(
         As100ReferenceLibraryMethod,
-        As100ReferenceLibraryEmailMethod
+        As100ReferenceLibraryEmailMethod,
+        As100ReferenceLibraryPeerMethod
     )
 
     override fun rilBindings() = listOf(
         RilBinding("open reference library", As100ReferenceLibraryMethod.ID, "Open the offline reference library"),
         RilBinding("find reference document", As100ReferenceLibraryMethod.ID, "Find and return a reference document"),
-        RilBinding("email reference documents", As100ReferenceLibraryEmailMethod.ID, "Prepare an email with library or piped document attachments")
+        RilBinding("email reference documents", As100ReferenceLibraryEmailMethod.ID, "Prepare an email with library or piped document attachments"),
+        RilBinding("manage reference library nearby", As100ReferenceLibraryPeerMethod.ID, "Create a temporary local web manager for batch upload and shelf maintenance"),
+        RilBinding("batch upload reference documents", As100ReferenceLibraryPeerMethod.ID, "Batch-load reference documents over the local nearby-library session")
     )
 
     override fun dependencies() = listOf(
@@ -31,7 +34,8 @@ object ReferenceLibraryModule : MethodMeshModule {
 
     override fun capabilityScreens() = listOf(
         ReferenceLibraryCapabilityScreen,
-        ReferenceLibraryEmailCapabilityScreen
+        ReferenceLibraryEmailCapabilityScreen,
+        ReferenceLibraryPeerCapabilityScreen
     )
 
     override fun capabilitySettings() = mapOf(
@@ -54,6 +58,37 @@ object ReferenceLibraryModule : MethodMeshModule {
             MethodSetting.TextSetting("subject", "Subject", defaultValue = ""),
             MethodSetting.TextSetting("body", "Message", defaultValue = ""),
             MethodSetting.TextSetting("chooser_title", "Mail chooser title", defaultValue = "Send document copies")
+        ),
+        As100ReferenceLibraryPeerMethod.ID to listOf(
+            MethodSetting.ChoiceSetting(
+                "network_mode",
+                "Local network",
+                defaultValue = "local_hotspot",
+                choices = listOf("local_hotspot", "current_wifi")
+            ),
+            MethodSetting.ChoiceSetting(
+                "session_minutes",
+                "Session length",
+                defaultValue = "30",
+                choices = listOf("10", "30", "60", "120")
+            ),
+            MethodSetting.ChoiceSetting(
+                "max_file_mb",
+                "Maximum file size",
+                defaultValue = "250",
+                choices = listOf("25", "100", "250", "500", "1024")
+            ),
+            MethodSetting.ChoiceSetting(
+                "default_shelf",
+                "Default shelf",
+                defaultValue = "personal",
+                choices = listOf("first_aid", "medical", "safety", "fieldwork", "equipment", "travel", "personal")
+            ),
+            MethodSetting.BooleanSetting(
+                "allow_edits",
+                "Allow rename, move and remove",
+                defaultValue = true
+            )
         )
     )
 }

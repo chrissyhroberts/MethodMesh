@@ -1,4 +1,4 @@
-# Arcade v0.031
+# Arcade v0.035
 
 Arcade is MethodMesh's lightweight real-time game capability.
 
@@ -16,10 +16,10 @@ Both use the generic MethodMesh capability runtime. The host UI does not know wh
 
 ### Snake Sprint
 
-A touch-first 10×10 Snake game.
+A touch-first 18×30 Snake game that uses the portrait screen much more fully.
 
-- Choose **Relaxed**, **Normal**, **Fast** or **Turbo**, then press **START**.
-- Swipe the board or use visible arrow controls.
+- Speed is a granular 3–16 cells/second slider and can be changed during play.
+- Swipe the board to turn; there is no on-screen D-pad.
 - Food is worth 10 points.
 - Local best score and longest snake are retained.
 - Collision logic allows entry into a tail cell that is vacating that step.
@@ -27,15 +27,16 @@ A touch-first 10×10 Snake game.
 - Food placement uses the existing MethodMesh Chance capability.
 - Normal play uses secure randomness; fixed seed is available for reproducible tests.
 
-### Brick Breaker
+### Wall Break
 
-A compact fixed-step breakout game.
+A skill-based fixed-step Breakout-style game.
 
-- Three lives.
 - Drag or tap to move the paddle.
-- Clear all thirty bricks to win.
-- Ball/paddle physics are deterministic state transitions; rendering does not determine collisions.
-- Local best score and clear count are retained.
+- The outgoing ball angle depends on **where** it hits the paddle and **how the paddle is moving** at impact.
+- Circle-vs-rectangle brick collision distinguishes side/top/bottom/corner contacts rather than forcing a rail-like Y reversal.
+- Five wall layouts progress from a simple wall through checker, fortress, chevron and crown patterns; later layouts include two-hit bricks.
+- Clearing a level grants a transition bonus and an extra life up to a cap of five.
+- Local best score and final clear count are retained.
 
 ### Lane Dodge
 
@@ -58,6 +59,8 @@ Portrait tabletop Pong.
 - In two-player mode the far player rail rotates 180° for across-the-table use.
 - Paddle ownership is fixed when a drag begins, so crossing the centre cannot switch player control.
 - The ball pauses briefly after each point.
+- Paddle impact position and paddle motion determine the return angle.
+- CPU mode predicts the ball's reflected intercept position rather than simply following its current X coordinate.
 
 ## Shared UX
 
@@ -133,7 +136,7 @@ arcade.snapshot
 Method version:
 
 ```text
-0.0.5
+0.0.7
 ```
 
 Structured outputs include:
@@ -179,3 +182,57 @@ All real-time games now have explicit progression:
 - Pong accelerates through longer rallies.
 - Brick Breaker accelerates as the wall is cleared.
 - Lane Dodge advances through increasingly fast/dense levels.
+
+
+## ODK / Kobo interactive roundtrip
+
+The external game contract is interactive:
+
+```text
+ODK/Kobo
+  → EXECUTE_METHOD(game=...)
+  → MethodMesh opens that game
+  → user plays
+  → game reaches terminal state
+  → MethodMesh records the session
+  → final result is returned to the form
+```
+
+Opening the capability is never itself a result.
+
+Returned fields include:
+
+```text
+arcade_result
+arcade_score
+arcade_finished
+arcade_winner
+arcade_player_stats_json
+arcade_play_data_json
+arcade_state_json
+```
+
+`arcade_player_stats_json` is the local player-record snapshot after the completed game.
+`arcade_play_data_json` contains compact game-specific final metrics rather than pretending that every real-time frame is a meaningful move.
+
+
+## ODK showcase configuration
+
+The example XLSForm deliberately demonstrates pre-game configuration before handing control to the native Arcade UI.
+
+Supported external inputs now include:
+
+```text
+game
+snake_speed              legacy compatibility band
+snake_speed_cps          3–16 cells/second; authoritative when supplied
+pong_cpu_difficulty      casual | standard | sharp
+breakout_start_level     1–5
+dodge_difficulty         easy | normal | hard
+rng_mode
+seed
+```
+
+`snake_speed` remains in the XLSForm as the same `select_one arcade_snake_speeds` field used by earlier revisions. This preserves the existing ODK Central submission structure while allowing the newer granular `snake_speed_cps` setting to control actual Snake speed.
+
+Difficulty settings change the requested starting conditions; the live game still owns play and returns only after its terminal state.

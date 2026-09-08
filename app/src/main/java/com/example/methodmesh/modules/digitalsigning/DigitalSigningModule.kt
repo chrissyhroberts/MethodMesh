@@ -25,8 +25,8 @@ object DigitalSigningModule : MethodMeshModule {
         As100DigitalSigningMethod.ID to listOf(
             MethodSetting.TextSetting(
                 id = "pdf_uri",
-                label = "PDF input URI",
-                description = "Optional content/file URI supplied by ODK, a protocol, or another Android caller. Direct use can choose a PDF in the workspace.",
+                label = "PDF input URI (advanced)",
+                description = "Optional stable content/file URI for protocols or other Android callers. ODK launches deliberately ignore pushed PDF paths and select the document inside the signing workspace to avoid transient attachment-path failures.",
                 group = "Document",
                 defaultValue = ""
             ),

@@ -1,155 +1,374 @@
 # MethodMesh Reference Library
 
-Version: **0.2.6**  
-Status: **Development**
+Version: **0.3.0**  
+Status: **Development**  
+Connectivity: **Offline**
 
-The Reference Library is an offline-first document shelf for MethodMesh. Direct native use is deliberately dashboard-like: browse, search, scan, import, read, rename, move, favourite and organise documents without entering a capture/result loop.
+Reference Library is MethodMesh's offline-first shelf for useful documents, maps, manuals, study materials and other files that should remain available on the device. The module is reading-first: ordinary native use is a persistent library surface rather than a capture/result workflow.
 
-## Native dashboard
+The module owns three canonical capabilities:
 
-The dashboard is intentionally restrained and reading-first. v0.2.2 gives it a calmer premium hierarchy: a compact library header, rounded search field, pill-like shelf navigation, larger Continue reading tiles, and one softly grouped document surface rather than a stack of cards. File-type badges, typography and spacing carry the visual structure; maintenance actions remain behind one overflow affordance instead of occupying permanent screen space.
+- `reference.library.open` — browse/resolve/return a library document;
+- `reference.library.email` — prepare an email containing library and/or piped document attachments;
+- `reference.library.peer.manage` — run a temporary local web manager for batch upload and shelf maintenance.
 
-Direct native reading follows:
+The dashboard is one projection of these contracts. Each capability remains independently discoverable for direct native runs, presets, protocols and ODK/XLSForm. No Reference Library behaviour is implemented by special-casing `HomeScreen`.
 
-`Library -> document reader -> Back/close -> Library`
+## Library dashboard
 
-No MethodMesh result is created merely because a native user read a document.
-
-Dashboard functions:
+Direct native use supports:
 
 - search by title, source or shelf;
-- filter by built-in or custom shelf;
-- continue recently opened documents;
+- built-in and user-created shelves;
+- uniform Continue Reading tiles;
+- read -> external viewer -> Back -> library, with no generic Result page;
 - favourite/unfavourite;
-- rename a library entry;
-- move a document between shelves;
-- create/delete custom shelves;
-- add an existing Android document;
-- scan a paper document using `document.scan`, give it a custom title, and save it to a shelf;
-- remove a library entry without deleting the user's original external file.
+- rename or move an entry;
+- **Share this document** through the Android share sheet;
+- explicit **Use this document** only when a manual transactional run needs a returned document;
+- remove a library entry without deleting an externally owned source file;
+- scan paper pages through the public `document.scan` capability and persist the resulting document;
+- **Add files** through Android's multi-document picker for ordinary local batch import;
+- **Nearby** to open the canonical `reference.library.peer.manage` capability.
 
-Scans are copied from the scanner cache into MethodMesh-owned persistent storage before being shelved.
+### Built-in shelves
 
-## Method 1: return a library document
+Stable built-in shelf IDs are:
 
-Method ID: `reference.library.open`
+`first_aid`, `medical`, `safety`, `fieldwork`, `equipment`, `travel`, `personal`.
 
-This is the ODK/preset/protocol-facing retrieval contract. A caller can supply a known `document_id`; MethodMesh resolves the local document and returns its content URI and metadata. If no ID is supplied in an interactive launch, the user can select from the library.
+Custom shelves are local user-owned metadata. Deleting a custom shelf never deletes its documents: entries are reassigned to `personal`.
 
-Inputs:
+## Storage model
 
-- `document_id` — stable local library document ID; optional for interactive use;
-- `query` — optional initial search;
-- `shelf` — optional initial shelf filter.
+External documents selected through Android's Storage Access Framework retain their original `content://` URI when a persistable read grant is available. Batch-import items whose provider cannot grant durable access are copied into MethodMesh-managed storage instead.
 
-Core outputs:
+Scanner outputs are copied into `filesDir/reference_library/scans`. Nearby uploads are copied into `filesDir/reference_library/nearby`. Managed files are exposed to Android through the app's existing FileProvider.
 
-- `library_status`
-- `library_document_id`
-- `library_document_title`
-- `library_document_uri`
-- `library_document_mime`
-- `library_shelf`
-- `library_source`
-- `library_version`
-- `library_error`
+Reference Library metadata contains title, shelf, content URI, MIME type, source label, optional version, favourite state and recency. The module does not upload library contents to cloud storage.
 
-### ODK use case: pull a document into a form
+---
 
-An ODK group can invoke `reference.library.open` with `input_document_id=<known library ID>`. The returned `library_document_uri` is the media/document result for subsequent form logic, attachment handling, or a later MethodMesh step.
+# Capability: return/open a library document
 
-This contract returns the document; it does not force the native reader to open.
+Canonical method ID: `reference.library.open`
 
-## Method 2: prepare an email with document copies
+Native reading and MethodMesh result selection are intentionally different operations. In manual library UI, tapping an item reads it and never creates a result. Automatic-return callers such as ODK return a selected/resolved document. Manual transactional runs expose **Use this document** as the explicit selection action.
 
-Method ID: `reference.library.email`
+## Inputs
 
-This method resolves one or more library documents and/or accepts attachment URIs piped from earlier MethodMesh steps, constructs a mail intent, and opens an installed mail application for the user to review and send.
+| Key | Type | Required | Meaning |
+|---|---|---:|---|
+| `document_id` | text | No | Stable local library document ID. If supplied by an external caller, resolve that item directly. |
+| `query` | text | No | Initial native search text. |
+| `shelf` | choice/text | No | Initial shelf filter; built-in IDs are stable, existing local custom IDs are also accepted by the runtime. |
 
-**MethodMesh does not silently send email and does not claim provider-level delivery.** The capability is one continuous compose card: select documents by human-readable title, open the mail app, return to MethodMesh, then answer **Yes — sent** or **No — not sent**. `library_email_user_confirmed_sent` records that explicit operator confirmation, while `library_email_delivery_confirmed` remains `false` because Android mail handoff cannot prove server delivery.
+## Declared outputs
 
-Inputs:
+| Key | Meaning |
+|---|---|
+| `library_status` | `succeeded`, `not_found`, `unavailable` or other resolution status. |
+| `library_document_id` | Stable local library ID. |
+| `library_document_title` | Human title. |
+| `library_document_uri` | Canonical document media output; shared ODK transport must project this as an actual submission attachment. |
+| `library_document_mime` | MIME type. |
+| `library_shelf` | Shelf ID. |
+| `library_source` | Library source/provenance label. |
+| `library_version` | Optional document version label. |
+| `library_error` | Resolution error when applicable. |
 
-- `document_ids` — caller-facing library IDs (ODK/presets/protocols may supply these); native users select documents by shelf and title from dropdowns rather than typing IDs;
-- `attachment_uris` — semicolon/pipe/newline-delimited content/file URIs from earlier steps;
-- `recipient` — To address(es), comma/semicolon/newline-delimited;
-- `cc` — optional;
-- `bcc` — optional;
-- `subject` — mail subject;
-- `body` — arbitrary caller-supplied message body;
-- `chooser_title` — optional Android chooser title.
+## ODK Integration Card — `reference.library.open`
 
-Outputs:
+**ODK INTEGRATION**
 
-- `library_email_status`
-- `library_email_recipient`
-- `library_email_subject`
-- `library_email_document_ids_json`
-- `library_email_attachment_uris_json`
-- `library_email_attachment_count`
-- `library_email_missing_document_ids_json`
-- `library_email_handoff`
-- `library_email_user_confirmed_sent`
-- `library_email_delivery_confirmed`
-- `library_email_error`
+**Capability**  
+Return/open a reference document  
+`reference.library.open`
 
-### ODK consent-delivery pattern
+**Tags**  
+Maturity: Development  
+Connectivity: Offline
 
-The email method is generic enough for research consent without containing study-specific code. A typical protocol is:
+**ODK INPUTS**
 
-1. ODK captures participant/study fields such as name, email and study ID.
-2. MethodMesh displays/signs the consent workflow, with witness evidence if the study requires it.
-3. A PDF/signature capability produces the final signed consent document URI.
-4. ODK or the MethodMesh protocol invokes `reference.library.email`.
-5. `attachment_uris` receives the signed consent URI from the previous step.
-6. `document_ids` names static library items such as the participant information sheet and study-team contact sheet.
-7. `recipient`, `subject` and `body` are populated from ODK fields/calculations, e.g. a personalised message containing participant name and study ID.
-8. MethodMesh opens the mail composer with all attachments and text ready for user review.
-9. On return, the same capability card asks the operator to confirm **Yes — sent** or **No — not sent**.
-10. MethodMesh returns that operator confirmation to ODK while still reporting `library_email_delivery_confirmed=false` because provider/server delivery cannot be verified.
+| Canonical input | ODK type | Required | Meaning |
+|---|---|---:|---|
+| `document_id` | text | optional | Known local library ID. Leave blank for interactive selection. |
+| `query` | text | optional | Initial search text for interactive selection. |
+| `shelf` | select/text | optional | Initial shelf. |
 
-Example body supplied by ODK could be conceptually equivalent to:
+Interactive acquisition: polished Reference Library picker when `document_id` is not supplied.
 
-`Dear <participant name>, thank you for signing up. Your study ID is <study ID>. Attached are your signed consent form, participant information sheet and study-team contact details.`
+**INTENT CALL**
 
-The exact text remains an ODK/study configuration responsibility.
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='reference.library.open',input_document_id=${rl_open_document_id},input_query=${rl_open_query},input_shelf=${rl_open_shelf},input_payload_mode='FULL',return_mode='flat')
+```
 
-## Presets and protocols
+**MODIFIERS**
 
-Both methods remain ordinary MethodMesh capabilities. Runtime fields can be left unfixed in presets. Protocol outputs from earlier steps can be piped into `attachment_uris`, `recipient`, `subject` or `body` using the standard MethodMesh prior-output contract.
+| Modifier | Type | Default/semantics | Meaning |
+|---|---|---|---|
+| `payload_mode` | text | canonical showcase uses `FULL` | Requests shared complete metadata/audit projection. |
+| `return_mode` | text | canonical showcase uses `flat` | Flat ODK return projection. |
 
-## Custom shelves
+**CANONICAL RETURNS**
 
-Built-in shelf IDs remain stable for presets and ODK. Custom shelves are user-local. Deleting a custom shelf never deletes documents; its entries are moved to `personal`.
+`library_status`, `library_document_id`, `library_document_title`, `library_document_uri`, `library_document_mime`, `library_shelf`, `library_source`, `library_version`, `library_error`, plus shared `methodmesh_status` and `methodmesh_full_json`.
 
-## Storage and privacy
+**RETURN FIELD PLACEMENT**
 
-- Imported Android files stay in their original storage location and use persisted read permission where available.
-- Scanned documents are copied to MethodMesh-managed app storage.
-- Removing a library entry does not delete an externally owned original file.
-- Email content and addresses are handed to the mail app only when the user invokes the email capability.
-- No MethodMesh mail server is introduced by this module.
+The canonical showcase places the call on one group. Return fields are direct group children with the canonical unprefixed names. It contains one MethodMesh invocation and no return namespace.
 
-## Dependency
+**FILE RETURN SEMANTICS**
 
-`documentscanner` / `document.scan` is used for Scan to shelf. The Reference Library does not copy the scanner implementation.
+`library_document_uri` is a stable canonical URI-named output, but the ODK-visible result must be an actual attachment. The showcase therefore captures it in an attachment-compatible `file` leaf. Shared MethodMesh transport owns ClipData/read-grant/copy semantics; the XLSForm should not preserve an obscure private URI string as the useful result.
 
+**RUNTIME**
 
-### v0.2.3 navigation fix
+Inputs: document ID/search/shelf.  
+Beef: selected document attachment plus title/MIME metadata.  
+Metadata: `methodmesh_full_json` always captured by the canonical ODK showcase.
 
-When a document is opened from the normal MethodMesh library dashboard, external readers such as Drive Viewer are launched in the same Android task. Pressing Back therefore returns directly to the library dashboard. The ordinary reading path does not create or expose a MethodMesh result screen.
+---
 
+# Capability: email library documents
 
-### v0.2.4 visual refinement
+Canonical method ID: `reference.library.email`
 
-The native library surface removes the redundant internal “Your field shelf” title. The MethodMesh shell already identifies Reference Library, so the module now begins with quiet document/shelf metadata, search and shelf navigation. Continue Reading is presented as a darker theme-derived reading-room surface using only MethodMesh colour-scheme values; its document tiles are fixed to identical width and height so long filenames do not distort the carousel. The main catalogue uses calmer typography, lighter dividers and more generous row spacing. Functional contracts, ODK fields and the email workflow are unchanged.
+This capability resolves one or more library documents and/or accepts attachment URIs piped from earlier MethodMesh steps, prepares an Android mail intent, and opens an installed mail application for user review. It does not silently send email.
 
+The entire native interaction remains on one compose card: select documents by shelf/title, enter recipient/message, open the mail app, return, then confirm **Yes — sent** or **No — not sent**. It deliberately does not detour through the generic MethodMesh Result card.
 
-### v0.2.5 reading navigation
+## Inputs
 
-Reading is no longer treated as document selection. In any manual MethodMesh library surface, tapping a document only opens it; Back from Drive Viewer or another reader returns to the library without a Result page. If a manual preset-style run needs a document as its return value, use the document overflow menu and choose **Use this document**. ODK/automatic-return calls continue to return the selected document immediately.
+| Key | Required | Meaning |
+|---|---:|---|
+| `document_ids` | No | Comma/semicolon/newline-delimited stable library IDs. Native users choose by human-readable dropdowns instead. |
+| `attachment_uris` | No | Additional/piped attachment URIs from previous MethodMesh/ODK steps. |
+| `recipient` | Yes for useful handoff | To address(es). |
+| `cc` | No | Cc address(es). |
+| `bcc` | No | Bcc address(es). |
+| `subject` | No | Email subject. |
+| `body` | No | Arbitrary caller-supplied body text. |
+| `chooser_title` | No | Android chooser title; defaults to `Send document copies`. |
 
+## Declared outputs
 
-### v0.2.6 document sharing
+`library_email_status`, `library_email_recipient`, `library_email_subject`, `library_email_document_ids_json`, `library_email_attachment_uris_json`, `library_email_attachment_count`, `library_email_missing_document_ids_json`, `library_email_handoff`, `library_email_user_confirmed_sent`, `library_email_delivery_confirmed`, `library_email_error`.
 
-Every library row now offers **Share this document** from its overflow menu. Sharing uses the Android share sheet with the document URI and MIME type plus temporary read permission. It does not create a MethodMesh result, alter selection state, or change the dashboard reading/navigation contract.
+`library_email_user_confirmed_sent` is the operator's explicit assertion after returning from the mail application. `library_email_delivery_confirmed` remains `false`; Android handoff cannot prove provider/server delivery.
+
+## ODK Integration Card — `reference.library.email`
+
+**ODK INTEGRATION**
+
+**Capability**  
+Email reference documents  
+`reference.library.email`
+
+**Tags**  
+Maturity: Development  
+Connectivity: Offline
+
+**ODK INPUTS**
+
+| Canonical input | ODK type | Required | Meaning |
+|---|---|---:|---|
+| `document_ids` | text | optional | Library IDs to attach. |
+| `attachment_uris` | text | optional | Piped/additional attachment URIs. |
+| `recipient` | text | required for useful handoff | To address(es). |
+| `cc` | text | optional | Cc. |
+| `bcc` | text | optional | Bcc. |
+| `subject` | text | optional | Subject. |
+| `body` | text | optional | Message body, including ODK-calculated/personalised text. |
+| `chooser_title` | text | optional | Android chooser heading. |
+
+Interactive acquisition: MethodMesh may add/remove library documents on the compose card; the user completes the send in the installed mail application and then confirms sent/not-sent on return.
+
+**INTENT CALL**
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='reference.library.email',input_document_ids=${rl_email_document_ids},input_attachment_uris=${rl_email_attachment_uris},input_recipient=${rl_email_recipient},input_cc=${rl_email_cc},input_bcc=${rl_email_bcc},input_subject=${rl_email_subject},input_body=${rl_email_body},input_chooser_title=${rl_email_chooser_title},input_payload_mode='FULL',return_mode='flat')
+```
+
+**MODIFIERS**
+
+| Modifier | Type | Default/semantics | Meaning |
+|---|---|---|---|
+| `payload_mode` | text | `FULL` in showcase | Shared complete audit/metadata projection. |
+| `return_mode` | text | `flat` in showcase | Flat ODK return. |
+
+**CANONICAL RETURNS**
+
+All declared `library_email_*` fields above, plus shared `methodmesh_status` and `methodmesh_full_json`.
+
+**RETURN FIELD PLACEMENT**
+
+Direct children of one intent group, canonical unprefixed keys, one MethodMesh call, no return namespace.
+
+**FILE RETURN SEMANTICS**
+
+This capability consumes/forwards attachments to the mail app; it does not return a new binary file to ODK. Attachment URIs in the audit/status fields are transport metadata, not new ODK submission attachments.
+
+**RUNTIME**
+
+Inputs: recipient/message/library IDs/piped attachments.  
+Beef: user-visible mail handoff and explicit sent/not-sent confirmation.  
+Metadata: `methodmesh_full_json` plus attachment-resolution/handoff fields.
+
+### Consent-delivery composition
+
+A research workflow can remain compositional rather than hard-coded:
+
+`ODK participant fields -> signature/witness capability -> PDF merge/final signed consent URI -> reference.library.email`
+
+The final signed consent can arrive through `attachment_uris`; static participant information/contact sheets can be supplied through `document_ids`; ODK supplies recipient, subject and a calculated personalised message. Study-specific wording and identifiers remain in ODK/protocol configuration rather than this module.
+
+---
+
+# Capability: nearby library manager / batch upload
+
+Canonical method ID: `reference.library.peer.manage`
+
+This is a separate canonical capability, not dashboard-only logic. The library dashboard's **Nearby** button merely projects it.
+
+The capability creates a time-limited local web interface. The recommended mode uses Android `LocalOnlyHotspot`, which creates an isolated WLAN with no internet route. A trusted-current-Wi-Fi mode is available as a fallback.
+
+From another laptop/tablet/phone the operator opens the temporary URL and can:
+
+- choose a destination shelf once and drag/drop multiple files;
+- choose multiple files through the browser picker;
+- upload PDFs, maps and arbitrary useful file types (the library stores them; interpretation depends on installed viewer apps);
+- create custom shelves;
+- rename/move/favourite/remove library entries when web edits are enabled;
+- delete custom shelves with explicit confirmation; their documents move to Personal.
+
+The web manager intentionally has **no document-download endpoint**. It exposes library metadata and accepts uploads/maintenance actions but does not provide browser access to existing document contents.
+
+## Inputs/settings
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `network_mode` | choice | `local_hotspot` | `local_hotspot` or `current_wifi`. |
+| `session_minutes` | choice/integer | `30` | Session lifetime; native choices 10/30/60/120 min. |
+| `max_file_mb` | choice/integer | `250` | Maximum bytes accepted for one uploaded file. |
+| `default_shelf` | shelf ID | `personal` | Initial upload destination. Existing local custom shelf IDs are accepted at runtime. |
+| `allow_edits` | boolean | `true` | Allow metadata edits/removal/shelf creation/deletion from the browser. Upload remains available. |
+
+Fixed native-preset settings are not redundantly requested at runtime. Runtime-marked settings remain editable.
+
+## Declared outputs
+
+| Key | Meaning |
+|---|---|
+| `library_peer_status` | Session completion/error status. |
+| `library_peer_network_mode` | `local_hotspot` or `current_wifi`. |
+| `library_peer_session_id` | Non-secret session identifier. |
+| `library_peer_uploaded_count` | Files successfully imported. |
+| `library_peer_updated_count` | Metadata/favourite updates. |
+| `library_peer_removed_count` | Library entries removed. |
+| `library_peer_shelf_changes_count` | Shelf create/delete operations. |
+| `library_peer_bytes_received` | Uploaded bytes received. |
+| `library_peer_http_request_count` | Local HTTP request count. |
+| `library_peer_started_time_iso` | Session start. |
+| `library_peer_finished_time_iso` | Session finish. |
+| `library_peer_duration_ms` | Duration. |
+| `library_peer_error` | Error when applicable. |
+
+SSID, hotspot passphrase, local IP address, port and the web-session token are operational credentials/details shown only while the live native screen is open. They are deliberately **not** canonical outputs and are not persisted to result/audit state.
+
+## ODK Integration Card — `reference.library.peer.manage`
+
+**ODK INTEGRATION**
+
+**Capability**  
+Manage reference library nearby  
+`reference.library.peer.manage`
+
+**Tags**  
+Maturity: Development  
+Connectivity: Offline
+
+**ODK INPUTS**
+
+| Canonical input | ODK type | Required | Meaning |
+|---|---|---:|---|
+| `network_mode` | select_one | optional | Local hotspot or trusted current Wi-Fi. |
+| `session_minutes` | select_one/integer | optional | Maximum live session duration. |
+| `max_file_mb` | select_one/integer | optional | Per-file upload ceiling. |
+| `default_shelf` | select_one/text | optional | Initial shelf. |
+| `allow_edits` | select_one/boolean | optional | Whether browser-side maintenance controls are enabled. |
+
+Interactive acquisition: required. MethodMesh presents the live session screen, requests Android nearby-Wi-Fi permission where necessary, shows temporary connection details, and waits for the operator to stop/finish the session.
+
+**INTENT CALL**
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='reference.library.peer.manage',input_network_mode=${rl_peer_network_mode},input_session_minutes=${rl_peer_session_minutes},input_max_file_mb=${rl_peer_max_file_mb},input_default_shelf=${rl_peer_default_shelf},input_allow_edits=${rl_peer_allow_edits},input_payload_mode='FULL',return_mode='flat')
+```
+
+**MODIFIERS**
+
+| Modifier | Type | Default/semantics | Meaning |
+|---|---|---|---|
+| `payload_mode` | text | `FULL` in showcase | Shared complete audit/metadata projection. |
+| `return_mode` | text | `flat` in showcase | Flat ODK return. |
+
+**CANONICAL RETURNS**
+
+All declared `library_peer_*` fields above, plus shared `methodmesh_status` and `methodmesh_full_json`.
+
+**RETURN FIELD PLACEMENT**
+
+Direct children of one intent group; canonical unprefixed names; one MethodMesh invocation; no namespace.
+
+**FILE RETURN SEMANTICS**
+
+None. Uploaded files become Reference Library content; the peer-session capability returns session statistics/audit, not copies of uploaded files.
+
+**RUNTIME**
+
+Inputs: local-network/session limits/default shelf/edit policy.  
+Beef: live local management session and resulting upload/maintenance counts.  
+Metadata: timing/request/byte counters plus `methodmesh_full_json`.
+
+## Nearby security and privacy
+
+- **Local hotspot is the recommended mode.** Android creates the WLAN and supplies its SSID/passphrase; no internet service is provided by the hotspot.
+- The web server binds only for an explicit live session and accepts only loopback/link-local/site-local clients.
+- Every request requires a cryptographically random session token embedded in the temporary URL.
+- The token and WLAN password are process-memory/live-screen details, never canonical outputs and never written to module preferences.
+- The server sends `Cache-Control: no-store` and exposes no existing-document download route.
+- Uploaded filenames are sanitised before MethodMesh-managed storage is created; browser-provided paths are never used directly.
+- A per-file size ceiling is enforced before import.
+- `current_wifi` is explicitly less private because traffic is plain local HTTP on the existing LAN. Use only on a trusted local network.
+- Leaving/stopping the capability closes the server and hotspot. Ordinary configuration recreation keeps an already-live session reachable in process memory; process death ends it.
+
+## Android permission integration
+
+The host app requires the shared app-level permission on Android 13+:
+
+```xml
+<uses-permission
+    android:name="android.permission.NEARBY_WIFI_DEVICES"
+    android:usesPermissionFlags="neverForLocation" />
+```
+
+This belongs in `app/src/main/AndroidManifest.xml`, not in the module folder. The app already uses `INTERNET` for sockets and legacy location permissions; Android <=12 uses fine-location permission for LocalOnlyHotspot. The peer capability requests the relevant runtime permission when the operator starts a hotspot.
+
+No third-party web server library is introduced; the temporary HTTP service uses Java/Android platform sockets.
+
+## ODK showcase files
+
+v0.3.0 follows Master Book v1.07's one-call-per-workbook rule:
+
+- `docs/example_odk_showcase_reference_library_open.xlsx`
+- `docs/example_odk_showcase_reference_library_email.xlsx`
+- `docs/example_odk_showcase_reference_library_peer_manage.xlsx`
+
+The older multi-call `example_odk_reference_library.xlsx` is removed from the active module so it is not mistaken for a canonical v1.07 showcase.
+
+## Validation status
+
+The new capability is **Development**. The standalone handoff was statically reviewed for module ownership, stable existing method IDs, capability/preset/protocol/ODK exposure, local-only security boundaries, workbook structure and ZIP layout. Full `:app:compileDebugKotlin` could not be run in this runtime because the complete MethodMesh repository/dependency graph was not locally available. See `VALIDATION.md` for the receiving-repository checklist.

@@ -9,12 +9,15 @@ object ProofText {
         source: TimestampSource,
         evidence: TrustedTimestampEvidence,
         proofFileName: String,
-        proofUri: String
+        sourceOrigin: String,
+        sourceReturnedToCaller: Boolean
     ): String = JSONObject()
         .put("format", "MethodMesh Trusted Timestamp Result")
-        .put("format_version", "1.0")
+        .put("format_version", "1.1")
         .put("standard", "RFC 3161")
         .put("source_name", source.displayName)
+        .put("source_origin", sourceOrigin)
+        .put("source_returned_to_caller", sourceReturnedToCaller)
         .put("size_bytes", source.sizeBytes)
         .put("sha256", source.sha256)
         .put("tsa", evidence.authorityName)
@@ -24,8 +27,7 @@ object ProofText {
         .put("policy_oid", evidence.policyOid)
         .put("token_sha256", evidence.tokenSha256)
         .put("trust_status", evidence.trustStatus)
-        .put("proof_filename", proofFileName)
-        .put("proof_uri", proofUri)
+        .put("proof_attachment", proofFileName)
         .toString()
 
     fun proofJson(
@@ -153,7 +155,9 @@ tsa-root.pem          TSA root/trust certificate, when available.
 verify.sh             Shell verification helper.
 verify.ps1            PowerShell verification helper.
 
-If timestamped-text.txt is present, those are the exact UTF-8 bytes timestamped.
+The source itself is deliberately not duplicated inside this ZIP. Keep the original
+file or exact text separately; it is Part 1 of the MethodMesh result, while this
+proof ZIP is Part 2.
 
 This is intentionally an ordinary ZIP file. MethodMesh is not required to inspect
 or independently verify the proof later.

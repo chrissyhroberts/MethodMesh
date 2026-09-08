@@ -28,7 +28,7 @@ import kotlinx.coroutines.delay
 import org.json.JSONObject
 import java.util.UUID
 
-/** Arcade v0.03: fixed-step real-time games with GameDeck-aligned UX. */
+/** Arcade v0.035: fixed-step real-time games with GameDeck-aligned UX. */
 object ArcadeCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100ArcadeMethod.ID
     override val title = "Arcade"
@@ -63,15 +63,46 @@ object ArcadeCapabilityScreen : CapabilityScreenSpec {
                     ?: ""
             )
         }
-        var snakeSpeed by rememberSaveable {
+        var snakeSpeedCps by rememberSaveable {
             mutableStateOf(
-                ArcadeSnakeSpeed.normalize(
-                    context.action.settings["snake_speed"]
-                        ?: context.action.settings["input_snake_speed"]
-                        ?: ArcadeSnakeSpeed.RELAXED
+                ArcadeSnakeSpeed.normalizeCps(
+                    (context.action.settings["snake_speed_cps"]
+                        ?: context.action.settings["input_snake_speed_cps"])
+                        ?.toIntOrNull()
+                        ?: ArcadeSnakeSpeed.fromLegacy(
+                            context.action.settings["snake_speed"]
+                                ?: context.action.settings["input_snake_speed"]
+                        )
                 )
             )
         }
+        var pongCpuDifficulty by rememberSaveable {
+            mutableStateOf(
+                (
+                    context.action.settings["pong_cpu_difficulty"]
+                        ?: context.action.settings["input_pong_cpu_difficulty"]
+                        ?: "standard"
+                ).lowercase().takeIf { it in setOf("casual", "standard", "sharp") } ?: "standard"
+            )
+        }
+        var breakoutStartLevel by rememberSaveable {
+            mutableStateOf(
+                (
+                    context.action.settings["breakout_start_level"]
+                        ?: context.action.settings["input_breakout_start_level"]
+                )?.toIntOrNull()?.coerceIn(1, 5) ?: 1
+            )
+        }
+        var dodgeDifficulty by rememberSaveable {
+            mutableStateOf(
+                (
+                    context.action.settings["dodge_difficulty"]
+                        ?: context.action.settings["input_dodge_difficulty"]
+                        ?: "normal"
+                ).lowercase().takeIf { it in setOf("easy", "normal", "hard") } ?: "normal"
+            )
+        }
+
         var soundEnabled by rememberSaveable {
             mutableStateOf(
                 (
@@ -82,23 +113,38 @@ object ArcadeCapabilityScreen : CapabilityScreenSpec {
             )
         }
         var stateJson by rememberSaveable(game) {
-            mutableStateOf(ArcadeEngine.newState(game, rngMode, seed, snakeSpeed))
+            mutableStateOf(
+                ArcadeEngine.newState(
+                    game = game,
+                    rngMode = rngMode,
+                    seed = seed,
+                    snakeSpeedCps = snakeSpeedCps,
+                    pongCpuDifficulty = pongCpuDifficulty,
+                    breakoutStartLevel = breakoutStartLevel,
+                    dodgeDifficulty = dodgeDifficulty
+                )
+            )
         }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var menuOpen by rememberSaveable { mutableStateOf(false) }
         var helpOpen by rememberSaveable(game) { mutableStateOf(false) }
         var sessionId by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var returnedSessionId by rememberSaveable { mutableStateOf("") }
 
         val appContext = LocalContext.current.applicationContext
         val records = remember(appContext) { ArcadeRecordStore(appContext) }
+        val externalInteractive =
+            context.submitsImmediately &&
+                !context.request.source.equals("intent_test", ignoreCase = true)
 
         fun buildResult(): ExecutionResult {
             val values = As100ArcadeMethod.snapshot(
                 game = game,
                 stateJson = stateJson,
                 sessionId = sessionId,
-                rngMode = rngMode
+                rngMode = rngMode,
+                playerStatsJson = records.toJson()
             )
             val safeSettings = context.action.settings.filterKeys {
                 it !in setOf("state_json", "input_state_json", "seed", "input_seed")
@@ -112,7 +158,10 @@ object ArcadeCapabilityScreen : CapabilityScreenSpec {
                         "state_json" to stateJson,
                         "session_id" to sessionId,
                         "rng_mode" to rngMode,
-                        "snake_speed" to snakeSpeed
+                        "snake_speed_cps" to snakeSpeedCps.toString(),
+                        "pong_cpu_difficulty" to pongCpuDifficulty,
+                        "breakout_start_level" to breakoutStartLevel.toString(),
+                        "dodge_difficulty" to dodgeDifficulty
                     ),
                 signals = emptyList(),
                 inputs = emptyList()
@@ -130,8 +179,17 @@ object ArcadeCapabilityScreen : CapabilityScreenSpec {
 
         fun openGame(selected: String) {
             sessionId = UUID.randomUUID().toString()
+            returnedSessionId = ""
             game = selected
-            stateJson = ArcadeEngine.newState(selected, rngMode, seed, snakeSpeed)
+            stateJson = ArcadeEngine.newState(
+                game = selected,
+                rngMode = rngMode,
+                seed = seed,
+                snakeSpeedCps = snakeSpeedCps,
+                pongCpuDifficulty = pongCpuDifficulty,
+                breakoutStartLevel = breakoutStartLevel,
+                dodgeDifficulty = dodgeDifficulty
+            )
             result = null
             menuOpen = false
             helpOpen = false
@@ -145,7 +203,16 @@ object ArcadeCapabilityScreen : CapabilityScreenSpec {
             }
 
             sessionId = UUID.randomUUID().toString()
-            stateJson = ArcadeEngine.newState(game, rngMode, seed, snakeSpeed)
+            returnedSessionId = ""
+            stateJson = ArcadeEngine.newState(
+                game = game,
+                rngMode = rngMode,
+                seed = seed,
+                snakeSpeedCps = snakeSpeedCps,
+                pongCpuDifficulty = pongCpuDifficulty,
+                breakoutStartLevel = breakoutStartLevel,
+                dodgeDifficulty = dodgeDifficulty
+            )
 
             if (game == ArcadeEngine.PONG) {
                 stateJson = ArcadeEngine.pongSetCpu(stateJson, previousPongCpu)
@@ -164,13 +231,25 @@ object ArcadeCapabilityScreen : CapabilityScreenSpec {
             context.presentationMode == CapabilityPresentationMode.Dashboard ||
                 context.isNativePresetRun
 
-        LaunchedEffect(game, rngMode, seed, snakeSpeed, soundEnabled) {
+        LaunchedEffect(
+            game,
+            rngMode,
+            seed,
+            snakeSpeedCps,
+            pongCpuDifficulty,
+            breakoutStartLevel,
+            dodgeDifficulty,
+            soundEnabled
+        ) {
             context.onSettingsChanged(
                 mapOf(
                     "game" to game,
                     "rng_mode" to rngMode,
                     "seed" to seed,
-                    "snake_speed" to snakeSpeed,
+                    "snake_speed_cps" to snakeSpeedCps.toString(),
+                    "pong_cpu_difficulty" to pongCpuDifficulty,
+                    "breakout_start_level" to breakoutStartLevel.toString(),
+                    "dodge_difficulty" to dodgeDifficulty,
                     "sound" to soundEnabled.toString()
                 )
             )
@@ -181,20 +260,13 @@ object ArcadeCapabilityScreen : CapabilityScreenSpec {
             context.submitsImmediately,
             context.request.source
         ) {
-            val genuineExternalAutoSubmit =
-                context.submitsImmediately &&
-                    !context.request.source.equals("intent_test", ignoreCase = true)
-
-            if (genuineExternalAutoSubmit && !launched) {
-                launched = true
-                onConfirmed(buildResult())
-            } else if (!launched) {
+            if (!launched) {
                 launched = true
 
-                // Opening the native Arcade shelf is presentation-only. Do not
-                // construct a MethodMesh graph result just to render the launcher.
-                // A real snapshot is built when a game/result is actually used.
-                if (game != ArcadeEngine.LAUNCHER) {
+                // Interactive external callers (ODK/Kobo/etc.) are requests to
+                // PLAY, not requests for the initial snapshot. Never complete the
+                // workflow merely because the capability screen opened.
+                if (!externalInteractive && game != ArcadeEngine.LAUNCHER) {
                     refreshSnapshot()
                 }
             }
@@ -218,9 +290,22 @@ object ArcadeCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
-        LaunchedEffect(sessionId, summary.finished) {
+        LaunchedEffect(sessionId, summary.finished, externalInteractive) {
             if (summary.finished) {
+                // Persist the just-finished session first so the player-stats
+                // payload returned to ODK includes this game.
                 records.record(sessionId, stateJson)
+
+                if (externalInteractive && returnedSessionId != sessionId) {
+                    returnedSessionId = sessionId
+                    val finalResult = buildResult()
+                    result = finalResult
+
+                    // Let the terminal frame/result overlay render before Android
+                    // returns control to the external form.
+                    delay(450)
+                    onConfirmed(finalResult)
+                }
             }
         }
 
@@ -272,9 +357,9 @@ object ArcadeCapabilityScreen : CapabilityScreenSpec {
                             if (next != stateJson) ArcadeSound.turn(soundEnabled)
                             stateJson = next
                         },
-                        onSpeedChange = { mode ->
-                            val normalized = ArcadeSnakeSpeed.normalize(mode)
-                            snakeSpeed = normalized
+                        onSpeedChange = { cps ->
+                            val normalized = ArcadeSnakeSpeed.normalizeCps(cps)
+                            snakeSpeedCps = normalized
                             stateJson = ArcadeEngine.snakeSetSpeed(stateJson, normalized)
                         },
                         onStart = {
@@ -298,6 +383,10 @@ object ArcadeCapabilityScreen : CapabilityScreenSpec {
                         },
                         onMode = { cpu ->
                             stateJson = ArcadeEngine.pongSetCpu(stateJson, cpu)
+                            stateJson = ArcadeEngine.pongSetCpuDifficulty(
+                                stateJson,
+                                pongCpuDifficulty
+                            )
                         },
                         onStart = {
                             ArcadeSound.turn(soundEnabled)
@@ -424,14 +513,16 @@ object ArcadeCapabilityScreen : CapabilityScreenSpec {
                 capabilityId = capabilityId,
                 context = context,
                 canGoBack = context.stepNumber > 1,
-                capturedResult = result,
+                capturedResult = if (externalInteractive) null else result,
                 resultPreview = mapOf(
                     ArcadeFields.RESULT to summary.detail,
                     ArcadeFields.SCORE to summary.score.toString()
                 ),
                 onBack = onBack,
                 onRetry = { reset() },
-                onConfirm = { onConfirmed(buildResult()) },
+                onConfirm = {
+                    if (!externalInteractive) onConfirmed(buildResult())
+                },
                 onCancel = onCancel
             ) {
                 content()

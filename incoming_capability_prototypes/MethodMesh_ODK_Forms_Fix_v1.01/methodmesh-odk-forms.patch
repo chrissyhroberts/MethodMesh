@@ -1,0 +1,83 @@
+diff --git a/app/src/main/java/com/example/methodmesh/ui/odkcentral/OdkCentralClient.kt b/app/src/main/java/com/example/methodmesh/ui/odkcentral/OdkCentralClient.kt
+--- a/app/src/main/java/com/example/methodmesh/ui/odkcentral/OdkCentralClient.kt
++++ b/app/src/main/java/com/example/methodmesh/ui/odkcentral/OdkCentralClient.kt
+@@ -106,9 +106,9 @@
+                 requestJson(
+                     serverUrl = server,
+                     method = "POST",
+-                    path = "/v1/projects/$projectId/forms/${encodePath(discovered.xmlFormId)}/draft",
++                    path = "/v1/projects/$projectId/forms/${encodePath(discovered.xmlFormId)}/draft?ignoreWarnings=true",
+                     token = token,
+                     body = bytes,
+                     contentType = XLSX_MIME,
+                     extraHeaders = mapOf("X-XlsForm-FormId-Fallback" to percentEncode(discovered.xmlFormId))
+                 )
+@@ -119,9 +119,9 @@
+                 val created = requestJson(
+                     serverUrl = server,
+                     method = "POST",
+-                    path = "/v1/projects/$projectId/forms",
++                    path = "/v1/projects/$projectId/forms?ignoreWarnings=true",
+                     token = token,
+                     body = bytes,
+                     contentType = XLSX_MIME,
+                     extraHeaders = mapOf("X-XlsForm-FormId-Fallback" to percentEncode(fallback))
+                 )
+@@ -132,9 +132,9 @@
+                 requestJson(
+                     serverUrl = server,
+                     method = "POST",
+-                    path = "/v1/projects/$projectId/forms/${encodePath(deployment.xmlFormId)}/draft",
++                    path = "/v1/projects/$projectId/forms/${encodePath(deployment.xmlFormId)}/draft?ignoreWarnings=true",
+                     token = token,
+                     body = bytes,
+                     contentType = XLSX_MIME,
+                     extraHeaders = mapOf("X-XlsForm-FormId-Fallback" to percentEncode(deployment.xmlFormId))
+                 )
+diff --git a/app/src/main/java/com/example/methodmesh/ui/odk/OdkTemplateLibrary.kt b/app/src/main/java/com/example/methodmesh/ui/odk/OdkTemplateLibrary.kt
+--- a/app/src/main/java/com/example/methodmesh/ui/odk/OdkTemplateLibrary.kt
++++ b/app/src/main/java/com/example/methodmesh/ui/odk/OdkTemplateLibrary.kt
+@@ -258,7 +258,7 @@
+         if (profile.isConfigured && session != null) {
+             Text(
+-                "Testing on ${profile.projectName} · ${profile.appUserName}. Tick a form to deploy/update, publish and grant access. Untick to revoke only that App User's access.",
++                "Testing on ${profile.projectName} · ${profile.appUserName}. Tick to deploy/grant access. Untick to revoke only that App User's access. When a deployed local template changes, use Update to upload and republish it.",
+                 modifier = Modifier.padding(top = 8.dp),
+                 style = MaterialTheme.typography.bodySmall,
+                 color = MaterialTheme.colorScheme.onSurfaceVariant
+             )
+@@ -416,10 +416,34 @@
+                             Text(
+                                 "Save",
+                                 modifier = Modifier.clickable {
+                                     pendingSave = template
+                                     saveLauncher.launch(template.sourceFileName)
+                                 }.padding(vertical = 8.dp),
+                                 style = MaterialTheme.typography.labelMedium,
+                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                             )
++                            if (checked && updateAvailable && session != null) {
++                                Spacer(Modifier.width(14.dp))
++                                Text(
++                                    "Update",
++                                    modifier = Modifier.clickable(enabled = !rowBusy) {
++                                        scope.launch {
++                                            busyTemplateId = template.id
++                                            status = "Updating ${template.displayName}…"
++                                            runCatching {
++                                                OdkCentralClient.deployAndAssign(context, profile, session.token, template)
++                                            }.onSuccess {
++                                                deploymentRevision += 1
++                                                status = "Updated and republished ${template.displayName}; ${profile.appUserName} still has access."
++                                            }.onFailure {
++                                                status = "Central update failed: ${it.message ?: "request error"}"
++                                            }
++                                            busyTemplateId = null
++                                        }
++                                    }.padding(vertical = 8.dp),
++                                    style = MaterialTheme.typography.labelMedium,
++                                    color = MaterialTheme.colorScheme.tertiary,
++                                    fontWeight = FontWeight.SemiBold
++                                )
++                            }
+                             if (deployment != null && session != null) {

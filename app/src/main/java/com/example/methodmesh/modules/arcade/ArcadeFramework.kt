@@ -50,35 +50,33 @@ object ArcadeFixedStep {
     const val STEP_SECONDS = 0.016f
 }
 
-/** Human-readable Snake difficulty/speed presets. */
+/** Granular Snake movement-rate control. */
 object ArcadeSnakeSpeed {
-    const val RELAXED = "relaxed"
-    const val NORMAL = "normal"
-    const val FAST = "fast"
-    const val TURBO = "turbo"
+    const val MIN_CPS = 3
+    const val MAX_CPS = 16
+    const val DEFAULT_CPS = 6
 
-    val modes = listOf(RELAXED, NORMAL, FAST, TURBO)
+    fun normalizeCps(value: Int): Int = value.coerceIn(MIN_CPS, MAX_CPS)
 
-    fun normalize(value: String): String =
-        value.lowercase().takeIf { it in modes } ?: RELAXED
-
-    fun delayMs(value: String, score: Int = 0): Long {
-        val base = when (normalize(value)) {
-            NORMAL -> 175L
-            FAST -> 130L
-            TURBO -> 95L
-            else -> 235L
-        }
-        // Every three foods trims 12 ms from the movement step. The floor keeps
-        // late-game Snake fast without making touch control physically absurd.
-        val acceleration = (score.coerceAtLeast(0) / 30) * 12L
-        return (base - acceleration).coerceAtLeast(70L)
+    /** Backward compatibility for v0.03 preset strings. */
+    fun fromLegacy(value: String?): Int = when (value?.lowercase()) {
+        "relaxed" -> 4
+        "normal" -> 6
+        "fast" -> 8
+        "turbo" -> 11
+        else -> value?.toIntOrNull()?.let(::normalizeCps) ?: DEFAULT_CPS
     }
 
-    fun label(value: String): String = when (normalize(value)) {
-        NORMAL -> "Normal"
-        FAST -> "Fast"
-        TURBO -> "Turbo"
-        else -> "Relaxed"
-    }
+    /**
+     * Selected speed is the baseline. Long runs accelerate slowly: one extra
+     * cell/second for each five foods, capped so the game stays steerable.
+     */
+    fun effectiveCps(baseCps: Int, score: Int = 0): Int =
+        (normalizeCps(baseCps) + score.coerceAtLeast(0) / 50)
+            .coerceAtMost(20)
+
+    fun delayMs(baseCps: Int, score: Int = 0): Long =
+        (1000.0 / effectiveCps(baseCps, score).toDouble())
+            .toLong()
+            .coerceAtLeast(50L)
 }

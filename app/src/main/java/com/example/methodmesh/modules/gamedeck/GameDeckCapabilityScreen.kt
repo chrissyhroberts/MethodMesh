@@ -63,7 +63,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-/** GameDeck v0.056: tactile games, puzzles, CPU Arena and local-first player records. */
+/** GameDeck v0.060: tactile games, puzzles, CPU Arena and local-first player records. */
 object GameDeckCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100GameDeckMethod.ID
     override val title = "GameDeck"
@@ -97,6 +97,7 @@ object GameDeckCapabilityScreen : CapabilityScreenSpec {
         }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var returnedSessionId by rememberSaveable { mutableStateOf("") }
         var mancalaCpu by rememberSaveable { mutableStateOf(true) }
         var extraCpuOpponent by rememberSaveable(game) { mutableStateOf(false) }
         var sessionId by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
@@ -105,6 +106,9 @@ object GameDeckCapabilityScreen : CapabilityScreenSpec {
         val appContext = LocalContext.current.applicationContext
         val statsStore = remember(appContext) { GameDeckStatsStore(appContext) }
         var recordedEndKey by rememberSaveable { mutableStateOf("") }
+        val externalInteractive =
+            context.submitsImmediately &&
+                !context.request.source.equals("intent_test", ignoreCase = true)
 
         fun currentSession(): GameDeckSession = GameDeckSessions.forGame(
             sessionId = sessionId,
@@ -128,7 +132,8 @@ object GameDeckCapabilityScreen : CapabilityScreenSpec {
                 moveCount = summary.moves,
                 rngMode = rngMode,
                 seed = seed,
-                session = session
+                session = session,
+                playerStatsJson = statsStore.toJson()
             )
 
             // Do not echo a hidden fixed seed into the request context while a
@@ -158,6 +163,7 @@ object GameDeckCapabilityScreen : CapabilityScreenSpec {
         fun refreshSnapshot() { result = buildResult() }
         fun openGame(selected: String) {
             sessionId = UUID.randomUUID().toString()
+            returnedSessionId = ""
             tabletopMenuOpen = false
             gameHelpOpen = false
             game = selected
@@ -171,6 +177,7 @@ object GameDeckCapabilityScreen : CapabilityScreenSpec {
         }
         fun reset() {
             sessionId = UUID.randomUUID().toString()
+            returnedSessionId = ""
             stateJson = if (game == GAMEDECK_STATS || game == GAMEDECK_SIMULATOR) {
                 JSONObject().put("game", game).put("turn", 1).put("winner", "").put("moves", 0).toString()
             } else if (GameDeckExtraEngine.isSupported(game)) {
@@ -193,32 +200,35 @@ object GameDeckCapabilityScreen : CapabilityScreenSpec {
         }
 
         LaunchedEffect(context.presentationMode, context.submitsImmediately, context.request.source) {
-            val genuineExternalAutoSubmit = context.submitsImmediately && !context.request.source.equals("intent_test", ignoreCase = true)
-            if (genuineExternalAutoSubmit && !launched) {
+            if (!launched) {
                 launched = true
-                onConfirmed(buildResult())
-            } else if (!launched) {
-                launched = true
-                refreshSnapshot()
+
+                // ODK/Kobo external execution is an instruction to PLAY the
+                // requested game. Opening the interface is not a completed result.
+                if (!externalInteractive) {
+                    refreshSnapshot()
+                }
             }
         }
 
         val keepLiveDashboard = context.presentationMode == CapabilityPresentationMode.Dashboard || context.isNativePresetRun
-        val scaffoldResult = if (keepLiveDashboard) null else result
+        val scaffoldResult = if (keepLiveDashboard || externalInteractive) null else result
         val summary = GameDeckEngine.stateSummary(stateJson)
 
         LaunchedEffect(summary.winner, soundEnabled) {
             if (summary.winner.isNotBlank()) GameDeckSound.win(soundEnabled)
         }
 
-        LaunchedEffect(game, stateJson) {
-            val rawWinner = runCatching { JSONObject(stateJson).optString("winner") }.getOrDefault("")
+        LaunchedEffect(game, stateJson, externalInteractive, sessionId) {
+            val finishedState = runCatching { JSONObject(stateJson) }.getOrElse { JSONObject() }
+            val rawWinner = finishedState.optString("winner")
+
             if (rawWinner.isNotBlank() && game != GAMEDECK_STATS && game != GAMEDECK_SIMULATOR) {
-                val key = "$game|$rawWinner|${JSONObject(stateJson).optInt("moves", 0)}"
+                val key = "$game|$rawWinner|${finishedState.optInt("moves", 0)}"
+
                 if (key != recordedEndKey) {
-                    val finishedState = JSONObject(stateJson)
-                    // Seat semantics come from the session contract rather than
-                    // being re-derived from UI booleans at result time.
+                    // Record first so the player-stats JSON returned to ODK
+                    // includes the game that just finished.
                     val trackedHumanSeat = GameDeckSessions.trackedHumanSeat(currentSession())
                     statsStore.record(
                         sessionId = sessionId,
@@ -229,6 +239,17 @@ object GameDeckCapabilityScreen : CapabilityScreenSpec {
                         score = finishedState.optInt("score", Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE }
                     )
                     recordedEndKey = key
+                }
+
+                if (externalInteractive && returnedSessionId != sessionId) {
+                    returnedSessionId = sessionId
+                    val finalResult = buildResult()
+                    result = finalResult
+
+                    // Keep the terminal board/result visible briefly, then return
+                    // the completed result to the calling ODK form.
+                    delay(450)
+                    onConfirmed(finalResult)
                 }
             }
         }
@@ -314,6 +335,7 @@ object GameDeckCapabilityScreen : CapabilityScreenSpec {
                                         onCpuOpponentChanged = { enabled ->
                                             extraCpuOpponent = enabled
                                             sessionId = UUID.randomUUID().toString()
+                                            returnedSessionId = ""
                                             stateJson = GameDeckExtraEngine.newStateJson(game, rngMode, seed)
                                             recordedEndKey = ""
                                             refreshSnapshot()
@@ -413,7 +435,9 @@ object GameDeckCapabilityScreen : CapabilityScreenSpec {
                 }.orEmpty(),
                 onBack = onBack,
                 onRetry = { reset() },
-                onConfirm = { result?.let(onConfirmed) },
+                onConfirm = {
+                    if (!externalInteractive) result?.let(onConfirmed)
+                },
                 onCancel = onCancel
             ) {
                 gameContent()

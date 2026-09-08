@@ -88,3 +88,18 @@ Known deliberate limitations are documented rather than hidden:
 - Go: simple ko rather than positional superko; no separate dead-stone adjudication phase.
 
 A real MethodMesh Gradle build and on-device smoke test remain authoritative.
+
+
+## v0.060 ODK roundtrip checks
+
+Static checks confirm:
+
+- no external completion call remains in the startup effect;
+- external execution keeps the generic scaffold result unavailable while play is in progress;
+- terminal completion is gated to one return per session;
+- the completed game is recorded before `gamedeck_player_stats_json` is built;
+- Chess and Go retain chronological structured move logs;
+- `gamedeck_move_data_json` returns explicit move logs where available and a final public-state fallback for older engines;
+- example XLSForm declares score, player stats, move data and final-state outputs.
+
+A real MethodMesh Gradle build plus ODK Collect roundtrip remains authoritative.

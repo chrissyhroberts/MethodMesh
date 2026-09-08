@@ -169,8 +169,7 @@ object TrustedTimestampEngine {
 
     fun createProofZip(
         source: TimestampSource,
-        evidence: TrustedTimestampEvidence,
-        originalTextUtf8: ByteArray? = null
+        evidence: TrustedTimestampEvidence
     ): ByteArray {
         val entries = linkedMapOf<String, ByteArray>()
         entries["timestamp.tsq"] = evidence.requestDer
@@ -181,10 +180,6 @@ object TrustedTimestampEngine {
         evidence.rootCertificatePem?.let {
             entries["tsa-root.pem"] = it.toByteArray(Charsets.UTF_8)
         }
-        originalTextUtf8?.let {
-            entries["timestamped-text.txt"] = it
-        }
-
         val componentHashes = entries.mapValues { (_, bytes) -> bytes.sha256Hex() }
         entries["proof.json"] = ProofText.proofJson(source, evidence, componentHashes)
             .toByteArray(Charsets.UTF_8)

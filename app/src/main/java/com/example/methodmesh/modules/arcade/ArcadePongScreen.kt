@@ -53,6 +53,7 @@ internal fun PongArcade(
     val finished = state.optBoolean("finished", false)
     val serveTicks = state.optInt("serve_ticks", 0)
     val rally = state.optInt("rally", 0)
+    val cpuDifficulty = state.optString("cpu_difficulty", "standard").uppercase()
 
     val latestOnStep = rememberUpdatedState(onStep)
 
@@ -77,7 +78,7 @@ internal fun PongArcade(
             PongRail(
                 label = if (cpu) "CPU" else "PLAYER 2",
                 score = state.optInt("p2_score", 0),
-                detail = if (cpu) "AUTOMATIC" else "DRAG TOP HALF",
+                detail = if (cpu) "AUTOMATIC • $cpuDifficulty" else "DRAG TOP HALF",
                 top = true,
                 human = !cpu
             )
@@ -253,13 +254,13 @@ private fun PongCourt(
             val p1 = state.optDouble("p1", .5).toFloat() * size.width
             val p2 = state.optDouble("p2", .5).toFloat() * size.width
             val paddleWidth = size.width * .28f
-            val paddleHeight = 13f
+            val paddleHeight = size.height * .025f
 
             drawRoundRect(
                 color = Color(0xFFE84A5F),
                 topLeft = Offset(
                     p1 - paddleWidth / 2f,
-                    size.height * .94f
+                    size.height * .925f
                 ),
                 size = Size(paddleWidth, paddleHeight),
                 cornerRadius = CornerRadius(8f, 8f)
@@ -269,7 +270,7 @@ private fun PongCourt(
                 color = Color(0xFFFFC857),
                 topLeft = Offset(
                     p2 - paddleWidth / 2f,
-                    size.height * .04f
+                    size.height * .050f
                 ),
                 size = Size(paddleWidth, paddleHeight),
                 cornerRadius = CornerRadius(8f, 8f)

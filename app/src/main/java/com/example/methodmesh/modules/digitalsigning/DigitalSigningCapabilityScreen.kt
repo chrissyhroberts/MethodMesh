@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -62,13 +63,14 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
+import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URI
 import java.util.UUID
-import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -107,7 +109,12 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
 
         val isOdkLaunch = context.request.source.contains("odk", ignoreCase = true) ||
             context.request.invocationContext.caller.contains("odk", ignoreCase = true)
-        val pushedPdfUri = suppliedPdfUri()
+        // ODK file questions may expose app-private/transient attachment paths that are
+        // not readable by MethodMesh (ENOENT once handed across the app boundary).
+        // For ODK we therefore deliberately ignore pushed PDF values and let the
+        // operator choose the PDF from Android's document picker inside this tool.
+        // Non-ODK Android/protocol callers may still provide a stable content URI.
+        val pushedPdfUri = if (isOdkLaunch) "" else suppliedPdfUri()
         val finaliseForced = isOdkLaunch || context.submitsImmediately
 
         var finalisePdf by rememberSaveable { mutableStateOf(truthy(initial("finalise_pdf", "false"))) }
@@ -196,11 +203,6 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
             return current
         }
 
-        fun returnToHandler(committed: DigitalSigningCommittedResult) {
-            DigitalSigningDraftStore.clear(appContext)
-            onConfirmed(resultFor(committed))
-        }
-
         fun adoptDraft(draft: DigitalSigningDraftStore.RestoredDraft) {
             workingPdf = draft.workingPdf
             strokes = draft.strokes
@@ -264,7 +266,11 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                     }
                 }
                 restored != null -> adoptDraft(restored)
-                else -> status = "Choose a PDF to sign or mark up."
+                else -> status = if (isOdkLaunch) {
+                    "Choose the PDF for this ODK signing step. The document is selected inside MethodMesh rather than pushed from ODK."
+                } else {
+                    "Choose a PDF to sign or mark up."
+                }
             }
         }
 
@@ -304,8 +310,13 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
             isCommitting = true
             val completed = finishTimestampAndBundle(working, recovered)
             committedResult = completed
+            status = when {
+                completed.verificationBundle.status == "failed" -> "Deliverable A recovered; Deliverable B provenance ZIP could not be created."
+                completed.tsa.status == "verified" -> "Recovered signed PDF · trusted timestamp verified."
+                completed.tsa.status == "failed" -> "Recovered signed PDF · TSA unavailable; failure metadata bundled."
+                else -> "Recovered signed PDF."
+            }
             isCommitting = false
-            returnToHandler(completed)
         }
 
         fun commit() {
@@ -375,14 +386,51 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                     else -> "Signed PDF committed."
                 }
                 isCommitting = false
-                returnToHandler(completed)
             }
         }
 
+        val committedResultReady = committedResult?.let { committed ->
+            committed.tsa.status != "pending" && committed.verificationBundle.status != "pending"
+        } == true
+        val capturedResult = remember(committedResult, committedResultReady, context.action.settings, tsaUrl, penWidth, penColor) {
+            committedResult.takeIf { committedResultReady }?.let(::resultFor)
+        }
         val closeAction = if (context.stepNumber > 1) onBack else onCancel
 
-        val working = workingPdf
-        if (working == null) {
+        fun confirmResult() {
+            val result = capturedResult ?: return
+            DigitalSigningDraftStore.clear(appContext)
+            onConfirmed(result)
+        }
+
+        CapabilityScreenScaffold(
+            title = title,
+            capabilityId = capabilityId,
+            context = context,
+            canGoBack = context.stepNumber > 1,
+            capturedResult = capturedResult,
+            resultPreview = committedResult?.takeIf { committedResultReady }?.let { committed ->
+                // CapabilityScreenScaffold currently classifies only image/PDF-labelled
+                // URI fields as shareable files. Use presentation-only keys containing
+                // "pdf" for BOTH deliverables so the handler sends the real PDF + ZIP
+                // as files instead of converting Deliverable B's URI into a text attachment.
+                // Canonical ExecutionResult/ODK field IDs remain unchanged.
+                linkedMapOf<String, Any?>(
+                    "deliverable_a_signed_pdf_uri" to committed.signedPdfUri,
+                    "deliverable_b_pdf_provenance_bundle_uri" to committed.verificationBundle.uri.orEmpty()
+                ).filterValues { it?.toString()?.isNotBlank() == true }
+            }.orEmpty(),
+            onBack = onBack,
+            onRetry = {
+                committedResult = null
+                recoveredResultHandled = false
+                status = "Draft restored. Continue editing or commit another version."
+            },
+            onConfirm = ::confirmResult,
+            onCancel = onCancel
+        ) {
+            val working = workingPdf
+            if (working == null) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -447,7 +495,7 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                             }
                         },
                         penArgb = penArgb(penColor),
-                        canReplacePdf = !context.submitsImmediately,
+                        canReplacePdf = true,
                         onReplacePdf = { pdfPicker.launch(arrayOf("application/pdf")) },
                         onCopySourceHash = {
                             appContext.getSystemService(ClipboardManager::class.java)
@@ -496,6 +544,7 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                     if (isCommitting) BusyOverlay(status)
                 }
             }
+        }
         }
     }
 }
@@ -565,8 +614,6 @@ private fun FullScreenSigningWorkspace(
     onDone: () -> Unit,
     onClose: () -> Unit
 ) {
-    var showPagePicker by rememberSaveable { mutableStateOf(false) }
-
     Box(Modifier.fillMaxSize()) {
         PdfFullScreenPage(
             modifier = Modifier.fillMaxSize(),
@@ -610,9 +657,7 @@ private fun FullScreenSigningWorkspace(
             currentPage = currentPage,
             pageCount = workingPdf.pageCount,
             enabled = !isCommitting,
-            onPrevious = { onPageChanged(currentPage - 1) },
-            onNext = { onPageChanged(currentPage + 1) },
-            onGoToPage = { showPagePicker = true },
+            onPageChanged = onPageChanged,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 10.dp)
         )
 
@@ -624,17 +669,6 @@ private fun FullScreenSigningWorkspace(
             Text("Done", fontWeight = FontWeight.Bold)
         }
 
-        if (showPagePicker) {
-            GoToPageOverlay(
-                currentPage = currentPage,
-                pageCount = workingPdf.pageCount,
-                onGoToPage = { page ->
-                    onPageChanged(page)
-                    showPagePicker = false
-                },
-                onDismiss = { showPagePicker = false }
-            )
-        }
     }
 }
 
@@ -655,7 +689,10 @@ private fun pdfViewportLayout(
     pan: Offset
 ): PdfViewportLayout? {
     if (viewport.width <= 0 || viewport.height <= 0 || bitmapWidth <= 0 || bitmapHeight <= 0) return null
-    val baseScale = max(
+    // Fit the complete PDF page into the available viewport on first open.
+    // Subsequent pinch zoom multiplies this scale, so navigation still feels natural
+    // without starting cropped/zoomed-in.
+    val baseScale = min(
         viewport.width.toFloat() / bitmapWidth.toFloat(),
         viewport.height.toFloat() / bitmapHeight.toFloat()
     )
@@ -1026,74 +1063,67 @@ private fun PageOverlay(
     currentPage: Int,
     pageCount: Int,
     enabled: Boolean,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
-    onGoToPage: () -> Unit,
+    onPageChanged: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var pageText by rememberSaveable(pageCount) { mutableStateOf((currentPage + 1).toString()) }
+
+    LaunchedEffect(currentPage, pageCount) {
+        pageText = (currentPage + 1).coerceIn(1, pageCount.coerceAtLeast(1)).toString()
+    }
+
+    fun goToTypedPage() {
+        val requested = pageText.toIntOrNull()?.coerceIn(1, pageCount.coerceAtLeast(1)) ?: return
+        pageText = requested.toString()
+        onPageChanged(requested - 1)
+    }
+
+    fun step(delta: Int) {
+        val next = (currentPage + delta).coerceIn(0, (pageCount - 1).coerceAtLeast(0))
+        pageText = (next + 1).toString()
+        onPageChanged(next)
+    }
+
     Surface(modifier = modifier, shape = RoundedCornerShape(50), color = Color(0xE61D2422)) {
         Row(
             modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            RoundAction("‹", enabled && currentPage > 0, onPrevious)
+            RoundAction("‹", enabled && currentPage > 0) { step(-1) }
+
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White.copy(alpha = 0.14f)
+            ) {
+                BasicTextField(
+                    value = pageText,
+                    onValueChange = { value ->
+                        if (enabled) pageText = value.filter(Char::isDigit).take(5)
+                    },
+                    enabled = enabled,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = MaterialTheme.typography.labelLarge.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    ),
+                    modifier = Modifier
+                        .size(width = 42.dp, height = 32.dp)
+                        .padding(horizontal = 4.dp, vertical = 7.dp)
+                )
+            }
+
             Text(
-                "${currentPage + 1} / $pageCount",
-                modifier = Modifier
-                    .clickable(enabled = enabled, onClick = onGoToPage)
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                "/ $pageCount",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
-            RoundAction("›", enabled && currentPage < pageCount - 1, onNext)
-        }
-    }
-}
 
-@Composable
-private fun GoToPageOverlay(
-    currentPage: Int,
-    pageCount: Int,
-    onGoToPage: (Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var pageText by rememberSaveable(currentPage, pageCount) { mutableStateOf((currentPage + 1).toString()) }
-    val requested = pageText.toIntOrNull()
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.38f))
-            .clickable(onClick = onDismiss)
-    ) {
-        Surface(
-            modifier = Modifier.align(Alignment.Center).padding(28.dp).clickable { },
-            shape = RoundedCornerShape(22.dp),
-            color = Color(0xFFF4F0E8),
-            tonalElevation = 12.dp
-        ) {
-            Column(Modifier.padding(18.dp)) {
-                Text("Go to page", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFF1B2422))
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = pageText,
-                    onValueChange = { value -> pageText = value.filter(Char::isDigit).take(5) },
-                    label = { Text("Page 1–$pageCount") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(12.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                    Button(
-                        onClick = { requested?.let { onGoToPage(it - 1) } },
-                        enabled = requested != null && requested in 1..pageCount,
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Go") }
-                }
-            }
+            RoundAction("Go", enabled && pageText.toIntOrNull() != null, ::goToTypedPage)
+            RoundAction("›", enabled && currentPage < pageCount - 1) { step(1) }
         }
     }
 }

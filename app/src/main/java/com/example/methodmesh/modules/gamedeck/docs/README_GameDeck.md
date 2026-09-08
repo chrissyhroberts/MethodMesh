@@ -158,3 +158,37 @@ Solo sliding-number puzzle.
 - A new 2, or occasional 4, is generated after each successful move using the public Chance boundary.
 - The run ends when 2048 is reached or no legal moves remain.
 
+
+
+## ODK / Kobo interactive roundtrip
+
+GameDeck external invocation is a play request, not a snapshot request:
+
+```text
+ODK/Kobo
+  → EXECUTE_METHOD(game=chess)
+  → MethodMesh opens Chess
+  → player(s) play
+  → terminal outcome
+  → session/player record updated
+  → final result returned to ODK
+```
+
+The same lifecycle applies to every playable GameDeck game.
+
+Returned fields include:
+
+```text
+gamedeck_result
+gamedeck_winner
+gamedeck_move_count
+gamedeck_score
+gamedeck_player_stats_json
+gamedeck_move_data_json
+gamedeck_state_json
+gamedeck_audit_json
+```
+
+`gamedeck_move_data_json` is game-aware. Chess and Go have explicit chronological move logs. Codebreaker returns its guess history. Engines that predate the explicit event-stream contract return their terminal public state plus move count until they are migrated to first-class event logs.
+
+This preserves the important rule that ODK receives the result of the game that was actually played, never the state that existed when the interface opened.

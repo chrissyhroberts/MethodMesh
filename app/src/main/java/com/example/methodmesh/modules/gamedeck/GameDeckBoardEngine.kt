@@ -60,6 +60,7 @@ internal object GameDeckBoardEngine {
             .put("halfmove", 0)
             .put("last_from", -1)
             .put("last_to", -1)
+            .put("move_log", JSONArray())
             .toString()
     }
 
@@ -111,12 +112,30 @@ internal object GameDeckBoardEngine {
             s.optInt("halfmove", 0) + 1
         }
 
+        val moveNumber = s.optInt("moves", 0) + 1
+        val moveLog = JSONArray(s.optJSONArray("move_log")?.toString() ?: "[]")
+        moveLog.put(
+            JSONObject()
+                .put("move", moveNumber)
+                .put("seat", currentSeat)
+                .put("from_index", move.from)
+                .put("to_index", move.to)
+                .put("from", chessSquare(move.from))
+                .put("to", chessSquare(move.to))
+                .put("piece", chessPieceSymbol(movingPiece))
+                .put("captured_piece", if (capturedPiece == 0) JSONObject.NULL else chessPieceSymbol(capturedPiece))
+                .put("castle", move.rookFrom >= 0)
+                .put("en_passant", move.enPassantCapture >= 0)
+                .put("promotion", if (move.promotion != 0) chessPieceSymbol(if (currentSeat == 1) move.promotion else -move.promotion) else JSONObject.NULL)
+        )
+
         val out = JSONObject()
             .put("game", GameDeckExtraEngine.CHESS)
             .put("board", JSONArray(applied.board))
             .put("turn", nextSeat)
             .put("winner", "")
-            .put("moves", s.optInt("moves", 0) + 1)
+            .put("moves", moveNumber)
+            .put("move_log", moveLog)
             .put("castling", applied.castling)
             .put("en_passant", applied.enPassant)
             .put("halfmove", halfmove)
@@ -599,6 +618,13 @@ internal object GameDeckBoardEngine {
             .put("halfmove", s.optInt("halfmove", 0) + 1)
     }
 
+    private fun chessSquare(index: Int): String {
+        if (index !in 0..63) return ""
+        val file = ('a'.code + (index % 8)).toChar()
+        val rank = 8 - (index / 8)
+        return "$file$rank"
+    }
+
     fun chessPieceSymbol(piece: Int): String = when (piece) {
         PAWN -> "♙"
         KNIGHT -> "♘"
@@ -633,6 +659,7 @@ internal object GameDeckBoardEngine {
         .put("last", -1)
         .put("black_score", JSONObject.NULL)
         .put("white_score", JSONObject.NULL)
+        .put("move_log", JSONArray())
         .toString()
 
     fun goLegalMoves(stateJson: String): List<Int> {
@@ -665,11 +692,24 @@ internal object GameDeckBoardEngine {
             s.optJSONArray("captures")?.optInt(1) ?: 0
         )
         captures[seat - 1] += applied.captured
+        val moveNumber = s.optInt("moves", 0) + 1
+        val moveLog = JSONArray(s.optJSONArray("move_log")?.toString() ?: "[]")
+        moveLog.put(
+            JSONObject()
+                .put("move", moveNumber)
+                .put("seat", seat)
+                .put("point_index", index)
+                .put("row", index / 9 + 1)
+                .put("column", index % 9 + 1)
+                .put("captured", applied.captured)
+                .put("pass", false)
+        )
 
         return JSONObject(s.toString())
             .put("board", JSONArray(applied.board))
             .put("turn", 3 - seat)
-            .put("moves", s.optInt("moves", 0) + 1)
+            .put("moves", moveNumber)
+            .put("move_log", moveLog)
             .put("ko", applied.ko)
             .put("passes", 0)
             .put("captures", JSONArray(captures.toList()))
@@ -682,10 +722,19 @@ internal object GameDeckBoardEngine {
         if (s.optString("winner").isNotBlank()) return stateJson
         val passes = s.optInt("passes", 0) + 1
         val seat = s.optInt("turn", 1).coerceIn(1, 2)
+        val moveNumber = s.optInt("moves", 0) + 1
+        val moveLog = JSONArray(s.optJSONArray("move_log")?.toString() ?: "[]")
+        moveLog.put(
+            JSONObject()
+                .put("move", moveNumber)
+                .put("seat", seat)
+                .put("pass", true)
+        )
 
         val out = JSONObject(s.toString())
             .put("turn", 3 - seat)
-            .put("moves", s.optInt("moves", 0) + 1)
+            .put("moves", moveNumber)
+            .put("move_log", moveLog)
             .put("ko", -1)
             .put("passes", passes)
             .put("last", -1)

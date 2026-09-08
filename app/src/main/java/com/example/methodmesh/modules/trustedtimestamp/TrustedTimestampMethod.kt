@@ -31,8 +31,24 @@ object TrustedTimestampFields {
     const val POLICY_OID = "trusted_timestamp_policy_oid"
     const val TOKEN_SHA256 = "trusted_timestamp_token_sha256"
     const val TRUST_STATUS = "trusted_timestamp_trust_status"
+
+    /**
+     * Conditional ODK roundtrip returns. These are populated only when MethodMesh
+     * acquired the source on behalf of an external caller.
+     */
+    const val SOURCE_URI = "trusted_timestamp_source_uri"
+    const val SOURCE_TEXT = "trusted_timestamp_source_text"
+
     const val PROOF_FILENAME = "trusted_timestamp_proof_filename"
+
+    /**
+     * Historical canonical name retained for compatibility. For ODK this value
+     * is transported as a real attachment using ClipData/read grants; the user
+     * should not be left with the raw content URI.
+     */
     const val PROOF_URI = "trusted_timestamp_proof_uri"
+
+    /** Optional capability-owned metadata JSON for native/runtime use. */
     const val FULL_JSON = "trusted_timestamp_full_json"
     const val ERROR = "trusted_timestamp_error"
 
@@ -47,6 +63,8 @@ object TrustedTimestampFields {
         POLICY_OID,
         TOKEN_SHA256,
         TRUST_STATUS,
+        SOURCE_URI,
+        SOURCE_TEXT,
         PROOF_FILENAME,
         PROOF_URI,
         FULL_JSON,
@@ -56,7 +74,7 @@ object TrustedTimestampFields {
 
 object As100TrustedTimestampMethod : As100Method {
     const val ID = "integrity.trusted_timestamp"
-    private const val VERSION = "0.1.0"
+    private const val VERSION = "0.2.0"
 
     override val id = ID
     override val ref = ArchitectureRef(
@@ -71,11 +89,24 @@ object As100TrustedTimestampMethod : As100Method {
         name = "Trusted timestamp",
         version = VERSION,
         description = "Create a portable RFC 3161 proof that exact bytes existed no later than a trusted time.",
+        inputs = listOf(
+            TrustedTimestampContractMetadata.RUNTIME_INPUT_TEXT,
+            TrustedTimestampContractMetadata.RUNTIME_INPUT_FILE,
+            TrustedTimestampContractMetadata.RUNTIME_TSA_URL,
+            TrustedTimestampContractMetadata.RUNTIME_TIMEOUT_MS
+        ),
         outputs = TrustedTimestampFields.outputs,
         graphOutputs = listOf(ID),
         parameters = mapOf(
-            "category" to "Development",
-            "status" to "Development"
+            "category" to "Integrity",
+            "status" to TrustedTimestampContractMetadata.MATURITY,
+            "maturity" to TrustedTimestampContractMetadata.MATURITY,
+            "connectivity" to TrustedTimestampContractMetadata.CONNECTIVITY,
+            "interactive" to "true",
+            "core_return" to TrustedTimestampFields.PROOF_URI,
+            "conditional_external_return" to "${TrustedTimestampFields.SOURCE_URI}, ${TrustedTimestampFields.SOURCE_TEXT}",
+            "runtime_projection" to "source first, proof ZIP second, metadata optional",
+            "odk_metadata_return" to "methodmesh_full_json"
         )
     )
 

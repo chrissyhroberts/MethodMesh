@@ -8,6 +8,19 @@ import org.json.JSONObject
 import java.io.File
 import java.util.UUID
 
+val REFERENCE_LIBRARY_BUILT_IN_SHELVES = listOf(
+    LibraryShelf("first_aid", "First aid"),
+    LibraryShelf("medical", "Medical"),
+    LibraryShelf("safety", "Safety"),
+    LibraryShelf("fieldwork", "Fieldwork"),
+    LibraryShelf("equipment", "Equipment"),
+    LibraryShelf("travel", "Travel"),
+    LibraryShelf("personal", "Personal")
+)
+
+val REFERENCE_LIBRARY_BUILT_IN_SHELF_IDS: Set<String> =
+    REFERENCE_LIBRARY_BUILT_IN_SHELVES.map { it.id }.toSet() + "all"
+
 data class LibraryShelf(
     val id: String,
     val label: String
@@ -74,42 +87,96 @@ class ReferenceLibraryRepository(context: Context) {
     }
 
     /**
-     * Persist a dependency-produced document into MethodMesh-owned storage.
-     * Scanner outputs are cache-backed, so a library entry must never point at
-     * the scanner cache directly. The custom name becomes both the shelf title
-     * and the managed PDF filename.
+     * Persist a dependency-produced or explicitly imported document into
+     * MethodMesh-owned storage. This is used for scanner outputs and nearby
+     * uploads where retaining a provider/cache URI would not be reliable.
      */
     fun importManagedCopy(
         sourceUri: Uri,
         title: String,
         shelf: String,
         mimeType: String = "application/pdf",
-        source: String = "MethodMesh document scanner"
+        source: String = "MethodMesh document scanner",
+        storageFolder: String = "scans"
     ): LibraryDocument {
-        val directory = File(appContext.filesDir, "reference_library/scans").apply { mkdirs() }
-        val extension = when {
-            mimeType.equals("application/pdf", ignoreCase = true) -> ".pdf"
-            mimeType.startsWith("image/") -> ".jpg"
-            else -> ""
+        val target = createManagedTarget(title, mimeType, storageFolder)
+        appContext.contentResolver.openInputStream(sourceUri)?.use { input ->
+            target.outputStream().use { output -> input.copyTo(output) }
+        } ?: error("The source document could not be read.")
+        return importManagedFileRecord(target, title, shelf, mimeType, source)
+    }
+
+    fun importManagedFile(
+        sourceFile: File,
+        title: String,
+        shelf: String,
+        mimeType: String = "application/octet-stream",
+        source: String = "Nearby upload",
+        storageFolder: String = "nearby"
+    ): LibraryDocument {
+        require(sourceFile.isFile) { "The uploaded document is unavailable." }
+        val target = createManagedTarget(title, mimeType, storageFolder)
+        sourceFile.inputStream().use { input ->
+            target.outputStream().use { output -> input.copyTo(output) }
         }
-        val base = safeFileStem(title.ifBlank { "Scanned document" })
+        return importManagedFileRecord(target, title, shelf, mimeType, source)
+    }
+
+    private fun importManagedFileRecord(
+        file: File,
+        title: String,
+        shelf: String,
+        mimeType: String,
+        source: String
+    ): LibraryDocument {
+        val managedUri = FileProvider.getUriForFile(appContext, "${appContext.packageName}.fileprovider", file)
+        return importDocument(
+            title = title.trim().ifBlank { file.name },
+            shelf = shelf.ifBlank { "personal" },
+            uri = managedUri,
+            mimeType = mimeType.ifBlank { "application/octet-stream" },
+            source = source.ifBlank { "User supplied" }
+        )
+    }
+
+    private fun createManagedTarget(title: String, mimeType: String, storageFolder: String): File {
+        val safeFolder = storageFolder.lowercase().replace(Regex("[^a-z0-9_-]"), "_").ifBlank { "imports" }
+        val directory = File(appContext.filesDir, "reference_library/$safeFolder").apply { mkdirs() }
+        val trimmedTitle = title.trim().ifBlank { "Document" }
+        val extension = managedExtension(trimmedTitle, mimeType)
+        val stemSource = if (extension.isNotBlank() && trimmedTitle.lowercase().endsWith(extension.lowercase())) {
+            trimmedTitle.dropLast(extension.length)
+        } else {
+            trimmedTitle
+        }
+        val base = safeFileStem(stemSource)
         var file = File(directory, base + extension)
         var suffix = 2
         while (file.exists()) {
             file = File(directory, "$base ($suffix)$extension")
             suffix += 1
         }
-        appContext.contentResolver.openInputStream(sourceUri)?.use { input ->
-            file.outputStream().use { output -> input.copyTo(output) }
-        } ?: error("The scanned document could not be read.")
-        val managedUri = FileProvider.getUriForFile(appContext, "${appContext.packageName}.fileprovider", file)
-        return importDocument(
-            title = title.ifBlank { file.nameWithoutExtension },
-            shelf = shelf,
-            uri = managedUri,
-            mimeType = mimeType,
-            source = source
-        )
+        return file
+    }
+
+    private fun managedExtension(title: String, mimeType: String): String {
+        val fromName = title.substringAfterLast('.', "")
+            .takeIf { it.length in 1..12 && it.all { char -> char.isLetterOrDigit() } }
+            ?.lowercase()
+        if (fromName != null) return ".$fromName"
+        return when (mimeType.lowercase()) {
+            "application/pdf" -> ".pdf"
+            "image/jpeg", "image/jpg" -> ".jpg"
+            "image/png" -> ".png"
+            "image/webp" -> ".webp"
+            "text/plain" -> ".txt"
+            "text/csv" -> ".csv"
+            "application/json" -> ".json"
+            "application/geo+json" -> ".geojson"
+            "application/vnd.google-earth.kml+xml" -> ".kml"
+            "application/zip" -> ".zip"
+            else -> ""
+        }
     }
 
     fun markOpened(id: String) {
@@ -249,6 +316,6 @@ class ReferenceLibraryRepository(context: Context) {
     companion object {
         private const val KEY_DOCUMENTS = "documents"
         private const val KEY_CUSTOM_SHELVES = "custom_shelves"
-        private val BUILT_IN_SHELF_IDS = setOf("all", "first_aid", "medical", "safety", "fieldwork", "equipment", "travel", "personal")
+        private val BUILT_IN_SHELF_IDS = REFERENCE_LIBRARY_BUILT_IN_SHELF_IDS
     }
 }

@@ -93,6 +93,7 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
         var statusMessage by rememberSaveable { mutableStateOf<String?>(null) }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var scannerActive by rememberSaveable { mutableStateOf(false) }
+        var peerManagerActive by rememberSaveable { mutableStateOf(false) }
         var scannerHandled by rememberSaveable { mutableStateOf(false) }
         var pendingScanUri by rememberSaveable { mutableStateOf<String?>(null) }
         var pendingScanName by rememberSaveable { mutableStateOf("") }
@@ -271,6 +272,56 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
             return
         }
 
+        if (peerManagerActive) {
+            val peerAction = remember {
+                ExternalActionRequest(
+                    requestedId = As100ReferenceLibraryPeerMethod.ID,
+                    canonicalId = As100ReferenceLibraryPeerMethod.ID,
+                    settings = mapOf(
+                        "network_mode" to "local_hotspot",
+                        "session_minutes" to "30",
+                        "max_file_mb" to "250",
+                        "default_shelf" to (if (shelf == "all") "personal" else shelf),
+                        "allow_edits" to "true"
+                    )
+                )
+            }
+            val peerContext = context.copy(
+                action = peerAction,
+                request = context.request.copy(
+                    actions = listOf(peerAction),
+                    source = "reference_library_dependency"
+                ),
+                stepNumber = 1,
+                totalSteps = 1,
+                completionMode = CapabilityCompletionMode.ManualConfirmation,
+                presentationMode = CapabilityPresentationMode.Dashboard,
+                onSettingsChanged = {}
+            )
+            ReferenceLibraryPeerCapabilityScreen.Render(
+                context = peerContext,
+                onBack = {
+                    peerManagerActive = false
+                    documents = repository.documents()
+                    customShelves = repository.customShelves()
+                },
+                onConfirmed = { resultValue ->
+                    peerManagerActive = false
+                    documents = repository.documents()
+                    customShelves = repository.customShelves()
+                    val fields = OutputFormatter.fields(resultValue, includeProvenance = false)
+                    val count = fields[ReferenceLibraryPeerFields.UPLOADED_COUNT]?.toString()?.toIntOrNull() ?: 0
+                    statusMessage = if (count > 0) "Nearby session added $count document${if (count == 1) "" else "s"}" else "Nearby session finished"
+                },
+                onCancel = {
+                    peerManagerActive = false
+                    documents = repository.documents()
+                    customShelves = repository.customShelves()
+                }
+            )
+            return
+        }
+
         val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
             uri ?: return@rememberLauncherForActivityResult
             val permissionPersisted = runCatching {
@@ -292,6 +343,48 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
             } else {
                 selectedId = null
                 result = null
+            }
+        }
+
+        val batchPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+            if (uris.isEmpty()) return@rememberLauncherForActivityResult
+            var managedFallbacks = 0
+            var failures = 0
+            uris.forEach { uri ->
+                runCatching {
+                    val permissionPersisted = runCatching {
+                        appContext.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        true
+                    }.getOrDefault(false)
+                    val name = runCatching {
+                        appContext.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                            if (cursor.moveToFirst()) cursor.getString(0) else null
+                        }
+                    }.getOrNull().orEmpty().ifBlank { "Imported document" }
+                    val mime = appContext.contentResolver.getType(uri).orEmpty().ifBlank { "application/octet-stream" }
+                    if (permissionPersisted) {
+                        repository.importDocument(name, pendingShelf, uri, mime)
+                    } else {
+                        repository.importManagedCopy(
+                            sourceUri = uri,
+                            title = name,
+                            shelf = pendingShelf,
+                            mimeType = mime,
+                            source = "Batch import",
+                            storageFolder = "imports"
+                        )
+                        managedFallbacks += 1
+                    }
+                }.onFailure { failures += 1 }
+            }
+            documents = repository.documents()
+            selectedId = null
+            result = null
+            val added = uris.size - failures
+            statusMessage = buildString {
+                append("Added $added document${if (added == 1) "" else "s"} to ${pendingShelf.labelForShelf()}")
+                if (managedFallbacks > 0) append(" · $managedFallbacks copied into managed storage")
+                if (failures > 0) append(" · $failures failed")
             }
         }
 
@@ -379,7 +472,10 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (dashboardMode) {
-                        TextButton(onClick = { manageShelves = true }) { Text("Shelves") }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { peerManagerActive = true }) { Text("Nearby") }
+                            TextButton(onClick = { manageShelves = true }) { Text("Shelves") }
+                        }
                     }
                 }
 
@@ -471,7 +567,7 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
                         filtered = documents.isNotEmpty(),
                         onImport = {
                             pendingShelf = if (shelf == "all") "personal" else shelf
-                            picker.launch(arrayOf("application/pdf", "text/*", "image/*"))
+                            if (dashboardMode) batchPicker.launch(arrayOf("*/*")) else picker.launch(arrayOf("*/*"))
                         }
                     )
                 } else {
@@ -556,17 +652,17 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
                         OutlinedButton(
                             onClick = {
                                 pendingShelf = if (shelf == "all") "personal" else shelf
-                                picker.launch(arrayOf("application/pdf", "text/*", "image/*"))
+                                batchPicker.launch(arrayOf("*/*"))
                             },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(15.dp)
-                        ) { Text("Add file") }
+                        ) { Text("Add files") }
                     }
                 } else {
                     Button(
                         onClick = {
                             pendingShelf = if (shelf == "all") "personal" else shelf
-                            picker.launch(arrayOf("application/pdf", "text/*", "image/*"))
+                            picker.launch(arrayOf("*/*"))
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(15.dp)
@@ -776,15 +872,7 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
     }
 }
 
-private val BUILT_IN_SHELVES = listOf(
-    LibraryShelf("first_aid", "First aid"),
-    LibraryShelf("medical", "Medical"),
-    LibraryShelf("safety", "Safety"),
-    LibraryShelf("fieldwork", "Fieldwork"),
-    LibraryShelf("equipment", "Equipment"),
-    LibraryShelf("travel", "Travel"),
-    LibraryShelf("personal", "Personal")
-)
+private val BUILT_IN_SHELVES = REFERENCE_LIBRARY_BUILT_IN_SHELVES
 
 private fun String.labelForShelf(): String =
     BUILT_IN_SHELVES.firstOrNull { it.id == this }?.label ?: replace('_', ' ').replaceFirstChar { it.uppercase() }
@@ -1017,7 +1105,7 @@ private fun EmptyLibraryCard(filtered: Boolean, onImport: () -> Unit) {
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                if (filtered) "Try another search or shelf." else "Add a PDF, text file or image and it will be ready offline.",
+                if (filtered) "Try another search or shelf." else "Add documents, maps or other useful files and keep them ready offline.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 5.dp, bottom = 8.dp)

@@ -125,3 +125,19 @@ Method version: `0.0.7`.
 - Replaced four invalid `GameDeckSound.turn(...)` calls in Chess/Go with the existing `GameDeckSound.move(...)` sound boundary.
 - Fixed `puzzlePublic(...)`: `JSONObject.remove(...)` returns the removed value and therefore cannot be chained into `.put(...)`.
 - Method version bumped to `0.0.11`.
+
+
+## v0.060 — interactive ODK roundtrip
+
+- Corrected the external/ODK lifecycle: opening GameDeck no longer immediately returns the initial game snapshot.
+- An external `gamedeck.snapshot` request now opens the requested game/puzzle and stays in MethodMesh until a terminal outcome is reached.
+- The completed session is recorded before result construction so returned player statistics include the just-finished game.
+- External completion is emitted once per session after a short terminal-board delay.
+- Added `gamedeck_score`.
+- Added `gamedeck_player_stats_json`.
+- Added `gamedeck_move_data_json`.
+- Chess now retains a structured move log with seat, from/to squares, piece, capture, castle, en-passant and promotion metadata.
+- Go 9×9 now retains a structured move/pass log with seat, point and capture count.
+- Older games still return useful terminal move/play data via their public final state when they do not yet have an explicit event log.
+- Updated the example XLSForm from snapshot semantics to explicit “Play GameDeck game” semantics.
+- Method version bumped to `0.0.12`.

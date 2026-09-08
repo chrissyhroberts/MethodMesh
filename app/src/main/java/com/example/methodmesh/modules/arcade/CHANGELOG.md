@@ -77,3 +77,43 @@
 - Replaced delegated `rememberUpdatedState` reads in Snake, Pong, Brick Breaker and Lane Dodge with explicit `State.value` access.
 - This removes the need for the Compose `getValue` delegate import and fixes the `State has no method getValue` / cascading `latestOnStep` compiler errors.
 - Method version bumped to `0.0.6`.
+
+
+## v0.033 — skill physics, Wall Break levels and full-height Snake
+
+- Reworked Pong and Wall Break paddle physics using established open-source arcade-game behaviour: impact position aims the outgoing ball and paddle motion adds horizontal "english".
+- Paddle returns use bounded angular deflection (about ±64°), minimum vertical velocity and speed caps rather than rail-like component flipping.
+- Pong CPU now predicts the ball intercept after side-wall reflections and moves toward that target.
+- Wall Break brick collision now uses circle-vs-rectangle closest-point contact and contact-side reflection.
+- Wall Break now has five distinct levels: Wall, Checker, Fortress, Chevron and Crown; later layouts include two-hit bricks.
+- Snake expanded from 10×10 to an 18×30 portrait grid.
+- Removed the on-screen Snake D-pad; swipe is the primary steering interaction.
+- Replaced four coarse Snake speed presets with a granular 3–16 cells/second slider that can be adjusted during play.
+- Updated typed capability setting to `snake_speed_cps` with compatibility for older preset strings.
+- Method version bumped to `0.0.7`.
+
+
+## v0.034 — interactive ODK roundtrip
+
+- Corrected the external/ODK lifecycle: opening Arcade no longer immediately returns an initial/historical-looking snapshot.
+- An external `arcade.snapshot` request now opens the requested live game and remains in MethodMesh until the game reaches a terminal state.
+- The finished session is recorded before the result is built, so returned player statistics include the game just played.
+- External completion is emitted once per session after a short terminal-frame delay.
+- Added `arcade_player_stats_json`.
+- Added `arcade_play_data_json` with game-specific terminal play metrics.
+- Updated the example XLSForm from “Get snapshot” semantics to “Play game” semantics.
+- Method version bumped to `0.0.8`.
+
+
+## v0.035 — Central-compatible ODK showcase controls
+
+- Restored the legacy `snake_speed` select-one field in the example XLSForm so existing ODK Central form structure is preserved.
+- Kept `snake_speed_cps` as the authoritative granular Snake control (3–16 cells/second).
+- Added ODK-configurable Pong CPU difficulty: `casual`, `standard`, `sharp`.
+- Added ODK-configurable Wall Break starting level: 1–5.
+- Added ODK-configurable Lane Dodge difficulty: `easy`, `normal`, `hard`.
+- Pong CPU difficulty changes reaction rate and prediction error while preserving the same ball/paddle physics.
+- Lane Dodge difficulty changes starting pressure while normal in-game level progression remains active.
+- Wall Break can start directly on any of the five wall layouts and continues through later levels.
+- Returned play-data JSON now includes the selected difficulty/start-level metadata.
+- Method version bumped to `0.0.9`.

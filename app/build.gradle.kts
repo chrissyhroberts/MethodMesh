@@ -102,3 +102,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
+
+// MethodMesh module-owned XLSForm design-template catalogue
+apply(from = "src/main/java/com/example/methodmesh/ui/integration/odk-template-assets.gradle.kts")

@@ -110,6 +110,23 @@ class ArcadeRecordStore(context: Context) {
         dodgeBestScore = prefs.getInt("dodge_best_score", 0)
     )
 
+
+    fun toJson(): String {
+        val s = snapshot()
+        return JSONObject()
+            .put("total_games", s.totalGames)
+            .put("snake_games", s.snakeGames)
+            .put("snake_best_score", s.snakeBestScore)
+            .put("snake_longest", s.snakeLongest)
+            .put("pong_cpu_wins", s.pongCpuWins)
+            .put("pong_cpu_losses", s.pongCpuLosses)
+            .put("pong_shared_matches", s.pongSharedMatches)
+            .put("breakout_best_score", s.breakoutBestScore)
+            .put("breakout_clears", s.breakoutClears)
+            .put("dodge_best_score", s.dodgeBestScore)
+            .toString()
+    }
+
     private fun recordedOrder(): List<String> {
         val raw = prefs.getString("recorded_session_order", "[]") ?: "[]"
         val arr = runCatching { JSONArray(raw) }.getOrElse { JSONArray() }

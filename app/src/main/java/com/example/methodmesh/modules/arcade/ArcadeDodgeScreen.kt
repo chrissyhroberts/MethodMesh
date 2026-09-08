@@ -44,6 +44,7 @@ internal fun LaneDodgeArcade(
     val state = JSONObject(stateJson)
     val started = state.optBoolean("started", false)
     val finished = state.optBoolean("finished", false)
+    val difficulty = state.optString("difficulty", "normal").uppercase()
 
     val latestOnStep = rememberUpdatedState(onStep)
 
@@ -95,7 +96,7 @@ internal fun LaneDodgeArcade(
                             fontWeight = FontWeight.Black
                         )
                         Text(
-                            "DODGED  •  LEVEL ${state.optInt("level", 1)}",
+                            "$difficulty  •  DODGED  •  LEVEL ${state.optInt("level", 1)}",
                             style = MaterialTheme.typography.labelSmall
                         )
                     }

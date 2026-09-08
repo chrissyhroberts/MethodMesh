@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import org.json.JSONObject
+import kotlin.math.sqrt
 
 @Composable
 internal fun BreakoutArcade(
@@ -45,7 +46,13 @@ internal fun BreakoutArcade(
     val started = state.optBoolean("started", false)
     val finished = state.optBoolean("finished", false)
     val serveTicks = state.optInt("serve_ticks", 0)
-    val pace = 1 + (state.optInt("score", 0) / 50)
+    val level = state.optInt("level", 1)
+    val totalLevels = state.optInt("total_levels", 5)
+    val levelName = state.optString("level_name", "WALL")
+    val speed = sqrt(
+        state.optDouble("vx", 0.0) * state.optDouble("vx", 0.0) +
+            state.optDouble("vy", 0.0) * state.optDouble("vy", 0.0)
+    )
 
     val latestOnStep = rememberUpdatedState(onStep)
 
@@ -81,13 +88,14 @@ internal fun BreakoutArcade(
                 ) {
                     Column {
                         Text(
-                            "BRICK BREAKER",
+                            "WALL BREAK",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Black
                         )
                         Text(
-                            "Drag or tap to move the paddle",
-                            style = MaterialTheme.typography.labelSmall
+                            "L$level/$totalLevels • $levelName",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                     Column(horizontalAlignment = Alignment.End) {
@@ -97,7 +105,7 @@ internal fun BreakoutArcade(
                             fontWeight = FontWeight.Black
                         )
                         Text(
-                            "SCORE  •  ${state.optInt("lives", 3)} lives  •  PACE $pace",
+                            "${state.optInt("lives", 3)} lives • ball ${"%.2f".format(speed)}",
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
@@ -131,12 +139,12 @@ internal fun BreakoutArcade(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            "BREAK THE WALL",
+                            "BREAK FIVE WALLS",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Black
                         )
                         Text(
-                            "Clear all 30 bricks. You have three balls.",
+                            "Where the ball hits — and how the paddle is moving — changes the return angle. Clear five different layouts.",
                             textAlign = TextAlign.Center
                         )
                         Button(onClick = onStart) {
@@ -156,7 +164,7 @@ internal fun BreakoutArcade(
                     tonalElevation = 6.dp
                 ) {
                     Text(
-                        "READY",
+                        "LEVEL $level • $levelName",
                         Modifier.padding(horizontal = 18.dp, vertical = 9.dp),
                         fontWeight = FontWeight.Black
                     )
@@ -175,6 +183,8 @@ private fun BreakoutCourt(
 ) {
     val state = JSONObject(stateJson)
     val bricks = state.getJSONArray("bricks")
+    val rows = state.optInt("rows", 5).coerceAtLeast(1)
+    val cols = state.optInt("cols", 6).coerceAtLeast(1)
 
     Box(
         Modifier
@@ -203,61 +213,67 @@ private fun BreakoutCourt(
                 cornerRadius = CornerRadius(22f, 22f)
             )
 
-            val brickGap = size.width * .008f
-            val brickWidth = (size.width - brickGap * 7f) / 6f
-            val brickHeight = size.height * .048f
-            val startY = size.height * .11f
-            val rowGap = size.height * .016f
-
-            for (row in 0 until 5) {
-                for (col in 0 until 6) {
-                    val index = row * 6 + col
-                    if (bricks.optInt(index, 1) == 0) continue
-                    val left = brickGap + col * (brickWidth + brickGap)
-                    val top = startY + row * (brickHeight + rowGap)
-                    val brickColor = when (row) {
-                        0 -> Color(0xFFFFC857)
-                        1 -> Color(0xFFF4A261)
-                        2 -> Color(0xFFE76F51)
-                        3 -> Color(0xFF6EC6CA)
-                        else -> Color(0xFF7BE495)
-                    }
-                    drawRoundRect(
-                        color = brickColor,
-                        topLeft = Offset(left, top),
-                        size = Size(brickWidth, brickHeight),
-                        cornerRadius = CornerRadius(7f, 7f)
+            for (index in 0 until rows * cols) {
+                val hp = bricks.optInt(index, 0)
+                if (hp <= 0) continue
+                val rect = ArcadeBreakoutRules.brickRect(index, rows, cols)
+                val row = index / cols
+                val baseColor = when (row % 5) {
+                    0 -> Color(0xFFFFC857)
+                    1 -> Color(0xFFF4A261)
+                    2 -> Color(0xFFE76F51)
+                    3 -> Color(0xFF6EC6CA)
+                    else -> Color(0xFF7BE495)
+                }
+                drawRoundRect(
+                    color = if (hp >= 2) baseColor.copy(alpha = .72f) else baseColor,
+                    topLeft = Offset(
+                        (rect.left * size.width).toFloat(),
+                        (rect.top * size.height).toFloat()
+                    ),
+                    size = Size(
+                        ((rect.right - rect.left) * size.width).toFloat(),
+                        ((rect.bottom - rect.top) * size.height).toFloat()
+                    ),
+                    cornerRadius = CornerRadius(7f, 7f)
+                )
+                if (hp >= 2) {
+                    val cx = ((rect.left + rect.right) * .5 * size.width).toFloat()
+                    val cy = ((rect.top + rect.bottom) * .5 * size.height).toFloat()
+                    drawCircle(
+                        color = Color.White.copy(alpha = .72f),
+                        radius = 3.5f,
+                        center = Offset(cx, cy)
                     )
                 }
             }
 
             val paddleX = state.optDouble("paddle", .5).toFloat() * size.width
-            val paddleWidth = size.width * .30f
+            val paddleWidth = size.width * (ArcadeBreakoutRules.PADDLE_HALF * 2.0).toFloat()
+            val paddleTop = size.height * ArcadeBreakoutRules.PADDLE_Y.toFloat()
+            val paddleHeight = size.height * ArcadeBreakoutRules.PADDLE_HEIGHT.toFloat()
             drawRoundRect(
                 color = Color(0xFF7BE495),
                 topLeft = Offset(
                     paddleX - paddleWidth / 2f,
-                    size.height * .92f
+                    paddleTop
                 ),
-                size = Size(paddleWidth, 14f),
-                cornerRadius = CornerRadius(8f, 8f)
+                size = Size(paddleWidth, paddleHeight),
+                cornerRadius = CornerRadius(paddleHeight * .5f, paddleHeight * .5f)
             )
 
+            val ballX = state.optDouble("ball_x", .5).toFloat() * size.width
+            val ballY = state.optDouble("ball_y", .72).toFloat() * size.height
+            val radius = minOf(size.width, size.height) * ArcadeBreakoutRules.BALL_RADIUS.toFloat()
             drawCircle(
                 color = Color.Black.copy(alpha = .22f),
-                radius = 11f,
-                center = Offset(
-                    state.optDouble("ball_x", .5).toFloat() * size.width + 2f,
-                    state.optDouble("ball_y", .72).toFloat() * size.height + 3f
-                )
+                radius = radius * 1.18f,
+                center = Offset(ballX + 2f, ballY + 3f)
             )
             drawCircle(
                 color = Color.White,
-                radius = 9f,
-                center = Offset(
-                    state.optDouble("ball_x", .5).toFloat() * size.width,
-                    state.optDouble("ball_y", .72).toFloat() * size.height
-                )
+                radius = radius,
+                center = Offset(ballX, ballY)
             )
         }
     }

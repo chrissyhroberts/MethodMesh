@@ -40,11 +40,34 @@ object ArcadeModule : MethodMeshModule {
                     ArcadeEngine.DODGE
                 )
             ),
-            MethodSetting.ChoiceSetting(
-                "snake_speed",
+            MethodSetting.IntSetting(
+                "snake_speed_cps",
                 "Snake speed",
-                defaultValue = ArcadeSnakeSpeed.RELAXED,
-                choices = ArcadeSnakeSpeed.modes
+                defaultValue = ArcadeSnakeSpeed.DEFAULT_CPS,
+                minimum = ArcadeSnakeSpeed.MIN_CPS,
+                maximum = ArcadeSnakeSpeed.MAX_CPS,
+                step = 1,
+                unit = "cells/s"
+            ),
+            MethodSetting.ChoiceSetting(
+                "pong_cpu_difficulty",
+                "Pong CPU difficulty",
+                defaultValue = "standard",
+                choices = listOf("casual", "standard", "sharp")
+            ),
+            MethodSetting.IntSetting(
+                "breakout_start_level",
+                "Wall Break starting level",
+                defaultValue = 1,
+                minimum = 1,
+                maximum = 5,
+                step = 1
+            ),
+            MethodSetting.ChoiceSetting(
+                "dodge_difficulty",
+                "Lane Dodge difficulty",
+                defaultValue = "normal",
+                choices = listOf("easy", "normal", "hard")
             ),
             MethodSetting.ChoiceSetting(
                 "rng_mode",

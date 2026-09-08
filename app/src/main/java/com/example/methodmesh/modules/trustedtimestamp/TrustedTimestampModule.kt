@@ -9,6 +9,9 @@ object TrustedTimestampModule : MethodMeshModule {
     override val displayName = "Trusted timestamp"
     override val summary = "Create portable RFC 3161 proof-of-existence bundles without uploading the source content."
 
+    val maturityTag = TrustedTimestampContractMetadata.MATURITY
+    val connectivityTag = TrustedTimestampContractMetadata.CONNECTIVITY
+
     override fun as100Methods() = listOf(As100TrustedTimestampMethod)
 
     override fun rilBindings() = listOf(
@@ -26,6 +29,11 @@ object TrustedTimestampModule : MethodMeshModule {
                 defaultValue = ""
             ),
             MethodSetting.TextSetting(
+                "input_file",
+                "Source file URI/path (advanced)",
+                defaultValue = ""
+            ),
+            MethodSetting.TextSetting(
                 "tsa_url",
                 "Timestamp authority URL",
                 defaultValue = TrustedTimestampAuthorities.FREETSA.endpoint
@@ -39,7 +47,7 @@ object TrustedTimestampModule : MethodMeshModule {
             ),
             MethodSetting.BooleanSetting(
                 "include_full_json",
-                "Return full audit JSON",
+                "Expose capability metadata JSON in runtime",
                 defaultValue = false
             )
         )

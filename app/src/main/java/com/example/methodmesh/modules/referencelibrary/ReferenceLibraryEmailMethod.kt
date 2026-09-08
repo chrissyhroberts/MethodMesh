@@ -51,7 +51,7 @@ object ReferenceLibraryEmailFields {
 
 object As100ReferenceLibraryEmailMethod : As100Method {
     const val ID = "reference.library.email"
-    private const val VERSION = "0.2.6"
+    private const val VERSION = "0.3.0"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Reference library email handoff")
@@ -66,6 +66,8 @@ object As100ReferenceLibraryEmailMethod : As100Method {
         parameters = mapOf(
             "category" to "Reference",
             "status" to "Development",
+            "maturity" to "DEVELOPMENT",
+            "connectivity" to "OFFLINE",
             "delivery_semantics" to "user-visible Android mail handoff; MethodMesh does not claim that mail was sent or delivered"
         )
     )
