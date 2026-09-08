@@ -1,15 +1,15 @@
 {
   "schema": "methodmesh.odk_template_index.v3",
   "generatedFrom": "/Users/icrucrob/AndroidStudioProjects/MethodMesh/app/src/main/java/com/example/methodmesh",
-  "templateCount": 366,
+  "templateCount": 365,
   "moduleCount": 67,
   "validationSummary": {
-    "formsNeedingRevision": 80,
+    "formsNeedingRevision": 79,
     "cleanForms": 286,
     "severityCounts": {
-      "error": 3,
+      "error": 1,
       "warning": 35,
-      "style": 62,
+      "style": 60,
       "info": 0
     },
     "authoritativeValidatedForms": 0,
@@ -5951,54 +5951,6 @@
       }
     },
     {
-      "id": "qrcode.example_odk_barcode.scan",
-      "moduleId": "qrcode",
-      "moduleName": "Qrcode",
-      "displayName": "barcode.scan",
-      "description": "",
-      "sourceFileName": "example_odk_barcode.scan.xlsx",
-      "sourceRelativePath": "modules/qrcode/docs/example_odk_barcode.scan.xlsx",
-      "centralFormId": "barcode_scan",
-      "formVersion": "2026083001",
-      "assetPath": "methodmesh/odk_templates/qrcode/example_odk_barcode.scan.xlsx",
-      "sha256": "214ea33dcbb03d0ea353256309cd5ca00afcabccd55c22a909f60175693ab705",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": [
-          {
-            "severity": "style",
-            "code": "FILENAME_NONSTANDARD",
-            "message": "Filename 'example_odk_barcode.scan.xlsx' does not follow the MethodMesh XLSForm naming convention.",
-            "location": "modules/qrcode/docs/example_odk_barcode.scan.xlsx",
-            "suggestion": "Use lower-snake-case names such as 'example_odk_barcode_scan.xlsx'. Rename the repository file only after checking references.",
-            "source": "MethodMesh XLSForm lint",
-            "details": ""
-          },
-          {
-            "severity": "style",
-            "code": "FORM_ID_MODULE_PREFIX",
-            "message": "form_id 'barcode_scan' does not identify its owning module.",
-            "location": "settings.form_id",
-            "suggestion": "For new forms prefer IDs beginning 'qrcode_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
-            "source": "MethodMesh XLSForm lint",
-            "details": ""
-          },
-          {
-            "severity": "error",
-            "code": "FORM_ID_DUPLICATE",
-            "message": "form_id 'barcode_scan' is used by 2 MethodMesh XLSForms.",
-            "location": "settings.form_id",
-            "suggestion": "Every form_id must be globally unique. Preserve already-deployed IDs and resolve the collision deliberately.",
-            "source": "MethodMesh XLSForm lint",
-            "details": "modules/qrcode/docs/example_odk_barcode.scan.xlsx, modules/qrcode/docs/example_odk_barcode_scan.xlsx"
-          }
-        ]
-      }
-    },
-    {
       "id": "qrcode.example_odk_barcode_scan",
       "moduleId": "qrcode",
       "moduleName": "Qrcode",
@@ -6024,15 +5976,6 @@
             "suggestion": "For new forms prefer IDs beginning 'qrcode_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
-          },
-          {
-            "severity": "error",
-            "code": "FORM_ID_DUPLICATE",
-            "message": "form_id 'barcode_scan' is used by 2 MethodMesh XLSForms.",
-            "location": "settings.form_id",
-            "suggestion": "Every form_id must be globally unique. Preserve already-deployed IDs and resolve the collision deliberately.",
-            "source": "MethodMesh XLSForm lint",
-            "details": "modules/qrcode/docs/example_odk_barcode.scan.xlsx, modules/qrcode/docs/example_odk_barcode_scan.xlsx"
           }
         ]
       }
