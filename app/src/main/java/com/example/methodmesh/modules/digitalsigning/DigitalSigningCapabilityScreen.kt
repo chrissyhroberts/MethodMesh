@@ -56,6 +56,8 @@ import com.example.methodmesh.core.artifacts.AndroidArtifacts
 import com.example.methodmesh.core.artifacts.ArtifactOrigin
 import com.example.methodmesh.core.artifacts.ArtifactLifecycle
 import com.example.methodmesh.core.artifacts.ArtifactRef
+import com.example.methodmesh.core.artifacts.ArtifactPickerRequest
+import com.example.methodmesh.ui.artifacts.ArtifactPicker
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -74,6 +76,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URI
+import java.io.File
 import java.util.UUID
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -284,8 +287,34 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
+        var showArtifactPicker by rememberSaveable { mutableStateOf(false) }
         val pdfPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
             if (uri != null) importPdf(uri, PdfInputOrigin.FilePicker)
+        }
+
+        fun chooseFromFiles(ref: ArtifactRef) {
+            scope.launch {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        val service = AndroidArtifacts.service(appContext)
+                        val artifact = service.resolve(ref)
+                        val signable = artifact.mimeType.equals("application/pdf", true) ||
+                            artifact.mimeType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document", true) ||
+                            artifact.displayName.endsWith(".pdf", true) || artifact.displayName.endsWith(".docx", true)
+                        require(signable) { "Choose a PDF or DOCX file." }
+                        val uri = if (artifact.origin == ArtifactOrigin.EXTERNAL &&
+                            (artifact.location.startsWith("content://") || artifact.location.startsWith("file://"))) {
+                            Uri.parse(artifact.location)
+                        } else {
+                            val input = File(appContext.cacheDir, "digital-signing-input-${System.nanoTime()}")
+                            service.open(ref).use { source -> input.outputStream().use { source.copyTo(it) } }
+                            Uri.parse(FileProvider.getUriForFile(appContext, "${appContext.packageName}.fileprovider", input).toString())
+                        }
+                        importPdf(uri, PdfInputOrigin.FilePicker)
+                    }
+                }.onSuccess { showArtifactPicker = false }
+                    .onFailure { status = "Could not open file: ${it.message ?: "unavailable"}" }
+            }
         }
 
         LaunchedEffect(context.action.canonicalId, pushedPdfUri) {
@@ -488,7 +517,8 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                     status = status,
                     pushedPdfExpected = pushedPdfUri.isNotBlank(),
                     canChoosePdf = !context.submitsImmediately || pushedPdfUri.isBlank(),
-                    onChoosePdf = { pdfPicker.launch(arrayOf("application/pdf")) },
+                    onChoosePdf = { pdfPicker.launch(arrayOf("application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")) },
+                    onChooseFromFiles = { showArtifactPicker = true },
                     onClose = closeAction
                 )
                 if (isCommitting) BusyOverlay(status)
@@ -543,7 +573,7 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                         },
                         penArgb = penArgb(penColor),
                         canReplacePdf = true,
-                        onReplacePdf = { pdfPicker.launch(arrayOf("application/pdf")) },
+                        onReplacePdf = { pdfPicker.launch(arrayOf("application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")) },
                         onCopySourceHash = {
                             appContext.getSystemService(ClipboardManager::class.java)
                                 .setPrimaryClip(ClipData.newPlainText("PDF SHA-256", working.sourceSha256))
@@ -592,6 +622,20 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                 }
             }
         }
+        if (showArtifactPicker) {
+            Dialog(onDismissRequest = { showArtifactPicker = false }) {
+                Surface(shape = RoundedCornerShape(24.dp), tonalElevation = 6.dp) {
+                    Column(Modifier.padding(8.dp)) {
+                        Text("Choose from Files", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(12.dp))
+                        ArtifactPicker(
+                            request = ArtifactPickerRequest(lifecycles = setOf(com.example.methodmesh.core.artifacts.ArtifactLifecycle.PERSISTENT)),
+                            onSelected = ::chooseFromFiles
+                        )
+                        OutlinedButton(onClick = { showArtifactPicker = false }, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+                    }
+                }
+            }
+        }
         }
     }
 }
@@ -602,6 +646,7 @@ private fun EmptyFullScreenWorkspace(
     pushedPdfExpected: Boolean,
     canChoosePdf: Boolean,
     onChoosePdf: () -> Unit,
+    onChooseFromFiles: () -> Unit,
     onClose: () -> Unit
 ) {
     Box(Modifier.fillMaxSize().padding(20.dp)) {
@@ -613,7 +658,7 @@ private fun EmptyFullScreenWorkspace(
         ) {
             Column(Modifier.padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    if (pushedPdfExpected) "PDF unavailable" else "Open a PDF",
+                    if (pushedPdfExpected) "Document unavailable" else "Open a document",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1B2422)
@@ -626,7 +671,10 @@ private fun EmptyFullScreenWorkspace(
                 )
                 if (canChoosePdf) {
                     Spacer(Modifier.height(20.dp))
-                    Button(onClick = onChoosePdf) { Text("Choose PDF") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = onChoosePdf) { Text("From device") }
+                        OutlinedButton(onClick = onChooseFromFiles) { Text("From Files") }
+                    }
                 }
             }
         }
