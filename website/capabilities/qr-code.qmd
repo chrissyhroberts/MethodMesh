@@ -1,5 +1,5 @@
 ---
-title: "Automatic code scanner"
+title: "Automatic barcode scanner"
 ---
 
 ::: {.status-box .status-complete}
@@ -11,11 +11,12 @@ This status is based on the supplied project documentation and example XLSForms.
 
 ## Purpose
 
-Scan QR codes and supported barcode formats and return the decoded payload and detected format.
+Scan QR codes and supported barcode formats. The exact decoded payload is the primary result; HTTP(S) payloads also receive an explicit link field.
 
 ## Capability IDs
 
-- `qr.scan`
+- `barcode.scan` — canonical
+- `qr.scan` — deprecated compatibility contract
 
 ## Requirements
 
@@ -38,21 +39,24 @@ Add a current capability dashboard or execution screenshot at:
 ## Supported XLSForm calls
 
 
-**From `example_odk_qr.scan.xlsx`:**
+**From `example_odk_barcode.scan.xlsx`:**
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='qr.scan')
+com.example.methodmesh.EXECUTE_METHOD(method_id='barcode.scan')
 ```
 
 
-## Inputs observed in supplied examples
+The legacy `example_odk_qr.scan.xlsx` continues to call `qr.scan` during the compatibility window.
 
-_None documented in the supplied material._
+## Inputs
+
+| Input | Required | Description |
+|---|---:|---|
+| `input_barcode_formats` | No | Pipe-delimited ZXing format identifiers. Omit for automatic detection. |
 
 
 ## Expected returned fields
 
-Return fields are documented from the specific XLSForm execution group only.
+`barcode_payload` is the exact decoded string. `barcode_payload_kind` is `text` or `url`; `barcode_payload_url` is present only for a safe absolute HTTP(S) URL. `barcode_format` records the detected symbology and `barcode_payload_sha256` provides an integrity digest.
 
-The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.
-
+The payload is never trimmed or converted to a number, so identifiers and retail codes retain leading zeros. URL presentation is clickable inside MethodMesh, but opening the link always requires a user action.

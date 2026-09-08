@@ -76,11 +76,15 @@ record or caller-facing return.
 
 | Method | `verification_evidence_format` | Reproduction rule |
 |---|---|---|
-| QR | `qr_payload_utf8_sha256_v1` | SHA-256 of the decoded QR payload as UTF-8 bytes. |
+| QR | `barcode_payload_utf8_sha256_v1` | SHA-256 of the exact decoded QR payload as UTF-8 bytes, captured through `barcode.scan` with `QR_CODE` restriction. |
 | NFC | `nfc_uid_ndef_payload_sha256_v1` | Normalize UID to uppercase hexadecimal; SHA-256 the first raw NDEF payload bytes (or use `NONE`); then SHA-256 `uid_hex=<UID>\nndef_payload_sha256=<digest-or-NONE>`. |
 | Fingerprint | `android_biometric_result_sha256_v1` | SHA-256 of the successful Android biometric result label. |
 | PIN/pattern/password | `android_device_credential_result_sha256_v1` | SHA-256 of the successful Android device-credential result label. |
 | Study token | `study_token_utf8_sha256_v1` | SHA-256 of the supplied token as UTF-8 bytes. |
+
+Existing attestations may contain the historical `qr_payload_utf8_sha256_v1`
+format from the deprecated `qr.scan` contract. Verifiers must continue to apply
+the evidence format recorded in each attestation.
 
 The signed canonical attestation contains both the caller's
 `event_payload_hash` and `verification_evidence_hash`. A verifier independently

@@ -247,7 +247,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container">
   <a href="../capabilities/qr-code.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Automatic code scanner</span></a>
+ <span class="menu-text">Automatic barcode scanner</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -415,6 +415,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#example_odk_odk_form_launcher.xlsx" id="toc-example_odk_odk_form_launcher.xlsx" class="nav-link" data-scroll-target="#example_odk_odk_form_launcher.xlsx">example_odk_odk_form_launcher.xlsx</a></li>
   <li><a href="#example_odk_protocol_nfc_check.xlsx" id="toc-example_odk_protocol_nfc_check.xlsx" class="nav-link" data-scroll-target="#example_odk_protocol_nfc_check.xlsx">example_odk_protocol_nfc_check.xlsx</a></li>
   <li><a href="#example_odk_protocol_nfc_complete.xlsx" id="toc-example_odk_protocol_nfc_complete.xlsx" class="nav-link" data-scroll-target="#example_odk_protocol_nfc_complete.xlsx">example_odk_protocol_nfc_complete.xlsx</a></li>
+  <li><a href="#example_odk_barcode.scan.xlsx" id="toc-example_odk_barcode.scan.xlsx" class="nav-link" data-scroll-target="#example_odk_barcode.scan.xlsx">example_odk_barcode.scan.xlsx</a></li>
   <li><a href="#example_odk_qr.scan.xlsx" id="toc-example_odk_qr.scan.xlsx" class="nav-link" data-scroll-target="#example_odk_qr.scan.xlsx">example_odk_qr.scan.xlsx</a></li>
   <li><a href="#example_odk_scaled_photo.capture.xlsx" id="toc-example_odk_scaled_photo.capture.xlsx" class="nav-link" data-scroll-target="#example_odk_scaled_photo.capture.xlsx">example_odk_scaled_photo.capture.xlsx</a></li>
   <li><a href="#example_odk_scheduler.xlsx" id="toc-example_odk_scheduler.xlsx" class="nav-link" data-scroll-target="#example_odk_scheduler.xlsx">example_odk_scheduler.xlsx</a></li>
@@ -631,9 +632,15 @@ Warning
 <p><code>protocol_nfc_complete</code></p>
 <pre class="text"><code>com.example.methodmesh.EXECUTE_METHOD(method_id='protocol_nfc_complete',input_protocol_id='study_protocol_example',input_protocol_version='1',input_step_id='baseline',input_required_bits='00',input_required_value='00',input_completion_bits='01',return_mode='flat')</code></pre>
 </section>
+<section id="example_odk_barcode.scan.xlsx" class="level3">
+<h3 class="anchored" data-anchor-id="example_odk_barcode.scan.xlsx"><a href="example_odk_barcode.scan.xlsx">example_odk_barcode.scan.xlsx</a></h3>
+<p><strong>example_odk_barcode.scan</strong></p>
+<p><code>barcode.scan</code></p>
+<pre class="text"><code>com.example.methodmesh.EXECUTE_METHOD(method_id='barcode.scan')</code></pre>
+</section>
 <section id="example_odk_qr.scan.xlsx" class="level3">
 <h3 class="anchored" data-anchor-id="example_odk_qr.scan.xlsx"><a href="example_odk_qr.scan.xlsx">example_odk_qr.scan.xlsx</a></h3>
-<p><strong>example_odk_qr.scan</strong></p>
+<p><strong>Deprecated compatibility example</strong></p>
 <p><code>qr.scan</code></p>
 <pre class="text"><code>com.example.methodmesh.EXECUTE_METHOD(method_id='qr.scan')</code></pre>
 </section>

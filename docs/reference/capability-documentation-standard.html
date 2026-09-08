@@ -282,7 +282,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container">
   <a href="../capabilities/qr-code.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Automatic code scanner</span></a>
+ <span class="menu-text">Automatic barcode scanner</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -651,7 +651,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>module-owned examples.</li>
 </ul>
 <p>Modules are discovered from standalone <code>*Module</code> objects under the modules package. The runtime does not maintain a capability-specific central registry: adding a module, its screen, or its documentation should not require edits to core infrastructure.</p>
-<p>Capabilities may invoke other capabilities through their public invocation boundary. They must consume canonical results and must not copy a dependency’s implementation. For example, QR-backed attestation invokes <code>qr.scan</code> and consumes its returned evidence.</p>
+<p>Capabilities may invoke other capabilities through their public invocation boundary. They must consume canonical results and must not copy a dependency’s implementation. For example, QR-backed attestation invokes <code>barcode.scan</code> with a QR-only format restriction and consumes its returned evidence.</p>
 </section>
 <section id="canonical-execution" class="level2">
 <h2 class="anchored" data-anchor-id="canonical-execution">Canonical execution</h2>

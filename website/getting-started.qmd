@@ -28,7 +28,7 @@ A normal workflow is:
 A practical first test is the automatic code scanner because it has a simple request and an immediately visible result.
 
 1.  Install MethodMesh.
-2.  Import `example_odk_qr.scan.xlsx` into ODK Central or another compatible XLSForm server.
+2.  Import `example_odk_barcode.scan.xlsx` into ODK Central or another compatible XLSForm server.
 3.  Download the form to ODK Collect.
 4.  Open the form and launch the MethodMesh scan group.
 5.  Scan a QR code, Data Matrix code, or supported one-dimensional barcode.

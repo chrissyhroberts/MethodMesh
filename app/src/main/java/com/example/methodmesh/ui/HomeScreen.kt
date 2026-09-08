@@ -87,6 +87,7 @@ import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
 import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
+import com.example.methodmesh.transport.workflow.ui.ResultFieldText
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.ui.components.SettingsRenderer
@@ -1401,11 +1402,7 @@ private fun ResultPreview(result: ExecutionResult, statusNote: String?) {
             SelectionContainer {
                 Column {
                     visibleFields.forEach { (key, value) ->
-                        Text(
-                            "$key = ${value?.toString().orEmpty()}",
-                            fontFamily = FontFamily.Monospace,
-                            style = MaterialTheme.typography.labelSmall
-                        )
+                        ResultFieldText(key, value, MaterialTheme.typography.labelSmall)
                     }
                 }
             }

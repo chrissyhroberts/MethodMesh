@@ -48,7 +48,7 @@ object AttestationModule : MethodMeshModule {
 
     override fun dependencies() = listOf(
         ModuleDependency("nfc", "NFC tag evidence is captured by the existing NFC capability and consumed by attestation."),
-        ModuleDependency("qrcode", "QR token evidence is captured by the QR capability and consumed by attestation."),
+        ModuleDependency("barcode", "QR token evidence is captured by barcode.scan with QR-only format restriction and consumed by attestation."),
         ModuleDependency("android_device_credential", "PIN, pattern and phone password authorisation use Android device credential prompts rather than MethodMesh storing secrets.")
     )
 

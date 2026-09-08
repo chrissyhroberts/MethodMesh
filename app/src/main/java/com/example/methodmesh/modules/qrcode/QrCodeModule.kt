@@ -6,25 +6,25 @@ import com.example.methodmesh.modules.RilBinding
 import com.example.methodmesh.settings.MethodSetting
 
 object QrCodeModule : MethodMeshModule {
-    override val moduleId: String = "qrcode"
+    override val moduleId: String = "barcode"
     override val displayName: String = "Automatic code scanner"
     override val summary: String = "Automatically capture QR, Data Matrix, and common 1D barcode evidence."
 
-    override fun as100Methods() = listOf(As100QrScanMethod)
+    override fun as100Methods() = listOf(As100BarcodeScanMethod, As100QrScanMethod)
 
     override fun rilBindings() = listOf(
-        RilBinding("scan qr", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
-        RilBinding("read qr", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
-        RilBinding("capture qr", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
-        RilBinding("scan qr token", As100QrScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
-        RilBinding("scan code", As100QrScanMethod.ID, "Automatically capture a supported 1D or 2D code"),
-        RilBinding("scan barcode", As100QrScanMethod.ID, "Automatically capture a supported 1D or 2D code"),
-        RilBinding("scan data matrix", As100QrScanMethod.ID, "Capture a Data Matrix code")
+        RilBinding("scan qr", As100BarcodeScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
+        RilBinding("read qr", As100BarcodeScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
+        RilBinding("capture qr", As100BarcodeScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
+        RilBinding("scan qr token", As100BarcodeScanMethod.ID, "Capture a QR token as verifiable workflow evidence"),
+        RilBinding("scan code", As100BarcodeScanMethod.ID, "Automatically capture a supported 1D or 2D code"),
+        RilBinding("scan barcode", As100BarcodeScanMethod.ID, "Automatically capture a supported 1D or 2D code"),
+        RilBinding("scan data matrix", As100BarcodeScanMethod.ID, "Capture a Data Matrix code")
     )
 
-    override fun capabilityScreens() = listOf(QrScanCapabilityScreen)
+    override fun capabilityScreens() = listOf(BarcodeScanCapabilityScreen, LegacyQrScanCapabilityScreen)
 
-    override fun capabilitySettings() = mapOf(As100QrScanMethod.ID to listOf(
+    private val scannerSettings = listOf(
         MethodSetting.ChoiceSetting(
             "barcode_formats",
             "Accepted code formats",
@@ -40,12 +40,17 @@ object QrCodeModule : MethodMeshModule {
                 "DATA_MATRIX|CODE_128"
             )
         )
-    ))
+    )
+
+    override fun capabilitySettings() = mapOf(
+        As100BarcodeScanMethod.ID to scannerSettings,
+        As100QrScanMethod.ID to scannerSettings
+    )
 
     override fun examples() = listOf(
         ModuleExample(
             title = "Capture a QR, Data Matrix, or barcode token",
-            ril = "WHAT; scan qr; WHERE; participant/P001; RESULT; return qr_payload_hash, qr_payload; format json",
+            ril = "WHAT; scan barcode; WHERE; participant/P001; RESULT; return barcode_payload, barcode_format; format json",
             notes = "This is a standalone code-scanning capability so other modules, including attestation, can depend on captured code evidence rather than reimplementing scanner behaviour."
         )
     )

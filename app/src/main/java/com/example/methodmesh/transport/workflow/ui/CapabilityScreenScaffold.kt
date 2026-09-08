@@ -246,11 +246,7 @@ fun CapabilityScreenScaffold(
                         SelectionContainer {
                             Column {
                                 visibleFields.forEach { (key, value) ->
-                                    Text(
-                                        "$key = ${value?.toString().orEmpty()}",
-                                        fontFamily = FontFamily.Monospace,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+                                    ResultFieldText(key, value, MaterialTheme.typography.bodySmall)
                                 }
                             }
                         }
