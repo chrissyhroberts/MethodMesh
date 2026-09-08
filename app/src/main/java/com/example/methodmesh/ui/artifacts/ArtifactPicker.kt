@@ -3,11 +3,15 @@ package com.example.methodmesh.ui.artifacts
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -15,6 +19,8 @@ import com.example.methodmesh.core.artifacts.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import java.util.UUID
 
 /** Shared selection surface for any capability. Selection returns identity, not a saved copy. */
@@ -51,6 +57,9 @@ fun FilesScreen() {
     var revision by remember { mutableIntStateOf(0) }
     var status by remember { mutableStateOf<String?>(null) }
     var selected by remember { mutableStateOf<Artifact?>(null) }
+    var previewText by remember { mutableStateOf<String?>(null) }
+    var previewImage by remember { mutableStateOf<Bitmap?>(null) }
+    var previewLoading by remember { mutableStateOf(false) }
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(
         selected?.mimeType ?: "application/octet-stream"
     )) { destination ->
@@ -85,11 +94,65 @@ fun FilesScreen() {
         ArtifactPicker(ArtifactPickerRequest(lifecycles = setOf(ArtifactLifecycle.PERSISTENT)), { ref ->
             scope.launch { selected = withContext(Dispatchers.IO) { AndroidArtifacts.service(context).resolve(ref) } }
         }, revision)
+        LaunchedEffect(selected?.ref) {
+            previewText = null
+            previewImage = null
+            val artifact = selected ?: return@LaunchedEffect
+            val previewableText = artifact.mimeType.startsWith("text/") ||
+                artifact.mimeType in setOf("application/json", "application/xml", "text/csv")
+            val previewableImage = artifact.mimeType.startsWith("image/")
+            if (!previewableText && !previewableImage) return@LaunchedEffect
+            previewLoading = true
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    AndroidArtifacts.service(context).open(artifact.ref).use { input ->
+                        if (previewableText) {
+                            input.bufferedReader().use { it.readText().take(MAX_TEXT_PREVIEW_CHARS) }
+                        } else {
+                            BitmapFactory.decodeStream(input)
+                        }
+                    }
+                }
+            }.onSuccess { preview ->
+                if (previewableText) previewText = preview as? String else previewImage = preview as? Bitmap
+            }.onFailure { status = "Preview unavailable: ${it.message ?: "file could not be read"}" }
+            previewLoading = false
+        }
         selected?.let { artifact ->
             AlertDialog(onDismissRequest = { selected = null }, title = { Text(artifact.displayName) },
-                text = { Text("${artifact.mimeType}\n${artifact.ref}\nSHA-256: ${artifact.sha256 ?: "Not recorded"}") },
+                text = {
+                    Column {
+                        when {
+                            previewLoading -> Text("Loading preview…")
+                            previewImage != null -> Image(
+                                bitmap = previewImage!!.asImageBitmap(),
+                                contentDescription = artifact.displayName,
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                            previewText != null -> Surface(
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                            ) {
+                                Text(
+                                    previewText!!,
+                                    modifier = Modifier.padding(12.dp),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            else -> Text("No inline preview for this file type.")
+                        }
+                        Text(
+                            "${artifact.mimeType} · ${artifact.origin.name.lowercase()}\nSHA-256: ${artifact.sha256 ?: "Not recorded"}",
+                            modifier = Modifier.padding(top = 12.dp),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                },
                 confirmButton = { TextButton(onClick = { exporter.launch(artifact.displayName) }) { Text("Save a copy") } },
                 dismissButton = { TextButton(onClick = { selected = null }) { Text("Close") } })
         }
     }
 }
+
+private const val MAX_TEXT_PREVIEW_CHARS = 16_000
