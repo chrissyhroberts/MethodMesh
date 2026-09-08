@@ -218,7 +218,9 @@ private fun DeviceFileSetting(setting: MethodSetting.TextSetting, settingsState:
                 modifier = Modifier.weight(1f),
                 singleLine = true
             )
-            Button(onClick = { launcher.launch(arrayOf("application/pdf")) }) { Text("Choose") }
+            Button(onClick = {
+                launcher.launch(arrayOf("application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+            }) { Text("Choose") }
         }
         if (value.isNotBlank()) {
             OutlinedButton(onClick = { settingsState.setString(setting.id, "") }) { Text("Clear") }

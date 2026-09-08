@@ -26,29 +26,48 @@ object DigitalSigningDraftStore {
     ): WorkingPdf {
         val dir = workingDir(context)
         dir.mkdirs()
-        val temp = File(dir, ".incoming-${System.nanoTime()}.pdf")
+        val temp = File(dir, ".incoming-${System.nanoTime()}.bin")
         copyUri(context, uri, temp)
         require(temp.length() > 0L) { "The selected PDF is empty." }
-        val sha = DigitalSigningHash.sha256(temp)
-        val target = File(dir, "source-${sha.take(16)}.pdf")
-        if (!target.exists()) {
-            if (!temp.renameTo(target)) {
-                temp.copyTo(target, overwrite = true)
-                temp.delete()
-            }
-        } else {
-            temp.delete()
-        }
-        val pageCount = DigitalSigningPdfEngine.pageCount(target)
-        require(pageCount > 0) { "The selected PDF has no pages." }
-        val displayName = displayNameHint
+        val inputName = displayNameHint
             ?.takeIf { it.isNotBlank() }
             ?: displayName(context, uri)
             ?: "document.pdf"
+        val inputMime = context.contentResolver.getType(uri).orEmpty()
+        val source = if (DigitalSigningDocumentConverter.isPdf(inputName, inputMime)) {
+            temp
+        } else {
+            val converted = File(dir, ".converted-${System.nanoTime()}.pdf")
+            runCatching {
+                DigitalSigningDocumentConverter.convert(temp, converted, inputName, inputMime)
+            }.getOrElse {
+                temp.delete()
+                converted.delete()
+                throw it
+            }
+            temp.delete()
+            converted
+        }
+        val sha = DigitalSigningHash.sha256(source)
+        val target = File(dir, "source-${sha.take(16)}.pdf")
+        if (!target.exists()) {
+            if (!source.renameTo(target)) {
+                source.copyTo(target, overwrite = true)
+                source.delete()
+            }
+        } else {
+            source.delete()
+        }
+        val pageCount = DigitalSigningPdfEngine.pageCount(target)
+        require(pageCount > 0) { "The selected PDF has no pages." }
         val working = WorkingPdf(
             sourceFile = target,
             sourceUriString = uri.toString(),
-            displayName = normalisePdfName(displayName),
+            displayName = if (DigitalSigningDocumentConverter.isPdf(inputName, inputMime)) {
+                normalisePdfName(inputName)
+            } else {
+                inputName.substringBeforeLast('.').ifBlank { "document" } + ".pdf"
+            },
             sourceOrigin = origin,
             sourceSha256 = sha,
             pageCount = pageCount
