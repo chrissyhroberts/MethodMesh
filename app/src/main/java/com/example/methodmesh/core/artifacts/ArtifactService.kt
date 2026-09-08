@@ -90,4 +90,5 @@ class ArtifactService(private val store: File, private val workspace: File,
 class ArtifactStore(private val service: ArtifactService) {
     fun files(query: String = "") = service.query(ArtifactPickerRequest(
         lifecycles = setOf(ArtifactLifecycle.PERSISTENT), query = query))
+    fun save(ref: ArtifactRef): ArtifactRef = service.persist(ref)
 }
