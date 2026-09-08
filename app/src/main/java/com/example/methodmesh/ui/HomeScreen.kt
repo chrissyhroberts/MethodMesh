@@ -2655,12 +2655,21 @@ private fun CapabilityCard(
                 val logSettings = savedSettings.toMutableMap()
                 if (logSettings["methodmesh_save_to_log"]?.toString() == "true") {
                     val logName = logSettings["methodmesh_log_name"]?.toString()?.trim().orEmpty().ifBlank { "$name log" }
-                    val logRef = AndroidArtifacts.service(context).createPersistent(
-                        name = "$logName.jsonl",
+                    val service = AndroidArtifacts.service(context)
+                    val logRef = service.createPersistent(
+                        name = "$logName/data.jsonl",
                         mime = "application/jsonl",
                         input = ByteArrayInputStream("".toByteArray())
                     )
+                    val summaryRef = service.createPersistent(
+                        name = "$logName.txt",
+                        mime = "text/plain",
+                        input = ByteArrayInputStream("$logName\n\n".toByteArray()),
+                        collectionId = logRef.id
+                    )
+                    service.setCollection(logRef, logRef.id)
                     logSettings["methodmesh_log_ref"] = logRef.id
+                    logSettings["methodmesh_log_summary_ref"] = summaryRef.id
                     logSettings["methodmesh_log_name"] = logName
                 }
                 val saved = ProtocolLibraryRepository.savePreset(

@@ -36,6 +36,8 @@ import android.os.ParcelFileDescriptor
 import java.io.File
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.util.zip.ZipOutputStream
+import java.util.zip.ZipEntry
 import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
@@ -263,15 +265,29 @@ fun FilesScreen() {
                             scope.launch {
                                 runCatching {
                                     val shareFile = withContext(Dispatchers.IO) {
-                                        File.createTempFile("methodmesh-share-", "-${artifact.displayName.replace(Regex("[^A-Za-z0-9._-]"), "_")}", context.cacheDir).also { target ->
-                                            AndroidArtifacts.service(context).open(artifact.ref).use { input ->
-                                                target.outputStream().use { input.copyTo(it) }
+                                        val service = AndroidArtifacts.service(context)
+                                        val members = if (artifact.collectionId.isNullOrBlank()) {
+                                            listOf(artifact)
+                                        } else {
+                                            (service.collection(artifact.collectionId!!) + artifact).distinctBy { it.ref }
+                                        }
+                                        File.createTempFile("methodmesh-share-", if (artifact.collectionId.isNullOrBlank()) "-${artifact.displayName.replace(Regex("[^A-Za-z0-9._-]"), "_")}" else ".zip", context.cacheDir).also { target ->
+                                            if (artifact.collectionId.isNullOrBlank()) {
+                                                service.open(artifact.ref).use { input -> target.outputStream().use { input.copyTo(it) } }
+                                            } else {
+                                                ZipOutputStream(target.outputStream()).use { zip ->
+                                                    members.forEach { member ->
+                                                        zip.putNextEntry(ZipEntry(member.displayName.substringAfterLast('/')))
+                                                        service.open(member.ref).use { input -> input.copyTo(zip) }
+                                                        zip.closeEntry()
+                                                    }
+                                                }
                                             }
                                         }
                                     }
                                     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", shareFile)
                                     context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                                        type = artifact.mimeType
+                                        type = if (artifact.collectionId.isNullOrBlank()) artifact.mimeType else "application/zip"
                                         putExtra(Intent.EXTRA_STREAM, uri)
                                         clipData = ClipData.newUri(context.contentResolver, artifact.displayName, uri)
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

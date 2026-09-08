@@ -80,6 +80,13 @@ class ArtifactService(private val store: File, private val workspace: File,
     }
 
     @Synchronized fun query(request: ArtifactPickerRequest = ArtifactPickerRequest()) = records.values.filter(request::accepts)
+    @Synchronized fun collection(id: String) = records.values.filter { it.collectionId == id }
+    @Synchronized fun setCollection(ref: ArtifactRef, collectionId: String) {
+        val artifact = resolve(ref)
+        require(artifact.lifecycle == ArtifactLifecycle.PERSISTENT)
+        records[ref] = artifact.copy(collectionId = collectionId)
+        writeMetadata(records.getValue(ref))
+    }
     @Synchronized fun resolve(ref: ArtifactRef) = records[ref] ?: error("Artifact unavailable: $ref")
 
     /** Remove an artifact from Files. External source files are never deleted. */

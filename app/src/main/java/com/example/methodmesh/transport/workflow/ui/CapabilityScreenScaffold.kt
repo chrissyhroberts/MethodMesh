@@ -183,6 +183,8 @@ fun CapabilityScreenScaffold(
         context.request.settings["input_methodmesh_finish_to_launcher"] == "true"
     val presetLogRef = context.request.settings["methodmesh_log_ref"]
         ?: context.request.settings["input_methodmesh_log_ref"]
+    val presetLogSummaryRef = context.request.settings["methodmesh_log_summary_ref"]
+        ?: context.request.settings["input_methodmesh_log_summary_ref"]
     val allowManualExport = !context.request.source.equals("dashboard", ignoreCase = true) &&
         !context.request.source.equals("intent_test", ignoreCase = true)
     var exportPackage by remember(capturedResult?.request?.id?.value) { mutableStateOf<OutputExportRepository.ExportPackage?>(null) }
@@ -270,6 +272,15 @@ fun CapabilityScreenScaffold(
                         createdMediaRefs.forEach { ref -> runCatching { service.delete(ref) } }
                         throw error
                     }
+                val summary = resultPreview.entries.firstOrNull { (key, value) ->
+                    !key.startsWith("methodmesh_") && value?.toString().orEmpty().isNotBlank()
+                }
+                if (!presetLogSummaryRef.isNullOrBlank() && summary != null) {
+                    service.appendPersistent(
+                        ArtifactRef(presetLogSummaryRef),
+                        "${Instant.now()} — ${summary.key}: ${summary.value}\n".toByteArray()
+                    )
+                }
             }
         }
     }
