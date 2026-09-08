@@ -26,12 +26,13 @@ object ReferenceLibraryFields {
     const val DOCUMENT_TITLE = "library_document_title"
     const val DOCUMENT_URI = "library_document_uri"
     const val DOCUMENT_MIME = "library_document_mime"
+    const val ARTIFACT_REF = "library_artifact_ref"
     const val SHELF = "library_shelf"
     const val SOURCE = "library_source"
     const val VERSION = "library_version"
     const val ERROR = "library_error"
 
-    val outputs = listOf(STATUS, DOCUMENT_ID, DOCUMENT_TITLE, DOCUMENT_URI, DOCUMENT_MIME, SHELF, SOURCE, VERSION, ERROR)
+    val outputs = listOf(STATUS, DOCUMENT_ID, DOCUMENT_TITLE, DOCUMENT_URI, DOCUMENT_MIME, ARTIFACT_REF, SHELF, SOURCE, VERSION, ERROR)
 }
 
 object As100ReferenceLibraryMethod : As100Method {
@@ -114,6 +115,7 @@ object As100ReferenceLibraryMethod : As100Method {
         ReferenceLibraryFields.DOCUMENT_TITLE to document.title,
         ReferenceLibraryFields.DOCUMENT_URI to document.uri,
         ReferenceLibraryFields.DOCUMENT_MIME to document.mimeType,
+        ReferenceLibraryFields.ARTIFACT_REF to "artifact://library.${document.id}",
         ReferenceLibraryFields.SHELF to document.shelf,
         ReferenceLibraryFields.SOURCE to document.source,
         ReferenceLibraryFields.VERSION to document.version,
@@ -126,6 +128,7 @@ object As100ReferenceLibraryMethod : As100Method {
         ReferenceLibraryFields.DOCUMENT_TITLE to "",
         ReferenceLibraryFields.DOCUMENT_URI to "",
         ReferenceLibraryFields.DOCUMENT_MIME to "",
+        ReferenceLibraryFields.ARTIFACT_REF to "",
         ReferenceLibraryFields.SHELF to shelf,
         ReferenceLibraryFields.SOURCE to "",
         ReferenceLibraryFields.VERSION to "",

@@ -49,6 +49,13 @@ class ArtifactService(private val store: File, private val workspace: File,
             ArtifactOrigin.EXTERNAL, ArtifactLifecycle.SESSION, uri, sessionId = session) }
     }
 
+    @Synchronized fun registerExternal(ref: ArtifactRef, uri: String, name: String, mime: String,
+        lifecycle: ArtifactLifecycle = ArtifactLifecycle.PERSISTENT): ArtifactRef {
+        require(uri.startsWith("content://")); require(lifecycle != ArtifactLifecycle.TRANSIENT)
+        records[ref] = Artifact(ref, name, mime, ArtifactOrigin.EXTERNAL, lifecycle, uri)
+        return ref
+    }
+
     @Synchronized fun query(request: ArtifactPickerRequest = ArtifactPickerRequest()) = records.values.filter(request::accepts)
     @Synchronized fun resolve(ref: ArtifactRef) = records[ref] ?: error("Artifact unavailable: $ref")
     fun open(ref: ArtifactRef): InputStream {

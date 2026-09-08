@@ -3,6 +3,8 @@ package com.example.methodmesh.modules.referencelibrary
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.example.methodmesh.core.artifacts.AndroidArtifacts
+import com.example.methodmesh.core.artifacts.ArtifactRef
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -43,7 +45,9 @@ class ReferenceLibraryRepository(context: Context) {
     private val appContext = context.applicationContext
     private val prefs = appContext.getSharedPreferences("methodmesh.reference.library", Context.MODE_PRIVATE)
 
-    fun documents(): List<LibraryDocument> = decode(prefs.getString(KEY_DOCUMENTS, "[]").orEmpty())
+    fun documents(): List<LibraryDocument> = decode(prefs.getString(KEY_DOCUMENTS, "[]").orEmpty()).also { documents ->
+        documents.forEach(::registerArtifact)
+    }
 
     fun document(id: String): LibraryDocument? = documents().firstOrNull { it.id == id }
 
@@ -52,6 +56,18 @@ class ReferenceLibraryRepository(context: Context) {
         val index = current.indexOfFirst { it.id == document.id }
         if (index >= 0) current[index] = document else current.add(document)
         save(current)
+        registerArtifact(document)
+    }
+
+    private fun registerArtifact(document: LibraryDocument) {
+        runCatching {
+            AndroidArtifacts.service(appContext).registerExternal(
+                ref = ArtifactRef("library.${document.id}"),
+                uri = document.uri,
+                name = document.title,
+                mime = document.mimeType
+            )
+        }
     }
 
     fun importDocument(
