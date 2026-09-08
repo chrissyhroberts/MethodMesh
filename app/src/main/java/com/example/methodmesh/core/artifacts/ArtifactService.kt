@@ -25,6 +25,9 @@ data class Artifact(
     val derivedFrom: ArtifactRef? = null,
     val operation: String? = null,
     val sessionId: String? = null
+    ,val collectionId: String? = null,
+    val entryId: String? = null,
+    val mediaId: String? = null
 )
 
 data class ArtifactPickerRequest(
@@ -54,7 +57,10 @@ class ArtifactService(private val store: File, private val workspace: File,
                     ArtifactLifecycle.valueOf(properties.getProperty("lifecycle", ArtifactLifecycle.PERSISTENT.name)),
                     properties.getProperty("location", ref.id), properties.getProperty("sha256"),
                     properties.getProperty("parent")?.takeIf(String::isNotBlank)?.let(::ArtifactRef),
-                    properties.getProperty("operation"), properties.getProperty("session")?.takeIf(String::isNotBlank))
+                    properties.getProperty("operation"), properties.getProperty("session")?.takeIf(String::isNotBlank),
+                    properties.getProperty("collection")?.takeIf(String::isNotBlank),
+                    properties.getProperty("entry")?.takeIf(String::isNotBlank),
+                    properties.getProperty("media")?.takeIf(String::isNotBlank))
             }
         }
     }
@@ -123,11 +129,13 @@ class ArtifactService(private val store: File, private val workspace: File,
         return ref
     }
 
-    @Synchronized fun createPersistent(name: String, mime: String, input: InputStream): ArtifactRef {
+    @Synchronized fun createPersistent(name: String, mime: String, input: InputStream,
+        collectionId: String? = null, entryId: String? = null, mediaId: String? = null): ArtifactRef {
         val ref = ArtifactRef(UUID.randomUUID().toString())
         val file = File(store, ref.id)
         input.use { source -> file.outputStream().use { target -> source.copyTo(target) } }
-        val artifact = Artifact(ref, name, mime, ArtifactOrigin.MANAGED, ArtifactLifecycle.PERSISTENT, file.name)
+        val artifact = Artifact(ref, name, mime, ArtifactOrigin.MANAGED, ArtifactLifecycle.PERSISTENT, file.name,
+            collectionId = collectionId, entryId = entryId, mediaId = mediaId)
         records[ref] = artifact
         writeMetadata(artifact)
         return ref
@@ -166,6 +174,9 @@ class ArtifactService(private val store: File, private val workspace: File,
             artifact.derivedFrom?.let { setProperty("parent", it.id) }
             artifact.operation?.let { setProperty("operation", it) }
             artifact.sessionId?.let { setProperty("session", it) }
+            artifact.collectionId?.let { setProperty("collection", it) }
+            artifact.entryId?.let { setProperty("entry", it) }
+            artifact.mediaId?.let { setProperty("media", it) }
         }
         val partial = File(store, "${artifact.ref.id}.properties.partial")
         partial.outputStream().use { properties.store(it, null) }

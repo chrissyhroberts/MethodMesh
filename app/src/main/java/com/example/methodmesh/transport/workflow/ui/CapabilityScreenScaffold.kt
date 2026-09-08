@@ -57,6 +57,7 @@ import com.example.methodmesh.transport.workflow.ExternalActionRequest
 import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
 import java.io.File
 import java.time.Instant
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -217,12 +218,39 @@ fun CapabilityScreenScaffold(
         if (!nativePresetRun || refId.isBlank()) return@LaunchedEffect
         runCatching {
             withContext(Dispatchers.IO) {
+                val entryId = UUID.randomUUID().toString()
+                val media = org.json.JSONArray()
+                mediaResultUris.forEach { uri ->
+                    runCatching {
+                        val mediaId = UUID.randomUUID().toString()
+                        val displayName = uri.lastPathSegment?.substringAfterLast('/')?.ifBlank { null }
+                            ?: "media-$mediaId"
+                        val mime = appContext.contentResolver.getType(uri) ?: "application/octet-stream"
+                        val mediaRef = appContext.contentResolver.openInputStream(uri)?.use { input ->
+                            AndroidArtifacts.service(appContext).createPersistent(
+                                name = "${refId.take(12)}/media/${entryId}-${displayName.substringAfterLast('/')}",
+                                mime = mime,
+                                input = input,
+                                collectionId = refId,
+                                entryId = entryId,
+                                mediaId = mediaId
+                            )
+                        } ?: return@runCatching
+                        media.put(JSONObject()
+                            .put("media_id", mediaId)
+                            .put("artifact_ref", mediaRef.id)
+                            .put("filename", displayName)
+                            .put("mime_type", mime))
+                    }
+                }
                 val record = JSONObject()
                     .put("recorded_at", Instant.now().toString())
+                    .put("entry_id", entryId)
                     .put("capability", capabilityId)
                     .put("execution_id", result.request.id.value)
                     .put("status", result.status)
                     .put("fields", JSONObject(resultPreview.mapValues { it.value?.toString().orEmpty() }))
+                    .put("media", media)
                     .toString() + "\n"
                 AndroidArtifacts.service(appContext).appendPersistent(ArtifactRef(refId), record.toByteArray())
             }
