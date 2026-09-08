@@ -53,6 +53,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import com.example.methodmesh.core.artifacts.AndroidArtifacts
+import com.example.methodmesh.core.artifacts.ArtifactOrigin
 import com.example.methodmesh.core.artifacts.ArtifactLifecycle
 import com.example.methodmesh.core.artifacts.ArtifactRef
 import androidx.compose.ui.text.font.FontWeight
@@ -65,6 +66,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.modules.referencelibrary.ReferenceLibraryRepository
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
@@ -100,11 +102,33 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
         fun truthy(value: String): Boolean =
             value.trim().lowercase() in setOf("true", "yes", "1", "on")
 
-        fun suppliedPdfUri(): String = listOf("pdf_uri", "source_pdf_uri", "document_uri")
-            .asSequence()
-            .map { key -> context.action.settings[key] ?: context.action.settings["input_$key"] }
-            .firstOrNull { !it.isNullOrBlank() }
-            .orEmpty()
+        fun suppliedPdfUri(): String {
+            val supplied = listOf(
+                "pdf_uri", "source_pdf_uri", "document_uri",
+                "pdf_name", "document_name", "file_name", "document_id", "artifact_ref"
+            ).asSequence()
+                .map { key -> context.action.settings[key] ?: context.action.settings["input_$key"] }
+                .firstOrNull { !it.isNullOrBlank() }
+                .orEmpty()
+            if (supplied.startsWith("content://") || supplied.startsWith("file://")) return supplied
+            if (supplied.startsWith("artifact://")) {
+                val artifactUri = runCatching {
+                    AndroidArtifacts.service(appContext).resolve(
+                        ArtifactRef(supplied.removePrefix("artifact://"))
+                    )
+                }.getOrNull()
+                if (artifactUri?.origin == ArtifactOrigin.EXTERNAL && artifactUri.location.startsWith("content://")) {
+                    return artifactUri.location
+                }
+            }
+
+            val libraryMatch = ReferenceLibraryRepository(appContext).documents().firstOrNull { document ->
+                document.id.equals(supplied, ignoreCase = true) ||
+                    document.title.equals(supplied, ignoreCase = true) ||
+                    Uri.parse(document.uri).lastPathSegment.equals(supplied, ignoreCase = true)
+            }
+            return libraryMatch?.uri.orEmpty()
+        }
 
         fun updateSetting(key: String, value: String) {
             context.onSettingsChanged(mapOf(key to value))
@@ -112,12 +136,11 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
 
         val isOdkLaunch = context.request.source.contains("odk", ignoreCase = true) ||
             context.request.invocationContext.caller.contains("odk", ignoreCase = true)
-        // ODK file questions may expose app-private/transient attachment paths that are
-        // not readable by MethodMesh (ENOENT once handed across the app boundary).
-        // For ODK we therefore deliberately ignore pushed PDF values and let the
-        // operator choose the PDF from Android's document picker inside this tool.
-        // Non-ODK Android/protocol callers may still provide a stable content URI.
-        val pushedPdfUri = if (isOdkLaunch) "" else suppliedPdfUri()
+        // ODK and protocol callers may supply a stable content URI, a Reference Library
+        // document ID/title, or a filename. The signing workspace resolves that request
+        // before showing the picker, while still allowing manual selection if the source
+        // is unavailable.
+        val pushedPdfUri = suppliedPdfUri()
         val finaliseForced = isOdkLaunch || context.submitsImmediately
 
         var finalisePdf by rememberSaveable { mutableStateOf(truthy(initial("finalise_pdf", "false"))) }
@@ -288,8 +311,10 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                     }
                 }
                 restored != null -> adoptDraft(restored)
-                else -> status = if (isOdkLaunch) {
-                    "Choose the PDF for this ODK signing step. The document is selected inside MethodMesh rather than pushed from ODK."
+                else -> status = if (isOdkLaunch && suppliedPdfUri().isNotBlank()) {
+                    "The requested PDF could not be found. Choose it from the document picker."
+                } else if (isOdkLaunch) {
+                    "Choose the PDF for this ODK signing step."
                 } else {
                     "Choose a PDF to sign or mark up."
                 }
