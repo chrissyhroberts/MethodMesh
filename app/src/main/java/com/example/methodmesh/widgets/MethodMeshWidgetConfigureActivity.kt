@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -24,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,6 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -85,6 +88,7 @@ private fun ConfigureWidgetScreen(
     val schedules = remember { MethodMeshWidgetRepository.scheduleTargets(context) }
     var targetType by rememberSaveable { mutableStateOf(MethodMeshWidgetTargetType.PRESET) }
     var iconKey by rememberSaveable { mutableStateOf(MethodMeshWidgetIconKey.AUTO) }
+    var colour by rememberSaveable { mutableStateOf(MethodMeshWidgetColour.TEAL) }
     val currentItems = when (targetType) {
         MethodMeshWidgetTargetType.PRESET -> presets.map { it.id to it.name }
         MethodMeshWidgetTargetType.PROTOCOL -> protocols.map { it.id to it.name }
@@ -136,33 +140,39 @@ private fun ConfigureWidgetScreen(
             style = MaterialTheme.typography.bodyMedium
         )
         Text("Icon", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            MethodMeshWidgetIconKey.entries.chunked(3).first().forEach { key ->
-                OutlinedButton(
-                    onClick = { iconKey = key },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(if (iconKey == key) "✓ ${key.title}" else key.title)
+        MethodMeshWidgetIconKey.entries.chunked(4).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                row.forEach { key ->
+                    Surface(
+                        modifier = Modifier.weight(1f).clickable { iconKey = key },
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (iconKey == key) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 8.dp)) {
+                            Text(key.emoji, style = MaterialTheme.typography.titleLarge)
+                            Text(key.title, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        }
+                    }
                 }
+                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
             }
+            Spacer(Modifier.height(6.dp))
         }
+        Text("Colour", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            MethodMeshWidgetIconKey.entries.drop(3).take(3).forEach { key ->
-                OutlinedButton(
-                    onClick = { iconKey = key },
-                    modifier = Modifier.weight(1f)
+            MethodMeshWidgetColour.entries.forEach { option ->
+                Surface(
+                    modifier = Modifier.weight(1f).clickable { colour = option },
+                    shape = RoundedCornerShape(50),
+                    color = Color(option.argb),
+                    tonalElevation = if (colour == option) 5.dp else 0.dp
                 ) {
-                    Text(if (iconKey == key) "✓ ${key.title}" else key.title)
-                }
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            MethodMeshWidgetIconKey.entries.drop(6).forEach { key ->
-                OutlinedButton(
-                    onClick = { iconKey = key },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(if (iconKey == key) "✓ ${key.title}" else key.title)
+                    Text(
+                        if (colour == option) "✓" else "●",
+                        modifier = Modifier.padding(vertical = 10.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        color = if (option == MethodMeshWidgetColour.DARK) Color.White else Color(0xFF302A28)
+                    )
                 }
             }
         }
@@ -207,7 +217,8 @@ private fun ConfigureWidgetScreen(
                             label = label.trim().ifBlank { selectedName },
                             targetType = targetType,
                             targetId = selectedId,
-                            iconKey = iconKey
+                            iconKey = iconKey,
+                            colour = colour
                         )
                     )
                     onSaved()

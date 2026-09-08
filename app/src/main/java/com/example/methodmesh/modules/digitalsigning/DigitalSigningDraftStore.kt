@@ -143,7 +143,7 @@ object DigitalSigningDraftStore {
     }.getOrNull()
 
     private fun resultsDir(context: Context): File =
-        File(context.filesDir, "methodmesh/digital_signing/results").apply { mkdirs() }
+        File(context.cacheDir, "methodmesh/digital_signing/results").apply { mkdirs() }
 
     fun nextResultFile(context: Context, sourceName: String): File {
         val results = resultsDir(context)

@@ -33,6 +33,8 @@ object MethodMeshConfigurationBackup {
             addTree(zip, files, "files") { relative ->
                 !relative.startsWith("artifacts/workspace/") &&
                     !relative.startsWith("artifacts/store/") &&
+                    !relative.startsWith("methodmesh/digital_signing/results/") &&
+                    !relative.startsWith("methodmesh/digital_signing/work/") &&
                     !relative.substringAfterLast('/').startsWith("MethodMesh-Configuration-Backup")
             }
         }

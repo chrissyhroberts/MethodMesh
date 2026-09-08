@@ -7,22 +7,46 @@ import com.example.methodmesh.core.scheduling.SchedulerTarget
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
 import org.json.JSONObject
 
-enum class MethodMeshWidgetIconKey(val title: String) {
-    AUTO("Auto"),
-    METHODMESH("MethodMesh"),
-    DOCUMENT("Document"),
-    LOCATION("Location"),
-    LANGUAGE("Language"),
-    HARDWARE("Hardware"),
-    RANDOM("Random"),
-    SCHEDULE("Schedule"),
-    TOOL("Tool");
+enum class MethodMeshWidgetIconKey(val title: String, val emoji: String) {
+    AUTO("Auto", "✨"),
+    METHODMESH("MethodMesh", "🕸️"),
+    DOCUMENT("Document", "📄"),
+    LOCATION("Location", "📍"),
+    LANGUAGE("Language", "💬"),
+    HARDWARE("Hardware", "🔧"),
+    RANDOM("Random", "🎲"),
+    SCHEDULE("Schedule", "⏱️"),
+    TOOL("Tool", "🧰"),
+    CONSENT("Consent", "✍️"),
+    CAMERA("Camera", "📷"),
+    MAP("Map", "🗺️"),
+    MEDICAL("Medical", "🩺"),
+    SAFETY("Safety", "🛡️"),
+    WEATHER("Weather", "🌦️"),
+    CALCULATE("Calculate", "🧮"),
+    EMAIL("Email", "✉️"),
+    SIGNING("Signing", "🖊️");
 
     companion object {
         fun normalize(value: String): MethodMeshWidgetIconKey =
             entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
                 ?: entries.firstOrNull { it.title.equals(value, ignoreCase = true) }
                 ?: AUTO
+    }
+}
+
+enum class MethodMeshWidgetColour(val title: String, val argb: Int) {
+    TEAL("Teal", 0xFFD7F0EC.toInt()),
+    BLUE("Blue", 0xFFDDE9FF.toInt()),
+    PURPLE("Purple", 0xFFEDE1FF.toInt()),
+    AMBER("Amber", 0xFFFFEDC7.toInt()),
+    CORAL("Coral", 0xFFFFDFD6.toInt()),
+    SLATE("Slate", 0xFFE4E8ED.toInt()),
+    DARK("Dark", 0xFF30343B.toInt());
+
+    companion object {
+        fun normalize(value: String): MethodMeshWidgetColour =
+            entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: TEAL
     }
 }
 
@@ -37,7 +61,8 @@ data class MethodMeshWidgetConfig(
     val label: String,
     val targetType: MethodMeshWidgetTargetType,
     val targetId: String,
-    val iconKey: MethodMeshWidgetIconKey = MethodMeshWidgetIconKey.AUTO
+    val iconKey: MethodMeshWidgetIconKey = MethodMeshWidgetIconKey.AUTO,
+    val colour: MethodMeshWidgetColour = MethodMeshWidgetColour.TEAL
 )
 
 object MethodMeshWidgetRepository {
@@ -94,6 +119,8 @@ object MethodMeshWidgetRepository {
         }
     }
 
+    fun resolveColour(config: MethodMeshWidgetConfig): MethodMeshWidgetColour = config.colour
+
     fun resolveTargetName(context: Context, config: MethodMeshWidgetConfig): String = when (config.targetType) {
         MethodMeshWidgetTargetType.PRESET ->
             ProtocolLibraryRepository.preset(context, config.targetId)?.name.orEmpty()
@@ -122,6 +149,7 @@ object MethodMeshWidgetRepository {
         put("targetType", config.targetType.name)
         put("targetId", config.targetId)
         put("iconKey", config.iconKey.name)
+        put("colour", config.colour.name)
     }
 
     private fun decode(root: JSONObject): MethodMeshWidgetConfig =
@@ -132,7 +160,8 @@ object MethodMeshWidgetRepository {
                 MethodMeshWidgetTargetType.valueOf(root.optString("targetType"))
             }.getOrDefault(MethodMeshWidgetTargetType.PRESET),
             targetId = root.optString("targetId"),
-            iconKey = MethodMeshWidgetIconKey.normalize(root.optString("iconKey"))
+            iconKey = MethodMeshWidgetIconKey.normalize(root.optString("iconKey")),
+            colour = MethodMeshWidgetColour.normalize(root.optString("colour"))
         )
 
     private fun key(appWidgetId: Int): String = "$PREFIX$appWidgetId"

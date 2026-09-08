@@ -52,11 +52,8 @@ class MethodMeshWidgetProvider : AppWidgetProvider() {
             } else {
                 views.setTextViewText(R.id.widgetTitle, MethodMeshWidgetRepository.resolveTitle(context, config))
                 views.setTextViewText(R.id.widgetSubtitle, MethodMeshWidgetRepository.resolveSubtitle(context, config))
-                views.setImageViewResource(R.id.widgetIcon, iconDrawableFor(MethodMeshWidgetRepository.resolveIconKey(context, config)))
-                val background = if (config.targetType == MethodMeshWidgetTargetType.SCHEDULE &&
-                    SchedulerRepository.get(context, config.targetId)?.enabled == true
-                ) R.drawable.widget_background_on else R.drawable.widget_background
-                views.setInt(R.id.widgetRoot, "setBackgroundResource", background)
+                views.setTextViewText(R.id.widgetIcon, MethodMeshWidgetRepository.resolveIconKey(context, config).emoji)
+                views.setInt(R.id.widgetRoot, "setBackgroundColor", MethodMeshWidgetRepository.resolveColour(config).argb)
                 views.setOnClickPendingIntent(R.id.widgetRoot, tapIntent(context, appWidgetId))
             }
             manager.updateAppWidget(appWidgetId, views)
@@ -109,16 +106,5 @@ class MethodMeshWidgetProvider : AppWidgetProvider() {
             SchedulerRepository.recordEvent(context, schedule.id, if (schedule.enabled) "widget_paused" else "widget_activated")
         }
 
-        private fun iconDrawableFor(iconKey: MethodMeshWidgetIconKey): Int = when (iconKey) {
-            MethodMeshWidgetIconKey.DOCUMENT -> R.drawable.ic_widget_document
-            MethodMeshWidgetIconKey.LOCATION -> R.drawable.ic_widget_location
-            MethodMeshWidgetIconKey.LANGUAGE -> R.drawable.ic_widget_language
-            MethodMeshWidgetIconKey.HARDWARE -> R.drawable.ic_widget_hardware
-            MethodMeshWidgetIconKey.RANDOM -> R.drawable.ic_widget_random
-            MethodMeshWidgetIconKey.SCHEDULE -> R.drawable.ic_widget_schedule
-            MethodMeshWidgetIconKey.TOOL -> R.drawable.ic_widget_tool
-            MethodMeshWidgetIconKey.AUTO,
-            MethodMeshWidgetIconKey.METHODMESH -> R.drawable.ic_launcher_foreground
-        }
     }
 }

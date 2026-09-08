@@ -53,6 +53,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import com.example.methodmesh.core.artifacts.AndroidArtifacts
+import com.example.methodmesh.core.artifacts.ArtifactLifecycle
 import com.example.methodmesh.core.artifacts.ArtifactRef
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -151,14 +152,16 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                     ArtifactRef("signing.${committed.signedSha256.take(32)}"),
                     committed.signedPdfUri,
                     committed.signedFilename,
-                    "application/pdf"
+                    "application/pdf",
+                    lifecycle = ArtifactLifecycle.SESSION
                 )
                 committed.verificationBundle.uri?.takeIf { it.isNotBlank() }?.let { bundleUri ->
                     service.registerExternal(
                         ArtifactRef("signing-bundle.${committed.verificationBundle.sha256?.take(32) ?: committed.signedSha256.take(32)}"),
                         bundleUri,
                         committed.verificationBundle.filename ?: "verification_bundle.zip",
-                        "application/zip"
+                        "application/zip",
+                        lifecycle = ArtifactLifecycle.SESSION
                     )
                 }
             }
