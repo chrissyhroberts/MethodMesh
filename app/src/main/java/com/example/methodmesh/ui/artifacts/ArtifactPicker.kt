@@ -1,6 +1,7 @@
 package com.example.methodmesh.ui.artifacts
 
 import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -234,7 +235,16 @@ fun FilesScreen() {
                                     )
                                 } else {
                                     androidx.compose.foundation.text.selection.SelectionContainer {
-                                        androidx.compose.foundation.layout.Box(Modifier.padding(12.dp).verticalScroll(rememberScrollState())) {
+                                        androidx.compose.foundation.layout.Box(
+                                            Modifier
+                                                .padding(12.dp)
+                                                .verticalScroll(rememberScrollState())
+                                                .clickable {
+                                                    context.getSystemService(ClipboardManager::class.java)
+                                                        ?.setPrimaryClip(ClipData.newPlainText(artifact.displayName, previewText!!))
+                                                    status = "Copied preview to clipboard."
+                                                }
+                                        ) {
                                             Text(previewText!!, style = MaterialTheme.typography.bodySmall)
                                         }
                                     }
