@@ -88,14 +88,21 @@ class ArtifactService(private val store: File, private val workspace: File,
 
     fun open(ref: ArtifactRef): InputStream {
         val artifact = resolve(ref)
-        return if (artifact.origin == ArtifactOrigin.MANAGED) File(workspace, artifact.location).inputStream()
-        else openExternal(artifact.location)
+        return if (artifact.origin == ArtifactOrigin.MANAGED) {
+            val workspaceFile = File(workspace, artifact.location)
+            val storeFile = File(store, artifact.location)
+            when {
+                workspaceFile.isFile -> workspaceFile.inputStream()
+                storeFile.isFile -> storeFile.inputStream()
+                else -> error("Managed artifact content is unavailable: $ref")
+            }
+        } else openExternal(artifact.location)
     }
 
     @Synchronized fun persist(ref: ArtifactRef): ArtifactRef {
         val source = resolve(ref)
         if (source.origin == ArtifactOrigin.MANAGED && source.lifecycle == ArtifactLifecycle.PERSISTENT) return ref
-        val target = File(store, UUID.randomUUID().toString())
+        val target = File(workspace, UUID.randomUUID().toString())
         open(ref).use { input -> target.outputStream().use { input.copyTo(it) } }
         val persisted = Artifact(ArtifactRef(target.name), source.displayName, source.mimeType,
             ArtifactOrigin.MANAGED, ArtifactLifecycle.PERSISTENT, target.name, source.sha256, ref, "artifact.persist")
