@@ -6,6 +6,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,6 +37,8 @@ import java.io.File
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.UUID
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** Shared selection surface for any capability. Selection returns identity, not a saved copy. */
 @Composable
@@ -178,7 +182,7 @@ fun FilesScreen() {
                 withContext(Dispatchers.IO) {
                     AndroidArtifacts.service(context).open(artifact.ref).use { input ->
                         if (previewableText) {
-                            input.bufferedReader().use { it.readText().take(MAX_TEXT_PREVIEW_CHARS) }
+                            input.bufferedReader().use { formatPreviewText(it.readText().take(MAX_TEXT_PREVIEW_CHARS), artifact.mimeType, artifact.displayName) }
                         } else if (previewablePdf) {
                             previewPdf(context, input)
                         } else {
@@ -200,18 +204,18 @@ fun FilesScreen() {
                             previewImage != null -> Image(
                                 bitmap = previewImage!!.asImageBitmap(),
                                 contentDescription = artifact.displayName,
-                                modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp),
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp),
                                 contentScale = ContentScale.Fit
                             )
                             previewText != null -> Surface(
-                                modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp),
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = 520.dp),
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                             ) {
-                                Text(
-                                    previewText!!,
-                                    modifier = Modifier.padding(12.dp),
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                                androidx.compose.foundation.text.selection.SelectionContainer {
+                                    androidx.compose.foundation.layout.Box(Modifier.padding(12.dp).verticalScroll(rememberScrollState())) {
+                                        Text(previewText!!, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
                             }
                             else -> Text("No inline preview for this file type.")
                         }
@@ -245,6 +249,26 @@ fun FilesScreen() {
                         }
                         TextButton(onClick = { confirmDelete = artifact }) { Text("Delete") }
                         TextButton(onClick = { exporter.launch(artifact.displayName) }) { Text("Save a copy") }
+                        TextButton(onClick = {
+                            scope.launch {
+                                runCatching {
+                                    val shareFile = withContext(Dispatchers.IO) {
+                                        File.createTempFile("methodmesh-share-", "-${artifact.displayName.replace(Regex("[^A-Za-z0-9._-]"), "_")}", context.cacheDir).also { target ->
+                                            AndroidArtifacts.service(context).open(artifact.ref).use { input ->
+                                                target.outputStream().use { input.copyTo(it) }
+                                            }
+                                        }
+                                    }
+                                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", shareFile)
+                                    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                                        type = artifact.mimeType
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        clipData = ClipData.newUri(context.contentResolver, artifact.displayName, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }, "Share file"))
+                                }.onFailure { error -> status = "Share failed: ${error.message ?: "could not prepare file"}" }
+                            }
+                        }) { Text("Share") }
                     }
                 },
                 dismissButton = { TextButton(onClick = { selected = null }) { Text("Close") } })
@@ -276,6 +300,21 @@ fun FilesScreen() {
 }
 
 private const val MAX_TEXT_PREVIEW_CHARS = 16_000
+
+private fun formatPreviewText(text: String, mimeType: String, name: String): String {
+    val isJson = mimeType.equals("application/json", true) ||
+        name.endsWith(".json", true) || name.endsWith(".jsonl", true)
+    if (!isJson) return text
+    return runCatching {
+        text.lineSequence().filter { it.isNotBlank() }.joinToString("\n") { line ->
+            when {
+                line.trimStart().startsWith("{") -> JSONObject(line).toString(2)
+                line.trimStart().startsWith("[") -> JSONArray(line).toString(2)
+                else -> line
+            }
+        }
+    }.getOrElse { text }
+}
 
 private fun previewPdf(context: android.content.Context, input: java.io.InputStream): Bitmap? {
     val temporaryFile = File.createTempFile("methodmesh-preview-", ".pdf", context.cacheDir)
