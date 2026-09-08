@@ -70,19 +70,20 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
     ) {
         val appContext = LocalContext.current
         val repository = remember { ReferenceLibraryRepository(appContext) }
-        // Treat every ordinary manual native run as the persistent library dashboard.
-        // HomeScreen can construct a manual-confirmation capability context through more
-        // than one native route; presentationMode alone is therefore too narrow and can
-        // allow a read action to fall through into CapabilityScreenScaffold's Result page.
-        // Native presets remain transactional and external/ODK runs are AutomaticReturn.
-        val dashboardMode =
-            context.presentationMode == CapabilityPresentationMode.Dashboard ||
-                (context.completionMode == CapabilityCompletionMode.ManualConfirmation && !context.isNativePresetRun)
+        // The library is a persistent workspace whenever the host is giving the user
+        // control. Keep that workspace inline even when a native preset opened it with
+        // an intent-style presentation; the generic Result page exposes implementation
+        // fields (URI, artifact ref, shelf metadata) that are not useful for browsing.
+        // Automatic-return callers such as ODK and protocol dependencies still use the
+        // capability result contract below.
+        val dashboardMode = context.completionMode == CapabilityCompletionMode.ManualConfirmation
         // Reading and selecting are deliberately different operations. Any manual
         // UI is allowed to browse/read without creating an ExecutionResult.
         // Automatic-return callers (ODK/protocol dependency flows) keep tap-to-return.
         val manualReadingMode = context.completionMode == CapabilityCompletionMode.ManualConfirmation
-        val explicitUseAction = manualReadingMode && !dashboardMode
+        // Native preset runs still need an explicit hand-off, but the hand-off happens
+        // from the library row rather than by navigating to the generic Result page.
+        val explicitUseAction = manualReadingMode && context.isNativePresetRun
         var documents by remember { mutableStateOf(repository.documents()) }
         var customShelves by remember { mutableStateOf(repository.customShelves()) }
         var query by rememberSaveable { mutableStateOf(context.action.settings["query"] ?: context.action.settings["input_query"] ?: "") }
@@ -1114,4 +1115,3 @@ private fun EmptyLibraryCard(filtered: Boolean, onImport: () -> Unit) {
         }
     }
 }
-
