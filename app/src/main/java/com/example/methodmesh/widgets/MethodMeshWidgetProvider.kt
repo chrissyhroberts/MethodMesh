@@ -53,7 +53,11 @@ class MethodMeshWidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.widgetTitle, MethodMeshWidgetRepository.resolveTitle(context, config))
                 views.setTextViewText(R.id.widgetSubtitle, MethodMeshWidgetRepository.resolveSubtitle(context, config))
                 views.setTextViewText(R.id.widgetIcon, MethodMeshWidgetRepository.resolveIconKey(context, config).emoji)
-                views.setInt(R.id.widgetRoot, "setBackgroundColor", MethodMeshWidgetRepository.resolveColour(config).argb)
+                val colour = MethodMeshWidgetRepository.resolveColour(config)
+                views.setInt(R.id.widgetRoot, "setBackgroundColor", colour.argb)
+                val foreground = if (colour == MethodMeshWidgetColour.DARK) 0xFFFFFFFF.toInt() else 0xFF302A28.toInt()
+                views.setTextColor(R.id.widgetTitle, foreground)
+                views.setTextColor(R.id.widgetSubtitle, foreground)
                 views.setOnClickPendingIntent(R.id.widgetRoot, tapIntent(context, appWidgetId))
             }
             manager.updateAppWidget(appWidgetId, views)
