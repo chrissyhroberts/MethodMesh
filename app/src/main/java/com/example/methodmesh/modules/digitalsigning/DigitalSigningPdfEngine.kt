@@ -6,6 +6,7 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
+import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
@@ -38,6 +39,7 @@ object DigitalSigningPdfEngine {
     fun commit(
         sourceFile: File,
         strokes: List<InkStroke>,
+        elements: List<MarkupElement> = emptyList(),
         outputFile: File,
         finalise: Boolean
     ): PdfCommitResult {
@@ -48,13 +50,13 @@ object DigitalSigningPdfEngine {
         if (finalise) {
             val intermediate = File(outputFile.parentFile, ".${outputFile.name}.intermediate-${System.nanoTime()}.pdf")
             try {
-                pageCount = writePdfWithInk(sourceFile, strokes, intermediate)
+                pageCount = writePdfWithInk(sourceFile, strokes, elements, intermediate)
                 rasterFlatten(intermediate, outputFile)
             } finally {
                 intermediate.delete()
             }
         } else {
-            pageCount = writePdfWithInk(sourceFile, strokes, outputFile)
+            pageCount = writePdfWithInk(sourceFile, strokes, elements, outputFile)
         }
 
         return PdfCommitResult(
@@ -71,7 +73,7 @@ object DigitalSigningPdfEngine {
         )
     }
 
-    private fun writePdfWithInk(sourceFile: File, strokes: List<InkStroke>, outputFile: File): Int {
+    private fun writePdfWithInk(sourceFile: File, strokes: List<InkStroke>, elements: List<MarkupElement>, outputFile: File): Int {
         val output = PdfDocument()
         try {
             return ParcelFileDescriptor.open(sourceFile, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
@@ -92,6 +94,7 @@ object DigitalSigningPdfEngine {
                                     Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
                                 )
                                 drawInk(page.canvas, pageWidth.toFloat(), pageHeight.toFloat(), strokes.filter { it.pageIndex == index })
+                                drawElements(page.canvas, pageWidth.toFloat(), pageHeight.toFloat(), elements.filter { it.pageIndex == index })
                             } finally {
                                 output.finishPage(page)
                                 background.recycle()
@@ -104,6 +107,23 @@ object DigitalSigningPdfEngine {
             }
         } finally {
             output.close()
+        }
+    }
+
+    private fun drawElements(canvas: android.graphics.Canvas, width: Float, height: Float, elements: List<MarkupElement>) {
+        elements.forEach { element ->
+            val x = element.x.coerceIn(0f, 1f) * width
+            val y = element.y.coerceIn(0f, 1f) * height
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = element.argb; textSize = element.sizePt.coerceIn(8f, 72f); typeface = Typeface.DEFAULT }
+            when (element.kind) {
+                MarkupElement.Kind.Check -> {
+                    paint.style = Paint.Style.STROKE
+                    paint.strokeWidth = (element.sizePt / 7f).coerceIn(1.5f, 8f)
+                    canvas.drawLine(x - element.sizePt, y, x - element.sizePt / 3f, y + element.sizePt, paint)
+                    canvas.drawLine(x - element.sizePt / 3f, y + element.sizePt, x + element.sizePt, y - element.sizePt, paint)
+                }
+                MarkupElement.Kind.Text -> canvas.drawText(element.text, x, y, paint)
+            }
         }
     }
 

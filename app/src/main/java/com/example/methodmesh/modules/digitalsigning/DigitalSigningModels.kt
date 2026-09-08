@@ -3,7 +3,7 @@ package com.example.methodmesh.modules.digitalsigning
 import android.graphics.Bitmap
 import java.io.File
 
-enum class DigitalSigningMode { Navigate, Ink, Erase }
+enum class DigitalSigningMode { Navigate, Ink, Check, Text, Move, Erase }
 
 enum class PdfInputOrigin(val id: String) {
     Odk("odk"),
@@ -22,6 +22,19 @@ data class InkStroke(
     val widthPt: Float,
     val argb: Int = 0xFF141718.toInt()
 )
+
+data class MarkupElement(
+    val id: String,
+    val pageIndex: Int,
+    val x: Float,
+    val y: Float,
+    val kind: Kind,
+    val text: String = "",
+    val sizePt: Float = 18f,
+    val argb: Int = 0xFF141718.toInt()
+) {
+    enum class Kind { Check, Text }
+}
 
 data class WorkingPdf(
     val sourceFile: File,

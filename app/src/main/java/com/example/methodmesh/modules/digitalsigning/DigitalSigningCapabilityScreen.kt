@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -163,6 +166,8 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
 
         var workingPdf by remember { mutableStateOf<WorkingPdf?>(null) }
         var strokes by remember { mutableStateOf<List<InkStroke>>(emptyList()) }
+        var elements by remember { mutableStateOf<List<MarkupElement>>(emptyList()) }
+        var textToPlace by remember { mutableStateOf("Text") }
         var currentPage by rememberSaveable { mutableStateOf(0) }
         var renderedPage by remember { mutableStateOf<RenderedPdfPage?>(null) }
         var mode by rememberSaveable { mutableStateOf(DigitalSigningMode.Navigate) }
@@ -401,7 +406,7 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
 
         fun commit() {
             val working = workingPdf ?: return
-            if (strokes.isEmpty() || isCommitting) return
+            if (strokes.isEmpty() && elements.isEmpty() || isCommitting) return
             scope.launch {
                 isCommitting = true
                 showCommitPanel = false
@@ -414,6 +419,7 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                         val pdf = DigitalSigningPdfEngine.commit(
                             sourceFile = working.sourceFile,
                             strokes = strokes,
+                            elements = elements,
                             outputFile = output,
                             finalise = effectiveFinalise
                         )
@@ -430,7 +436,7 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                             signedPdfUri = uri,
                             signedSha256 = pdf.signedSha256,
                             pageCount = pdf.pageCount,
-                            inkPresent = strokes.isNotEmpty(),
+                            inkPresent = strokes.isNotEmpty() || elements.isNotEmpty(),
                             inkStrokeCount = strokes.size,
                             finalised = pdf.finalised,
                             finalisationMode = pdf.finalisationMode,
@@ -554,8 +560,13 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                         onPageChanged = { next -> currentPage = next.coerceIn(0, working.pageCount - 1) },
                         mode = mode,
                         onModeChanged = { mode = it },
+                        onTextRequested = { textToPlace = it; mode = DigitalSigningMode.Text },
                         strokes = strokes,
+                        elements = elements,
+                        textToPlace = textToPlace,
                         onStrokeAdded = { stroke -> strokes = strokes + stroke },
+                        onElementAdded = { element -> elements = elements + element },
+                        onElementMoved = { id, x, y -> elements = elements.map { if (it.id == id) it.copy(x = x, y = y) else it } },
                         onEraseAt = { point, zoom ->
                             val threshold = (0.028f / zoom.coerceAtLeast(1f)).coerceAtLeast(0.006f)
                             val before = strokes.size
@@ -569,10 +580,14 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                             if (strokes.size < before) status = "Markup erased."
                         },
                         onUndo = {
-                            val index = strokes.indexOfLast { it.pageIndex == currentPage }
-                            if (index >= 0) {
-                                strokes = strokes.toMutableList().also { it.removeAt(index) }
+                            val strokeIndex = strokes.indexOfLast { it.pageIndex == currentPage }
+                            val elementIndex = elements.indexOfLast { it.pageIndex == currentPage }
+                            if (strokeIndex >= 0 && strokeIndex >= elementIndex) {
+                                strokes = strokes.toMutableList().also { it.removeAt(strokeIndex) }
                                 status = "Last markup stroke removed."
+                            } else if (elementIndex >= 0) {
+                                elements = elements.toMutableList().also { it.removeAt(elementIndex) }
+                                status = "Last markup element removed."
                             }
                         },
                         penArgb = penArgb(penColor),
@@ -694,9 +709,14 @@ private fun FullScreenSigningWorkspace(
     currentPage: Int,
     onPageChanged: (Int) -> Unit,
     mode: DigitalSigningMode,
+    textToPlace: String,
     onModeChanged: (DigitalSigningMode) -> Unit,
+    onTextRequested: (String) -> Unit,
     strokes: List<InkStroke>,
+    elements: List<MarkupElement>,
     onStrokeAdded: (InkStroke) -> Unit,
+    onElementAdded: (MarkupElement) -> Unit,
+    onElementMoved: (String, Float, Float) -> Unit,
     onEraseAt: (InkPoint, Float) -> Unit,
     onUndo: () -> Unit,
     penArgb: Int,
@@ -720,10 +740,14 @@ private fun FullScreenSigningWorkspace(
             renderError = renderError,
             currentPage = currentPage,
             mode = mode,
+            textToPlace = textToPlace,
             strokes = strokes.filter { it.pageIndex == currentPage },
+            elements = elements.filter { it.pageIndex == currentPage },
             penWidthPt = penWidthPt,
             penArgb = penArgb,
             onStrokeAdded = onStrokeAdded,
+            onElementAdded = onElementAdded,
+            onElementMoved = onElementMoved,
             onEraseAt = onEraseAt
         )
 
@@ -741,7 +765,8 @@ private fun FullScreenSigningWorkspace(
             mode = mode,
             onModeChanged = onModeChanged,
             onUndo = onUndo,
-            canUndo = strokes.any { it.pageIndex == currentPage },
+            canUndo = strokes.any { it.pageIndex == currentPage } || elements.any { it.pageIndex == currentPage },
+            onAddText = onTextRequested,
             penColor = penColor,
             onPenColorChanged = onPenColorChanged,
             showPenColor = showPenColor,
@@ -762,7 +787,7 @@ private fun FullScreenSigningWorkspace(
 
         Button(
             onClick = onDone,
-            enabled = strokes.isNotEmpty() && !isCommitting,
+                        enabled = (strokes.isNotEmpty() || elements.isNotEmpty()) && !isCommitting,
             modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(10.dp)
         ) {
             Text("Done", fontWeight = FontWeight.Bold)
@@ -819,9 +844,13 @@ private fun PdfFullScreenPage(
     currentPage: Int,
     mode: DigitalSigningMode,
     strokes: List<InkStroke>,
+    elements: List<MarkupElement>,
+    textToPlace: String,
     penWidthPt: Float,
     penArgb: Int,
     onStrokeAdded: (InkStroke) -> Unit,
+    onElementAdded: (MarkupElement) -> Unit,
+    onElementMoved: (String, Float, Float) -> Unit,
     onEraseAt: (InkPoint, Float) -> Unit
 ) {
     var zoom by rememberSaveable(currentPage) { mutableStateOf(1f) }
@@ -829,6 +858,7 @@ private fun PdfFullScreenPage(
     var panY by rememberSaveable(currentPage) { mutableStateOf(0f) }
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     var activePoints by remember { mutableStateOf<List<InkPoint>>(emptyList()) }
+    var movingId by remember { mutableStateOf<String?>(null) }
     val page = renderedPage
 
     Box(
@@ -892,6 +922,32 @@ private fun PdfFullScreenPage(
                                 activePoints = activePoints + point
                             }
                         }
+                    )
+                    DigitalSigningMode.Check -> detectTapGestures { position ->
+                        toNormalisedPoint(position, pdfViewportLayout(viewportSize, activePage.bitmap.width, activePage.bitmap.height, zoom, Offset(panX, panY)))?.let {
+                            onElementAdded(MarkupElement(UUID.randomUUID().toString(), currentPage, it.x, it.y, MarkupElement.Kind.Check))
+                        }
+                    }
+                    DigitalSigningMode.Text -> detectTapGestures { position ->
+                        toNormalisedPoint(position, pdfViewportLayout(viewportSize, activePage.bitmap.width, activePage.bitmap.height, zoom, Offset(panX, panY)))?.let {
+                            onElementAdded(MarkupElement(UUID.randomUUID().toString(), currentPage, it.x, it.y, MarkupElement.Kind.Text, text = textToPlace))
+                        }
+                    }
+                    DigitalSigningMode.Move -> detectDragGestures(
+                        onDragStart = { position ->
+                            val layout = pdfViewportLayout(viewportSize, activePage.bitmap.width, activePage.bitmap.height, zoom, Offset(panX, panY))
+                            val point = toNormalisedPoint(position, layout)
+                            movingId = point?.let { p -> elements.minByOrNull { e -> (e.x - p.x) * (e.x - p.x) + (e.y - p.y) * (e.y - p.y) }?.takeIf { e -> kotlin.math.sqrt((e.x - p.x) * (e.x - p.x) + (e.y - p.y) * (e.y - p.y)) < 0.12f }?.id }
+                        },
+                        onDrag = { change, _ ->
+                            change.consume()
+                            val layout = pdfViewportLayout(viewportSize, activePage.bitmap.width, activePage.bitmap.height, zoom, Offset(panX, panY))
+                            val point = toNormalisedPoint(change.position, layout)
+                            val id = movingId
+                            if (point != null && id != null) onElementMoved(id, point.x, point.y)
+                        },
+                        onDragEnd = { movingId = null },
+                        onDragCancel = { movingId = null }
                     )
                     DigitalSigningMode.Erase -> detectDragGestures(
                         onDragStart = { position ->
@@ -967,6 +1023,17 @@ private fun PdfFullScreenPage(
                 }
 
                 strokes.forEach(::drawInkStroke)
+                elements.forEach { element ->
+                    val center = Offset(layout.originX + element.x * layout.scaledWidth, layout.originY + element.y * layout.scaledHeight)
+                    val size = (element.sizePt * layout.scaledWidth / page.pageWidthPt.coerceAtLeast(1f)).coerceAtLeast(10f)
+                    when (element.kind) {
+                        MarkupElement.Kind.Check -> {
+                            drawLine(Color(element.argb), center + Offset(-size, 0f), center + Offset(-size / 3f, size), strokeWidth = (size / 7f).coerceAtLeast(2f), cap = StrokeCap.Round)
+                            drawLine(Color(element.argb), center + Offset(-size / 3f, size), center + Offset(size, -size), strokeWidth = (size / 7f).coerceAtLeast(2f), cap = StrokeCap.Round)
+                        }
+                        MarkupElement.Kind.Text -> drawIntoCanvas { canvas -> canvas.nativeCanvas.drawText(element.text, center.x, center.y, android.graphics.Paint().apply { color = element.argb; textSize = size }) }
+                    }
+                }
                 if (activePoints.isNotEmpty()) {
                     drawInkStroke(
                         InkStroke(
@@ -1070,6 +1137,7 @@ private fun MarkupOverlay(
     onModeChanged: (DigitalSigningMode) -> Unit,
     onUndo: () -> Unit,
     canUndo: Boolean,
+    onAddText: (String) -> Unit,
     penColor: String,
     onPenColorChanged: (String) -> Unit,
     showPenColor: Boolean,
@@ -1079,13 +1147,14 @@ private fun MarkupOverlay(
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
+    var textValue by rememberSaveable { mutableStateOf("Text") }
     if (mode == DigitalSigningMode.Navigate) {
         Button(
             onClick = { onModeChanged(DigitalSigningMode.Ink) },
             enabled = enabled,
             modifier = modifier
         ) {
-            Text("Ink")
+            Text("Markup")
         }
         return
     }
@@ -1110,7 +1179,21 @@ private fun MarkupOverlay(
                     },
                     enabled = enabled
                 ) { Text(if (mode == DigitalSigningMode.Erase) "Erase ON" else "Erase") }
+                OutlinedButton(onClick = { onModeChanged(if (mode == DigitalSigningMode.Check) DigitalSigningMode.Navigate else DigitalSigningMode.Check) }, enabled = enabled) { Text(if (mode == DigitalSigningMode.Check) "✓ ON" else "✓") }
+                OutlinedButton(onClick = { onModeChanged(if (mode == DigitalSigningMode.Move) DigitalSigningMode.Navigate else DigitalSigningMode.Move) }, enabled = enabled) { Text(if (mode == DigitalSigningMode.Move) "Move ON" else "Move") }
+                OutlinedButton(onClick = { onAddText(textValue.ifBlank { "Text" }) }, enabled = enabled) { Text("Text") }
                 OverlayButton("Undo", enabled = enabled && canUndo, onClick = onUndo)
+            }
+
+            if (mode == DigitalSigningMode.Text) {
+                Spacer(Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = textValue,
+                    onValueChange = { textValue = it.take(120) },
+                    singleLine = true,
+                    enabled = enabled,
+                    label = { Text("Text to place") }
+                )
             }
 
             if (showPenColor && mode == DigitalSigningMode.Ink) {
@@ -1380,6 +1463,9 @@ private fun RoundAction(label: String, enabled: Boolean, onClick: () -> Unit) {
 private fun modeLabel(mode: DigitalSigningMode): String = when (mode) {
     DigitalSigningMode.Navigate -> "Navigate"
     DigitalSigningMode.Ink -> "Ink"
+    DigitalSigningMode.Check -> "Check"
+    DigitalSigningMode.Text -> "Text"
+    DigitalSigningMode.Move -> "Move"
     DigitalSigningMode.Erase -> "Erase"
 }
 
