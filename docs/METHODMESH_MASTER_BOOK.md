@@ -1262,6 +1262,40 @@ If the capability requires MethodMesh-side interaction - for example a camera, m
 
 ODK owns form persistence and submission. Native Share/Save controls are normally suppressed in external-roundtrip mode unless an explicit contract calls for them.
 
+## Shared Artifact Service and generated module artifacts
+
+The core Artifact Service owns file identity, resolution, provenance and handoff. Persistence is an independent decision: producing or selecting an artifact does not save it in Files. Origins are `BUNDLED`, `MANAGED` and `EXTERNAL`; lifecycles are independently `PERSISTENT`, `SESSION` and `TRANSIENT`. Generated derivatives have managed origin and record their parent and operation. Bundled inputs are read-only; edits create new artifacts.
+
+`ArtifactRef` is an opaque `artifact://` identity. Capability adapters can pass it internally and resolve a byte stream without constructing module-private paths. Existing canonical result fields and ODK content-URI/read-grant contracts remain unchanged. A reference is not itself an Android attachment URI. The transport boundary must materialise or stream bytes and grant access using the existing Android transport machinery.
+
+`ArtifactPickerRequest` is the shared MIME/origin/lifecycle/search contract. Selection returns a reference without persistence. `ArtifactPicker` supplies the reusable native selection surface. **Files** is a persistent view (`ArtifactStore`) over that service, with explicit import. ODK Forms retains its specialised deployment semantics while reading bundled bytes through the same service. Reference Library, Ink, TSA and other capability adapters can adopt this contract incrementally; this first implementation does not migrate their existing repositories or result contracts.
+
+Every working artifact belongs to a caller-supplied session. The producer defaults to transient; explicit `persist` creates an immutable managed persistent copy. The coordinator releases working references only after all consumers have read them. Launching an Android share chooser is not confirmation that a recipient has consumed an attachment. `endSession` removes that session's working bytes, leaves persistent artifacts untouched and never deletes linked external files. Current in-flight references are process-scoped, survive activity recreation through the application-scoped service, and do not promise recovery after process death. Abandoned workspace eviction and durable workflow recovery remain follow-up work; callers must explicitly complete sessions.
+
+### Build-time module XLSForm projection
+
+Module folders and their `docs/` XLSForms remain canonical, self-contained drag-and-drop packages. `generateMethodMeshArtifacts` uses Python 3 (standard library only) to discover workbooks, read row-oriented settings, hash and copy bytes, and generate `app/build/generated/methodmeshArtifacts/assets/methodmesh/artifacts/index.json`. No separate author-maintained central registry is required. Source workbooks are never moved or rewritten. Stable artifact identity uses the declared module ID and module-relative source path; `form_id`, title, version and content hash remain separate fields. Filename changes can change the artifact reference, but never silently change `form_id`.
+
+The ODK Forms catalogue reads this generated index; each workbook is independently indexed, including structurally recognisable legacy names. Duplicate filenames in different modules cannot overwrite each other. Gradle tracks XLSForms, module metadata sources and the compiler as inputs, skips unchanged generation, and removes stale generated workbook copies when sources are removed. Changes to ordinary capability implementation files do not invalidate the artifact task. This initial task uses Gradle up-to-date checking; it does not claim remote build-cache support.
+
+Malformed XLSX archives fail generation with source attribution. Non-XLSForm workbooks are reported and excluded. Naming and policy findings remain in each indexed entry rather than silently hiding migration debt. The compiler performs preliminary structural/policy checks, not full pyxform conversion, provider validation or runtime method-contract resolution. `structural_checks_passed` is not a claim of canonical capability coverage or provider admission.
+
+### v1.07 XLSForm policy applied to this projection
+
+The supplied v1.07 XLSForm policy update supersedes older broader-example language in this edition: one canonical example demonstrates exactly one declared capability with exactly one MethodMesh invocation. Canonical examples use unprefixed declared return names, capture `methodmesh_status` and `methodmesh_full_json`, and do not require `methodmesh_return_namespace`. Namespace projection remains supported for intentionally composed user-authored forms.
+
+Generic duplicate-name checks are group/repeat-scope aware. Kobo global-name collisions are separately attributed provider-compatibility findings. Canonical examples require globally unique nodes for unchanged portability. Existing multi-call/namespace examples are migration or archival artifacts, not canonical coverage. Indexing them does not promote them to conformance. Source migration, complete capability/output validation and provider testing remain required before claiming v1.07 compliance; build-time indexing must not silently repair or rename source forms.
+
+Validation commands for this increment:
+
+```sh
+python3 -m unittest discover -s tools/artifacts -p 'test_*.py'
+./gradlew :app:testDebugUnitTest --tests 'com.example.methodmesh.core.artifacts.*'
+./gradlew :app:assembleDebug
+```
+
+The 2026-09-08 foundation increment built a debug APK, passed six artifact-service and three compiler tests, and verified byte-for-byte agreement for 366 source/generated/APK workbooks. Of these, 123 had preliminary policy findings. Unchanged Gradle indexing was confirmed up-to-date. The full unit suite had 195 tests and the same 16 failures recorded before this increment (189 baseline tests); those existing failures are not a passing release gate. Documentation hygiene reported zero errors and 30 warnings. No device-level signing, sharing or ODK roundtrip was exercised for this increment.
+
 ## ODK capability parity
 
 ODK is a first-class invocation surface for the same MethodMesh

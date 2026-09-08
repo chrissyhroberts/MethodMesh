@@ -1,6 +1,11 @@
 project:
   type: website
   output-dir: ../docs
+  render:
+    - "*.qmd"
+    - "capabilities/*.qmd"
+    - "examples/*.qmd"
+    - "reference/*.qmd"
   resources:
     - assets/**
     - reference/source-docs/**

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Automatic code scanner – MethodMesh User Guide</title>
+<title>Automatic barcode scanner – MethodMesh User Guide</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -84,7 +84,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/qr-code.html">Automatic code scanner</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/qr-code.html">Automatic barcode scanner</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -247,7 +247,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container">
   <a href="../capabilities/qr-code.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Automatic code scanner</span></a>
+ <span class="menu-text">Automatic barcode scanner</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -392,7 +392,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#requirements" id="toc-requirements" class="nav-link" data-scroll-target="#requirements">Requirements</a></li>
   <li><a href="#screenshot" id="toc-screenshot" class="nav-link" data-scroll-target="#screenshot">Screenshot</a></li>
   <li><a href="#supported-xlsform-calls" id="toc-supported-xlsform-calls" class="nav-link" data-scroll-target="#supported-xlsform-calls">Supported XLSForm calls</a></li>
-  <li><a href="#inputs-observed-in-supplied-examples" id="toc-inputs-observed-in-supplied-examples" class="nav-link" data-scroll-target="#inputs-observed-in-supplied-examples">Inputs observed in supplied examples</a></li>
+  <li><a href="#inputs" id="toc-inputs" class="nav-link" data-scroll-target="#inputs">Inputs</a></li>
   <li><a href="#expected-returned-fields" id="toc-expected-returned-fields" class="nav-link" data-scroll-target="#expected-returned-fields">Expected returned fields</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/chrissyhroberts/MethodMesh/edit/master/capabilities/qr-code.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/chrissyhroberts/MethodMesh/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
@@ -400,9 +400,9 @@ ul.task-list li input[type="checkbox"] {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/qr-code.html">Automatic code scanner</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../capabilities/index.html">Capabilities</a></li><li class="breadcrumb-item"><a href="../capabilities/qr-code.html">Automatic barcode scanner</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Automatic code scanner</h1>
+<h1 class="title">Automatic barcode scanner</h1>
 </div>
 
 
@@ -425,12 +425,13 @@ ul.task-list li input[type="checkbox"] {
 </div>
 <section id="purpose" class="level2">
 <h2 class="anchored" data-anchor-id="purpose">Purpose</h2>
-<p>Scan QR codes and supported barcode formats and return the decoded payload and detected format.</p>
+<p>Scan QR codes and supported barcode formats. The exact decoded payload is the primary result; HTTP(S) payloads also receive an explicit link field.</p>
 </section>
 <section id="capability-ids" class="level2">
 <h2 class="anchored" data-anchor-id="capability-ids">Capability IDs</h2>
 <ul>
-<li><code>qr.scan</code></li>
+<li><code>barcode.scan</code> — canonical</li>
+<li><code>qr.scan</code> — deprecated compatibility contract</li>
 </ul>
 </section>
 <section id="requirements" class="level2">
@@ -452,17 +453,38 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="supported-xlsform-calls" class="level2">
 <h2 class="anchored" data-anchor-id="supported-xlsform-calls">Supported XLSForm calls</h2>
-<p><strong>From <code>example_odk_qr.scan.xlsx</code>:</strong></p>
-<pre class="text"><code>com.example.methodmesh.EXECUTE_METHOD(method_id='qr.scan')</code></pre>
+<p><strong>From <code>example_odk_barcode.scan.xlsx</code>:</strong></p>
+<pre class="text"><code>com.example.methodmesh.EXECUTE_METHOD(method_id='barcode.scan')</code></pre>
+<p>The legacy <code>example_odk_qr.scan.xlsx</code> continues to call <code>qr.scan</code> during the compatibility window.</p>
 </section>
-<section id="inputs-observed-in-supplied-examples" class="level2">
-<h2 class="anchored" data-anchor-id="inputs-observed-in-supplied-examples">Inputs observed in supplied examples</h2>
-<p><em>None documented in the supplied material.</em></p>
+<section id="inputs" class="level2">
+<h2 class="anchored" data-anchor-id="inputs">Inputs</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 30%">
+<col style="width: 40%">
+<col style="width: 30%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Input</th>
+<th style="text-align: right;">Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>input_barcode_formats</code></td>
+<td style="text-align: right;">No</td>
+<td>Pipe-delimited ZXing format identifiers. Omit for automatic detection.</td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="expected-returned-fields" class="level2">
 <h2 class="anchored" data-anchor-id="expected-returned-fields">Expected returned fields</h2>
-<p>Return fields are documented from the specific XLSForm execution group only.</p>
-<p>The previous generated documentation layer contained duplicated fields across capabilities. This section has been regenerated and will only include verified fields from the matching execution group.</p>
+<p><code>barcode_payload</code> is the exact decoded string. <code>barcode_payload_kind</code> is <code>text</code> or <code>url</code>; <code>barcode_payload_url</code> is present only for a safe absolute HTTP(S) URL. <code>barcode_format</code> records the detected symbology and <code>barcode_payload_sha256</code> provides an integrity digest.</p>
+<p>The payload is never trimmed or converted to a number, so identifiers and retail codes retain leading zeros. URL presentation is clickable inside MethodMesh, but opening the link always requires a user action.</p>
 
 
 </section>
