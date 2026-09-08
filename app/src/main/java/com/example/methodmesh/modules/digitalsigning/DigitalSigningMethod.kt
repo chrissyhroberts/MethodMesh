@@ -25,9 +25,11 @@ object DigitalSigningFields {
     const val SIGNED_PDF_URI = "digital_signing_signed_pdf_uri"
     const val SIGNED_PDF_NAME = "digital_signing_signed_pdf_name"
     const val SIGNED_SHA256 = "digital_signing_signed_sha256"
+    const val SIGNED_ARTIFACT_REF = "digital_signing_signed_artifact_ref"
     const val VERIFICATION_BUNDLE_URI = "digital_signing_verification_bundle_uri"
     const val VERIFICATION_BUNDLE_NAME = "digital_signing_verification_bundle_name"
     const val VERIFICATION_BUNDLE_SHA256 = "digital_signing_verification_bundle_sha256"
+    const val VERIFICATION_BUNDLE_ARTIFACT_REF = "digital_signing_verification_bundle_artifact_ref"
     const val SOURCE_SHA256 = "digital_signing_source_sha256"
     const val SOURCE_ORIGIN = "digital_signing_source_origin"
     const val PAGE_COUNT = "digital_signing_page_count"
@@ -48,9 +50,11 @@ object DigitalSigningFields {
         SIGNED_PDF_URI,
         SIGNED_PDF_NAME,
         SIGNED_SHA256,
+        SIGNED_ARTIFACT_REF,
         VERIFICATION_BUNDLE_URI,
         VERIFICATION_BUNDLE_NAME,
         VERIFICATION_BUNDLE_SHA256,
+        VERIFICATION_BUNDLE_ARTIFACT_REF,
         SOURCE_SHA256,
         SOURCE_ORIGIN,
         PAGE_COUNT,

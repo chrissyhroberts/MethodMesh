@@ -52,6 +52,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import com.example.methodmesh.core.artifacts.AndroidArtifacts
+import com.example.methodmesh.core.artifacts.ArtifactRef
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -142,7 +144,24 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
         var recoveredResultHandled by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
 
         fun resultFor(committed: DigitalSigningCommittedResult): ExecutionResult {
-            val values = DigitalSigningResultJson.fields(committed)
+            val values = DigitalSigningResultJson.fields(committed).toMutableMap()
+            runCatching {
+                val service = AndroidArtifacts.service(appContext)
+                service.registerExternal(
+                    ArtifactRef("signing.${committed.signedSha256.take(32)}"),
+                    committed.signedPdfUri,
+                    committed.signedFilename,
+                    "application/pdf"
+                )
+                committed.verificationBundle.uri?.takeIf { it.isNotBlank() }?.let { bundleUri ->
+                    service.registerExternal(
+                        ArtifactRef("signing-bundle.${committed.verificationBundle.sha256?.take(32) ?: committed.signedSha256.take(32)}"),
+                        bundleUri,
+                        committed.verificationBundle.filename ?: "verification_bundle.zip",
+                        "application/zip"
+                    )
+                }
+            }
             val request = As100DigitalSigningMethod.request(
                 action = capabilityId,
                 context = context.request.invocationContext.asMap(capabilityId) + context.action.settings + mapOf(

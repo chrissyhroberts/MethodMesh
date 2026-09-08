@@ -34,6 +34,7 @@ object DigitalSigningResultJson {
             put("signed_filename", result.signedFilename)
             put("signed_pdf_uri", result.signedPdfUri)
             put("signed_sha256", result.signedSha256)
+            put("signed_artifact_ref", "artifact://signing.${result.signedSha256.take(32)}")
             put("page_count", result.pageCount)
             put("ink_present", result.inkPresent)
             put("ink_stroke_count", result.inkStrokeCount)
@@ -52,6 +53,7 @@ object DigitalSigningResultJson {
                 put("filename", result.signedFilename)
                 put("uri", result.signedPdfUri)
                 put("sha256", result.signedSha256)
+                put("artifact_ref", "artifact://signing.${result.signedSha256.take(32)}")
             })
             put("B", JSONObject().apply {
                 put("role", "provenance_and_verification_bundle")
@@ -59,6 +61,7 @@ object DigitalSigningResultJson {
                 putNullable("filename", result.verificationBundle.filename)
                 putNullable("uri", result.verificationBundle.uri)
                 putNullable("sha256", result.verificationBundle.sha256)
+                result.verificationBundle.sha256?.let { put("artifact_ref", "artifact://signing-bundle.${it.take(32)}") }
                 put("status", result.verificationBundle.status)
                 put("contains_signed_pdf", false)
                 put("verifies_deliverable", "A")
@@ -85,9 +88,12 @@ object DigitalSigningResultJson {
             DigitalSigningFields.SIGNED_PDF_URI to result.signedPdfUri,
             DigitalSigningFields.SIGNED_PDF_NAME to result.signedFilename,
             DigitalSigningFields.SIGNED_SHA256 to result.signedSha256,
+            DigitalSigningFields.SIGNED_ARTIFACT_REF to "artifact://signing.${result.signedSha256.take(32)}",
             DigitalSigningFields.VERIFICATION_BUNDLE_URI to result.verificationBundle.uri.orEmpty(),
             DigitalSigningFields.VERIFICATION_BUNDLE_NAME to result.verificationBundle.filename.orEmpty(),
             DigitalSigningFields.VERIFICATION_BUNDLE_SHA256 to result.verificationBundle.sha256.orEmpty(),
+            DigitalSigningFields.VERIFICATION_BUNDLE_ARTIFACT_REF to result.verificationBundle.sha256
+                ?.let { "artifact://signing-bundle.${it.take(32)}" }.orEmpty(),
             DigitalSigningFields.SOURCE_SHA256 to result.sourceSha256,
             DigitalSigningFields.SOURCE_ORIGIN to result.sourceOrigin.id,
             DigitalSigningFields.PAGE_COUNT to result.pageCount.toString(),
