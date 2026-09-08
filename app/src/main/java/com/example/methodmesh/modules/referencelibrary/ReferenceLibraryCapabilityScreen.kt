@@ -47,6 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.core.protocols.CapabilityPreset
+import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
 import com.example.methodmesh.ui.artifacts.ArtifactPicker
 import com.example.methodmesh.core.artifacts.ArtifactLifecycle
 import com.example.methodmesh.core.artifacts.ArtifactPickerRequest
@@ -406,7 +408,7 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
                     val target = documents.firstOrNull { it.id == targetId }
                     if (target != null) {
                         if (repository.isReadable(target)) {
-                            selectDocument(target)
+                            if (context.isNativePresetRun) openDocument(target) else selectDocument(target)
                         } else {
                             val failed = executionFor(
                                 As100ReferenceLibraryMethod.failure(
@@ -601,6 +603,20 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
                                         editingDocumentId = document.id
                                         editDocumentTitle = document.title
                                         editDocumentShelf = document.shelf
+                                    },
+                                    onCreatePreset = {
+                                        val saved = ProtocolLibraryRepository.savePreset(
+                                            appContext,
+                                            CapabilityPreset(
+                                                name = "Open ${document.title}",
+                                                methodId = As100ReferenceLibraryMethod.ID,
+                                                settingsJson = org.json.JSONObject().apply {
+                                                    put("document_id", document.id)
+                                                }.toString(),
+                                                description = "Open ${document.title} from the Reference Library."
+                                            )
+                                        )
+                                        statusMessage = "Preset saved: ${saved.name}"
                                     },
                                     onUse = if (explicitUseAction) {
                                         { selectDocument(document) }
@@ -1034,6 +1050,7 @@ private fun LibraryRow(
     onOpen: () -> Unit,
     onFavourite: () -> Unit,
     onEdit: () -> Unit,
+    onCreatePreset: () -> Unit,
     onUse: (() -> Unit)? = null,
     onShare: () -> Unit,
     onRemove: () -> Unit
@@ -1119,6 +1136,10 @@ private fun LibraryRow(
                 DropdownMenuItem(
                     text = { Text("Rename or move") },
                     onClick = { menuExpanded = false; onEdit() }
+                )
+                DropdownMenuItem(
+                    text = { Text("Save as preset") },
+                    onClick = { menuExpanded = false; onCreatePreset() }
                 )
                 DropdownMenuItem(
                     text = { Text("Remove from library") },
