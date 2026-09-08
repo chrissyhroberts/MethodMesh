@@ -47,6 +47,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.ui.artifacts.ArtifactPicker
+import com.example.methodmesh.core.artifacts.ArtifactLifecycle
+import com.example.methodmesh.core.artifacts.ArtifactPickerRequest
+import com.example.methodmesh.core.artifacts.AndroidArtifacts
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
@@ -103,6 +107,7 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
         var editDocumentTitle by rememberSaveable { mutableStateOf("") }
         var editDocumentShelf by rememberSaveable { mutableStateOf("personal") }
         var manageShelves by rememberSaveable { mutableStateOf(false) }
+        var addFromFiles by rememberSaveable { mutableStateOf(false) }
         var newShelfName by rememberSaveable { mutableStateOf("") }
         var shelfToDelete by rememberSaveable { mutableStateOf<String?>(null) }
         val allShelves = BUILT_IN_SHELVES + customShelves
@@ -659,6 +664,10 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
                             shape = RoundedCornerShape(15.dp)
                         ) { Text("Add files") }
                     }
+                    TextButton(
+                        onClick = { addFromFiles = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Add from Files") }
                 } else {
                     Button(
                         onClick = {
@@ -689,6 +698,34 @@ object ReferenceLibraryCapabilityScreen : CapabilityScreenSpec {
                 onConfirm = { result?.let(onConfirmed) },
                 onCancel = onCancel,
                 content = libraryContent
+            )
+        }
+
+        if (dashboardMode && addFromFiles) {
+            AlertDialog(
+                onDismissRequest = { addFromFiles = false },
+                title = { Text("Add from Files") },
+                text = {
+                    ArtifactPicker(
+                        request = ArtifactPickerRequest(lifecycles = setOf(ArtifactLifecycle.PERSISTENT)),
+                        onSelected = { ref ->
+                            runCatching {
+                                val artifact = AndroidArtifacts.service(appContext).resolve(ref)
+                                repository.importArtifact(
+                                    artifact = artifact,
+                                    shelf = if (shelf == "all") "personal" else shelf
+                                )
+                            }.onSuccess { added ->
+                                documents = repository.documents()
+                                statusMessage = "Added ${added.title} to ${shelfLabel(added.shelf)}"
+                                addFromFiles = false
+                            }.onFailure { error ->
+                                statusMessage = "Could not add file: ${error.message ?: "file unavailable"}"
+                            }
+                        }
+                    )
+                },
+                confirmButton = { TextButton(onClick = { addFromFiles = false }) { Text("Done") } }
             )
         }
 

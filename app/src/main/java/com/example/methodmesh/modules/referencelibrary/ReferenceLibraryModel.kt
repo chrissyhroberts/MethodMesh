@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
 import com.example.methodmesh.core.artifacts.AndroidArtifacts
+import com.example.methodmesh.core.artifacts.Artifact
+import com.example.methodmesh.core.artifacts.ArtifactOrigin
 import com.example.methodmesh.core.artifacts.ArtifactRef
 import org.json.JSONArray
 import org.json.JSONObject
@@ -100,6 +102,25 @@ class ReferenceLibraryRepository(context: Context) {
         }
         upsert(document)
         return document
+    }
+
+    /** Add a persistent Files artifact to a shelf, retaining external URIs where possible. */
+    fun importArtifact(artifact: Artifact, shelf: String): LibraryDocument {
+        if (artifact.origin == ArtifactOrigin.EXTERNAL && artifact.location.startsWith("content://")) {
+            return importDocument(
+                title = artifact.displayName,
+                shelf = shelf,
+                uri = Uri.parse(artifact.location),
+                mimeType = artifact.mimeType,
+                source = "Files"
+            )
+        }
+
+        val target = createManagedTarget(artifact.displayName, artifact.mimeType, "artifacts")
+        AndroidArtifacts.service(appContext).open(artifact.ref).use { input ->
+            target.outputStream().use { output -> input.copyTo(output) }
+        }
+        return importManagedFileRecord(target, artifact.displayName, shelf, artifact.mimeType, "Files")
     }
 
     /**
