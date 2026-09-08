@@ -80,6 +80,7 @@ import com.example.methodmesh.core.scheduling.SchedulerEditorHost
 import com.example.methodmesh.core.scheduling.SchedulerRepository
 import com.example.methodmesh.core.scheduling.SchedulerExportCapabilityScreen
 import com.example.methodmesh.core.scheduling.SchedulerTransferCapabilityScreen
+import com.example.methodmesh.core.artifacts.AndroidArtifacts
 import com.example.methodmesh.core.protocols.CapabilityPreset
 import com.example.methodmesh.core.protocols.ProtocolDefinition
 import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
@@ -148,6 +149,7 @@ import com.example.methodmesh.platform.devices.DeviceRegistry
 import com.example.methodmesh.platform.devices.DeviceTransport
 import com.example.methodmesh.platform.devices.RegisteredDevice
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -2645,12 +2647,23 @@ private fun CapabilityCard(
             onDismiss = { presetDialogOpen = false },
             onSave = { name, payloadMode, resultAction, savedSettings ->
                 returnPayloadMode = payloadMode
+                val logSettings = savedSettings.toMutableMap()
+                if (logSettings["methodmesh_save_to_log"]?.toString() == "true") {
+                    val logName = logSettings["methodmesh_log_name"]?.toString()?.trim().orEmpty().ifBlank { "$name log" }
+                    val logRef = AndroidArtifacts.service(context).createPersistent(
+                        name = "$logName.jsonl",
+                        mime = "application/jsonl",
+                        input = ByteArrayInputStream("".toByteArray())
+                    )
+                    logSettings["methodmesh_log_ref"] = logRef.id
+                    logSettings["methodmesh_log_name"] = logName
+                }
                 val saved = ProtocolLibraryRepository.savePreset(
                     context,
                     CapabilityPreset(
                         name = name,
                         methodId = method.id,
-                        settingsJson = settingsJsonFromMap(savedSettings),
+                        settingsJson = settingsJsonFromMap(logSettings),
                         payloadMode = payloadMode,
                         resultAction = resultAction,
                         description = method.descriptor.description.orEmpty()
@@ -2766,6 +2779,8 @@ private fun SavePresetDialog(
     var name by rememberSaveable(methodId) { mutableStateOf(defaultName) }
     var payloadMode by rememberSaveable(methodId) { mutableStateOf(ProtocolPayloadMode.normalize(defaultPayloadMode)) }
     var resultAction by rememberSaveable(methodId) { mutableStateOf(PresetResultAction.HOME) }
+    var saveToLog by rememberSaveable(methodId) { mutableStateOf(false) }
+    var logName by rememberSaveable(methodId) { mutableStateOf("") }
     var nameDialogOpen by rememberSaveable(methodId) { mutableStateOf(false) }
     val usesTypedSchema = settingSchema.isNotEmpty()
     val fieldSpecs = remember(methodId, initialSettings, settingSchema) {
@@ -2809,7 +2824,14 @@ private fun SavePresetDialog(
     }
 
     fun selectedSettings(): Map<String, Any> {
-        if (editableKeys.isEmpty()) return presetSettingsFor(editableValues.toMap())
+        if (editableKeys.isEmpty()) {
+            return presetSettingsFor(editableValues.toMap()).toMutableMap().also { selected ->
+                if (saveToLog) {
+                    selected["methodmesh_save_to_log"] = "true"
+                    selected["methodmesh_log_name"] = logName.trim()
+                }
+            }
+        }
         val selected = linkedMapOf<String, Any>()
         val runtimeFields = mutableListOf<String>()
         editableKeys.forEach { key ->
@@ -2824,6 +2846,10 @@ private fun SavePresetDialog(
             if (key !in editableKeys && key != "methodmesh_runtime_fields" && value.toString().isNotBlank()) selected[key] = value
         }
         if (runtimeFields.isNotEmpty()) selected["methodmesh_runtime_fields"] = runtimeFields.joinToString(",")
+        if (saveToLog) {
+            selected["methodmesh_save_to_log"] = "true"
+            selected["methodmesh_log_name"] = logName.trim()
+        }
         return selected
     }
 
@@ -2853,6 +2879,34 @@ private fun SavePresetDialog(
                     selected = resultAction,
                     onSelected = { resultAction = it }
                 )
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Column(Modifier.padding(10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Switch(checked = saveToLog, onCheckedChange = { saveToLog = it })
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text("Save to log", fontWeight = FontWeight.SemiBold)
+                                Text("Keep each run in a persistent Files log.", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                        if (saveToLog) {
+                            Spacer(Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = logName,
+                                onValueChange = { logName = it },
+                                label = { Text("Log name") },
+                                placeholder = { Text("e.g. Jeff's running log") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 Text("Preset fields", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 if (editableKeys.isEmpty()) {

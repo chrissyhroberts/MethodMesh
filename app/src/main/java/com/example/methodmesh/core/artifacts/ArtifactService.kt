@@ -133,6 +133,20 @@ class ArtifactService(private val store: File, private val workspace: File,
         return ref
     }
 
+    /** Append a UTF-8 record to a persistent managed artifact, preserving its Files identity. */
+    @Synchronized fun appendPersistent(ref: ArtifactRef, bytes: ByteArray) {
+        val artifact = resolve(ref)
+        require(artifact.origin == ArtifactOrigin.MANAGED && artifact.lifecycle == ArtifactLifecycle.PERSISTENT) {
+            "Only persistent managed artifacts can be appended"
+        }
+        val file = File(store, artifact.location)
+        file.appendBytes(bytes)
+        val digest = MessageDigest.getInstance("SHA-256").digest(file.readBytes())
+            .joinToString("") { "%02x".format(it) }
+        records[ref] = artifact.copy(sha256 = digest)
+        writeMetadata(records.getValue(ref))
+    }
+
     @Synchronized fun release(ref: ArtifactRef) {
         val a = resolve(ref); require(a.lifecycle != ArtifactLifecycle.PERSISTENT)
         File(workspace, a.location).delete(); records.remove(ref)

@@ -46,6 +46,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.example.methodmesh.MainActivity
+import com.example.methodmesh.core.artifacts.AndroidArtifacts
+import com.example.methodmesh.core.artifacts.ArtifactRef
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputExportRepository
@@ -54,6 +56,10 @@ import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
 import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
 import java.io.File
+import java.time.Instant
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
 
 data class CapabilityScreenContext(
     val action: ExternalActionRequest,
@@ -174,6 +180,8 @@ fun CapabilityScreenScaffold(
     )
     val finishToLauncher = context.request.settings["methodmesh_finish_to_launcher"] == "true" ||
         context.request.settings["input_methodmesh_finish_to_launcher"] == "true"
+    val presetLogRef = context.request.settings["methodmesh_log_ref"]
+        ?: context.request.settings["input_methodmesh_log_ref"]
     val allowManualExport = !context.request.source.equals("dashboard", ignoreCase = true) &&
         !context.request.source.equals("intent_test", ignoreCase = true)
     var exportPackage by remember(capturedResult?.request?.id?.value) { mutableStateOf<OutputExportRepository.ExportPackage?>(null) }
@@ -202,6 +210,23 @@ fun CapabilityScreenScaffold(
                 payloadMode = OutputFormatter.PayloadMode.FULL
             )
         }.orEmpty()
+    }
+    LaunchedEffect(capturedResult?.request?.id?.value, presetLogRef, nativePresetRun) {
+        val result = capturedResult ?: return@LaunchedEffect
+        val refId = presetLogRef?.trim().orEmpty()
+        if (!nativePresetRun || refId.isBlank()) return@LaunchedEffect
+        runCatching {
+            withContext(Dispatchers.IO) {
+                val record = JSONObject()
+                    .put("recorded_at", Instant.now().toString())
+                    .put("capability", capabilityId)
+                    .put("execution_id", result.request.id.value)
+                    .put("status", result.status)
+                    .put("fields", JSONObject(resultPreview.mapValues { it.value?.toString().orEmpty() }))
+                    .toString() + "\n"
+                AndroidArtifacts.service(appContext).appendPersistent(ArtifactRef(refId), record.toByteArray())
+            }
+        }
     }
     fun finishNativePreset() {
         if (presetResultAction == PresetResultAction.SAVE) {
