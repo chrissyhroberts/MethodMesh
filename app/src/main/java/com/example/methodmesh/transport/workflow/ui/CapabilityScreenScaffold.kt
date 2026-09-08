@@ -212,10 +212,10 @@ fun CapabilityScreenScaffold(
             )
         }.orEmpty()
     }
-    LaunchedEffect(capturedResult?.request?.id?.value, presetLogRef, nativePresetRun) {
+    LaunchedEffect(capturedResult?.request?.id?.value, presetLogRef, context.isNativePresetRun) {
         val result = capturedResult ?: return@LaunchedEffect
         val refId = presetLogRef?.trim().orEmpty()
-        if (!nativePresetRun || refId.isBlank()) return@LaunchedEffect
+        if (!context.isNativePresetRun || refId.isBlank()) return@LaunchedEffect
         runCatching {
             withContext(Dispatchers.IO) {
                 val entryId = UUID.randomUUID().toString()
