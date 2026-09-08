@@ -55,7 +55,7 @@ object MagnifierFields {
 
 object As100MagnifierCaptureMethod : As100Method {
     const val ID = "visual.magnifier.capture"
-    private const val VERSION = "0.3.0"
+    private const val VERSION = "0.3.1"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Visual magnifier capture")

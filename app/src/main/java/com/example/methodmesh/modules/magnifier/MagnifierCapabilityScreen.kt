@@ -195,11 +195,30 @@ object MagnifierCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun setTorch(enabled: Boolean) {
-            if (!allowTorch || !torchAvailable) return
+            if (!allowTorch) return
+            if (enabled && cameraFacing != "rear") {
+                statusText = "Back light is available with the rear camera."
+                return
+            }
             if (enabled) frontLightOn = false
-            controller.cameraControl?.enableTorch(enabled)
-            torchOn = enabled
-            statusText = if (enabled) "Back light on." else "Back light off."
+            val cameraControl = controller.cameraControl
+            if (cameraControl == null) {
+                torchOn = false
+                statusText = "Camera is not ready for the back light yet."
+                return
+            }
+            val future = cameraControl.enableTorch(enabled)
+            future.addListener({
+                runCatching { future.get() }
+                    .onSuccess {
+                        torchOn = enabled
+                        statusText = if (enabled) "Back light on." else "Back light off."
+                    }
+                    .onFailure { failure ->
+                        torchOn = false
+                        statusText = "Back light unavailable: ${failure.message ?: "camera torch error"}"
+                    }
+            }, ContextCompat.getMainExecutor(appContext))
         }
 
         fun setFrontLight(enabled: Boolean) {
@@ -421,14 +440,15 @@ object MagnifierCapabilityScreen : CapabilityScreenSpec {
         LaunchedEffect(controller, hasCameraPermission, cameraFacing) {
             if (hasCameraPermission) {
                 delay(250)
-                torchAvailable = controller.cameraInfo?.hasFlashUnit() == true
+                torchAvailable = cameraFacing == "rear" && (
+                    controller.cameraInfo?.hasFlashUnit() == true ||
+                        appContext.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)
+                )
                 applyZoom(requestedZoom)
-                if (allowTorch && torchAvailable && torchOn) {
-                    frontLightOn = false
-                    controller.cameraControl?.enableTorch(true)
-                } else if (torchOn && !torchAvailable) {
+                if (allowTorch && cameraFacing == "rear" && torchOn) {
+                    setTorch(true)
+                } else if (torchOn && cameraFacing != "rear") {
                     torchOn = false
-                    statusText = "Back light unavailable on the selected camera."
                 }
                 if (focusHeld) {
                     val point = SurfaceOrientedMeteringPointFactory(1f, 1f).createPoint(0.5f, 0.5f)
@@ -441,8 +461,8 @@ object MagnifierCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
-        LaunchedEffect(allowTorch) {
-            if ((!allowTorch || !torchAvailable) && torchOn) {
+        LaunchedEffect(allowTorch, cameraFacing) {
+            if ((!allowTorch || cameraFacing != "rear") && torchOn) {
                 controller.cameraControl?.enableTorch(false)
                 torchOn = false
             }
@@ -481,7 +501,7 @@ object MagnifierCapabilityScreen : CapabilityScreenSpec {
             }
 
             if (frozenPath == null) {
-                if (context.settingShouldBeShown("camera_facing")) {
+                if (context.settingShouldBeShown("camera_facing", alwaysShow = true)) {
                     Text("Camera", style = MaterialTheme.typography.labelLarge)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -548,7 +568,7 @@ object MagnifierCapabilityScreen : CapabilityScreenSpec {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (allowTorch && torchAvailable) {
+                    if (allowTorch && cameraFacing == "rear") {
                         if (torchOn) {
                             Button(onClick = { setTorch(false) }, modifier = Modifier.weight(1f)) { Text("Back light") }
                         } else {

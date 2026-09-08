@@ -140,3 +140,12 @@ Specifically test at least one device with:
 
 Promote to Production only after the normal MethodMesh production checklist passes: build, native UX, preset UX, ODK example, rotation state, beef-first sharing, no golden-rule violation, permissions/offline/attribution review, and explicit production method status update.
 
+
+- Verify Rear/Front remains visible during a native preset run even when `camera_facing` is fixed; the preset value is the starting camera, not a lockout.
+- On at least one device with a rear flash LED, verify Back light toggles the physical torch after camera binding and after Front→Rear switching.
+- Verify enabling Back light disables Front light, and enabling Front light disables Back light.
+
+- Verify Rear/Front remains visible during direct use and native preset runs, including when `camera_facing` is fixed.
+- Verify the preset/ODK `camera_facing` value still determines the starting camera.
+- On a device with a rear flash LED, verify Back light toggles the physical torch after initial bind and after Front → Rear switching.
+- Verify enabling Back light disables Front light and enabling Front light disables Back light.

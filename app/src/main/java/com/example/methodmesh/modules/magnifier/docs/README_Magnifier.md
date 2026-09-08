@@ -197,3 +197,22 @@ See `THIRD_PARTY_NOTICES.md`.
 ## Validation status
 
 See `VALIDATION.md`.
+
+
+### Camera switching
+
+`camera_facing` (`rear` / `front`) controls the starting camera for presets and ODK. In native live use the Rear/Front switch remains visible even when a preset supplied a fixed value, because camera facing is also an operational control.
+
+
+### Back-light behavior
+
+The Back light control is shown whenever the rear camera is active and `allow_torch=true`. MethodMesh attempts to drive the active rear-camera torch directly rather than hiding the control solely because an early CameraX flash-capability probe has not settled. Front light and Back light are mutually exclusive.
+
+
+## Live camera switching
+
+`camera_facing` (`rear` / `front`) remains the canonical preset and ODK starting-camera setting. In native live use the Rear/Front control is always visible, including when a preset supplied a fixed starting value, because changing camera is an operational magnifier control rather than a reason to edit the preset.
+
+## Back light reliability
+
+Back light uses the active rear-camera flash LED. When `allow_torch=true`, the live rear-camera UI exposes Back light even if an early CameraX flash-capability probe has not yet settled; MethodMesh attempts the active camera torch directly. Front light and Back light are mutually exclusive.
