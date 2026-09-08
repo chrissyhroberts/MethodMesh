@@ -212,10 +212,10 @@ fun CapabilityScreenScaffold(
             )
         }.orEmpty()
     }
-    LaunchedEffect(capturedResult?.request?.id?.value, presetLogRef, context.isNativePresetRun) {
+    LaunchedEffect(capturedResult?.request?.id?.value, presetLogRef) {
         val result = capturedResult ?: return@LaunchedEffect
         val refId = presetLogRef?.trim().orEmpty()
-        if (!context.isNativePresetRun || refId.isBlank()) return@LaunchedEffect
+        if (refId.isBlank()) return@LaunchedEffect
         runCatching {
             withContext(Dispatchers.IO) {
                 val service = AndroidArtifacts.service(appContext)
