@@ -38,6 +38,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipOutputStream
 import java.util.zip.ZipEntry
+import java.io.OutputStream
 import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
@@ -116,6 +117,16 @@ fun FilesScreen() {
                 }
             } }.onSuccess { status = "Copy saved." }.onFailure { status = it.message }
             selected = null
+        }
+    }
+    val bundleExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { destination ->
+        val artifact = selected
+        if (destination != null && artifact?.collectionId != null) scope.launch {
+            runCatching { withContext(Dispatchers.IO) {
+                context.contentResolver.openOutputStream(destination)?.use { output ->
+                    writeArtifactBundle(context, artifact, output)
+                } ?: error("Cannot open destination")
+            } }.onSuccess { status = "Log bundle exported." }.onFailure { status = "Export failed: ${it.message ?: "could not create bundle"}" }
         }
     }
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -260,7 +271,10 @@ fun FilesScreen() {
                             }) { Text("Restore") }
                         }
                         TextButton(onClick = { confirmDelete = artifact }) { Text("Delete") }
-                        TextButton(onClick = { exporter.launch(artifact.displayName) }) { Text("Save a copy") }
+                        TextButton(onClick = {
+                            if (artifact.collectionId.isNullOrBlank()) exporter.launch(artifact.displayName)
+                            else bundleExporter.launch("${artifact.displayName.substringBeforeLast('.')}.zip")
+                        }) { Text("Save a copy") }
                         TextButton(onClick = {
                             scope.launch {
                                 runCatching {
@@ -326,6 +340,18 @@ fun FilesScreen() {
 }
 
 private const val MAX_TEXT_PREVIEW_CHARS = 16_000
+
+private fun writeArtifactBundle(context: android.content.Context, selected: Artifact, output: OutputStream) {
+    val service = AndroidArtifacts.service(context)
+    val members = (service.collection(selected.collectionId.orEmpty()) + selected).distinctBy { it.ref }
+    ZipOutputStream(output).use { zip ->
+        members.forEach { member ->
+            zip.putNextEntry(ZipEntry(member.displayName.substringAfterLast('/')))
+            service.open(member.ref).use { input -> input.copyTo(zip) }
+            zip.closeEntry()
+        }
+    }
+}
 
 private fun formatPreviewText(text: String, mimeType: String, name: String): String {
     val isJson = mimeType.equals("application/json", true) ||
