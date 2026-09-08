@@ -213,9 +213,17 @@ fun FilesScreen() {
                                 modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = 520.dp),
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                             ) {
-                                androidx.compose.foundation.text.selection.SelectionContainer {
-                                    androidx.compose.foundation.layout.Box(Modifier.padding(12.dp).verticalScroll(rememberScrollState())) {
-                                        Text(previewText!!, style = MaterialTheme.typography.bodySmall)
+                                if (previewText!!.isBlank()) {
+                                    Text(
+                                        "No records yet.",
+                                        modifier = Modifier.padding(12.dp),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                } else {
+                                    androidx.compose.foundation.text.selection.SelectionContainer {
+                                        androidx.compose.foundation.layout.Box(Modifier.padding(12.dp).verticalScroll(rememberScrollState())) {
+                                            Text(previewText!!, style = MaterialTheme.typography.bodySmall)
+                                        }
                                     }
                                 }
                             }
