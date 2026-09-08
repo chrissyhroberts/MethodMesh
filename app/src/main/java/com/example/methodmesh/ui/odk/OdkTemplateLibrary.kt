@@ -55,7 +55,7 @@ import org.json.JSONObject
 import java.io.File
 
 private const val XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-private const val INDEX_ASSET = "methodmesh/artifacts/index.json"
+private const val INDEX_ASSET = "methodmesh/odk_templates/index.json"
 
 data class OdkTemplateDescriptor(
     val id: String,
