@@ -21,6 +21,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.graphics.pdf.PdfRenderer
+import android.os.ParcelFileDescriptor
+import java.io.File
 import java.util.UUID
 
 /** Shared selection surface for any capability. Selection returns identity, not a saved copy. */
@@ -101,13 +105,16 @@ fun FilesScreen() {
             val previewableText = artifact.mimeType.startsWith("text/") ||
                 artifact.mimeType in setOf("application/json", "application/xml", "text/csv")
             val previewableImage = artifact.mimeType.startsWith("image/")
-            if (!previewableText && !previewableImage) return@LaunchedEffect
+            val previewablePdf = artifact.mimeType.equals("application/pdf", ignoreCase = true)
+            if (!previewableText && !previewableImage && !previewablePdf) return@LaunchedEffect
             previewLoading = true
             runCatching {
                 withContext(Dispatchers.IO) {
                     AndroidArtifacts.service(context).open(artifact.ref).use { input ->
                         if (previewableText) {
                             input.bufferedReader().use { it.readText().take(MAX_TEXT_PREVIEW_CHARS) }
+                        } else if (previewablePdf) {
+                            previewPdf(context, input)
                         } else {
                             BitmapFactory.decodeStream(input)
                         }
@@ -156,3 +163,21 @@ fun FilesScreen() {
 }
 
 private const val MAX_TEXT_PREVIEW_CHARS = 16_000
+
+private fun previewPdf(context: android.content.Context, input: java.io.InputStream): Bitmap? {
+    val temporaryFile = File.createTempFile("methodmesh-preview-", ".pdf", context.cacheDir)
+    return try {
+        temporaryFile.outputStream().use { output -> input.copyTo(output) }
+        PdfRenderer(ParcelFileDescriptor.open(temporaryFile, ParcelFileDescriptor.MODE_READ_ONLY)).use { renderer ->
+            if (renderer.pageCount == 0) return null
+            renderer.openPage(0).use { page ->
+                val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
+                bitmap.eraseColor(Color.WHITE)
+                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                bitmap
+            }
+        }
+    } finally {
+        temporaryFile.delete()
+    }
+}
