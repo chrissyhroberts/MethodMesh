@@ -8,8 +8,9 @@ import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
 import com.example.methodmesh.R
+import com.example.methodmesh.core.scheduling.SchedulePlanRuntime
+import com.example.methodmesh.core.scheduling.SchedulePlanStore
 import com.example.methodmesh.core.scheduling.SchedulerDispatchActivity
-import com.example.methodmesh.core.scheduling.SchedulerRepository
 
 class MethodMeshWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
@@ -105,9 +106,14 @@ class MethodMeshWidgetProvider : AppWidgetProvider() {
         }
 
         private fun toggleSchedule(context: Context, scheduleId: String) {
-            val schedule = SchedulerRepository.get(context, scheduleId) ?: return
-            SchedulerRepository.setChainEnabled(context, schedule, !schedule.enabled)
-            SchedulerRepository.recordEvent(context, schedule.id, if (schedule.enabled) "widget_paused" else "widget_activated")
+            val plan = SchedulePlanStore.plan(context, scheduleId) ?: return
+            val instances = SchedulePlanStore.allInstances(context).filter { it.planId == plan.id && it.stoppedAt == null }
+            if (instances.isEmpty()) {
+                SchedulePlanRuntime.start(context, plan)
+            } else {
+                instances.forEach { SchedulePlanRuntime.cancel(context, it) }
+                SchedulePlanStore.removeInstancesForPlan(context, plan.id)
+            }
         }
 
     }

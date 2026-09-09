@@ -2,8 +2,7 @@ package com.example.methodmesh.widgets
 
 import android.content.Context
 import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
-import com.example.methodmesh.core.scheduling.SchedulerRepository
-import com.example.methodmesh.core.scheduling.SchedulerTarget
+import com.example.methodmesh.core.scheduling.SchedulePlanStore
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
 import org.json.JSONObject
 
@@ -11,21 +10,73 @@ enum class MethodMeshWidgetIconKey(val title: String, val emoji: String) {
     AUTO("Auto", "✨"),
     METHODMESH("MethodMesh", "🕸️"),
     DOCUMENT("Document", "📄"),
+    FILES("Files", "🗂️"),
+    BOOK("Reference", "📚"),
+    FORM("Form", "📝"),
+    ATTACHMENT("Attachment", "📎"),
     LOCATION("Location", "📍"),
+    COMPASS("Compass", "🧭"),
+    MAP("Map", "🗺️"),
+    GPS("GPS", "🛰️"),
+    TERRAIN("Terrain", "🏔️"),
     LANGUAGE("Language", "💬"),
+    SPEECH("Speech", "🗣️"),
+    TRANSLATE("Translate", "🌐"),
     HARDWARE("Hardware", "🔧"),
+    BLUETOOTH("Bluetooth", "🔵"),
+    NETWORK("Network", "📡"),
+    PHONE("Phone", "📱"),
+    NFC("NFC", "📳"),
     RANDOM("Random", "🎲"),
+    COIN("Coin toss", "🪙"),
+    GAME("Game", "🎮"),
+    PUZZLE("Puzzle", "🧩"),
     SCHEDULE("Schedule", "⏱️"),
+    CALENDAR("Calendar", "📅"),
+    ALARM("Alarm", "⏰"),
     TOOL("Tool", "🧰"),
+    SETTINGS("Settings", "⚙️"),
     CONSENT("Consent", "✍️"),
     CAMERA("Camera", "📷"),
-    MAP("Map", "🗺️"),
+    IMAGE("Image", "🖼️"),
+    VIDEO("Video", "🎥"),
+    AUDIO("Audio", "🎙️"),
+    MAGNIFY("Magnifier", "🔍"),
+    SCAN("Scan", "▣"),
     MEDICAL("Medical", "🩺"),
+    HEALTH("Health", "❤️"),
+    VISION("Vision", "👁️"),
     SAFETY("Safety", "🛡️"),
+    EMERGENCY("Emergency", "🆘"),
     WEATHER("Weather", "🌦️"),
+    WATER("Water", "💧"),
+    DIVING("Diving", "🤿"),
+    PLANT("Field", "🌿"),
+    ASTRONOMY("Astronomy", "🔭"),
+    AVIATION("Aviation", "✈️"),
     CALCULATE("Calculate", "🧮"),
+    DATA("Data", "📊"),
+    STATISTICS("Statistics", "📈"),
+    MEASURE("Measure", "📏"),
+    STOPWATCH("Stopwatch", "⏱️"),
+    LAB("Laboratory", "🧪"),
+    ELECTRICAL("Electrical", "⚡"),
+    SOUND("Sound", "🔊"),
+    MUSIC("Music", "🎵"),
+    TEXT("Text", "🔤"),
     EMAIL("Email", "✉️"),
-    SIGNING("Signing", "🖊️");
+    SHARE("Share", "↗️"),
+    SIGNING("Signing", "🖊️"),
+    SECURITY("Security", "🔐"),
+    IDENTITY("Identity", "🪪"),
+    QR("QR code", "▦"),
+    PRINT("Print", "🖨️"),
+    TARGET("Target", "🎯"),
+    COUNTER("Counter", "🔢"),
+    CHECKLIST("Checklist", "☑️"),
+    ALERT("Alert", "⚠️"),
+    EDUCATION("Teaching", "🎓"),
+    PET("Care", "🐾");
 
     companion object {
         fun normalize(value: String): MethodMeshWidgetIconKey =
@@ -96,8 +147,8 @@ object MethodMeshWidgetRepository {
         MethodMeshWidgetTargetType.PRESET -> "Preset"
         MethodMeshWidgetTargetType.PROTOCOL -> "Protocol"
         MethodMeshWidgetTargetType.SCHEDULE -> {
-            val schedule = SchedulerRepository.get(context, config.targetId)
-            if (schedule?.enabled == true) "Schedule on" else "Schedule off"
+            val running = SchedulePlanStore.allInstances(context).any { it.planId == config.targetId && it.stoppedAt == null }
+            if (running) "Schedule on" else "Schedule off"
         }
     }
 
@@ -127,21 +178,11 @@ object MethodMeshWidgetRepository {
         MethodMeshWidgetTargetType.PROTOCOL ->
             ProtocolLibraryRepository.protocol(context, config.targetId)?.name.orEmpty()
         MethodMeshWidgetTargetType.SCHEDULE ->
-            SchedulerRepository.get(context, config.targetId)?.let { schedule ->
-                if (schedule.chainId.isBlank()) schedule.name
-                else SchedulerRepository.all(context)
-                    .filter { it.chainId == schedule.chainId }
-                    .minByOrNull { it.chainOrder }
-                    ?.name
-                    ?: schedule.name
-            }.orEmpty()
+            SchedulePlanStore.plan(context, config.targetId)?.name.orEmpty()
     }
 
     fun scheduleTargets(context: Context) =
-        SchedulerRepository.all(context)
-            .filter { it.chainId.isBlank() || it.chainOrder <= 0 }
-            .filter { it.target != SchedulerTarget.CLIPBOARD || it.name.isNotBlank() }
-            .sortedBy { it.name.lowercase() }
+        SchedulePlanStore.allPlans(context).sortedBy { it.name.lowercase() }
 
     private fun encode(config: MethodMeshWidgetConfig) = JSONObject().apply {
         put("appWidgetId", config.appWidgetId)
@@ -169,20 +210,43 @@ object MethodMeshWidgetRepository {
     private fun iconKeyFor(value: String): MethodMeshWidgetIconKey {
         val lower = value.lowercase()
         return when {
-            "document" in lower || "scan" in lower || "photo" in lower || "image" in lower ->
-                MethodMeshWidgetIconKey.DOCUMENT
-            "gps" in lower || "location" in lower || "plus" in lower || "compass" in lower ->
-                MethodMeshWidgetIconKey.LOCATION
-            "translate" in lower || "language" in lower || "speech" in lower || "conversation" in lower ->
-                MethodMeshWidgetIconKey.LANGUAGE
-            "sensor" in lower || "bluetooth" in lower || "printer" in lower || "nfc" in lower || "esp" in lower ->
-                MethodMeshWidgetIconKey.HARDWARE
-            "random" in lower || "dice" in lower || "sampling" in lower ->
-                MethodMeshWidgetIconKey.RANDOM
-            "schedule" in lower ->
-                MethodMeshWidgetIconKey.SCHEDULE
-            "inspector" in lower || "tool" in lower || "utility" in lower ->
-                MethodMeshWidgetIconKey.TOOL
+            "reference" in lower || "library" in lower -> MethodMeshWidgetIconKey.BOOK
+            "media" in lower -> MethodMeshWidgetIconKey.VIDEO
+            "document" in lower || "pdf" in lower -> MethodMeshWidgetIconKey.DOCUMENT
+            "scan" in lower || "barcode" in lower || "qr" in lower -> MethodMeshWidgetIconKey.SCAN
+            "photo" in lower || "image" in lower || "camera" in lower -> MethodMeshWidgetIconKey.IMAGE
+            "gps" in lower || "location" in lower || "plus" in lower -> MethodMeshWidgetIconKey.GPS
+            "compass" in lower || "survey" in lower || "geocach" in lower -> MethodMeshWidgetIconKey.COMPASS
+            "translate" in lower || "language" in lower -> MethodMeshWidgetIconKey.TRANSLATE
+            "speech" in lower || "conversation" in lower || "voice" in lower -> MethodMeshWidgetIconKey.SPEECH
+            "bluetooth" in lower || "sensor" in lower || "esp" in lower -> MethodMeshWidgetIconKey.BLUETOOTH
+            "network" in lower || "api" in lower || "web" in lower -> MethodMeshWidgetIconKey.NETWORK
+            "printer" in lower -> MethodMeshWidgetIconKey.PRINT
+            "nfc" in lower -> MethodMeshWidgetIconKey.NFC
+            "random" in lower || "dice" in lower || "sampling" in lower || "chance" in lower -> MethodMeshWidgetIconKey.RANDOM
+            "coin" in lower -> MethodMeshWidgetIconKey.COIN
+            "game" in lower || "arcade" in lower -> MethodMeshWidgetIconKey.GAME
+            "schedule" in lower || "time" in lower -> MethodMeshWidgetIconKey.SCHEDULE
+            "medical" in lower || "clinical" in lower -> MethodMeshWidgetIconKey.MEDICAL
+            "emergency" in lower -> MethodMeshWidgetIconKey.EMERGENCY
+            "diving" in lower -> MethodMeshWidgetIconKey.DIVING
+            "aquatic" in lower || "water" in lower -> MethodMeshWidgetIconKey.WATER
+            "weather" in lower -> MethodMeshWidgetIconKey.WEATHER
+            "astronomy" in lower -> MethodMeshWidgetIconKey.ASTRONOMY
+            "aviation" in lower -> MethodMeshWidgetIconKey.AVIATION
+            "statistics" in lower || "stats" in lower -> MethodMeshWidgetIconKey.STATISTICS
+            "laboratory" in lower || "lab" in lower -> MethodMeshWidgetIconKey.LAB
+            "calculation" in lower || "conversion" in lower -> MethodMeshWidgetIconKey.CALCULATE
+            "data" in lower || "json" in lower || "csv" in lower -> MethodMeshWidgetIconKey.DATA
+            "electrical" in lower -> MethodMeshWidgetIconKey.ELECTRICAL
+            "music" in lower || "acoustic" in lower || "sound" in lower -> MethodMeshWidgetIconKey.MUSIC
+            "text" in lower -> MethodMeshWidgetIconKey.TEXT
+            "sign" in lower || "attestation" in lower || "timestamp" in lower -> MethodMeshWidgetIconKey.SIGNING
+            "security" in lower || "fingerprint" in lower -> MethodMeshWidgetIconKey.SECURITY
+            "counter" in lower || "scoring" in lower -> MethodMeshWidgetIconKey.COUNTER
+            "magnif" in lower -> MethodMeshWidgetIconKey.MAGNIFY
+            "teaching" in lower || "tamagotchi" in lower -> MethodMeshWidgetIconKey.EDUCATION
+            "inspector" in lower || "tool" in lower || "utility" in lower -> MethodMeshWidgetIconKey.TOOL
             else -> MethodMeshWidgetIconKey.METHODMESH
         }
     }
