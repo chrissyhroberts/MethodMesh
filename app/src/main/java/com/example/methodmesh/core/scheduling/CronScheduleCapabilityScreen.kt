@@ -2,6 +2,7 @@ package com.example.methodmesh.core.scheduling
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -45,11 +47,7 @@ private enum class CronBuilderTiming { ABSOLUTE, RELATIVE }
 private data class CronBuilderTask(
     val name: String = "Scheduled activity",
     val timing: CronBuilderTiming = CronBuilderTiming.ABSOLUTE,
-    val minute: String = "0",
-    val hour: String = "9",
-    val day: String = "*",
-    val month: String = "*",
-    val weekday: String = "*",
+    val cronExpression: String = "0 9 * * *",
     val target: CronBuilderTarget = CronBuilderTarget.NOTIFICATION,
     val targetId: String = "",
     val message: String = "",
@@ -58,7 +56,7 @@ private data class CronBuilderTask(
     val retries: String = "0",
     val retryMinutes: String = "60"
 ) {
-    val cron: String get() = listOf(minute, hour, day, month, weekday).joinToString(" ") { it.ifBlank { "*" } }
+    val cron: String get() = cronExpression.trim().ifBlank { "* * * * *" }
 }
 
 object CronScheduleCapabilityScreen : CapabilityScreenSpec {
@@ -73,21 +71,29 @@ object CronScheduleCapabilityScreen : CapabilityScreenSpec {
         var triggerMode by remember { mutableStateOf("MANUAL") }
         var absoluteStart by remember { mutableStateOf(LocalDateTime.now().withSecond(0).withNano(0).toString().replace('T', ' ')) }
         var triggerKey by remember { mutableStateOf("") }
+        var customEvent by remember { mutableStateOf(false) }
         val tasks = remember { mutableStateListOf(CronBuilderTask()) }
         var status by remember { mutableStateOf("Add one or more cron tasks.") }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         val presets = remember { ProtocolLibraryRepository.presets(app) }
         val protocols = remember { ProtocolLibraryRepository.protocols(app) }
+        val eventOptions = remember(presets, protocols) {
+            buildList {
+                presets.forEach { add("preset.completed:${it.id}" to "Preset completed · ${it.name}") }
+                protocols.forEach { add("protocol.completed:${it.id}" to "Protocol completed · ${it.name}") }
+                add("custom" to "Custom event…")
+            }
+        }
 
         fun save() {
             if (name.isBlank() || tasks.isEmpty()) { status = "Enter a schedule name and at least one task."; return }
+            if (triggerMode == "EVENT" && triggerKey.isBlank()) { status = "Choose the event that starts this schedule."; return }
             val parsedStart = runCatching { LocalDateTime.parse(absoluteStart.trim().replace(' ', 'T')).atZone(ZoneId.systemDefault()) }.getOrNull()
             if (triggerMode == "ABSOLUTE" && parsedStart == null) { status = "Use YYYY-MM-DD HH:MM for the absolute start."; return }
             val anchor = parsedStart ?: ZonedDateTime.now().withSecond(0).withNano(0)
             val trigger = when (triggerMode) {
                 "ABSOLUTE" -> CronTrigger.Absolute(anchor)
-                "EVENT" -> CronTrigger.Event(triggerKey.trim().ifBlank { "preset.completed" })
-                "PRESET" -> CronTrigger.Preset(triggerKey.trim())
+                "EVENT" -> CronTrigger.Event(triggerKey.trim())
                 else -> CronTrigger.Manual
             }
             val built = tasks.mapIndexed { index, task ->
@@ -104,7 +110,7 @@ object CronScheduleCapabilityScreen : CapabilityScreenSpec {
             val bundle = CronScheduleBundle(id = id, name = name.trim(), trigger = trigger, tasks = built)
             runCatching { CronScheduleBundleStore.save(app, bundle) }.onFailure { status = "Could not save schedule JSON: ${it.message ?: "storage error"}"; return }
             built.forEachIndexed { index, task ->
-                SchedulerRepository.save(app, ResearchSchedule(id = "${id}_$index", name = task.name, target = when (task.target) { CronTaskTarget.NOTIFICATION -> SchedulerTarget.NOTIFICATION; CronTaskTarget.PRESET -> SchedulerTarget.PRESET; CronTaskTarget.PROTOCOL -> SchedulerTarget.PROTOCOL; else -> SchedulerTarget.CLIPBOARD }, targetValue = task.targetId.ifBlank { task.notificationMessage }, frequency = SchedulerFrequency.CUSTOM, hour = 0, minute = 0, retryCount = task.retries, retryIntervalMinutes = task.retryInterval.toMinutes().toInt(), notificationTitle = task.notificationTitle, notificationMessage = task.notificationMessage, cronExpression = task.cronExpression, triggerMode = triggerMode, triggerValue = when (triggerMode) { "PRESET" -> "preset.completed:${triggerKey.trim()}" else -> triggerKey.trim() }, relativeOffsetMinutes = task.relativeOffset.toMinutes().toInt(), anchorAt = anchor.takeIf { triggerMode != "EVENT" && triggerMode != "PRESET" }, chainId = id, chainOrder = index))
+                SchedulerRepository.save(app, ResearchSchedule(id = "${id}_$index", name = task.name, target = when (task.target) { CronTaskTarget.NOTIFICATION -> SchedulerTarget.NOTIFICATION; CronTaskTarget.PRESET -> SchedulerTarget.PRESET; CronTaskTarget.PROTOCOL -> SchedulerTarget.PROTOCOL; else -> SchedulerTarget.CLIPBOARD }, targetValue = task.targetId.ifBlank { task.notificationMessage }, frequency = SchedulerFrequency.CUSTOM, hour = 0, minute = 0, retryCount = task.retries, retryIntervalMinutes = task.retryInterval.toMinutes().toInt(), notificationTitle = task.notificationTitle, notificationMessage = task.notificationMessage, cronExpression = task.cronExpression, triggerMode = triggerMode, triggerValue = triggerKey.trim(), relativeOffsetMinutes = task.relativeOffset.toMinutes().toInt(), anchorAt = anchor.takeIf { triggerMode != "EVENT" }, chainId = id, chainOrder = index))
             }
             status = "Saved ${built.size} cron task${if (built.size == 1) "" else "s"}. JSON is in Files."
             val execution = As100SchedulerMethod.result(As100SchedulerMethod.request(capabilityId, emptyMap(), emptyList(), emptyList()), SchedulerOutcome(null, "created"), context.request.invocationContext)
@@ -115,14 +121,24 @@ object CronScheduleCapabilityScreen : CapabilityScreenSpec {
         CapabilityScreenScaffold(title, capabilityId, context, context.stepNumber > 1, result, result?.let { OutputFormatter.fields(it, false) }.orEmpty(), onBack, { result = null }, { result?.let(onConfirmed) }, onCancel) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("CRON", style = MaterialTheme.typography.headlineSmall)
-                Text("A schedule is a bundle of one or more tasks. Each task can run on an absolute or relative cron timeline.", style = MaterialTheme.typography.bodyMedium)
+                Text("Choose when the schedule starts, then add the work it should repeat.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(name, { name = it }, label = { Text("Schedule name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                Text("Initiation", style = MaterialTheme.typography.titleSmall)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("MANUAL" to "Manual", "ABSOLUTE" to "Absolute", "EVENT" to "Event", "PRESET" to "Preset").forEach { (value, label) -> OutlinedButton(onClick = { triggerMode = value }) { Text(if (triggerMode == value) "✓ $label" else label) } }
+                Text("Starts", style = MaterialTheme.typography.labelLarge)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("MANUAL" to "Manual", "ABSOLUTE" to "Absolute", "EVENT" to "Event").forEach { (value, label) ->
+                        FilterChip(selected = triggerMode == value, onClick = { triggerMode = value }, label = { Text(label) })
+                    }
                 }
-                if (triggerMode == "ABSOLUTE") OutlinedTextField(absoluteStart, { absoluteStart = it }, label = { Text("Start at (YYYY-MM-DD HH:MM)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                if (triggerMode == "EVENT" || triggerMode == "PRESET") OutlinedTextField(triggerKey, { triggerKey = it }, label = { Text(if (triggerMode == "EVENT") "Event key" else "Triggering preset ID") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                when (triggerMode) {
+                    "ABSOLUTE" -> OutlinedTextField(absoluteStart, { absoluteStart = it }, label = { Text("Start date and time") }, supportingText = { Text("YYYY-MM-DD HH:MM") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    "EVENT" -> {
+                        EventTriggerPicker(eventOptions, triggerKey, customEvent) { selected, custom ->
+                            triggerKey = selected
+                            customEvent = custom
+                        }
+                        if (customEvent) OutlinedTextField(triggerKey, { triggerKey = it }, label = { Text("Custom event key") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    }
+                }
                 tasks.forEachIndexed { index, task ->
                     CronTaskEditor(index, task, presets, protocols) { updated -> tasks[index] = updated }
                     OutlinedButton(onClick = { tasks.removeAt(index) }, enabled = tasks.size > 1, modifier = Modifier.fillMaxWidth()) { Text("Remove task") }
@@ -136,48 +152,124 @@ object CronScheduleCapabilityScreen : CapabilityScreenSpec {
 }
 
 @Composable
-private fun CronTaskEditor(index: Int, task: CronBuilderTask, presets: List<com.example.methodmesh.core.protocols.CapabilityPreset>, protocols: List<com.example.methodmesh.core.protocols.ProtocolDefinition>, onChanged: (CronBuilderTask) -> Unit) {
-    var targetMenu by remember(index) { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Scheduled activity ${index + 1}", style = MaterialTheme.typography.titleSmall)
-        OutlinedTextField(task.name, { onChanged(task.copy(name = it)) }, label = { Text("Task name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            OutlinedButton(onClick = { onChanged(task.copy(timing = CronBuilderTiming.ABSOLUTE)) }) { Text(if (task.timing == CronBuilderTiming.ABSOLUTE) "✓ Absolute" else "Absolute") }
-            OutlinedButton(onClick = { onChanged(task.copy(timing = CronBuilderTiming.RELATIVE)) }) { Text(if (task.timing == CronBuilderTiming.RELATIVE) "✓ Relative" else "Relative") }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            listOf("Minute" to task.minute, "Hour" to task.hour, "Day" to task.day, "Month" to task.month, "Weekday" to task.weekday).forEach { (label, value) ->
-                OutlinedTextField(value, { next -> onChanged(when (label) { "Minute" -> task.copy(minute = next); "Hour" -> task.copy(hour = next); "Day" -> task.copy(day = next); "Month" -> task.copy(month = next); else -> task.copy(weekday = next) }) }, label = { Text(label) }, modifier = Modifier.weight(1f), singleLine = true)
+private fun EventTriggerPicker(
+    options: List<Pair<String, String>>,
+    selected: String,
+    custom: Boolean,
+    onSelected: (String, Boolean) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val label = if (custom) "Custom event…" else options.firstOrNull { it.first == selected }?.second ?: "Choose event…"
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("When this happens", style = MaterialTheme.typography.labelMedium)
+        BoxedPicker(label, expanded, { expanded = true }, { expanded = false }) {
+            options.forEach { (key, name) ->
+                DropdownMenuItem(
+                    text = { Text(name) },
+                    onClick = { onSelected(if (key == "custom") "" else key, key == "custom"); expanded = false }
+                )
             }
-        }
-        if (task.timing == CronBuilderTiming.RELATIVE) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            OutlinedTextField(task.offsetDays, { onChanged(task.copy(offsetDays = it.filter(Char::isDigit))) }, label = { Text("Days after anchor") }, modifier = Modifier.weight(1f), singleLine = true)
-            OutlinedTextField(task.offsetTime, { onChanged(task.copy(offsetTime = it)) }, label = { Text("Time after anchor") }, modifier = Modifier.weight(1f), singleLine = true)
-        }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedButton(onClick = { targetMenu = true }, modifier = Modifier.weight(1f)) { Text(task.target.name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }) }
-            DropdownMenu(expanded = targetMenu, onDismissRequest = { targetMenu = false }) {
-                CronBuilderTarget.entries.forEach { target -> DropdownMenuItem(text = { Text(target.name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }) }, onClick = { onChanged(task.copy(target = target, targetId = "")); targetMenu = false }) }
-            }
-        }
-        when (task.target) {
-            CronBuilderTarget.NOTIFICATION -> OutlinedTextField(task.message, { onChanged(task.copy(message = it)) }, label = { Text("Notification message") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            CronBuilderTarget.PRESET -> ChoiceButtons("Preset", presets.map { it.id to it.name }, task.targetId) { onChanged(task.copy(targetId = it)) }
-            CronBuilderTarget.PROTOCOL -> ChoiceButtons("Protocol", protocols.map { it.id to it.name }, task.targetId) { onChanged(task.copy(targetId = it)) }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            OutlinedTextField(task.retries, { onChanged(task.copy(retries = it.filter(Char::isDigit))) }, label = { Text("Retries") }, modifier = Modifier.weight(1f), singleLine = true)
-            OutlinedTextField(task.retryMinutes, { onChanged(task.copy(retryMinutes = it.filter(Char::isDigit))) }, label = { Text("Retry min") }, modifier = Modifier.weight(1f), singleLine = true)
         }
     }
 }
 
 @Composable
-private fun ChoiceButtons(label: String, options: List<Pair<String, String>>, selected: String, onSelected: (String) -> Unit) {
+private fun CronTaskEditor(
+    index: Int,
+    task: CronBuilderTask,
+    presets: List<com.example.methodmesh.core.protocols.CapabilityPreset>,
+    protocols: List<com.example.methodmesh.core.protocols.ProtocolDefinition>,
+    onChanged: (CronBuilderTask) -> Unit
+) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Task ${index + 1}", style = MaterialTheme.typography.titleSmall)
+        OutlinedTextField(task.name, { onChanged(task.copy(name = it)) }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FilterChip(selected = task.timing == CronBuilderTiming.ABSOLUTE, onClick = { onChanged(task.copy(timing = CronBuilderTiming.ABSOLUTE)) }, label = { Text("Absolute") })
+            FilterChip(selected = task.timing == CronBuilderTiming.RELATIVE, onClick = { onChanged(task.copy(timing = CronBuilderTiming.RELATIVE)) }, label = { Text("Relative") })
+        }
+        if (task.timing == CronBuilderTiming.ABSOLUTE) {
+            OutlinedTextField(
+                task.cronExpression,
+                { onChanged(task.copy(cronExpression = it)) },
+                label = { Text("Cron pattern") },
+                supportingText = { Text("minute hour day month weekday · e.g. 0 9 * * *") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                OutlinedTextField(task.offsetDays, { onChanged(task.copy(offsetDays = it.filter(Char::isDigit))) }, label = { Text("Days after start") }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(task.offsetTime, { onChanged(task.copy(offsetTime = it)) }, label = { Text("Time") }, modifier = Modifier.weight(1f), singleLine = true)
+            }
+        }
+        TaskTargetPicker(task, presets, protocols, onChanged)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            OutlinedTextField(task.retries, { onChanged(task.copy(retries = it.filter(Char::isDigit))) }, label = { Text("Retries") }, modifier = Modifier.weight(1f), singleLine = true)
+            OutlinedTextField(task.retryMinutes, { onChanged(task.copy(retryMinutes = it.filter(Char::isDigit))) }, label = { Text("Retry delay (min)") }, modifier = Modifier.weight(1f), singleLine = true)
+        }
+    }
+}
+
+@Composable
+private fun TaskTargetPicker(
+    task: CronBuilderTask,
+    presets: List<com.example.methodmesh.core.protocols.CapabilityPreset>,
+    protocols: List<com.example.methodmesh.core.protocols.ProtocolDefinition>,
+    onChanged: (CronBuilderTask) -> Unit
+) {
+    var targetMenu by remember(task.target) { mutableStateOf(false) }
+    var itemMenu by remember(task.target, task.targetId) { mutableStateOf(false) }
+    val targetLabel = when (task.target) {
+        CronBuilderTarget.NOTIFICATION -> "Notification"
+        CronBuilderTarget.PRESET -> "Preset"
+        CronBuilderTarget.PROTOCOL -> "Protocol"
+    }
+    val items = when (task.target) {
+        CronBuilderTarget.PRESET -> presets.map { it.id to it.name }
+        CronBuilderTarget.PROTOCOL -> protocols.map { it.id to it.name }
+        CronBuilderTarget.NOTIFICATION -> emptyList()
+    }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, style = MaterialTheme.typography.labelMedium)
-        options.forEach { (id, name) -> OutlinedButton(onClick = { onSelected(id) }, modifier = Modifier.fillMaxWidth()) { Text(if (id == selected) "✓ $name" else name) } }
-        if (options.isEmpty()) Text("No saved ${label.lowercase()} items yet.", style = MaterialTheme.typography.bodySmall)
+        Text("Do this", style = MaterialTheme.typography.labelMedium)
+        BoxedPicker(targetLabel, targetMenu, { targetMenu = true }, { targetMenu = false }) {
+            CronBuilderTarget.entries.forEach { target ->
+                DropdownMenuItem(
+                    text = { Text(target.name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }) },
+                    onClick = { onChanged(task.copy(target = target, targetId = "")); targetMenu = false }
+                )
+            }
+        }
+        when (task.target) {
+            CronBuilderTarget.NOTIFICATION -> OutlinedTextField(task.message, { onChanged(task.copy(message = it)) }, label = { Text("Message") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            else -> BoxedPicker(
+                items.firstOrNull { it.first == task.targetId }?.second ?: "Choose ${targetLabel.lowercase()}…",
+                itemMenu,
+                { itemMenu = true },
+                { itemMenu = false }
+            ) {
+                items.forEach { (id, name) ->
+                    DropdownMenuItem(text = { Text(name) }, onClick = { onChanged(task.copy(targetId = id)); itemMenu = false })
+                }
+                if (items.isEmpty()) DropdownMenuItem(text = { Text("No saved ${targetLabel.lowercase()} items") }, onClick = { itemMenu = false })
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoxedPicker(
+    label: String,
+    expanded: Boolean,
+    onOpen: () -> Unit,
+    onDismiss: () -> Unit,
+    menu: @Composable ColumnScope.() -> Unit
+) {
+    androidx.compose.foundation.layout.Box {
+        OutlinedButton(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
+            Text(label, modifier = Modifier.fillMaxWidth())
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = onDismiss, content = menu)
     }
 }
 
