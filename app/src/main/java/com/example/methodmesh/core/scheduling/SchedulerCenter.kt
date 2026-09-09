@@ -8,11 +8,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -61,6 +64,14 @@ fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit,
                     Column(Modifier.padding(10.dp)) {
                         Text(plan.name, style = MaterialTheme.typography.titleSmall)
                         Text("${plan.activation.name.replace('_', ' ')} · ${plan.termination.mode.name.replace('_', ' ')} · ${plan.lanes.size} lane(s)", style = MaterialTheme.typography.bodySmall)
+                        plan.rules.filter { it.timing is ScheduleTimingRule.RelativeDays }.forEach { rule ->
+                            val timing = rule.timing as ScheduleTimingRule.RelativeDays
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                (1..(timing.days.maxOrNull()?.coerceAtMost(31) ?: 1)).forEach { day ->
+                                    Text(if (day in timing.days) "■" else "·", modifier = Modifier.padding(horizontal = 3.dp), color = if (day in timing.days) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
                         val running = SchedulePlanStore.allInstances(context).firstOrNull { it.planId == plan.id && it.stoppedAt == null }
                         if (running == null && plan.activation == ScheduleActivation.MANUAL_DAY_ONE) {
                             Button(onClick = { SchedulePlanRuntime.start(context, plan); plans = SchedulePlanStore.allPlans(context) }) { Text("Start Day 1") }
