@@ -2,6 +2,7 @@ package com.example.methodmesh.core.scheduling
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,7 +54,7 @@ import java.time.ZoneId
 private enum class BuilderMode { SEQUENCE, WEEKLY }
 private enum class BuilderStartMode { MANUAL_DAY_ONE, CALENDAR_NOW, ABSOLUTE }
 
-private data class BuilderLane(val name: String, val hour: Int = 9, val minute: Int = 0, val actionType: ScheduleActionType = ScheduleActionType.NOTIFIER, val message: String = "", val presetId: String = "", val snoozeMinutes: Int = 10, val followUpCount: Int = 0, val followUpIntervalMinutes: Int = 30, val missedStartPolicy: ScheduleMissedStartPolicy = ScheduleMissedStartPolicy.SKIP_MISSED, val days: Set<Int> = setOf(1)) {
+private data class BuilderLane(val name: String, val hour: Int = 9, val minute: Int = 0, val actionType: ScheduleActionType = ScheduleActionType.NOTIFIER, val message: String = "", val presetId: String = "", val snoozeMinutes: Int = 10, val followUpCount: Int = 0, val followUpIntervalMinutes: Int = 30, val missedStartPolicy: ScheduleMissedStartPolicy = ScheduleMissedStartPolicy.SKIP_MISSED, val days: Set<Int> = setOf(1), val dayTimes: Map<Int, Pair<Int, Int>> = emptyMap()) {
     val time: String get() = "%02d:%02d".format(hour, minute)
 }
 
@@ -79,15 +80,10 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
         val lanes = remember(existingPlan?.id) {
             mutableStateListOf<BuilderLane>().apply {
                 if (existingPlan == null) add(BuilderLane("Activity"))
-                else existingPlan.rules.forEach { rule ->
-                    val lane = existingPlan.lanes.firstOrNull { it.id == rule.laneId } ?: return@forEach
-                    val timing = rule.timing
+                else existingPlan.lanes.forEach { lane ->
+                    val rules = existingPlan.rules.filter { it.laneId == lane.id }
                     val action = lane.defaultActions.firstOrNull()
-                    val selectedDays = when (timing) {
-                        is ScheduleTimingRule.RelativeDays -> timing.days
-                        is ScheduleTimingRule.Weekly -> timing.weekdays
-                        else -> setOf(1)
-                    }
+                    val selectedDays = rules.flatMap { rule -> when (val timing = rule.timing) { is ScheduleTimingRule.RelativeDays -> timing.days.toList(); is ScheduleTimingRule.Weekly -> timing.weekdays.toList(); else -> emptyList() } }.toSet().ifEmpty { setOf(1) }
                     add(BuilderLane(lane.name, lane.defaultTime.hour, lane.defaultTime.minute, action?.type ?: ScheduleActionType.NOTIFIER, action?.message.orEmpty(), action?.presetId.orEmpty(), action?.snoozeMinutes ?: 10, action?.followUpCount ?: 0, action?.followUpIntervalMinutes ?: 30, lane.missedStartPolicy, selectedDays))
                 }
             }
@@ -97,6 +93,7 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
         var timeDialogLane by remember { mutableStateOf<Int?>(null) }
         var dialogHour by remember { mutableStateOf(9) }
         var dialogMinute by remember { mutableStateOf(0) }
+        var timeDialogDay by remember { mutableStateOf<Int?>(null) }
         var expandedLanes by remember { mutableStateOf(emptySet<Int>()) }
         val presets = remember { ProtocolLibraryRepository.presets(app) }
         val days = sequenceDays.toIntOrNull()?.coerceIn(1, 366) ?: 22
@@ -108,30 +105,34 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
             val duration = durationDays.toLongOrNull()?.takeIf { it > 0 }?.let(Duration::ofDays)
             val parsedStart = startDate.trim().let { runCatching { LocalDate.parse(it) }.getOrNull() }?.atTime(startHour, startMinute)?.atZone(ZoneId.systemDefault())
             if (name.isBlank() || (mode == BuilderMode.SEQUENCE && totalDays == null) || (endMode == ScheduleEndMode.DURATION && duration == null) || (startMode == BuilderStartMode.ABSOLUTE && parsedStart == null)) { status = "Enter a plan name, sequence length, and valid start/end settings."; return }
-            val built = lanes.mapNotNull { lane ->
+            val laneData = lanes.mapNotNull { lane ->
                 val time = LocalTime.of(lane.hour, lane.minute)
                 val action = when {
                     lane.actionType == ScheduleActionType.NOTIFIER -> ScheduleAction(type = ScheduleActionType.NOTIFIER, title = lane.name, message = lane.message.ifBlank { lane.name }, snoozeMinutes = lane.snoozeMinutes, followUpCount = lane.followUpCount, followUpIntervalMinutes = lane.followUpIntervalMinutes)
                     lane.presetId.isNotBlank() -> ScheduleAction(type = ScheduleActionType.PRESET, presetId = lane.presetId, title = presets.firstOrNull { it.id == lane.presetId }?.name.orEmpty(), snoozeMinutes = lane.snoozeMinutes, followUpCount = lane.followUpCount, followUpIntervalMinutes = lane.followUpIntervalMinutes)
                     else -> null
                 } ?: return@mapNotNull null
-                val scheduleLane = ScheduleLane(name = lane.name.ifBlank { "Activity" }, defaultTime = time, defaultActions = listOf(action), missedStartPolicy = lane.missedStartPolicy)
-                val timing = if (mode == BuilderMode.WEEKLY) {
-                    ScheduleTimingRule.Weekly(lane.days.filter { it in 1..7 }.toSet().ifEmpty { setOf(1) }, time)
-                } else {
-                    ScheduleTimingRule.RelativeDays(lane.days.filter { it <= (totalDays ?: 1) }.toSet().ifEmpty { setOf(1) }, time)
-                }
-                scheduleLane to timing
+                ScheduleLane(name = lane.name.ifBlank { "Activity" }, defaultTime = time, defaultActions = listOf(action), missedStartPolicy = lane.missedStartPolicy) to lane
             }
-            if (built.size != lanes.size) { status = "Every lane needs a valid time and action."; return }
-            val planLanes = built.map { it.first }
+            if (laneData.size != lanes.size) { status = "Every lane needs a valid time and action."; return }
+            val planLanes = laneData.map { it.first }
+            val built = laneData.flatMapIndexed { laneIndex, (scheduleLane, lane) ->
+                val overrideDays = lane.dayTimes.keys
+                val defaultDays = lane.days - overrideDays
+                val defaultRule = if (defaultDays.isEmpty()) emptyList() else listOf(ScheduleRule(scheduleLane.id, if (mode == BuilderMode.WEEKLY) ScheduleTimingRule.Weekly(defaultDays.filter { it in 1..7 }.toSet().ifEmpty { setOf(1) }, scheduleLane.defaultTime) else ScheduleTimingRule.RelativeDays(defaultDays.filter { it <= (totalDays ?: 1) }.toSet().ifEmpty { setOf(1) }, scheduleLane.defaultTime), label = if (overrideDays.isEmpty()) "" else "Default"))
+                val overrideRules = lane.dayTimes.map { (day, hm) ->
+                    val time = LocalTime.of(hm.first, hm.second)
+                    ScheduleRule(scheduleLane.id, if (mode == BuilderMode.WEEKLY) ScheduleTimingRule.Weekly(setOf(day), time) else ScheduleTimingRule.RelativeDays(setOf(day), time), label = "Day $day override")
+                }
+                defaultRule + overrideRules
+            }
             val termination = if (endMode == ScheduleEndMode.FOREVER) ScheduleTermination(ScheduleEndMode.FOREVER) else ScheduleTermination(ScheduleEndMode.DURATION, duration = duration)
             val activation = when (startMode) {
                 BuilderStartMode.MANUAL_DAY_ONE -> ScheduleActivation.MANUAL_DAY_ONE
                 BuilderStartMode.CALENDAR_NOW -> ScheduleActivation.CALENDAR_RULE
                 BuilderStartMode.ABSOLUTE -> ScheduleActivation.ABSOLUTE_START
             }
-            val plan = SchedulePlan(id = existingPlan?.id ?: java.util.UUID.randomUUID().toString(), name = name.trim(), activation = activation, startAt = parsedStart.takeIf { startMode == BuilderStartMode.ABSOLUTE }, termination = termination, lanes = planLanes, rules = built.mapIndexed { index, pair -> ScheduleRule(planLanes[index].id, pair.second) }, version = (existingPlan?.version ?: 0) + 1, enabled = existingPlan?.enabled ?: true, createdAt = existingPlan?.createdAt ?: java.time.ZonedDateTime.now(), updatedAt = java.time.ZonedDateTime.now())
+            val plan = SchedulePlan(id = existingPlan?.id ?: java.util.UUID.randomUUID().toString(), name = name.trim(), activation = activation, startAt = parsedStart.takeIf { startMode == BuilderStartMode.ABSOLUTE }, termination = termination, lanes = planLanes, rules = built, version = (existingPlan?.version ?: 0) + 1, enabled = existingPlan?.enabled ?: true, createdAt = existingPlan?.createdAt ?: java.time.ZonedDateTime.now(), updatedAt = java.time.ZonedDateTime.now())
             SchedulePlanStore.savePlan(app, plan)
             status = "Saved ${plan.name}. Use Start Day 1 when you are ready."
             val execution = As100SchedulerMethod.result(As100SchedulerMethod.request(capabilityId, emptyMap(), emptyList(), emptyList()), SchedulerOutcome(null, "created"), context.request.invocationContext)
@@ -186,8 +187,9 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
                             }
                             (1..if (mode == BuilderMode.WEEKLY) 7 else days).forEach { day ->
                                 val selected = day in lane.days
-                                Box(Modifier.width(38.dp).height(52.dp).padding(2.dp).border(1.dp, MaterialTheme.colorScheme.outlineVariant).background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent), contentAlignment = Alignment.Center) {
-                                    androidx.compose.material3.TextButton(onClick = { val next = lane.days.toMutableSet().apply { if (!remove(day)) add(day) }; lanes[index] = lane.copy(days = next) }) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(day.toString(), fontSize = 9.sp, color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant); Text(if (selected) "■" else "·", color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant) } }
+                                val override = lane.dayTimes[day]
+                                Box(Modifier.width(38.dp).height(52.dp).padding(2.dp).border(1.dp, MaterialTheme.colorScheme.outlineVariant).background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent).combinedClickable(onClick = { val next = lane.days.toMutableSet().apply { if (!remove(day)) add(day) }; lanes[index] = lane.copy(days = next, dayTimes = if (day in next) lane.dayTimes else lane.dayTimes - day) }, onLongClick = { if (selected) { dialogHour = override?.first ?: lane.hour; dialogMinute = override?.second ?: lane.minute; timeDialogLane = index; timeDialogDay = day } }), contentAlignment = Alignment.Center) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(day.toString(), fontSize = 9.sp, color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant); Text(if (selected) (if (override == null) "■" else "◆") else "·", color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant) }
                                 }
                             }
                         }
@@ -201,6 +203,7 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
                         if (index in expandedLanes) {
                             if (lane.actionType == ScheduleActionType.NOTIFIER) OutlinedTextField(lane.message, { lanes[index] = lane.copy(message = it) }, label = { Text("Reminder message") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                             else presets.take(8).forEach { preset -> OutlinedButton(onClick = { lanes[index] = lane.copy(presetId = preset.id) }, modifier = Modifier.fillMaxWidth()) { Text(if (lane.presetId == preset.id) "✓ ${preset.name}" else preset.name) } }
+                            Text("Long-press a selected day to override its time.", style = MaterialTheme.typography.labelSmall)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 OutlinedTextField(lane.snoozeMinutes.toString(), { lanes[index] = lane.copy(snoozeMinutes = it.filter(Char::isDigit).toIntOrNull() ?: 0) }, label = { Text("Snooze min") }, modifier = Modifier.width(120.dp), singleLine = true)
                                 OutlinedTextField(lane.followUpCount.toString(), { lanes[index] = lane.copy(followUpCount = it.filter(Char::isDigit).toIntOrNull() ?: 0) }, label = { Text("Follow-ups") }, modifier = Modifier.width(120.dp), singleLine = true)
@@ -230,7 +233,11 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
                             AndroidView(factory = { NumberPicker(it).apply { minValue = 0; maxValue = 59; value = dialogMinute; setOnValueChangedListener { _, _, new -> dialogMinute = new } } }, update = { it.value = dialogMinute }, modifier = Modifier.width(90.dp).height(150.dp))
                         }
                         Button(onClick = {
-                            if (laneIndex == -1) { startHour = dialogHour; startMinute = dialogMinute } else lanes[laneIndex] = lanes[laneIndex].copy(hour = dialogHour, minute = dialogMinute)
+                            if (laneIndex == -1) { startHour = dialogHour; startMinute = dialogMinute } else {
+                                val lane = lanes[laneIndex]
+                                lanes[laneIndex] = if (timeDialogDay == null) lane.copy(hour = dialogHour, minute = dialogMinute) else lane.copy(dayTimes = lane.dayTimes + (timeDialogDay!! to (dialogHour to dialogMinute)))
+                            }
+                            timeDialogDay = null
                             timeDialogLane = null
                         }) { Text("Use time") }
                     }
