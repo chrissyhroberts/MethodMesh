@@ -131,7 +131,7 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
                 BuilderStartMode.CALENDAR_NOW -> ScheduleActivation.CALENDAR_RULE
                 BuilderStartMode.ABSOLUTE -> ScheduleActivation.ABSOLUTE_START
             }
-            val plan = SchedulePlan(id = existingPlan?.id ?: java.util.UUID.randomUUID().toString(), name = name.trim(), activation = activation, startAt = parsedStart.takeIf { startMode == BuilderStartMode.ABSOLUTE }, termination = termination, lanes = planLanes, rules = built.mapIndexed { index, pair -> ScheduleRule(planLanes[index].id, pair.second) }, createdAt = existingPlan?.createdAt ?: java.time.ZonedDateTime.now(), updatedAt = java.time.ZonedDateTime.now(), version = (existingPlan?.version ?: 0) + 1)
+            val plan = SchedulePlan(id = existingPlan?.id ?: java.util.UUID.randomUUID().toString(), name = name.trim(), activation = activation, startAt = parsedStart.takeIf { startMode == BuilderStartMode.ABSOLUTE }, termination = termination, lanes = planLanes, rules = built.mapIndexed { index, pair -> ScheduleRule(planLanes[index].id, pair.second) }, version = (existingPlan?.version ?: 0) + 1, enabled = existingPlan?.enabled ?: true, createdAt = existingPlan?.createdAt ?: java.time.ZonedDateTime.now(), updatedAt = java.time.ZonedDateTime.now())
             SchedulePlanStore.savePlan(app, plan)
             status = "Saved ${plan.name}. Use Start Day 1 when you are ready."
             val execution = As100SchedulerMethod.result(As100SchedulerMethod.request(capabilityId, emptyMap(), emptyList(), emptyList()), SchedulerOutcome(null, "created"), context.request.invocationContext)

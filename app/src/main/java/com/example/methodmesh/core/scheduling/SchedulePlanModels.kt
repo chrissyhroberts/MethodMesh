@@ -115,6 +115,7 @@ data class SchedulePlan(
     val lanes: List<ScheduleLane> = emptyList(),
     val rules: List<ScheduleRule> = emptyList(),
     val version: Int = 1,
+    val enabled: Boolean = true,
     val createdAt: ZonedDateTime = ZonedDateTime.now(timezone),
     val updatedAt: ZonedDateTime = createdAt
 ) {

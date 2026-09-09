@@ -65,7 +65,7 @@ object SchedulePlanStore {
     }
 
     private fun encodePlan(plan: SchedulePlan) = JSONObject().apply {
-        put("id", plan.id); put("name", plan.name); put("description", plan.description); put("activation", plan.activation.name)
+        put("id", plan.id); put("name", plan.name); put("description", plan.description); put("activation", plan.activation.name); put("enabled", plan.enabled)
         put("start_at", plan.startAt?.toString()); put("timezone", plan.timezone.id); put("version", plan.version)
         put("created_at", plan.createdAt.toString()); put("updated_at", plan.updatedAt.toString())
         put("termination", encodeTermination(plan.termination))
@@ -80,7 +80,7 @@ object SchedulePlanStore {
             activation = ScheduleActivation.valueOf(o.optString("activation")), startAt = o.optString("start_at").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse),
             timezone = timezone, termination = decodeTermination(o.getJSONObject("termination")),
             lanes = array(o.optJSONArray("lanes")).mapNotNull(::decodeLane), rules = array(o.optJSONArray("rules")).mapNotNull(::decodeRule),
-            version = o.optInt("version", 1), createdAt = ZonedDateTime.parse(o.getString("created_at")), updatedAt = ZonedDateTime.parse(o.getString("updated_at"))
+            version = o.optInt("version", 1), enabled = o.optBoolean("enabled", true), createdAt = ZonedDateTime.parse(o.getString("created_at")), updatedAt = ZonedDateTime.parse(o.getString("updated_at"))
         )
     }.getOrNull()?.takeIf { it.id.isNotBlank() && it.name.isNotBlank() }
 

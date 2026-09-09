@@ -11,6 +11,7 @@ object SchedulePlanRuntime {
         SchedulePlanStore.allInstances(context).filter { it.stoppedAt == null }.forEach { armNext(context, it) }
         val now = ZonedDateTime.now()
         SchedulePlanStore.allPlans(context)
+            .filter { it.enabled }
             .filter { it.activation != ScheduleActivation.MANUAL_DAY_ONE && SchedulePlanStore.allInstances(context).none { instance -> instance.planId == it.id && instance.stoppedAt == null } }
             .filter { it.startAt == null || !it.startAt.isAfter(now) }
             .forEach { start(context, it, now.withZoneSameInstant(it.timezone)) }

@@ -93,8 +93,8 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                             }
                         }
                         val running = SchedulePlanStore.allInstances(context).firstOrNull { it.planId == plan.id && it.stoppedAt == null }
-                        if (running == null && plan.activation == ScheduleActivation.MANUAL_DAY_ONE) {
-                            Button(onClick = { SchedulePlanRuntime.start(context, plan); plans = SchedulePlanStore.allPlans(context) }) { Text("Start Day 1") }
+                        if (running == null && (!plan.enabled || plan.activation == ScheduleActivation.MANUAL_DAY_ONE)) {
+                            Button(onClick = { val resumed = plan.copy(enabled = true, updatedAt = java.time.ZonedDateTime.now()); SchedulePlanStore.savePlan(context, resumed); SchedulePlanRuntime.start(context, resumed); plans = SchedulePlanStore.allPlans(context) }) { Text(if (plan.activation == ScheduleActivation.MANUAL_DAY_ONE) "Start Day 1" else "Start") }
                         } else if (running != null) {
                             Text("Running · ${running.occurrences.count { it.state == ScheduleOccurrenceState.COMPLETED }} completed", style = MaterialTheme.typography.bodySmall)
                             running.occurrences.firstOrNull { it.state == ScheduleOccurrenceState.UPCOMING || it.state == ScheduleOccurrenceState.WINDOW_OPEN || it.state == ScheduleOccurrenceState.DUE }?.let { next ->
@@ -102,7 +102,7 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                             }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            if (running != null) OutlinedButton(onClick = { SchedulePlanRuntime.cancel(context, running); SchedulePlanStore.removeInstancesForPlan(context, plan.id); plans = SchedulePlanStore.allPlans(context) }) { Text("Stop") }
+                            if (running != null) OutlinedButton(onClick = { SchedulePlanRuntime.cancel(context, running); SchedulePlanStore.removeInstancesForPlan(context, plan.id); SchedulePlanStore.savePlan(context, plan.copy(enabled = false, updatedAt = java.time.ZonedDateTime.now())); plans = SchedulePlanStore.allPlans(context) }) { Text("Stop") }
                             OutlinedButton(onClick = { onEditPlan(plan) }) { Text("Edit") }
                             OutlinedButton(onClick = {
                                 SchedulePlanStore.allInstances(context).filter { it.planId == plan.id }.forEach { SchedulePlanRuntime.cancel(context, it) }
