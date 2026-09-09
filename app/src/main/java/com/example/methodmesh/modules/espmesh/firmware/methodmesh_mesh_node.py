@@ -120,6 +120,7 @@ class MethodMeshMeshNode:
         self.config = load_config()
         self.queue = load_queue()
         self.seen = []
+        self.acknowledged = []
         self.connections = set()
         self.ble = bluetooth.BLE()
         self.ble.active(True)
@@ -201,7 +202,7 @@ class MethodMeshMeshNode:
         self._start_radio()
         self._advertise()
 
-    def accept_envelope(self, envelope, from_phone=False):
+    def accept_envelope(self, envelope, from_phone=False, source_peer=None):
         if not self.config["provisioned"] or not self.config["network_id"] or not self.config["network_key"]:
             return
         message_id = str(envelope.get("message_id", ""))
@@ -214,6 +215,8 @@ class MethodMeshMeshNode:
         ttl = int(envelope.get("metadata", {}).get("ttl", MAX_TTL))
         if destination_id in (self.config["node_id"], "broadcast", "field-group"):
             self.notify({"protocol": "methodmesh.gateway", "version": 1, "kind": "INBOUND", "request_id": message_id, "envelope": envelope, "body": {"node_id": self.config["node_id"]}})
+            if source_peer is not None:
+                self.send_ack(source_peer, message_id)
         if self.radio is None or ttl <= 1:
             if destination_id not in (self.config["node_id"], "broadcast", "field-group"):
                 if len(self.queue) >= MAX_QUEUE:
@@ -235,6 +238,16 @@ class MethodMeshMeshNode:
             except Exception:
                 pass
 
+    def send_ack(self, peer, message_id):
+        if self.radio is None or not self.config["provisioned"]:
+            return
+        packet = {"methodmesh": 1, "kind": "ACK", "network_id": self.config["network_id"], "message_id": message_id}
+        packet["auth"] = authenticate(packet, self.config["network_key"])
+        try:
+            self.radio.send(peer, compact(packet).encode())
+        except Exception:
+            pass
+
     def poll_radio(self):
         if self.radio is None:
             return
@@ -243,9 +256,12 @@ class MethodMeshMeshNode:
             if raw:
                 packet = json.loads(raw.decode())
                 if (self.config["provisioned"] and packet.get("methodmesh") == 1 and packet.get("network_id") == self.config["network_id"]
-                        and packet.get("auth") == authenticate(packet, self.config["network_key"])
-                        and packet.get("envelope")):
-                    self.accept_envelope(packet["envelope"])
+                        and packet.get("auth") == authenticate(packet, self.config["network_key"])):
+                    if packet.get("kind") == "ACK":
+                        self.acknowledged.append(str(packet.get("message_id", "")))
+                        self.acknowledged = self.acknowledged[-MAX_DEDUPE:]
+                    elif packet.get("envelope"):
+                        self.accept_envelope(packet["envelope"], source_peer=peer)
         except Exception:
             pass
 
@@ -255,6 +271,9 @@ class MethodMeshMeshNode:
         waiting = self.queue
         self.queue = []
         for record in waiting:
+            expires_at = record.get("expires_at")
+            if expires_at and int(expires_at) <= int(time.time() * 1000):
+                continue
             self.accept_envelope(record.get("envelope") or {})
         save_queue(self.queue)
 

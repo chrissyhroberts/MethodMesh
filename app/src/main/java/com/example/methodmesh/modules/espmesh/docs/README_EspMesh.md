@@ -19,7 +19,7 @@ ESP mesh Android gateway adapter
 ESP-NOW nodes and relays
 ```
 
-The gateway bridge carries the MethodMesh envelope as opaque JSON. The current reference node implements TTL, duplicate suppression, bounded store-and-forward and authenticated ESP-NOW packets. BLE bridge frames are bounded to 4 KiB; larger payloads are rejected until a deliberate fragmentation contract is added.
+The gateway bridge carries the MethodMesh envelope as opaque JSON. The current reference node implements TTL, duplicate suppression, bounded store-and-forward, authenticated ESP-NOW packets and basic mesh acknowledgements. BLE bridge frames are bounded to 4 KiB; larger payloads are rejected until a deliberate fragmentation contract is added.
 
 `EspMeshBridgeFrame` currently defines the Android-side frame shape (`methodmesh.gateway`, version 1) and bounds decoded bridge frames. It deliberately does not encode ESP-NOW packet headers, radio addresses or cryptographic membership state; those are firmware and gateway concerns.
 
