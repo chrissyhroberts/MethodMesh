@@ -48,7 +48,7 @@ import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 
 @Composable
-fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit, onEdit: (ResearchSchedule) -> Unit, onChanged: () -> Unit, onEditPlan: (SchedulePlan) -> Unit = {}, onExportSchedule: (ResearchSchedule) -> Unit = {}, onAdvancedExport: () -> Unit = {}, onAdvancedImport: () -> Unit = {}) {
+fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit = {}) {
     val context = LocalContext.current
     var plans by remember { mutableStateOf(SchedulePlanStore.allPlans(context)) }
     var runtimeRefresh by remember { mutableIntStateOf(0) }
@@ -106,88 +106,7 @@ fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit,
                     }
                 }
             }
-            if (schedules.isEmpty()) Text("No schedules stored.", style = MaterialTheme.typography.bodyMedium)
-            val scheduleGroups = schedules.sortedWith(compareBy<ResearchSchedule> { it.chainId.ifBlank { it.id } }.thenBy { it.chainOrder })
-                .groupBy { it.chainId.ifBlank { it.id } }.values
-            scheduleGroups.forEach { group ->
-                val schedule = group.first()
-                val running = schedule.enabled
-                ElevatedCard(
-                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    colors = CardDefaults.elevatedCardColors(
-                        containerColor = if (running) {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-                        }
-                    )
-                ) {
-                    Column(Modifier.padding(10.dp)) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(if (group.size > 1) schedule.name.removeSuffix(" 1") else schedule.name, style = MaterialTheme.typography.titleSmall)
-                                Text(if (running) "Running" else "Paused", style = MaterialTheme.typography.labelMedium,
-                                    color = if (running) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Switch(
-                                checked = running,
-                                onCheckedChange = {
-                                    SchedulerRepository.setChainEnabled(context, schedule, it)
-                                    onChanged()
-                                }
-                            )
-                        }
-                        val timing = schedule.cronExpression.takeIf { it.isNotBlank() }?.let { "cron: $it" }
-                            ?: "${schedule.frequency} • ${"%02d:%02d".format(schedule.hour, schedule.minute)}"
-                        Text("$timing • ${if (group.size > 1) "${group.size}-step chain" else schedule.target}", style = MaterialTheme.typography.bodySmall)
-                        group.forEachIndexed { index, step ->
-                            Text("${index + 1}. ${step.target}: ${step.targetValue}", style = MaterialTheme.typography.bodySmall)
-                        }
-                        group.asSequence().flatMap { SchedulerRepository.events(context, it.id).asSequence() }.firstOrNull()?.let { event ->
-                            Text("Last event: ${event.event} (${event.timeIso})", style = MaterialTheme.typography.labelSmall)
-                        }
-                        Row(Modifier.fillMaxWidth()) {
-                            Button(onClick = { onEdit(schedule) }) { Text("Edit") }
-                            Spacer(Modifier.padding(4.dp))
-                            OutlinedButton(onClick = { SchedulerRepository.removeChain(context, schedule); onChanged() }) { Text("Remove") }
-                            Spacer(Modifier.padding(4.dp))
-                            OutlinedButton(onClick = {
-                                context.startActivity(Intent(context, SchedulerDispatchActivity::class.java)
-                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    .putExtra("schedule_id", schedule.id)
-                                    .putExtra("test_chain", true))
-                            }) { Text("Test") }
-                        }
-                        OutlinedButton(onClick = { onExportSchedule(schedule) }, Modifier.fillMaxWidth()) { Text("Export this schedule") }
-                    }
-                }
-            }
             Button(onClick = onCreate, Modifier.fillMaxWidth()) { Text("Create schedule") }
-            Spacer(Modifier.height(8.dp))
-            Text("Schedule transfer", style = MaterialTheme.typography.titleSmall)
-            Row(Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = {
-                    val payload = SchedulerBundle.export(context)
-                    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("MethodMesh schedules", payload))
-                    transferStatus = "All schedules copied to clipboard."
-                }) { Text("Copy schedules") }
-                Spacer(Modifier.padding(4.dp))
-                OutlinedButton(onClick = { fileLauncher.launch("methodmesh-schedules.json") }) { Text("Save file") }
-            }
-            OutlinedButton(onClick = {
-                importedText = context.getSystemService(ClipboardManager::class.java).primaryClip?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
-                if (importedText.isBlank()) transferStatus = "Clipboard is empty." else runCatching {
-                    val decoded = SchedulerBundle.import(context, importedText)
-                    transferStatus = "Imported ${decoded.schedules.size} schedule(s)."
-                    onChanged()
-                }.onFailure { transferStatus = it.message ?: "Import failed." }
-            }, Modifier.fillMaxWidth()) { Text("Paste and import clipboard bundle") }
-            Row(Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = onAdvancedExport) { Text("QR / NFC export") }
-                Spacer(Modifier.padding(4.dp))
-                OutlinedButton(onClick = onAdvancedImport) { Text("QR / NFC import") }
-            }
-            if (transferStatus.isNotBlank()) Text(transferStatus, style = MaterialTheme.typography.bodySmall)
             }
         }
     }

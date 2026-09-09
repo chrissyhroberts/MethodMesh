@@ -5,12 +5,8 @@ import com.example.methodmesh.core.transport.MethodMeshTransportProvider
 import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.core.methodmesh.runtime.As100MethodRegistry
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
-import com.example.methodmesh.core.scheduling.As100SchedulerExportMethod
-import com.example.methodmesh.core.scheduling.As100SchedulerImportMethod
 import com.example.methodmesh.core.scheduling.As100SchedulerMethod
-import com.example.methodmesh.core.scheduling.SchedulerExportCapabilityScreen
-import com.example.methodmesh.core.scheduling.SchedulerTransferCapabilityScreen
-import com.example.methodmesh.core.scheduling.SchedulerCapabilityScreen
+import com.example.methodmesh.core.scheduling.SchedulePlanCapabilityScreen
 import com.example.methodmesh.core.methodmesh.runtime.CapabilityConfigurationRegistry
 import com.example.methodmesh.settings.MethodSetting
 import com.example.methodmesh.settings.SettingsSectionSpec
@@ -146,12 +142,10 @@ object MethodMeshModuleRegistry {
         .flatMap { it.settingsSections() }
         .sortedWith(compareBy<SettingsSectionSpec> { it.order }.thenBy { it.title.lowercase() })
 
-    private fun coreMethods() = listOf(As100SchedulerMethod, As100SchedulerExportMethod, As100SchedulerImportMethod)
-    private fun coreScreens() = listOf(SchedulerCapabilityScreen, SchedulerExportCapabilityScreen, SchedulerTransferCapabilityScreen)
+    private fun coreMethods() = listOf(As100SchedulerMethod)
+    private fun coreScreens() = listOf(SchedulePlanCapabilityScreen)
     private fun coreBindings() = listOf(
         RilBinding("create schedule", As100SchedulerMethod.ID, "Create a local MethodMesh schedule"),
-        RilBinding("export schedules", As100SchedulerExportMethod.id, "Export schedules as a portable bundle"),
-        RilBinding("import schedules", As100SchedulerImportMethod.id, "Import schedules directly or through QR/NFC")
     )
 
     fun canonicalAction(raw: String): String? {

@@ -62,9 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -74,13 +72,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.methodmesh.calibration.CalibrationScreen
-import com.example.methodmesh.core.scheduling.ResearchSchedule
 import com.example.methodmesh.core.scheduling.SchedulerCenterCard
 import com.example.methodmesh.core.scheduling.SchedulerDispatchActivity
 import com.example.methodmesh.core.scheduling.SchedulerEditorHost
-import com.example.methodmesh.core.scheduling.SchedulerRepository
-import com.example.methodmesh.core.scheduling.SchedulerExportCapabilityScreen
-import com.example.methodmesh.core.scheduling.SchedulerTransferCapabilityScreen
 import com.example.methodmesh.core.artifacts.AndroidArtifacts
 import com.example.methodmesh.core.protocols.CapabilityPreset
 import com.example.methodmesh.core.protocols.ProtocolDefinition
@@ -240,28 +234,15 @@ fun HomeScreen() {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedDestination by rememberSaveable { mutableStateOf(DashboardDestination.Dashboard) }
-    var schedules by remember { mutableStateOf(SchedulerRepository.all(appContext)) }
-    var editingSchedule by remember { mutableStateOf<ResearchSchedule?>(null) }
     var editingPlan by remember { mutableStateOf<com.example.methodmesh.core.scheduling.SchedulePlan?>(null) }
     var schedulerEditorOpen by remember { mutableStateOf(false) }
-    var schedulerTransferMode by remember { mutableStateOf<String?>(null) }
     var protocolLibraryRevision by remember { mutableStateOf(0) }
     var odkFormsSearchSeed by rememberSaveable { mutableStateOf("") }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, appContext) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) schedules = SchedulerRepository.all(appContext)
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
     BackHandler(
-        enabled = drawerState.isOpen || schedulerEditorOpen || schedulerTransferMode != null || selectedDestination != DashboardDestination.Dashboard
+        enabled = drawerState.isOpen || schedulerEditorOpen || selectedDestination != DashboardDestination.Dashboard
     ) {
         when {
             drawerState.isOpen -> scope.launch { drawerState.close() }
-            schedulerTransferMode != null -> schedulerTransferMode = null
             schedulerEditorOpen -> schedulerEditorOpen = false
             else -> selectedDestination = DashboardDestination.Dashboard
         }
@@ -393,15 +374,6 @@ fun HomeScreen() {
                                 }
                             )
                         }
-                        if (schedules.any { it.enabled }) {
-                            item {
-                                ActiveSchedulesCard(
-                                    schedules = schedules,
-                                    onChanged = { schedules = SchedulerRepository.all(appContext) },
-                                    onOpenScheduler = { selectedDestination = DashboardDestination.Scheduler }
-                                )
-                            }
-                        }
                     }
                     DashboardDestination.Outputs -> item { OutputFolderCard(expandedByDefault = true) }
                     DashboardDestination.RunProtocol -> item { RunProtocolCard(protocolLibraryRevision, expandedByDefault = true) }
@@ -412,38 +384,18 @@ fun HomeScreen() {
                     DashboardDestination.Scheduler -> {
                         item {
                             SchedulerCenterCard(
-                                schedules = schedules,
-                                onCreate = { editingSchedule = null; editingPlan = null; schedulerEditorOpen = true },
-                                onEdit = { editingSchedule = it; editingPlan = null; schedulerEditorOpen = true },
-                                onEditPlan = { editingPlan = it; editingSchedule = null; schedulerEditorOpen = true },
-                                onChanged = { schedules = SchedulerRepository.all(appContext) },
-                                onExportSchedule = { schedule ->
-                                    val payload = com.example.methodmesh.core.scheduling.SchedulerBundle.export(appContext, schedule.id)
-                                    appContext.getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("MethodMesh schedule", payload))
-                                },
-                                onAdvancedExport = { schedulerTransferMode = "export" },
-                                onAdvancedImport = { schedulerTransferMode = "import" }
+                                onCreate = { editingPlan = null; schedulerEditorOpen = true },
+                                onEditPlan = { editingPlan = it; schedulerEditorOpen = true }
                             )
                         }
                         if (schedulerEditorOpen) {
                             item {
                                 SchedulerEditorHost(
-                                    schedule = editingSchedule,
+                                    schedule = null,
                                     plan = editingPlan,
-                                    onDone = { schedules = SchedulerRepository.all(appContext); schedulerEditorOpen = false },
+                                    onDone = { schedulerEditorOpen = false },
                                     onCancel = { schedulerEditorOpen = false }
                                 )
-                            }
-                        }
-                        schedulerTransferMode?.let { mode ->
-                            item {
-                                val action = ExternalActionRequest(
-                                    requestedId = if (mode == "export") "scheduler.export" else "scheduler.import",
-                                    canonicalId = if (mode == "export") "scheduler.export" else "scheduler.import"
-                                )
-                                val request = ExternalWorkflowRequest(listOf(action), InvocationContext(caller = "dashboard"), emptyList(), ReturnMode.Json, source = "dashboard")
-                                val screen = if (mode == "export") SchedulerExportCapabilityScreen else SchedulerTransferCapabilityScreen
-                                screen.Render(CapabilityScreenContext(action, request, 1, 1), onBack = { schedulerTransferMode = null }, onConfirmed = { schedulerTransferMode = null; schedules = SchedulerRepository.all(appContext) }, onCancel = { schedulerTransferMode = null })
                             }
                         }
                     }
@@ -933,97 +885,6 @@ private fun runPresetFromDashboard(
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     })
 }
-
-@Composable
-private fun ActiveSchedulesCard(
-    schedules: List<ResearchSchedule>,
-    onChanged: () -> Unit,
-    onOpenScheduler: () -> Unit
-) {
-    val context = LocalContext.current
-    val scheduleGroups = remember(schedules) {
-        schedules
-            .sortedWith(compareBy<ResearchSchedule> { it.chainId.ifBlank { it.id } }.thenBy { it.chainOrder })
-            .groupBy { it.chainId.ifBlank { it.id } }
-            .values
-            .map { it.sortedBy { schedule -> schedule.chainOrder } }
-            .sortedWith(compareByDescending<List<ResearchSchedule>> { it.firstOrNull()?.enabled == true }.thenBy { it.firstOrNull()?.name.orEmpty() })
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Active", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text(
-                    if (schedules.isEmpty()) "No scheduled tasks." else "${scheduleGroups.count { it.firstOrNull()?.enabled == true }} running",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            InlineAction(if (schedules.isEmpty()) "Create" else "Manage", onClick = onOpenScheduler)
-        }
-            if (scheduleGroups.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                scheduleGroups.take(5).forEach { group ->
-                    val schedule = group.first()
-                    val running = schedule.enabled
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                        color = if (running) {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-                        },
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    if (group.size > 1) schedule.name.removeSuffix(" 1") else schedule.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    "${if (running) "Running" else "Paused"} · ${scheduleTimingLabel(schedule)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (running) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    if (group.size > 1) "${group.size}-step chain" else "${schedule.target}: ${schedule.targetValue}",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-                            Switch(
-                                checked = running,
-                                onCheckedChange = {
-                                    SchedulerRepository.setChainEnabled(context, schedule, it)
-                                    onChanged()
-                                }
-                            )
-                        }
-                    }
-                }
-                if (scheduleGroups.size > 5) {
-                    Text(
-                        "+ ${scheduleGroups.size - 5} more in Scheduler",
-                        modifier = Modifier.padding(top = 8.dp),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-            }
-    }
-}
-
-private fun scheduleTimingLabel(schedule: ResearchSchedule): String =
-    schedule.cronExpression.takeIf { it.isNotBlank() }?.let { "cron $it" }
-        ?: "${schedule.frequency.name.lowercase().replaceFirstChar { it.titlecase() }} ${"%02d:%02d".format(schedule.hour, schedule.minute)}"
 
 @Composable
 private fun RunProtocolCard(revision: Int, expandedByDefault: Boolean = false) {

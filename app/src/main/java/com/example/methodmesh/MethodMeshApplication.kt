@@ -2,7 +2,6 @@ package com.example.methodmesh
 
 import android.app.Application
 import com.example.methodmesh.core.onlinedata.ApiDefinitionRepository
-import com.example.methodmesh.core.scheduling.SchedulerRepository
 import com.example.methodmesh.core.scheduling.SchedulePlanRuntime
 import com.example.methodmesh.core.transport.MethodMeshTransportRuntime
 import com.example.methodmesh.modules.MethodMeshModuleDiscovery
@@ -20,7 +19,6 @@ class MethodMeshApplication : Application() {
         modules.flatMap { it.transportProviders(this) }.forEach(transportRuntime::registerProvider)
         transportRuntime.start()
         // Re-arm persisted alarms after process restart, app update, or device reboot.
-        SchedulerRepository.rescheduleAll(this)
         SchedulePlanRuntime.rescheduleAll(this)
     }
 }
