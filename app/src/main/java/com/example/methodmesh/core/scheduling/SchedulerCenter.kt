@@ -28,11 +28,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
@@ -47,10 +50,18 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 @Composable
 fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit, onEdit: (ResearchSchedule) -> Unit, onChanged: () -> Unit, onEditPlan: (SchedulePlan) -> Unit = {}, onExportSchedule: (ResearchSchedule) -> Unit = {}, onAdvancedExport: () -> Unit = {}, onAdvancedImport: () -> Unit = {}) {
     val context = LocalContext.current
-    var plans by remember(schedules) { mutableStateOf(SchedulePlanStore.allPlans(context)) }
+    var plans by remember { mutableStateOf(SchedulePlanStore.allPlans(context)) }
+    var runtimeRefresh by remember { mutableIntStateOf(0) }
     var expanded by rememberSaveable { mutableStateOf(false) }
     var transferStatus by remember { mutableStateOf("") }
     var importedText by remember { mutableStateOf("") }
+    LaunchedEffect(expanded) {
+        while (expanded) {
+            plans = SchedulePlanStore.allPlans(context)
+            runtimeRefresh++
+            delay(1000)
+        }
+    }
     val fileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
         if (uri != null) context.contentResolver.openOutputStream(uri)?.use { it.write(SchedulerBundle.export(context).toByteArray(Charsets.UTF_8)) }
     }
@@ -61,6 +72,7 @@ fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit,
                 Text("Recurring form and web-form tasks on this device.", style = MaterialTheme.typography.bodySmall)
             }
             if (expanded) {
+            runtimeRefresh
             Spacer(Modifier.height(8.dp))
             Text("Schedule plans", style = MaterialTheme.typography.titleSmall)
             plans.forEach { plan ->
@@ -199,7 +211,9 @@ fun SchedulerEditorHost(schedule: ResearchSchedule?, plan: SchedulePlan? = null,
     val request = ExternalWorkflowRequest(actions = listOf(action), invocationContext = InvocationContext(caller = "dashboard"), returns = emptyList(), returnMode = ReturnMode.Json, source = "dashboard")
     Dialog(onDismissRequest = onCancel, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(Modifier.fillMaxSize()) {
-            SchedulePlanCapabilityScreen.Render(CapabilityScreenContext(action, request, 1, 1), onBack = onCancel, onConfirmed = { onDone() }, onCancel = onCancel)
+            androidx.compose.runtime.key(plan?.id ?: schedule?.id ?: "new") {
+                SchedulePlanCapabilityScreen.Render(CapabilityScreenContext(action, request, 1, 1), onBack = onCancel, onConfirmed = { onDone() }, onCancel = onCancel)
+            }
         }
     }
 }
