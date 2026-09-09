@@ -57,7 +57,7 @@ A protocol is an ordered chain of presets. Each step can be configured for trans
 
 ### Schedules
 
-Schedules run presets or notifications at defined times. The current scheduler supports day sequences, weekly recurrence, calendar/absolute starts, multiple runs per day, retries and follow-ups, missed-start policies, per-day time overrides, durable plan storage, and headless execution. A schedule can run unattended and append results to a preset’s log.
+Schedules are JSON-backed bundles of one or more cron tasks. A task can invoke a notification, preset, protocol, capability, form, or other external action. Each bundle has an explicit initiation point: manual, absolute, event-triggered, or triggered by a preset. Relative tasks can wait for an offset such as “15 days after this preset”, then run a normal cron expression. Retries, follow-ups, multiple aligned tasks, and headless execution are supported. A schedule can run unattended and append results to a preset’s log.
 
 ## ODK and external invocation
 
