@@ -473,16 +473,11 @@ private fun FavouriteCapabilitiesCard(
         .sortedBy { it.descriptor.name.lowercase() }
     val selectedMethod = selectedCapabilityId?.let { id -> favourites.firstOrNull { it.id == id } }
 
+    if (favourites.isEmpty()) return
+
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)
     ) {
-        Text("Favourites", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text(
-            if (favourites.isEmpty()) "Star capabilities in Capabilities or Workbench to keep them here." else "Your shortcuts",
-            modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
         favourites.forEach { method ->
             Row(
                 modifier = Modifier.fillMaxWidth().clickable { selectedCapabilityId = method.id }.padding(vertical = 10.dp),
