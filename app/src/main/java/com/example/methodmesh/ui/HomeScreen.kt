@@ -90,6 +90,7 @@ import com.example.methodmesh.core.methodmesh.InvocationContext
 import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.core.methodmesh.runtime.As100MethodRegistry
 import com.example.methodmesh.core.methodmesh.runtime.CapabilityConfigurationRegistry
+import com.example.methodmesh.core.methodmesh.runtime.CapabilityFavoritesRepository
 import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.core.onlinedata.ApiDefinition
 import com.example.methodmesh.core.onlinedata.ApiDefinitionOrigin
@@ -239,6 +240,7 @@ fun HomeScreen() {
     var schedulerEditorOpen by rememberSaveable { mutableStateOf(false) }
     val editingPlan = remember(editingPlanId) { editingPlanId?.let { SchedulePlanStore.plan(appContext, it) } }
     var protocolLibraryRevision by remember { mutableStateOf(0) }
+    var favouritesRevision by remember { mutableStateOf(0) }
     var odkFormsSearchSeed by rememberSaveable { mutableStateOf("") }
     BackHandler(
         enabled = drawerState.isOpen || schedulerEditorOpen || selectedDestination != DashboardDestination.Dashboard
@@ -376,6 +378,14 @@ fun HomeScreen() {
                                 }
                             )
                         }
+                        item {
+                            FavouriteCapabilitiesCard(
+                                methods = methods,
+                                modules = modules,
+                                revision = favouritesRevision,
+                                onFavouriteChanged = { favouritesRevision++ }
+                            )
+                        }
                     }
                     DashboardDestination.Outputs -> item { OutputFolderCard(expandedByDefault = true) }
                     DashboardDestination.RunProtocol -> item { RunProtocolCard(protocolLibraryRevision, expandedByDefault = true) }
@@ -402,8 +412,8 @@ fun HomeScreen() {
                         }
                     }
                     DashboardDestination.Devices -> item { DeviceRegistryCard(expandedByDefault = true) }
-                    DashboardDestination.Workbench -> item { WorkbenchCard(methods, modules, expandedByDefault = true) }
-                    DashboardDestination.Capabilities -> item { CapabilityRegistryCard(methods, modules, expandedByDefault = true, onPresetSaved = { protocolLibraryRevision += 1 }) }
+                    DashboardDestination.Workbench -> item { WorkbenchCard(methods, modules, expandedByDefault = true, onFavouriteChanged = { favouritesRevision++ }) }
+                    DashboardDestination.Capabilities -> item { CapabilityRegistryCard(methods, modules, expandedByDefault = true, onPresetSaved = { protocolLibraryRevision += 1 }, onFavouriteChanged = { favouritesRevision++ }) }
                     DashboardDestination.State -> item { RuntimeStateCard(expandedByDefault = true) }
                     DashboardDestination.Services -> item { DeviceServicesCard(expandedByDefault = true) }
                 }
@@ -442,6 +452,77 @@ private fun MinimalDashboardHeader() {
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.SemiBold
         )
+    }
+}
+
+@Composable
+private fun FavouriteCapabilitiesCard(
+    methods: List<As100Method>,
+    modules: List<MethodMeshModule>,
+    revision: Int,
+    onFavouriteChanged: () -> Unit
+) {
+    val context = LocalContext.current
+    var selectedCapabilityId by rememberSaveable { mutableStateOf<String?>(null) }
+    val screenMap = remember { MethodMeshModuleRegistry.capabilityScreens().associateBy { it.capabilityId } }
+    val moduleByMethod = remember(modules) {
+        modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
+    }
+    val favouriteIds = remember(revision) { CapabilityFavoritesRepository.all(context) }
+    val favourites = methods.filter { it.id in favouriteIds }
+        .sortedBy { it.descriptor.name.lowercase() }
+    val selectedMethod = selectedCapabilityId?.let { id -> favourites.firstOrNull { it.id == id } }
+
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)
+    ) {
+        Text("Favourites", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(
+            if (favourites.isEmpty()) "Star capabilities in Capabilities or Workbench to keep them here." else "Your shortcuts",
+            modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        favourites.forEach { method ->
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { selectedCapabilityId = method.id }.padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "★",
+                    modifier = Modifier.clickable {
+                        CapabilityFavoritesRepository.set(context, method.id, false)
+                        onFavouriteChanged()
+                    }.padding(horizontal = 4.dp, vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(method.descriptor.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text(moduleByMethod[method.id]?.displayName ?: method.id, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text("Open", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+        }
+    }
+
+    selectedMethod?.let { method ->
+        val screen = screenMap[method.id]
+        FullScreenCapabilityDialog(
+            onDismiss = { selectedCapabilityId = null },
+            presentation = screen?.hostPresentation ?: CapabilityHostPresentation.Standard
+        ) {
+            DashboardCapabilityRunner(
+                method = method,
+                screen = screen,
+                saveOutput = false,
+                settingsJson = "{}",
+                onConfirmed = { selectedCapabilityId = null },
+                onCancel = { selectedCapabilityId = null }
+            )
+        }
     }
 }
 
@@ -1810,7 +1891,8 @@ private fun RuntimeSummaryCard(moduleCount: Int, methodCount: Int) {
 private fun WorkbenchCard(
     methods: List<As100Method>,
     modules: List<MethodMeshModule>,
-    expandedByDefault: Boolean = false
+    expandedByDefault: Boolean = false,
+    onFavouriteChanged: () -> Unit = {}
 ) {
     val screenMap = MethodMeshModuleRegistry.capabilityScreens().associateBy { it.capabilityId }
     val moduleByMethod = modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
@@ -1850,7 +1932,8 @@ private fun WorkbenchCard(
                         module = moduleByMethod[method.id],
                         screen = screenMap[method.id],
                         uiClass = CapabilityUiClass.WorkbenchTool,
-                        onPresetSaved = {}
+                        onPresetSaved = {},
+                        onFavouriteChanged = onFavouriteChanged
                     )
                 }
             }
@@ -2164,7 +2247,8 @@ private fun CapabilityRegistryCard(
     methods: List<As100Method>,
     modules: List<MethodMeshModule>,
     expandedByDefault: Boolean = false,
-    onPresetSaved: () -> Unit
+    onPresetSaved: () -> Unit,
+    onFavouriteChanged: () -> Unit = {}
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val screenMap = MethodMeshModuleRegistry.capabilityScreens().associateBy { it.capabilityId }
@@ -2220,7 +2304,8 @@ private fun CapabilityRegistryCard(
                     moduleByMethod = moduleByMethod,
                     screenMap = screenMap,
                     forceExpanded = query.isNotBlank(),
-                    onPresetSaved = onPresetSaved
+                    onPresetSaved = onPresetSaved,
+                    onFavouriteChanged = onFavouriteChanged
                 )
             }
         }
@@ -2234,7 +2319,8 @@ private fun CapabilityModuleSection(
     moduleByMethod: Map<String, MethodMeshModule>,
     screenMap: Map<String, CapabilityScreenSpec>,
     forceExpanded: Boolean,
-    onPresetSaved: () -> Unit
+    onPresetSaved: () -> Unit,
+    onFavouriteChanged: () -> Unit
 ) {
     var expanded by rememberSaveable("capability-module:$moduleName") { mutableStateOf(false) }
     val showMethods = expanded || forceExpanded
@@ -2272,7 +2358,8 @@ private fun CapabilityModuleSection(
                     module = moduleByMethod[method.id],
                     screen = screenMap[method.id],
                     uiClass = CapabilityUiClass.ProtocolPrimitive,
-                    onPresetSaved = onPresetSaved
+                    onPresetSaved = onPresetSaved,
+                    onFavouriteChanged = onFavouriteChanged
                 )
             }
         }
@@ -2285,7 +2372,8 @@ private fun CapabilityCard(
     module: MethodMeshModule?,
     screen: CapabilityScreenSpec?,
     uiClass: CapabilityUiClass,
-    onPresetSaved: () -> Unit
+    onPresetSaved: () -> Unit,
+    onFavouriteChanged: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var expanded by rememberSaveable(method.id) { mutableStateOf(false) }
@@ -2295,6 +2383,7 @@ private fun CapabilityCard(
     var lastResultStatus by rememberSaveable("${method.id}:lastResultStatus") { mutableStateOf<String?>(null) }
     var presetDialogOpen by rememberSaveable("${method.id}:presetDialog") { mutableStateOf(false) }
     var presetStatus by rememberSaveable("${method.id}:presetStatus") { mutableStateOf<String?>(null) }
+    var isFavourite by remember(method.id) { mutableStateOf(CapabilityFavoritesRepository.contains(context, method.id)) }
     var intentCopyStatus by rememberSaveable("${method.id}:intentCopyStatus") { mutableStateOf<String?>(null) }
     var returnPayloadMode by rememberSaveable("${method.id}:returnPayloadMode") { mutableStateOf(ProtocolPayloadMode.CORE) }
     val settingSchema = remember(method.id) { CapabilityConfigurationRegistry.settingsFor(method.id) }
@@ -2352,6 +2441,15 @@ private fun CapabilityCard(
                 )
                 Spacer(Modifier.width(12.dp))
             }
+            Text(
+                if (isFavourite) "★" else "☆",
+                modifier = Modifier.clickable {
+                    isFavourite = CapabilityFavoritesRepository.toggle(context, method.id)
+                    onFavouriteChanged()
+                }.padding(horizontal = 8.dp, vertical = 6.dp),
+                style = MaterialTheme.typography.titleMedium,
+                color = if (isFavourite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Text(
                 if (expanded) "Less" else "Details",
                 modifier = Modifier
