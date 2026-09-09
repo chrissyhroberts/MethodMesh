@@ -126,26 +126,26 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
                     (1..days).forEach { day -> Text(day.toString(), modifier = Modifier.width(38.dp).padding(4.dp), fontSize = 11.sp) }
                 }
                 lanes.forEachIndexed { index, lane ->
-                    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
                         Row(Modifier.fillMaxWidth().horizontalScroll(gridScroll), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.width(140.dp).padding(end = 4.dp)) {
-                                OutlinedTextField(lane.name, { lanes[index] = lane.copy(name = it) }, label = { Text("Lane") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedButton(onClick = { dialogHour = lane.hour; dialogMinute = lane.minute; timeDialogLane = index }, modifier = Modifier.fillMaxWidth()) { Text(lane.time) }
+                                OutlinedTextField(lane.name, { lanes[index] = lane.copy(name = it) }, label = { Text("Lane") }, singleLine = true, modifier = Modifier.fillMaxWidth().height(52.dp))
+                                OutlinedButton(onClick = { dialogHour = lane.hour; dialogMinute = lane.minute; timeDialogLane = index }, modifier = Modifier.fillMaxWidth().height(42.dp)) { Text(lane.time) }
                             }
                             (1..days).forEach { day ->
                                 val selected = day in lane.days
-                                Box(Modifier.width(38.dp).height(62.dp).padding(2.dp).border(1.dp, MaterialTheme.colorScheme.outlineVariant).background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent), contentAlignment = Alignment.Center) {
+                                Box(Modifier.width(38.dp).height(52.dp).padding(2.dp).border(1.dp, MaterialTheme.colorScheme.outlineVariant).background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent), contentAlignment = Alignment.Center) {
                                     androidx.compose.material3.TextButton(onClick = { val next = lane.days.toMutableSet().apply { if (!remove(day)) add(day) }; lanes[index] = lane.copy(days = next) }) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(day.toString(), fontSize = 9.sp, color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant); Text(if (selected) "■" else "·", color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant) } }
                                 }
                             }
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            OutlinedButton(onClick = { lanes.add(index + 1, lane.copy(hour = (lane.hour + 4) % 24)) }) { Text("+ Add run") }
-                            OutlinedButton(onClick = { lanes[index] = lane.copy(actionType = ScheduleActionType.NOTIFIER) }) { Text(if (lane.actionType == ScheduleActionType.NOTIFIER) "✓ Notifier" else "Notifier") }
-                            OutlinedButton(onClick = { lanes[index] = lane.copy(actionType = ScheduleActionType.PRESET) }) { Text(if (lane.actionType == ScheduleActionType.PRESET) "✓ Preset" else "Preset") }
-                            OutlinedButton(onClick = { lanes.removeAt(index); expandedLanes = expandedLanes.filter { it != index }.map { if (it > index) it - 1 else it }.toSet() }) { Text("Remove lane / run") }
+                        Row(Modifier.fillMaxWidth().horizontalScroll(gridScroll), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            androidx.compose.material3.TextButton(onClick = { lanes.add(index + 1, lane.copy(hour = (lane.hour + 4) % 24)) }) { Text("+ Add run") }
+                            androidx.compose.material3.TextButton(onClick = { lanes[index] = lane.copy(actionType = ScheduleActionType.NOTIFIER) }) { Text(if (lane.actionType == ScheduleActionType.NOTIFIER) "✓ Notifier" else "Notifier") }
+                            androidx.compose.material3.TextButton(onClick = { lanes[index] = lane.copy(actionType = ScheduleActionType.PRESET) }) { Text(if (lane.actionType == ScheduleActionType.PRESET) "✓ Preset" else "Preset") }
+                            androidx.compose.material3.TextButton(onClick = { lanes.removeAt(index); expandedLanes = expandedLanes.filter { it != index }.map { if (it > index) it - 1 else it }.toSet() }) { Text("Remove lane / run") }
                         }
-                        OutlinedButton(onClick = { expandedLanes = if (index in expandedLanes) expandedLanes - index else expandedLanes + index }) { Text(if (index in expandedLanes) "Collapse details" else "Expand details") }
+                        androidx.compose.material3.TextButton(onClick = { expandedLanes = if (index in expandedLanes) expandedLanes - index else expandedLanes + index }) { Text(if (index in expandedLanes) "Collapse details" else "Expand details") }
                         if (index in expandedLanes) {
                             if (lane.actionType == ScheduleActionType.NOTIFIER) OutlinedTextField(lane.message, { lanes[index] = lane.copy(message = it) }, label = { Text("Reminder message") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                             else presets.take(8).forEach { preset -> OutlinedButton(onClick = { lanes[index] = lane.copy(presetId = preset.id) }, modifier = Modifier.fillMaxWidth()) { Text(if (lane.presetId == preset.id) "✓ ${preset.name}" else preset.name) } }

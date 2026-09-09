@@ -75,6 +75,7 @@ import com.example.methodmesh.calibration.CalibrationScreen
 import com.example.methodmesh.core.scheduling.SchedulerCenterCard
 import com.example.methodmesh.core.scheduling.SchedulerDispatchActivity
 import com.example.methodmesh.core.scheduling.SchedulerEditorHost
+import com.example.methodmesh.core.scheduling.SchedulePlanStore
 import com.example.methodmesh.core.artifacts.AndroidArtifacts
 import com.example.methodmesh.core.protocols.CapabilityPreset
 import com.example.methodmesh.core.protocols.ProtocolDefinition
@@ -234,8 +235,9 @@ fun HomeScreen() {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedDestination by rememberSaveable { mutableStateOf(DashboardDestination.Dashboard) }
-    var editingPlan by remember { mutableStateOf<com.example.methodmesh.core.scheduling.SchedulePlan?>(null) }
-    var schedulerEditorOpen by remember { mutableStateOf(false) }
+    var editingPlanId by rememberSaveable { mutableStateOf<String?>(null) }
+    var schedulerEditorOpen by rememberSaveable { mutableStateOf(false) }
+    val editingPlan = remember(editingPlanId) { editingPlanId?.let { SchedulePlanStore.plan(appContext, it) } }
     var protocolLibraryRevision by remember { mutableStateOf(0) }
     var odkFormsSearchSeed by rememberSaveable { mutableStateOf("") }
     BackHandler(
@@ -384,8 +386,8 @@ fun HomeScreen() {
                     DashboardDestination.Scheduler -> {
                         item {
                             SchedulerCenterCard(
-                                onCreate = { editingPlan = null; schedulerEditorOpen = true },
-                                onEditPlan = { editingPlan = it; schedulerEditorOpen = true }
+                                onCreate = { editingPlanId = null; schedulerEditorOpen = true },
+                                onEditPlan = { editingPlanId = it.id; schedulerEditorOpen = true }
                             )
                         }
                         if (schedulerEditorOpen) {
@@ -393,8 +395,8 @@ fun HomeScreen() {
                                 SchedulerEditorHost(
                                     schedule = null,
                                     plan = editingPlan,
-                                    onDone = { schedulerEditorOpen = false },
-                                    onCancel = { schedulerEditorOpen = false }
+                                    onDone = { schedulerEditorOpen = false; editingPlanId = null },
+                                    onCancel = { schedulerEditorOpen = false; editingPlanId = null }
                                 )
                             }
                         }
