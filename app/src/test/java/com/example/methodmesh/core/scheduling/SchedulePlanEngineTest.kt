@@ -76,4 +76,26 @@ class SchedulePlanEngineTest {
         assertEquals(listOf("Patch"), instance.occurrences.map { it.laneName })
         assertEquals(LocalTime.of(9, 0), instance.occurrences.single().scheduledAt.toLocalTime())
     }
+
+    @Test
+    fun weeklyRuleGeneratesOnlySelectedWeekdays() {
+        val lane = ScheduleLane(
+            name = "Weekly check",
+            defaultTime = LocalTime.of(9, 0),
+            defaultActions = listOf(ScheduleAction(type = ScheduleActionType.NOTIFIER, title = "Weekly check"))
+        )
+        val plan = SchedulePlan(
+            name = "Monday checks",
+            activation = ScheduleActivation.CALENDAR_RULE,
+            timezone = zone,
+            termination = ScheduleTermination(ScheduleEndMode.DURATION, duration = Duration.ofDays(15)),
+            lanes = listOf(lane),
+            rules = listOf(ScheduleRule(lane.id, ScheduleTimingRule.Weekly(setOf(1), LocalTime.of(9, 0))))
+        )
+
+        val instance = SchedulePlanEngine.instantiate(plan, anchor)
+
+        assertTrue(instance.occurrences.isNotEmpty())
+        assertTrue(instance.occurrences.all { it.scheduledAt.dayOfWeek.value == 1 })
+    }
 }
