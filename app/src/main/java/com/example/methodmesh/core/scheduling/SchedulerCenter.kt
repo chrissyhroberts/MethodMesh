@@ -176,7 +176,7 @@ fun SchedulerEditorHost(schedule: ResearchSchedule?, plan: SchedulePlan? = null,
     Dialog(onDismissRequest = onCancel, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(Modifier.fillMaxSize()) {
             androidx.compose.runtime.key(plan?.id ?: schedule?.id ?: "new") {
-                val screen = if (schedule != null || plan == null) SchedulerCapabilityScreen else SchedulePlanCapabilityScreen
+                val screen = if (schedule != null || plan == null) CronScheduleCapabilityScreen else SchedulePlanCapabilityScreen
                 screen.Render(CapabilityScreenContext(action, request, 1, 1), onBack = onCancel, onConfirmed = { onDone() }, onCancel = onCancel)
             }
         }

@@ -49,6 +49,7 @@ class SchedulerAlarmReceiver : BroadcastReceiver() {
                 SchedulerTarget.PRESET -> "Run the scheduled MethodMesh preset"
                 SchedulerTarget.PROTOCOL -> "Run the scheduled MethodMesh protocol"
                 SchedulerTarget.CLIPBOARD -> "Run the scheduled clipboard action"
+                SchedulerTarget.NOTIFICATION -> schedule.notificationMessage.ifBlank { "Scheduled notification" }
             }
         }
         context.getSystemService(NotificationManager::class.java).notify(id.hashCode(), NotificationCompat.Builder(context, CHANNEL)

@@ -274,6 +274,13 @@ fun HomeScreen() {
                         Text("MethodMesh", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("Do Stuff", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     }
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = {
+                        selectedDestination = DashboardDestination.Services
+                        scope.launch { drawerState.close() }
+                    }) {
+                        Text("⚙", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                    }
                 }
                 DrawerSectionLabel("MAIN")
                 listOf(

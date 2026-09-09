@@ -8,7 +8,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.UUID
 
-enum class SchedulerTarget { ODK_FORM, WEB_FORM, CAPABILITY, PRESET, PROTOCOL, CLIPBOARD }
+enum class SchedulerTarget { ODK_FORM, WEB_FORM, CAPABILITY, PRESET, PROTOCOL, CLIPBOARD, NOTIFICATION }
 enum class SchedulerFrequency { HOURLY, DAILY, WEEKLY, MONTHLY, CUSTOM }
 
 data class ResearchSchedule(

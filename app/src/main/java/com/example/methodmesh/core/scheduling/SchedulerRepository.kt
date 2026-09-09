@@ -29,7 +29,7 @@ object SchedulerRepository {
         // Re-arm only chain owners, and cancel stale alarms left by earlier
         // scheduler versions that registered every chain member separately.
         all(context).forEach { schedule ->
-            if (schedule.enabled && isAlarmOwner(schedule)) SchedulerAlarm.schedule(context, schedule)
+            if (schedule.enabled && isAlarmOwner(schedule) && (schedule.triggerMode == "MANUAL" || schedule.anchorAt != null)) SchedulerAlarm.schedule(context, schedule)
             else cancel(context, schedule.id)
         }
     }
@@ -46,7 +46,7 @@ object SchedulerRepository {
         val values = all(context).filterNot { it.id == schedule.id } + schedule
         val array = JSONArray().apply { values.forEach { put(encode(it)) } }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, array.toString()).apply()
-        if (schedule.enabled && isAlarmOwner(schedule)) SchedulerAlarm.schedule(context, schedule)
+        if (schedule.enabled && isAlarmOwner(schedule) && (schedule.triggerMode == "MANUAL" || schedule.anchorAt != null)) SchedulerAlarm.schedule(context, schedule)
         else cancel(context, schedule.id)
     }
 

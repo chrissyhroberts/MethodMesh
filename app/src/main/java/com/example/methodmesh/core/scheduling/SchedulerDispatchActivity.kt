@@ -130,6 +130,11 @@ class SchedulerDispatchActivity : ComponentActivity() {
             launchPreset(preset, currentPipeSettings(schedule))
             return
         }
+        if (schedule.target == SchedulerTarget.NOTIFICATION) {
+            SchedulerRepository.markCompleted(this, schedule)
+            finish()
+            return
+        }
         if (schedule.target == SchedulerTarget.CLIPBOARD) {
             publishChainClipboard(schedule, schedule.targetValue, "MethodMesh scheduled action")
             SchedulerRepository.markCompleted(this, schedule)
