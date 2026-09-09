@@ -215,7 +215,9 @@ class MethodMeshMeshNode:
         if destination_id in (self.config["node_id"], "broadcast", "field-group"):
             self.notify({"protocol": "methodmesh.gateway", "version": 1, "kind": "INBOUND", "request_id": message_id, "envelope": envelope, "body": {"node_id": self.config["node_id"]}})
         if self.radio is None or ttl <= 1:
-            if not from_phone and destination_id not in (self.config["node_id"], "broadcast", "field-group"):
+            if destination_id not in (self.config["node_id"], "broadcast", "field-group"):
+                if len(self.queue) >= MAX_QUEUE:
+                    self.queue.pop(0)
                 self.queue.append({"envelope": envelope, "expires_at": envelope.get("expires_at")})
                 save_queue(self.queue)
             return
@@ -240,7 +242,7 @@ class MethodMeshMeshNode:
             peer, raw = self.radio.recv(0)
             if raw:
                 packet = json.loads(raw.decode())
-                if (packet.get("methodmesh") == 1 and packet.get("network_id") == self.config["network_id"]
+                if (self.config["provisioned"] and packet.get("methodmesh") == 1 and packet.get("network_id") == self.config["network_id"]
                         and packet.get("auth") == authenticate(packet, self.config["network_key"])
                         and packet.get("envelope")):
                     self.accept_envelope(packet["envelope"])

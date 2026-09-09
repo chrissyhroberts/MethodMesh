@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.startForegroundService
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
@@ -90,7 +91,7 @@ object EspMeshGatewayCapabilityScreen : CapabilityScreenSpec {
             Spacer(Modifier.height(8.dp))
             Text("Network provisioning", style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(networkId, { networkId = it }, label = { Text("Network ID") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(networkKey, { networkKey = it }, label = { Text("Network key") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(networkKey, { networkKey = it }, label = { Text("Network key") }, modifier = Modifier.fillMaxWidth(), singleLine = true, visualTransformation = PasswordVisualTransformation())
             OutlinedTextField(provisioningToken, { provisioningToken = it }, label = { Text("Node provisioning token") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             Button(
                 onClick = {

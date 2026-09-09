@@ -70,13 +70,19 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         val characteristic = uplink
         val connection = gatt
         if (characteristic == null || connection == null || !status.value.connected) {
-            synchronized(pendingLock) { pending.addLast(envelope) }
+            synchronized(pendingLock) {
+                if (pending.size >= MAX_PENDING) pending.removeFirst()
+                pending.addLast(envelope)
+            }
             return TransportSendResult(TransportOutboxState.QUEUED, "Waiting for gateway connection")
         }
         return if (write(connection, characteristic, frame.toByteArray(Charsets.UTF_8))) {
             TransportSendResult(TransportOutboxState.SENT)
         } else {
-            synchronized(pendingLock) { pending.addFirst(envelope) }
+            synchronized(pendingLock) {
+                if (pending.size >= MAX_PENDING) pending.removeLast()
+                pending.addFirst(envelope)
+            }
             TransportSendResult(TransportOutboxState.FAILED_RETRYABLE, "BLE write failed")
         }
     }
@@ -236,6 +242,7 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         private const val KEY_ADDRESS = "gateway_address"
         private const val KEY_NAME = "gateway_name"
         private const val MAX_BLE_FRAME_BYTES = 4096
+        private const val MAX_PENDING = 100
         private const val SCAN_DURATION_MS = 12_000L
         val SERVICE_UUID: UUID = UUID.fromString("b6f2a910-9b8f-4f4e-9a1f-4f37a0010000")
         val UPLINK_UUID: UUID = UUID.fromString("b6f2a911-9b8f-4f4e-9a1f-4f37a0010000")
