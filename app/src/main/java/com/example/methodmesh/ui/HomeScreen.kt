@@ -2471,8 +2471,6 @@ private fun CapabilityCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                CapabilityOutputsSection(method)
-
                 if (screen == null) {
                     CollapsibleCapabilitySection(
                         title = "Settings",
@@ -2489,6 +2487,8 @@ private fun CapabilityCard(
                         }
                     }
                 }
+
+                CapabilityOutputsSection(method)
 
                 if (isProtocolPrimitive) {
                     CollapsibleCapabilitySection(
