@@ -45,7 +45,7 @@ import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 
 @Composable
-fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit, onEdit: (ResearchSchedule) -> Unit, onChanged: () -> Unit, onExportSchedule: (ResearchSchedule) -> Unit = {}, onAdvancedExport: () -> Unit = {}, onAdvancedImport: () -> Unit = {}) {
+fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit, onEdit: (ResearchSchedule) -> Unit, onChanged: () -> Unit, onEditPlan: (SchedulePlan) -> Unit = {}, onExportSchedule: (ResearchSchedule) -> Unit = {}, onAdvancedExport: () -> Unit = {}, onAdvancedImport: () -> Unit = {}) {
     val context = LocalContext.current
     var plans by remember(schedules) { mutableStateOf(SchedulePlanStore.allPlans(context)) }
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -81,6 +81,15 @@ fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit,
                             Button(onClick = { SchedulePlanRuntime.start(context, plan); plans = SchedulePlanStore.allPlans(context) }) { Text("Start Day 1") }
                         } else if (running != null) {
                             Text("Running · ${running.occurrences.count { it.state == ScheduleOccurrenceState.COMPLETED }} completed", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedButton(onClick = { onEditPlan(plan) }) { Text("Edit") }
+                            OutlinedButton(onClick = {
+                                SchedulePlanStore.allInstances(context).filter { it.planId == plan.id }.forEach { SchedulePlanRuntime.cancel(context, it) }
+                                SchedulePlanStore.removeInstancesForPlan(context, plan.id)
+                                SchedulePlanStore.removePlan(context, plan.id)
+                                plans = SchedulePlanStore.allPlans(context)
+                            }) { Text("Delete") }
                         }
                     }
                 }
@@ -173,7 +182,7 @@ fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit,
 }
 
 @Composable
-fun SchedulerEditorHost(schedule: ResearchSchedule?, onDone: () -> Unit, onCancel: () -> Unit) {
+fun SchedulerEditorHost(schedule: ResearchSchedule?, plan: SchedulePlan? = null, onDone: () -> Unit, onCancel: () -> Unit) {
     val settings = buildMap {
         schedule?.let {
             put("schedule_id", it.id); put("schedule_name", it.name); put("schedule_target", it.target.name); put("schedule_target_value", it.targetValue); put("schedule_target_settings", it.targetSettings)
@@ -184,6 +193,7 @@ fun SchedulerEditorHost(schedule: ResearchSchedule?, onDone: () -> Unit, onCance
             put("schedule_notification_title", it.notificationTitle); put("schedule_notification_message", it.notificationMessage)
             put("schedule_cron", it.cronExpression)
         }
+        plan?.let { put("schedule_plan_id", it.id) }
     }
     val action = ExternalActionRequest(requestedId = As100SchedulerMethod.ID, canonicalId = As100SchedulerMethod.ID, settings = settings)
     val request = ExternalWorkflowRequest(actions = listOf(action), invocationContext = InvocationContext(caller = "dashboard"), returns = emptyList(), returnMode = ReturnMode.Json, source = "dashboard")

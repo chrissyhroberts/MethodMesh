@@ -242,6 +242,7 @@ fun HomeScreen() {
     var selectedDestination by rememberSaveable { mutableStateOf(DashboardDestination.Dashboard) }
     var schedules by remember { mutableStateOf(SchedulerRepository.all(appContext)) }
     var editingSchedule by remember { mutableStateOf<ResearchSchedule?>(null) }
+    var editingPlan by remember { mutableStateOf<com.example.methodmesh.core.scheduling.SchedulePlan?>(null) }
     var schedulerEditorOpen by remember { mutableStateOf(false) }
     var schedulerTransferMode by remember { mutableStateOf<String?>(null) }
     var protocolLibraryRevision by remember { mutableStateOf(0) }
@@ -412,8 +413,9 @@ fun HomeScreen() {
                         item {
                             SchedulerCenterCard(
                                 schedules = schedules,
-                                onCreate = { editingSchedule = null; schedulerEditorOpen = true },
-                                onEdit = { editingSchedule = it; schedulerEditorOpen = true },
+                                onCreate = { editingSchedule = null; editingPlan = null; schedulerEditorOpen = true },
+                                onEdit = { editingSchedule = it; editingPlan = null; schedulerEditorOpen = true },
+                                onEditPlan = { editingPlan = it; editingSchedule = null; schedulerEditorOpen = true },
                                 onChanged = { schedules = SchedulerRepository.all(appContext) },
                                 onExportSchedule = { schedule ->
                                     val payload = com.example.methodmesh.core.scheduling.SchedulerBundle.export(appContext, schedule.id)
@@ -427,6 +429,7 @@ fun HomeScreen() {
                             item {
                                 SchedulerEditorHost(
                                     schedule = editingSchedule,
+                                    plan = editingPlan,
                                     onDone = { schedules = SchedulerRepository.all(appContext); schedulerEditorOpen = false },
                                     onCancel = { schedulerEditorOpen = false }
                                 )

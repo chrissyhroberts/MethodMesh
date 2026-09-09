@@ -34,6 +34,10 @@ object SchedulePlanStore {
         writeArray(context, INSTANCES, values.map(::encodeInstance))
     }
 
+    fun removeInstancesForPlan(context: Context, planId: String) {
+        writeArray(context, INSTANCES, allInstances(context).filterNot { it.planId == planId }.map(::encodeInstance))
+    }
+
     fun updateOccurrence(context: Context, instanceId: String, occurrenceId: String, state: ScheduleOccurrenceState, completedAt: ZonedDateTime? = null) {
         val instance = instance(context, instanceId) ?: return
         saveInstance(context, instance.copy(occurrences = instance.occurrences.map { occurrence ->
