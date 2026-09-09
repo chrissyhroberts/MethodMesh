@@ -48,8 +48,19 @@ def compact(value):
     return json.dumps(value).replace(": ", ":").replace(", ", ",")
 
 
+def authenticate(packet, key):
+    try:
+        import hmac
+        import hashlib
+        unsigned = dict(packet)
+        unsigned.pop("auth", None)
+        return hmac.new(key.encode(), compact(unsigned).encode(), hashlib.sha256).hexdigest()
+    except Exception:
+        return ""
+
+
 def load_config():
-    config = {"node_id": DEFAULT_NODE_ID, "node_name": "MethodMesh Mesh Node", "provisioned": False, "peers": []}
+    config = {"node_id": DEFAULT_NODE_ID, "node_name": "MethodMesh Mesh Node", "provisioned": False, "network_id": "", "network_key": "", "peers": []}
     try:
         with open(CONFIG_FILE, "r") as handle:
             stored = json.loads(handle.read())
@@ -59,6 +70,8 @@ def load_config():
     config["node_id"] = str(config.get("node_id") or DEFAULT_NODE_ID)[:64]
     config["node_name"] = str(config.get("node_name") or "MethodMesh Mesh Node")[:26]
     config["peers"] = list(config.get("peers") or [])[:32]
+    config["network_id"] = str(config.get("network_id") or "")[:64]
+    config["network_key"] = str(config.get("network_key") or "")[:128]
     config["provisioned"] = bool(config.get("provisioned", False))
     return config
 
@@ -162,7 +175,7 @@ class MethodMeshMeshNode:
                 return
             kind = str(frame.get("kind", ""))
             if kind == "HELLO":
-                self.notify({"protocol": "methodmesh.gateway", "version": 1, "kind": "HELLO_ACK", "request_id": frame.get("request_id", ""), "body": {"node_id": self.config["node_id"], "firmware": FIRMWARE_VERSION, "provisioned": self.config["provisioned"]}})
+                self.notify({"protocol": "methodmesh.gateway", "version": 1, "kind": "HELLO_ACK", "request_id": frame.get("request_id", ""), "body": {"node_id": self.config["node_id"], "firmware": FIRMWARE_VERSION, "provisioned": self.config["provisioned"], "network_id": self.config["network_id"]}})
             elif kind == "OUTBOUND" and frame.get("envelope"):
                 self.accept_envelope(frame["envelope"], from_phone=True)
             elif kind == "CONFIG" and frame.get("body"):
@@ -178,13 +191,17 @@ class MethodMeshMeshNode:
         updated = dict(self.config)
         updated["node_name"] = str(body.get("node_name") or updated["node_name"])[:26]
         updated["peers"] = list(body.get("peers") or [])[:32]
-        updated["provisioned"] = True
+        updated["network_id"] = str(body.get("network_id") or "")[:64]
+        updated["network_key"] = str(body.get("network_key") or "")[:128]
+        updated["provisioned"] = bool(updated["network_id"] and updated["network_key"])
         self.config = updated
         save_config(updated)
         self._start_radio()
         self._advertise()
 
     def accept_envelope(self, envelope, from_phone=False):
+        if not self.config["provisioned"] or not self.config["network_id"] or not self.config["network_key"]:
+            return
         message_id = str(envelope.get("message_id", ""))
         if not message_id or message_id in self.seen:
             return
@@ -205,7 +222,9 @@ class MethodMeshMeshNode:
         metadata["ttl"] = ttl - 1
         metadata["forwarded_by"] = self.config["node_id"]
         envelope["metadata"] = metadata
-        encoded = compact({"methodmesh": 1, "envelope": envelope}).encode()
+        packet = {"methodmesh": 1, "network_id": self.config["network_id"], "envelope": envelope}
+        packet["auth"] = authenticate(packet, self.config["network_key"])
+        encoded = compact(packet).encode()
         for peer in self.config["peers"]:
             try:
                 self.radio.send(bytes.fromhex(peer.replace(":", "")), encoded)
@@ -219,7 +238,9 @@ class MethodMeshMeshNode:
             peer, raw = self.radio.recv(0)
             if raw:
                 packet = json.loads(raw.decode())
-                if packet.get("methodmesh") == 1 and packet.get("envelope"):
+                if (packet.get("methodmesh") == 1 and packet.get("network_id") == self.config["network_id"]
+                        and packet.get("auth") == authenticate(packet, self.config["network_key"])
+                        and packet.get("envelope")):
                     self.accept_envelope(packet["envelope"])
         except Exception:
             pass
