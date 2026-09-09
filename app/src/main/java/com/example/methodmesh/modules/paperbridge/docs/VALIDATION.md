@@ -162,13 +162,13 @@ The production claim should be based on those observed rates. “No margin for e
 ## Designer viewport / gesture regression
 
 - Blank-form canvas opens fitted at 1×.
-- Navigate mode supports one-finger pan and two-finger pinch zoom from 1× to 16×.
+- NAV mode supports one-finger pan and two-finger pinch zoom from 1× to 48×; + / − controls must reach the same bounded zoom state.
 - Pan is clamped so the page cannot be lost completely beyond the viewport.
 - Fit resets zoom to 1× and pan to the page centre.
 - **Place box** is enabled whenever a source page is loaded; it does not depend on first selecting an ODK field.
 - Placed rectangles are converted through the current viewport transform into normalized page coordinates; zoom/pan must never alter saved ROI geometry.
 - Newly placed boxes are unlinked and remain visible until explicitly linked or deleted.
-- In **Edit boxes**, dragging inside the selected box moves it without changing size; dragging any of the four corner handles resizes it.
+- A tap on a region selects it without requiring drag slop; where regions overlap, the smallest region containing the tap is selected. In **EDIT**, dragging inside the selected box moves it without changing size; dragging any of the four corner handles resizes it.
 - Repositioning/resizing must update the existing region rather than creating duplicate ROIs.
 - Every linked region remains visibly annotated on the page with its ODK variable and, for OMR, return value.
 - Drawing equivalent boxes at different zoom levels must produce the same normalized coordinates within pointer-placement tolerance.
@@ -196,7 +196,10 @@ The production claim should be based on those observed rates. “No margin for e
 ## Designer full-screen / export regression
 
 - `paper.form.design` opens as a platform-width full-screen dialog and is not constrained by the dashboard capability card.
-- The full-screen dialog owns its bounded vertical scroll; it must not recreate the dashboard nested-scroll crash.
+- The full-screen dialog uses a fixed split: paper viewport = 2/3 of available workspace, ODK linkage = 1/3. Only the lower linkage pane scrolls; the full-screen root and paper viewport do not.
+- The navigation rail is confined to the paper viewport and contains NAV, + BOX, EDIT, +, − and FIT controls.
+- ODK linkage content is confined to the lower pane and never paints over the paper viewport.
+- Selecting a mapped box shows variable name, Paper Bridge/ODK-compatible type, required state and the imported regex/range or select choice return values.
 - Saving writes a `.paperbridge.json` and marked-up `.mapping.png` under app-private design exports.
 - `paper_template_json_uri` resolves through MethodMesh FileProvider and byte content matches `paper_template_json`.
 - `paper_design_markup_image` resolves to a PNG showing all linked boxes and mapping labels at source-page coordinates.

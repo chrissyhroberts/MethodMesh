@@ -14,6 +14,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +22,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -227,6 +227,7 @@ internal fun PaperFormDesignerSurface(
     var testLines by remember { mutableStateOf(emptyList<String>()) }
     var saving by rememberSaveable { mutableStateOf(false) }
     var pageSize by remember { mutableStateOf(IntSize.Zero) }
+    var showSetup by rememberSaveable { mutableStateOf(false) }
 
     fun loadSource(imported: PaperDesignSource) {
         source = imported
@@ -434,6 +435,26 @@ internal fun PaperFormDesignerSurface(
         selectedRegionId = targetRegionId(target)
     }
 
+    fun saveCurrentDesign() {
+        val bitmap = sourceBitmap ?: return
+        val currentSource = source ?: return
+        if (!canBuild || saving) return
+        saving = true
+        runCatching {
+            val json = buildPaperManifest(templateId, version, title, bitmap.width, bitmap.height, fields)
+            val template = PaperBridgeWorkspace.saveAndActivateTemplate(app, json)
+            PaperDesignSourceStore.bind(app, template, currentSource)
+            val export = PaperDesignExportStore.save(app, template, bitmap)
+            template to export
+        }.onFailure {
+            saving = false
+            testStatus = "Save failed: ${it.message ?: "invalid design"}"
+        }.onSuccess { (saved, export) ->
+            saving = false
+            onSaved(saved, currentSource, export, errors.size to warnings.size, odkSchema?.fields?.size ?: 0)
+        }
+    }
+
     Dialog(
         onDismissRequest = onBack,
         properties = DialogProperties(
@@ -450,318 +471,309 @@ internal fun PaperFormDesignerSurface(
                     .fillMaxSize()
                     .statusBarsPadding()
                     .navigationBarsPadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(18.dp)
             ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Paper Form Designer", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text("Blank page → place boxes → link to ODK → test → save", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text("Back", modifier = Modifier.clickable(onClick = onBack).padding(8.dp), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            }
-
-            if (builtInDemo) {
-                Spacer(Modifier.height(10.dp))
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "Built-in example loaded with its matching paper PDF and ODK XLSForm. You are editing a copy, so the original example always remains available.",
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        "Back",
+                        modifier = Modifier.clickable(onClick = onBack).padding(horizontal = 6.dp, vertical = 8.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-            Text("1 · BLANK PAPER FORM", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(sourceStatus, modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodySmall)
-            OutlinedButton(onClick = { sourcePicker.launch(arrayOf("application/pdf", "image/*")) }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                Text(if (source == null) "Choose PDF or image" else "Replace blank form")
-            }
-            source?.let {
-                Text(anchorMessage, modifier = Modifier.padding(top = 7.dp), style = MaterialTheme.typography.bodySmall,
-                    color = if (anchorsOk) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-            }
-
-            Spacer(Modifier.height(16.dp))
-            Text("2 · ODK MAPPING", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(odkStatus, modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodySmall)
-            OutlinedButton(onClick = { xlsPicker.launch(arrayOf("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                Text(if (odkSchema == null) "Import matching XLSForm" else "Replace XLSForm")
-            }
-            odkSchema?.warnings?.forEach { warning ->
-                Text("• $warning", modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
-            }
-
-            Spacer(Modifier.height(14.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(title, { title = it }, label = { Text("Form name") }, modifier = Modifier.weight(1f), singleLine = true)
-                OutlinedTextField(version, { version = it }, label = { Text("Version") }, modifier = Modifier.weight(0.45f), singleLine = true)
-            }
-            OutlinedTextField(templateId, { templateId = safeTemplateId(it) }, label = { Text("Form ID") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = true)
-
-            sourceBitmap?.let { bitmap ->
-                Spacer(Modifier.height(18.dp))
-                Text("3 · MAP THE PAGE", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    "Place a box anywhere, then link it to an ODK field. Existing boxes stay on the page; select one to move it or drag a corner handle to resize it.",
-                    modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                DesignerPageCanvas(
-                    bitmap = bitmap,
-                    regions = regionViews,
-                    selectedRegionId = selectedRegionId,
-                    onSelectedRegion = { selectedRegionId = it },
-                    onSize = { pageSize = it },
-                    onRegionPlaced = ::placeLooseRegion,
-                    onRegionChanged = ::updateRegion
-                )
-                if (pageSize.width > 0) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Paper Form Designer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            "$title · ${if (anchorsOk) "anchors ready" else "check anchors"}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (anchorsOk) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                        )
+                    }
                     Text(
-                        "Navigate: pinch to zoom and drag to pan · Place box: drag once · Edit boxes: drag inside to move, drag a corner handle to reshape.",
-                        modifier = Modifier.padding(top = 6.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        if (showSetup) "MAP" else "SETUP",
+                        modifier = Modifier.clickable { showSetup = !showSetup }.padding(horizontal = 7.dp, vertical = 8.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Text(
+                        "TEST",
+                        modifier = Modifier.clickable(enabled = canBuild) { if (canBuild) testPicker.launch("image/*") }
+                            .padding(horizontal = 7.dp, vertical = 8.dp),
+                        color = if (canBuild) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Text(
+                        if (saving) "SAVING" else "SAVE",
+                        modifier = Modifier.clickable(enabled = canBuild && !saving) { saveCurrentDesign() }
+                            .padding(horizontal = 7.dp, vertical = 8.dp),
+                        color = if (canBuild && !saving) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
 
-                selectedRegion?.let { region ->
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.30f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(2f)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f))
+                ) {
+                    val bitmap = sourceBitmap
+                    if (bitmap == null) {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("Open the blank paper questionnaire", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text(sourceStatus, modifier = Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Button(
+                                onClick = { sourcePicker.launch(arrayOf("application/pdf", "image/*")) },
+                                modifier = Modifier.padding(top = 16.dp)
+                            ) { Text("Choose PDF or image") }
+                        }
+                    } else {
+                        DesignerPageCanvas(
+                            bitmap = bitmap,
+                            regions = regionViews,
+                            selectedRegionId = selectedRegionId,
+                            onSelectedRegion = { id ->
+                                selectedRegionId = id
+                                regionViews.firstOrNull { it.id == id }?.target?.let { target ->
+                                    selectedField = target.fieldName
+                                    selectedOption = target.optionValue.orEmpty()
+                                }
+                            },
+                            onSize = { pageSize = it },
+                            onRegionPlaced = ::placeLooseRegion,
+                            onRegionChanged = ::updateRegion
+                        )
+                    }
+                }
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    tonalElevation = 5.dp,
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
                     ) {
-                        Column(Modifier.padding(12.dp)) {
+                        if (showSetup) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("FORM SETUP", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                                Text(
+                                    when {
+                                        errors.isNotEmpty() -> "${errors.size} ERROR${if (errors.size == 1) "" else "S"}"
+                                        warnings.isNotEmpty() -> "${warnings.size} WARNING${if (warnings.size == 1) "" else "S"}"
+                                        else -> "READY"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (errors.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(onClick = { sourcePicker.launch(arrayOf("application/pdf", "image/*")) }, modifier = Modifier.weight(1f)) {
+                                    Text(if (source == null) "Choose paper" else "Replace paper")
+                                }
+                                OutlinedButton(onClick = { xlsPicker.launch(arrayOf("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) }, modifier = Modifier.weight(1f)) {
+                                    Text(if (odkSchema == null) "Import XLSForm" else "Replace XLSForm")
+                                }
+                            }
+                            Text(sourceStatus, modifier = Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall)
                             Text(
-                                if (region.target == null) "Unlinked box" else region.label,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                if (region.target == null) {
-                                    "Now link this region to the matching ODK variable."
-                                } else {
-                                    "This box is linked. Move or resize it directly on the page; unlink it if you want to map it somewhere else."
-                                },
+                                anchorMessage,
                                 modifier = Modifier.padding(top = 3.dp),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (anchorsOk) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                             )
+                            Text(odkStatus, modifier = Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall)
+                            odkSchema?.warnings?.forEach { warning ->
+                                Text("• $warning", modifier = Modifier.padding(top = 3.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+                            }
+                            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(title, { title = it }, label = { Text("Form name") }, modifier = Modifier.weight(1f), singleLine = true)
+                                OutlinedTextField(version, { version = it }, label = { Text("Version") }, modifier = Modifier.weight(0.42f), singleLine = true)
+                            }
+                            OutlinedTextField(templateId, { templateId = safeTemplateId(it) }, label = { Text("Form ID") }, modifier = Modifier.fillMaxWidth().padding(top = 7.dp), singleLine = true)
 
-                            if (region.target == null) {
-                                Box(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                                    OutlinedButton(
-                                        onClick = { linkFieldMenu = true },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            fields.firstOrNull { it.name == linkFieldName }?.let { "ODK field: ${it.label} (${it.name})" }
-                                                ?: "Choose ODK field"
-                                        )
-                                    }
-                                    DropdownMenu(expanded = linkFieldMenu, onDismissRequest = { linkFieldMenu = false }) {
-                                        fields.filter { it.included }.forEach { field ->
-                                            DropdownMenuItem(
-                                                text = { Text("${field.label} (${field.name})") },
-                                                onClick = {
-                                                    linkFieldName = field.name
-                                                    linkOptionValue = ""
-                                                    linkFieldMenu = false
-                                                }
-                                            )
+                            if (issues.isNotEmpty()) {
+                                Text("DESIGN CHECKS", modifier = Modifier.padding(top = 10.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                issues.forEach { issue ->
+                                    Text(
+                                        "${if (issue.severity == PaperDesignSeverity.ERROR) "✕" else "!"} ${issue.message}",
+                                        modifier = Modifier.padding(top = 3.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (issue.severity == PaperDesignSeverity.ERROR) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+                                    )
+                                }
+                            }
+
+                            OutlinedButton(onClick = { addOpen = !addOpen }, modifier = Modifier.fillMaxWidth().padding(top = 9.dp)) {
+                                Text(if (addOpen) "Hide manual field" else "Add field manually")
+                            }
+                            if (addOpen) {
+                                OutlinedTextField(addName, { addName = safeVariableName(it) }, label = { Text("Variable name") }, modifier = Modifier.fillMaxWidth().padding(top = 7.dp), singleLine = true)
+                                OutlinedTextField(addLabel, { addLabel = it }, label = { Text("Question label") }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp), singleLine = true)
+                                Box(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+                                    OutlinedButton(onClick = { addTypeMenu = true }, modifier = Modifier.fillMaxWidth()) { Text("Type: ${prettyType(PaperFieldType.valueOf(addType))}") }
+                                    DropdownMenu(expanded = addTypeMenu, onDismissRequest = { addTypeMenu = false }) {
+                                        PaperFieldType.values().forEach { type ->
+                                            DropdownMenuItem(text = { Text(prettyType(type)) }, onClick = { addType = type.name; addTypeMenu = false })
                                         }
                                     }
                                 }
-                                val linkField = fields.firstOrNull { it.name == linkFieldName && it.included }
-                                if (linkField?.type in setOf(PaperFieldType.OMR_SINGLE, PaperFieldType.OMR_MULTIPLE)) {
-                                    Box(Modifier.fillMaxWidth().padding(top = 7.dp)) {
-                                        OutlinedButton(
-                                            onClick = { linkOptionMenu = true },
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            val selected = linkField?.options?.firstOrNull { it.value == linkOptionValue }
-                                            Text(selected?.let { "Return: ${it.label} → ${it.value}" } ?: "Choose return option")
+                                if (PaperFieldType.valueOf(addType) in setOf(PaperFieldType.OMR_SINGLE, PaperFieldType.OMR_MULTIPLE)) {
+                                    OutlinedTextField(
+                                        value = addChoices,
+                                        onValueChange = { addChoices = it },
+                                        label = { Text("Return options · one value|label per line") },
+                                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                                        minLines = 3
+                                    )
+                                }
+                                Button(
+                                    onClick = {
+                                        val name = addName.trim()
+                                        if (name.isNotBlank()) {
+                                            val type = PaperFieldType.valueOf(addType)
+                                            val options = if (type in setOf(PaperFieldType.OMR_SINGLE, PaperFieldType.OMR_MULTIPLE)) parseManualOptions(addChoices) else emptyList()
+                                            fields = fields + PaperDesignFieldDraft(name, addLabel.ifBlank { name }, type, options = options)
+                                            selectedField = name
+                                            addName = ""
+                                            addLabel = ""
+                                            addOpen = false
                                         }
-                                        DropdownMenu(expanded = linkOptionMenu, onDismissRequest = { linkOptionMenu = false }) {
-                                            linkField?.options?.forEach { option ->
+                                    },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 7.dp),
+                                    enabled = addName.isNotBlank() && fields.none { it.name == addName.trim() }
+                                ) { Text("Add field") }
+                            }
+                        } else {
+                            Text("ODK DATA LINKAGE", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            val region = selectedRegion
+                            if (region == null) {
+                                Text(
+                                    "Tap any box on the page to inspect its ODK mapping, or use + BOX in the sidebar to place a new region.",
+                                    modifier = Modifier.padding(top = 5.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                Row(Modifier.fillMaxWidth().padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(if (region.target == null) "Unlinked paper box" else region.label, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            "ROI ${String.format("%.3f", region.roi.left)}, ${String.format("%.3f", region.roi.top)} → ${String.format("%.3f", region.roi.right)}, ${String.format("%.3f", region.roi.bottom)}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontFamily = FontFamily.Monospace,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    OutlinedButton(onClick = ::deleteSelectedRegion) { Text("Delete") }
+                                }
+
+                                if (region.target == null) {
+                                    Box(Modifier.fillMaxWidth().padding(top = 7.dp)) {
+                                        OutlinedButton(onClick = { linkFieldMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                                            Text(fields.firstOrNull { it.name == linkFieldName }?.let { "${it.label} · ${it.name}" } ?: "Choose ODK field")
+                                        }
+                                        DropdownMenu(expanded = linkFieldMenu, onDismissRequest = { linkFieldMenu = false }) {
+                                            fields.filter { it.included }.forEach { field ->
                                                 DropdownMenuItem(
-                                                    text = { Text("${option.label} → ${option.value}${if (option.roi != null) " · already linked" else ""}") },
-                                                    enabled = option.roi == null,
+                                                    text = { Text("${field.label} (${field.name})") },
                                                     onClick = {
-                                                        linkOptionValue = option.value
-                                                        linkOptionMenu = false
+                                                        linkFieldName = field.name
+                                                        selectedField = field.name
+                                                        linkOptionValue = ""
+                                                        linkFieldMenu = false
                                                     }
                                                 )
                                             }
                                         }
                                     }
-                                }
-                                val canLink = when {
-                                    linkField == null -> false
-                                    linkField.type in setOf(PaperFieldType.OMR_SINGLE, PaperFieldType.OMR_MULTIPLE) ->
-                                        linkField.options.any { it.value == linkOptionValue && it.roi == null }
-                                    else -> linkField.roi == null
-                                }
-                                Row(
-                                    Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Button(onClick = ::linkSelectedLooseRegion, enabled = canLink, modifier = Modifier.weight(1f)) {
-                                        Text("Link to ODK")
+                                    val linkField = fields.firstOrNull { it.name == linkFieldName && it.included }
+                                    linkField?.let { DesignerOdkFieldDefinition(it, linkOptionValue) }
+                                    linkField?.takeIf { it.type in setOf(PaperFieldType.OMR_SINGLE, PaperFieldType.OMR_MULTIPLE) }?.let { field ->
+                                        Box(Modifier.fillMaxWidth().padding(top = 7.dp)) {
+                                            OutlinedButton(onClick = { linkOptionMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                                                val option = field.options.firstOrNull { it.value == linkOptionValue }
+                                                Text(option?.let { "Return ${it.label} → ${it.value}" } ?: "Choose return option")
+                                            }
+                                            DropdownMenu(expanded = linkOptionMenu, onDismissRequest = { linkOptionMenu = false }) {
+                                                field.options.forEach { option ->
+                                                    DropdownMenuItem(
+                                                        text = { Text("${option.label} → ${option.value}${if (option.roi != null) " · already linked" else ""}") },
+                                                        enabled = option.roi == null,
+                                                        onClick = { linkOptionValue = option.value; linkOptionMenu = false }
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
-                                    OutlinedButton(onClick = ::deleteSelectedRegion, modifier = Modifier.weight(1f)) {
-                                        Text("Delete box")
+                                    val canLink = when {
+                                        linkField == null -> false
+                                        linkField.type in setOf(PaperFieldType.OMR_SINGLE, PaperFieldType.OMR_MULTIPLE) -> linkField.options.any { it.value == linkOptionValue && it.roi == null }
+                                        else -> linkField.roi == null
+                                    }
+                                    Button(onClick = ::linkSelectedLooseRegion, enabled = canLink, modifier = Modifier.fillMaxWidth().padding(top = 7.dp)) {
+                                        Text("Link selected box to ODK")
+                                    }
+                                } else {
+                                    val mappedField = fields.firstOrNull { it.name == region.target.fieldName }
+                                    if (mappedField != null) DesignerOdkFieldDefinition(mappedField, region.target.optionValue.orEmpty())
+                                    Row(Modifier.fillMaxWidth().padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        OutlinedButton(onClick = ::unlinkSelectedRegion, modifier = Modifier.weight(1f)) { Text("Unlink") }
+                                        OutlinedButton(
+                                            onClick = {
+                                                selectedField = region.target.fieldName
+                                                selectedOption = region.target.optionValue.orEmpty()
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        ) { Text("Show field") }
                                     }
                                 }
-                            } else {
-                                Row(
-                                    Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedButton(onClick = ::unlinkSelectedRegion, modifier = Modifier.weight(1f)) {
-                                        Text("Unlink from ODK")
-                                    }
-                                    OutlinedButton(onClick = ::deleteSelectedRegion, modifier = Modifier.weight(1f)) {
-                                        Text("Delete box")
-                                    }
+                            }
+
+                            if (fields.isNotEmpty()) {
+                                Text("ODK FIELDS", modifier = Modifier.padding(top = 10.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                fields.forEach { field ->
+                                    DesignerFieldCard(
+                                        field = field,
+                                        selected = selectedField == field.name,
+                                        onSelect = { selectedField = field.name; selectedOption = "" },
+                                        onSelectTarget = { target ->
+                                            selectedField = field.name
+                                            selectedOption = target.optionValue.orEmpty()
+                                            selectedRegionId = targetRegionId(target)
+                                        },
+                                        onRequired = { required -> updateField(field.name) { it.copy(required = required) } },
+                                        onIncluded = { included ->
+                                            updateField(field.name) { it.copy(included = included) }
+                                            if (!included && regionViews.any { it.id == selectedRegionId && it.target?.fieldName == field.name }) selectedRegionId = ""
+                                        },
+                                        onDelete = {
+                                            fields = fields.filterNot { it.name == field.name }
+                                            if (selectedField == field.name) selectedField = fields.firstOrNull()?.name.orEmpty()
+                                            if (regionViews.any { it.id == selectedRegionId && it.target?.fieldName == field.name }) selectedRegionId = ""
+                                        }
+                                    )
                                 }
+                            }
+                            if (testStatus.isNotBlank()) {
+                                Text(testStatus, modifier = Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                                testLines.forEach { Text(it, modifier = Modifier.padding(top = 2.dp), style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace) }
                             }
                         }
                     }
                 }
-            }
-
-            Spacer(Modifier.height(16.dp))
-            Text("FIELDS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (fields.isEmpty()) {
-                Text("No fields yet. Import the XLSForm or add a field manually.", modifier = Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall)
-            }
-            fields.forEach { field ->
-                DesignerFieldCard(
-                    field = field,
-                    selected = selectedField == field.name,
-                    onSelect = { selectedField = field.name; selectedOption = "" },
-                    onSelectTarget = { target ->
-                        selectedField = field.name
-                        selectedOption = target.optionValue.orEmpty()
-                        selectedRegionId = targetRegionId(target)
-                    },
-                    onRequired = { required -> updateField(field.name) { it.copy(required = required) } },
-                    onIncluded = { included ->
-                        updateField(field.name) { it.copy(included = included) }
-                        if (!included) {
-                            regionViews.filter { it.target?.fieldName == field.name }.forEach { region ->
-                                if (selectedRegionId == region.id) selectedRegionId = ""
-                            }
-                        }
-                    },
-                    onDelete = {
-                        fields = fields.filterNot { it.name == field.name }
-                        if (selectedField == field.name) selectedField = fields.firstOrNull()?.name.orEmpty()
-                        if (regionViews.any { it.id == selectedRegionId && it.target?.fieldName == field.name }) selectedRegionId = ""
-                    }
-                )
-            }
-
-            OutlinedButton(onClick = { addOpen = !addOpen }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                Text(if (addOpen) "Hide manual field" else "Add field manually")
-            }
-            if (addOpen) {
-                Surface(Modifier.fillMaxWidth().padding(top = 8.dp), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)) {
-                    Column(Modifier.padding(12.dp)) {
-                        OutlinedTextField(addName, { addName = safeVariableName(it) }, label = { Text("Variable name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                        OutlinedTextField(addLabel, { addLabel = it }, label = { Text("Question label") }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp), singleLine = true)
-                        Box(Modifier.fillMaxWidth().padding(top = 6.dp)) {
-                            OutlinedButton(onClick = { addTypeMenu = true }, modifier = Modifier.fillMaxWidth()) { Text("Type: ${prettyType(PaperFieldType.valueOf(addType))}") }
-                            DropdownMenu(expanded = addTypeMenu, onDismissRequest = { addTypeMenu = false }) {
-                                PaperFieldType.values().forEach { type ->
-                                    DropdownMenuItem(text = { Text(prettyType(type)) }, onClick = { addType = type.name; addTypeMenu = false })
-                                }
-                            }
-                        }
-                        if (PaperFieldType.valueOf(addType) in setOf(PaperFieldType.OMR_SINGLE, PaperFieldType.OMR_MULTIPLE)) {
-                            OutlinedTextField(
-                                value = addChoices,
-                                onValueChange = { addChoices = it },
-                                label = { Text("Return options · one value|label per line") },
-                                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                                minLines = 3
-                            )
-                        }
-                        Button(
-                            onClick = {
-                                val name = addName.trim()
-                                if (name.isNotBlank()) {
-                                    val type = PaperFieldType.valueOf(addType)
-                                    val options = if (type in setOf(PaperFieldType.OMR_SINGLE, PaperFieldType.OMR_MULTIPLE)) parseManualOptions(addChoices) else emptyList()
-                                    fields = fields + PaperDesignFieldDraft(name, addLabel.ifBlank { name }, type, options = options)
-                                    selectedField = name
-                                    addName = ""; addLabel = ""; addOpen = false
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            enabled = addName.isNotBlank() && fields.none { it.name == addName.trim() }
-                        ) { Text("Add field") }
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(18.dp))
-            Text("4 · CHECK DESIGN", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Surface(
-                Modifier.fillMaxWidth().padding(top = 6.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = when {
-                    errors.isNotEmpty() -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f)
-                    warnings.isNotEmpty() -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)
-                    else -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                }
-            ) {
-                Column(Modifier.padding(13.dp)) {
-                    Text(
-                        when {
-                            errors.isNotEmpty() -> "${errors.size} problem${if (errors.size == 1) "" else "s"} must be fixed"
-                            warnings.isNotEmpty() -> "Ready with ${warnings.size} warning${if (warnings.size == 1) "" else "s"}"
-                            else -> "Design checks passed"
-                        },
-                        fontWeight = FontWeight.Bold
-                    )
-                    issues.forEach { issue -> Text("${if (issue.severity == PaperDesignSeverity.ERROR) "✕" else "!"} ${issue.message}", modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodySmall) }
-                }
-            }
-
-            OutlinedButton(onClick = { testPicker.launch("image/*") }, enabled = canBuild, modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
-                Text("Test with completed page")
-            }
-            if (testStatus.isNotBlank()) Text(testStatus, modifier = Modifier.padding(top = 7.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-            testLines.forEach { Text(it, modifier = Modifier.padding(top = 3.dp), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace) }
-
-            Button(
-                onClick = {
-                    val bitmap = sourceBitmap ?: return@Button
-                    val currentSource = source ?: return@Button
-                    saving = true
-                    runCatching {
-                        val json = buildPaperManifest(templateId, version, title, bitmap.width, bitmap.height, fields)
-                        val template = PaperBridgeWorkspace.saveAndActivateTemplate(app, json)
-                        PaperDesignSourceStore.bind(app, template, currentSource)
-                        val export = PaperDesignExportStore.save(app, template, bitmap)
-                        template to export
-                    }.onFailure { saving = false; testStatus = "Save failed: ${it.message ?: "invalid design"}" }
-                        .onSuccess { (saved, export) ->
-                            saving = false
-                            onSaved(saved, currentSource, export, errors.size to warnings.size, odkSchema?.fields?.size ?: 0)
-                        }
-                },
-                enabled = canBuild && !saving,
-                modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
-            ) { Text(if (saving) "Saving…" else "Save Paper Bridge form") }
             }
         }
     }
@@ -910,27 +922,55 @@ private fun DesignerPageCanvas(
     val surface = MaterialTheme.colorScheme.surface
     val inverseSurface = MaterialTheme.colorScheme.inverseSurface
     val inverseOnSurface = MaterialTheme.colorScheme.inverseOnSurface
-    val ratio = bitmap.width.toFloat() / bitmap.height.toFloat().coerceAtLeast(1f)
     val currentRegions by rememberUpdatedState(regions)
     val currentSelectedRegionId by rememberUpdatedState(selectedRegionId)
 
-    LaunchedEffect(selectedRegionId) {
-        if (selectedRegionId.isNotBlank() && mode == PaperDesignerCanvasMode.PLACE) {
-            modeName = PaperDesignerCanvasMode.EDIT.name
+    fun clampViewport(targetZoom: Float, requestedPan: Offset): PaperDesignViewportLayout? =
+        paperDesignViewportLayout(
+            measured,
+            bitmap.width,
+            bitmap.height,
+            targetZoom.coerceIn(1f, 48f),
+            requestedPan
+        )
+
+    fun applyZoom(targetZoom: Float) {
+        val nextZoom = targetZoom.coerceIn(1f, 48f)
+        val layout = clampViewport(nextZoom, Offset(panX, panY))
+        zoom = nextZoom
+        if (layout != null) {
+            panX = layout.panX
+            panY = layout.panY
         }
     }
 
+    fun regionAt(point: Offset): PaperDesignRegionView? = currentRegions
+        .filter { roiContains(it.roi, point) }
+        .minByOrNull { region ->
+            (region.roi.right - region.roi.left).coerceAtLeast(0f) *
+                (region.roi.bottom - region.roi.top).coerceAtLeast(0f)
+        }
+
     Box(
         Modifier
-            .fillMaxWidth()
-            .aspectRatio(ratio)
-            .background(surface, RoundedCornerShape(12.dp))
+            .fillMaxSize()
+            .background(surface)
             .onSizeChanged { measured = it; onSize(it) }
+            .pointerInput(modeName, measured, bitmap.width, bitmap.height) {
+                if (measured.width <= 0 || measured.height <= 0 || mode == PaperDesignerCanvasMode.PLACE) return@pointerInput
+                detectTapGestures { position ->
+                    val layout = paperDesignViewportLayout(measured, bitmap.width, bitmap.height, zoom, Offset(panX, panY))
+                    val point = toPaperNormalisedPoint(position, layout)
+                    val hit = point?.let(::regionAt)
+                    onSelectedRegion(hit?.id.orEmpty())
+                    if (hit != null) modeName = PaperDesignerCanvasMode.EDIT.name
+                }
+            }
             .pointerInput(modeName, measured, bitmap.width, bitmap.height) {
                 if (measured.width <= 0 || measured.height <= 0) return@pointerInput
                 when (mode) {
                     PaperDesignerCanvasMode.NAVIGATE -> detectTransformGestures { _, pan, gestureZoom, _ ->
-                        val newZoom = (zoom * gestureZoom).coerceIn(1f, 16f)
+                        val newZoom = (zoom * gestureZoom).coerceIn(1f, 48f)
                         val layout = paperDesignViewportLayout(
                             measured,
                             bitmap.width,
@@ -960,7 +1000,7 @@ private fun DesignerPageCanvas(
                                 val right = max(start.x, end.x).coerceIn(0f, 1f)
                                 val top = min(start.y, end.y).coerceIn(0f, 1f)
                                 val bottom = max(start.y, end.y).coerceIn(0f, 1f)
-                                if (right - left > 0.004f && bottom - top > 0.004f) {
+                                if (right - left > 0.0015f && bottom - top > 0.0015f) {
                                     onRegionPlaced(NormalisedRoi(left, top, right, bottom))
                                     modeName = PaperDesignerCanvasMode.EDIT.name
                                 }
@@ -990,7 +1030,7 @@ private fun DesignerPageCanvas(
                                 val dy = a.y - b.y
                                 return dx * dx + dy * dy
                             }
-                            val handleThreshold2 = 34f * 34f
+                            val handleThreshold2 = 48f * 48f
                             val handle = selected?.let { region ->
                                 listOf(
                                     PaperDesignResizeHandle.TOP_LEFT to screenPoint(region.roi.left, region.roi.top),
@@ -1001,7 +1041,7 @@ private fun DesignerPageCanvas(
                                     ?.takeIf { (_, screen) -> dist2(position, screen) <= handleThreshold2 }
                                     ?.first
                             }
-                            val hit = if (handle != null && selected != null) selected else currentRegions.lastOrNull { roiContains(it.roi, point) }
+                            val hit = if (handle != null && selected != null) selected else regionAt(point)
                             if (hit != null) {
                                 onSelectedRegion(hit.id)
                                 activeRegionId = hit.id
@@ -1063,7 +1103,7 @@ private fun DesignerPageCanvas(
                 val color = when {
                     selected -> secondary
                     region.target == null -> error
-                    else -> primary.copy(alpha = 0.88f)
+                    else -> primary.copy(alpha = 0.90f)
                 }
                 val topLeft = pagePoint(Offset(region.roi.left, region.roi.top))
                 val bottomRight = pagePoint(Offset(region.roi.right, region.roi.bottom))
@@ -1071,35 +1111,35 @@ private fun DesignerPageCanvas(
                     color = color,
                     topLeft = topLeft,
                     size = Size(bottomRight.x - topLeft.x, bottomRight.y - topLeft.y),
-                    style = Stroke(width = if (selected) 5f else 3f)
+                    style = Stroke(width = if (selected) 6f else 3f)
                 )
 
-                val label = region.label.take(42)
+                val label = region.label.take(56)
                 val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
                     this.color = inverseOnSurface.toArgb()
-                    textSize = 24f
+                    textSize = 25f
                     typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
                 }
                 val bgPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-                    this.color = inverseSurface.copy(alpha = 0.88f).toArgb()
+                    this.color = inverseSurface.copy(alpha = 0.90f).toArgb()
                     style = android.graphics.Paint.Style.FILL
                 }
                 val textWidth = textPaint.measureText(label)
-                val labelTop = (topLeft.y - 31f).coerceAtLeast(0f)
+                val labelTop = (topLeft.y - 33f).coerceAtLeast(0f)
                 drawIntoCanvas { canvas ->
-                    canvas.nativeCanvas.drawRect(topLeft.x, labelTop, topLeft.x + textWidth + 16f, labelTop + 31f, bgPaint)
-                    canvas.nativeCanvas.drawText(label, topLeft.x + 8f, labelTop + 23f, textPaint)
+                    canvas.nativeCanvas.drawRect(topLeft.x, labelTop, topLeft.x + textWidth + 16f, labelTop + 33f, bgPaint)
+                    canvas.nativeCanvas.drawText(label, topLeft.x + 8f, labelTop + 24f, textPaint)
                 }
 
                 if (selected) {
-                    val handleRadius = 10f
+                    val handleRadius = 12f
                     listOf(
                         topLeft,
                         Offset(bottomRight.x, topLeft.y),
                         bottomRight,
                         Offset(topLeft.x, bottomRight.y)
                     ).forEach { handle ->
-                        drawCircle(color = secondary, radius = handleRadius + 4f, center = handle)
+                        drawCircle(color = secondary, radius = handleRadius + 5f, center = handle)
                         drawCircle(color = surface, radius = handleRadius, center = handle)
                     }
                 }
@@ -1120,40 +1160,53 @@ private fun DesignerPageCanvas(
         }
 
         Surface(
-            modifier = Modifier.align(Alignment.TopCenter).padding(8.dp),
-            shape = RoundedCornerShape(50),
-            tonalElevation = 4.dp,
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
+            modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp),
+            shape = RoundedCornerShape(18.dp),
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 7.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 FilterChip(
                     selected = mode == PaperDesignerCanvasMode.NAVIGATE,
                     onClick = { modeName = PaperDesignerCanvasMode.NAVIGATE.name; dragStart = null; dragEnd = null },
-                    label = { Text("Navigate") }
+                    label = { Text("NAV") }
                 )
                 FilterChip(
                     selected = mode == PaperDesignerCanvasMode.PLACE,
                     onClick = { modeName = PaperDesignerCanvasMode.PLACE.name; dragStart = null; dragEnd = null },
-                    label = { Text("Place box") }
+                    label = { Text("+ BOX") }
                 )
                 FilterChip(
                     selected = mode == PaperDesignerCanvasMode.EDIT,
                     enabled = regions.isNotEmpty(),
                     onClick = { modeName = PaperDesignerCanvasMode.EDIT.name; dragStart = null; dragEnd = null },
-                    label = { Text("Edit boxes") }
+                    label = { Text("EDIT") }
                 )
                 Text(
-                    "Fit",
+                    "+",
+                    modifier = Modifier.clickable { applyZoom(zoom * 1.8f) }.padding(horizontal = 14.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "−",
+                    modifier = Modifier.clickable { applyZoom(zoom / 1.8f) }.padding(horizontal = 14.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "FIT",
                     modifier = Modifier.clickable {
                         zoom = 1f
                         panX = 0f
                         panY = 0f
                         modeName = PaperDesignerCanvasMode.NAVIGATE.name
-                    }.padding(horizontal = 8.dp, vertical = 7.dp),
+                    }.padding(horizontal = 8.dp, vertical = 8.dp),
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.labelMedium
@@ -1162,20 +1215,71 @@ private fun DesignerPageCanvas(
         }
 
         Surface(
-            modifier = Modifier.align(Alignment.BottomStart).padding(8.dp),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp),
             shape = RoundedCornerShape(50),
             color = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.86f)
         ) {
             Text(
                 when (mode) {
-                    PaperDesignerCanvasMode.NAVIGATE -> if (zoom <= 1.01f) "Drag to pan · pinch to zoom" else "Navigate · ${String.format("%.1f", zoom)}×"
-                    PaperDesignerCanvasMode.PLACE -> "Drag once to place a new unlinked box · ${String.format("%.1f", zoom)}×"
-                    PaperDesignerCanvasMode.EDIT -> "Drag box to move · drag a corner handle to resize"
+                    PaperDesignerCanvasMode.NAVIGATE -> if (zoom <= 1.01f) "Pinch or + to zoom · drag to pan" else "Navigate · ${String.format("%.1f", zoom)}×"
+                    PaperDesignerCanvasMode.PLACE -> "Drag once to place a box · ${String.format("%.1f", zoom)}×"
+                    PaperDesignerCanvasMode.EDIT -> "Tap box · drag to move · corner handle to resize"
                 },
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                 color = MaterialTheme.colorScheme.inverseOnSurface,
                 style = MaterialTheme.typography.labelSmall
             )
+        }
+    }
+}
+
+@Composable
+private fun DesignerOdkFieldDefinition(
+    field: PaperDesignFieldDraft,
+    selectedOptionValue: String = ""
+) {
+    val constraintText = when (field.type) {
+        PaperFieldType.OCR_TEXT -> field.regex?.takeIf { it.isNotBlank() }?.let { "Regex: $it" } ?: "Text · no imported regex constraint"
+        PaperFieldType.OCR_INTEGER, PaperFieldType.OCR_DECIMAL -> when {
+            field.minimum != null && field.maximum != null -> "Range: ${field.minimum} to ${field.maximum}"
+            field.minimum != null -> "Minimum: ${field.minimum}"
+            field.maximum != null -> "Maximum: ${field.maximum}"
+            else -> "No imported numeric range constraint"
+        }
+        PaperFieldType.OMR_SINGLE -> "Select one · ${field.options.size} return option${if (field.options.size == 1) "" else "s"}"
+        PaperFieldType.OMR_MULTIPLE -> "Select multiple · ${field.options.size} return option${if (field.options.size == 1) "" else "s"}"
+        PaperFieldType.BARCODE -> "Barcode value"
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(top = 7.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
+    ) {
+        Column(Modifier.padding(11.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(field.label, fontWeight = FontWeight.Bold)
+                    Text(field.name, style = MaterialTheme.typography.labelMedium, fontFamily = FontFamily.Monospace)
+                }
+                Text(prettyType(field.type), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
+            Text(
+                "${if (field.required) "Required" else "Optional"} · $constraintText",
+                modifier = Modifier.padding(top = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (field.type in setOf(PaperFieldType.OMR_SINGLE, PaperFieldType.OMR_MULTIPLE)) {
+                Text(
+                    field.options.joinToString("   ") { option ->
+                        val marker = if (option.value == selectedOptionValue) "●" else "•"
+                        "$marker ${option.label} → ${option.value}"
+                    },
+                    modifier = Modifier.padding(top = 5.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
         }
     }
 }
@@ -1202,6 +1306,19 @@ private fun DesignerFieldCard(
                 Column(Modifier.weight(1f)) {
                     Text(field.label, fontWeight = FontWeight.SemiBold)
                     Text("${field.name} · ${prettyType(field.type)} · $mapped/$needed linked", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val constraintSummary = when (field.type) {
+                        PaperFieldType.OCR_TEXT -> field.regex?.takeIf { it.isNotBlank() }?.let { "regex: $it" }
+                        PaperFieldType.OCR_INTEGER, PaperFieldType.OCR_DECIMAL -> when {
+                            field.minimum != null && field.maximum != null -> "range: ${field.minimum}–${field.maximum}"
+                            field.minimum != null -> "minimum: ${field.minimum}"
+                            field.maximum != null -> "maximum: ${field.maximum}"
+                            else -> null
+                        }
+                        PaperFieldType.OMR_SINGLE -> "select one: ${field.options.joinToString { it.value }}"
+                        PaperFieldType.OMR_MULTIPLE -> "select multiple: ${field.options.joinToString { it.value }}"
+                        PaperFieldType.BARCODE -> "barcode"
+                    }
+                    constraintSummary?.let { Text(it, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
                 Text(if (field.fromOdk) "ODK" else "MANUAL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             }

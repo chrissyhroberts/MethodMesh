@@ -40,7 +40,11 @@ Use `example_paper_form_for_designer.pdf` together with `example_odk_showcase_pa
 
 ### Pan and zoom
 
-The designer opens in a full-screen dialog and uses the same document-viewport discipline as MethodMesh Digital Signing: the page opens fitted at 1×, **Navigate** supports drag-to-pan and pinch-to-zoom up to 16×, and **Fit** restores the whole page. **Place box** is always available when a page is loaded. Every box is stored in normalized page coordinates after inverting the active viewport transform, so geometry is invariant to zoom/pan. Linked boxes remain visible with `variable` or `variable = return_value` labels. In **Edit boxes**, drag inside a box to move it and drag a corner handle to resize it. There is no redraw operation: unlink/delete is explicit.
+The designer opens in a full-screen dialog and uses the same document-viewport discipline as MethodMesh Digital Signing: the page opens fitted at 1×, **NAV** supports drag-to-pan and pinch-to-zoom up to 48×, dedicated **+ / −** controls provide coarse zoom steps, and **FIT** restores the whole page. **+ BOX** is always available when a page is loaded. Every box is stored in normalized page coordinates after inverting the active viewport transform, so geometry is invariant to zoom/pan. Linked boxes remain visible with `variable` or `variable = return_value` labels. A persistent left sidebar holds NAV / + BOX / EDIT / zoom / FIT. Tapping a box selects it independently of drag detection; if regions overlap, the smallest region under the tap wins. In **EDIT**, drag inside a box to move it and drag a corner handle to resize it. There is no redraw operation: unlink/delete is explicit.
+
+### Full-screen split workspace
+
+The designer is a fixed full-screen workspace rather than a vertically stacked capability page. After the slim header, the paper canvas receives two-thirds of the available height and the ODK data-linkage pane receives one-third. Only the lower linkage pane scrolls. This prevents page overlays, field cards and controls from occupying the same layout layer. Selecting a mapped box shows the ODK variable name, Paper Bridge type, required state, imported regex/range, or select-one/select-multiple return options directly in the lower pane.
 
 ## Built-in example
 
