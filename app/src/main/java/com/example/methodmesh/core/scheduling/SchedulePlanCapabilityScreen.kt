@@ -59,11 +59,12 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
     @Composable
     override fun Render(context: CapabilityScreenContext, onBack: () -> Unit, onConfirmed: (ExecutionResult) -> Unit, onCancel: () -> Unit) {
         val app = LocalContext.current.applicationContext
-        val existingPlan = remember { context.request.settings["schedule_plan_id"]?.let { SchedulePlanStore.plan(app, it) } }
-        var name by remember { mutableStateOf(existingPlan?.name.orEmpty()) }
-        var sequenceDays by remember { mutableStateOf(existingPlan?.rules?.flatMap { (it.timing as? ScheduleTimingRule.RelativeDays)?.days.orEmpty() }?.maxOrNull()?.coerceAtLeast(1)?.toString() ?: "22") }
-        var durationDays by remember { mutableStateOf(existingPlan?.termination?.duration?.toDays()?.toString() ?: "22") }
-        val lanes = remember {
+        val planId = context.request.settings["schedule_plan_id"]
+        val existingPlan = remember(planId) { planId?.let { SchedulePlanStore.plan(app, it) } }
+        var name by remember(existingPlan?.id) { mutableStateOf(existingPlan?.name.orEmpty()) }
+        var sequenceDays by remember(existingPlan?.id) { mutableStateOf(existingPlan?.rules?.flatMap { (it.timing as? ScheduleTimingRule.RelativeDays)?.days.orEmpty() }?.maxOrNull()?.coerceAtLeast(1)?.toString() ?: "22") }
+        var durationDays by remember(existingPlan?.id) { mutableStateOf(existingPlan?.termination?.duration?.toDays()?.toString() ?: "22") }
+        val lanes = remember(existingPlan?.id) {
             mutableStateListOf<BuilderLane>().apply {
                 if (existingPlan == null) add(BuilderLane("Activity"))
                 else existingPlan.rules.forEach { rule ->
