@@ -118,6 +118,11 @@ def advertising_payload(name, services):
 class MethodMeshMeshNode:
     def __init__(self):
         self.config = load_config()
+        # The token is deliberately available over the local serial console only.
+        # It lets the phone provision a freshly flashed node without putting the
+        # secret into the BLE advertisement.
+        print("MethodMesh node:", self.config.get("node_id"))
+        print("Provisioning token:", self.config.get("provisioning_token"))
         self.queue = load_queue()
         self.seen = []
         self.acknowledged = []
