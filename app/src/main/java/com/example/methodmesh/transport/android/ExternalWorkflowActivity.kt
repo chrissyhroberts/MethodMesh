@@ -371,12 +371,14 @@ private fun CapabilityStepScreen(
 ) {
     val scope = rememberCoroutineScope()
     val appContext = LocalContext.current
-    val screenContext = CapabilityScreenContext(
+        val screenContext = CapabilityScreenContext(
         action = action,
         request = request,
         stepNumber = stepNumber,
         totalSteps = totalSteps,
         completionMode = if (
+            request.settings["methodmesh_headless"] != "true" &&
+            request.settings["input_methodmesh_headless"] != "true" &&
             (request.settings["methodmesh_native_preset_run"] == "true" || request.settings["input_methodmesh_native_preset_run"] == "true") &&
             request.settings["methodmesh_protocol_step_run"] != "true" &&
             request.settings["input_methodmesh_protocol_step_run"] != "true" &&

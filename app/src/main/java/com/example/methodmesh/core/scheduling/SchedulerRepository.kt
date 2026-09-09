@@ -109,6 +109,7 @@ object SchedulerRepository {
         put("ordinal", s.ordinal); put("customWeekday", s.customWeekday); put("retryCount", s.retryCount)
         put("retryIntervalMinutes", s.retryIntervalMinutes); put("retryWindowMinutes", s.retryWindowMinutes); put("enabled", s.enabled)
         put("notificationTitle", s.notificationTitle); put("notificationMessage", s.notificationMessage)
+        put("headless", s.headless)
         put("cronExpression", s.cronExpression)
     }
 
@@ -119,7 +120,7 @@ object SchedulerRepository {
             hour = o.optInt("hour"), minute = o.optInt("minute"), dayOfWeek = o.optInt("dayOfWeek", 1), dayOfMonth = o.optInt("dayOfMonth", 1),
             ordinal = o.optInt("ordinal", 1), customWeekday = o.optInt("customWeekday", 1), retryCount = o.optInt("retryCount"),
             retryIntervalMinutes = o.optInt("retryIntervalMinutes", 60), retryWindowMinutes = o.optInt("retryWindowMinutes", 1440),
-            notificationTitle = o.optString("notificationTitle", "MethodMesh reminder"), notificationMessage = o.optString("notificationMessage", "A scheduled task is due."), enabled = o.optBoolean("enabled", true)
+            notificationTitle = o.optString("notificationTitle", "MethodMesh reminder"), notificationMessage = o.optString("notificationMessage", "A scheduled task is due."), enabled = o.optBoolean("enabled", true), headless = o.optBoolean("headless", false)
             ,cronExpression = o.optString("cronExpression")
         )
     }.getOrNull()?.takeIf { it.id.isNotBlank() && it.name.isNotBlank() && it.targetValue.isNotBlank() }

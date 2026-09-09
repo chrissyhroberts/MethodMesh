@@ -33,7 +33,8 @@ data class ResearchSchedule(
     val retryWindowMinutes: Int = 1440,
     val notificationTitle: String = "MethodMesh reminder",
     val notificationMessage: String = "A scheduled task is due.",
-    val enabled: Boolean = true
+    val enabled: Boolean = true,
+    val headless: Boolean = false
     ,val cronExpression: String = ""
 ) {
     fun nextOccurrence(after: ZonedDateTime = ZonedDateTime.now()): ZonedDateTime {

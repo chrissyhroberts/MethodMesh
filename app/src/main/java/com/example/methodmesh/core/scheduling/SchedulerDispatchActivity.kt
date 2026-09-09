@@ -472,6 +472,7 @@ class SchedulerDispatchActivity : ComponentActivity() {
             putExtra("input_methodmesh_native_preset_run", "true")
             putExtra("input_methodmesh_preset_result_action", PresetResultAction.normalize(presetResultAction))
             if (finishToLauncher) putExtra("input_methodmesh_finish_to_launcher", "true")
+            if (activeSchedule?.headless == true) putExtra("input_methodmesh_headless", "true")
             if (protocolId.isNotBlank()) {
                 putExtra("input_methodmesh_protocol_step_run", "true")
                 putExtra("input_methodmesh_sequence_step_run", "true")

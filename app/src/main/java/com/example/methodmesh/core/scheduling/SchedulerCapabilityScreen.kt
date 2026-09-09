@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -79,6 +81,7 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
         var retryInterval by remember { mutableStateOf(suppliedValue("schedule_retry_interval_minutes").ifBlank { "60" }) }
         var notificationTitle by remember { mutableStateOf(suppliedValue("schedule_notification_title")) }
         var notificationMessage by remember { mutableStateOf(suppliedValue("schedule_notification_message")) }
+        var headless by remember { mutableStateOf(suppliedValue("schedule_headless").equals("true", ignoreCase = true)) }
         val initialCronParts = remember { suppliedValue("schedule_cron").trim().split(Regex("\\s+")).let { if (it.size == 5) it else List(5) { "" } } }
         var cronMinute by remember { mutableStateOf(initialCronParts[0]) }
         var cronHour by remember { mutableStateOf(initialCronParts[1]) }
@@ -96,6 +99,9 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
         var actionValues by remember { mutableStateOf(List(5) { index -> if (index == 0) targetValue else "" }) }
         var actionModifiers by remember { mutableStateOf(List(5) { index -> if (index == 0) suppliedValue("schedule_target_settings") else "" }) }
         var expandedActions by remember { mutableStateOf(setOf(0)) }
+        val headlessEligible = actionValues.mapIndexed { index, value ->
+            value.isBlank() || actionTypes[index] in setOf("PRESET", "PROTOCOL")
+        }.all { it } && actionValues.any { it.isNotBlank() }
 
         val projectPicker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { returned ->
             val uri = returned.data?.data ?: return@rememberLauncherForActivityResult
@@ -144,7 +150,7 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
                 chainId = effectiveChainId, chainOrder = index,
                 hour = 0, minute = 0, dayOfWeek = 1, dayOfMonth = 1, ordinal = 1, customWeekday = 1,
                 retryCount = retries.toIntOrNull() ?: 0, retryIntervalMinutes = retryInterval.toIntOrNull() ?: 60,
-                notificationTitle = notificationTitle, notificationMessage = notificationMessage, cronExpression = requestedCron
+                notificationTitle = notificationTitle, notificationMessage = notificationMessage, headless = headless && headlessEligible, cronExpression = requestedCron
             ) }
             runCatching { schedules.forEach { SchedulerRepository.save(androidContext, it) } }.onFailure {
                 status = it.message ?: "Could not save schedule."
@@ -248,6 +254,14 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
             OutlinedTextField(retryInterval, { retryInterval = it }, label = { Text("Minutes between reminders") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(notificationTitle, { notificationTitle = it }, label = { Text("Notification title (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(notificationMessage, { notificationMessage = it }, label = { Text("Notification message (optional)") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text("Headless run", style = MaterialTheme.typography.labelLarge)
+                    Text("Run saved presets/protocols in the background and write their configured logs without opening a confirmation page.", style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(checked = headless, onCheckedChange = { headless = it }, enabled = headlessEligible)
+            }
+            if (!headlessEligible && headless) Text("Headless mode is available when every configured action is a saved preset or protocol.", style = MaterialTheme.typography.bodySmall)
             Text("Cron schedule (optional; overrides frequency fields)", style = MaterialTheme.typography.labelLarge)
             Row(Modifier.fillMaxWidth()) {
                 OutlinedTextField(cronMinute, { cronMinute = it }, label = { Text("Minute") }, modifier = Modifier.weight(1f), singleLine = true)
