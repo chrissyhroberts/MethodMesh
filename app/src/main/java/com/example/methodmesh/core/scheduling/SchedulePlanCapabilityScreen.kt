@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -46,7 +47,7 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import java.time.Duration
 import java.time.LocalTime
 
-private data class BuilderLane(val name: String, val hour: Int = 9, val minute: Int = 0, val actionType: ScheduleActionType = ScheduleActionType.NOTIFIER, val message: String = "", val presetId: String = "", val days: Set<Int> = setOf(1)) {
+private data class BuilderLane(val name: String, val hour: Int = 9, val minute: Int = 0, val actionType: ScheduleActionType = ScheduleActionType.NOTIFIER, val message: String = "", val presetId: String = "", val snoozeMinutes: Int = 10, val followUpCount: Int = 0, val followUpIntervalMinutes: Int = 30, val days: Set<Int> = setOf(1)) {
     val time: String get() = "%02d:%02d".format(hour, minute)
 }
 
@@ -69,7 +70,7 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
                     val lane = existingPlan.lanes.firstOrNull { it.id == rule.laneId } ?: return@forEach
                     val timing = rule.timing as? ScheduleTimingRule.RelativeDays
                     val action = lane.defaultActions.firstOrNull()
-                    add(BuilderLane(lane.name, lane.defaultTime.hour, lane.defaultTime.minute, action?.type ?: ScheduleActionType.NOTIFIER, action?.message.orEmpty(), action?.presetId.orEmpty(), timing?.days ?: setOf(1)))
+                    add(BuilderLane(lane.name, lane.defaultTime.hour, lane.defaultTime.minute, action?.type ?: ScheduleActionType.NOTIFIER, action?.message.orEmpty(), action?.presetId.orEmpty(), action?.snoozeMinutes ?: 10, action?.followUpCount ?: 0, action?.followUpIntervalMinutes ?: 30, timing?.days ?: setOf(1)))
                 }
             }
         }
@@ -78,6 +79,7 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
         var timeDialogLane by remember { mutableStateOf<Int?>(null) }
         var dialogHour by remember { mutableStateOf(9) }
         var dialogMinute by remember { mutableStateOf(0) }
+        var expandedLanes by remember { mutableStateOf(emptySet<Int>()) }
         val presets = remember { ProtocolLibraryRepository.presets(app) }
         val days = sequenceDays.toIntOrNull()?.coerceIn(1, 366) ?: 22
         val gridScroll = rememberScrollState()
@@ -90,8 +92,8 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
             val built = lanes.mapNotNull { lane ->
                 val time = LocalTime.of(lane.hour, lane.minute)
                 val action = when {
-                    lane.actionType == ScheduleActionType.NOTIFIER -> ScheduleAction(type = ScheduleActionType.NOTIFIER, title = lane.name, message = lane.message.ifBlank { lane.name }, snoozeMinutes = 10)
-                    lane.presetId.isNotBlank() -> ScheduleAction(type = ScheduleActionType.PRESET, presetId = lane.presetId, title = presets.firstOrNull { it.id == lane.presetId }?.name.orEmpty())
+                    lane.actionType == ScheduleActionType.NOTIFIER -> ScheduleAction(type = ScheduleActionType.NOTIFIER, title = lane.name, message = lane.message.ifBlank { lane.name }, snoozeMinutes = lane.snoozeMinutes, followUpCount = lane.followUpCount, followUpIntervalMinutes = lane.followUpIntervalMinutes)
+                    lane.presetId.isNotBlank() -> ScheduleAction(type = ScheduleActionType.PRESET, presetId = lane.presetId, title = presets.firstOrNull { it.id == lane.presetId }?.name.orEmpty(), snoozeMinutes = lane.snoozeMinutes, followUpCount = lane.followUpCount, followUpIntervalMinutes = lane.followUpIntervalMinutes)
                     else -> null
                 } ?: return@mapNotNull null
                 val scheduleLane = ScheduleLane(name = lane.name.ifBlank { "Activity" }, defaultTime = time, defaultActions = listOf(action))
@@ -104,11 +106,11 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
             status = "Saved ${plan.name}. Use Start Day 1 when you are ready."
             val execution = As100SchedulerMethod.result(As100SchedulerMethod.request(capabilityId, emptyMap(), emptyList(), emptyList()), SchedulerOutcome(null, "created"), context.request.invocationContext)
             result = execution
-            if (context.submitsImmediately) onConfirmed(execution)
+            onConfirmed(execution)
         }
 
         CapabilityScreenScaffold(title, capabilityId, context, context.stepNumber > 1, result, result?.let { OutputFormatter.fields(it, false) }.orEmpty(), onBack, { result = null }, { result?.let(onConfirmed) }, onCancel) {
-            Column(Modifier.fillMaxSize().verticalScroll(bodyScroll).padding(8.dp)) {
+            Column(Modifier.fillMaxSize().verticalScroll(bodyScroll).imePadding().padding(8.dp)) {
                 Text("Composite Timed Sequence", style = MaterialTheme.typography.headlineSmall)
                 Text("Paint the plan first. Each row is a swimlane and each square is a scheduled occurrence.", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(8.dp))
@@ -132,7 +134,7 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
                             (1..days).forEach { day ->
                                 val selected = day in lane.days
                                 Box(Modifier.width(38.dp).height(62.dp).padding(2.dp).border(1.dp, MaterialTheme.colorScheme.outlineVariant).background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent), contentAlignment = Alignment.Center) {
-                                    androidx.compose.material3.TextButton(onClick = { val next = lane.days.toMutableSet().apply { if (!remove(day)) add(day) }; lanes[index] = lane.copy(days = next) }) { Text(if (selected) "■" else "·", color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant) }
+                                    androidx.compose.material3.TextButton(onClick = { val next = lane.days.toMutableSet().apply { if (!remove(day)) add(day) }; lanes[index] = lane.copy(days = next) }) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(day.toString(), fontSize = 9.sp, color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant); Text(if (selected) "■" else "·", color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant) } }
                                 }
                             }
                         }
@@ -140,15 +142,23 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
                             OutlinedButton(onClick = { lanes.add(index + 1, lane.copy(hour = (lane.hour + 4) % 24)) }) { Text("+ Add run") }
                             OutlinedButton(onClick = { lanes[index] = lane.copy(actionType = ScheduleActionType.NOTIFIER) }) { Text(if (lane.actionType == ScheduleActionType.NOTIFIER) "✓ Notifier" else "Notifier") }
                             OutlinedButton(onClick = { lanes[index] = lane.copy(actionType = ScheduleActionType.PRESET) }) { Text(if (lane.actionType == ScheduleActionType.PRESET) "✓ Preset" else "Preset") }
-                            if (lanes.size > 1) OutlinedButton(onClick = { lanes.removeAt(index) }) { Text("Remove lane") }
+                            OutlinedButton(onClick = { lanes.removeAt(index); expandedLanes = expandedLanes.filter { it != index }.map { if (it > index) it - 1 else it }.toSet() }) { Text("Remove lane / run") }
                         }
-                        if (lane.actionType == ScheduleActionType.NOTIFIER) OutlinedTextField(lane.message, { lanes[index] = lane.copy(message = it) }, label = { Text("Reminder message") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                        else presets.take(8).forEach { preset -> OutlinedButton(onClick = { lanes[index] = lane.copy(presetId = preset.id) }, modifier = Modifier.fillMaxWidth()) { Text(if (lane.presetId == preset.id) "✓ ${preset.name}" else preset.name) } }
+                        OutlinedButton(onClick = { expandedLanes = if (index in expandedLanes) expandedLanes - index else expandedLanes + index }) { Text(if (index in expandedLanes) "Collapse details" else "Expand details") }
+                        if (index in expandedLanes) {
+                            if (lane.actionType == ScheduleActionType.NOTIFIER) OutlinedTextField(lane.message, { lanes[index] = lane.copy(message = it) }, label = { Text("Reminder message") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                            else presets.take(8).forEach { preset -> OutlinedButton(onClick = { lanes[index] = lane.copy(presetId = preset.id) }, modifier = Modifier.fillMaxWidth()) { Text(if (lane.presetId == preset.id) "✓ ${preset.name}" else preset.name) } }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(lane.snoozeMinutes.toString(), { lanes[index] = lane.copy(snoozeMinutes = it.filter(Char::isDigit).toIntOrNull() ?: 0) }, label = { Text("Snooze min") }, modifier = Modifier.width(120.dp), singleLine = true)
+                                OutlinedTextField(lane.followUpCount.toString(), { lanes[index] = lane.copy(followUpCount = it.filter(Char::isDigit).toIntOrNull() ?: 0) }, label = { Text("Follow-ups") }, modifier = Modifier.width(120.dp), singleLine = true)
+                                OutlinedTextField(lane.followUpIntervalMinutes.toString(), { lanes[index] = lane.copy(followUpIntervalMinutes = it.filter(Char::isDigit).toIntOrNull() ?: 0) }, label = { Text("Repeat min") }, modifier = Modifier.width(120.dp), singleLine = true)
+                            }
+                        }
                     }
                 }
                 OutlinedButton(onClick = { lanes += BuilderLane("Activity ${lanes.size + 1}") }, modifier = Modifier.fillMaxWidth()) { Text("+ Add swimlane") }
                 Spacer(Modifier.height(8.dp))
-                Button(onClick = ::save, modifier = Modifier.fillMaxWidth()) { Text("Save sequence") }
+                Button(onClick = ::save, modifier = Modifier.fillMaxWidth()) { Text("Store schedule") }
                 Text(status, style = MaterialTheme.typography.bodySmall)
             }
         }
