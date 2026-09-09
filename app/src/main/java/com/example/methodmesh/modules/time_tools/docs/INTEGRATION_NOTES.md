@@ -1,22 +1,8 @@
 # Integration notes
 
-This handoff was created from the MethodMesh Master Book without the live MethodMesh source repository. Therefore:
-
-- timing logic is concrete;
-- method IDs and output contracts are concrete;
-- Compose capability surfaces are concrete starting points;
-- exact repository binding names in `TimeToolsModule.kt` are intentionally isolated rather than fabricated;
-- foreground-service wiring must use the current app's service/notification conventions;
-- XLSForm external-intent syntax must be copied from a current known-good MethodMesh example during admission.
-
-The folder should be admitted through normal Work-mode review. If exact current interfaces differ, adapt the adapter layer rather than changing the capability contract or moving logic into the shared UI.
-
-## 2026-09-06 dependency-hardening revision
-
-The handoff no longer imports Jetpack Compose, `androidx.lifecycle.viewmodel.compose`, coroutines,
-JUnit, or `org.json`. The files named `*CapabilityScreen.kt` now expose repository-neutral
-presentation/controller contracts. Bind those to the current MethodMesh native screen mechanism
-when admitting the module. This avoids forcing a UI or test dependency into the host app.
-
-`TimerEngineSelfTest.runAll()` provides zero-dependency engine contract checks. The repository may
-mirror those cases in its existing unit-test framework after integration.
+1. Replace the previous `modules/time_tools/` folder rather than overlaying versions.
+2. Merge `docs/ANDROID_MANIFEST_SNIPPET.xml` into the app manifest. Do not add a central module registration entry.
+3. Android 13+ requires notification permission for visible notifications.
+4. Android 12+ may deny exact-alarm access; `TimerAlarmScheduler` falls back to `setAndAllowWhileIdle` and reports approximate scheduling.
+5. Notification-channel choices made by the user in Android settings override module requests for sound/vibration/light.
+6. Long-range `time.until` defaults to a due notification only. Persistent shade/lock-screen display is opt-in.

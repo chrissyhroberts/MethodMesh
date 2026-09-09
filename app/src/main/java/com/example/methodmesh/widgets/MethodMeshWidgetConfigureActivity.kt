@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -140,23 +143,24 @@ private fun ConfigureWidgetScreen(
             style = MaterialTheme.typography.bodyMedium
         )
         Text("Icon", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        MethodMeshWidgetIconKey.entries.chunked(4).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                row.forEach { key ->
-                    Surface(
-                        modifier = Modifier.weight(1f).clickable { iconKey = key },
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (iconKey == key) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 8.dp)) {
-                            Text(key.emoji, style = MaterialTheme.typography.titleLarge)
-                            Text(key.title, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                        }
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(4),
+            modifier = Modifier.fillMaxWidth().height(248.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            items(MethodMeshWidgetIconKey.entries) { key ->
+                Surface(
+                    modifier = Modifier.clickable { iconKey = key },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (iconKey == key) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 8.dp)) {
+                        Text(key.emoji, style = MaterialTheme.typography.titleLarge)
+                        Text(key.title, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                     }
                 }
-                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
             }
-            Spacer(Modifier.height(6.dp))
         }
         Text("Colour", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {

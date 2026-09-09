@@ -1,0 +1,189 @@
+{
+  "schema": "methodmesh.paper.v1",
+  "template_id": "paperbridge_designer_demo",
+  "version": "1",
+  "title": "Paper Bridge designer demo",
+  "page": {
+    "width_px": 1600,
+    "height_px": 2263
+  },
+  "anchors": {
+    "search_fraction": 0.24,
+    "threshold_luma": 150,
+    "minimum_score": 0.28
+  },
+  "fields": [
+    {
+      "name": "participant_id",
+      "label": "Participant ID",
+      "type": "ocr_text",
+      "roi": [
+        0.18,
+        0.15,
+        0.52,
+        0.188
+      ],
+      "required": true,
+      "regex": "[A-Za-z0-9_-]{1,24}",
+      "normalise": "trim",
+      "auto_accept": false
+    },
+    {
+      "name": "visit_number",
+      "label": "Visit number",
+      "type": "ocr_integer",
+      "roi": [
+        0.72,
+        0.15,
+        0.82,
+        0.188
+      ],
+      "required": true,
+      "min": 1,
+      "max": 12,
+      "normalise": "trim",
+      "auto_accept": false
+    },
+    {
+      "name": "eaten_today",
+      "label": "Have you eaten today?",
+      "type": "omr_single",
+      "required": true,
+      "threshold": 0.18,
+      "min_separation": 0.06,
+      "options": [
+        {
+          "value": "none",
+          "label": "Nothing",
+          "roi": [
+            0.18,
+            0.292,
+            0.205,
+            0.316
+          ]
+        },
+        {
+          "value": "little",
+          "label": "A little",
+          "roi": [
+            0.18,
+            0.332,
+            0.205,
+            0.356
+          ]
+        },
+        {
+          "value": "some",
+          "label": "Some",
+          "roi": [
+            0.18,
+            0.372,
+            0.205,
+            0.396
+          ]
+        },
+        {
+          "value": "full",
+          "label": "A full meal",
+          "roi": [
+            0.18,
+            0.412,
+            0.205,
+            0.436
+          ]
+        }
+      ],
+      "allowed_values": [
+        "none",
+        "little",
+        "some",
+        "full"
+      ]
+    },
+    {
+      "name": "symptoms",
+      "label": "Symptoms today",
+      "type": "omr_multiple",
+      "required": false,
+      "separator": " ",
+      "threshold": 0.18,
+      "min_separation": 0.06,
+      "options": [
+        {
+          "value": "fever",
+          "label": "Fever",
+          "roi": [
+            0.18,
+            0.515,
+            0.205,
+            0.539
+          ]
+        },
+        {
+          "value": "cough",
+          "label": "Cough",
+          "roi": [
+            0.52,
+            0.515,
+            0.545,
+            0.539
+          ]
+        },
+        {
+          "value": "diarrhoea",
+          "label": "Diarrhoea",
+          "roi": [
+            0.18,
+            0.558,
+            0.205,
+            0.582
+          ]
+        },
+        {
+          "value": "headache",
+          "label": "Headache",
+          "roi": [
+            0.52,
+            0.558,
+            0.545,
+            0.582
+          ]
+        }
+      ],
+      "allowed_values": [
+        "fever",
+        "cough",
+        "diarrhoea",
+        "headache"
+      ]
+    },
+    {
+      "name": "temperature_c",
+      "label": "Temperature (C)",
+      "type": "ocr_decimal",
+      "roi": [
+        0.18,
+        0.672,
+        0.34,
+        0.716
+      ],
+      "required": true,
+      "min": 34.0,
+      "max": 43.0,
+      "normalise": "trim",
+      "auto_accept": false
+    },
+    {
+      "name": "specimen_barcode",
+      "label": "Specimen barcode",
+      "type": "barcode",
+      "roi": [
+        0.54,
+        0.655,
+        0.84,
+        0.755
+      ],
+      "required": false
+    }
+  ]
+}

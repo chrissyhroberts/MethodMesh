@@ -26,4 +26,28 @@ object UntilTimeCapability {
         val today = now.toLocalDate().atTime(time).atZone(zone)
         return (if (today.isAfter(now)) today else today.plusDays(1)).toInstant().toString()
     }
+
+    /**
+     * Resolve an absolute target from an anchor instant, a whole-day offset and a local clock
+     * time. The target date is calculated in [zoneId], so DST changes are handled by java.time.
+     *
+     * Example: anchor day + 15 days, 21:00 Europe/London.
+     */
+    fun daysAfterAnchorAtLocalTime(
+        anchorTimestamp: String,
+        dayOffset: Int,
+        localTime: String,
+        zoneId: String = ZoneId.systemDefault().id
+    ): String {
+        require(dayOffset >= 0) { "dayOffset must be non-negative" }
+        val zone = ZoneId.of(zoneId)
+        val anchor = Instant.parse(anchorTimestamp).atZone(zone)
+        val time = LocalTime.parse(localTime)
+        return anchor.toLocalDate()
+            .plusDays(dayOffset.toLong())
+            .atTime(time)
+            .atZone(zone)
+            .toInstant()
+            .toString()
+    }
 }

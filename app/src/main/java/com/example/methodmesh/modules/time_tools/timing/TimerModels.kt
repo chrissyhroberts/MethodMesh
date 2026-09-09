@@ -11,6 +11,29 @@ sealed interface TimerStatus {
     data class Failed(val diagnostic: String) : TimerStatus
 }
 
+data class AlertProfile(
+    val sound: Boolean = true,
+    val vibration: Boolean = true,
+    val lights: Boolean = true,
+    val showOnLockScreen: Boolean = true,
+    val showFullContentOnLockScreen: Boolean = false,
+    val highPriority: Boolean = true
+) {
+    fun stableKey(): String = buildString {
+        append(if (sound) 's' else 'q')
+        append(if (vibration) 'v' else 'q')
+        append(if (lights) 'l' else 'q')
+        append(if (highPriority) 'h' else 'n')
+    }
+}
+
+data class TimerNotificationPolicy(
+    val showOngoingNotification: Boolean = true,
+    val ongoingOnLockScreen: Boolean = true,
+    val alertAtCompletion: Boolean = true,
+    val alertProfile: AlertProfile = AlertProfile()
+)
+
 data class MonotonicTimerState(
     val id: String,
     val label: String? = null,
@@ -21,7 +44,8 @@ data class MonotonicTimerState(
     val accumulatedPauseMs: Long = 0L,
     val completedAt: Instant? = null,
     val finalElapsedMs: Long? = null,
-    val status: TimerStatus = TimerStatus.Configured
+    val status: TimerStatus = TimerStatus.Configured,
+    val notificationPolicy: TimerNotificationPolicy = TimerNotificationPolicy()
 )
 
 data class Lap(
@@ -40,7 +64,8 @@ data class StopwatchState(
     val laps: List<Lap> = emptyList(),
     val completedAt: Instant? = null,
     val finalElapsedMs: Long? = null,
-    val status: TimerStatus = TimerStatus.Configured
+    val status: TimerStatus = TimerStatus.Configured,
+    val notificationPolicy: TimerNotificationPolicy = TimerNotificationPolicy(alertAtCompletion = false)
 )
 
 data class IntervalPhase(
@@ -52,7 +77,8 @@ data class IntervalPhase(
 data class IntervalProgram(
     val phases: List<IntervalPhase>,
     val cycles: Int = 1,
-    val label: String? = null
+    val label: String? = null,
+    val notificationPolicy: TimerNotificationPolicy = TimerNotificationPolicy()
 ) {
     init {
         require(phases.isNotEmpty()) { "Interval program must contain at least one phase" }

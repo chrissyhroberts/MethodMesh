@@ -1,15 +1,15 @@
 {
   "schema": "methodmesh.odk_template_index.v3",
   "generatedFrom": "/Users/icrucrob/AndroidStudioProjects/MethodMesh/app/src/main/java/com/example/methodmesh",
-  "templateCount": 365,
-  "moduleCount": 67,
+  "templateCount": 386,
+  "moduleCount": 72,
   "validationSummary": {
-    "formsNeedingRevision": 79,
-    "cleanForms": 286,
+    "formsNeedingRevision": 95,
+    "cleanForms": 291,
     "severityCounts": {
-      "error": 1,
-      "warning": 35,
-      "style": 60,
+      "error": 4,
+      "warning": 36,
+      "style": 77,
       "info": 0
     },
     "authoritativeValidatedForms": 0,
@@ -3691,6 +3691,396 @@
       }
     },
     {
+      "id": "geocaching.example_odk_showcase_average_coordinates",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Average coordinates",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_average_coordinates.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_average_coordinates.xlsx",
+      "centralFormId": "methodmesh_average_coordinates",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_average_coordinates.xlsx",
+      "sha256": "c128587d3ea0f54b9842c2bd07df78bb1562d8cc362fcf424f86d3b330ddb301",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_average_coordinates' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "geocaching.example_odk_showcase_cache_details",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Cache details",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_cache_details.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_cache_details.xlsx",
+      "centralFormId": "methodmesh_cache_details",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_cache_details.xlsx",
+      "sha256": "8fe210dc701cb7b7b6357935a1b75f77b190f298bdeefd277ee4ee2bd6598be6",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_cache_details' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "geocaching.example_odk_showcase_cache_library",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Cache library",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_cache_library.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_cache_library.xlsx",
+      "centralFormId": "methodmesh_cache_library",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_cache_library.xlsx",
+      "sha256": "586b4b4813eec7e366db2d7d2bfe37e3293a1c9d2da6674a88feeb99ab02cc97",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_cache_library' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "geocaching.example_odk_showcase_cache_navigation",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Cache navigation",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_cache_navigation.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_cache_navigation.xlsx",
+      "centralFormId": "methodmesh_cache_navigation",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_cache_navigation.xlsx",
+      "sha256": "26cd13a93d2b3e69e3aee99f887a3e139ec0174d3ce679a57b224782fc1b9abe",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_cache_navigation' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "geocaching.example_odk_showcase_find_history",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Find history",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_find_history.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_find_history.xlsx",
+      "centralFormId": "methodmesh_find_history",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_find_history.xlsx",
+      "sha256": "88056230576a8c609cdaf554489b648318f2573045ca540ad618ddd2576988c4",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_find_history' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "geocaching.example_odk_showcase_geocaching_account",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Geocaching account",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_geocaching_account.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_geocaching_account.xlsx",
+      "centralFormId": "methodmesh_geocaching_account",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_geocaching_account.xlsx",
+      "sha256": "85138c6cbab66789c0c90d299b67a3d6755a973d8c5945e2a05f5a79dc970274",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_geocaching_account' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "geocaching.example_odk_showcase_geocaching_dashboard",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Geocaching dashboard",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_geocaching_dashboard.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_geocaching_dashboard.xlsx",
+      "centralFormId": "methodmesh_geocaching_dashboard",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_geocaching_dashboard.xlsx",
+      "sha256": "2ce08d430951f14be887ad132ca908f01f4d6c425c945d528ddf22ead387255b",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_geocaching_dashboard' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "geocaching.example_odk_showcase_geocaching_sync",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Geocaching sync",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_geocaching_sync.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_geocaching_sync.xlsx",
+      "centralFormId": "methodmesh_geocaching_sync",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_geocaching_sync.xlsx",
+      "sha256": "2f536203adca5036aa9f216870417db58f71a4b7fc6b6cc4480b585d6f7a4f0b",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_geocaching_sync' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "geocaching.example_odk_showcase_nearby_caches",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Nearby caches",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_nearby_caches.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_nearby_caches.xlsx",
+      "centralFormId": "methodmesh_nearby_caches",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_nearby_caches.xlsx",
+      "sha256": "5a4e3c15543c53fd8a9ca921f7707a93a2477e21be92a288cd422331cd1e67fe",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_nearby_caches' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "geocaching.example_odk_showcase_project_waypoint",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Project waypoint",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_project_waypoint.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_project_waypoint.xlsx",
+      "centralFormId": "methodmesh_project_waypoint",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_project_waypoint.xlsx",
+      "sha256": "64ef612a3554105d5dbe2d9dbee9b3988451ca5cc945508aca1f9ed79f12149f",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_project_waypoint' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "geocaching.example_odk_showcase_record_visit",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Record geocache visit",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_record_visit.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_record_visit.xlsx",
+      "centralFormId": "methodmesh_record_visit",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_record_visit.xlsx",
+      "sha256": "632ed40216264cb06c2400666a7d8801a07de15c1bf748c2244231ba039f5791",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_record_visit' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "geocaching.example_odk_showcase_trackable_history",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Trackable journey",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_trackable_history.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_trackable_history.xlsx",
+      "centralFormId": "methodmesh_trackable_history",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_trackable_history.xlsx",
+      "sha256": "61c1879bd8513cfafdd5a15ecd1a70b5462b00a4db7023236f557973faf49e87",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_trackable_history' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "geocaching.example_odk_showcase_trackable_record",
+      "moduleId": "geocaching",
+      "moduleName": "Geocaching",
+      "displayName": "MethodMesh Record trackable event",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_trackable_record.xlsx",
+      "sourceRelativePath": "modules/geocaching/docs/example_odk_showcase_trackable_record.xlsx",
+      "centralFormId": "methodmesh_trackable_record",
+      "formVersion": "2026090802",
+      "assetPath": "methodmesh/odk_templates/geocaching/example_odk_showcase_trackable_record.xlsx",
+      "sha256": "83c735eda94d4c6b9a5514f404e274a4e47b67ab6fca6dc7df867d67d4faca87",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_trackable_record' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'geocaching_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
       "id": "gpstargetnavigator.example_odk_gps_target_navigator",
       "moduleId": "gpstargetnavigator",
       "moduleName": "Gpstargetnavigator",
@@ -4644,6 +5034,45 @@
             "message": "form_id 'visual_magnifier_capture_showcase' does not identify its owning module.",
             "location": "settings.form_id",
             "suggestion": "For new forms prefer IDs beginning 'magnifier_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "media.example_odk_showcase_media",
+      "moduleId": "media",
+      "moduleName": "Media",
+      "displayName": "MethodMesh Media showcase",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_media.xlsx",
+      "sourceRelativePath": "modules/media/docs/example_odk_showcase_media.xlsx",
+      "centralFormId": "methodmesh_media_showcase",
+      "formVersion": "20260908.2",
+      "assetPath": "methodmesh/odk_templates/media/example_odk_showcase_media.xlsx",
+      "sha256": "714810e60cfbffcc1e175976e267a5368ee0a1415be33a6c075c74865f374177",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_media_showcase' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'media_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260908.2' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
           }
@@ -5831,6 +6260,36 @@
       }
     },
     {
+      "id": "paperbridge.example_odk_showcase_paper_form_transcribe",
+      "moduleId": "paperbridge",
+      "moduleName": "Paperbridge",
+      "displayName": "Paper Bridge designer demo",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_paper_form_transcribe.xlsx",
+      "sourceRelativePath": "modules/paperbridge/docs/example_odk_showcase_paper_form_transcribe.xlsx",
+      "centralFormId": "paperbridge_designer_demo",
+      "formVersion": "1",
+      "assetPath": "methodmesh/odk_templates/paperbridge/example_odk_showcase_paper_form_transcribe.xlsx",
+      "sha256": "fa9d0dc8640de03e1d110e372b219bdee806c1d730ba316fea01ba6d08aa368e",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '1' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
       "id": "pluscodecapture.example_odk_plus_code_capture",
       "moduleId": "pluscodecapture",
       "moduleName": "Pluscodecapture",
@@ -6329,6 +6788,15 @@
             "message": "settings.version is blank.",
             "location": "settings.version",
             "suggestion": "Use an incrementing version. MethodMesh recommends YYYYMMDDrr for new forms.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_TITLE_DUPLICATE",
+            "message": "Form title 'form_id' is used by more than one template.",
+            "location": "settings.form_title",
+            "suggestion": "Use distinct human-readable titles so testers can identify the intended form.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
           }
@@ -6976,6 +7444,226 @@
       }
     },
     {
+      "id": "signals.example_odk_showcase_signal_audio_fsk_receive",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Audio FSK receive",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_audio_fsk_receive.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_audio_fsk_receive.xlsx",
+      "centralFormId": "signals_signal_audio_fsk_receive",
+      "formVersion": "2026090906",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_audio_fsk_receive.xlsx",
+      "sha256": "5eadbc82200e5eb634843f578804a3d0200f6fbfeeaadbd27a8d082051a54190",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_audio_fsk_transmit",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Audio FSK transmit",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_audio_fsk_transmit.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_audio_fsk_transmit.xlsx",
+      "centralFormId": "signals_signal_audio_fsk_transmit",
+      "formVersion": "2026090906",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_audio_fsk_transmit.xlsx",
+      "sha256": "1ddf7f45ca6a5cb98cd90960a5716bb6fd3a2418cb074539991a371720820d29",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_morse_receive",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Morse receive",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_morse_receive.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_morse_receive.xlsx",
+      "centralFormId": "signals_signal_morse_receive",
+      "formVersion": "2026090906",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_morse_receive.xlsx",
+      "sha256": "caea5a6d0eaa87fcb6ef17d036a968ad3301937e92eb5891a1856308ee8ae233",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_morse_transmit",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Morse transmit",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_morse_transmit.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_morse_transmit.xlsx",
+      "centralFormId": "signals_signal_morse_transmit",
+      "formVersion": "2026090906",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_morse_transmit.xlsx",
+      "sha256": "5bf3e32e871f4bb95dafd7763e0d2957aeb70a5c2818cdd019b8cfb84598ae1a",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_qr_receive",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — QR burst receive",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_qr_receive.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_qr_receive.xlsx",
+      "centralFormId": "signals_signal_qr_receive",
+      "formVersion": "2026090906",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_qr_receive.xlsx",
+      "sha256": "f3adf1cfcbb41c7b53f27141afb0b72b98c88bc0dc375b3daf24949a22cfa7c5",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_qr_transmit",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — QR burst transmit",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_qr_transmit.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_qr_transmit.xlsx",
+      "centralFormId": "signals_signal_qr_transmit",
+      "formVersion": "2026090906",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_qr_transmit.xlsx",
+      "sha256": "b3bfb6541b5513be13aa65b01ae240861f29cf7e77843b608a6babf05f28d2f2",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_sensor_scope",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Sensor scope",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_sensor_scope.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_sensor_scope.xlsx",
+      "centralFormId": "signals_signal_sensor_scope",
+      "formVersion": "2026090906",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_sensor_scope.xlsx",
+      "sha256": "0e15baf4b8cfd233c01114875d3bc83e7faf48903307100b1b836ffbefe32e1f",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_surface_receive",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Tabletop surface receive",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_surface_receive.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_surface_receive.xlsx",
+      "centralFormId": "signals_signal_surface_receive",
+      "formVersion": "2026090906",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_surface_receive.xlsx",
+      "sha256": "1721e25ad4d829b9ce3529bff538c63e5d4c1ee79cc0b2a71f43e1c64aca6e7c",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_surface_transmit",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Tabletop surface transmit",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_surface_transmit.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_surface_transmit.xlsx",
+      "centralFormId": "signals_signal_surface_transmit",
+      "formVersion": "2026090906",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_surface_transmit.xlsx",
+      "sha256": "38d56e42b925332cde30d7595de4f8bd8cc8577f181929726d61ed792efc09c1",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_ultrasonic_receive",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Near-ultrasonic receive",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_ultrasonic_receive.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_ultrasonic_receive.xlsx",
+      "centralFormId": "signals_signal_ultrasonic_receive",
+      "formVersion": "2026090906",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_ultrasonic_receive.xlsx",
+      "sha256": "2563a7c10b9fb49117794bc5313d2b74dc74b122f3aaad1ca808883350f65ec6",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_ultrasonic_transmit",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Near-ultrasonic transmit",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_ultrasonic_transmit.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_ultrasonic_transmit.xlsx",
+      "centralFormId": "signals_signal_ultrasonic_transmit",
+      "formVersion": "2026090906",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_ultrasonic_transmit.xlsx",
+      "sha256": "7b22ee5139801f4ef5ce5741b28e31d89b1ff4ab3501712811799af89c510b88",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
       "id": "sms.example_odk_showcase_sms_send",
       "moduleId": "sms",
       "moduleName": "Sms",
@@ -7566,6 +8254,54 @@
       }
     },
     {
+      "id": "tamagotchi.example_odk_tamagotchi_teaching",
+      "moduleId": "tamagotchi",
+      "moduleName": "Tamagotchi",
+      "displayName": "form_id",
+      "description": "",
+      "sourceFileName": "example_odk_tamagotchi_teaching.xlsx",
+      "sourceRelativePath": "modules/tamagotchi/docs/example_odk_tamagotchi_teaching.xlsx",
+      "centralFormId": "tamagotchi.example_odk_tamagotchi_teaching",
+      "formVersion": "",
+      "assetPath": "methodmesh/odk_templates/tamagotchi/example_odk_tamagotchi_teaching.xlsx",
+      "sha256": "fd387b3d6ddc365260b0b073cdea653b46ca9053da8dfac11fff171335253ab4",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "error",
+            "code": "FORM_ID_MISSING",
+            "message": "settings.form_id is blank.",
+            "location": "settings.form_id",
+            "suggestion": "Use a stable lower-snake-case ID, preferably beginning 'tamagotchi_'.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "warning",
+            "code": "FORM_VERSION_MISSING",
+            "message": "settings.version is blank.",
+            "location": "settings.version",
+            "suggestion": "Use an incrementing version. MethodMesh recommends YYYYMMDDrr for new forms.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_TITLE_DUPLICATE",
+            "message": "Form title 'form_id' is used by more than one template.",
+            "location": "settings.form_title",
+            "suggestion": "Use distinct human-readable titles so testers can identify the intended form.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
       "id": "texttools.example_odk_showcase_text_case",
       "moduleId": "texttools",
       "moduleName": "Texttools",
@@ -7796,137 +8532,17 @@
       }
     },
     {
-      "id": "time_tools.example_odk_showcase_time_countdown",
-      "moduleId": "time_tools",
-      "moduleName": "Time Tools",
-      "displayName": "MethodMesh Time Tools — time.countdown",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_time_countdown.xlsx",
-      "sourceRelativePath": "modules/time_tools/docs/example_odk_showcase_time_countdown.xlsx",
-      "centralFormId": "time_tools_time_countdown",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/time_tools/example_odk_showcase_time_countdown.xlsx",
-      "sha256": "f24801ed865e33f257211eedcb22c06fc536776208c194dbd49a09897e7d7f63",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "time_tools.example_odk_showcase_time_duration_calculate",
-      "moduleId": "time_tools",
-      "moduleName": "Time Tools",
-      "displayName": "MethodMesh Time Tools — time.duration.calculate",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_time_duration_calculate.xlsx",
-      "sourceRelativePath": "modules/time_tools/docs/example_odk_showcase_time_duration_calculate.xlsx",
-      "centralFormId": "time_tools_time_duration_calculate",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/time_tools/example_odk_showcase_time_duration_calculate.xlsx",
-      "sha256": "a38c6e039e863ad254626fcd9131c7fbd89175ffcddc42be659d86a19a0374b7",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "time_tools.example_odk_showcase_time_elapsed",
-      "moduleId": "time_tools",
-      "moduleName": "Time Tools",
-      "displayName": "MethodMesh Time Tools — time.elapsed",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_time_elapsed.xlsx",
-      "sourceRelativePath": "modules/time_tools/docs/example_odk_showcase_time_elapsed.xlsx",
-      "centralFormId": "time_tools_time_elapsed",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/time_tools/example_odk_showcase_time_elapsed.xlsx",
-      "sha256": "9135a5558b76317bb4c989221028ba9497af3a351adaa8a19b56f0b318a25818",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "time_tools.example_odk_showcase_time_interval",
-      "moduleId": "time_tools",
-      "moduleName": "Time Tools",
-      "displayName": "MethodMesh Time Tools — time.interval",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_time_interval.xlsx",
-      "sourceRelativePath": "modules/time_tools/docs/example_odk_showcase_time_interval.xlsx",
-      "centralFormId": "time_tools_time_interval",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/time_tools/example_odk_showcase_time_interval.xlsx",
-      "sha256": "d2b0ab9fbe05df59ffee66f9f763a1f5f086d84ffa2285f7aaf4102409d6fce5",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "time_tools.example_odk_showcase_time_stopwatch",
-      "moduleId": "time_tools",
-      "moduleName": "Time Tools",
-      "displayName": "MethodMesh Time Tools — time.stopwatch",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_time_stopwatch.xlsx",
-      "sourceRelativePath": "modules/time_tools/docs/example_odk_showcase_time_stopwatch.xlsx",
-      "centralFormId": "time_tools_time_stopwatch",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/time_tools/example_odk_showcase_time_stopwatch.xlsx",
-      "sha256": "ca3a0455c0dc9c50a4b7ab2663589a9c35428cce0a6ccba79dd5e48abd642a48",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "time_tools.example_odk_showcase_time_until",
-      "moduleId": "time_tools",
-      "moduleName": "Time Tools",
-      "displayName": "MethodMesh Time Tools — time.until",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_time_until.xlsx",
-      "sourceRelativePath": "modules/time_tools/docs/example_odk_showcase_time_until.xlsx",
-      "centralFormId": "time_tools_time_until",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/time_tools/example_odk_showcase_time_until.xlsx",
-      "sha256": "5da501591fe05b78645b1dcc33602219d84e0ac748ac6cae019e920ca14c66a3",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
       "id": "time_tools.example_odk_time_tools",
       "moduleId": "time_tools",
       "moduleName": "Time Tools",
-      "displayName": "MethodMesh Time Tools example",
+      "displayName": "MethodMesh Time & Alarms examples",
       "description": "",
       "sourceFileName": "example_odk_time_tools.xlsx",
       "sourceRelativePath": "modules/time_tools/docs/example_odk_time_tools.xlsx",
-      "centralFormId": "methodmesh_time_tools_example",
-      "formVersion": "20260906",
+      "centralFormId": "methodmesh_time_tools_examples",
+      "formVersion": "2026090901",
       "assetPath": "methodmesh/odk_templates/time_tools/example_odk_time_tools.xlsx",
-      "sha256": "9b1f8b206a2997b437fb2fc1355095aaff4351d075aa3fc27e8c59eba3e2e513",
+      "sha256": "ce4d98a33e2ba0cd1df9c23eb22462948257d6c65df06dbb4741d42a2a42b86b",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -7936,20 +8552,29 @@
           {
             "severity": "style",
             "code": "FORM_ID_MODULE_PREFIX",
-            "message": "form_id 'methodmesh_time_tools_example' does not identify its owning module.",
+            "message": "form_id 'methodmesh_time_tools_examples' does not identify its owning module.",
             "location": "settings.form_id",
             "suggestion": "For new forms prefer IDs beginning 'time_tools_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
           },
           {
-            "severity": "style",
-            "code": "FORM_VERSION_NONSTANDARD",
-            "message": "version '20260906' does not use the MethodMesh YYYYMMDDrr convention.",
-            "location": "settings.version",
-            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "severity": "error",
+            "code": "SURVEY_NAME_DUPLICATE",
+            "message": "Field/group name 'input_a_ms' appears more than once in the same group scope.",
+            "location": "survey.name row 150",
+            "suggestion": "Names only need to be unique among siblings in the same group/repeat. Reuse in separate groups is valid.",
             "source": "MethodMesh XLSForm lint",
-            "details": ""
+            "details": "Scope: /run_duration; first occurrence: survey row 143; duplicate: survey row 150"
+          },
+          {
+            "severity": "error",
+            "code": "SURVEY_NAME_DUPLICATE",
+            "message": "Field/group name 'input_b_ms' appears more than once in the same group scope.",
+            "location": "survey.name row 151",
+            "suggestion": "Names only need to be unique among siblings in the same group/repeat. Reuse in separate groups is valid.",
+            "source": "MethodMesh XLSForm lint",
+            "details": "Scope: /run_duration; first occurrence: survey row 144; duplicate: survey row 151"
           }
         ]
       }

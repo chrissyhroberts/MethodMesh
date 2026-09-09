@@ -21,7 +21,21 @@ class CountdownViewModel(
     fun pause() { state = state?.let(engine::pause) }
     fun resume() { state = state?.let(engine::resume) }
     fun cancel() { state = state?.let(engine::cancel) }
-    fun addTime(deltaMs: Long) { state = state?.let { engine.addDuration(it, deltaMs) } }
+    fun addTime(deltaMs: Long) {
+        state = state?.let {
+            if (it.status == TimerStatus.Configured) {
+                it.copy(requestedDurationMs = (it.requestedDurationMs + deltaMs).coerceAtLeast(1_000L))
+            } else {
+                engine.addDuration(it, deltaMs)
+            }
+        }
+    }
+
+    fun setDuration(durationMs: Long) {
+        val current = state
+        require(current == null || current.status == TimerStatus.Configured) { "Duration can only be changed before start" }
+        configure(durationMs.coerceAtLeast(1_000L), current?.label)
+    }
 
     /** Refresh before rendering/serialising so completion is observed authoritatively. */
     fun refresh(): MonotonicTimerState? {

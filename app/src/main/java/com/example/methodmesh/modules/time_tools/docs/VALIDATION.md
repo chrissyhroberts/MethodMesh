@@ -1,22 +1,36 @@
-# Time Tools validation
+# Validation — Time & Alarms v0.6
 
-Before promotion to Production, verify at minimum:
+## Contract
 
-1. Each of the six method IDs is auto-discovered independently.
-2. Each can be launched without entering the Time Tools dashboard.
-3. Native countdown, stopwatch and interval state survives rotation.
-4. Countdown and stopwatch remain correct when the device civil clock/timezone changes mid-run.
-5. Pause time is excluded from measured elapsed time.
-6. Lap totals are monotonic and lap durations sum consistently.
-7. Countdown completion is derived from monotonic elapsed time and does not drift with UI tick delays.
-8. `time.until` handles midnight, timezone and DST transitions with `java.time` semantics.
-9. Cancellation returns shared closeout cancellation, not a zero-duration completed payload.
-10. Preset-fixed values are not redundantly requested at runtime.
-11. A protocol can execute each method through generic rails and continue after clean closeout.
-12. ODK grouped intent calls return declared scalar fields and optional `methodmesh_full_json`.
-13. Namespace projection is preserved centrally.
-14. Copy/share defaults to the primary formatted duration rather than JSON.
-15. No capability-specific logic is added to shared Home/Dashboard UI.
-16. Active background timers remain accurate through screen lock and activity recreation after foreground-service integration.
-17. `./gradlew :app:testDebugUnitTest` passes.
-18. `./gradlew :app:assembleDebug` passes.
+- [x] `TimeToolsModule` implements `MethodMeshModule` and is compatible with automatic `*Module.kt` indexing.
+- [x] Individual methods remain independently exposed for direct capability use, presets, protocols and ODK.
+- [x] `time.until` method ID preserved while the human label is now **Date & time countdown**.
+- [x] Dashboard is additive and does not own execution.
+
+## Functional checks
+
+- [x] Monotonic countdown/stopwatch engine self-test retained.
+- [x] Calendar-aware long-range formatter added.
+- [x] Alarm schedule model supports once/daily/weekdays/weekends/weekly/custom days.
+- [x] Reminder message, Done confirmation, configurable follow-ups and Snooze represented in durable timer state.
+- [x] Long-range ongoing notification defaults off.
+- [x] Lock-screen message privacy is independent from lock-screen timer visibility.
+- [x] Notification actions defined for countdown and stopwatch.
+- [x] Elapsed-time and duration-calculator capability screens are no longer generic/no-op surfaces.
+- [x] Interval screen now starts and displays a real interval runtime.
+
+## Host build status
+
+The complete MethodMesh repository is not mounted in this chat runtime, so an Android Gradle build could not be executed here. Pure Kotlin timing/scheduling sources are syntax-tested separately. Before Production promotion run:
+
+`./gradlew :app:testDebugUnitTest`
+
+`./gradlew :app:assembleDebug`
+
+and exercise notification actions on a physical Android device.
+
+## v0.6.1 Compose canvas fix
+
+- Hoisted `MaterialTheme.colorScheme` reads out of the `Canvas` `DrawScope` in `TimerHero`.
+- `Canvas` now receives plain `Color` values captured in the surrounding `@Composable` scope.
+- This removes the compiler error: `@Composable invocations can only happen from the context of a @Composable function`.

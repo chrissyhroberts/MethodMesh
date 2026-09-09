@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.0" creator="MethodMesh Geocaching sample"
+ xmlns="http://www.topografix.com/GPX/1/0"
+ xmlns:groundspeak="http://www.groundspeak.com/cache/1/0">
+  <wpt lat="51.500700" lon="-0.124600">
+    <time>2026-09-08T12:00:00Z</time>
+    <name>GCMM001</name>
+    <desc>MethodMesh sample cache</desc>
+    <sym>Geocache</sym>
+    <type>Geocache|Traditional Cache</type>
+    <groundspeak:cache id="1" available="True" archived="False">
+      <groundspeak:name>MethodMesh sample cache</groundspeak:name>
+      <groundspeak:placed_by>MethodMesh</groundspeak:placed_by>
+      <groundspeak:owner id="1">MethodMesh</groundspeak:owner>
+      <groundspeak:type>Traditional Cache</groundspeak:type>
+      <groundspeak:container>Small</groundspeak:container>
+      <groundspeak:difficulty>1.5</groundspeak:difficulty>
+      <groundspeak:terrain>1.5</groundspeak:terrain>
+      <groundspeak:short_description html="False">Sample only.</groundspeak:short_description>
+      <groundspeak:long_description html="False">A synthetic GPX fixture for testing the module import surface.</groundspeak:long_description>
+      <groundspeak:encoded_hints>Look near the obvious test fixture.</groundspeak:encoded_hints>
+    </groundspeak:cache>
+  </wpt>
+</gpx>

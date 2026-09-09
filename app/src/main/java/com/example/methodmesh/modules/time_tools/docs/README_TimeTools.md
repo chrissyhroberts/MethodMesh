@@ -1,91 +1,81 @@
-# MethodMesh Time Tools
+# MethodMesh Time & Alarms
 
-Status: **Development**
+Status: **Development**  
+Module ID: `time_tools`
 
-Time Tools provides six independently addressable MethodMesh timing capabilities:
-
-- `time.countdown`
-- `time.stopwatch`
-- `time.interval`
-- `time.until`
-- `time.elapsed`
-- `time.duration.calculate`
-
-The module dashboard is only a native convenience surface. Presets, protocols, schedules/widgets and ODK must invoke the constituent methods directly through ordinary MethodMesh discovery and transport.
-
-## Core product behaviour
-
-- Offline-first. No network is required.
-- Countdown and stopwatch duration measurement uses Android monotonic elapsed realtime, not civil time.
-- `time.until` intentionally uses wall-clock / timezone semantics because its target is a civil instant.
-- UI ticks render timing state; they do not define timing state.
-- Primary native outputs are beef-first and directly copy/shareable.
-- Audit/detail JSON is optional and secondary.
-- Cancellation is distinct from successful completion.
-- Fixed preset configuration should be hidden when the preset runs.
+Time & Alarms provides first-class MethodMesh capabilities for live and scheduled time work. The module dashboard is an additional management surface only; presets, protocols, widgets and ODK call the individual method IDs directly.
 
 ## Methods
 
-### `time.countdown`
-Inputs/settings: duration, optional label, completion sound, vibration, repeat policy.
-Core outputs: `formatted_duration`, `duration_ms`, `requested_duration_ms`, `actual_elapsed_ms`, `completion_status`.
+- `time.dashboard` — Time & Alarms manager/launcher.
+- `time.countdown` — duration countdown; native UI supports typed hours/minutes/seconds, date/time mode, pause and `+1:00`.
+- `time.stopwatch` — live stopwatch with laps.
+- `time.interval` — repeated labelled phases.
+- `time.until` — **Date & time countdown**; stable historical method ID retained for compatibility. Supports absolute targets and anchor + calendar-day offset + local time.
+- `time.alarm` — one-off or recurring alarm: daily, weekdays, weekends, weekly or custom weekdays.
+- `time.elapsed` — difference between two date/times.
+- `time.duration.calculate` — duration addition/subtraction.
 
-### `time.stopwatch`
-Runtime controls: start, pause/resume, lap, stop, cancel.
-Core outputs: `formatted_duration`, `duration_ms`, `lap_count`, `laps_json`.
+## Reminder messages and confirmation
 
-### `time.interval`
-Inputs: ordered labelled phases with positive durations; cycle count.
-Core outputs: `formatted_duration`, `completed_cycles`, `configured_cycles`, `completed_phases`, `completion_status`.
+Countdowns, intervals, date/time countdowns and alarms accept a `message`. Example:
 
-### `time.until`
-Inputs: target ISO instant, or native local-time/date selection. Device timezone is the native default.
-Core outputs: `target_timestamp`, `formatted_duration`, `remaining_ms`, `completion_status`.
+`Time to take your progesterone tablet`
 
-### `time.elapsed`
-Inputs: `start_timestamp`, `end_timestamp` as ISO-8601 instants.
-Core outputs: `formatted_duration`, `duration_ms`, `start_timestamp`, `end_timestamp`.
+They also support:
 
-### `time.duration.calculate`
-Inputs: duration A, duration B, operation (`add`/`subtract`).
-Core outputs: `formatted_duration`, `duration_ms`.
+- `require_confirmation` — keep follow-up logic active until the user taps **Done**;
+- `follow_up_count`;
+- `follow_up_interval_minutes`;
+- `snooze_minutes` (`0` disables Snooze);
+- sound, vibration, notification light and priority requests.
 
-## Native dashboard
+Android notification-channel settings remain authoritative: a user can override sound/vibration/light behaviour at OS level.
 
-`TimeToolsDashboardScreen` launches the six method IDs. It must never be the only route to the functions and must not contain duplicate private implementations.
+## Privacy and long-range timers
 
-## Presets and widgets
+`time.until` defaults to **no ongoing notification** and **no persistent lock-screen countdown**. This is deliberate for long/private reminders such as medication or HRT workflows. Users who want a visible event countdown (for example, time until a festival) can opt into the ongoing notification and lock-screen display.
 
-Typical presets include Tea 4m, Incubation 10m, Observation 15m and repeated phase programmes. Generic MethodMesh preset widgets should launch those presets directly.
+Reminder message text is separately controlled by `show_message_on_lock_screen` and defaults off. A lock-screen notification can therefore say only `Reminder due` while the unlocked shade contains the full message.
 
-## Protocols
+Long-range native displays use calendar-aware months/days plus hours/minutes/seconds rather than pretending every month is a fixed number of seconds.
 
-Methods must behave as ordinary protocol steps and close using the shared MethodMesh closeout contract. Example: `barcode.scan -> time.stopwatch -> document.scan`.
+## Notifications
 
-## ODK/XLSForm
+Active short timers can appear in the Android notification shade and lock screen:
 
-ODK supplies inputs and receives core return fields plus optional `methodmesh_full_json`. ODK must not be routed through the dashboard or native configuration flow. MethodMesh should not archive ODK timing results merely because it handled the roundtrip.
+- countdown: live count-down, `+1:00`, Pause/Resume, Stop;
+- stopwatch: live count-up, Lap, Pause/Resume, Stop;
+- interval: live countdown, Pause/Resume, Stop;
+- long-range date/time countdown: optional concise persistent status.
 
-The included XLSForm is an integration example. Because the repository's current external-intent column/URI conventions were not provided in this handoff, its intent declarations are explicitly marked for alignment with the current MethodMesh example forms before release.
+Due notifications support **Done** and **Snooze**. Follow-up reminders are cancelled by Done. Recurring alarms keep their next normal occurrence when the current occurrence is confirmed.
 
-## Background operation
+## Example: cycle-day reminder
 
-The engine is written so elapsed state is calculated from monotonic reference points. Production admission should connect active countdown/interval operations to the repository's foreground-service/notification architecture so screen lock and background execution remain reliable.
+A preset can launch `time.until` from a widget on cycle day 1 with:
 
-## Repository adapter
+- target mode: `anchor_offset_local_time`;
+- anchor: launch time;
+- day offset: `14` when the anchor is labelled cycle day 1 and the target is labelled cycle day 15;
+- local time: `21:00`;
+- message: `Time to take your progesterone tablet`;
+- ongoing notification: `false`;
+- require confirmation: `true`;
+- follow-up count/interval as desired.
 
-`TimeToolsModule.kt` intentionally isolates the MethodMesh-facing binding. The source repository was not supplied, so exact `MethodMeshModule`, descriptor and `MethodSetting` constructor names cannot be truthfully build-verified here. During admission, replace the small adapter definition with the current repo interface while preserving all six method IDs and their independent discovery.
+The timer persists independently of the dashboard.
 
-## Permissions
+## ODK
 
-Depending on target Android version and final background implementation:
+Use the normal grouped MethodMesh intent contract:
 
-- notification permission may be required;
-- foreground-service declaration may be required;
-- vibration is optional.
+`com.example.methodmesh.EXECUTE_METHOD(method_id='time.countdown',input_duration_ms=${input_duration_ms},input_message=${input_message},input_payload_mode='FULL',return_mode='flat')`
 
-No location, network or storage permission is inherently required for the core timing functions.
+Inputs use `input_*` names. Returned fields are group children. The supplied `docs/example_odk_time_tools.xlsx` demonstrates countdown, date/time countdown, stopwatch, interval, alarm, elapsed time and duration calculation.
 
-## Third-party dependencies
+## Android integration
 
-None beyond Android/Jetpack/Kotlin APIs expected to already exist in MethodMesh. `org.json` is used for compact structured outputs.
+This folder includes `docs/ANDROID_MANIFEST_SNIPPET.xml`. The receivers must be merged into the app manifest when the module is admitted. This is an Android platform constraint: MethodMesh Kotlin module discovery cannot dynamically declare manifest receivers needed to wake a stopped process for alarms and notification actions.
+
+No HomeScreen or central capability registration is required.

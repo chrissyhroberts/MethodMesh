@@ -1,0 +1,6 @@
+work_id,title,media_type,year,creator,genres,language,runtime_minutes,provider,region,access_type,addon_required,price,currency,external_id,external_uri,last_verified
+work-001,Included Example,movie,2024,Example Director,"Drama, Mystery",English,96,Netflix,GB,subscription_included,false,,,tmdb:1,https://example.invalid/1,2026-09-08T18:00:00Z
+work-002,Rental Example,movie,2021,Other Director,Thriller,English,110,Prime Video,GB,rent,false,3.49,GBP,tmdb:2,https://example.invalid/2,2026-09-08T18:00:00Z
+work-003,Addon Example,movie,2020,Third Director,Horror,English,88,Prime Video,GB,addon_subscription,true,,,tmdb:3,https://example.invalid/3,2026-09-08T18:00:00Z
+work-004,Ad Supported Example,series,2025,Example Studio,Comedy,English,30,ITVX,GB,free_with_ads,false,,,tmdb:4,https://example.invalid/4,2026-09-08T18:00:00Z
+work-005,Free Example,movie,1973,Example Director,Horror,English,89,BBC iPlayer,GB,free,false,,,tmdb:5,https://example.invalid/5,2026-09-08T18:00:00Z

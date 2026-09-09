@@ -2,6 +2,7 @@ package com.example.methodmesh.modules.time_tools.countdown
 
 import com.example.methodmesh.modules.time_tools.timing.CountdownViewModel
 import com.example.methodmesh.modules.time_tools.timing.TimeFormatting
+import com.example.methodmesh.modules.time_tools.timing.TimeResultPayloads
 import com.example.methodmesh.modules.time_tools.timing.TimerStatus
 
 /**
@@ -26,7 +27,9 @@ class CountdownCapabilityScreen(
         val canPause: Boolean,
         val canResume: Boolean,
         val canCancel: Boolean,
-        val canAdjust: Boolean
+        val canAdjust: Boolean,
+        val remainingMs: Long,
+        val requestedDurationMs: Long
     )
 
     fun uiState(): UiState {
@@ -38,7 +41,9 @@ class CountdownCapabilityScreen(
             canPause = state.status == TimerStatus.Running,
             canResume = state.status == TimerStatus.Paused,
             canCancel = state.status == TimerStatus.Running || state.status == TimerStatus.Paused,
-            canAdjust = state.status == TimerStatus.Running || state.status == TimerStatus.Paused
+            canAdjust = state.status == TimerStatus.Configured || state.status == TimerStatus.Running || state.status == TimerStatus.Paused,
+            remainingMs = model.remainingMs(),
+            requestedDurationMs = state.requestedDurationMs
         )
     }
 
@@ -49,6 +54,14 @@ class CountdownCapabilityScreen(
     fun addMinute() = model.addTime(60_000L)
     fun subtractMinute() = model.addTime(-60_000L)
     fun addSeconds(seconds: Long) = model.addTime(seconds * 1_000L)
+    fun setDuration(durationMs: Long) = model.setDuration(durationMs)
+
+    fun resultPayload(): Map<String, Any?>? {
+        val state = model.refresh() ?: return null
+        return if (state.status == TimerStatus.Completed) {
+            TimeResultPayloads.countdown(state, model.elapsedMs())
+        } else null
+    }
 
     fun completedBeefOrNull(): String? {
         val state = model.refresh() ?: return null

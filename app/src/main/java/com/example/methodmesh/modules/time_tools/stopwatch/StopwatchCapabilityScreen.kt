@@ -3,6 +3,7 @@ package com.example.methodmesh.modules.time_tools.stopwatch
 import com.example.methodmesh.modules.time_tools.timing.Lap
 import com.example.methodmesh.modules.time_tools.timing.StopwatchViewModel
 import com.example.methodmesh.modules.time_tools.timing.TimeFormatting
+import com.example.methodmesh.modules.time_tools.timing.TimeResultPayloads
 import com.example.methodmesh.modules.time_tools.timing.TimerStatus
 
 /** Repository-neutral presentation contract for the stopwatch capability. */
@@ -40,6 +41,11 @@ class StopwatchCapabilityScreen(
     fun resume() = model.resume()
     fun stop() = model.stop()
     fun cancel() = model.cancel()
+
+    fun resultPayload(): Map<String, Any?>? =
+        if (model.state.status == TimerStatus.Completed) {
+            TimeResultPayloads.stopwatch(model.state, model.elapsedMs())
+        } else null
 
     fun completedBeefOrNull(): String? =
         if (model.state.status == TimerStatus.Completed) {

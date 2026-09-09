@@ -1,0 +1,5 @@
+package com.example.methodmesh.modules.geocaching
+
+object As100ProjectWaypointMethod:GeocachingMethodBase("geocache.project_waypoint","Project waypoint","Project a new coordinate from an origin, bearing and distance.",GeocachingContracts.project){
+    override fun calculate(settings:Map<String,String>):Map<String,String>{val lat=settings.gc("origin_latitude")?.toDoubleOrNull()?:error("Origin latitude is required.");val lon=settings.gc("origin_longitude")?.toDoubleOrNull()?:error("Origin longitude is required.");val bearing=settings.gc("bearing_deg")?.toDoubleOrNull()?:error("Bearing is required.");val distance=settings.gc("distance_m")?.toDoubleOrNull()?:error("Distance is required.");val p=GeocachingMath.project(lat,lon,bearing,distance);return success(mapOf("geocache_project_result" to "${p.first.gcFmt()}, ${p.second.gcFmt()}","geocache_project_origin_latitude" to lat.gcFmt(),"geocache_project_origin_longitude" to lon.gcFmt(),"geocache_project_bearing_deg" to bearing.gcFmt(1),"geocache_project_distance_m" to distance.gcFmt(1),"geocache_project_projected_latitude" to p.first.gcFmt(),"geocache_project_projected_longitude" to p.second.gcFmt()))}
+}
