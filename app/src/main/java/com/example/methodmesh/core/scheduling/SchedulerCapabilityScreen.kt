@@ -83,6 +83,7 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
         var notificationMessage by remember { mutableStateOf(suppliedValue("schedule_notification_message")) }
         var headless by remember { mutableStateOf(suppliedValue("schedule_headless").equals("true", ignoreCase = true)) }
         var triggerMode by remember { mutableStateOf(suppliedValue("schedule_trigger_mode").ifBlank { "MANUAL" }) }
+        var absoluteStart by remember { mutableStateOf(suppliedValue("schedule_absolute_start").ifBlank { java.time.LocalDateTime.now().withSecond(0).withNano(0).toString().replace('T', ' ') }) }
         var relativeDays by remember { mutableStateOf(suppliedValue("schedule_relative_days").ifBlank { "0" }) }
         var relativeTime by remember { mutableStateOf(suppliedValue("schedule_relative_time").ifBlank { "00:00" }) }
         var triggerEvent by remember { mutableStateOf(suppliedValue("schedule_trigger_event")) }
@@ -150,14 +151,16 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
                 val parts = relativeTime.split(":").map { it.toLongOrNull() ?: 0 }
                 java.time.Duration.ofDays(days).plusHours(parts.getOrElse(0) { 0 }).plusMinutes(parts.getOrElse(1) { 0 })
             }.getOrElse { java.time.Duration.ZERO }
+            val parsedAbsolute = runCatching { java.time.LocalDateTime.parse(absoluteStart.trim().replace(' ', 'T')).atZone(java.time.ZoneId.systemDefault()) }.getOrNull()
+            if (triggerMode == "ABSOLUTE" && parsedAbsolute == null) { status = "Enter an absolute start as YYYY-MM-DD HH:MM."; return }
+            val anchor = parsedAbsolute ?: java.time.ZonedDateTime.now().withSecond(0).withNano(0)
             val trigger = when (triggerMode) {
-                "ABSOLUTE" -> CronTrigger.Absolute(java.time.ZonedDateTime.now().withSecond(0).withNano(0))
+                "ABSOLUTE" -> CronTrigger.Absolute(anchor)
                 "EVENT" -> CronTrigger.Event(triggerEvent.trim().ifBlank { "preset.completed" })
                 "PRESET" -> CronTrigger.Preset(triggerEvent.trim().ifBlank { "preset.completed" })
                 else -> CronTrigger.Manual
             }
             val effectiveChainId = if (selectedActions.size > 1) chainId.ifBlank { java.util.UUID.randomUUID().toString() } else chainId
-            val anchor = java.time.ZonedDateTime.now().withSecond(0).withNano(0)
             val offsetMinutes = offset.toMinutes().coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             val schedules = selectedActions.mapIndexed { index, action -> ResearchSchedule(
                 id = if (index == 0) existingId.ifBlank { java.util.UUID.randomUUID().toString() } else java.util.UUID.randomUUID().toString(),
@@ -206,6 +209,9 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
             }
             if (triggerMode == "EVENT" || triggerMode == "PRESET") {
                 OutlinedTextField(triggerEvent, { triggerEvent = it }, label = { Text(if (triggerMode == "EVENT") "Event key" else "Triggering preset ID") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            }
+            if (triggerMode == "ABSOLUTE") {
+                OutlinedTextField(absoluteStart, { absoluteStart = it }, label = { Text("Start at (YYYY-MM-DD HH:MM)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             }
             if (triggerMode == "EVENT" || triggerMode == "PRESET") {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
