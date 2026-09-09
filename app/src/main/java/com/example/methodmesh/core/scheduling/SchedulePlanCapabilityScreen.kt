@@ -64,6 +64,7 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
         var name by remember(existingPlan?.id) { mutableStateOf(existingPlan?.name.orEmpty()) }
         var sequenceDays by remember(existingPlan?.id) { mutableStateOf(existingPlan?.rules?.flatMap { (it.timing as? ScheduleTimingRule.RelativeDays)?.days.orEmpty() }?.maxOrNull()?.coerceAtLeast(1)?.toString() ?: "22") }
         var durationDays by remember(existingPlan?.id) { mutableStateOf(existingPlan?.termination?.duration?.toDays()?.toString() ?: "22") }
+        var endMode by remember(existingPlan?.id) { mutableStateOf(existingPlan?.termination?.mode ?: ScheduleEndMode.DURATION) }
         val lanes = remember(existingPlan?.id) {
             mutableStateListOf<BuilderLane>().apply {
                 if (existingPlan == null) add(BuilderLane("Activity"))
@@ -89,7 +90,7 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
         fun save() {
             val totalDays = sequenceDays.toIntOrNull()?.takeIf { it in 1..366 }
             val duration = durationDays.toLongOrNull()?.takeIf { it > 0 }?.let(Duration::ofDays)
-            if (name.isBlank() || totalDays == null || duration == null) { status = "Enter a plan name, sequence length, and duration."; return }
+            if (name.isBlank() || totalDays == null || (endMode == ScheduleEndMode.DURATION && duration == null)) { status = "Enter a plan name, sequence length, and valid end setting."; return }
             val built = lanes.mapNotNull { lane ->
                 val time = LocalTime.of(lane.hour, lane.minute)
                 val action = when {
@@ -102,7 +103,8 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
             }
             if (built.size != lanes.size) { status = "Every lane needs a valid time and action."; return }
             val planLanes = built.map { it.first }
-            val plan = SchedulePlan(id = existingPlan?.id ?: java.util.UUID.randomUUID().toString(), name = name.trim(), activation = ScheduleActivation.MANUAL_DAY_ONE, termination = ScheduleTermination(ScheduleEndMode.DURATION, duration = duration), lanes = planLanes, rules = built.mapIndexed { index, pair -> ScheduleRule(planLanes[index].id, pair.second) }, createdAt = existingPlan?.createdAt ?: java.time.ZonedDateTime.now(), updatedAt = java.time.ZonedDateTime.now(), version = (existingPlan?.version ?: 0) + 1)
+            val termination = if (endMode == ScheduleEndMode.FOREVER) ScheduleTermination(ScheduleEndMode.FOREVER) else ScheduleTermination(ScheduleEndMode.DURATION, duration = duration)
+            val plan = SchedulePlan(id = existingPlan?.id ?: java.util.UUID.randomUUID().toString(), name = name.trim(), activation = ScheduleActivation.MANUAL_DAY_ONE, termination = termination, lanes = planLanes, rules = built.mapIndexed { index, pair -> ScheduleRule(planLanes[index].id, pair.second) }, createdAt = existingPlan?.createdAt ?: java.time.ZonedDateTime.now(), updatedAt = java.time.ZonedDateTime.now(), version = (existingPlan?.version ?: 0) + 1)
             SchedulePlanStore.savePlan(app, plan)
             status = "Saved ${plan.name}. Use Start Day 1 when you are ready."
             val execution = As100SchedulerMethod.result(As100SchedulerMethod.request(capabilityId, emptyMap(), emptyList(), emptyList()), SchedulerOutcome(null, "created"), context.request.invocationContext)
@@ -118,7 +120,13 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
                 OutlinedTextField(name, { name = it }, label = { Text("Plan name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(sequenceDays, { sequenceDays = it.filter(Char::isDigit) }, label = { Text("Days") }, modifier = Modifier.width(120.dp), singleLine = true)
-                    OutlinedTextField(durationDays, { durationDays = it.filter(Char::isDigit) }, label = { Text("Ends after days") }, modifier = Modifier.width(170.dp), singleLine = true)
+                    if (endMode == ScheduleEndMode.DURATION) OutlinedTextField(durationDays, { durationDays = it.filter(Char::isDigit) }, label = { Text("Ends after days") }, modifier = Modifier.width(170.dp), singleLine = true)
+                    else Text("Runs until stopped", modifier = Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.bodyMedium)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Ends:", style = MaterialTheme.typography.bodySmall)
+                    androidx.compose.material3.TextButton(onClick = { endMode = ScheduleEndMode.DURATION }) { Text(if (endMode == ScheduleEndMode.DURATION) "✓ Duration" else "Duration") }
+                    androidx.compose.material3.TextButton(onClick = { endMode = ScheduleEndMode.FOREVER }) { Text(if (endMode == ScheduleEndMode.FOREVER) "✓ Forever" else "Forever") }
                 }
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth().horizontalScroll(gridScroll)) {

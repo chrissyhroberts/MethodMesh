@@ -14,7 +14,9 @@ class SchedulePlanDispatchActivity : Activity() {
         val instance = SchedulePlanStore.instance(this, intent.getStringExtra("instance_id").orEmpty())
         val occurrence = instance?.occurrences?.firstOrNull { it.id == intent.getStringExtra("occurrence_id") }
         if (instance == null || occurrence == null) { finish(); return }
-        val action = occurrence.actions.firstOrNull()
+        val actionIndex = intent.getIntExtra("action_index", 0).coerceAtLeast(0)
+        val action = occurrence.actions.getOrNull(actionIndex)
+        if (action == null) { complete(instance.id, occurrence.id, ScheduleOccurrenceState.COMPLETED); return }
         if (action?.type == ScheduleActionType.PRESET) {
             val preset = ProtocolLibraryRepository.preset(this, action.presetId)
             if (preset == null) {
@@ -27,11 +29,12 @@ class SchedulePlanDispatchActivity : Activity() {
                 putExtra("input_methodmesh_native_preset_run", "true")
                 putExtra("input_methodmesh_headless", "true")
                 putExtra("input_methodmesh_preset_result_action", preset.resultAction)
+                putExtra("action_index", actionIndex)
                 runCatching { JSONObject(preset.settingsJson.ifBlank { "{}" }).keys().forEach { key -> putExtra("input_$key", JSONObject(preset.settingsJson).optString(key)) } }
             }, REQUEST_PRESET)
         } else {
             Toast.makeText(this, action?.message?.ifBlank { occurrence.laneName } ?: occurrence.laneName, Toast.LENGTH_LONG).show()
-            complete(instance.id, occurrence.id, ScheduleOccurrenceState.COMPLETED)
+            continueOrComplete(instance.id, occurrence.id, actionIndex)
         }
     }
 
@@ -40,7 +43,31 @@ class SchedulePlanDispatchActivity : Activity() {
         if (requestCode != REQUEST_PRESET) return
         val instanceId = intent.getStringExtra("instance_id").orEmpty()
         val occurrenceId = intent.getStringExtra("occurrence_id").orEmpty()
-        complete(instanceId, occurrenceId, if (resultCode == RESULT_OK) ScheduleOccurrenceState.COMPLETED else ScheduleOccurrenceState.FAILED)
+        val instance = SchedulePlanStore.instance(this, instanceId)
+        val occurrence = instance?.occurrences?.firstOrNull { it.id == occurrenceId }
+        val actionIndex = intent.getIntExtra("action_index", 0)
+        if (instance == null || occurrence == null || resultCode != RESULT_OK) {
+            complete(instanceId, occurrenceId, ScheduleOccurrenceState.FAILED)
+        } else {
+            continueOrComplete(instanceId, occurrenceId, actionIndex)
+        }
+    }
+
+    private fun continueOrComplete(instanceId: String, occurrenceId: String, actionIndex: Int) {
+        val instance = SchedulePlanStore.instance(this, instanceId)
+        val occurrence = instance?.occurrences?.firstOrNull { it.id == occurrenceId }
+        if (instance == null || occurrence == null) { complete(instanceId, occurrenceId, ScheduleOccurrenceState.FAILED); return }
+        val nextIndex = actionIndex + 1
+        if (nextIndex >= occurrence.actions.size) {
+            complete(instanceId, occurrenceId, ScheduleOccurrenceState.COMPLETED)
+        } else {
+            startActivity(Intent(this, SchedulePlanDispatchActivity::class.java).apply {
+                putExtra("instance_id", instanceId)
+                putExtra("occurrence_id", occurrenceId)
+                putExtra("action_index", nextIndex)
+            })
+            finish()
+        }
     }
 
     private fun complete(instanceId: String, occurrenceId: String, state: ScheduleOccurrenceState) {
