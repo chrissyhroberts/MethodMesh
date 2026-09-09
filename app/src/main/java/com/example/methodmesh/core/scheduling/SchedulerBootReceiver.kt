@@ -13,9 +13,13 @@ class SchedulerBootReceiver : BroadcastReceiver() {
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
             "android.intent.action.QUICKBOOT_POWERON" -> {
+                SchedulerRepository.rescheduleAll(context)
                 SchedulePlanRuntime.rescheduleAll(context)
             }
         }
-        if (intent.action == "android.intent.action.TIME_SET" || intent.action == "android.intent.action.TIMEZONE_CHANGED") SchedulePlanRuntime.rescheduleAll(context)
+        if (intent.action == "android.intent.action.TIME_SET" || intent.action == "android.intent.action.TIMEZONE_CHANGED") {
+            SchedulerRepository.rescheduleAll(context)
+            SchedulePlanRuntime.rescheduleAll(context)
+        }
     }
 }
