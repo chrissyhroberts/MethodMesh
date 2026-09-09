@@ -37,7 +37,7 @@ Use `esp32.mesh_install` from the same ESP32 sensor framework when preparing an 
 1. Put the ESP32-C3 into ROM bootloader mode and install the bundled MicroPython runtime.
 2. Reset the board normally and let the framework detect the MicroPython USB device.
 3. Upload the bundled `firmware/esp32c3_espmesh/main.py` runtime.
-4. Open the **ESP mesh gateway** capability, scan for the node over BLE, and provision its network ID, network key, and provisioning token.
+4. Open the **ESP mesh gateway** capability, scan for the node over BLE, and provision its network ID and network key. A fresh node can be provisioned without a token; the per-node token is only needed when reconfiguring an already-provisioned node.
 
 This keeps USB installation, board recovery, and firmware provenance in one workbench. The mesh gateway capability is used after installation for BLE discovery, provisioning, and message transport.
 

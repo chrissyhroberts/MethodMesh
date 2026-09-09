@@ -194,7 +194,14 @@ class MethodMeshMeshNode:
     def configure(self, body):
         # Provisioning must be performed through a future authenticated flow.
         # This command only accepts an already-authorised local test payload.
-        if body.get("provisioning_token") != self.config.get("provisioning_token", ""):
+        supplied_token = str(body.get("provisioning_token") or "")
+        expected_token = self.config.get("provisioning_token", "")
+        # A factory-fresh node has no network yet, so physical BLE proximity is
+        # the first-use authorisation. Once provisioned, the per-node token is
+        # required for any later reconfiguration.
+        if self.config.get("provisioned") and supplied_token != expected_token:
+            return
+        if not self.config.get("provisioned") and supplied_token and supplied_token != expected_token:
             return
         updated = dict(self.config)
         updated["node_name"] = str(body.get("node_name") or updated["node_name"])[:26]

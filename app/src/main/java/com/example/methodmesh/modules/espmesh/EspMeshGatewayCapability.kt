@@ -92,13 +92,13 @@ object EspMeshGatewayCapabilityScreen : CapabilityScreenSpec {
             Text("Network provisioning", style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(networkId, { networkId = it }, label = { Text("Network ID") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(networkKey, { networkKey = it }, label = { Text("Network key") }, modifier = Modifier.fillMaxWidth(), singleLine = true, visualTransformation = PasswordVisualTransformation())
-            OutlinedTextField(provisioningToken, { provisioningToken = it }, label = { Text("Node provisioning token") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(provisioningToken, { provisioningToken = it }, label = { Text("Node provisioning token (optional for a new node)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             Button(
                 onClick = {
                     val sent = provider.configureNetwork(networkId, networkKey, provisioningToken)
                     configStatus = sent.detail
                 },
-                enabled = status.connected && networkId.isNotBlank() && networkKey.isNotBlank() && provisioningToken.isNotBlank(),
+                enabled = status.connected && networkId.isNotBlank() && networkKey.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Provision network") }
             if (configStatus.isNotBlank()) Text(configStatus, style = MaterialTheme.typography.bodySmall)
