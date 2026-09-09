@@ -19,8 +19,16 @@ ESP mesh Android gateway adapter
 ESP-NOW nodes and relays
 ```
 
-The initial protocol target is a versioned gateway bridge carrying the MethodMesh envelope as opaque JSON. Later firmware can add fragmentation, TTL, acknowledgements, deduplication and store-and-forward without changing the core envelope.
+The gateway bridge carries the MethodMesh envelope as opaque JSON. The current reference node implements TTL, duplicate suppression, bounded store-and-forward and authenticated ESP-NOW packets. BLE bridge frames are bounded to 4 KiB; larger payloads are rejected until a deliberate fragmentation contract is added.
 
 `EspMeshBridgeFrame` currently defines the Android-side frame shape (`methodmesh.gateway`, version 1) and bounds decoded bridge frames. It deliberately does not encode ESP-NOW packet headers, radio addresses or cryptographic membership state; those are firmware and gateway concerns.
 
 No keys, MAC addresses or radio-specific routing values are exposed as MethodMesh identity.
+
+## Provisioning and background operation
+
+The gateway capability scans for the module GATT service, provisions a selected device, and can send a network ID, network key, peer list and device provisioning token. The reference firmware derives a per-device default token from its hardware identity; production provisioning should deliver that token through a physical or NFC-assisted enrolment step rather than exposing it in the radio protocol.
+
+After a gateway is selected, MethodMesh can run the `connectedDevice` foreground service. The service restarts the generic transport runtime so queued outbound messages and inbound envelopes continue to work while the dashboard or capability screen is closed. The diagnostics capability reports provider state and bounded inbox/outbox counts without showing keys or payloads.
+
+The current firmware reference is MicroPython for the repository's existing ESP32-C3 workflow. It is suitable for protocol and bench testing. Encrypted payloads, authenticated multi-node provisioning, route discovery and a production image build remain explicit follow-up work.
