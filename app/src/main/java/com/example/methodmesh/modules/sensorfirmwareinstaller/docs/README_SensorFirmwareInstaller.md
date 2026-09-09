@@ -3,6 +3,7 @@
 Capability IDs:
 
 - `esp32.sensor_profile_install`
+- `esp32.mesh_install`
 
 This capability installs the MethodMesh ESP32-C3 sensor stack from inside the Android app. Field installation uses prebuilt, sensor-specific full flash images so the phone does not need to copy Python files through the MicroPython REPL.
 
@@ -28,6 +29,17 @@ Bundled full image assets:
 These images contain the MicroPython firmware plus a `vfs` filesystem partition with `main.py`, sensor drivers, and the selected default sensor config.
 
 Installing a sensor image replaces the board runtime and active sensor config. This means changing from one sensor profile to another is an overwrite operation, not an additive one.
+
+## ESP mesh node installation
+
+Use `esp32.mesh_install` from the same ESP32 sensor framework when preparing an ESP-NOW mesh node:
+
+1. Put the ESP32-C3 into ROM bootloader mode and install the bundled MicroPython runtime.
+2. Reset the board normally and let the framework detect the MicroPython USB device.
+3. Upload the bundled `firmware/esp32c3_espmesh/main.py` runtime.
+4. Open the **ESP mesh gateway** capability, scan for the node over BLE, and provision its network ID, network key, and provisioning token.
+
+This keeps USB installation, board recovery, and firmware provenance in one workbench. The mesh gateway capability is used after installation for BLE discovery, provisioning, and message transport.
 
 Older split wipe/runtime/profile screens are no longer registered as app capabilities. The code path is retained only for recovery/debug work while the image-based installer stabilises.
 

@@ -133,3 +133,9 @@ object As100Esp32SensorProfileInstallMethod : As100Method by Esp32FirmwareBounda
     methodName = "Install ESP32 sensor image",
     methodDescription = "Erase and install a complete MethodMesh ESP32-C3 image for the selected sensor."
 )
+
+object As100Esp32MeshInstallMethod : As100Method by Esp32FirmwareBoundaryMethod(
+    id = "esp32.mesh_install",
+    methodName = "Install ESP mesh node",
+    methodDescription = "Install the MethodMesh ESP-NOW mesh-node runtime on an ESP32-C3."
+)

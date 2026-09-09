@@ -65,6 +65,7 @@ import kotlin.math.ceil
 
 private const val ACTION_USB_PERMISSION = "com.example.methodmesh.USB_SENSOR_FIRMWARE_PERMISSION"
 private const val MAIN_PY_ASSET = "firmware/esp32c3_aht20_ble/main.py"
+private const val MESH_MAIN_PY_ASSET = "firmware/esp32c3_espmesh/main.py"
 private const val SENSOR_CONFIG_TARGET = "methodmesh_sensor_config.json"
 private val SENSOR_DRIVER_ASSETS = listOf(
     "firmware/esp32c3_aht20_ble/sensor_drivers/__init__.py" to "sensor_drivers/__init__.py",
@@ -161,7 +162,8 @@ private class SensorFirmwareInstallerCapabilityScreenSpec(
     override val title: String,
     override val description: String,
     private val initialInstallStage: String = "bootloader",
-    private val initialFlashEraseCompleted: Boolean = false
+    private val initialFlashEraseCompleted: Boolean = false,
+    private val meshMode: Boolean = false
 ) : CapabilityScreenSpec {
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
@@ -199,9 +201,10 @@ private class SensorFirmwareInstallerCapabilityScreenSpec(
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         val logScrollState = rememberScrollState()
         val selectedSensorProfile = sensorFirmwareProfileById(selectedSensorProfileId)
-        val mainPy = remember { androidContext.assets.open(MAIN_PY_ASSET).bufferedReader().use { it.readText() } }
+        val mainPyAsset = if (meshMode) MESH_MAIN_PY_ASSET else MAIN_PY_ASSET
+        val mainPy = remember(mainPyAsset) { androidContext.assets.open(mainPyAsset).bufferedReader().use { it.readText() } }
         val driverFiles = remember {
-            SENSOR_DRIVER_ASSETS.map { (assetPath, targetPath) ->
+            if (meshMode) emptyList() else SENSOR_DRIVER_ASSETS.map { (assetPath, targetPath) ->
                 targetPath to androidContext.assets.open(assetPath).bufferedReader().use { it.readText() }
             }
         }
@@ -409,8 +412,8 @@ private class SensorFirmwareInstallerCapabilityScreenSpec(
                     clearMicroPythonCheck()
                     installerProgress = 1f
                     installerProgressNote = "Board is running MicroPython."
-                    installStage = "sensor"
-                    status = "Detected MicroPython REPL. Choose the attached sensor, then upload MethodMesh firmware."
+                    installStage = if (meshMode) "mesh_upload" else "sensor"
+                    status = if (meshMode) "Detected MicroPython REPL. Upload the ESP mesh node runtime." else "Detected MicroPython REPL. Choose the attached sensor, then upload MethodMesh firmware."
                     append("DETECTED: MicroPython REPL.")
                 } else {
                     installerProgress = null
@@ -457,8 +460,8 @@ private class SensorFirmwareInstallerCapabilityScreenSpec(
                     microPythonReadyDeviceName = device.deviceName
                     installerProgress = 1f
                     installerProgressNote = "MicroPython is ready for profile upload."
-                    installStage = "sensor"
-                    status = "MicroPython detected. Choose the attached sensor, then upload MethodMesh firmware."
+                    installStage = if (meshMode) "mesh_upload" else "sensor"
+                    status = if (meshMode) "MicroPython detected. Upload the ESP mesh node runtime." else "MicroPython detected. Choose the attached sensor, then upload MethodMesh firmware."
                     append("MICROPYTHON OK: ${outcome.message}")
                 } else {
                     installerProgress = null
@@ -490,7 +493,7 @@ private class SensorFirmwareInstallerCapabilityScreenSpec(
                                 device = device,
                                 firmware = mainPy,
                                 driverFiles = driverFiles,
-                                configFiles = listOf(SENSOR_CONFIG_TARGET to selectedSensorConfig())
+                                configFiles = if (meshMode) emptyList() else listOf(SENSOR_CONFIG_TARGET to selectedSensorConfig())
                             ) { progress ->
                                 scope.launch { setInstallerProgress(progress) }
                             }
@@ -500,7 +503,10 @@ private class SensorFirmwareInstallerCapabilityScreenSpec(
                 }
                 installing = false
                 installerProgress = if (outcome.success) 1f else installerProgress
-                status = if (outcome.success) "MethodMesh firmware uploaded for ${selectedSensorProfile.label}. Reset the board, then run BLE sensor provisioning." else "Sensor profile upload failed: ${outcome.message}"
+                status = if (outcome.success) {
+                    if (meshMode) "ESP mesh node runtime uploaded. Reset the board, then use ESP mesh gateway to provision it."
+                    else "MethodMesh firmware uploaded for ${selectedSensorProfile.label}. Reset the board, then run BLE sensor provisioning."
+                } else "Firmware upload failed: ${outcome.message}"
                 if (outcome.success) installStage = "done"
                 if (!outcome.success && looksLikeEspIdfFirmware(outcome.message)) {
                     flashEraseCompleted = false
@@ -767,13 +773,14 @@ private class SensorFirmwareInstallerCapabilityScreenSpec(
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
-            Text("Install the MethodMesh sensor stack to an ESP32-C3 from the phone.", style = MaterialTheme.typography.bodyMedium)
+            Text(if (meshMode) "Install the MethodMesh ESP mesh-node stack to an ESP32-C3 from the phone." else "Install the MethodMesh sensor stack to an ESP32-C3 from the phone.", style = MaterialTheme.typography.bodyMedium)
             Text(
                 when (installStage) {
                     "bootloader" -> "Wipe old ESP32 firmware."
                     "write_micropython" -> "Install the MethodMesh ESP32 runtime."
                     "reset" -> "Check the MicroPython USB connection."
                     "sensor" -> "Choose the attached sensor."
+                    "mesh_upload" -> "Upload the ESP mesh-node runtime."
                     "upload" -> "Upload the selected sensor profile."
                     "done" -> "ESP32 sensor setup complete."
                     else -> "ESP32 sensor installer."
@@ -785,8 +792,8 @@ private class SensorFirmwareInstallerCapabilityScreenSpec(
             Text("Bundled firmware", fontWeight = FontWeight.SemiBold)
             Text("$MICROPYTHON_BIN_ASSET · ${microPythonBin.size} bytes · board-level precompiled MicroPython image", style = MaterialTheme.typography.bodySmall)
             Text("${microPythonFlashImage.blocks.size} ready flash block(s) cached in app memory; sensor choice does not rebuild this image.", style = MaterialTheme.typography.bodySmall)
-            Text("$MAIN_PY_ASSET · ${mainPy.toByteArray(Charsets.UTF_8).size} bytes · generic multi-sensor runtime", style = MaterialTheme.typography.bodySmall)
-            Text("${driverFiles.size} sensor driver file(s) · ${driverFiles.sumOf { it.second.toByteArray(Charsets.UTF_8).size }} bytes", style = MaterialTheme.typography.bodySmall)
+            Text("$mainPyAsset · ${mainPy.toByteArray(Charsets.UTF_8).size} bytes · ${if (meshMode) "ESP mesh-node runtime" else "generic multi-sensor runtime"}", style = MaterialTheme.typography.bodySmall)
+            if (!meshMode) Text("${driverFiles.size} sensor driver file(s) · ${driverFiles.sumOf { it.second.toByteArray(Charsets.UTF_8).size }} bytes", style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(10.dp))
 
             if (installStage == "bootloader") {
@@ -956,6 +963,19 @@ private class SensorFirmwareInstallerCapabilityScreenSpec(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = selected != null && !installing
                 ) { Text(if (installing && status.startsWith("Checking MicroPython")) "Checking MicroPython…" else "Check MicroPython connection") }
+            } else if (installStage == "mesh_upload") {
+                Text("Upload the ESP mesh-node runtime.", fontWeight = FontWeight.SemiBold)
+                Text("Reset the board normally, refresh USB devices, select the MicroPython device, then upload. Afterward open ESP mesh gateway to scan and provision the node over BLE.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(onClick = { devices = usbDevices(usbManager); selected = null; status = "Found ${devices.size} USB device(s). Select the normal MicroPython device." }, modifier = Modifier.fillMaxWidth(), enabled = !installing) { Text("Refresh USB devices") }
+                devices.forEach { device ->
+                    OutlinedButton(onClick = { selected = device; status = "Selected normal device: ${device.usbLabel()}" }, modifier = Modifier.fillMaxWidth(), enabled = !installing) {
+                        Text(if (selected == device) "✓ ${device.usbLabel()}" else device.usbLabel())
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = { selected?.let { checkMicroPythonForProfileInstall(it) } ?: run { status = "Select the normal MicroPython USB device first." } }, modifier = Modifier.fillMaxWidth(), enabled = selected != null && !installing) { Text("Check MicroPython connection") }
+                Button(onClick = { selected?.let { installMainPy(it) } ?: run { status = "Select the normal MicroPython USB device first." } }, modifier = Modifier.fillMaxWidth(), enabled = selected != null && !installing) { Text(if (installing) "Uploading mesh runtime…" else "Upload ESP mesh runtime") }
             } else if (installStage == "sensor") {
                 Text("1. Select sensor image to flash.", fontWeight = FontWeight.SemiBold)
                 SENSOR_FIRMWARE_PROFILES.forEach { profile ->
@@ -1112,6 +1132,13 @@ object Esp32SensorProfileInstallCapabilityScreen : CapabilityScreenSpec by Senso
     title = "Install ESP32 sensor image",
     description = "Erase and install a complete MethodMesh ESP32-C3 image for the selected sensor.",
     initialInstallStage = "sensor"
+)
+
+object Esp32MeshInstallCapabilityScreen : CapabilityScreenSpec by SensorFirmwareInstallerCapabilityScreenSpec(
+    capabilityId = As100Esp32MeshInstallMethod.id,
+    title = "Install ESP mesh node",
+    description = "Install the MethodMesh ESP-NOW mesh-node runtime using the ESP32 sensor framework.",
+    meshMode = true
 )
 
 private data class FirmwareInstallResult(val success: Boolean, val usbDevice: String, val message: String)
