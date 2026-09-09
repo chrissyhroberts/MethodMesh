@@ -58,7 +58,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalTime
 
-object SchedulerCapabilityScreen : CapabilityScreenSpec {
+/**
+ * Compatibility implementation retained for older callers.  The active
+ * scheduler surface is the visual cron builder below, so legacy launches must
+ * be redirected rather than exposing the old XLSForm/web-form editor.
+ */
+private object LegacySchedulerCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100SchedulerMethod.ID
     override val title = "Create schedule"
     override val description = "Schedule an ODK form, web form, or MethodMesh process."
@@ -331,6 +336,23 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
             Spacer(Modifier.height(8.dp)); Text(status)
             IntentExampleDropdown(capabilityId, listOf(IntentExample("Create a daily ODK schedule", "Schedule an ODK form", "com.example.methodmesh.EXECUTE_METHOD(method_id='scheduler.create',schedule_name='Daily check',schedule_target='ODK_FORM',schedule_target_value='my_form_id',input_project_id='my_project_id',schedule_frequency='DAILY',schedule_time='09:00',schedule_retry_count='2',return_mode='flat')")))
         }
+    }
+}
+
+/** Compatibility entry point for the historical scheduler capability id. */
+object SchedulerCapabilityScreen : CapabilityScreenSpec {
+    override val capabilityId = As100SchedulerMethod.ID
+    override val title = CronScheduleCapabilityScreen.title
+    override val description = CronScheduleCapabilityScreen.description
+
+    @Composable
+    override fun Render(
+        context: CapabilityScreenContext,
+        onBack: () -> Unit,
+        onConfirmed: (ExecutionResult) -> Unit,
+        onCancel: () -> Unit
+    ) {
+        CronScheduleCapabilityScreen.Render(context, onBack, onConfirmed, onCancel)
     }
 }
 
