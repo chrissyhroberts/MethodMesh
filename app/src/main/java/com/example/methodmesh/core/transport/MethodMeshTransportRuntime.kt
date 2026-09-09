@@ -57,6 +57,13 @@ class MethodMeshTransportRuntime private constructor(context: Context) {
     }
 
     fun pendingOutbox() = store.pendingOutbox()
+    fun diagnostics(): TransportDiagnostics = TransportDiagnostics(
+        registeredTransports = providers.keys().toList().sorted(),
+        transportStatuses = providers.values.associate { it.transportId to it.status.value },
+        inboxCount = store.inboxCount(),
+        outboxCount = store.outboxCount(),
+        pendingOutboxCount = store.pendingOutbox().size
+    )
     fun prune() = store.prune()
 
     private suspend fun flushPending(provider: MethodMeshTransportProvider) {
@@ -76,3 +83,11 @@ class MethodMeshTransportRuntime private constructor(context: Context) {
         fun get(context: Context): MethodMeshTransportRuntime = initialise(context)
     }
 }
+
+data class TransportDiagnostics(
+    val registeredTransports: List<String>,
+    val transportStatuses: Map<String, TransportStatus>,
+    val inboxCount: Int,
+    val outboxCount: Int,
+    val pendingOutboxCount: Int
+)

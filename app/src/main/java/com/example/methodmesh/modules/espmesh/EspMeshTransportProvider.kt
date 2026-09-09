@@ -106,6 +106,24 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         connect(candidate.address)
     }
 
+    @SuppressLint("MissingPermission")
+    fun configureNetwork(networkId: String, networkKey: String, provisioningToken: String, peers: List<String> = emptyList()): TransportSendResult {
+        val connection = gatt
+        val characteristic = uplink
+        if (connection == null || characteristic == null || !status.value.connected) {
+            return TransportSendResult(TransportOutboxState.FAILED_RETRYABLE, "Gateway is not connected")
+        }
+        val frame = EspMeshBridgeFrame("CONFIG", body = org.json.JSONObject()
+            .put("network_id", networkId.trim())
+            .put("network_key", networkKey.trim())
+            .put("provisioning_token", provisioningToken.trim())
+            .put("peers", org.json.JSONArray(peers))).toJson().toString().toByteArray(Charsets.UTF_8)
+        if (frame.size > MAX_BLE_FRAME_BYTES) return TransportSendResult(TransportOutboxState.FAILED_PERMANENT, "Configuration is too large")
+        return if (write(connection, characteristic, frame)) {
+            TransportSendResult(TransportOutboxState.SENT, "Network settings sent")
+        } else TransportSendResult(TransportOutboxState.FAILED_RETRYABLE, "BLE write failed")
+    }
+
     fun gatewayAddress(): String = prefs.getString(KEY_ADDRESS, "").orEmpty()
     fun gatewayName(): String = prefs.getString(KEY_NAME, "").orEmpty()
 

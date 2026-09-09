@@ -1,6 +1,7 @@
 package com.example.methodmesh.modules.espmesh
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -30,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.startForegroundService
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
@@ -48,6 +51,10 @@ object EspMeshGatewayCapabilityScreen : CapabilityScreenSpec {
         val status by provider.status.collectAsState()
         val candidates = remember { mutableStateListOf<EspMeshGatewayCandidate>() }
         var scanning by rememberSaveable { mutableStateOf(false) }
+        var networkId by rememberSaveable { mutableStateOf("") }
+        var networkKey by rememberSaveable { mutableStateOf("") }
+        var provisioningToken by rememberSaveable { mutableStateOf("") }
+        var configStatus by rememberSaveable { mutableStateOf("") }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             if (it.values.all { granted -> granted }) {
@@ -65,6 +72,7 @@ object EspMeshGatewayCapabilityScreen : CapabilityScreenSpec {
         }
         fun provision(candidate: EspMeshGatewayCandidate) {
             provider.provision(candidate)
+            startForegroundService(app, Intent(app, EspMeshGatewayService::class.java))
             val request = As100EspMeshGatewayMethod.request(capabilityId, emptyMap(), emptyList(), emptyList())
             result = As100EspMeshGatewayMethod.execute(request, null, "espmesh")
             if (context.submitsImmediately) result?.let(onConfirmed)
@@ -79,6 +87,20 @@ object EspMeshGatewayCapabilityScreen : CapabilityScreenSpec {
             Text("${status.detail} · ${if (status.connected) "connected" else "not connected"}", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
             Button(onClick = { scan() }, enabled = !scanning, modifier = Modifier.fillMaxWidth()) { Text(if (scanning) "Scanning…" else "Scan for gateways") }
+            Spacer(Modifier.height(8.dp))
+            Text("Network provisioning", style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(networkId, { networkId = it }, label = { Text("Network ID") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(networkKey, { networkKey = it }, label = { Text("Network key") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(provisioningToken, { provisioningToken = it }, label = { Text("Node provisioning token") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            Button(
+                onClick = {
+                    val sent = provider.configureNetwork(networkId, networkKey, provisioningToken)
+                    configStatus = sent.detail
+                },
+                enabled = status.connected && networkId.isNotBlank() && networkKey.isNotBlank() && provisioningToken.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Provision network") }
+            if (configStatus.isNotBlank()) Text(configStatus, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(8.dp))
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(candidates, key = { it.address }) { candidate ->

@@ -42,6 +42,9 @@ class DurableTransportStore(context: Context) {
             .filterNot { it.envelope.isExpired(now) }
     }
 
+    fun inboxCount(): Int = synchronized(lock) { readInbox().size }
+    fun outboxCount(): Int = synchronized(lock) { readOutbox().size }
+
     fun prune(now: Long = System.currentTimeMillis()) = synchronized(lock) {
         writeInbox(readInbox().takeLast(MAX_INBOX_RECORDS))
         writeOutbox(readOutbox()

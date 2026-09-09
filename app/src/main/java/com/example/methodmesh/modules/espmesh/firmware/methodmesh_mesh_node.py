@@ -32,6 +32,7 @@ MAX_DEDUPE = 256
 MAX_QUEUE = 64
 MAX_FRAME = 4096
 DEFAULT_NODE_ID = "espmesh-" + "".join("%02x" % b for b in unique_id()[-4:])
+DEFAULT_PROVISIONING_TOKEN = "".join("%02x" % b for b in unique_id())
 
 SERVICE_UUID = bluetooth.UUID("b6f2a910-9b8f-4f4e-9a1f-4f37a0010000")
 UPLINK_UUID = bluetooth.UUID("b6f2a911-9b8f-4f4e-9a1f-4f37a0010000")
@@ -60,7 +61,7 @@ def authenticate(packet, key):
 
 
 def load_config():
-    config = {"node_id": DEFAULT_NODE_ID, "node_name": "MethodMesh Mesh Node", "provisioned": False, "network_id": "", "network_key": "", "peers": []}
+    config = {"node_id": DEFAULT_NODE_ID, "node_name": "MethodMesh Mesh Node", "provisioned": False, "network_id": "", "network_key": "", "provisioning_token": DEFAULT_PROVISIONING_TOKEN, "peers": []}
     try:
         with open(CONFIG_FILE, "r") as handle:
             stored = json.loads(handle.read())
@@ -72,6 +73,7 @@ def load_config():
     config["peers"] = list(config.get("peers") or [])[:32]
     config["network_id"] = str(config.get("network_id") or "")[:64]
     config["network_key"] = str(config.get("network_key") or "")[:128]
+    config["provisioning_token"] = str(config.get("provisioning_token") or DEFAULT_PROVISIONING_TOKEN)[:128]
     config["provisioned"] = bool(config.get("provisioned", False))
     return config
 
