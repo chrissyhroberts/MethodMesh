@@ -12,6 +12,13 @@ enum class ArtifactLifecycle { PERSISTENT, SESSION, TRANSIENT }
 data class ArtifactRef(val id: String) {
     init { require(id.matches(Regex("[A-Za-z0-9._-]+"))) }
     override fun toString() = "artifact://$id"
+
+    companion object {
+        fun parse(value: String): ArtifactRef {
+            require(value.startsWith("artifact://")) { "Invalid artifact reference" }
+            return ArtifactRef(value.removePrefix("artifact://"))
+        }
+    }
 }
 
 data class Artifact(
@@ -44,6 +51,11 @@ data class ArtifactPickerRequest(
 /** Shared identity, resolution and handoff service. Persistence is explicit. */
 class ArtifactService(private val store: File, private val workspace: File,
     private val openExternal: (String) -> InputStream) {
+    private var openBundled: (String) -> InputStream = openExternal
+
+    constructor(store: File, workspace: File, openBundled: (String) -> InputStream, openExternal: (String) -> InputStream) : this(store, workspace, openExternal) {
+        this.openBundled = openBundled
+    }
     private val records = linkedMapOf<ArtifactRef, Artifact>()
     init {
         store.mkdirs(); workspace.mkdirs()
@@ -69,6 +81,13 @@ class ArtifactService(private val store: File, private val workspace: File,
         require(uri.startsWith("content://")); require(session.isNotBlank())
         return ArtifactRef(UUID.randomUUID().toString()).also { records[it] = Artifact(it, name, mime,
             ArtifactOrigin.EXTERNAL, ArtifactLifecycle.SESSION, uri, sessionId = session) }
+    }
+
+    @Synchronized fun registerBundled(artifact: Artifact): ArtifactRef {
+        require(artifact.origin == ArtifactOrigin.BUNDLED)
+        require(artifact.lifecycle == ArtifactLifecycle.PERSISTENT)
+        records[artifact.ref] = artifact
+        return artifact.ref
     }
 
     @Synchronized fun registerExternal(ref: ArtifactRef, uri: String, name: String, mime: String,
@@ -109,6 +128,8 @@ class ArtifactService(private val store: File, private val workspace: File,
                 storeFile.isFile -> storeFile.inputStream()
                 else -> error("Managed artifact content is unavailable: $ref")
             }
+        } else if (artifact.origin == ArtifactOrigin.BUNDLED) {
+            openBundled(artifact.location)
         } else openExternal(artifact.location)
     }
 
@@ -126,13 +147,18 @@ class ArtifactService(private val store: File, private val workspace: File,
 
     @Synchronized fun create(name: String, mime: String, session: String, input: InputStream,
         lifecycle: ArtifactLifecycle = ArtifactLifecycle.TRANSIENT, parent: ArtifactRef? = null,
-        operation: String? = null): ArtifactRef {
+        operation: String? = null, derivedFrom: ArtifactRef? = null): ArtifactRef {
         require(lifecycle != ArtifactLifecycle.PERSISTENT); require(session.isNotBlank())
         val ref = ArtifactRef(UUID.randomUUID().toString()); val file = File(workspace, ref.id)
         val digest = MessageDigest.getInstance("SHA-256")
-        input.use { source -> file.outputStream().use { target -> source.copyTo(target); digest.update(file.readBytes()) } }
+        try {
+            input.use { source -> file.outputStream().use { target -> source.copyTo(target); digest.update(file.readBytes()) } }
+        } catch (error: Throwable) {
+            file.delete()
+            throw error
+        }
         records[ref] = Artifact(ref, name, mime, ArtifactOrigin.MANAGED, lifecycle, file.name,
-            digest.digest().joinToString("") { "%02x".format(it) }, parent, operation, session)
+            digest.digest().joinToString("") { "%02x".format(it) }, derivedFrom, operation, session)
         return ref
     }
 
