@@ -27,12 +27,15 @@ import org.json.JSONObject
 import java.util.UUID
 
 data class EspMeshGatewayCandidate(val address: String, val name: String, val rssi: Int)
+data class EspMeshGatewayInfo(val nodeId: String = "", val firmware: String = "", val provisioned: Boolean = false, val networkId: String = "")
 
 /** Android BLE gateway adapter. ESP-NOW framing remains firmware-owned. */
 class EspMeshTransportProvider private constructor(private val context: Context) : MethodMeshTransportProvider {
     override val transportId: String = TRANSPORT_ID
     private val mutableStatus = MutableStateFlow(TransportStatus(false, false, "No ESP mesh gateway provisioned"))
     override val status: StateFlow<TransportStatus> = mutableStatus
+    private val mutableGatewayInfo = MutableStateFlow(EspMeshGatewayInfo())
+    val gatewayInfo: StateFlow<EspMeshGatewayInfo> = mutableGatewayInfo
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private var inbound: (suspend (MethodMeshTransportEnvelope) -> Unit)? = null
     private var gatt: BluetoothGatt? = null
@@ -42,6 +45,8 @@ class EspMeshTransportProvider private constructor(private val context: Context)
     private val pendingLock = Any()
     private val callbackScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var scanCallback: ScanCallback? = null
+    private val reconnectHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var reconnectAttempt = 0
 
     override suspend fun start(onEnvelope: suspend (MethodMeshTransportEnvelope) -> Unit) {
         inbound = onEnvelope
@@ -59,6 +64,7 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         uplink = null
         downlink = null
         mutableStatus.value = TransportStatus(false, false, "Stopped")
+        reconnectHandler.removeCallbacksAndMessages(null)
     }
 
     @SuppressLint("MissingPermission")
@@ -152,6 +158,7 @@ class EspMeshTransportProvider private constructor(private val context: Context)
     private val callback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             if (newState == BluetoothGatt.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
+                reconnectAttempt = 0
                 mutableStatus.value = TransportStatus(true, true, "Gateway connected")
                 gatt.discoverServices()
             } else {
@@ -160,6 +167,7 @@ class EspMeshTransportProvider private constructor(private val context: Context)
                 this@EspMeshTransportProvider.gatt = null
                 uplink = null
                 downlink = null
+                scheduleReconnect()
             }
         }
 
@@ -191,6 +199,14 @@ class EspMeshTransportProvider private constructor(private val context: Context)
     private fun handleFrame(bytes: ByteArray) {
         try {
             val frame = EspMeshBridgeFrame.fromJson(JSONObject(bytes.toString(Charsets.UTF_8)))
+            if (frame.kind == "HELLO_ACK") {
+                val body = frame.body
+                mutableGatewayInfo.value = EspMeshGatewayInfo(
+                    nodeId = body.optString("node_id"), firmware = body.optString("firmware"),
+                    provisioned = body.optBoolean("provisioned"), networkId = body.optString("network_id")
+                )
+                mutableStatus.value = status.value.copy(detail = "Gateway handshake complete")
+            }
             frame.envelope?.let { envelope ->
                 callbackScope.launch { inbound?.invoke(envelope) }
             }
@@ -235,6 +251,14 @@ class EspMeshTransportProvider private constructor(private val context: Context)
     }
 
     private fun bluetoothAdapter(): BluetoothAdapter? = context.getSystemService(BluetoothManager::class.java)?.adapter
+
+    private fun scheduleReconnect() {
+        val address = gatewayAddress()
+        if (address.isBlank() || inbound == null) return
+        val delay = (1L shl reconnectAttempt.coerceAtMost(5)) * 1000L
+        reconnectAttempt += 1
+        reconnectHandler.postDelayed({ connectConfigured() }, delay.coerceAtMost(30_000L))
+    }
 
     companion object {
         const val TRANSPORT_ID = "espmesh.gateway"

@@ -31,6 +31,7 @@ object EspMeshDiagnosticsCapabilityScreen : CapabilityScreenSpec {
     @Composable
     override fun Render(context: CapabilityScreenContext, onBack: () -> Unit, onConfirmed: (ExecutionResult) -> Unit, onCancel: () -> Unit) {
         val app = LocalContext.current.applicationContext
+        val provider = remember { EspMeshTransportProvider.get(app) }
         var diagnostics by remember { mutableStateOf(MethodMeshTransportRuntime.get(app).diagnostics()) }
         CapabilityScreenScaffold(
             title = title, capabilityId = capabilityId, context = context, canGoBack = context.stepNumber > 1,
@@ -41,6 +42,12 @@ object EspMeshDiagnosticsCapabilityScreen : CapabilityScreenSpec {
             Text("Transport state", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
             Text("Registered providers: ${diagnostics.registeredTransports.joinToString().ifBlank { "none" }}")
+            val gateway = provider.gatewayInfo.value
+            if (gateway.nodeId.isNotBlank()) {
+                Text("Gateway node: ${gateway.nodeId}")
+                Text("Firmware: ${gateway.firmware.ifBlank { "unknown" }}")
+                Text("Network: ${gateway.networkId.ifBlank { "not provisioned" }}")
+            }
             diagnostics.transportStatuses.forEach { (id, status) ->
                 Text("$id · available=${status.available} · connected=${status.connected}")
                 Text(status.detail, style = MaterialTheme.typography.bodySmall)
