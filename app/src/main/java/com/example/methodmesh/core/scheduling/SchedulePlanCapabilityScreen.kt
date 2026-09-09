@@ -47,7 +47,7 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import java.time.Duration
 import java.time.LocalTime
 
-private data class BuilderLane(val name: String, val hour: Int = 9, val minute: Int = 0, val actionType: ScheduleActionType = ScheduleActionType.NOTIFIER, val message: String = "", val presetId: String = "", val snoozeMinutes: Int = 10, val followUpCount: Int = 0, val followUpIntervalMinutes: Int = 30, val days: Set<Int> = setOf(1)) {
+private data class BuilderLane(val name: String, val hour: Int = 9, val minute: Int = 0, val actionType: ScheduleActionType = ScheduleActionType.NOTIFIER, val message: String = "", val presetId: String = "", val snoozeMinutes: Int = 10, val followUpCount: Int = 0, val followUpIntervalMinutes: Int = 30, val missedStartPolicy: ScheduleMissedStartPolicy = ScheduleMissedStartPolicy.SKIP_MISSED, val days: Set<Int> = setOf(1)) {
     val time: String get() = "%02d:%02d".format(hour, minute)
 }
 
@@ -70,7 +70,7 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
                     val lane = existingPlan.lanes.firstOrNull { it.id == rule.laneId } ?: return@forEach
                     val timing = rule.timing as? ScheduleTimingRule.RelativeDays
                     val action = lane.defaultActions.firstOrNull()
-                    add(BuilderLane(lane.name, lane.defaultTime.hour, lane.defaultTime.minute, action?.type ?: ScheduleActionType.NOTIFIER, action?.message.orEmpty(), action?.presetId.orEmpty(), action?.snoozeMinutes ?: 10, action?.followUpCount ?: 0, action?.followUpIntervalMinutes ?: 30, timing?.days ?: setOf(1)))
+                    add(BuilderLane(lane.name, lane.defaultTime.hour, lane.defaultTime.minute, action?.type ?: ScheduleActionType.NOTIFIER, action?.message.orEmpty(), action?.presetId.orEmpty(), action?.snoozeMinutes ?: 10, action?.followUpCount ?: 0, action?.followUpIntervalMinutes ?: 30, lane.missedStartPolicy, timing?.days ?: setOf(1)))
                 }
             }
         }
@@ -96,7 +96,7 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
                     lane.presetId.isNotBlank() -> ScheduleAction(type = ScheduleActionType.PRESET, presetId = lane.presetId, title = presets.firstOrNull { it.id == lane.presetId }?.name.orEmpty(), snoozeMinutes = lane.snoozeMinutes, followUpCount = lane.followUpCount, followUpIntervalMinutes = lane.followUpIntervalMinutes)
                     else -> null
                 } ?: return@mapNotNull null
-                val scheduleLane = ScheduleLane(name = lane.name.ifBlank { "Activity" }, defaultTime = time, defaultActions = listOf(action))
+                val scheduleLane = ScheduleLane(name = lane.name.ifBlank { "Activity" }, defaultTime = time, defaultActions = listOf(action), missedStartPolicy = lane.missedStartPolicy)
                 scheduleLane to ScheduleTimingRule.RelativeDays(lane.days.filter { it <= totalDays }.toSet().ifEmpty { setOf(1) }, time)
             }
             if (built.size != lanes.size) { status = "Every lane needs a valid time and action."; return }
@@ -152,6 +152,11 @@ object SchedulePlanCapabilityScreen : CapabilityScreenSpec {
                                 OutlinedTextField(lane.snoozeMinutes.toString(), { lanes[index] = lane.copy(snoozeMinutes = it.filter(Char::isDigit).toIntOrNull() ?: 0) }, label = { Text("Snooze min") }, modifier = Modifier.width(120.dp), singleLine = true)
                                 OutlinedTextField(lane.followUpCount.toString(), { lanes[index] = lane.copy(followUpCount = it.filter(Char::isDigit).toIntOrNull() ?: 0) }, label = { Text("Follow-ups") }, modifier = Modifier.width(120.dp), singleLine = true)
                                 OutlinedTextField(lane.followUpIntervalMinutes.toString(), { lanes[index] = lane.copy(followUpIntervalMinutes = it.filter(Char::isDigit).toIntOrNull() ?: 0) }, label = { Text("Repeat min") }, modifier = Modifier.width(120.dp), singleLine = true)
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("If started after this lane's time:", style = MaterialTheme.typography.bodySmall)
+                                OutlinedButton(onClick = { lanes[index] = lane.copy(missedStartPolicy = ScheduleMissedStartPolicy.RUN_MISSED) }) { Text(if (lane.missedStartPolicy == ScheduleMissedStartPolicy.RUN_MISSED) "✓ Run missed" else "Run missed") }
+                                OutlinedButton(onClick = { lanes[index] = lane.copy(missedStartPolicy = ScheduleMissedStartPolicy.SKIP_MISSED) }) { Text(if (lane.missedStartPolicy == ScheduleMissedStartPolicy.SKIP_MISSED) "✓ Skip missed" else "Skip missed") }
                             }
                         }
                     }

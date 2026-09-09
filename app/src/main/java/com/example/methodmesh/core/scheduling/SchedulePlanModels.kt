@@ -26,6 +26,8 @@ data class ScheduleTermination(
 
 enum class ScheduleActionType { NOTIFIER, PRESET }
 
+enum class ScheduleMissedStartPolicy { SKIP_MISSED, RUN_MISSED }
+
 data class ScheduleAction(
     val id: String = UUID.randomUUID().toString(),
     val type: ScheduleActionType,
@@ -90,6 +92,7 @@ data class ScheduleLane(
     val name: String,
     val defaultTime: LocalTime,
     val defaultActions: List<ScheduleAction>,
+    val missedStartPolicy: ScheduleMissedStartPolicy = ScheduleMissedStartPolicy.SKIP_MISSED,
     val defaultWindowBefore: Duration? = null,
     val defaultWindowAfter: Duration? = null
 )

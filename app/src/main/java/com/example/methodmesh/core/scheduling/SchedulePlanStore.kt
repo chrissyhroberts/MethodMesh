@@ -85,13 +85,13 @@ object SchedulePlanStore {
     )
 
     private fun encodeLane(lane: ScheduleLane) = JSONObject().apply {
-        put("id", lane.id); put("name", lane.name); put("default_time", lane.defaultTime.toString()); put("window_before", lane.defaultWindowBefore?.seconds); put("window_after", lane.defaultWindowAfter?.seconds)
+        put("id", lane.id); put("name", lane.name); put("default_time", lane.defaultTime.toString()); put("missed_start_policy", lane.missedStartPolicy.name); put("window_before", lane.defaultWindowBefore?.seconds); put("window_after", lane.defaultWindowAfter?.seconds)
         put("actions", JSONArray().apply { lane.defaultActions.forEach { put(encodeAction(it)) } })
     }
 
     private fun decodeLane(o: JSONObject) = runCatching { ScheduleLane(
         id = o.getString("id"), name = o.getString("name"), defaultTime = LocalTime.parse(o.getString("default_time")),
-        defaultActions = array(o.optJSONArray("actions")).mapNotNull(::decodeAction), defaultWindowBefore = o.optLong("window_before").takeIf { it > 0 }?.let(Duration::ofSeconds), defaultWindowAfter = o.optLong("window_after").takeIf { it > 0 }?.let(Duration::ofSeconds)
+        defaultActions = array(o.optJSONArray("actions")).mapNotNull(::decodeAction), missedStartPolicy = runCatching { ScheduleMissedStartPolicy.valueOf(o.optString("missed_start_policy", ScheduleMissedStartPolicy.SKIP_MISSED.name)) }.getOrDefault(ScheduleMissedStartPolicy.SKIP_MISSED), defaultWindowBefore = o.optLong("window_before").takeIf { it > 0 }?.let(Duration::ofSeconds), defaultWindowAfter = o.optLong("window_after").takeIf { it > 0 }?.let(Duration::ofSeconds)
     ) }.getOrNull()
 
     private fun encodeAction(action: ScheduleAction) = JSONObject().apply {

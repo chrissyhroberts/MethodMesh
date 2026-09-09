@@ -4,9 +4,9 @@ import java.time.Duration
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.Test
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 
 class SchedulePlanEngineTest {
     private val zone = ZoneId.of("Europe/London")
@@ -48,5 +48,32 @@ class SchedulePlanEngineTest {
         assertTrue(instance.occurrences.isNotEmpty())
         assertTrue(instance.occurrences.size < 10)
         assertTrue(instance.occurrences.all { it.scheduledAt <= anchor.plusDays(30) })
+    }
+
+    @Test
+    fun laneCanCatchUpSameDayOccurrencesWhenStartedLate() {
+        val catchUpLane = ScheduleLane(
+            name = "Patch",
+            defaultTime = LocalTime.of(9, 0),
+            defaultActions = listOf(ScheduleAction(type = ScheduleActionType.NOTIFIER, title = "Change patch")),
+            missedStartPolicy = ScheduleMissedStartPolicy.RUN_MISSED
+        )
+        val skipLane = catchUpLane.copy(id = java.util.UUID.randomUUID().toString(), name = "AHT", missedStartPolicy = ScheduleMissedStartPolicy.SKIP_MISSED)
+        val plan = SchedulePlan(
+            name = "Morning checks",
+            activation = ScheduleActivation.MANUAL_DAY_ONE,
+            timezone = zone,
+            termination = ScheduleTermination(ScheduleEndMode.DURATION, duration = Duration.ofDays(2)),
+            lanes = listOf(catchUpLane, skipLane),
+            rules = listOf(
+                ScheduleRule(catchUpLane.id, ScheduleTimingRule.RelativeDays(setOf(1), LocalTime.of(9, 0))),
+                ScheduleRule(skipLane.id, ScheduleTimingRule.RelativeDays(setOf(1), LocalTime.of(9, 0)))
+            )
+        )
+
+        val instance = SchedulePlanEngine.instantiate(plan, anchor)
+
+        assertEquals(listOf("Patch"), instance.occurrences.map { it.laneName })
+        assertEquals(LocalTime.of(9, 0), instance.occurrences.single().scheduledAt.toLocalTime())
     }
 }
