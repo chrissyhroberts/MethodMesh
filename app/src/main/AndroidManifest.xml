@@ -80,6 +80,9 @@
             android:name=".core.scheduling.SchedulerDispatchActivity"
             android:exported="false" />
         <activity
+            android:name=".core.scheduling.SchedulePlanDispatchActivity"
+            android:exported="false" />
+        <activity
             android:name=".widgets.MethodMeshWidgetConfigureActivity"
             android:exported="true"
             android:label="MethodMesh widget"
@@ -100,6 +103,9 @@
             android:foregroundServiceType="connectedDevice" />
         <receiver
             android:name=".core.scheduling.SchedulerAlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".core.scheduling.SchedulePlanAlarmReceiver"
             android:exported="false" />
         <receiver
             android:name=".core.scheduling.SchedulerBootReceiver"

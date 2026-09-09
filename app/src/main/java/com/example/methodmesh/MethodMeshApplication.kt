@@ -20,5 +20,6 @@ class MethodMeshApplication : Application() {
         transportRuntime.start()
         // Re-arm persisted alarms after process restart, app update, or device reboot.
         SchedulerRepository.rescheduleAll(this)
+        SchedulePlanRuntime.rescheduleAll(this)
     }
 }

@@ -40,6 +40,7 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 @Composable
 fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit, onEdit: (ResearchSchedule) -> Unit, onChanged: () -> Unit, onExportSchedule: (ResearchSchedule) -> Unit = {}, onAdvancedExport: () -> Unit = {}, onAdvancedImport: () -> Unit = {}) {
     val context = LocalContext.current
+    var plans by remember(schedules) { mutableStateOf(SchedulePlanStore.allPlans(context)) }
     var expanded by rememberSaveable { mutableStateOf(false) }
     var transferStatus by remember { mutableStateOf("") }
     var importedText by remember { mutableStateOf("") }
@@ -54,6 +55,21 @@ fun SchedulerCenterCard(schedules: List<ResearchSchedule>, onCreate: () -> Unit,
             }
             if (expanded) {
             Spacer(Modifier.height(8.dp))
+            Text("Schedule plans", style = MaterialTheme.typography.titleSmall)
+            plans.forEach { plan ->
+                ElevatedCard(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Column(Modifier.padding(10.dp)) {
+                        Text(plan.name, style = MaterialTheme.typography.titleSmall)
+                        Text("${plan.activation.name.replace('_', ' ')} · ${plan.termination.mode.name.replace('_', ' ')} · ${plan.lanes.size} lane(s)", style = MaterialTheme.typography.bodySmall)
+                        val running = SchedulePlanStore.allInstances(context).firstOrNull { it.planId == plan.id && it.stoppedAt == null }
+                        if (running == null && plan.activation == ScheduleActivation.MANUAL_DAY_ONE) {
+                            Button(onClick = { SchedulePlanRuntime.start(context, plan); plans = SchedulePlanStore.allPlans(context) }) { Text("Start Day 1") }
+                        } else if (running != null) {
+                            Text("Running · ${running.occurrences.count { it.state == ScheduleOccurrenceState.COMPLETED }} completed", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
             if (schedules.isEmpty()) Text("No schedules stored.", style = MaterialTheme.typography.bodyMedium)
             val scheduleGroups = schedules.sortedWith(compareBy<ResearchSchedule> { it.chainId.ifBlank { it.id } }.thenBy { it.chainOrder })
                 .groupBy { it.chainId.ifBlank { it.id } }.values
@@ -156,5 +172,5 @@ fun SchedulerEditorHost(schedule: ResearchSchedule?, onDone: () -> Unit, onCance
     }
     val action = ExternalActionRequest(requestedId = As100SchedulerMethod.ID, canonicalId = As100SchedulerMethod.ID, settings = settings)
     val request = ExternalWorkflowRequest(actions = listOf(action), invocationContext = InvocationContext(caller = "dashboard"), returns = emptyList(), returnMode = ReturnMode.Json, source = "dashboard")
-    SchedulerCapabilityScreen.Render(CapabilityScreenContext(action, request, 1, 1), onBack = onCancel, onConfirmed = { onDone() }, onCancel = onCancel)
+    SchedulePlanCapabilityScreen.Render(CapabilityScreenContext(action, request, 1, 1), onBack = onCancel, onConfirmed = { onDone() }, onCancel = onCancel)
 }
