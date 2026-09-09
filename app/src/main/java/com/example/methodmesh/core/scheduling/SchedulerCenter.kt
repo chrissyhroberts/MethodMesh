@@ -79,6 +79,7 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                 ElevatedCard(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                     Column(Modifier.padding(10.dp)) {
                         Text(plan.name, style = MaterialTheme.typography.titleSmall)
+                        if (plan.description.isNotBlank()) Text(plan.description, style = MaterialTheme.typography.bodySmall)
                         Text("${plan.activation.name.replace('_', ' ')} · ${plan.termination.mode.name.replace('_', ' ')} · ${plan.lanes.size} lane(s)", style = MaterialTheme.typography.bodySmall)
                         plan.rules.forEach { rule ->
                             val daysForPreview = when (val timing = rule.timing) {
@@ -92,7 +93,14 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                                 }
                             }
                         }
-                        val running = SchedulePlanStore.allInstances(context).firstOrNull { it.planId == plan.id && it.stoppedAt == null }
+                        val instances = SchedulePlanStore.allInstances(context).filter { it.planId == plan.id }
+                        val running = instances.firstOrNull { it.stoppedAt == null }
+                        val completed = instances.sumOf { instance -> instance.occurrences.count { it.state == ScheduleOccurrenceState.COMPLETED } }
+                        val failed = instances.sumOf { instance -> instance.occurrences.count { it.state == ScheduleOccurrenceState.FAILED || it.state == ScheduleOccurrenceState.MISSED } }
+                        val lastActivity = instances.flatMap { it.occurrences }.filter { it.state in setOf(ScheduleOccurrenceState.COMPLETED, ScheduleOccurrenceState.FAILED, ScheduleOccurrenceState.MISSED, ScheduleOccurrenceState.SKIPPED) }.maxByOrNull { it.completedAt ?: it.scheduledAt }
+                        if (instances.isNotEmpty()) {
+                            Text("History · $completed completed · $failed missed/failed" + (lastActivity?.let { " · last ${it.laneName} ${it.state.name.lowercase()}" } ?: ""), style = MaterialTheme.typography.bodySmall)
+                        }
                         if (running == null && (!plan.enabled || plan.activation == ScheduleActivation.MANUAL_DAY_ONE)) {
                             Button(onClick = { val resumed = plan.copy(enabled = true, updatedAt = java.time.ZonedDateTime.now()); SchedulePlanStore.savePlan(context, resumed); SchedulePlanRuntime.start(context, resumed); plans = SchedulePlanStore.allPlans(context) }) { Text(if (plan.activation == ScheduleActivation.MANUAL_DAY_ONE) "Start Day 1" else "Start") }
                         } else if (running != null) {
