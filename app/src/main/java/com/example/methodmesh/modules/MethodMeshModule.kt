@@ -1,5 +1,7 @@
 package com.example.methodmesh.modules
 
+import android.content.Context
+import com.example.methodmesh.core.transport.MethodMeshTransportProvider
 import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.core.methodmesh.runtime.As100MethodRegistry
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
@@ -65,6 +67,9 @@ interface MethodMeshModule {
      * without editing HomeScreen.kt.
      */
     fun settingsSections(): List<SettingsSectionSpec> = emptyList()
+
+    /** Optional generic transport adapters owned by this module. */
+    fun transportProviders(context: Context): List<MethodMeshTransportProvider> = emptyList()
 
     /**
      * Module-level dependencies. Dependency modules remain independently owned;

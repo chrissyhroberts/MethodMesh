@@ -1294,6 +1294,14 @@ The core Artifact Service owns file identity, resolution, provenance and handoff
 
 Every working artifact belongs to a caller-supplied session. The producer defaults to transient; explicit `persist` creates an immutable managed persistent copy. The coordinator releases working references only after all consumers have read them. Launching an Android share chooser is not confirmation that a recipient has consumed an attachment. `endSession` removes that session's working bytes, leaves persistent artifacts untouched and never deletes linked external files. Current in-flight references are process-scoped, survive activity recreation through the application-scoped service, and do not promise recovery after process death. Abandoned workspace eviction and durable workflow recovery remain follow-up work; callers must explicitly complete sessions.
 
+### Generic transport substrate
+
+MethodMesh messages exchanged with external devices use the generic core transport substrate. `MethodMeshTransportEnvelope` carries stable message identity, logical source and destination endpoints, message classification, optional module/capability routing, timestamps, correlation fields, an opaque versioned payload and bounded metadata. Transport-local addresses remain inside registered providers and bindings.
+
+The runtime persists inbound messages before dispatch, suppresses duplicate message IDs, and persists outbound messages before provider delivery. Inbox and outbox states distinguish queued, sent, delivered, retryable, permanent, expired, received, dispatched, consumed and failed outcomes. Journals are bounded and prunable. Provider failures are isolated, and an unavailable provider leaves outbound work queued or retryable.
+
+Modules register transport providers and consumers through the generic contract. BLE, serial, LAN, ESP-NOW, provisioning, routing, authentication and firmware lifecycle belong to transport modules rather than core. Transport delivery does not bypass capability Commit semantics, create a parallel ODK message path or imply Files persistence for every payload.
+
 ### Build-time module XLSForm projection
 
 Module folders and their `docs/` XLSForms remain canonical, self-contained drag-and-drop packages. `generateMethodMeshArtifacts` uses Python 3 (standard library only) to discover workbooks, read row-oriented settings, hash and copy bytes, and generate `app/build/generated/methodmeshArtifacts/assets/methodmesh/artifacts/index.json`. No separate author-maintained central registry is required. Source workbooks are never moved or rewritten. Stable artifact identity uses the declared module ID and module-relative source path; `form_id`, title, version and content hash remain separate fields. Filename changes can change the artifact reference, but never silently change `form_id`.
