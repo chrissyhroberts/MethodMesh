@@ -80,11 +80,15 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                     Column(Modifier.padding(10.dp)) {
                         Text(plan.name, style = MaterialTheme.typography.titleSmall)
                         Text("${plan.activation.name.replace('_', ' ')} · ${plan.termination.mode.name.replace('_', ' ')} · ${plan.lanes.size} lane(s)", style = MaterialTheme.typography.bodySmall)
-                        plan.rules.filter { it.timing is ScheduleTimingRule.RelativeDays }.forEach { rule ->
-                            val timing = rule.timing as ScheduleTimingRule.RelativeDays
+                        plan.rules.forEach { rule ->
+                            val daysForPreview = when (val timing = rule.timing) {
+                                is ScheduleTimingRule.RelativeDays -> timing.days
+                                is ScheduleTimingRule.Weekly -> timing.weekdays
+                                else -> emptySet()
+                            }
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                (1..(timing.days.maxOrNull()?.coerceAtMost(31) ?: 1)).forEach { day ->
-                                    Text(if (day in timing.days) "■" else "·", modifier = Modifier.padding(horizontal = 3.dp), color = if (day in timing.days) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                (1..(daysForPreview.maxOrNull()?.coerceAtMost(31) ?: 1)).forEach { day ->
+                                    Text(if (day in daysForPreview) "■" else "·", modifier = Modifier.padding(horizontal = 3.dp), color = if (day in daysForPreview) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -93,8 +97,12 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                             Button(onClick = { SchedulePlanRuntime.start(context, plan); plans = SchedulePlanStore.allPlans(context) }) { Text("Start Day 1") }
                         } else if (running != null) {
                             Text("Running · ${running.occurrences.count { it.state == ScheduleOccurrenceState.COMPLETED }} completed", style = MaterialTheme.typography.bodySmall)
+                            running.occurrences.firstOrNull { it.state == ScheduleOccurrenceState.UPCOMING || it.state == ScheduleOccurrenceState.WINDOW_OPEN || it.state == ScheduleOccurrenceState.DUE }?.let { next ->
+                                Text("Next: ${next.laneName} · ${next.scheduledAt.toLocalDate()} ${next.scheduledAt.toLocalTime()}", style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (running != null) OutlinedButton(onClick = { SchedulePlanRuntime.cancel(context, running); SchedulePlanStore.removeInstancesForPlan(context, plan.id); plans = SchedulePlanStore.allPlans(context) }) { Text("Stop") }
                             OutlinedButton(onClick = { onEditPlan(plan) }) { Text("Edit") }
                             OutlinedButton(onClick = {
                                 SchedulePlanStore.allInstances(context).filter { it.planId == plan.id }.forEach { SchedulePlanRuntime.cancel(context, it) }
