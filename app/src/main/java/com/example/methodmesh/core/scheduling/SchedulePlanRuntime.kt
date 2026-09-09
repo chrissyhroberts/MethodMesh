@@ -34,6 +34,16 @@ object SchedulePlanRuntime {
             .onFailure { alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toInstant().toEpochMilli(), pending) }
     }
 
+    fun snooze(context: Context, instance: ScheduleInstance, occurrence: ScheduleOccurrence, minutes: Int) {
+        val at = ZonedDateTime.now().plusMinutes(minutes.coerceAtLeast(1).toLong())
+        val intent = Intent(context, SchedulePlanAlarmReceiver::class.java).setAction(SchedulePlanAlarmReceiver.ACTION)
+            .putExtra("instance_id", instance.id).putExtra("occurrence_id", occurrence.id)
+        val pending = PendingIntent.getBroadcast(context, "${instance.id}:${occurrence.id}".hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val alarm = context.getSystemService(AlarmManager::class.java)
+        runCatching { alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toInstant().toEpochMilli(), pending) }
+            .onFailure { alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toInstant().toEpochMilli(), pending) }
+    }
+
     fun cancel(context: Context, instance: ScheduleInstance) {
         instance.occurrences.forEach { occurrence ->
             val intent = Intent(context, SchedulePlanAlarmReceiver::class.java).setAction(SchedulePlanAlarmReceiver.ACTION)
