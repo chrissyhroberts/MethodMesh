@@ -48,9 +48,10 @@ import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 
 @Composable
-fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit = {}) {
+fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit = {}, onEditSchedule: (ResearchSchedule) -> Unit = {}) {
     val context = LocalContext.current
     var plans by remember { mutableStateOf(SchedulePlanStore.allPlans(context)) }
+    var schedules by remember { mutableStateOf(SchedulerRepository.all(context)) }
     var runtimeRefresh by remember { mutableIntStateOf(0) }
     var expanded by rememberSaveable { mutableStateOf(false) }
     var transferStatus by remember { mutableStateOf("") }
@@ -58,6 +59,7 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
     LaunchedEffect(expanded) {
         while (expanded) {
             plans = SchedulePlanStore.allPlans(context)
+            schedules = SchedulerRepository.all(context)
             runtimeRefresh++
             delay(1000)
         }
@@ -122,6 +124,33 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                     }
                 }
             }
+            if (schedules.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                Text("Cron schedules", style = MaterialTheme.typography.titleSmall)
+                schedules.sortedWith(compareBy<ResearchSchedule> { it.chainId.ifBlank { it.id } }.thenBy { it.chainOrder })
+                    .groupBy { it.chainId.ifBlank { it.id } }.values.forEach { group ->
+                        val schedule = group.first()
+                        ElevatedCard(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                            Column(Modifier.padding(10.dp)) {
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(if (group.size > 1) schedule.name.removeSuffix(" 1") else schedule.name, style = MaterialTheme.typography.titleSmall)
+                                        Text(if (schedule.enabled) "Running" else "Paused", style = MaterialTheme.typography.labelMedium, color = if (schedule.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Switch(checked = schedule.enabled, onCheckedChange = { SchedulerRepository.setChainEnabled(context, schedule, it); schedules = SchedulerRepository.all(context) })
+                                }
+                                Text("cron ${schedule.cronExpression} · ${group.size} task${if (group.size == 1) "" else "s"}", style = MaterialTheme.typography.bodySmall)
+                                group.forEachIndexed { index, task -> Text("${index + 1}. ${task.target.name.lowercase()}: ${task.targetValue}", style = MaterialTheme.typography.bodySmall) }
+                                SchedulerRepository.events(context, schedule.id).firstOrNull()?.let { event -> Text("Last: ${event.event}", style = MaterialTheme.typography.labelSmall) }
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    OutlinedButton(onClick = { onEditSchedule(schedule) }) { Text("Edit") }
+                                    OutlinedButton(onClick = { SchedulerRepository.removeChain(context, schedule); schedules = SchedulerRepository.all(context) }) { Text("Delete") }
+                                    OutlinedButton(onClick = { context.startActivity(Intent(context, SchedulerDispatchActivity::class.java).setAction("com.example.methodmesh.TEST_SCHEDULE").putExtra("schedule_id", schedule.id).putExtra("test_chain", true)) }) { Text("Test") }
+                                }
+                            }
+                        }
+                    }
+            }
             Button(onClick = onCreate, Modifier.fillMaxWidth()) { Text("Create schedule") }
             }
         }
@@ -147,7 +176,8 @@ fun SchedulerEditorHost(schedule: ResearchSchedule?, plan: SchedulePlan? = null,
     Dialog(onDismissRequest = onCancel, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(Modifier.fillMaxSize()) {
             androidx.compose.runtime.key(plan?.id ?: schedule?.id ?: "new") {
-                SchedulePlanCapabilityScreen.Render(CapabilityScreenContext(action, request, 1, 1), onBack = onCancel, onConfirmed = { onDone() }, onCancel = onCancel)
+                val screen = if (schedule != null || plan == null) SchedulerCapabilityScreen else SchedulePlanCapabilityScreen
+                screen.Render(CapabilityScreenContext(action, request, 1, 1), onBack = onCancel, onConfirmed = { onDone() }, onCancel = onCancel)
             }
         }
     }

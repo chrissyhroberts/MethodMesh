@@ -35,10 +35,19 @@ data class ResearchSchedule(
     val notificationMessage: String = "A scheduled task is due.",
     val enabled: Boolean = true,
     val headless: Boolean = false
-    ,val cronExpression: String = ""
+    ,val cronExpression: String = "",
+    val triggerMode: String = "MANUAL",
+    val triggerValue: String = "",
+    val relativeOffsetMinutes: Int = 0,
+    val anchorAt: ZonedDateTime? = null
 ) {
     fun nextOccurrence(after: ZonedDateTime = ZonedDateTime.now()): ZonedDateTime {
-        if (cronExpression.isNotBlank()) return CronSchedule.next(cronExpression, after)
+        if (triggerMode != "MANUAL" && anchorAt == null) return after.plusYears(100)
+        val anchor = anchorAt ?: after
+        if (cronExpression.isNotBlank()) {
+            val start = anchor.plusMinutes(relativeOffsetMinutes.coerceAtLeast(0).toLong())
+            return CronSchedule.next(cronExpression, if (after.isBefore(start)) start.minusMinutes(1) else after)
+        }
         val zone = after.zone
         val time = LocalTime.of(hour.coerceIn(0, 23), minute.coerceIn(0, 59))
         var date = after.toLocalDate()

@@ -48,6 +48,17 @@ data class ScheduleAction(
 }
 
 sealed interface ScheduleTimingRule {
+    data class Cron(
+        val expression: String,
+        val timing: ScheduleTimingMode = ScheduleTimingMode.ABSOLUTE,
+        val offset: Duration = Duration.ZERO
+    ) : ScheduleTimingRule {
+        init {
+            require(expression.isNotBlank())
+            require(!offset.isNegative)
+        }
+    }
+
     data class RelativeDays(
         val days: Set<Int>,
         val time: LocalTime,

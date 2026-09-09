@@ -122,6 +122,7 @@ object SchedulePlanStore {
             is ScheduleTimingRule.Weekly -> { put("type", "weekly"); put("weekdays", JSONArray(timing.weekdays.toList())); put("time", timing.time.toString()); put("before", timing.windowBefore?.seconds); put("after", timing.windowAfter?.seconds) }
             is ScheduleTimingRule.MonthlyNthWeekday -> { put("type", "monthly_nth"); put("weekday", timing.weekday); put("ordinal", timing.ordinal); put("time", timing.time.toString()) }
             is ScheduleTimingRule.IntradayInterval -> { put("type", "intraday"); put("weekdays", JSONArray(timing.weekdays.toList())); put("first_time", timing.firstTime.toString()); put("last_time", timing.lastTime.toString()); put("interval_seconds", timing.interval.seconds) }
+            is ScheduleTimingRule.Cron -> { put("type", "cron"); put("expression", timing.expression); put("timing", timing.timing.name); put("offset_seconds", timing.offset.seconds) }
         }
     }
 
@@ -130,6 +131,7 @@ object SchedulePlanStore {
         "weekly" -> ScheduleTimingRule.Weekly(ints(o.getJSONArray("weekdays")), LocalTime.parse(o.getString("time")), seconds(o, "before"), seconds(o, "after"))
         "monthly_nth" -> ScheduleTimingRule.MonthlyNthWeekday(o.getInt("weekday"), o.getInt("ordinal"), LocalTime.parse(o.getString("time")))
         "intraday" -> ScheduleTimingRule.IntradayInterval(ints(o.getJSONArray("weekdays")), LocalTime.parse(o.getString("first_time")), LocalTime.parse(o.getString("last_time")), Duration.ofSeconds(o.getLong("interval_seconds")))
+        "cron" -> ScheduleTimingRule.Cron(o.getString("expression"), ScheduleTimingMode.valueOf(o.optString("timing", ScheduleTimingMode.ABSOLUTE.name)), Duration.ofSeconds(o.optLong("offset_seconds", 0)))
         else -> error("Unknown schedule timing rule")
     }
 

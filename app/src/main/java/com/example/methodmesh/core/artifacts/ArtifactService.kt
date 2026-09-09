@@ -188,6 +188,20 @@ class ArtifactService(private val store: File, private val workspace: File,
         writeMetadata(records.getValue(ref))
     }
 
+    /** Replace the bytes of an existing persistent managed artifact in place. */
+    @Synchronized fun replacePersistent(ref: ArtifactRef, bytes: ByteArray) {
+        val artifact = resolve(ref)
+        require(artifact.origin == ArtifactOrigin.MANAGED && artifact.lifecycle == ArtifactLifecycle.PERSISTENT) {
+            "Only persistent managed artifacts can be replaced"
+        }
+        val file = File(store, artifact.location)
+        file.outputStream().use { it.write(bytes) }
+        val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { "%02x".format(it) }
+        records[ref] = artifact.copy(sha256 = digest)
+        writeMetadata(records.getValue(ref))
+    }
+
     @Synchronized fun release(ref: ArtifactRef) {
         val a = resolve(ref); require(a.lifecycle != ArtifactLifecycle.PERSISTENT)
         File(workspace, a.location).delete(); records.remove(ref)

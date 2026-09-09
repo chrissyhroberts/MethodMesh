@@ -82,6 +82,10 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
         var notificationTitle by remember { mutableStateOf(suppliedValue("schedule_notification_title")) }
         var notificationMessage by remember { mutableStateOf(suppliedValue("schedule_notification_message")) }
         var headless by remember { mutableStateOf(suppliedValue("schedule_headless").equals("true", ignoreCase = true)) }
+        var triggerMode by remember { mutableStateOf(suppliedValue("schedule_trigger_mode").ifBlank { "MANUAL" }) }
+        var relativeDays by remember { mutableStateOf(suppliedValue("schedule_relative_days").ifBlank { "0" }) }
+        var relativeTime by remember { mutableStateOf(suppliedValue("schedule_relative_time").ifBlank { "00:00" }) }
+        var triggerEvent by remember { mutableStateOf(suppliedValue("schedule_trigger_event")) }
         val initialCronParts = remember { suppliedValue("schedule_cron").trim().split(Regex("\\s+")).let { if (it.size == 5) it else List(5) { "" } } }
         var cronMinute by remember { mutableStateOf(initialCronParts[0]) }
         var cronHour by remember { mutableStateOf(initialCronParts[1]) }
@@ -141,7 +145,20 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
                 }
             }
             if (requestedCron.isBlank()) { status = "Enter all five cron fields."; return }
+            val offset = runCatching {
+                val days = relativeDays.toLongOrNull()?.coerceAtLeast(0) ?: 0
+                val parts = relativeTime.split(":").map { it.toLongOrNull() ?: 0 }
+                java.time.Duration.ofDays(days).plusHours(parts.getOrElse(0) { 0 }).plusMinutes(parts.getOrElse(1) { 0 })
+            }.getOrElse { java.time.Duration.ZERO }
+            val trigger = when (triggerMode) {
+                "ABSOLUTE" -> CronTrigger.Absolute(java.time.ZonedDateTime.now().withSecond(0).withNano(0))
+                "EVENT" -> CronTrigger.Event(triggerEvent.trim().ifBlank { "preset.completed" })
+                "PRESET" -> CronTrigger.Preset(triggerEvent.trim().ifBlank { "preset.completed" })
+                else -> CronTrigger.Manual
+            }
             val effectiveChainId = if (selectedActions.size > 1) chainId.ifBlank { java.util.UUID.randomUUID().toString() } else chainId
+            val anchor = java.time.ZonedDateTime.now().withSecond(0).withNano(0)
+            val offsetMinutes = offset.toMinutes().coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             val schedules = selectedActions.mapIndexed { index, action -> ResearchSchedule(
                 id = if (index == 0) existingId.ifBlank { java.util.UUID.randomUUID().toString() } else java.util.UUID.randomUUID().toString(),
                 name = if (selectedActions.size > 1) "$name ${index + 1}" else name,
@@ -150,12 +167,25 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
                 chainId = effectiveChainId, chainOrder = index,
                 hour = 0, minute = 0, dayOfWeek = 1, dayOfMonth = 1, ordinal = 1, customWeekday = 1,
                 retryCount = retries.toIntOrNull() ?: 0, retryIntervalMinutes = retryInterval.toIntOrNull() ?: 60,
-                notificationTitle = notificationTitle, notificationMessage = notificationMessage, headless = headless && headlessEligible, cronExpression = requestedCron
+                notificationTitle = notificationTitle, notificationMessage = notificationMessage, headless = headless && headlessEligible, cronExpression = requestedCron,
+                triggerMode = triggerMode, triggerValue = when (triggerMode) { "PRESET" -> "preset.completed:${triggerEvent.trim()}" else -> triggerEvent.trim() }, relativeOffsetMinutes = offsetMinutes, anchorAt = anchor.takeIf { triggerMode != "EVENT" && triggerMode != "PRESET" }
             ) }
             runCatching { schedules.forEach { SchedulerRepository.save(androidContext, it) } }.onFailure {
                 status = it.message ?: "Could not save schedule."
                 return
             }
+            runCatching {
+                CronScheduleBundleStore.save(androidContext, CronScheduleBundle(
+                    id = existingId.ifBlank { java.util.UUID.randomUUID().toString() },
+                    name = name.trim(), trigger = trigger,
+                    tasks = selectedActions.mapIndexed { index, action ->
+                        val target = runCatching { CronTaskTarget.valueOf(action.first) }.getOrElse {
+                            when (action.first) { "ODK_FORM" -> CronTaskTarget.ODK_FORM; "WEB_FORM" -> CronTaskTarget.WEB_FORM; "CAPABILITY" -> CronTaskTarget.CAPABILITY; "CLIPBOARD" -> CronTaskTarget.CLIPBOARD; else -> CronTaskTarget.PRESET }
+                        }
+                        CronTask(name = "${name.trim()} ${index + 1}", timing = if (triggerMode == "MANUAL" || triggerMode == "ABSOLUTE") ScheduleTimingMode.ABSOLUTE else ScheduleTimingMode.RELATIVE, cronExpression = requestedCron, relativeOffset = offset, target = target, targetId = action.second, notificationTitle = notificationTitle.ifBlank { name.trim() }, notificationMessage = notificationMessage.ifBlank { "A scheduled MethodMesh task is due." }, retries = retries.toIntOrNull()?.coerceAtLeast(0) ?: 0, retryInterval = java.time.Duration.ofMinutes((retryInterval.toLongOrNull() ?: 60).coerceAtLeast(1)))
+                    }
+                ))
+            }.onFailure { status = "Schedule saved, but JSON bundle was not written: ${it.message ?: "storage error"}" }
             if (Build.VERSION.SDK_INT >= 33 && androidContext is Activity) androidContext.requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 7401)
             val execution = As100SchedulerMethod.result(As100SchedulerMethod.request(capabilityId, context.request.invocationContext.asMap(capabilityId) + context.action.settings), SchedulerOutcome(schedules.first(), "created"), context.request.invocationContext)
             if (context.submitsImmediately) onConfirmed(execution) else result = execution
@@ -168,6 +198,21 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(name, { name = it }, label = { Text("Schedule name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             Text("Actions (in order)", style = MaterialTheme.typography.titleSmall)
+            Text("Initiation", style = MaterialTheme.typography.titleSmall)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("MANUAL" to "Manual", "ABSOLUTE" to "Absolute", "EVENT" to "Event", "PRESET" to "Preset trigger").forEach { (value, label) ->
+                    OutlinedButton(onClick = { triggerMode = value }) { Text(if (triggerMode == value) "✓ $label" else label) }
+                }
+            }
+            if (triggerMode == "EVENT" || triggerMode == "PRESET") {
+                OutlinedTextField(triggerEvent, { triggerEvent = it }, label = { Text(if (triggerMode == "EVENT") "Event key" else "Triggering preset ID") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            }
+            if (triggerMode == "EVENT" || triggerMode == "PRESET") {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedTextField(relativeDays, { relativeDays = it.filter(Char::isDigit) }, label = { Text("Days after trigger") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(relativeTime, { relativeTime = it }, label = { Text("Time after trigger") }, modifier = Modifier.weight(1f), singleLine = true)
+                }
+            }
             actionTypes.forEachIndexed { index, actionType ->
                 val expanded = index in expandedActions
                 OutlinedButton(

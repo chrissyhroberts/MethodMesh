@@ -75,6 +75,7 @@ import com.example.methodmesh.calibration.CalibrationScreen
 import com.example.methodmesh.core.scheduling.SchedulerCenterCard
 import com.example.methodmesh.core.scheduling.SchedulerDispatchActivity
 import com.example.methodmesh.core.scheduling.SchedulerEditorHost
+import com.example.methodmesh.core.scheduling.SchedulerRepository
 import com.example.methodmesh.core.scheduling.SchedulePlanStore
 import com.example.methodmesh.core.artifacts.AndroidArtifacts
 import com.example.methodmesh.core.protocols.CapabilityPreset
@@ -237,8 +238,10 @@ fun HomeScreen() {
     val scope = rememberCoroutineScope()
     var selectedDestination by rememberSaveable { mutableStateOf(DashboardDestination.Dashboard) }
     var editingPlanId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editingScheduleId by rememberSaveable { mutableStateOf<String?>(null) }
     var schedulerEditorOpen by rememberSaveable { mutableStateOf(false) }
     val editingPlan = remember(editingPlanId) { editingPlanId?.let { SchedulePlanStore.plan(appContext, it) } }
+    val editingSchedule = remember(editingScheduleId) { editingScheduleId?.let { SchedulerRepository.get(appContext, it) } }
     var protocolLibraryRevision by remember { mutableStateOf(0) }
     var favouritesRevision by remember { mutableStateOf(0) }
     var odkFormsSearchSeed by rememberSaveable { mutableStateOf("") }
@@ -396,17 +399,18 @@ fun HomeScreen() {
                     DashboardDestination.Scheduler -> {
                         item {
                             SchedulerCenterCard(
-                                onCreate = { editingPlanId = null; schedulerEditorOpen = true },
-                                onEditPlan = { editingPlanId = it.id; schedulerEditorOpen = true }
+                                onCreate = { editingPlanId = null; editingScheduleId = null; schedulerEditorOpen = true },
+                                onEditPlan = { editingPlanId = it.id; editingScheduleId = null; schedulerEditorOpen = true },
+                                onEditSchedule = { editingScheduleId = it.id; editingPlanId = null; schedulerEditorOpen = true }
                             )
                         }
                         if (schedulerEditorOpen) {
                             item {
                                 SchedulerEditorHost(
-                                    schedule = null,
+                                    schedule = editingSchedule,
                                     plan = editingPlan,
-                                    onDone = { schedulerEditorOpen = false; editingPlanId = null },
-                                    onCancel = { schedulerEditorOpen = false; editingPlanId = null }
+                                    onDone = { schedulerEditorOpen = false; editingPlanId = null; editingScheduleId = null },
+                                    onCancel = { schedulerEditorOpen = false; editingPlanId = null; editingScheduleId = null }
                                 )
                             }
                         }

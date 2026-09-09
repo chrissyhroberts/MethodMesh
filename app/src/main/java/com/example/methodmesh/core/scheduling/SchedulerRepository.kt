@@ -50,6 +50,13 @@ object SchedulerRepository {
         else cancel(context, schedule.id)
     }
 
+    /** Release schedules waiting for a named external event. */
+    fun triggerEvent(context: Context, eventKey: String, anchor: ZonedDateTime = ZonedDateTime.now()): Int {
+        val matches = all(context).filter { it.enabled && it.triggerMode == "EVENT" && it.triggerValue == eventKey && it.anchorAt == null }
+        matches.forEach { save(context, it.copy(anchorAt = anchor)) }
+        return matches.size
+    }
+
     fun setChainEnabled(context: Context, schedule: ResearchSchedule, enabled: Boolean) {
         val members = if (schedule.chainId.isBlank()) listOf(schedule) else all(context).filter { it.chainId == schedule.chainId }
         members.forEach { save(context, it.copy(enabled = enabled)) }
@@ -94,6 +101,12 @@ object SchedulerRepository {
     fun markCompleted(context: Context, schedule: ResearchSchedule) {
         cancel(context, schedule.id)
         recordEvent(context, schedule.id, "completed")
+        val completionKey = when (schedule.target) {
+            SchedulerTarget.PRESET -> "preset.completed:${schedule.targetValue}"
+            SchedulerTarget.PROTOCOL -> "protocol.completed:${schedule.targetValue}"
+            else -> null
+        }
+        completionKey?.let { triggerEvent(context, it) }
         // Only the first member owns the recurring alarm. A later chain step
         // must not create a second recurring notification for itself.
         if (isAlarmOwner(schedule)) SchedulerAlarm.schedule(context, schedule)
@@ -111,6 +124,7 @@ object SchedulerRepository {
         put("notificationTitle", s.notificationTitle); put("notificationMessage", s.notificationMessage)
         put("headless", s.headless)
         put("cronExpression", s.cronExpression)
+        put("triggerMode", s.triggerMode); put("triggerValue", s.triggerValue); put("relativeOffsetMinutes", s.relativeOffsetMinutes); put("anchorAt", s.anchorAt?.toString())
     }
 
     private fun decode(o: JSONObject) = runCatching {
@@ -122,6 +136,7 @@ object SchedulerRepository {
             retryIntervalMinutes = o.optInt("retryIntervalMinutes", 60), retryWindowMinutes = o.optInt("retryWindowMinutes", 1440),
             notificationTitle = o.optString("notificationTitle", "MethodMesh reminder"), notificationMessage = o.optString("notificationMessage", "A scheduled task is due."), enabled = o.optBoolean("enabled", true), headless = o.optBoolean("headless", false)
             ,cronExpression = o.optString("cronExpression")
+            ,triggerMode = o.optString("triggerMode", "MANUAL"), triggerValue = o.optString("triggerValue"), relativeOffsetMinutes = o.optInt("relativeOffsetMinutes", 0), anchorAt = o.optString("anchorAt").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse)
         )
     }.getOrNull()?.takeIf { it.id.isNotBlank() && it.name.isNotBlank() && it.targetValue.isNotBlank() }
 }

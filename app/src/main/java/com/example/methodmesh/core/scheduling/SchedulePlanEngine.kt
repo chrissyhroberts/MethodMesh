@@ -33,6 +33,7 @@ object SchedulePlanEngine {
             is ScheduleTimingRule.Weekly -> weekly(anchor, timing, end, lane.missedStartPolicy)
             is ScheduleTimingRule.MonthlyNthWeekday -> monthlyNth(anchor, timing, end, lane.missedStartPolicy)
             is ScheduleTimingRule.IntradayInterval -> intraday(anchor, timing, end, lane.missedStartPolicy)
+            is ScheduleTimingRule.Cron -> cron(anchor, timing, end)
         }
         return times.map { scheduled ->
             val before = rule.timing.windowBefore() ?: lane.defaultWindowBefore
@@ -92,6 +93,19 @@ object SchedulePlanEngine {
         return result
     }
 
+    private fun cron(anchor: ZonedDateTime, timing: ScheduleTimingRule.Cron, end: ZonedDateTime): List<ZonedDateTime> {
+        val start = anchor.plus(if (timing.timing == ScheduleTimingMode.RELATIVE) timing.offset else Duration.ZERO)
+        val result = mutableListOf<ZonedDateTime>()
+        var after = start.minusMinutes(1)
+        while (true) {
+            val next = CronSchedule.next(timing.expression, after)
+            if (next.isAfter(end)) break
+            result += next
+            after = next
+        }
+        return result
+    }
+
     private fun ScheduleTimingRule.windowBefore(): Duration? = when (this) {
         is ScheduleTimingRule.RelativeDays -> windowBefore
         is ScheduleTimingRule.Weekly -> windowBefore
@@ -101,6 +115,7 @@ object SchedulePlanEngine {
     private fun ScheduleTimingRule.windowAfter(): Duration? = when (this) {
         is ScheduleTimingRule.RelativeDays -> windowAfter
         is ScheduleTimingRule.Weekly -> windowAfter
+        is ScheduleTimingRule.Cron -> null
         else -> null
     }
 }
