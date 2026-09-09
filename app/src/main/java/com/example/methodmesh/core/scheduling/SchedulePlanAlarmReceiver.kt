@@ -14,6 +14,7 @@ class SchedulePlanAlarmReceiver : BroadcastReceiver() {
         val instance = SchedulePlanStore.instance(context, intent.getStringExtra("instance_id").orEmpty()) ?: return
         val occurrence = instance.occurrences.firstOrNull { it.id == intent.getStringExtra("occurrence_id") } ?: return
         if (intent.action == ACTION_DONE) {
+            occurrence.actions.indices.forEach { index -> SchedulePlanStore.updateActionExecution(context, instance.id, occurrence.id, index, ScheduleActionExecutionState.COMPLETED) }
             SchedulePlanStore.updateOccurrence(context, instance.id, occurrence.id, ScheduleOccurrenceState.COMPLETED, java.time.ZonedDateTime.now())
             SchedulePlanRuntime.armNext(context, SchedulePlanStore.instance(context, instance.id) ?: instance)
             context.getSystemService(NotificationManager::class.java).cancel(occurrence.id.hashCode())

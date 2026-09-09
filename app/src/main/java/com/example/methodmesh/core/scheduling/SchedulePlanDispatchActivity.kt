@@ -17,9 +17,11 @@ class SchedulePlanDispatchActivity : Activity() {
         val actionIndex = intent.getIntExtra("action_index", 0).coerceAtLeast(0)
         val action = occurrence.actions.getOrNull(actionIndex)
         if (action == null) { complete(instance.id, occurrence.id, ScheduleOccurrenceState.COMPLETED); return }
+        SchedulePlanStore.updateActionExecution(this, instance.id, occurrence.id, actionIndex, ScheduleActionExecutionState.IN_PROGRESS)
         if (action?.type == ScheduleActionType.PRESET) {
             val preset = ProtocolLibraryRepository.preset(this, action.presetId)
             if (preset == null) {
+                SchedulePlanStore.updateActionExecution(this, instance.id, occurrence.id, actionIndex, ScheduleActionExecutionState.FAILED, "Preset not found")
                 complete(instance.id, occurrence.id, ScheduleOccurrenceState.FAILED)
                 return
             }
@@ -33,6 +35,7 @@ class SchedulePlanDispatchActivity : Activity() {
                 runCatching { JSONObject(preset.settingsJson.ifBlank { "{}" }).keys().forEach { key -> putExtra("input_$key", JSONObject(preset.settingsJson).optString(key)) } }
             }, REQUEST_PRESET)
         } else {
+            SchedulePlanStore.updateActionExecution(this, instance.id, occurrence.id, actionIndex, ScheduleActionExecutionState.COMPLETED)
             Toast.makeText(this, action?.message?.ifBlank { occurrence.laneName } ?: occurrence.laneName, Toast.LENGTH_LONG).show()
             continueOrComplete(instance.id, occurrence.id, actionIndex)
         }
@@ -47,8 +50,10 @@ class SchedulePlanDispatchActivity : Activity() {
         val occurrence = instance?.occurrences?.firstOrNull { it.id == occurrenceId }
         val actionIndex = intent.getIntExtra("action_index", 0)
         if (instance == null || occurrence == null || resultCode != RESULT_OK) {
+            SchedulePlanStore.updateActionExecution(this, instanceId, occurrenceId, actionIndex, ScheduleActionExecutionState.FAILED, "Preset returned without successful completion")
             complete(instanceId, occurrenceId, ScheduleOccurrenceState.FAILED)
         } else {
+            SchedulePlanStore.updateActionExecution(this, instanceId, occurrenceId, actionIndex, ScheduleActionExecutionState.COMPLETED)
             continueOrComplete(instanceId, occurrenceId, actionIndex)
         }
     }

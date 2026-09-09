@@ -128,6 +128,17 @@ data class SchedulePlan(
 
 enum class ScheduleOccurrenceState { UPCOMING, WINDOW_OPEN, DUE, IN_PROGRESS, COMPLETED, SNOOZED, OVERDUE, MISSED, FAILED, SKIPPED, CANCELLED }
 
+enum class ScheduleActionExecutionState { PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED }
+
+data class ScheduleActionExecution(
+    val actionId: String,
+    val index: Int,
+    val state: ScheduleActionExecutionState = ScheduleActionExecutionState.PENDING,
+    val startedAt: ZonedDateTime? = null,
+    val completedAt: ZonedDateTime? = null,
+    val error: String = ""
+)
+
 data class ScheduleOccurrence(
     val id: String = UUID.randomUUID().toString(),
     val instanceId: String,
@@ -137,6 +148,7 @@ data class ScheduleOccurrence(
     val windowOpen: ZonedDateTime? = null,
     val windowClose: ZonedDateTime? = null,
     val actions: List<ScheduleAction>,
+    val actionExecutions: List<ScheduleActionExecution> = actions.mapIndexed { index, action -> ScheduleActionExecution(action.id, index) },
     val state: ScheduleOccurrenceState = ScheduleOccurrenceState.UPCOMING,
     val completedAt: ZonedDateTime? = null
 )

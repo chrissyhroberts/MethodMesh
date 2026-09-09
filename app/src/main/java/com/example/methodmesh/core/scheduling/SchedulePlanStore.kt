@@ -45,6 +45,15 @@ object SchedulePlanStore {
         }))
     }
 
+    fun updateActionExecution(context: Context, instanceId: String, occurrenceId: String, index: Int, state: ScheduleActionExecutionState, error: String = "") {
+        val instance = instance(context, instanceId) ?: return
+        saveInstance(context, instance.copy(occurrences = instance.occurrences.map { occurrence ->
+            if (occurrence.id != occurrenceId) occurrence else occurrence.copy(actionExecutions = occurrence.actionExecutions.map { execution ->
+                if (execution.index != index) execution else execution.copy(state = state, startedAt = if (state == ScheduleActionExecutionState.IN_PROGRESS) ZonedDateTime.now() else execution.startedAt, completedAt = if (state == ScheduleActionExecutionState.COMPLETED || state == ScheduleActionExecutionState.FAILED) ZonedDateTime.now() else execution.completedAt, error = error)
+            })
+        }))
+    }
+
     private fun readArray(context: Context, key: String): List<JSONObject> = runCatching {
         val array = JSONArray(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(key, "[]"))
         (0 until array.length()).mapNotNull { array.optJSONObject(it) }
@@ -134,11 +143,23 @@ object SchedulePlanStore {
     ) }.getOrNull()
 
     private fun encodeOccurrence(value: ScheduleOccurrence) = JSONObject().apply {
-        put("id", value.id); put("instance_id", value.instanceId); put("lane_id", value.laneId); put("lane_name", value.laneName); put("scheduled_at", value.scheduledAt.toString()); put("window_open", value.windowOpen?.toString()); put("window_close", value.windowClose?.toString()); put("state", value.state.name); put("completed_at", value.completedAt?.toString()); put("actions", JSONArray().apply { value.actions.forEach { put(encodeAction(it)) } })
+        put("id", value.id); put("instance_id", value.instanceId); put("lane_id", value.laneId); put("lane_name", value.laneName); put("scheduled_at", value.scheduledAt.toString()); put("window_open", value.windowOpen?.toString()); put("window_close", value.windowClose?.toString()); put("state", value.state.name); put("completed_at", value.completedAt?.toString()); put("actions", JSONArray().apply { value.actions.forEach { put(encodeAction(it)) } }); put("action_executions", JSONArray().apply { value.actionExecutions.forEach { put(encodeActionExecution(it)) } })
     }
 
-    private fun decodeOccurrence(o: JSONObject) = runCatching { ScheduleOccurrence(
-        id = o.getString("id"), instanceId = o.getString("instance_id"), laneId = o.getString("lane_id"), laneName = o.getString("lane_name"), scheduledAt = ZonedDateTime.parse(o.getString("scheduled_at")), windowOpen = o.optString("window_open").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse), windowClose = o.optString("window_close").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse), actions = array(o.optJSONArray("actions")).mapNotNull(::decodeAction), state = ScheduleOccurrenceState.valueOf(o.optString("state", ScheduleOccurrenceState.UPCOMING.name)), completedAt = o.optString("completed_at").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse)
+    private fun decodeOccurrence(o: JSONObject) = runCatching {
+        val actions = array(o.optJSONArray("actions")).mapNotNull(::decodeAction)
+        val executions = array(o.optJSONArray("action_executions")).mapNotNull(::decodeActionExecution).ifEmpty { actions.mapIndexed { index, action -> ScheduleActionExecution(action.id, index) } }
+        ScheduleOccurrence(
+            id = o.getString("id"), instanceId = o.getString("instance_id"), laneId = o.getString("lane_id"), laneName = o.getString("lane_name"), scheduledAt = ZonedDateTime.parse(o.getString("scheduled_at")), windowOpen = o.optString("window_open").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse), windowClose = o.optString("window_close").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse), actions = actions, actionExecutions = executions, state = ScheduleOccurrenceState.valueOf(o.optString("state", ScheduleOccurrenceState.UPCOMING.name)), completedAt = o.optString("completed_at").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse)
+        )
+    }.getOrNull()
+
+    private fun encodeActionExecution(value: ScheduleActionExecution) = JSONObject().apply {
+        put("action_id", value.actionId); put("index", value.index); put("state", value.state.name); put("started_at", value.startedAt?.toString()); put("completed_at", value.completedAt?.toString()); put("error", value.error)
+    }
+
+    private fun decodeActionExecution(o: JSONObject) = runCatching { ScheduleActionExecution(
+        actionId = o.getString("action_id"), index = o.getInt("index"), state = ScheduleActionExecutionState.valueOf(o.optString("state", ScheduleActionExecutionState.PENDING.name)), startedAt = o.optString("started_at").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse), completedAt = o.optString("completed_at").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse), error = o.optString("error")
     ) }.getOrNull()
 
     private fun array(value: JSONArray?): List<JSONObject> = value?.let { (0 until it.length()).mapNotNull(it::optJSONObject) } ?: emptyList()
