@@ -40,6 +40,7 @@ data class ResearchSchedule(
     val triggerValue: String = "",
     val relativeOffsetMinutes: Int = 0,
     val relativeOffsetSeconds: Long = 0,
+    val oneShot: Boolean = false,
     val anchorAt: ZonedDateTime? = null,
     val stopAt: ZonedDateTime? = null,
     val stopAfterSeconds: Long? = null
@@ -54,9 +55,13 @@ data class ResearchSchedule(
         if (anchorAt == null) return null
         val anchor = anchorAt ?: after
         val effectiveStop = stopAt ?: stopAfterSeconds?.takeIf { it > 0 }?.let { anchor.plusSeconds(it) }
+        val offsetSeconds = relativeOffsetSeconds.takeIf { it > 0 }
+            ?: relativeOffsetMinutes.coerceAtLeast(0).toLong() * 60
+        if (oneShot) {
+            val due = anchor.plusSeconds(offsetSeconds)
+            return due.takeIf { it.isAfter(after) && (effectiveStop == null || due.isBefore(effectiveStop)) }
+        }
         if (cronExpression.isNotBlank()) {
-            val offsetSeconds = relativeOffsetSeconds.takeIf { it > 0 }
-                ?: relativeOffsetMinutes.coerceAtLeast(0).toLong() * 60
             val start = anchor.plusSeconds(offsetSeconds)
             val next = CronSchedule.next(cronExpression, if (after.isBefore(start)) start.minusMinutes(1) else after)
             return next.takeIf { effectiveStop == null || next.isBefore(effectiveStop) }

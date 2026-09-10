@@ -6,6 +6,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 
 enum class CronTaskTarget { NOTIFICATION, PRESET, PROTOCOL, CAPABILITY, ODK_FORM, WEB_FORM, CLIPBOARD }
+enum class CronTaskRecurrence { ONCE, CRON }
 
 /** How a schedule obtains the time from which its cron tasks are evaluated. */
 sealed interface CronTrigger {
@@ -30,7 +31,8 @@ data class CronTask(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
     val timing: ScheduleTimingMode,
-    val cronExpression: String,
+    val cronExpression: String = "",
+    val recurrence: CronTaskRecurrence = CronTaskRecurrence.CRON,
     val relativeOffset: Duration = Duration.ZERO,
     val target: CronTaskTarget,
     val targetId: String = "",
@@ -42,7 +44,7 @@ data class CronTask(
 ) {
     init {
         require(name.isNotBlank())
-        require(cronExpression.isNotBlank())
+        require(recurrence == CronTaskRecurrence.ONCE || cronExpression.isNotBlank())
         require(!relativeOffset.isNegative)
         require(retries >= 0)
         require(!retryInterval.isNegative && !retryInterval.isZero)

@@ -124,7 +124,7 @@ object SchedulerRepository {
         put("notificationTitle", s.notificationTitle); put("notificationMessage", s.notificationMessage)
         put("headless", s.headless)
         put("cronExpression", s.cronExpression)
-        put("triggerMode", s.triggerMode); put("triggerValue", s.triggerValue); put("relativeOffsetMinutes", s.relativeOffsetMinutes); put("relativeOffsetSeconds", s.relativeOffsetSeconds); put("anchorAt", s.anchorAt?.toString())
+        put("triggerMode", s.triggerMode); put("triggerValue", s.triggerValue); put("relativeOffsetMinutes", s.relativeOffsetMinutes); put("relativeOffsetSeconds", s.relativeOffsetSeconds); put("oneShot", s.oneShot); put("anchorAt", s.anchorAt?.toString())
         put("stopAt", s.stopAt?.toString()); put("stopAfterSeconds", s.stopAfterSeconds)
     }
 
@@ -137,7 +137,7 @@ object SchedulerRepository {
             retryIntervalMinutes = o.optInt("retryIntervalMinutes", 60), retryWindowMinutes = o.optInt("retryWindowMinutes", 1440),
             notificationTitle = o.optString("notificationTitle", "MethodMesh reminder"), notificationMessage = o.optString("notificationMessage", "A scheduled task is due."), enabled = o.optBoolean("enabled", true), headless = o.optBoolean("headless", false)
             ,cronExpression = o.optString("cronExpression")
-            ,triggerMode = o.optString("triggerMode", "MANUAL"), triggerValue = o.optString("triggerValue"), relativeOffsetMinutes = o.optInt("relativeOffsetMinutes", 0), relativeOffsetSeconds = o.optLong("relativeOffsetSeconds", 0), anchorAt = o.optString("anchorAt").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse), stopAt = o.optString("stopAt").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse), stopAfterSeconds = o.optLong("stopAfterSeconds", 0).takeIf { it > 0 }
+            ,triggerMode = o.optString("triggerMode", "MANUAL"), triggerValue = o.optString("triggerValue"), relativeOffsetMinutes = o.optInt("relativeOffsetMinutes", 0), relativeOffsetSeconds = o.optLong("relativeOffsetSeconds", 0), oneShot = o.optBoolean("oneShot", false), anchorAt = o.optString("anchorAt").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse), stopAt = o.optString("stopAt").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse), stopAfterSeconds = o.optLong("stopAfterSeconds", 0).takeIf { it > 0 }
         )
     }.getOrNull()?.takeIf { it.id.isNotBlank() && it.name.isNotBlank() && it.targetValue.isNotBlank() }
 }

@@ -92,4 +92,18 @@ class CronScheduleEngineTest {
         assertEquals(null, schedule.nextOccurrence(anchor))
         assertEquals(anchor.plusDays(1).withHour(9).withMinute(0), schedule.copy(anchorAt = anchor).nextOccurrence(anchor))
     }
+
+    @Test
+    fun oneShotTaskUsesOnlyItsDelay() {
+        val task = CronTask(
+            name = "Pain check",
+            recurrence = CronTaskRecurrence.ONCE,
+            timing = ScheduleTimingMode.RELATIVE,
+            relativeOffset = Duration.ofHours(4),
+            target = CronTaskTarget.NOTIFICATION
+        )
+
+        assertEquals(anchor.plusHours(4), CronScheduleEngine.next(task, anchor))
+        assertEquals(1, CronScheduleEngine.occurrences(CronScheduleBundle(name = "Tablet follow-up", tasks = listOf(task)), anchor, Duration.ofDays(1)).size)
+    }
 }

@@ -31,11 +31,15 @@ object CronScheduleEngine {
 
     fun next(task: CronTask, initiatedAt: ZonedDateTime): ZonedDateTime {
         val anchor = initiatedAt.plus(if (task.timing == ScheduleTimingMode.RELATIVE) task.relativeOffset else Duration.ZERO)
+        if (task.recurrence == CronTaskRecurrence.ONCE) return anchor
         return CronSchedule.next(task.cronExpression, anchor.minusMinutes(1))
     }
 
     private fun occurrences(task: CronTask, anchor: ZonedDateTime, end: ZonedDateTime): List<CronTaskOccurrence> {
         val firstAnchor = anchor.plus(if (task.timing == ScheduleTimingMode.RELATIVE) task.relativeOffset else Duration.ZERO)
+        if (task.recurrence == CronTaskRecurrence.ONCE) {
+            return if (firstAnchor.isBefore(end)) listOf(CronTaskOccurrence(task.id, task.name, firstAnchor)) else emptyList()
+        }
         val result = mutableListOf<CronTaskOccurrence>()
         var after = firstAnchor.minusMinutes(1)
         while (true) {

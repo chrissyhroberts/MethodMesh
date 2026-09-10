@@ -38,14 +38,18 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.ResearchRuntime
+import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
 import com.example.methodmesh.core.methodmesh.InvocationContext
 import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
 import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
+import java.time.Duration
+import java.time.ZonedDateTime
 
 @Composable
 fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit = {}, onEditSchedule: (ResearchSchedule) -> Unit = {}) {
@@ -67,7 +71,7 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
     val fileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
         if (uri != null) context.contentResolver.openOutputStream(uri)?.use { it.write(SchedulerBundle.export(context).toByteArray(Charsets.UTF_8)) }
     }
-    ElevatedCard(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), elevation = CardDefaults.elevatedCardElevation(2.dp)) {
+    Surface(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), shape = RectangleShape, tonalElevation = 0.dp) {
         Column(Modifier.padding(16.dp)) {
             Column(Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
                 Text(if (expanded) "▼ Schedules" else "▶ Schedules", style = MaterialTheme.typography.titleMedium)
@@ -130,8 +134,13 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                 schedules.sortedWith(compareBy<ResearchSchedule> { it.chainId.ifBlank { it.id } }.thenBy { it.chainOrder })
                     .groupBy { it.chainId.ifBlank { it.id } }.values.forEach { group ->
                         val schedule = group.first()
-                        ElevatedCard(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Column(Modifier.padding(10.dp)) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            shape = RectangleShape,
+                            tonalElevation = 0.dp,
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Column(Modifier.padding(vertical = 10.dp, horizontal = 4.dp)) {
                                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) {
                                         Text(if (group.size > 1) schedule.name.removeSuffix(" 1") else schedule.name, style = MaterialTheme.typography.titleSmall)
@@ -144,26 +153,69 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                                     }
                                     Switch(checked = schedule.enabled, onCheckedChange = { SchedulerRepository.setChainEnabled(context, schedule, it); schedules = SchedulerRepository.all(context) })
                                 }
-                                Text("cron ${schedule.cronExpression} · ${group.size} task${if (group.size == 1) "" else "s"}", style = MaterialTheme.typography.bodySmall)
-                                group.forEachIndexed { index, task -> Text("${index + 1}. ${task.target.name.lowercase()}: ${task.targetValue}", style = MaterialTheme.typography.bodySmall) }
-                                SchedulerRepository.events(context, schedule.id).firstOrNull()?.let { event -> Text("Last: ${event.event}", style = MaterialTheme.typography.labelSmall) }
+                                val now = ZonedDateTime.now()
+                                val next = schedule.nextOccurrence(now)
+                                val nextLabel = when {
+                                    !schedule.enabled -> "Paused"
+                                    next == null && schedule.anchorAt == null -> "Waiting for trigger"
+                                    next == null -> "Finished"
+                                    else -> "Next in ${formatCountdown(Duration.between(now, next))} · ${next.toLocalDate()} ${next.toLocalTime().withSecond(0)}"
+                                }
+                                Text(nextLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                val timingLabel = if (schedule.oneShot) {
+                                    "once after ${formatCountdown(Duration.ofSeconds(schedule.relativeOffsetSeconds))}"
+                                } else {
+                                    "cron ${schedule.cronExpression}"
+                                }
+                                Text("${group.size} task${if (group.size == 1) "" else "s"} · $timingLabel", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                group.forEachIndexed { index, task ->
+                                    val targetName = when (task.target) {
+                                        SchedulerTarget.PRESET -> ProtocolLibraryRepository.preset(context, task.targetValue)?.name ?: "Preset"
+                                        SchedulerTarget.PROTOCOL -> ProtocolLibraryRepository.protocol(context, task.targetValue)?.name ?: "Protocol"
+                                        SchedulerTarget.NOTIFICATION -> task.notificationMessage
+                                        else -> task.target.name.lowercase().replace('_', ' ')
+                                    }
+                                    Text("${index + 1}. $targetName", style = MaterialTheme.typography.bodySmall)
+                                }
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    OutlinedButton(onClick = {
+                                    SchedulerAction("Start") {
                                         ScheduleTriggerRuntime.start(context, schedule.id.substringBeforeLast("_"))
                                         schedules = SchedulerRepository.all(context)
-                                    }) { Text("Start") }
-                                    OutlinedButton(onClick = { onEditSchedule(schedule) }) { Text("Edit") }
-                                    OutlinedButton(onClick = { SchedulerRepository.removeChain(context, schedule); schedules = SchedulerRepository.all(context) }) { Text("Delete") }
-                                    OutlinedButton(onClick = { context.startActivity(Intent(context, SchedulerDispatchActivity::class.java).setAction("com.example.methodmesh.TEST_SCHEDULE").putExtra("schedule_id", schedule.id).putExtra("test_chain", true)) }) { Text("Test") }
+                                    }
+                                    if (next != null && schedule.enabled) SchedulerAction("Run now") {
+                                        context.startActivity(Intent(context, SchedulerDispatchActivity::class.java)
+                                            .setAction("com.example.methodmesh.SCHEDULED_DISPATCH")
+                                            .putExtra("schedule_id", schedule.id))
+                                    }
+                                    SchedulerAction("Edit") { onEditSchedule(schedule) }
+                                    SchedulerAction("Delete") { SchedulerRepository.removeChain(context, schedule); schedules = SchedulerRepository.all(context) }
                                 }
                             }
                         }
                     }
             }
-            Button(onClick = onCreate, Modifier.fillMaxWidth()) { Text("Create schedule") }
+            Text("+ New schedule", modifier = Modifier.fillMaxWidth().clickable(onClick = onCreate).padding(vertical = 12.dp), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
+}
+
+@Composable
+private fun SchedulerAction(label: String, onClick: () -> Unit) {
+    Text(
+        label,
+        modifier = Modifier.clickable(onClick = onClick).padding(vertical = 8.dp, horizontal = 6.dp),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary
+    )
+}
+
+private fun formatCountdown(duration: Duration): String {
+    val seconds = duration.seconds.coerceAtLeast(0)
+    val hours = seconds / 3_600
+    val minutes = (seconds % 3_600) / 60
+    val remainder = seconds % 60
+    return "%02dh %02dm %02ds".format(hours, minutes, remainder)
 }
 
 @Composable

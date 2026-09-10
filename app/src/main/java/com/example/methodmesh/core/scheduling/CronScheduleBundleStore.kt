@@ -75,7 +75,7 @@ object CronScheduleBundleStore {
     }
 
     private fun encodeTask(task: CronTask) = JSONObject().apply {
-        put("id", task.id); put("name", task.name); put("timing", task.timing.name); put("cron", task.cronExpression)
+        put("id", task.id); put("name", task.name); put("timing", task.timing.name); put("recurrence", task.recurrence.name); put("cron", task.cronExpression)
         put("relative_offset_seconds", task.relativeOffset.seconds); put("target", task.target.name); put("target_id", task.targetId)
         put("notification_title", task.notificationTitle); put("notification_message", task.notificationMessage)
         put("retries", task.retries); put("retry_interval_seconds", task.retryInterval.seconds); put("max_occurrences", task.maxOccurrences)
@@ -117,7 +117,7 @@ object CronScheduleBundleStore {
     }
 
     private fun decodeTask(value: JSONObject) = CronTask(
-        id = value.getString("id"), name = value.getString("name"), timing = ScheduleTimingMode.valueOf(value.optString("timing", ScheduleTimingMode.ABSOLUTE.name)), cronExpression = value.getString("cron"),
+        id = value.getString("id"), name = value.getString("name"), timing = ScheduleTimingMode.valueOf(value.optString("timing", ScheduleTimingMode.ABSOLUTE.name)), recurrence = CronTaskRecurrence.valueOf(value.optString("recurrence", CronTaskRecurrence.CRON.name)), cronExpression = value.optString("cron"),
         relativeOffset = Duration.ofSeconds(value.optLong("relative_offset_seconds", 0)), target = CronTaskTarget.valueOf(value.getString("target")), targetId = value.optString("target_id"),
         notificationTitle = value.optString("notification_title", "MethodMesh reminder"), notificationMessage = value.optString("notification_message", "A scheduled task is due."),
         retries = value.optInt("retries", 0), retryInterval = Duration.ofSeconds(value.optLong("retry_interval_seconds", 3600)), maxOccurrences = value.optInt("max_occurrences").takeIf { it > 0 }
