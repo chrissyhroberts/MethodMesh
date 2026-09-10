@@ -57,7 +57,7 @@ object As100SchedulerMethod : As100Method {
         )
         val provenance = ProvenanceContext(provider = "android.alarm_manager", methodId = ID, methodVersion = VERSION)
         val observation = Observation(phenomenon = "methodmesh.schedule", subject = null, values = values, temporalContext = request.temporalContext, provenance = provenance)
-        val status = if (outcome.status == "created") TransformationStatus.Succeeded else TransformationStatus.Failed
+        val status = if (outcome.status in setOf("created", "started")) TransformationStatus.Succeeded else TransformationStatus.Failed
         val transformation = Transformation(action = ID, method = ref, outputs = listOf(ArchitectureRef(observation.id, observation.objectType, observation.phenomenon)), status = status, diagnostics = mapOf("status" to outcome.status, "error" to outcome.error), temporalContext = request.temporalContext, provenance = provenance)
         return As100ExecutionEngine.complete(request = request, status = status, observations = listOf(observation), transformations = listOf(transformation), diagnostics = mapOf("status" to outcome.status, "error" to outcome.error)).withInvocationContext(invocation)
     }

@@ -39,14 +39,27 @@ data class ResearchSchedule(
     val triggerMode: String = "MANUAL",
     val triggerValue: String = "",
     val relativeOffsetMinutes: Int = 0,
-    val anchorAt: ZonedDateTime? = null
+    val relativeOffsetSeconds: Long = 0,
+    val anchorAt: ZonedDateTime? = null,
+    val stopAt: ZonedDateTime? = null,
+    val stopAfterSeconds: Long? = null
 ) {
-    fun nextOccurrence(after: ZonedDateTime = ZonedDateTime.now()): ZonedDateTime {
-        if (triggerMode != "MANUAL" && anchorAt == null) return after.plusYears(100)
+    fun hasStoppedAt(time: ZonedDateTime): Boolean {
+        val anchor = anchorAt ?: return stopAt?.let { !time.isBefore(it) } ?: false
+        val effectiveStop = stopAt ?: stopAfterSeconds?.takeIf { it > 0 }?.let { anchor.plusSeconds(it) }
+        return effectiveStop?.let { !time.isBefore(it) } ?: false
+    }
+
+    fun nextOccurrence(after: ZonedDateTime = ZonedDateTime.now()): ZonedDateTime? {
+        if (anchorAt == null) return null
         val anchor = anchorAt ?: after
+        val effectiveStop = stopAt ?: stopAfterSeconds?.takeIf { it > 0 }?.let { anchor.plusSeconds(it) }
         if (cronExpression.isNotBlank()) {
-            val start = anchor.plusMinutes(relativeOffsetMinutes.coerceAtLeast(0).toLong())
-            return CronSchedule.next(cronExpression, if (after.isBefore(start)) start.minusMinutes(1) else after)
+            val offsetSeconds = relativeOffsetSeconds.takeIf { it > 0 }
+                ?: relativeOffsetMinutes.coerceAtLeast(0).toLong() * 60
+            val start = anchor.plusSeconds(offsetSeconds)
+            val next = CronSchedule.next(cronExpression, if (after.isBefore(start)) start.minusMinutes(1) else after)
+            return next.takeIf { effectiveStop == null || next.isBefore(effectiveStop) }
         }
         val zone = after.zone
         val time = LocalTime.of(hour.coerceIn(0, 23), minute.coerceIn(0, 59))
@@ -64,11 +77,12 @@ data class ResearchSchedule(
                 val result = if (frequency == SchedulerFrequency.HOURLY) {
                     after.withSecond(0).withNano(0).plusHours(if (after.minute < minute) 0 else 1).withMinute(minute)
                 } else ZonedDateTime.of(candidate, time, zone)
-                if (result.isAfter(after)) return result
+                if (result.isAfter(after)) return result.takeIf { effectiveStop == null || result.isBefore(effectiveStop) }
             }
             date = date.plusDays(1)
         }
-        return after.plusDays(1).withHour(hour).withMinute(minute).withSecond(0).withNano(0)
+        val fallback = after.plusDays(1).withHour(hour).withMinute(minute).withSecond(0).withNano(0)
+        return fallback.takeIf { effectiveStop == null || fallback.isBefore(effectiveStop) }
     }
 }
 

@@ -60,11 +60,13 @@ object CronScheduleBundleStore {
         put("version", bundle.version); put("json_artifact_id", bundle.jsonArtifactId)
         put("created_at", bundle.createdAt.toString()); put("updated_at", bundle.updatedAt.toString())
         put("trigger", encodeTrigger(bundle.trigger))
+        put("stop_rule", encodeStopRule(bundle.stopRule))
         put("tasks", JSONArray().apply { bundle.tasks.forEach { put(encodeTask(it)) } })
     }
 
     private fun encodeTrigger(trigger: CronTrigger) = JSONObject().apply {
         when (trigger) {
+            is CronTrigger.Constitutive -> { put("type", "constitutive"); put("started_at", trigger.startedAt.toString()) }
             CronTrigger.Manual -> put("type", "manual")
             is CronTrigger.Absolute -> { put("type", "absolute"); put("start_at", trigger.startAt.toString()) }
             is CronTrigger.Event -> { put("type", "event"); put("event_key", trigger.eventKey) }
@@ -79,11 +81,20 @@ object CronScheduleBundleStore {
         put("retries", task.retries); put("retry_interval_seconds", task.retryInterval.seconds); put("max_occurrences", task.maxOccurrences)
     }
 
+    private fun encodeStopRule(rule: ScheduleStopRule) = JSONObject().apply {
+        when (rule) {
+            ScheduleStopRule.Never -> put("type", "never")
+            is ScheduleStopRule.Absolute -> { put("type", "absolute"); put("stop_at", rule.stopAt.toString()) }
+            is ScheduleStopRule.Relative -> { put("type", "relative"); put("delay_seconds", rule.delay.seconds) }
+        }
+    }
+
     private fun decode(value: JSONObject): CronScheduleBundle? = runCatching {
         val timezone = ZoneId.of(value.optString("timezone", ZoneId.systemDefault().id))
         CronScheduleBundle(
             id = value.getString("id"), name = value.getString("name"), timezone = timezone,
             trigger = decodeTrigger(value.getJSONObject("trigger")),
+            stopRule = decodeStopRule(value.optJSONObject("stop_rule")),
             tasks = (0 until value.getJSONArray("tasks").length()).map { decodeTask(value.getJSONArray("tasks").getJSONObject(it)) },
             enabled = value.optBoolean("enabled", true), jsonArtifactId = value.optString("json_artifact_id").takeIf { it.isNotBlank() && it != "null" },
             version = value.optInt("version", 1), createdAt = ZonedDateTime.parse(value.getString("created_at")), updatedAt = ZonedDateTime.parse(value.getString("updated_at"))
@@ -91,11 +102,18 @@ object CronScheduleBundleStore {
     }.getOrNull()
 
     private fun decodeTrigger(value: JSONObject): CronTrigger = when (value.getString("type")) {
+        "constitutive" -> CronTrigger.Constitutive(ZonedDateTime.parse(value.getString("started_at")))
         "manual" -> CronTrigger.Manual
         "absolute" -> CronTrigger.Absolute(ZonedDateTime.parse(value.getString("start_at")))
         "event" -> CronTrigger.Event(value.getString("event_key"))
         "preset" -> CronTrigger.Preset(value.getString("preset_id"))
         else -> error("Unknown schedule trigger")
+    }
+
+    private fun decodeStopRule(value: JSONObject?): ScheduleStopRule = when (value?.optString("type", "never")) {
+        "absolute" -> ScheduleStopRule.Absolute(ZonedDateTime.parse(value.getString("stop_at")))
+        "relative" -> ScheduleStopRule.Relative(Duration.ofSeconds(value.optLong("delay_seconds", 0).coerceAtLeast(1)))
+        else -> ScheduleStopRule.Never
     }
 
     private fun decodeTask(value: JSONObject) = CronTask(

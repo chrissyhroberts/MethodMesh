@@ -66,7 +66,12 @@ class SchedulerAlarmReceiver : BroadcastReceiver() {
     }
 
     private fun scheduleRetry(context: Context, schedule: ResearchSchedule, attempt: Int) {
-        val whenMillis = ZonedDateTime.now().plusMinutes(schedule.retryIntervalMinutes.coerceAtLeast(1).toLong()).toInstant().toEpochMilli()
+        val retryAt = ZonedDateTime.now().plusMinutes(schedule.retryIntervalMinutes.coerceAtLeast(1).toLong())
+        if (schedule.hasStoppedAt(retryAt)) {
+            SchedulerAlarm.schedule(context, schedule)
+            return
+        }
+        val whenMillis = retryAt.toInstant().toEpochMilli()
         val intent = Intent(context, SchedulerAlarmReceiver::class.java).setAction(ACTION).putExtra("schedule_id", schedule.id).putExtra("kind", "retry").putExtra("attempt", attempt)
         val alarm = context.getSystemService(android.app.AlarmManager::class.java)
         val pending = PendingIntent.getBroadcast(

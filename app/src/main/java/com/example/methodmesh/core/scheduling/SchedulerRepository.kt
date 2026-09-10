@@ -29,7 +29,7 @@ object SchedulerRepository {
         // Re-arm only chain owners, and cancel stale alarms left by earlier
         // scheduler versions that registered every chain member separately.
         all(context).forEach { schedule ->
-            if (schedule.enabled && isAlarmOwner(schedule) && (schedule.triggerMode == "MANUAL" || schedule.anchorAt != null)) SchedulerAlarm.schedule(context, schedule)
+            if (schedule.enabled && isAlarmOwner(schedule) && schedule.anchorAt != null) SchedulerAlarm.schedule(context, schedule)
             else cancel(context, schedule.id)
         }
     }
@@ -46,7 +46,7 @@ object SchedulerRepository {
         val values = all(context).filterNot { it.id == schedule.id } + schedule
         val array = JSONArray().apply { values.forEach { put(encode(it)) } }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, array.toString()).apply()
-        if (schedule.enabled && isAlarmOwner(schedule) && (schedule.triggerMode == "MANUAL" || schedule.anchorAt != null)) SchedulerAlarm.schedule(context, schedule)
+        if (schedule.enabled && isAlarmOwner(schedule) && schedule.anchorAt != null) SchedulerAlarm.schedule(context, schedule)
         else cancel(context, schedule.id)
     }
 
@@ -124,7 +124,8 @@ object SchedulerRepository {
         put("notificationTitle", s.notificationTitle); put("notificationMessage", s.notificationMessage)
         put("headless", s.headless)
         put("cronExpression", s.cronExpression)
-        put("triggerMode", s.triggerMode); put("triggerValue", s.triggerValue); put("relativeOffsetMinutes", s.relativeOffsetMinutes); put("anchorAt", s.anchorAt?.toString())
+        put("triggerMode", s.triggerMode); put("triggerValue", s.triggerValue); put("relativeOffsetMinutes", s.relativeOffsetMinutes); put("relativeOffsetSeconds", s.relativeOffsetSeconds); put("anchorAt", s.anchorAt?.toString())
+        put("stopAt", s.stopAt?.toString()); put("stopAfterSeconds", s.stopAfterSeconds)
     }
 
     private fun decode(o: JSONObject) = runCatching {
@@ -136,14 +137,19 @@ object SchedulerRepository {
             retryIntervalMinutes = o.optInt("retryIntervalMinutes", 60), retryWindowMinutes = o.optInt("retryWindowMinutes", 1440),
             notificationTitle = o.optString("notificationTitle", "MethodMesh reminder"), notificationMessage = o.optString("notificationMessage", "A scheduled task is due."), enabled = o.optBoolean("enabled", true), headless = o.optBoolean("headless", false)
             ,cronExpression = o.optString("cronExpression")
-            ,triggerMode = o.optString("triggerMode", "MANUAL"), triggerValue = o.optString("triggerValue"), relativeOffsetMinutes = o.optInt("relativeOffsetMinutes", 0), anchorAt = o.optString("anchorAt").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse)
+            ,triggerMode = o.optString("triggerMode", "MANUAL"), triggerValue = o.optString("triggerValue"), relativeOffsetMinutes = o.optInt("relativeOffsetMinutes", 0), relativeOffsetSeconds = o.optLong("relativeOffsetSeconds", 0), anchorAt = o.optString("anchorAt").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse), stopAt = o.optString("stopAt").takeIf { it.isNotBlank() && it != "null" }?.let(ZonedDateTime::parse), stopAfterSeconds = o.optLong("stopAfterSeconds", 0).takeIf { it > 0 }
         )
     }.getOrNull()?.takeIf { it.id.isNotBlank() && it.name.isNotBlank() && it.targetValue.isNotBlank() }
 }
 
 object SchedulerAlarm {
     fun schedule(context: Context, schedule: ResearchSchedule) {
-        val whenMillis = schedule.nextOccurrence().toInstant().toEpochMilli()
+        val next = schedule.nextOccurrence()
+        if (next == null) {
+            SchedulerRepository.cancel(context, schedule.id)
+            return
+        }
+        val whenMillis = next.toInstant().toEpochMilli()
         val intent = Intent(context, SchedulerAlarmReceiver::class.java).setAction(SchedulerAlarmReceiver.ACTION)
             .putExtra("schedule_id", schedule.id).putExtra("kind", "primary")
         val alarms = context.getSystemService(AlarmManager::class.java)

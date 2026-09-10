@@ -51,8 +51,10 @@ private data class CronBuilderTask(
     val target: CronBuilderTarget = CronBuilderTarget.NOTIFICATION,
     val targetId: String = "",
     val message: String = "",
-    val offsetDays: String = "0",
-    val offsetTime: String = "00:00",
+    val delayDays: String = "0",
+    val delayHours: String = "0",
+    val delayMinutes: String = "0",
+    val delaySeconds: String = "0",
     val retries: String = "0",
     val retryMinutes: String = "60"
 ) {
@@ -67,12 +69,23 @@ object CronScheduleCapabilityScreen : CapabilityScreenSpec {
     @Composable
     override fun Render(context: CapabilityScreenContext, onBack: () -> Unit, onConfirmed: (ExecutionResult) -> Unit, onCancel: () -> Unit) {
         val app = LocalContext.current.applicationContext
-        var name by remember { mutableStateOf(context.request.settings["schedule_name"].orEmpty()) }
-        var triggerMode by remember { mutableStateOf("MANUAL") }
-        var absoluteStart by remember { mutableStateOf(LocalDateTime.now().withSecond(0).withNano(0).toString().replace('T', ' ')) }
-        var triggerKey by remember { mutableStateOf("") }
-        var customEvent by remember { mutableStateOf(false) }
-        val tasks = remember { mutableStateListOf(CronBuilderTask()) }
+        val supplied = remember(context.action.settings, context.request.settings) { context.request.settings + context.action.settings }
+        val existingBundle = remember(supplied["schedule_id"]) {
+            supplied["schedule_id"]?.substringBeforeLast("_")?.let { CronScheduleBundleStore.get(app, it) }
+        }
+        var name by remember(existingBundle) { mutableStateOf(existingBundle?.name ?: supplied["schedule_name"].orEmpty()) }
+        var constitutive by remember(existingBundle) { mutableStateOf(existingBundle.isConstitutive()) }
+        var triggerMode by remember(existingBundle) { mutableStateOf(existingBundle.triggerMode()) }
+        var absoluteStart by remember(existingBundle) { mutableStateOf(existingBundle.absoluteStartText()) }
+        var triggerKey by remember(existingBundle) { mutableStateOf(existingBundle.triggerKey()) }
+        var customEvent by remember(existingBundle) { mutableStateOf(existingBundle.isCustomEvent()) }
+        var stopMode by remember(existingBundle) { mutableStateOf(existingBundle.stopMode()) }
+        var stopAbsolute by remember(existingBundle) { mutableStateOf(existingBundle.stopAbsoluteText()) }
+        var stopDays by remember(existingBundle) { mutableStateOf(existingBundle.stopDurationPart(Duration::toDays)) }
+        var stopHours by remember(existingBundle) { mutableStateOf(existingBundle.stopDurationRemainder(24 * 60 * 60, 60 * 60)) }
+        var stopMinutes by remember(existingBundle) { mutableStateOf(existingBundle.stopDurationRemainder(60 * 60, 60)) }
+        var stopSeconds by remember(existingBundle) { mutableStateOf(existingBundle.stopDurationRemainder(60, 1)) }
+        val tasks = remember(existingBundle) { mutableStateListOf(*(existingBundle?.tasks?.map(::toBuilderTask)?.toTypedArray() ?: arrayOf(CronBuilderTask()))) }
         var status by remember { mutableStateOf("Add one or more cron tasks.") }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         val presets = remember { ProtocolLibraryRepository.presets(app) }
@@ -87,17 +100,26 @@ object CronScheduleCapabilityScreen : CapabilityScreenSpec {
 
         fun save() {
             if (name.isBlank() || tasks.isEmpty()) { status = "Enter a schedule name and at least one task."; return }
-            if (triggerMode == "EVENT" && triggerKey.isBlank()) { status = "Choose the event that starts this schedule."; return }
+            if (!constitutive && triggerMode == "EVENT" && triggerKey.isBlank()) { status = "Choose the event that starts this schedule."; return }
             val parsedStart = runCatching { LocalDateTime.parse(absoluteStart.trim().replace(' ', 'T')).atZone(ZoneId.systemDefault()) }.getOrNull()
-            if (triggerMode == "ABSOLUTE" && parsedStart == null) { status = "Use YYYY-MM-DD HH:MM for the absolute start."; return }
+            if (!constitutive && triggerMode == "ABSOLUTE" && parsedStart == null) { status = "Use YYYY-MM-DD HH:MM for the absolute start."; return }
             val anchor = parsedStart ?: ZonedDateTime.now().withSecond(0).withNano(0)
-            val trigger = when (triggerMode) {
+            val stopRule = when (stopMode) {
+                "ABSOLUTE" -> runCatching { ScheduleStopRule.Absolute(LocalDateTime.parse(stopAbsolute.trim().replace(' ', 'T')).atZone(ZoneId.systemDefault())) }.getOrElse {
+                    status = "Use YYYY-MM-DD HH:MM for the stop time."; return
+                }
+                "RELATIVE" -> ScheduleStopRule.Relative(parseDuration(stopDays, stopHours, stopMinutes, stopSeconds).takeIf { !it.isZero } ?: run {
+                    status = "Set a stop delay greater than zero."; return
+                })
+                else -> ScheduleStopRule.Never
+            }
+            val trigger = if (constitutive) CronTrigger.Constitutive(anchor) else when (triggerMode) {
                 "ABSOLUTE" -> CronTrigger.Absolute(anchor)
                 "EVENT" -> CronTrigger.Event(triggerKey.trim())
                 else -> CronTrigger.Manual
             }
             val built = tasks.mapIndexed { index, task ->
-                val offset = parseOffset(task.offsetDays, task.offsetTime)
+                val offset = parseDuration(task.delayDays, task.delayHours, task.delayMinutes, task.delaySeconds)
                 val target = when (task.target) {
                     CronBuilderTarget.NOTIFICATION -> CronTaskTarget.NOTIFICATION
                     CronBuilderTarget.PRESET -> CronTaskTarget.PRESET
@@ -106,11 +128,12 @@ object CronScheduleCapabilityScreen : CapabilityScreenSpec {
                 if (target != CronTaskTarget.NOTIFICATION && task.targetId.isBlank()) error("Choose a preset or protocol for task ${index + 1}.")
                 CronTask(name = task.name.ifBlank { "Task ${index + 1}" }, timing = if (task.timing == CronBuilderTiming.RELATIVE) ScheduleTimingMode.RELATIVE else ScheduleTimingMode.ABSOLUTE, cronExpression = task.cron, relativeOffset = offset, target = target, targetId = task.targetId, notificationTitle = name.trim(), notificationMessage = task.message.ifBlank { task.name.ifBlank { "Scheduled activity" } }, retries = task.retries.toIntOrNull()?.coerceAtLeast(0) ?: 0, retryInterval = Duration.ofMinutes((task.retryMinutes.toLongOrNull() ?: 60).coerceAtLeast(1)))
             }
-            val id = java.util.UUID.randomUUID().toString()
-            val bundle = CronScheduleBundle(id = id, name = name.trim(), trigger = trigger, tasks = built)
+            val id = existingBundle?.id ?: java.util.UUID.randomUUID().toString()
+            val bundle = CronScheduleBundle(id = id, name = name.trim(), trigger = trigger, stopRule = stopRule, tasks = built)
             runCatching { CronScheduleBundleStore.save(app, bundle) }.onFailure { status = "Could not save schedule JSON: ${it.message ?: "storage error"}"; return }
+            SchedulerRepository.all(app).filter { it.id.startsWith("${id}_") }.forEach { SchedulerRepository.remove(app, it.id) }
             built.forEachIndexed { index, task ->
-                SchedulerRepository.save(app, ResearchSchedule(id = "${id}_$index", name = task.name, target = when (task.target) { CronTaskTarget.NOTIFICATION -> SchedulerTarget.NOTIFICATION; CronTaskTarget.PRESET -> SchedulerTarget.PRESET; CronTaskTarget.PROTOCOL -> SchedulerTarget.PROTOCOL; else -> SchedulerTarget.CLIPBOARD }, targetValue = task.targetId.ifBlank { task.notificationMessage }, frequency = SchedulerFrequency.CUSTOM, hour = 0, minute = 0, retryCount = task.retries, retryIntervalMinutes = task.retryInterval.toMinutes().toInt(), notificationTitle = task.notificationTitle, notificationMessage = task.notificationMessage, cronExpression = task.cronExpression, triggerMode = triggerMode, triggerValue = triggerKey.trim(), relativeOffsetMinutes = task.relativeOffset.toMinutes().toInt(), anchorAt = anchor.takeIf { triggerMode != "EVENT" }, chainId = id, chainOrder = index))
+                SchedulerRepository.save(app, ResearchSchedule(id = "${id}_$index", name = task.name, target = when (task.target) { CronTaskTarget.NOTIFICATION -> SchedulerTarget.NOTIFICATION; CronTaskTarget.PRESET -> SchedulerTarget.PRESET; CronTaskTarget.PROTOCOL -> SchedulerTarget.PROTOCOL; else -> SchedulerTarget.CLIPBOARD }, targetValue = task.targetId.ifBlank { task.notificationMessage }, frequency = SchedulerFrequency.CUSTOM, hour = 0, minute = 0, retryCount = task.retries, retryIntervalMinutes = task.retryInterval.toMinutes().toInt(), notificationTitle = task.notificationTitle, notificationMessage = task.notificationMessage, cronExpression = task.cronExpression, triggerMode = if (constitutive) "CONSTITUTIVE" else triggerMode, triggerValue = triggerKey.trim(), relativeOffsetSeconds = task.relativeOffset.seconds, anchorAt = anchor.takeIf { constitutive || triggerMode == "ABSOLUTE" }, stopAt = (stopRule as? ScheduleStopRule.Absolute)?.stopAt, stopAfterSeconds = (stopRule as? ScheduleStopRule.Relative)?.delay?.seconds))
             }
             status = "Saved ${built.size} cron task${if (built.size == 1) "" else "s"}. JSON is in Files."
             val execution = As100SchedulerMethod.result(As100SchedulerMethod.request(capabilityId, emptyMap(), emptyList(), emptyList()), SchedulerOutcome(null, "created"), context.request.invocationContext)
@@ -123,12 +146,18 @@ object CronScheduleCapabilityScreen : CapabilityScreenSpec {
                 Text("CRON", style = MaterialTheme.typography.headlineSmall)
                 Text("Choose when the schedule starts, then add the work it should repeat.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(name, { name = it }, label = { Text("Schedule name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                Text("Starts", style = MaterialTheme.typography.labelLarge)
+                Text("Activation", style = MaterialTheme.typography.labelLarge)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("MANUAL" to "Manual", "ABSOLUTE" to "Absolute", "EVENT" to "Event").forEach { (value, label) ->
+                    FilterChip(selected = constitutive, onClick = { constitutive = true }, label = { Text("Always on") })
+                    FilterChip(selected = !constitutive, onClick = { constitutive = false }, label = { Text("Triggered") })
+                }
+                if (!constitutive) {
+                    Text("Trigger", style = MaterialTheme.typography.labelMedium)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("MANUAL" to "Manual", "ABSOLUTE" to "At date/time", "EVENT" to "Event").forEach { (value, label) ->
                         FilterChip(selected = triggerMode == value, onClick = { triggerMode = value }, label = { Text(label) })
                     }
-                }
+                    }
                 when (triggerMode) {
                     "ABSOLUTE" -> OutlinedTextField(absoluteStart, { absoluteStart = it }, label = { Text("Start date and time") }, supportingText = { Text("YYYY-MM-DD HH:MM") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     "EVENT" -> {
@@ -138,6 +167,17 @@ object CronScheduleCapabilityScreen : CapabilityScreenSpec {
                         }
                         if (customEvent) OutlinedTextField(triggerKey, { triggerKey = it }, label = { Text("Custom event key") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     }
+                }
+                }
+                Text("Stops", style = MaterialTheme.typography.labelLarge)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("NEVER" to "Never", "ABSOLUTE" to "At date/time", "RELATIVE" to "After delay").forEach { (value, label) ->
+                        FilterChip(selected = stopMode == value, onClick = { stopMode = value }, label = { Text(label) })
+                    }
+                }
+                when (stopMode) {
+                    "ABSOLUTE" -> OutlinedTextField(stopAbsolute, { stopAbsolute = it }, label = { Text("Stop date and time") }, supportingText = { Text("YYYY-MM-DD HH:MM") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    "RELATIVE" -> DurationFields(stopDays, stopHours, stopMinutes, stopSeconds, { stopDays = it }, { stopHours = it }, { stopMinutes = it }, { stopSeconds = it })
                 }
                 tasks.forEachIndexed { index, task ->
                     CronTaskEditor(index, task, presets, protocols) { updated -> tasks[index] = updated }
@@ -198,10 +238,11 @@ private fun CronTaskEditor(
                 singleLine = true
             )
         } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                OutlinedTextField(task.offsetDays, { onChanged(task.copy(offsetDays = it.filter(Char::isDigit))) }, label = { Text("Days after start") }, modifier = Modifier.weight(1f), singleLine = true)
-                OutlinedTextField(task.offsetTime, { onChanged(task.copy(offsetTime = it)) }, label = { Text("Time") }, modifier = Modifier.weight(1f), singleLine = true)
-            }
+            Text("Wait after the schedule starts, then use this cron pattern.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            DurationFields(task.delayDays, task.delayHours, task.delayMinutes, task.delaySeconds,
+                { onChanged(task.copy(delayDays = it)) }, { onChanged(task.copy(delayHours = it)) },
+                { onChanged(task.copy(delayMinutes = it)) }, { onChanged(task.copy(delaySeconds = it)) })
+            OutlinedTextField(task.cronExpression, { onChanged(task.copy(cronExpression = it)) }, label = { Text("Cron pattern after delay") }, supportingText = { Text("minute hour day month weekday · e.g. 0 9 * * *") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
         }
         TaskTargetPicker(task, presets, protocols, onChanged)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -273,8 +314,86 @@ private fun BoxedPicker(
     }
 }
 
-private fun parseOffset(days: String, time: String): Duration {
+@Composable
+private fun DurationFields(
+    days: String,
+    hours: String,
+    minutes: String,
+    seconds: String,
+    onDays: (String) -> Unit,
+    onHours: (String) -> Unit,
+    onMinutes: (String) -> Unit,
+    onSeconds: (String) -> Unit
+) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        OutlinedTextField(days, { onDays(it.filter(Char::isDigit)) }, label = { Text("Days") }, modifier = Modifier.weight(1f), singleLine = true)
+        OutlinedTextField(hours, { onHours(it.filter(Char::isDigit)) }, label = { Text("Hours") }, modifier = Modifier.weight(1f), singleLine = true)
+        OutlinedTextField(minutes, { onMinutes(it.filter(Char::isDigit)) }, label = { Text("Minutes") }, modifier = Modifier.weight(1f), singleLine = true)
+        OutlinedTextField(seconds, { onSeconds(it.filter(Char::isDigit)) }, label = { Text("Seconds") }, modifier = Modifier.weight(1f), singleLine = true)
+    }
+}
+
+private fun parseDuration(days: String, hours: String, minutes: String, seconds: String): Duration {
     val dayCount = days.toLongOrNull()?.coerceAtLeast(0) ?: 0
-    val parts = time.split(":").map { it.toLongOrNull() ?: 0 }
-    return Duration.ofDays(dayCount).plusHours(parts.getOrElse(0) { 0 }).plusMinutes(parts.getOrElse(1) { 0 })
+    val hourCount = hours.toLongOrNull()?.coerceAtLeast(0) ?: 0
+    val minuteCount = minutes.toLongOrNull()?.coerceAtLeast(0) ?: 0
+    val secondCount = seconds.toLongOrNull()?.coerceAtLeast(0) ?: 0
+    return Duration.ofDays(dayCount).plusHours(hourCount).plusMinutes(minuteCount).plusSeconds(secondCount)
+}
+
+private fun CronScheduleBundle?.triggerMode(): String = when (val trigger = this?.trigger) {
+    is CronTrigger.Constitutive -> "MANUAL"
+    is CronTrigger.Absolute -> "ABSOLUTE"
+    is CronTrigger.Event, is CronTrigger.Preset -> "EVENT"
+    else -> "MANUAL"
+}
+
+private fun CronScheduleBundle?.isConstitutive(): Boolean = this?.trigger is CronTrigger.Constitutive
+
+private fun CronScheduleBundle?.absoluteStartText(): String = (this?.trigger as? CronTrigger.Absolute)
+    ?.startAt?.toLocalDateTime()?.toString()?.replace('T', ' ') ?: LocalDateTime.now().withSecond(0).withNano(0).toString().replace('T', ' ')
+
+private fun CronScheduleBundle?.triggerKey(): String = when (val trigger = this?.trigger) {
+    is CronTrigger.Event -> trigger.eventKey
+    is CronTrigger.Preset -> "preset.completed:${trigger.presetId}"
+    else -> ""
+}
+
+private fun CronScheduleBundle?.isCustomEvent(): Boolean {
+    val key = triggerKey()
+    return key.isNotBlank() && !key.startsWith("preset.completed:") && !key.startsWith("protocol.completed:")
+}
+
+private fun CronScheduleBundle?.stopMode(): String = when (this?.stopRule) {
+    is ScheduleStopRule.Absolute -> "ABSOLUTE"
+    is ScheduleStopRule.Relative -> "RELATIVE"
+    else -> "NEVER"
+}
+
+private fun CronScheduleBundle?.stopAbsoluteText(): String = (this?.stopRule as? ScheduleStopRule.Absolute)
+    ?.stopAt?.toLocalDateTime()?.toString()?.replace('T', ' ') ?: ""
+
+private fun CronScheduleBundle?.stopDurationPart(part: (Duration) -> Long): String = ((this?.stopRule as? ScheduleStopRule.Relative)?.delay?.let(part) ?: 0).toString()
+
+private fun CronScheduleBundle?.stopDurationRemainder(divisor: Long, unit: Long): String {
+    val seconds = (this?.stopRule as? ScheduleStopRule.Relative)?.delay?.seconds ?: 0
+    return ((seconds % divisor) / unit).toString()
+}
+
+private fun toBuilderTask(task: CronTask): CronBuilderTask {
+    val delay = task.relativeOffset
+    return CronBuilderTask(
+        name = task.name,
+        timing = if (task.timing == ScheduleTimingMode.RELATIVE) CronBuilderTiming.RELATIVE else CronBuilderTiming.ABSOLUTE,
+        cronExpression = task.cronExpression,
+        target = when (task.target) { CronTaskTarget.NOTIFICATION -> CronBuilderTarget.NOTIFICATION; CronTaskTarget.PRESET -> CronBuilderTarget.PRESET; else -> CronBuilderTarget.PROTOCOL },
+        targetId = task.targetId,
+        message = task.notificationMessage,
+        delayDays = delay.toDays().toString(),
+        delayHours = (delay.toHours() % 24).toString(),
+        delayMinutes = (delay.toMinutes() % 60).toString(),
+        delaySeconds = (delay.seconds % 60).toString(),
+        retries = task.retries.toString(),
+        retryMinutes = task.retryInterval.toMinutes().toString()
+    )
 }

@@ -6,8 +6,10 @@ import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.core.methodmesh.runtime.As100MethodRegistry
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.core.scheduling.As100SchedulerMethod
+import com.example.methodmesh.core.scheduling.As100ScheduleRunMethod
 import com.example.methodmesh.core.scheduling.SchedulePlanCapabilityScreen
 import com.example.methodmesh.core.scheduling.CronScheduleCapabilityScreen
+import com.example.methodmesh.core.scheduling.ScheduleTriggerCapabilityScreen
 import com.example.methodmesh.core.methodmesh.runtime.CapabilityConfigurationRegistry
 import com.example.methodmesh.settings.MethodSetting
 import com.example.methodmesh.settings.SettingsSectionSpec
@@ -143,10 +145,11 @@ object MethodMeshModuleRegistry {
         .flatMap { it.settingsSections() }
         .sortedWith(compareBy<SettingsSectionSpec> { it.order }.thenBy { it.title.lowercase() })
 
-    private fun coreMethods() = listOf(As100SchedulerMethod)
-    private fun coreScreens() = listOf(CronScheduleCapabilityScreen)
+    private fun coreMethods() = listOf(As100SchedulerMethod, As100ScheduleRunMethod)
+    private fun coreScreens() = listOf(CronScheduleCapabilityScreen, ScheduleTriggerCapabilityScreen)
     private fun coreBindings() = listOf(
         RilBinding("create schedule", As100SchedulerMethod.ID, "Create a local MethodMesh schedule"),
+        RilBinding("run schedule", As100ScheduleRunMethod.ID, "Start a saved MethodMesh schedule"),
     )
 
     fun canonicalAction(raw: String): String? {

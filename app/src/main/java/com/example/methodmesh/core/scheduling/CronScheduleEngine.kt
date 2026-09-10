@@ -17,7 +17,14 @@ object CronScheduleEngine {
         horizon: Duration = Duration.ofDays(366)
     ): List<CronTaskOccurrence> {
         val anchor = initiatedAt.withZoneSameInstant(bundle.timezone)
-        val end = anchor.plus(horizon)
+        val horizonEnd = anchor.plus(horizon)
+        val configuredEnd = when (val rule = bundle.stopRule) {
+            ScheduleStopRule.Never -> null
+            is ScheduleStopRule.Absolute -> rule.stopAt.withZoneSameInstant(bundle.timezone)
+            is ScheduleStopRule.Relative -> anchor.plus(rule.delay)
+        }
+        val end = configuredEnd?.takeIf { it.isBefore(horizonEnd) } ?: horizonEnd
+        if (!end.isAfter(anchor)) return emptyList()
         return bundle.tasks.flatMap { task -> occurrences(task, anchor, end) }
             .sortedBy { it.scheduledAt }
     }
@@ -33,7 +40,7 @@ object CronScheduleEngine {
         var after = firstAnchor.minusMinutes(1)
         while (true) {
             val next = CronSchedule.next(task.cronExpression, after)
-            if (next.isAfter(end)) break
+            if (!next.isBefore(end)) break
             result += CronTaskOccurrence(task.id, task.name, next)
             if (task.maxOccurrences != null && result.size >= task.maxOccurrences) break
             after = next

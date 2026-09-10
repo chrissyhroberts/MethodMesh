@@ -9,10 +9,20 @@ enum class CronTaskTarget { NOTIFICATION, PRESET, PROTOCOL, CAPABILITY, ODK_FORM
 
 /** How a schedule obtains the time from which its cron tasks are evaluated. */
 sealed interface CronTrigger {
+    data class Constitutive(val startedAt: ZonedDateTime) : CronTrigger
     data object Manual : CronTrigger
     data class Absolute(val startAt: ZonedDateTime) : CronTrigger
     data class Event(val eventKey: String) : CronTrigger
     data class Preset(val presetId: String) : CronTrigger
+}
+
+/** When a schedule ceases to create further cron occurrences. */
+sealed interface ScheduleStopRule {
+    data object Never : ScheduleStopRule
+    data class Absolute(val stopAt: ZonedDateTime) : ScheduleStopRule
+    data class Relative(val delay: Duration) : ScheduleStopRule {
+        init { require(!delay.isNegative && !delay.isZero) }
+    }
 }
 
 /** A single row in a schedule bundle. */
@@ -50,6 +60,7 @@ data class CronScheduleBundle(
     val name: String,
     val timezone: ZoneId = ZoneId.systemDefault(),
     val trigger: CronTrigger = CronTrigger.Manual,
+    val stopRule: ScheduleStopRule = ScheduleStopRule.Never,
     val tasks: List<CronTask>,
     val enabled: Boolean = true,
     val jsonArtifactId: String? = null,

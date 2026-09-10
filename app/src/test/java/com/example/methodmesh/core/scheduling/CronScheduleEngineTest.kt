@@ -43,4 +43,53 @@ class CronScheduleEngineTest {
         assertEquals(2, values.count { it.taskId == limited.id })
         assertTrue(values.count { it.taskId == unlimited.id } > 2)
     }
+
+    @Test
+    fun relativeStopRuleEndsTheCronTimeline() {
+        val task = CronTask(name = "Hourly", timing = ScheduleTimingMode.ABSOLUTE, cronExpression = "0 * * * *", target = CronTaskTarget.NOTIFICATION)
+        val bundle = CronScheduleBundle(
+            name = "Limited run",
+            timezone = zone,
+            stopRule = ScheduleStopRule.Relative(Duration.ofHours(3)),
+            tasks = listOf(task)
+        )
+
+        val values = CronScheduleEngine.occurrences(bundle, anchor, Duration.ofDays(1))
+
+        assertEquals(3, values.size)
+        assertTrue(values.all { it.scheduledAt.isBefore(anchor.plusHours(3)) })
+    }
+
+    @Test
+    fun absoluteStopRuleCutsOffLaterOccurrences() {
+        val task = CronTask(name = "Daily", timing = ScheduleTimingMode.ABSOLUTE, cronExpression = "0 9 * * *", target = CronTaskTarget.NOTIFICATION)
+        val bundle = CronScheduleBundle(
+            name = "Short study",
+            timezone = zone,
+            stopRule = ScheduleStopRule.Absolute(anchor.plusDays(2)),
+            tasks = listOf(task)
+        )
+
+        val values = CronScheduleEngine.occurrences(bundle, anchor, Duration.ofDays(10))
+
+        assertEquals(2, values.size)
+        assertTrue(values.all { it.scheduledAt.isBefore(anchor.plusDays(2)) })
+    }
+
+    @Test
+    fun triggeredScheduleWaitsForItsAnchor() {
+        val schedule = ResearchSchedule(
+            name = "One-shot follow-up",
+            target = SchedulerTarget.NOTIFICATION,
+            targetValue = "Follow-up",
+            frequency = SchedulerFrequency.CUSTOM,
+            hour = 0,
+            minute = 0,
+            cronExpression = "0 9 * * *",
+            triggerMode = "MANUAL"
+        )
+
+        assertEquals(null, schedule.nextOccurrence(anchor))
+        assertEquals(anchor.plusDays(1).withHour(9).withMinute(0), schedule.copy(anchorAt = anchor).nextOccurrence(anchor))
+    }
 }

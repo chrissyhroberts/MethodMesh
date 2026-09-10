@@ -135,7 +135,12 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) {
                                         Text(if (group.size > 1) schedule.name.removeSuffix(" 1") else schedule.name, style = MaterialTheme.typography.titleSmall)
-                                        Text(if (schedule.enabled) "Running" else "Paused", style = MaterialTheme.typography.labelMedium, color = if (schedule.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                        val state = when {
+                                            !schedule.enabled -> "Paused"
+                                            schedule.anchorAt == null -> "Ready for trigger"
+                                            else -> "Running"
+                                        }
+                                        Text(state, style = MaterialTheme.typography.labelMedium, color = if (schedule.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Switch(checked = schedule.enabled, onCheckedChange = { SchedulerRepository.setChainEnabled(context, schedule, it); schedules = SchedulerRepository.all(context) })
                                 }
@@ -143,6 +148,10 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                                 group.forEachIndexed { index, task -> Text("${index + 1}. ${task.target.name.lowercase()}: ${task.targetValue}", style = MaterialTheme.typography.bodySmall) }
                                 SchedulerRepository.events(context, schedule.id).firstOrNull()?.let { event -> Text("Last: ${event.event}", style = MaterialTheme.typography.labelSmall) }
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    OutlinedButton(onClick = {
+                                        ScheduleTriggerRuntime.start(context, schedule.id.substringBeforeLast("_"))
+                                        schedules = SchedulerRepository.all(context)
+                                    }) { Text("Start") }
                                     OutlinedButton(onClick = { onEditSchedule(schedule) }) { Text("Edit") }
                                     OutlinedButton(onClick = { SchedulerRepository.removeChain(context, schedule); schedules = SchedulerRepository.all(context) }) { Text("Delete") }
                                     OutlinedButton(onClick = { context.startActivity(Intent(context, SchedulerDispatchActivity::class.java).setAction("com.example.methodmesh.TEST_SCHEDULE").putExtra("schedule_id", schedule.id).putExtra("test_chain", true)) }) { Text("Test") }
