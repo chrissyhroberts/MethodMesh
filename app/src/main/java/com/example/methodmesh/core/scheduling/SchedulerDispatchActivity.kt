@@ -728,7 +728,7 @@ class SchedulerDispatchActivity : ComponentActivity() {
         }
         val intent = if (shareable.size == 1) {
             Intent(Intent.ACTION_SEND).apply {
-                type = mediaMimeType(shareable.first().toString())
+                type = if (mediaUris.isEmpty() && includeJson && text.isNotBlank()) "text/plain" else mediaMimeType(shareable.first().toString())
                 putExtra(Intent.EXTRA_STREAM, shareable.first())
                 if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
                 clipData = ClipData.newRawUri("MethodMesh result", shareable.first())

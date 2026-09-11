@@ -790,7 +790,10 @@ private fun shareResultBundle(
     } else {
         if (shareable.size == 1) {
             Intent(Intent.ACTION_SEND).apply {
-                type = mediaMimeType(shareable.first().toString())
+                // A text result plus a JSON sidecar is still a text share.
+                // Advertising it as application/octet-stream makes receivers
+                // such as WhatsApp turn the result itself into a document.
+                type = if (media.isEmpty() && jsonText.isNotBlank() && text.isNotBlank()) "text/plain" else mediaMimeType(shareable.first().toString())
                 putExtra(Intent.EXTRA_STREAM, shareable.first())
                 if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
                 clipData = ClipData.newRawUri("MethodMesh result", shareable.first())
