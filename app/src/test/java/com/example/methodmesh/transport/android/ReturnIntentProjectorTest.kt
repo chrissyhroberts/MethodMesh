@@ -23,6 +23,23 @@ class ReturnIntentProjectorTest {
     }
 
     @Test
+    fun dynamicContentUriFieldIsAddedToClipDataPlan() {
+        val projected = ReturnIntentProjector.projectFlatReturn(
+            fields = linkedMapOf(
+                "site_sketch" to "content://com.example.methodmesh/paperbridge-field-site_sketch.jpg",
+                "participant_id" to "P001"
+            ),
+            namespace = ""
+        )
+
+        assertEquals(
+            listOf(ProjectedClipUri("site_sketch", "content://com.example.methodmesh/paperbridge-field-site_sketch.jpg")),
+            projected.clipUris
+        )
+        assertEquals("content://com.example.methodmesh/paperbridge-field-site_sketch.jpg", projected.extras["site_sketch"])
+    }
+
+    @Test
     fun contentUriBinaryArtifactGrantsReadPermission() {
         val projected = ReturnIntentProjector.projectFlatReturn(
             fields = linkedMapOf("audio_file_uri" to "content://com.example.methodmesh/audio.m4a"),

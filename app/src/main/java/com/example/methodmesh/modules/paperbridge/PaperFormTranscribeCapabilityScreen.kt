@@ -72,6 +72,7 @@ import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
@@ -698,30 +699,32 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                 .filter { it.type == PaperFieldType.IMAGE }
                 .mapNotNull { field ->
                     committedDynamic[field.name]
-                        ?.takeIf { it.startsWith("content://") }
+                        ?.takeIf { ResultShare.isShareableMediaField(field.name, it) }
                         ?.let { PaperBridgeShareAttachment("field_${field.name}.jpg", it) }
                 }
-            // Native Share/Save exposes one completed data-form image, not both
-            // the acquisition image and its registered/canonical derivative. The raw
-            // source remains in the committed audit/ODK contract for provenance.
             val pageAttachments = listOfNotNull(
+                committedStable[PaperBridgeFields.SOURCE_IMAGE]
+                    ?.takeIf { ResultShare.isShareableMediaField(PaperBridgeFields.SOURCE_IMAGE, it) }
+                    ?.let { PaperBridgeShareAttachment("paper_source.jpg", it) },
                 committedStable[PaperBridgeFields.RECTIFIED_IMAGE]
-                    ?.takeIf { it.startsWith("content://") }
-                    ?.let { PaperBridgeShareAttachment("paper_form.jpg", it) }
+                    ?.takeIf { ResultShare.isShareableMediaField(PaperBridgeFields.RECTIFIED_IMAGE, it) }
+                    ?.let { PaperBridgeShareAttachment("paper_rectified.jpg", it) }
             )
             return (pageAttachments + fieldAttachments).distinctBy { it.uri }
         }
 
         fun shareCommitted() {
             runCatching {
-                PaperBridgeResultActions.share(
+                val attachments = committedAttachments()
+                ResultShare.share(
                     context = appContext,
                     chooserTitle = "Share Paper Bridge transcription",
                     text = committedBeefText(),
-                    attachments = committedAttachments(),
-                    jsonText = if (includeFullJson) fullJson else ""
+                    attachments = attachments.map { ResultShare.Attachment(it.name, Uri.parse(it.uri)) },
+                    jsonText = if (includeFullJson) fullJson else "",
+                    fileLabel = "Paper Bridge transcription"
                 )
-                exportStatus = "Sharing transcription text plus ${committedAttachments().size} media attachment${if (committedAttachments().size == 1) "" else "s"}."
+                exportStatus = "Sharing transcription text plus ${attachments.size} media attachment${if (attachments.size == 1) "" else "s"}${if (includeFullJson) " with debug JSON text" else ""}."
             }.onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
         }
 
@@ -941,7 +944,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         Spacer(Modifier.size(8.dp))
                         Column {
                             Text("Include full JSON / audit", style = MaterialTheme.typography.labelLarge)
-                            Text("Adds the structured execution payload to Share and Save.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Share appends debug JSON as text; Save adds metadata.json.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     if (exportStatus.isNotBlank()) {

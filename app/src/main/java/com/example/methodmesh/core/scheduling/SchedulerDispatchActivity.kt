@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.core.content.FileProvider
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,13 +41,13 @@ import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.platform.externalforms.ExternalFormCatalog
 import com.example.methodmesh.transport.OutputExportRepository
 import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.ui.theme.MethodMeshTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
 import java.time.Instant
 import java.util.UUID
 
@@ -666,11 +665,10 @@ class SchedulerDispatchActivity : ComponentActivity() {
                     steps = steps,
                     onClose = { finishRun() },
                     onCopy = { includeJson ->
-                        val text = runShareText(runName, steps) + if (includeJson) {
-                            "\n\nmetadata.json\n${runMetadataJson(runName, steps)}"
-                        } else {
-                            ""
-                        }
+                        val text = ResultShare.buildShareText(
+                            runShareText(runName, steps),
+                            if (includeJson) runMetadataJson(runName, steps) else ""
+                        )
                         if (text.isBlank()) {
                             Toast.makeText(this, "Nothing to copy.", Toast.LENGTH_SHORT).show()
                         } else {
@@ -710,68 +708,23 @@ class SchedulerDispatchActivity : ComponentActivity() {
         }
 
     private fun shareRunResult(runName: String, steps: List<ProtocolStepSummary>, includeJson: Boolean) {
-        val mediaUris = steps.flatMap { step -> step.media.values.map(Uri::parse) }
-            .map(::shareableUri)
-            .distinctBy(Uri::toString)
+        val media = steps.flatMap { step ->
+            step.media.map { (name, value) -> ResultShare.Attachment(name, Uri.parse(value)) }
+        }.distinctBy { it.uri.toString() }
         val text = runShareText(runName, steps)
-        if (mediaUris.isEmpty() && !includeJson) {
-            if (text.isBlank()) throw IllegalStateException("No shareable result.")
-            startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, text)
-            }, "Share result").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            return
-        }
-        val shareable = ArrayList<Uri>().apply {
-            addAll(mediaUris)
-            if (includeJson) add(temporaryJsonShareUri(runMetadataJson(runName, steps)))
-        }
-        val intent = if (shareable.size == 1) {
-            Intent(Intent.ACTION_SEND).apply {
-                type = if (mediaUris.isEmpty() && includeJson && text.isNotBlank()) "text/plain" else mediaMimeType(shareable.first().toString())
-                putExtra(Intent.EXTRA_STREAM, shareable.first())
-                if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
-                clipData = ClipData.newRawUri("MethodMesh result", shareable.first())
-            }
-        } else {
-            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-                type = "*/*"
-                putParcelableArrayListExtra(Intent.EXTRA_STREAM, shareable)
-                if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
-                clipData = ClipData.newRawUri("MethodMesh result", shareable.first()).apply {
-                    shareable.drop(1).forEach { addItem(ClipData.Item(it)) }
-                }
-            }
-        }.apply {
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        startActivity(Intent.createChooser(intent, "Share result").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        ResultShare.share(
+            context = this,
+            chooserTitle = "Share result",
+            text = text,
+            attachments = media,
+            jsonText = if (includeJson) runMetadataJson(runName, steps) else "",
+            fileLabel = runName
+        )
     }
-
-    private fun temporaryJsonShareUri(jsonText: String): Uri {
-        val folder = File(cacheDir, "methodmesh_share").apply { mkdirs() }
-        val file = File(folder, "metadata_${System.currentTimeMillis()}.json")
-        file.writeText(jsonText, Charsets.UTF_8)
-        return FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
-    }
-
-    private fun shareableUri(uri: Uri): Uri =
-        if (uri.scheme == "file") {
-            FileProvider.getUriForFile(this, "${packageName}.fileprovider", File(uri.path.orEmpty()))
-        } else uri
 
     private fun isHumanMediaUri(key: String, value: String): Boolean {
         if (key.startsWith("methodmesh_") || key.startsWith("diagnostic_")) return false
-        if (!(value.startsWith("content://") || value.startsWith("file://") || value.startsWith("/"))) return false
-        val lower = value.lowercase()
-        return key.contains("image", true) ||
-            key.contains("photo", true) ||
-            key.contains("pdf", true) ||
-            lower.endsWith(".jpg") ||
-            lower.endsWith(".jpeg") ||
-            lower.endsWith(".png") ||
-            lower.endsWith(".webp") ||
-            lower.endsWith(".pdf")
+        return ResultShare.isShareableMediaField(key, value)
     }
 
     private fun clearRunContext(key: String) {
@@ -951,7 +904,7 @@ private fun RunResultScreen(
             Switch(checked = includeFullJson, onCheckedChange = { includeFullJson = it })
         }
         Text(
-            if (includeFullJson) "Share, copy and downloads will include metadata JSON." else "Share, copy and downloads use only the main result.",
+            if (includeFullJson) "Share/copy append debug JSON text; Save adds metadata.json." else "Share/copy use the main result; Save writes the result plus relevant media.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1015,14 +968,3 @@ private fun runMetadataJson(runName: String, steps: List<ProtocolStepSummary>): 
             }
         })
     }.toString(2)
-
-private fun mediaMimeType(value: String): String {
-    val lower = value.lowercase()
-    return when {
-        lower.endsWith(".pdf") || lower.contains("pdf") -> "application/pdf"
-        lower.endsWith(".png") -> "image/png"
-        lower.endsWith(".webp") -> "image/webp"
-        lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.contains("image") -> "image/jpeg"
-        else -> "*/*"
-    }
-}

@@ -1,7 +1,6 @@
 package com.example.methodmesh.modules.music
 
 import android.content.Context
-import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +27,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.transport.OutputExportRepository
+import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.ResultShare
+import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import org.json.JSONObject
@@ -50,14 +53,18 @@ internal object MusicV105 {
         .split(' ')
         .joinToString(" ") { token -> token.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } }
 
-    fun shareText(context: Context, text: String) {
-        if (text.isBlank()) return
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, text)
-        }
-        runCatching { context.startActivity(Intent.createChooser(intent, "Share result")) }
-            .onFailure { Toast.makeText(context, "Unable to open sharing.", Toast.LENGTH_SHORT).show() }
+    fun shareText(context: Context, text: String, jsonText: String = "", fileLabel: String = "music") {
+        if (text.isBlank() && jsonText.isBlank()) return
+        runCatching {
+            ResultShare.share(
+                context = context,
+                chooserTitle = "Share result",
+                text = text,
+                attachments = emptyList(),
+                jsonText = jsonText,
+                fileLabel = fileLabel
+            )
+        }.onFailure { Toast.makeText(context, "Unable to open sharing.", Toast.LENGTH_SHORT).show() }
     }
 }
 
@@ -160,8 +167,14 @@ internal fun MusicCommittedPanel(
     var includeAudit by rememberSaveable(method.id) { mutableStateOf(false) }
     var showTechnical by rememberSaveable(method.id) { mutableStateOf(false) }
     val beef = values[method.fields.result].orEmpty()
-    val fullJson = MusicV105.valuesToJson(values)
-    val exportText = if (includeAudit) "$beef\n\n$fullJson" else beef
+    val fullJson = OutputFormatter.format(
+        result = execution,
+        returnMode = ReturnMode.Json,
+        includeProvenance = true,
+        payloadMode = OutputFormatter.PayloadMode.FULL
+    )
+    val exportText = ResultShare.buildShareText(beef, if (includeAudit) fullJson else "")
+    var actionStatus by rememberSaveable(execution.request.id.value) { mutableStateOf("") }
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -171,10 +184,10 @@ internal fun MusicCommittedPanel(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Checkbox(checked = includeAudit, onCheckedChange = { includeAudit = it })
-                Text("Include full JSON / audit when sharing or copying", modifier = Modifier.padding(top = 12.dp))
+                Text("Include full JSON / audit", modifier = Modifier.padding(top = 12.dp))
             }
             Button(
-                onClick = { MusicV105.shareText(androidContext, exportText) },
+                onClick = { MusicV105.shareText(androidContext, beef, if (includeAudit) fullJson else "", method.id) },
                 enabled = exportText.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Share") }
@@ -186,6 +199,25 @@ internal fun MusicCommittedPanel(
                 enabled = exportText.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Copy") }
+            OutlinedButton(
+                onClick = {
+                    runCatching {
+                        OutputExportRepository.saveToDownloads(
+                            context = androidContext,
+                            label = method.id,
+                            text = beef,
+                            mediaUris = emptyList(),
+                            jsonText = if (includeAudit) fullJson else ""
+                        )
+                    }.onSuccess { actionStatus = "Saved ${it.summary}" }
+                        .onFailure { actionStatus = "Save failed: ${it.message ?: "storage error"}" }
+                },
+                enabled = beef.isNotBlank() || (includeAudit && fullJson.isNotBlank()),
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Save") }
+            if (actionStatus.isNotBlank()) {
+                Text(actionStatus, style = MaterialTheme.typography.bodySmall)
+            }
             OutlinedButton(onClick = { showTechnical = !showTechnical }, modifier = Modifier.fillMaxWidth()) {
                 Text(if (showTechnical) "Hide technical details" else "Technical details")
             }

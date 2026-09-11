@@ -3,7 +3,6 @@ package com.example.methodmesh.transport
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -11,6 +10,8 @@ import android.os.Environment
 import android.os.Build
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.provider.OpenableColumns
+import android.webkit.MimeTypeMap
 import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
 import com.example.methodmesh.core.methodmesh.ExecutionResult
@@ -87,11 +88,12 @@ object OutputExportRepository {
         mediaUris: List<String>,
         jsonText: String = ""
     ): DownloadsExport {
-        val timestamp = stamp.format(Instant.now())
-        val folderName = safeSegment("${timestamp}_${safeSegment(label).ifBlank { "methodmesh_result" }}")
+        val operationInstant = Instant.now()
+        val stem = ResultShare.coherentFileStem(label, operationInstant)
+        val folderName = stem
         val exported = mutableListOf<ExportedFile>()
         if (text.isNotBlank()) {
-            val name = "result.txt"
+            val name = "${stem}_result.txt"
             val uri = writePublicDownload(
                 context = context,
                 folderName = folderName,
@@ -102,7 +104,7 @@ object OutputExportRepository {
             exported += ExportedFile("result_text", name, uri, "text/plain")
         }
         if (jsonText.isNotBlank()) {
-            val name = "metadata.json"
+            val name = "${stem}_metadata.json"
             val uri = writePublicDownload(
                 context = context,
                 folderName = folderName,
@@ -113,9 +115,22 @@ object OutputExportRepository {
             exported += ExportedFile("metadata_json", name, uri, "application/json")
         }
         mediaUris.distinct().forEachIndexed { index, source ->
-            val ext = extension(source).takeIf { it != "bin" } ?: "bin"
-            val name = safeSegment("media_${index + 1}") + ".$ext"
-            val mime = mimeTypeFor(name)
+            val sourceUri = Uri.parse(source)
+            val resolvedMime = if (source.startsWith("content://")) {
+                context.contentResolver.getType(sourceUri)?.takeIf { it.isNotBlank() }
+            } else null
+            val ext = extension(source).takeIf { it != "bin" }
+                ?: resolvedMime?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
+                ?: "bin"
+            val sourceName = sourceDisplayName(context, source)
+            val sourceBase = sourceName
+                ?.let { name -> name.substringBeforeLast('.', name) }
+                ?.let(::safeSegment)
+                ?.lowercase()
+                ?.takeIf { it.isNotBlank() }
+            val suffix = sourceBase?.let { "${it}_${index + 1}" } ?: "media_${index + 1}"
+            val name = "${stem}_${suffix}.$ext"
+            val mime = resolvedMime ?: mimeTypeFor(name)
             val bytes = openSource(context, source)?.use { it.readBytes() } ?: return@forEachIndexed
             val uri = writePublicDownload(context, folderName, name, mime, bytes)
             if (uri != null) exported += ExportedFile("media_${index + 1}", name, uri, mime)
@@ -159,7 +174,7 @@ object OutputExportRepository {
 
         val jsonFields = JSONObject()
         fields.toSortedMap().forEach { (key, value) ->
-            val exportedValue = if (key.endsWith("_uri") && value?.isNotBlank() == true) {
+            val exportedValue = if (value?.isNotBlank() == true && ResultShare.isShareableMediaField(key, value)) {
                 uniqueAttachmentName(key, value)
             } else {
                 value
@@ -167,7 +182,7 @@ object OutputExportRepository {
             jsonFields.put(key, exportedValue ?: JSONObject.NULL)
         }
 
-        fields.filter { (key, value) -> key.endsWith("_uri") && value?.isNotBlank() == true }
+        fields.filter { (key, value) -> value?.isNotBlank() == true && ResultShare.isShareableMediaField(key, value) }
             .forEach { (field, source) ->
                 val name = jsonFields.optString(field).takeIf { it.isNotBlank() && it != "null" } ?: uniqueAttachmentName(field, source.orEmpty())
                 val mime = mimeTypeFor(name)
@@ -272,7 +287,7 @@ object OutputExportRepository {
 
         val jsonFields = JSONObject()
         fields.toSortedMap().forEach { (key, value) ->
-            val exportedValue = if (key.endsWith("_uri") && value?.isNotBlank() == true) {
+            val exportedValue = if (value?.isNotBlank() == true && ResultShare.isShareableMediaField(key, value)) {
                 uniqueAttachmentName(key, value)
             } else {
                 value
@@ -280,7 +295,7 @@ object OutputExportRepository {
             jsonFields.put(key, exportedValue ?: JSONObject.NULL)
         }
 
-        fields.filter { (key, value) -> key.endsWith("_uri") && value?.isNotBlank() == true }
+        fields.filter { (key, value) -> value?.isNotBlank() == true && ResultShare.isShareableMediaField(key, value) }
             .forEach { (field, source) ->
                 val name = jsonFields.optString(field).takeIf { it.isNotBlank() && it != "null" } ?: uniqueAttachmentName(field, source.orEmpty())
                 val mime = mimeTypeFor(name)
@@ -373,7 +388,9 @@ object OutputExportRepository {
         val method = safeSegment(result.request.method.id.value).ifBlank { "methodmesh_method" }
         val folderName = safeSegment("${timestamp}_${method}_${result.request.id.value}_$packageId")
         val attachments = JSONArray()
-        val attachmentFields = fields.filter { (key, value) -> key.endsWith("_uri") && value?.toString()?.isNotBlank() == true }
+        val attachmentFields = fields.filter { (key, value) ->
+            value?.toString()?.isNotBlank() == true && ResultShare.isShareableMediaField(key, value.toString())
+        }
         val tree = configuredFolder(context).takeIf { it.isNotBlank() }?.let(Uri::parse)
         val treeFolder = tree?.let { createTreeDirectory(context, it, folderName) }
         val folderUri = treeFolder?.toString() ?: defaultOutputFolderDocumentUri(folderName)
@@ -394,7 +411,7 @@ object OutputExportRepository {
 
         val jsonFields = JSONObject().apply {
             fields.forEach { (key, value) ->
-                val exportedValue = if (key.endsWith("_uri") && value != null) {
+                val exportedValue = if (value != null && ResultShare.isShareableMediaField(key, value.toString())) {
                     uniqueAttachmentName(key, value.toString())
                 } else value
                 put(key, exportedValue ?: JSONObject.NULL)
@@ -475,64 +492,88 @@ object OutputExportRepository {
     }
 
     fun share(context: Context, exportPackage: ExportPackage) {
-        val attachments = exportPackage.attachments.mapNotNull { shareableUri(context, it.uri) }.distinctBy(Uri::toString)
-        val json = shareableUri(context, exportPackage.json.uri)
-            ?: throw IllegalStateException("The result JSON is no longer available to share.")
-        val uris = ArrayList<Uri>().apply {
-            addAll(attachments)
-            add(json)
-            exportPackage.manifest?.let { shareableUri(context, it.uri) }?.let { add(it) }
-        }.distinctBy(Uri::toString)
-        val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-            type = "*/*"
-            putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
-            clipData = ClipData.newRawUri("MethodMesh export", uris.first()).apply {
-                uris.drop(1).forEach { addItem(ClipData.Item(it)) }
-            }
-        }.apply {
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            putExtra(Intent.EXTRA_SUBJECT, "MethodMesh export")
-            putExtra(Intent.EXTRA_TEXT, exportPackageHumanText(context, exportPackage))
+        val files = buildList {
+            exportPackage.attachments.forEach { add(ResultShare.Attachment(it.filename, Uri.parse(it.uri))) }
+            add(ResultShare.Attachment(exportPackage.json.filename, Uri.parse(exportPackage.json.uri)))
+            exportPackage.manifest?.let { add(ResultShare.Attachment(it.filename, Uri.parse(it.uri))) }
         }
-        context.startActivity(Intent.createChooser(intent, "Share MethodMesh export").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        ResultShare.share(
+            context = context,
+            chooserTitle = "Share MethodMesh export",
+            text = exportPackageHumanText(context, exportPackage),
+            attachments = files
+        )
     }
 
     private fun exportPackageHumanText(context: Context, exportPackage: ExportPackage): String = runCatching {
         context.contentResolver.openInputStream(Uri.parse(exportPackage.json.uri))?.bufferedReader()?.use { reader ->
-            val fields = JSONObject(reader.readText())
+            val json = JSONObject(reader.readText())
+            val methodId = json.optString("methodmesh_method_id")
+            val fields = json
                 .optJSONArray("steps")
                 ?.optJSONObject(0)
                 ?.optJSONObject("fields")
             if (fields == null) return@use "MethodMesh export\n${exportPackage.summary}"
+            if (methodId == "paper.form.transcribe") {
+                return@use paperBridgeTranscriptionText(fields).ifBlank { exportPackage.summary }
+            }
             buildString {
                 append("MethodMesh export\n")
                 for (key in fields.keys()) {
-                    if (!key.endsWith("_uri")) append(key).append(": ").append(fields.opt(key)).append('\n')
+                    if (isHumanExportField(key, fields.optString(key))) {
+                        append(key).append(": ").append(fields.opt(key)).append('\n')
+                    }
                 }
             }.trim()
         }
     }.getOrNull().orEmpty().ifBlank { "MethodMesh export\n${exportPackage.summary}" }
 
+    private fun paperBridgeTranscriptionText(fields: JSONObject): String {
+        val values = runCatching { JSONObject(fields.optString("paper_values_json")) }.getOrNull()
+        if (values != null && values.length() > 0) {
+            return buildString {
+                for (key in values.keys()) {
+                    val value = values.optString(key)
+                    if (isHumanExportField(key, value)) {
+                        append(key).append(": ").append(value).append('\n')
+                    }
+                }
+            }.trim()
+        }
+        return buildString {
+            for (key in fields.keys()) {
+                val value = fields.optString(key)
+                if (key.startsWith("paper_").not() && isHumanExportField(key, value)) {
+                    append(key).append(": ").append(value).append('\n')
+                }
+            }
+        }.trim()
+    }
+
+    private fun isHumanExportField(key: String, value: String): Boolean {
+        if (value.isBlank()) return false
+        if (ResultShare.isLikelyMediaFieldName(key) || ResultShare.isShareableMediaField(key, value)) return false
+        if (key.startsWith("methodmesh_") || key.startsWith("diagnostic_")) return false
+        if (key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id")) return false
+        if (key.endsWith("_json") || key.endsWith("_payload")) return false
+        if (key.endsWith("_sha256") || key.contains("sha", ignoreCase = true) || key.contains("hash", ignoreCase = true)) return false
+        if (key.endsWith("_count") || key.contains("count", ignoreCase = true)) return false
+        if (key.contains("audit", ignoreCase = true) || key.contains("metadata", ignoreCase = true)) return false
+        if (key.contains("status", ignoreCase = true) || key.endsWith("_error")) return false
+        if (key.endsWith("_time_iso") || key.endsWith("_at_iso")) return false
+        if (key.endsWith("_id") && key !in setOf("participant_id", "specimen_id", "sample_id")) return false
+        return true
+    }
+
     fun shareMedia(context: Context, exportPackage: ExportPackage) {
         val media = exportPackage.attachments.filterNot { it.mimeType == "application/json" || it.mimeType == "text/plain" }
-        val uris = ArrayList(media.mapNotNull { shareableUri(context, it.uri) })
-        if (uris.isEmpty()) throw IllegalStateException("No media attachments are available to share.")
-        val intent = if (uris.size == 1) {
-            Intent(Intent.ACTION_SEND).apply {
-                type = media.first().mimeType
-                putExtra(Intent.EXTRA_STREAM, uris.first())
-            }
-        } else {
-            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-                type = "*/*"
-                putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
-            }
-        }.apply {
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            putExtra(Intent.EXTRA_SUBJECT, "MethodMesh media export")
-            putExtra(Intent.EXTRA_TEXT, "MethodMesh media export: ${exportPackage.summary}")
-        }
-        context.startActivity(Intent.createChooser(intent, "Share MethodMesh media").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        if (media.isEmpty()) throw IllegalStateException("No media attachments are available to share.")
+        ResultShare.share(
+            context = context,
+            chooserTitle = "Share MethodMesh media",
+            text = "MethodMesh media export: ${exportPackage.summary}",
+            attachments = media.map { ResultShare.Attachment(it.filename, Uri.parse(it.uri)) }
+        )
     }
 
     fun notifySaved(context: Context, exportPackage: ExportPackage) {
@@ -620,6 +661,25 @@ object OutputExportRepository {
             }
             context.startActivity(fallback)
         }
+    }
+
+    private fun sourceDisplayName(context: Context, source: String): String? {
+        if (!source.startsWith("content://")) {
+            return source.substringAfterLast('/').substringBefore('?').takeIf { it.isNotBlank() }
+        }
+        return runCatching {
+            context.contentResolver.query(
+                Uri.parse(source),
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                if (!cursor.moveToFirst()) return@use null
+                val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (index < 0) null else cursor.getString(index)
+            }
+        }.getOrNull()
     }
 
     private fun extension(source: String): String = Uri.parse(source).lastPathSegment?.substringAfterLast('.', "bin")?.takeIf { it.length <= 8 } ?: "bin"

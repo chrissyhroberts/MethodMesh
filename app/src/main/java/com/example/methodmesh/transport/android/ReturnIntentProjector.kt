@@ -25,7 +25,7 @@ object ReturnIntentProjector {
         }
         val clipUris = fields.entries.mapNotNull { (key, value) ->
             val text = value?.trim().orEmpty()
-            if (!isReturnedBinaryContentUri(key, text)) {
+            if (!isReturnedContentUri(text)) {
                 null
             } else {
                 ProjectedClipUri(
@@ -56,23 +56,6 @@ object ReturnIntentProjector {
         }
     }
 
-    private fun isReturnedBinaryContentUri(key: String, value: String): Boolean {
-        if (!value.startsWith("content://")) return false
-        val lowerKey = key.lowercase()
-        return lowerKey.endsWith("_uri") ||
-            lowerKey.endsWith("_uris") ||
-            binaryArtifactKeyHints.any { it in lowerKey }
-    }
-
-    private val binaryArtifactKeyHints = listOf(
-        "attachment",
-        "audio",
-        "document",
-        "file",
-        "image",
-        "media",
-        "pdf",
-        "photo",
-        "video"
-    )
+    private fun isReturnedContentUri(value: String): Boolean =
+        value.startsWith("content://")
 }

@@ -1,15 +1,15 @@
 {
   "schema": "methodmesh.odk_template_index.v3",
   "generatedFrom": "/Users/icrucrob/AndroidStudioProjects/MethodMesh/app/src/main/java/com/example/methodmesh",
-  "templateCount": 409,
-  "moduleCount": 74,
+  "templateCount": 411,
+  "moduleCount": 75,
   "validationSummary": {
-    "formsNeedingRevision": 112,
+    "formsNeedingRevision": 114,
     "cleanForms": 297,
     "severityCounts": {
       "error": 4,
       "warning": 36,
-      "style": 94,
+      "style": 96,
       "info": 0
     },
     "authoritativeValidatedForms": 0,
@@ -5218,6 +5218,66 @@
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": []
+      }
+    },
+    {
+      "id": "livestreamtranslate.example_odk_live_stream_translate_auto",
+      "moduleId": "livestreamtranslate",
+      "moduleName": "Livestreamtranslate",
+      "displayName": "MethodMesh live translation · auto language",
+      "description": "",
+      "sourceFileName": "example_odk_live_stream_translate_auto.xlsx",
+      "sourceRelativePath": "modules/livestreamtranslate/docs/example_odk_live_stream_translate_auto.xlsx",
+      "centralFormId": "example_odk_live_stream_translate_auto",
+      "formVersion": "2026091102",
+      "assetPath": "methodmesh/odk_templates/livestreamtranslate/example_odk_live_stream_translate_auto.xlsx",
+      "sha256": "45c4bc9da95119394b2c993986362ca3bf4cd62bf8cd73c4319bdd39018f3540",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'example_odk_live_stream_translate_auto' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'livestreamtranslate_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "livestreamtranslate.example_odk_live_stream_translate_fixed",
+      "moduleId": "livestreamtranslate",
+      "moduleName": "Livestreamtranslate",
+      "displayName": "MethodMesh live translation · fixed language",
+      "description": "",
+      "sourceFileName": "example_odk_live_stream_translate_fixed.xlsx",
+      "sourceRelativePath": "modules/livestreamtranslate/docs/example_odk_live_stream_translate_fixed.xlsx",
+      "centralFormId": "example_odk_live_stream_translate_fixed",
+      "formVersion": "2026091102",
+      "assetPath": "methodmesh/odk_templates/livestreamtranslate/example_odk_live_stream_translate_fixed.xlsx",
+      "sha256": "3d8e05e318efa59a8e8ffe7b9a229027fb691dfcfdd18b198b23fbbfc0c27575",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'example_odk_live_stream_translate_fixed' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'livestreamtranslate_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {

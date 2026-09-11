@@ -1,6 +1,5 @@
 package com.example.methodmesh.modules.electrical
 
-import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
@@ -208,10 +208,12 @@ private fun ElectricalWorkbenchUi(
                 ) { Text("Copy") }
                 OutlinedButton(
                     onClick = {
-                        androidContext.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, resultText)
-                        }, "Share electrical result"))
+                        ResultShare.share(
+                            context = androidContext,
+                            chooserTitle = "Share electrical result",
+                            text = resultText,
+                            attachments = emptyList()
+                        )
                     }, modifier = Modifier.weight(1f)
                 ) { Text("Share") }
             }

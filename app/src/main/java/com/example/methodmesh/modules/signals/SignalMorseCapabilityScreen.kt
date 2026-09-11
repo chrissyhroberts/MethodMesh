@@ -371,9 +371,9 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share Morse message", committedFields[SignalMorseTransmitFields.RESULT].orEmpty()) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "morse_transmission", committedFields[SignalMorseTransmitFields.RESULT].orEmpty(), committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "morse_transmission", committedFields[SignalMorseTransmitFields.RESULT].orEmpty(), committedFullJson) } }
+                    onShare = { includeFullJson -> exportStatus = shareSignalText(androidContext, "Share Morse message", committedFields[SignalMorseTransmitFields.RESULT].orEmpty(), if (includeFullJson) committedFullJson else "") ?: "" },
+                    onSave = { includeFullJson -> exportStatus = saveSignalText(androidContext, "morse_transmission", committedFields[SignalMorseTransmitFields.RESULT].orEmpty(), if (includeFullJson) committedFullJson else "") },
+                    onDone = { includeFullJson -> finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "morse_transmission", committedFields[SignalMorseTransmitFields.RESULT].orEmpty(), if (includeFullJson) committedFullJson else "") } }
                 )
             }
 
@@ -1230,9 +1230,9 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share decoded Morse", committedFields[SignalMorseReceiveFields.RESULT].orEmpty()) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "morse_reception", committedFields[SignalMorseReceiveFields.RESULT].orEmpty(), committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "morse_reception", committedFields[SignalMorseReceiveFields.RESULT].orEmpty(), committedFullJson) } }
+                    onShare = { includeFullJson -> exportStatus = shareSignalText(androidContext, "Share decoded Morse", committedFields[SignalMorseReceiveFields.RESULT].orEmpty(), if (includeFullJson) committedFullJson else "") ?: "" },
+                    onSave = { includeFullJson -> exportStatus = saveSignalText(androidContext, "morse_reception", committedFields[SignalMorseReceiveFields.RESULT].orEmpty(), if (includeFullJson) committedFullJson else "") },
+                    onDone = { includeFullJson -> finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "morse_reception", committedFields[SignalMorseReceiveFields.RESULT].orEmpty(), if (includeFullJson) committedFullJson else "") } }
                 )
             }
 

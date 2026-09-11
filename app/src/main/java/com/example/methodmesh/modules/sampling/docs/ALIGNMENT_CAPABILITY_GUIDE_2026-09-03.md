@@ -32,7 +32,7 @@ These require the full Android project/device environment and are not claimed co
 3. Preset creation, fixed/runtime field selection and native preset execution.
 4. ODK Collect round-trip using `example_odk_Sampling.xlsx`.
 5. Sampling → `attestation.create` protocol chain with a real TSA token/timestamp.
-6. Native **Share result** for generic CSV/JSON attachments. The current shared MethodMesh scaffold recognises image/PDF attachments for direct file sharing but not CSV/JSON. Sampling therefore exposes correct `_uri` attachments and Save/export works, but Production promotion should wait for the generic framework share helper to support these file types (or another generic framework-level solution). This module deliberately does not patch shared UI from inside the capability folder.
+6. Native **Share result** for genuine CSV/JSON output artefacts. The shared MethodMesh transport now treats returned `content://` files as typed attachments regardless of whether they are image/PDF/CSV/JSON; device validation is still required. This is distinct from optional FULL debug JSON, which is appended to Share text rather than introduced as a competing JSON stream.
 7. Repository-level `000_Roadmap.md` update. `ROADMAP_NOTE.md` contains the exact module-owned handoff text because this drop-in does not modify files outside its canonical module folder.
 
 Sampling should remain **Development** until these checks are closed.

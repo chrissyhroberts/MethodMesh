@@ -31,5 +31,5 @@ module into the app:
 - [ ] device/emulator UI validation
 - [ ] validate ODK round-trip on a real ODK Collect form
 - [ ] validate Sampling → Attestation protocol chain including TSA token
-- [ ] generic shared result-screen CSV/JSON attachment sharing
+- [x] generic shared result-screen CSV/JSON domain-artefact attachment sharing (device validation still required)
 - [ ] Production promotion review

@@ -191,7 +191,7 @@ object CardDrawCapabilityScreen : CapabilityScreenSpec {
                 activePlayer = activePlayer,
                 waitingPass = waitingPass,
                 primaryResult = saved[CardDrawFields.RESULT].orEmpty(),
-                auditJson = saved[CardDrawFields.AUDIT_JSON].orEmpty(),
+                auditJson = chanceFullJson(execution),
                 onCommit = { commitDeal() },
                 onNextPlayer = { waitingPass = true },
                 onRevealNext = { revealNextPlayer() },
@@ -388,7 +388,7 @@ object PickOneCapabilityScreen : CapabilityScreenSpec {
                 revealAll = revealAll,
                 allowRevealAll = revealRemaining,
                 result = saved[PickOneFields.RESULT].orEmpty(),
-                auditJson = saved[PickOneFields.AUDIT_JSON].orEmpty(),
+                auditJson = chanceFullJson(execution),
                 onPick = { if (stage == ChanceStage.Choosing) resolvePick(it, preparedJson) },
                 onRevealAll = { revealAll = true },
                 onPickAgain = { prepareNative() },
@@ -511,7 +511,7 @@ private fun WheelCapabilityScreen(
     val selectedIndex = if (weighted) saved[WeightedChoiceFields.SELECTED_INDEX]?.toIntOrNull()?.minus(1) ?: 0
         else saved[SpinnerFields.SELECTED_INDEX]?.toIntOrNull()?.minus(1) ?: 0
     val resultText = if (weighted) saved[WeightedChoiceFields.RESULT].orEmpty() else saved[SpinnerFields.RESULT].orEmpty()
-    val auditJson = if (weighted) saved[WeightedChoiceFields.AUDIT_JSON].orEmpty() else saved[SpinnerFields.AUDIT_JSON].orEmpty()
+    val auditJson = chanceFullJson(execution)
 
     LaunchedEffect(itemsText, rngMode, seed, animationMode) {
         context.onSettingsChanged(

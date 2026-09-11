@@ -87,6 +87,7 @@ import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
@@ -338,14 +339,16 @@ object PaperFormDesignCapabilityScreen : CapabilityScreenSpec {
 
         fun shareCommitted() {
             runCatching {
-                PaperBridgeResultActions.share(
+                val attachments = designAttachments()
+                ResultShare.share(
                     context = app,
                     chooserTitle = "Share Paper Bridge design",
                     text = designSummary(),
-                    attachments = designAttachments(),
-                    jsonText = if (includeFullJson) fullJson else ""
+                    attachments = attachments.map { ResultShare.Attachment(it.name, Uri.parse(it.uri)) },
+                    jsonText = if (includeFullJson) fullJson else "",
+                    fileLabel = "Paper Bridge design"
                 )
-                exportStatus = "Sharing design and ${designAttachments().size} attachment${if (designAttachments().size == 1) "" else "s"}."
+                exportStatus = "Sharing design plus ${attachments.size} attachment${if (attachments.size == 1) "" else "s"}${if (includeFullJson) " with debug JSON text" else ""}."
             }.onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
         }
 

@@ -39,6 +39,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import com.example.methodmesh.transport.ResultShare
+import com.example.methodmesh.transport.workflow.ui.CanonicalCommittedResultActions
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
@@ -74,6 +76,7 @@ object ExpensesManagerCapabilityScreen : CapabilityScreenSpec {
         var exportMenuOpen by rememberSaveable { mutableStateOf(false) }
         var shareMenuOpen by rememberSaveable { mutableStateOf(false) }
         var pendingSaveFile by remember { mutableStateOf<File?>(null) }
+        var committedResult by remember { mutableStateOf<com.example.methodmesh.core.methodmesh.ExecutionResult?>(null) }
 
         fun refresh(selectLedgerId: String? = null) {
             ledgers = repository.listLedgers()
@@ -100,14 +103,16 @@ object ExpensesManagerCapabilityScreen : CapabilityScreenSpec {
                 ?.let { runCatching { repository.getLedger(it.ledgerId) }.getOrNull() }
         }
 
-        fun shareFile(file: File, mime: String) {
+        fun shareFile(file: File) {
             val uri = exporter.shareUri(file)
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = mime
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            appContext.startActivity(Intent.createChooser(intent, "Share expenses"))
+            // Domain export: the file itself is the useful artefact. Use the shared
+            // typed-stream transport rather than reconstructing Android sharing here.
+            ResultShare.share(
+                context = appContext,
+                chooserTitle = "Share expenses",
+                text = "",
+                attachments = listOf(ResultShare.Attachment(file.name, uri))
+            )
         }
 
         fun saveCopy(file: File) {
@@ -115,12 +120,8 @@ object ExpensesManagerCapabilityScreen : CapabilityScreenSpec {
             saveDocumentLauncher.launch(file.name)
         }
 
-        fun completeAndClose() {
-            val current = ledger
-            if (current == null) {
-                onCancel()
-                return
-            }
+        fun completionResult(): com.example.methodmesh.core.methodmesh.ExecutionResult? {
+            val current = ledger ?: return null
             val summary = ExpenseLedgerCalculator.summarize(current)
             val request = As100ExpensesManageMethod.request(
                 action = As100ExpensesManageMethod.ID,
@@ -137,13 +138,56 @@ object ExpensesManagerCapabilityScreen : CapabilityScreenSpec {
                 ExpensesManageFields.EXPENSE_COUNT to summary.expenseCount.toString(),
                 ExpensesManageFields.ERROR to ""
             )
-            onConfirmed(
-                As100ExpensesManageMethod.result(
-                    request = request,
-                    values = values,
-                    invocation = context.request.invocationContext
-                )
+            return As100ExpensesManageMethod.result(
+                request = request,
+                values = values,
+                invocation = context.request.invocationContext
             )
+        }
+
+        fun completeAndClose() {
+            val result = completionResult()
+            if (result == null) {
+                onCancel()
+            } else if (context.submitsImmediately) {
+                onConfirmed(result)
+            } else {
+                committedResult = result
+            }
+        }
+
+        val frozenResult = committedResult
+        if (frozenResult != null && !context.submitsImmediately) {
+            val currentFields = com.example.methodmesh.transport.OutputFormatter.fields(frozenResult, includeProvenance = false)
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("Expenses committed", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    listOfNotNull(
+                        currentFields[ExpensesManageFields.LEDGER_NAME]?.toString()?.takeIf { it.isNotBlank() },
+                        currentFields[ExpensesManageFields.TOTAL_HOME]?.toString()?.takeIf { it.isNotBlank() }?.let { total ->
+                            val currency = currentFields[ExpensesManageFields.HOME_CURRENCY]?.toString().orEmpty()
+                            if (currency.isBlank()) total else "$total $currency"
+                        },
+                        currentFields[ExpensesManageFields.EXPENSE_COUNT]?.toString()?.takeIf { it.isNotBlank() }?.let { "$it expenses" }
+                    ).joinToString(" · "),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "CSV, JSON and ZIP remain domain exports. The controls below share or save the committed capability result.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                CanonicalCommittedResultActions(
+                    result = frozenResult,
+                    label = "expenses result",
+                    onDone = { onConfirmed(frozenResult) },
+                    onEdit = { committedResult = null }
+                )
+            }
+            return
         }
 
         if (showDeleteConfirm && ledger != null) {
@@ -458,21 +502,21 @@ object ExpensesManagerCapabilityScreen : CapabilityScreenSpec {
                                     text = { Text("Summary") },
                                     onClick = {
                                         shareMenuOpen = false
-                                        shareFile(exporter.exportSummary(ledger), "text/plain")
+                                        shareFile(exporter.exportSummary(ledger))
                                     }
                                 )
                                 DropdownMenuItem(
                                     text = { Text("CSV") },
                                     onClick = {
                                         shareMenuOpen = false
-                                        shareFile(exporter.exportCsv(ledger), "text/csv")
+                                        shareFile(exporter.exportCsv(ledger))
                                     }
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Complete ZIP") },
                                     onClick = {
                                         shareMenuOpen = false
-                                        shareFile(exporter.exportZip(ledger), "application/zip")
+                                        shareFile(exporter.exportZip(ledger))
                                     }
                                 )
                             }

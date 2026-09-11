@@ -1,12 +1,12 @@
 ---
 title: "MethodMesh Master Book"
 subtitle: "Canonical architecture, capability runtime, integration, UX and review standard"
-date: "2026-09-07"
+date: "2026-09-11"
 ---
 
-Version: v1.06
+Version: v1.11
 Status: FINAL - canonical project-wide documentation
-Last updated: 2026-09-07
+Last updated: 2026-09-11
 Authority: sole normative project-wide MethodMesh documentation resource
 
 This edition consolidates the previously separate Master Book, architecture and conceptual specifications, capability-writing guidance, module-review manual, UI/UX standards, ODK/XLSForm integration guidance, provider notes, scheduling guidance, testing guidance and current project-wide implementation doctrine into one resource.
@@ -46,11 +46,14 @@ Where older project-wide MethodMesh documents conflict with this book, this book
 - [6. Capability module contract](#6-capability-module-contract)
   - [Auto-discovery](#auto-discovery)
   - [Module-owned metadata](#module-owned-metadata)
+  - [Status and connectivity metadata](#status-and-connectivity-metadata)
   - [Canonical capability contract](#canonical-capability-contract)
   - [Icon key](#icon-key)
 - [7. Capability lanes](#7-capability-lanes)
+  - [Explicit tags are authoritative](#explicit-tags-are-authoritative)
   - [Incoming prototype](#incoming-prototype)
   - [Development](#development)
+  - [Experimental](#experimental)
   - [Production](#production)
   - [Workbench](#workbench)
 - [8. Settings and runtime inputs](#8-settings-and-runtime-inputs)
@@ -59,6 +62,7 @@ Where older project-wide MethodMesh documents conflict with this book, this book
 - [9. Native run UX](#9-native-run-ux)
   - [Capability-owned, relevant UI](#capability-owned-relevant-ui)
   - [Live current result](#live-current-result)
+  - [Runtime output projection](#runtime-output-projection)
   - [Tap-to-copy invariant](#tap-to-copy-invariant)
   - [Commit is the finalisation boundary](#commit-is-the-finalisation-boundary)
   - [Sharing and saving after Commit](#sharing-and-saving-after-commit)
@@ -67,9 +71,11 @@ Where older project-wide MethodMesh documents conflict with this book, this book
   - [Destructive actions](#destructive-actions)
 - [10. ODK/XLSForm contract](#10-odkxlsform-contract)
   - [ODK capability parity](#odk-capability-parity)
-  - [Namespaces](#namespaces)
+  - [Direct and interactive ODK acquisition](#direct-and-interactive-odk-acquisition)
+  - [ODK Integration Card](#odk-integration-card)
+  - [Namespaces and XLSForm groups](#namespaces-and-xlsform-groups)
   - [Flat + full JSON](#flat-full-json)
-  - [Binary artefacts](#binary-artefacts)
+  - [Binary artefacts and ODK attachments](#binary-artefacts-and-odk-attachments)
   - [No MethodMesh storage on ODK return](#no-methodmesh-storage-on-odk-return)
   - [ODK Forms library ownership and discovery](#odk-forms-library-ownership-and-discovery)
   - [ODK Central rapid-test deployment](#odk-central-rapid-test-deployment)
@@ -114,6 +120,7 @@ Where older project-wide MethodMesh documents conflict with this book, this book
 - [20. Documentation rules](#20-documentation-rules)
   - [Example XLSForms](#example-xlsforms)
 - [20A. Module Review and Refresh Standard](#20a-module-review-and-refresh-standard)
+  - [Module Reviewer role](#module-reviewer-role)
   - [Review input](#review-input)
   - [Preserve established contracts](#preserve-established-contracts)
   - [Capability inventory](#capability-inventory)
@@ -409,6 +416,24 @@ A preset stores configuration choices and runtime-input policy. It
 should not store accidental user text or run-specific values unless that
 is genuinely the intended fixed value.
 
+### Optional persistent logs
+
+A preset may explicitly opt into a persistent log. This is the user choice
+made through preset authoring; capabilities remain transient by default and
+must not silently persist their outputs.
+
+When enabled, the preset owns a named log bundle in Files. Each confirmed
+invocation receives a stable entry UUID and is recorded in three layers:
+
+- a human-readable summary file for ordinary users;
+- complete JSONL data containing the result and audit/provenance fields;
+- linked media artifacts identified by entry and media UUIDs.
+
+Repeated delivery of the same execution result is idempotent. Media-copy
+failures are recorded with the entry and must not be hidden. A log bundle is
+exportable and shareable as one package containing the summary, JSONL data and
+media.
+
 ## Protocols
 
 Protocols are chains of presets/capabilities.
@@ -450,15 +475,16 @@ composition.
 
 ODK/XLSForm must be able to invoke every capability and request every
 declared output that MethodMesh itself can produce, including obscure or
-rarely used outputs. Broader/legacy example XLSForms may demonstrate only
-common outputs. Focused capability showcases should capture the declared
-returns relevant to that call plus the shared complete payload, while never
-inventing undeclared fields. In all cases the transport contract must not be
-limited to the examples.
+rarely used outputs. Canonical MethodMesh XLSForm examples are deliberately
+simple: each workbook demonstrates exactly one MethodMesh capability invocation
+and captures the declared returns relevant to that call plus the shared
+complete payload, while never inventing undeclared fields. The transport
+contract must not be limited to the examples.
 
 Transport-specific presentation is allowed. For example, a dashboard may
-render a map, a preset may ask for runtime inputs, and ODK may use
-namespaced return fields and URI grants. The underlying method ID, input
+render a map, a preset may ask for runtime inputs, and a user-authored composite
+ODK form may use return namespaces and URI grants. Canonical shipped MethodMesh
+examples do not require return namespaces. The underlying method ID, input
 semantics, output field names, types and meanings remain canonical.
 
 ### Forbidden architectural shortcuts
@@ -501,9 +527,20 @@ ODK Forms is a first-class top-level MethodMesh surface.
 
 It is a searchable library of module-owned XLSForm design templates and mirrors module organisation in the same way as Capabilities and Presets.
 
-A module may own zero, one or many XLSForms. There is no required one-to-one total form count because broader workflow/dashboard examples may coexist with focused showcases; however, each independently callable ODK-representable capability should have focused showcase coverage.
+A module may own zero, one or many XLSForms. Every canonical MethodMesh XLSForm
+example MUST demonstrate exactly one MethodMesh capability invocation. A
+capability may have more than one example when genuinely different invocation
+modes need separate demonstrations, but multiple MethodMesh calls are not
+combined into one canonical example.
 
-The source of truth is the module's own `docs/` directory. Canonical workbook names use `example_odk_<purpose>.xlsx` for broader/legacy examples and `example_odk_showcase_<purpose>.xlsx` for focused capability showcases. For a showcase, `<purpose>` is normally a lower-snake-case filename projection of the canonical method ID; the filename never renames the method contract. Discovery must flag rather than silently hide structurally valid XLSForms with legacy/non-standard names.
+The source of truth is the module's own `docs/` directory. New canonical
+workbooks use `example_odk_showcase_<purpose>.xlsx`, where `<purpose>` is
+normally a lower-snake-case filename projection of the canonical method ID or a
+specific single-call invocation purpose. Existing `example_odk_<purpose>.xlsx`
+files remain discoverable as legacy/migration artefacts, but a legacy filename
+does not exempt a workbook from the single-invocation rule if it remains in the
+active example library. Discovery must flag rather than silently hide
+structurally valid XLSForms with legacy/non-standard names.
 
 Each library row may expose Save/export, Share, validation status, independent ODK Central deployment/access state and independent Kobo deployment state.
 
@@ -757,7 +794,6 @@ for the module:
 |   |-- example_odk_showcase_<capability_a>.xlsx
 |   |-- README_<CapabilityB>.md              # if the module exposes another capability
 |   |-- example_odk_showcase_<capability_b>.xlsx  # focused capability showcase
-|   |-- example_odk_<purpose>.xlsx           # optional broader/multi-capability example
 |   |-- VALIDATION.md                        # recommended where validation is meaningful
 |   |-- ROADMAP_NOTE.md                      # optional
 |   |-- THIRD_PARTY_NOTICES.md               # when required
@@ -799,13 +835,16 @@ If the handoff is zipped, the ZIP must open to exactly one top-level
 - `docs/` contains **all documentation and ODK examples for the module**.
   Do not return a second documentation tree elsewhere.
 - Because every independently callable MethodMesh capability must remain
-  addressable through the ODK/XLSForm roundtrip, provide a focused showcase
-  workbook for each callable capability using
-  `example_odk_showcase_<purpose>.xlsx`. For showcases, `<purpose>` should
+  addressable through the ODK/XLSForm roundtrip, provide one or more focused
+  single-invocation showcase workbooks as needed using
+  `example_odk_showcase_<purpose>.xlsx`. Each workbook contains exactly one
+  MethodMesh capability call, uses canonical unprefixed return fields and does
+  not require `methodmesh_return_namespace`. For showcases, `<purpose>` should
   normally be derived from the canonical method ID using filename-safe lower
-  snake case. Broader `example_odk_<purpose>.xlsx` workbooks may additionally
-  demonstrate dashboards, workflows or multiple capabilities, but they do not
-  substitute for focused capability-contract coverage.
+  snake case, with an additional purpose token only when separate invocation
+  modes genuinely need separate examples. Existing `example_odk_<purpose>.xlsx`
+  files are migration artefacts: retain them in the active library only if they
+  also satisfy the single-invocation rule; otherwise split or archive them.
 - For a multi-capability module, repeat the per-capability README,
   ODK example, method implementation and native screen as appropriate.
   Do not collapse independent capabilities into a single private
@@ -865,7 +904,50 @@ registration list.
 A module owns:
 
 method IDs; descriptors; settings; output fields; capability screens;
-docs; examples; dependencies; icon hint; tests where possible.
+docs; examples; dependencies; icon hint; maturity/connectivity metadata;
+ODK integration-card descriptors; tests where possible.
+
+## Status and connectivity metadata
+
+Production/development state is explicit metadata. It MUST NOT be inferred from
+directory placement, whether an XLSForm exists, whether a capability appears in
+Workbench, or whether a feature happens to build.
+
+Every admitted module and every independently callable capability carries
+exactly one **maturity tag**:
+
+- `PRODUCTION`
+- `DEVELOPMENT`
+- `EXPERIMENTAL`
+
+These values are mutually exclusive. A multi-capability module may contain
+capabilities at different maturity levels. Module-level maturity is therefore
+an explicit summary/default and MUST NOT silently promote every capability
+inside the module. Capability-level metadata is authoritative for an
+individual method.
+
+Every admitted module/capability also carries exactly one **connectivity tag**:
+
+- `ONLINE_ONLY`
+- `OFFLINE`
+- `ONLINE_OFFLINE`
+
+These values are mutually exclusive.
+
+`ONLINE_ONLY` means the core operation requires network access at execution
+time. `OFFLINE` means the core operation can perform its declared core work
+without network access. `ONLINE_OFFLINE` means the capability has meaningful
+supported operating modes both with and without connectivity; it does not mean
+merely that a screen can open while offline.
+
+Generic MethodMesh surfaces render the human labels **Production**,
+**Development**, **Experimental**, **Online only**, **Offline** and
+**Online/Offline** as compact textual status tags. Colour may reinforce the
+meaning, but status MUST NOT be conveyed by colour alone.
+
+Status tags are projections of module-owned metadata. Shared UI may filter,
+rank and display them generically, but it MUST NOT contain capability-specific
+status tables.
 
 ## Canonical capability contract
 
@@ -901,7 +983,22 @@ capability.
 
 # 7. Capability lanes
 
-Capabilities move through lanes:
+Capability lanes describe admission/workflow state. The explicit maturity and
+connectivity tags in module metadata are the user-visible and machine-readable
+authority for admitted modules.
+
+## Explicit tags are authoritative
+
+For code already admitted under `modules/`, do not reconstruct
+Production/Development/Experimental state from Git history, source location,
+file naming, Workbench placement or test presence. Read the declared tag.
+
+Production results may rank first in normal discovery, but Development and
+Experimental capabilities remain discoverable and visibly tagged unless the
+user has explicitly filtered them out.
+
+Workbench is an interaction surface/category, not a maturity value. A Workbench
+tool still declares exactly one of Production, Development or Experimental.
 
 ## Incoming prototype
 
@@ -919,13 +1016,24 @@ architecture; treat docs as suggestions.
 
 ## Development
 
-Builds and is admitted into modules/ , but not yet polished for
-production.
+Builds and is admitted into modules/ , but is not yet production-reviewed or is
+still undergoing material change.
 
-Development capabilities may be visible in Workbench/development areas.
+Development capabilities remain discoverable in normal capability/search
+surfaces and are visibly tagged **Development**. They may also appear in
+Workbench where appropriate.
 
-They must not claim production status unless they pass the production
+They must not claim Production status unless they pass the production
 checklist.
+
+## Experimental
+
+An Experimental capability is an admitted prototype, proof-of-concept or
+deliberately unstable feature that is useful enough to expose but whose
+contract, behaviour or UX may still change substantially.
+
+Experimental capability metadata is explicit. Experimental is not a synonym
+for broken, and it is not inferred merely because a tool lives in Workbench.
 
 ## Production
 
@@ -1034,9 +1142,32 @@ Explicit Run/Scan/Measure/Refresh/Calculate buttons remain appropriate when the 
 
 Live values are **working/current results** until committed. They may change as the user changes the configuration or repeats the operation.
 
+## Runtime output projection
+
+Native/runtime presentation is deliberately beef-first.
+
+A capability MUST NOT default to a generic or arbitrary second "result screen".
+Even when there is only one output, the result remains part of a polished
+capability/toolkit dashboard. The interaction surface, current result,
+committed result and relevant actions should feel like one coherent tool.
+
+For file/media outputs, present a meaningful artefact card or equivalent with a
+human filename/description and appropriate **Save**, **Share** and/or **Export**
+actions. Do not present a raw Android URI or private filesystem path as the
+useful result.
+
+Structured/audit JSON remains available as salad, but is normally secondary or
+optional in native runtime. Runtime UI should not force the user through JSON
+or metadata merely to get the useful output.
+
+For scalar/text outputs, every value displayed as a result is tap-to-copy using
+its useful clipboard projection. For file/media outputs, tapping the visible
+filename may copy the human-facing filename/identifier where useful, while the
+primary actions remain Save/Share/Export rather than copying an internal URI.
+
 ## Tap-to-copy invariant
 
-Any calculated or returned scalar/text value presented as a result in native MethodMesh should be directly tappable to copy its primary clipboard value. This applies on capability screens as well as dashboard cards.
+Any calculated or returned scalar/text value presented as a result in native MethodMesh should be directly tappable to copy its primary clipboard value. This applies on capability screens as well as dashboard cards. **Legacy/generic result pages are not exempt:** while they remain in the app, every displayed result value on the generic result surface must itself be tappable to copy rather than relying only on the page-level Copy action.
 
 Copy the useful value, not the UI label or debug field name. For example, tapping a Plus Code copies the Plus Code itself, not `Plus Code: ...`. The capability may define whether a unit is part of the useful clipboard representation, but labels and surrounding prose are not.
 
@@ -1063,21 +1194,68 @@ If the user edits inputs after commitment, do not silently mutate the already co
 
 ## Sharing and saving after Commit
 
+Native **Share** and **Save/Export** are deliberately different transport contracts. Do not make one operation imitate the other merely because a storage app happens to appear in the Android Sharesheet.
+
+### Native Share is communication-oriented
+
 Share only the beef by default.
 
 Examples:
 
-barcode scan shares only the decoded payload; Plus Code capture shares only the Plus Code; translation shares only the translated text; image redaction shares only the redacted image; document scanner shares the chosen document/text output; sensor read shares the primary readings; conversation translator shares the transcript.
+barcode scan shares only the decoded payload; Plus Code capture shares only the Plus Code; translation shares only the translated text; image redaction shares the redacted image with useful human text where relevant; document scanner shares the chosen document/text output; sensor read shares the primary readings; conversation translator shares the transcript.
 
-If the user enables full JSON/audit inclusion:
+For ordinary scalar/text results, native Share MUST represent the useful human result in **two equivalent forms at the same time**:
 
-share includes beef + relevant media + JSON; save to Downloads includes beef/text + media + JSON; generic Copy includes beef text + JSON text where that is a sensible clipboard representation.
+- `Intent.EXTRA_TEXT`, so messaging/communication targets receive normal message text; and
+- a caller-readable `text/plain` sidecar stream (normally `methodmesh_result.txt`), so file-oriented receivers in the Android Sharesheet have a real file to persist.
 
-With the option off:
+The text sidecar is a receiver-compatibility projection of the same communication payload, not a second independent result. It MUST contain the same final text carried in `Intent.EXTRA_TEXT`. A text-only result therefore remains a communication share while also being saveable by file-oriented Sharesheet targets. **Save to Downloads** remains the canonical explicit persistence operation and is not replaced by Sharesheet saving.
 
-share/save/copy include only the beef and relevant media.
+Relevant file/media beef is shared as the actual typed stream, using a readable `content://` URI, the most specific useful MIME type, `ClipData` where required and read permission grants. Human result text remains in `Intent.EXTRA_TEXT` and in the text sidecar so messaging and file-oriented applications can each consume the representation they understand. Media MUST NOT be reduced to a URI/path string.
 
-Do not automatically save internal archive copies merely because the user committed a result. Commit finalises the execution; Share/Save are explicit persistence/export actions.
+Capability-owned domain artefacts such as a PDF, GPX, CSV, ZIP, template JSON/YAML or other file that is itself part of the useful result remain real typed attachments. This rule about debug JSON does not demote a genuine domain artefact merely because its file format happens to be JSON.
+
+### Full JSON/audit on native Share and Copy
+
+The **Include full JSON / audit** control is **off by default** for manual/native runs. Its main purpose is diagnostics, provenance inspection and debugging; it is not part of the normal human-facing result.
+
+When the option is off:
+
+- Share sends beef text in `Intent.EXTRA_TEXT`, materialises the same beef text as the `text/plain` result sidecar, and includes relevant typed media/domain attachments;
+- Copy copies the beef text;
+- Save/Export writes the beef/text and relevant media/domain artefacts.
+
+When the option is on:
+
+- Share MUST keep exactly the same media/domain attachment set as it would with the option off;
+- canonical FULL execution JSON is appended to the textual share payload, normally after a clear `metadata.json` marker;
+- the `text/plain` result sidecar MUST contain that same final beef-plus-JSON textual payload;
+- generic Copy may append the same canonical FULL JSON as text where a clipboard representation is sensible;
+- debug/audit JSON MUST NOT be added to the generic Android Share as a separate `application/json` stream, because doing so changes the share envelope and can cause messaging/media receivers to drop the useful attachments;
+- the toggle MUST use the shared canonical FULL execution projection, not a module-private map or ad-hoc JSON substitute.
+
+Modules MUST NOT special-case WhatsApp, Files by Google or another named receiver. Target compatibility policy belongs in shared transport code. Module-specific sharing is allowed only where the capability is deliberately delivering a domain artefact or workflow action distinct from generic committed-result sharing.
+
+### Save/Export is file-oriented
+
+**Save to Downloads** is the canonical persistence route for a manual committed run. The generic saved bundle is:
+
+- `result.txt` when there is human-readable beef text;
+- every relevant media/domain artefact as a real file with an appropriate MIME type;
+- saved media MUST preserve its specific media type/usable extension from resolver MIME metadata when a `content://` source does not expose a filename extension;
+- `metadata.json` only when **Include full JSON / audit** is enabled.
+
+The JSON toggle therefore affects file persistence differently from communication sharing: Share appends debug JSON to human text, while Save materialises it as the `metadata.json` sidecar. A manual run MUST NOT save FULL JSON by default merely because the capability has it available internally.
+
+A capability with a genuine domain export operation may additionally offer named exports such as CSV, GPX, ZIP or PDF. Those exports do not replace the generic committed-result contract unless the exported file is itself the complete primary beef for that capability.
+
+### ODK/external return is a separate contract
+
+ODK/external roundtrip MUST NOT inherit the user's native Share/Save toggle. On every handled ODK return, MethodMesh returns the capability data required by the declared contract, canonical `methodmesh_full_json`, and every applicable file/media attachment as a caller-readable `content://` attachment with the required URI grants/`ClipData` transport. ODK therefore always receives **data + canonical JSON + media/files**, even though FULL JSON is optional in manual/native Share and Save.
+
+For a preset with an explicit persistent log, each completed invocation also updates the log bundle. This logging is independent of whether the user shares or saves that individual result.
+
+Do not automatically save internal archive copies merely because the user committed a result. Commit finalises the execution; Share/Save are explicit communication/persistence actions.
 
 ## Origin-aware Home, Done and closeout
 
@@ -1149,6 +1327,57 @@ If the capability requires MethodMesh-side interaction - for example a camera, m
 
 ODK owns form persistence and submission. Native Share/Save controls are normally suppressed in external-roundtrip mode unless an explicit contract calls for them.
 
+## Shared Artifact Service and generated module artifacts
+
+The core Artifact Service owns file identity, resolution, provenance and handoff. Persistence is an independent decision: producing or selecting an artifact does not save it in Files. Origins are `BUNDLED`, `MANAGED` and `EXTERNAL`; lifecycles are independently `PERSISTENT`, `SESSION` and `TRANSIENT`. Generated derivatives have managed origin and record their parent and operation. Bundled inputs are read-only; edits create new artifacts.
+
+`ArtifactRef` is an opaque `artifact://` identity. Capability adapters can pass it internally and resolve a byte stream without constructing module-private paths. Existing canonical result fields and ODK content-URI/read-grant contracts remain unchanged. A reference is not itself an Android attachment URI. The transport boundary must materialise or stream bytes and grant access using the existing Android transport machinery.
+
+`ArtifactPickerRequest` is the shared MIME/origin/lifecycle/search contract. Selection returns a reference without persistence. `ArtifactPicker` supplies the reusable native selection surface. **Files** is a persistent view (`ArtifactStore`) over that service, with explicit import. ODK Forms retains its specialised deployment semantics while reading bundled bytes through the same service. Reference Library, Ink, TSA and other capability adapters can adopt this contract incrementally; this first implementation does not migrate their existing repositories or result contracts.
+
+Every working artifact belongs to a caller-supplied session. The producer defaults to transient; explicit `persist` creates an immutable managed persistent copy. The coordinator releases working references only after all consumers have read them. Launching an Android share chooser is not confirmation that a recipient has consumed an attachment. `endSession` removes that session's working bytes, leaves persistent artifacts untouched and never deletes linked external files. Current in-flight references are process-scoped, survive activity recreation through the application-scoped service, and do not promise recovery after process death. Abandoned workspace eviction and durable workflow recovery remain follow-up work; callers must explicitly complete sessions.
+
+### Generic transport substrate
+
+MethodMesh messages exchanged with external devices use the generic core transport substrate. `MethodMeshTransportEnvelope` carries stable message identity, logical source and destination endpoints, message classification, optional module/capability routing, timestamps, correlation fields, an opaque versioned payload and bounded metadata. Transport-local addresses remain inside registered providers and bindings.
+
+The runtime persists inbound messages before dispatch, suppresses duplicate message IDs, and persists outbound messages before provider delivery. Inbox and outbox states distinguish queued, sent, delivered, retryable, permanent, expired, received, dispatched, consumed and failed outcomes. Journals are bounded and prunable. Provider failures are isolated, and an unavailable provider leaves outbound work queued or retryable.
+
+Modules register transport providers and consumers through the generic contract. BLE, serial, LAN, ESP-NOW, provisioning, routing, authentication and firmware lifecycle belong to transport modules rather than core. Transport delivery does not bypass capability Commit semantics, create a parallel ODK message path or imply Files persistence for every payload.
+
+### Build-time module XLSForm projection
+
+Module folders and their `docs/` XLSForms remain canonical, self-contained drag-and-drop packages. `generateMethodMeshArtifacts` uses Python 3 (standard library only) to discover workbooks, read row-oriented settings, hash and copy bytes, and generate `app/build/generated/methodmeshArtifacts/assets/methodmesh/artifacts/index.json`. No separate author-maintained central registry is required. Source workbooks are never moved or rewritten. Stable artifact identity uses the declared module ID and module-relative source path; `form_id`, title, version and content hash remain separate fields. Filename changes can change the artifact reference, but never silently change `form_id`.
+
+The ODK Forms catalogue reads this generated index; each workbook is independently indexed, including structurally recognisable legacy names. Duplicate filenames in different modules cannot overwrite each other. Gradle tracks XLSForms, module metadata sources and the compiler as inputs, skips unchanged generation, and removes stale generated workbook copies when sources are removed. Changes to ordinary capability implementation files do not invalidate the artifact task. This initial task uses Gradle up-to-date checking; it does not claim remote build-cache support.
+
+### Log bundles and Files
+
+Persistent preset logs are first-class Files collections. The human-readable
+summary is the primary preview and clipboard projection. The JSONL data and
+media members remain available for inspection, export and audit. Copying a
+preview copies only the readable summary; Save/Export and Share operate on
+the complete bundle. A log member may be selected by its artifact reference,
+but bundle export resolves the collection and includes all members.
+
+Malformed XLSX archives fail generation with source attribution. Non-XLSForm workbooks are reported and excluded. Naming and policy findings remain in each indexed entry rather than silently hiding migration debt. The compiler performs preliminary structural/policy checks, not full pyxform conversion, provider validation or runtime method-contract resolution. `structural_checks_passed` is not a claim of canonical capability coverage or provider admission.
+
+### v1.07 XLSForm policy applied to this projection
+
+The supplied v1.07 XLSForm policy update supersedes older broader-example language in this edition: one canonical example demonstrates exactly one declared capability with exactly one MethodMesh invocation. Canonical examples use unprefixed declared return names, capture `methodmesh_status` and `methodmesh_full_json`, and do not require `methodmesh_return_namespace`. Namespace projection remains supported for intentionally composed user-authored forms.
+
+Generic duplicate-name checks are group/repeat-scope aware. Kobo global-name collisions are separately attributed provider-compatibility findings. Canonical examples require globally unique nodes for unchanged portability. Existing multi-call/namespace examples are migration or archival artifacts, not canonical coverage. Indexing them does not promote them to conformance. Source migration, complete capability/output validation and provider testing remain required before claiming v1.07 compliance; build-time indexing must not silently repair or rename source forms.
+
+Validation commands for this increment:
+
+```sh
+python3 -m unittest discover -s tools/artifacts -p 'test_*.py'
+./gradlew :app:testDebugUnitTest --tests 'com.example.methodmesh.core.artifacts.*'
+./gradlew :app:assembleDebug
+```
+
+The 2026-09-08 foundation increment built a debug APK, passed six artifact-service and three compiler tests, and verified byte-for-byte agreement for 366 source/generated/APK workbooks. Of these, 123 had preliminary policy findings. Unchanged Gradle indexing was confirmed up-to-date. The full unit suite had 195 tests and the same 16 failures recorded before this increment (189 baseline tests); those existing failures are not a passing release gate. Documentation hygiene reported zero errors and 30 warnings. No device-level signing, sharing or ODK roundtrip was exercised for this increment.
+
 ## ODK capability parity
 
 ODK is a first-class invocation surface for the same MethodMesh
@@ -1172,20 +1401,152 @@ output does not require a bespoke ODK code path; the generic
 projection/transport layer must expose it from the canonical output
 contract.
 
-## Namespaces
+## Direct and interactive ODK acquisition
 
-ODK forms may use:
+ODK may satisfy a capability input directly from form state or deliberately ask
+MethodMesh to acquire that input through the capability's polished native UI.
 
+Examples include:
+
+- ODK supplies a text value directly;
+- ODK supplies a file attachment from an earlier form step;
+- ODK launches MethodMesh text entry;
+- ODK launches the MethodMesh file picker;
+- ODK launches a camera/map/drawing/device interaction owned by the capability.
+
+If ODK supplied the original text/file, MethodMesh normally returns only the
+newly produced beef plus metadata; it MUST NOT gratuitously return a duplicate
+copy of the caller's source.
+
+If MethodMesh acquires the source on ODK's behalf, the acquired value becomes
+part of the ODK roundtrip result: acquired text returns as text, and an acquired
+file returns as an actual ODK attachment.
+
+Optional operational inputs such as endpoint/TSA URL, timeout, precision,
+quality or other modifiers remain declared canonical inputs. The Integration
+Card distinguishes direct input fields from interactive acquisition modes.
+
+## ODK Integration Card
+
+Every module exposes a standard **ODK Integration Card**. A multi-capability
+module contains one clearly separated block per independently callable
+capability.
+
+The card is both a user/developer aid and a review artefact. It MUST be
+sufficient for an XLSForm author to call the capability and capture its
+declared returns without reading Kotlin source.
+
+Where possible the card is rendered from the canonical module/capability
+descriptor rather than maintained as an unrelated second schema.
+
+Each capability block contains, in this order:
+
+```text
+ODK INTEGRATION
+
+Capability
+<human display name>
+<canonical method ID>
+
+Tags
+<Maturity: Production | Development | Experimental>
+<Connectivity: Online only | Offline | Online/Offline>
+
+ODK INPUTS
+<canonical input key> | <ODK type> | <required/optional> | <meaning>
+...
+Interactive acquisition:
+<MethodMesh UI acquisition modes, or None>
+
+INTENT CALL
+<exact copyable canonical intent call>
+
+MODIFIERS
+<modifier name> | <type> | <default/optional semantics> | <meaning>
+or: None
+
+CANONICAL RETURNS
+<canonical return key> | <ODK type> | <always/conditional> | <meaning>
+...
+methodmesh_full_json | text/JSON | always | metadata/audit payload
+
+RETURN FIELD PLACEMENT
+<canonical key> -> <example XLSForm leaf/path>
+Canonical example: unprefixed return keys, one MethodMesh call, no return namespace
+
+FILE RETURN SEMANTICS
+<which returns are actual ODK attachments and under what condition>
+
+RUNTIME
+Inputs: <canonical runtime inputs>
+Beef: <primary runtime outputs/actions>
+Metadata: JSON available secondarily/optionally
+```
+
+The exact intent call is directly copyable. Canonical field/key names should
+also be directly copyable in UI where practical.
+
+The card MUST distinguish:
+
+- canonical MethodMesh input/output keys;
+- XLSForm question/leaf placement;
+- direct ODK inputs versus MethodMesh-side interactive acquisition;
+- always-returned versus conditional returns;
+- scalar/text/JSON values versus real submission attachments;
+- modifiers from required inputs.
+
+If no modifiers exist, the card says **Modifiers: None** rather than silently
+omitting the section.
+
+The card is part of review parity. If the card, descriptor, runtime code and
+shipped XLSForms disagree, the module is not review-complete.
+
+## Namespaces and XLSForm groups
+
+Canonical return keys remain short, stable capability-contract keys.
+
+ODK/JavaRosa can disambiguate repeated leaf names that live at different
+instance/group paths, so repeated names in separate groups are not automatically
+a generic XLSForm syntax error. Kobo's importer is stricter and may reject a
+workbook when the same survey node name appears more than once anywhere in the
+form.
+
+Canonical MethodMesh examples therefore avoid the portability problem rather
+than teaching namespace customisation:
+
+- each canonical example contains exactly one MethodMesh capability invocation;
+- canonical return fields use their ordinary unprefixed contract names;
+- canonical examples MUST NOT set `methodmesh_return_namespace`;
+- survey node names in a canonical example SHOULD be globally unique so the
+  same workbook can be uploaded unchanged to ODK Central and Kobo where the
+  underlying question/attachment features are supported.
+
+`methodmesh_return_namespace` remains a supported **advanced composition
+feature** for user-authored forms that deliberately combine several MethodMesh
+calls or otherwise need a flat collision-free return map:
+
+```text
 methodmesh_return_namespace='photo'
+```
 
-The namespace projector prefixes returned keys:
+The namespace projector then prefixes returned keys:
 
-redacted_image_uri → photo_redacted_image_uri redacted_image_sha256 →
-photo_redacted_image_sha256 methodmesh_full_json →
-photo_methodmesh_full_json
+```text
+redacted_image        -> photo_redacted_image
+redacted_image_sha256 -> photo_redacted_image_sha256
+methodmesh_full_json  -> photo_methodmesh_full_json
+```
 
-Do not redesign namespace handling casually. It exists to avoid field
-collisions when several MethodMesh calls appear in one form.
+This advanced feature is part of the transport contract, but it is not part of
+the canonical example contract. If a MethodMesh-supplied example needs a return
+namespace merely to avoid collisions between several MethodMesh calls, split
+the workbook into separate single-invocation examples instead.
+
+Validation distinguishes these concerns. Group-scoped duplicate names may be
+valid under generic ODK/XLSForm syntax, while a provider-portability check may
+still flag global duplicates for Kobo. A global duplicate-name failure in a
+canonical MethodMesh example is therefore an example-authoring/portability
+defect, not a reason to silently rewrite the canonical workbook during upload.
 
 ## Flat + full JSON
 
@@ -1195,8 +1556,16 @@ The current ODK showcase pattern is:
 methodmesh_status + capability-relevant declared return fields + methodmesh_full_json
 ```
 
+Every normal MethodMesh -> ODK roundtrip returns/captures
+`methodmesh_full_json` as the standard metadata/audit JSON payload, including
+when the useful beef is primarily a file or media attachment. A fatal Android
+transport failure that prevents any result from being returned at all is the
+obvious exception, not a different capability contract.
+
 `methodmesh_full_json` is the shared complete execution/audit projection. A
 showcase retains it even when useful scalar/media fields are also projected.
+Native runtime may keep this JSON secondary/optional; ODK always receives the
+metadata projection as part of a successful/handled roundtrip.
 `methodmesh_status` is the shared transport status used by the showcase forms;
 it is not a substitute for capability-specific success semantics where those
 are separately declared.
@@ -1218,23 +1587,38 @@ success/time/capability-payload envelope must be defined centrally in the
 shared MethodMesh transport/canonical contract and then projected consistently;
 it must not emerge as an XLSForm-only convention.
 
-## Binary artefacts
+## Binary artefacts and ODK attachments
 
-For returned binary artefact `content://` URIs:
+When files/media are in play, the **ODK-visible result is an actual submission
+attachment**. ODK MUST NOT be left with a raw URI or private/obscure filesystem
+path that only makes sense inside MethodMesh or Android storage.
 
-- keep the namespaced string extra;
-- add the URI to the returned Intent `ClipData`;
-- add the Android read-URI grant flag `FLAG_GRANT_READ_URI_PERMISSION`;
-- do this centrally in transport, not in the capability.
+Android transport may internally use a temporary `content://` URI to move the
+bytes between apps. The shared transport layer:
 
-This lets ODK import files as real attachments rather than only
-receiving URI text.
+- places the URI in returned `ClipData` as required by the caller contract;
+- adds `FLAG_GRANT_READ_URI_PERMISSION`;
+- exposes/copies the bytes into the caller's attachment field;
+- keeps transport plumbing central rather than capability-specific.
+
+The XLSForm author should capture an attachment-compatible field, not an
+internal MethodMesh URI string.
+
+Internal temporary URIs/private paths are transport implementation details and
+MUST NOT be presented as the useful ODK payload or as a substitute for the
+attachment. New/reviewed ODK contracts should not expose obscure local paths in
+metadata JSON either.
+
+If a historical stable capability output includes a URI-named field, preserve
+contract compatibility deliberately while migrating the ODK projection to a
+real attachment; do not silently break a stable method contract merely to tidy
+the name.
 
 ## No MethodMesh storage on ODK return
 
 When handling ODK/external-app contracts, MethodMesh should not create
-extra output- folder saves. It should return the result/URI/grant and
-let the caller own persistence.
+extra output-folder saves. It should return the actual value/attachment through
+the caller contract and let the caller own persistence.
 
 Temporary/cache files needed to expose an artefact through FileProvider
 are acceptable as artefact source files. Extra “just in case” MethodMesh
@@ -1267,7 +1651,13 @@ Canonical source discovery includes:
 src/main/java/com/example/methodmesh/modules/<module>/docs/**/*.xlsx
 ```
 
-Canonical `example_odk_<purpose>.xlsx` and `example_odk_showcase_<purpose>.xlsx` names are preferred. The generator may also include other workbooks that structurally look like XLSForms as a safety net, while emitting naming findings rather than silently hiding them. Existing broader forms and dedicated showcases may coexist and are catalogued independently.
+New canonical examples use `example_odk_showcase_<purpose>.xlsx`. The generator
+may also include legacy `example_odk_<purpose>.xlsx` files and other workbooks
+that structurally look like XLSForms as a safety net, while emitting migration
+or naming findings rather than silently hiding them. Active canonical examples
+must satisfy the single-invocation policy; legacy multi-call workbooks are
+migration candidates to split or archive, not a second canonical example
+class.
 
 Generated runtime projection:
 
@@ -1316,6 +1706,15 @@ KoboToolbox is a separate provider with separate state. Authentication uses the 
 
 Checking the Kobo control imports/updates and deploys/activates the form for collection.
 
+Canonical MethodMesh examples are authored to be provider-portable rather than
+mutated for Kobo: one MethodMesh call, canonical unprefixed return names, and no
+return namespace. Kobo may reject global duplicate survey node names even where
+ODK can disambiguate them by group path. If that occurs in a canonical
+MethodMesh example, treat it as an example-authoring defect and split/fix the
+source example; do not silently create a provider-specific namespaced variant.
+Provider-specific repair remains permissible only for explicitly user-authored
+composite forms, not as the normal MethodMesh example lifecycle.
+
 Unchecking undeploys/deactivates the remote form and verifies the resulting server state. It does not delete the Kobo project or submissions.
 
 KoboCollect normally uses manual blank-form download. A blank form already downloaded to a collector device remains local after server undeployment until it is removed on that device (unless the collector is deliberately configured for a server-mirroring update mode). Therefore MethodMesh MUST describe unchecking as **undeployed/not available for new server download**, not as "removed from KoboCollect". Collector-device cleanup is a separate device-side concern.
@@ -1332,29 +1731,49 @@ The ODK Forms surface includes a top-level batch validation function.
 
 Validation operates over all discovered module-owned forms and produces clean/warning/error status, module/source attribution, individually copyable findings, per-form diagnostic reports and an exportable batch report.
 
-MethodMesh structural/convention checks include workbook/sheet structure, duplicate or missing names, group/repeat balance, `${field}` reference integrity, choice-list integrity, duplicate `form_id` detection, settings metadata, known JavaRosa/XPath incompatibilities and MethodMesh naming conventions.
+MethodMesh structural/convention checks include workbook/sheet structure,
+duplicate or missing names, group/repeat balance, `${field}` reference
+integrity, choice-list integrity, duplicate `form_id` detection, settings
+metadata, known JavaRosa/XPath incompatibilities and MethodMesh naming
+conventions.
 
-ODK-compatible validation should use pyxform/ODK Validate where available and surface Central/Kobo server diagnostics when deployment fails.
+Generic duplicate-name syntax checks are scope-aware: reuse in different groups
+is not automatically an ODK syntax error. Canonical-example conformance adds a
+separate portability rule: a shipped MethodMesh example contains exactly one
+MethodMesh capability invocation, uses no return namespace, and should not
+contain global survey-node collisions that Kobo will reject.
 
-Do not turn validation warnings into silent automatic rewrites. In particular, do not silently change a deployed `form_id` merely to satisfy naming style.
+ODK-compatible validation should use pyxform/ODK Validate where available and
+surface Central/Kobo server diagnostics when deployment fails. Provider
+warnings are advisory where the server can proceed; genuine import errors such
+as Kobo `DuplicateNameException` remain blocking and should be translated into
+specific authoring guidance.
+
+Do not turn validation warnings into silent automatic rewrites. In particular,
+do not silently change a deployed `form_id`, rename return fields or inject a
+return namespace merely to satisfy a provider. Canonical example repairs happen
+in the module-owned source workbook.
 
 ### MethodMesh XLSForm naming convention
 
-Module-owned XLSForms use two canonical filename forms:
+New canonical module-owned examples use:
 
 ```text
-example_odk_<purpose>.xlsx
 example_odk_showcase_<purpose>.xlsx
 ```
 
-`example_odk_<purpose>.xlsx` is appropriate for a broader, legacy,
-dashboard-oriented or multi-capability example.
+Every such workbook is a focused capability-contract example containing exactly
+one MethodMesh capability invocation. `<purpose>` should normally be a
+filename-safe lower-snake-case projection of the canonical method ID; an
+additional purpose token may distinguish genuinely different single-call
+invocation modes. The filename does not rename the method contract.
 
-`example_odk_showcase_<purpose>.xlsx` is a focused capability-contract
-showcase: normally one form demonstrating one independently callable MethodMesh
-capability/method. For a showcase, `<purpose>` should normally be a
-filename-safe lower-snake-case projection of the canonical method ID. The
-filename does not rename the method contract.
+Existing files named `example_odk_<purpose>.xlsx` remain valid discovery targets
+for migration compatibility, but the filename is legacy rather than a second
+canonical example class. If such a workbook contains several MethodMesh calls,
+split it into separate `example_odk_showcase_<purpose>.xlsx` files or move it out
+of the active canonical example library. Do not create new dashboard-oriented
+or multi-capability MethodMesh example workbooks.
 
 Use lower snake case for new filenames. Periods, spaces, mixed case and other
 method-ID punctuation are normalized only in the filename token.
@@ -1398,6 +1817,13 @@ The reviewed module bundle on 2026-09-07 contained **423 XLSForms**: **147**
 existing/broader examples plus **276** dedicated capability showcases across
 **66 modules**. The showcase pass was additive: existing forms were preserved
 and the focused showcase workbooks used distinct filenames.
+
+That count is a historical migration baseline, not the v1.07 target state.
+v1.07 supersedes the earlier additive multi-capability-example doctrine:
+active canonical MethodMesh examples are single-invocation forms. Existing
+broader files should be assessed during module refresh and split into
+single-invocation examples or archived when they contain multiple MethodMesh
+calls.
 
 The legacy naming/identity cleanup renamed **118** files, cleaned title/version
 metadata in **63** forms and repaired **4** malformed `settings` sheets. After
@@ -1483,10 +1909,11 @@ diagnostics.
 
 Full JSON is the complete auditable payload.
 
-It should be available:
-
-as methodmesh_full_json for ODK where requested; as opt-in export/share
-metadata for native runs; as background data for verification workflows.
+It should be available as background data for verification workflows. On every
+handled ODK/external roundtrip it MUST be returned as `methodmesh_full_json`,
+independently of native sharing preferences. In manual/native runs it is a
+default-off audit/debug option: Share/Copy append it as text when enabled, while
+Save/Export materialises it as `metadata.json`.
 
 It should not be the primary native result screen.
 
@@ -1878,14 +2305,16 @@ capability-addressable: each method must be identifiable in the docs and each
 independently callable capability must have a focused ODK showcase that
 exercises its canonical contract.
 
-Minimum for an independently callable capability:
+Minimum for an independently callable ODK-representable capability:
 
 - `docs/README_<Capability>.md`
-- `docs/example_odk_showcase_<purpose>.xlsx`
+- one or more `docs/example_odk_showcase_<purpose>.xlsx` files as needed to
+  demonstrate distinct single-call invocation modes.
 
-Broader `docs/example_odk_<purpose>.xlsx` examples may coexist where useful and
-are preserved when they carry distinct workflow, dashboard or compatibility
-value.
+Canonical examples do not combine several MethodMesh calls. Existing
+`docs/example_odk_<purpose>.xlsx` files are migration artefacts and remain in
+the active library only when they already satisfy the same single-invocation
+rule.
 
 Recommended:
 
@@ -1915,32 +2344,42 @@ remain part of the canonical contract.
 
 ## Example XLSForms
 
-Dedicated capability showcases should:
+Canonical capability examples MUST:
 
-- invoke one resolved canonical MethodMesh method contract;
+- invoke exactly one resolved canonical MethodMesh capability contract exactly
+  once;
 - use a grouped intent call and the canonical MethodMesh execute action;
 - use only declared/relevant input parameters for that call;
 - request `input_payload_mode=FULL` where the resolved contract supports it;
 - capture `methodmesh_status` and `methodmesh_full_json`;
 - capture capability-specific scalar, media, status, time and JSON return fields
   only where those fields are actually declared/resolved for that capability;
+- use canonical unprefixed return field names;
+- NOT set `methodmesh_return_namespace`;
 - avoid unrelated JSON leaves from other capabilities in the same module;
-- avoid return/input field-name collisions;
+- use globally unique survey node names where needed for unchanged
+  ODK Central/Kobo portability;
 - use attachment-compatible ODK question types for returned media;
 - use human-readable titles, labels and hints while retaining the canonical
   method ID for traceability; and
 - demonstrate realistic usage rather than a synthetic debug-only call.
 
-A showcase is an executable demonstration of the existing capability contract,
-not a second schema. If a desirable field is absent from the runtime contract,
-record the gap; do not manufacture the field in the workbook.
+A canonical example is an executable demonstration of the existing capability
+contract, not a second schema and not a workflow-composition tutorial. If a
+desirable field is absent from the runtime contract, record the gap; do not
+manufacture the field in the workbook.
 
-Broader or legacy examples may remain alongside showcases. Preserve them when
-they demonstrate multi-capability workflows, dashboards, backwards
-compatibility or other useful patterns not represented by the focused showcase.
+If a capability has materially different direct, file, interactive or other
+invocation modes that cannot be demonstrated cleanly in one call, provide
+separate example workbooks. Do not place several MethodMesh calls into one
+canonical example merely to reduce file count.
 
-Do not rewrite all example forms during architecture experiments unless
-explicitly asked. First prove the transport/contract works.
+`methodmesh_return_namespace` remains supported for advanced user-authored
+composite forms. Canonical examples intentionally do not teach or depend on it.
+
+Existing broader/multi-call examples are migration artefacts. During maintenance
+they should be split into single-invocation examples or moved to archive/reference
+material; they are not normal active MethodMesh example-library content.
 
 
 # 20A. Module Review and Refresh Standard
@@ -1948,6 +2387,58 @@ explicitly asked. First prove the transport/contract works.
 This section absorbs and supersedes the separate **MethodMesh v1.05 Module Review and Refresh Manual**.
 
 The same rules used to author a new module are used to review an existing module. Review is a migration/quality task, not a greenfield redesign.
+
+## Module Reviewer role
+
+**Module Reviewer** is the standard MethodMesh role for working through modules
+one by one and reconciling them with the current Master Book.
+
+The reviewer begins by obtaining the module ZIP and asking the owner to declare
+the intended contract for each independently callable capability in five
+categories:
+
+1. **ODK inputs** - values ODK may supply directly and any MethodMesh-side
+   interactive acquisition modes ODK may invoke;
+2. **ODK outputs** - beef returned to the form, conditional source returns,
+   attachment semantics and metadata JSON;
+3. **runtime inputs** - native/preset/protocol/direct inputs;
+4. **runtime outputs** - the complete canonical output contract, including
+   which outputs are primary beef and which metadata/JSON is secondary;
+5. **tags** - exactly one maturity tag and exactly one connectivity tag.
+
+The reviewer then works through the module rather than treating those answers
+as documentation-only notes. The review updates/reconciles:
+
+- canonical method/input/output descriptors;
+- capability implementation and runtime behaviour;
+- polished native capability/dashboard UI;
+- preset/protocol/direct invocation parity;
+- ODK intent transport and external-roundtrip behaviour;
+- module-owned XLSForms, including focused showcases;
+- the ODK Integration Card;
+- module-local documentation and tests where appropriate.
+
+Established method IDs, deployed ODK `form_id` values and stable input/output
+semantics are preserved unless genuinely broken. A review MUST NOT invent
+XLSForm-only fields to create superficial uniformity.
+
+Module Reviewer applies these additional output rules:
+
+- ODK always receives the standard metadata JSON (`methodmesh_full_json`) on a
+  handled roundtrip;
+- native/runtime presentation is beef-first, with JSON secondary/optional;
+- ODK receives real attachments rather than obscure Android URIs/paths;
+- if ODK supplied a source file/text, do not return a gratuitous duplicate;
+- if MethodMesh acquired the source on ODK's behalf, return that acquired
+  source to ODK (file as attachment, text as text);
+- native results remain on a polished capability/toolkit dashboard rather than
+  a random generic result screen;
+- every displayed scalar/text runtime result is tap-to-copy;
+- file/media runtime results expose meaningful Save/Share/Export actions.
+
+The principal handoff from Module Reviewer is one clean ZIP that opens directly
+to the finished module root. It does not contain a whole-app tree or unrelated
+shared work.
 
 ## Review input
 
@@ -2016,11 +2507,26 @@ Protocols invoke canonical methods/presets rather than private copies; current s
 
 ODK parity is mandatory.
 
-For every declared input/output verify intent key/name, type/semantics, return namespace/projection, binary attachment handling where relevant, `methodmesh_full_json` where full audit payload is expected, and correct caller return after Commit/Cancel.
+For every declared input/output verify intent key/name, type/semantics,
+direct versus interactive acquisition, canonical return key, XLSForm
+group/field placement, binary attachment handling where relevant,
+`methodmesh_full_json` on the ODK roundtrip, and correct caller return after
+Commit/Cancel. Verify that each shipped canonical example contains exactly one
+MethodMesh call, uses canonical unprefixed return fields and does not set
+`methodmesh_return_namespace`. Verify that the module's ODK Integration Card is
+sufficient to implement the call and agrees with the descriptor, runtime and
+shipped XLSForms.
 
 The supplied XLSForms are part of the module contract. A module is not complete merely because native execution works.
 
-Run batch XLSForm validation and address genuine errors. Validate focused showcases independently from broader/legacy examples so one class does not hide problems in the other. Naming/convention warnings may be migrated deliberately, but deployed identities are never changed silently. Do not resolve contract ambiguity by inventing return fields in the XLSForm; record shared/runtime gaps and fix them at the appropriate contract layer.
+Run batch XLSForm validation and address genuine errors. Validate each
+single-invocation canonical example independently. Existing broader/legacy
+forms are migration candidates rather than a parallel canonical class; if they
+contain multiple MethodMesh calls, split or archive them. Naming/convention
+warnings may be migrated deliberately, but deployed identities are never
+changed silently. Do not resolve contract ambiguity by inventing return fields
+or provider-specific namespaces in the XLSForm; record shared/runtime gaps and
+fix them at the appropriate contract layer.
 
 ## Widget/schedule review
 
@@ -2093,17 +2599,18 @@ Do not document aspirational behaviour as implemented.
 
 Where ODK use is plausible, include working module-owned XLSForm examples.
 
-Broader or legacy `example_odk_<purpose>.xlsx` forms may coexist with dedicated
-capability showcases. For independently callable capabilities, prefer a focused
-`example_odk_showcase_<purpose>.xlsx` demonstrating the actual callable
-contract. For a showcase, `<purpose>` normally reflects the canonical method ID
-in filename-safe lower snake case. A dashboard-oriented or multi-capability
-example does not substitute for the underlying capability contracts.
+Every active canonical example is single-invocation: exactly one MethodMesh
+capability call per workbook. Use `example_odk_showcase_<purpose>.xlsx`, with
+`<purpose>` normally reflecting the canonical method ID in filename-safe lower
+snake case. If one capability needs separate demonstrations for materially
+different invocation modes, use separate workbooks rather than several
+MethodMesh calls in one form.
 
 A showcase XLSForm is a demonstration of the existing MethodMesh contract, not
 a second schema and not a place to invent missing runtime behaviour. It uses the
-canonical method ID, declared inputs, requested return namespace and only return
-fields that the runtime actually declares/resolves for that call.
+canonical method ID, declared inputs, canonical unprefixed return fields and
+only return fields that the runtime actually declares/resolves for that call.
+Canonical showcases do not set `methodmesh_return_namespace`.
 
 Showcases capture `methodmesh_status` and `methodmesh_full_json`. The latter is
 the shared complete structured/audit projection. Capability-specific status,
@@ -2117,11 +2624,15 @@ return envelope is absent or heterogeneous across capabilities, record that as
 a shared contract gap and resolve it centrally in MethodMesh rather than
 independently inside XLSForms.
 
-Showcases use grouped intent calls, correct namespace handling, correct media
-transport where relevant and human-readable labels/titles. Existing broader
-forms are preserved where they still provide distinct coverage; naming/identity
-cleanup must not silently change method IDs, invocation contracts, survey logic,
-choices or return payload semantics.
+Canonical examples should upload unchanged to ODK Central and Kobo where the
+underlying question/attachment features are supported. Global duplicate node
+names that Kobo rejects are therefore a canonical-example authoring defect even
+when ODK can disambiguate those names by group path.
+
+Existing broader or multi-call forms are migration artefacts. Split them into
+single-invocation examples or move them to archive/reference material; do not
+preserve them in the active example library merely because they previously
+carried dashboard/workflow coverage.
 
 ## Do not over-redesign
 
@@ -2129,7 +2640,7 @@ A refresh does not change the module's purpose by default. Do not invent unrelat
 
 ## Definition of Done
 
-A reviewed module is done when it builds in target context where build access exists; stable contracts are preserved or migrations documented; every capability remains discoverable; dashboard/direct/preset/protocol/ODK parity is verified; schedule/widget parity is verified where applicable; native UI is capability-appropriate; live-result -> Commit is correct where relevant; launch-origin closeout works; meaningful working state survives ordinary lifecycle changes; displayed scalar/text outputs are tap-to-copy; full canonical outputs remain available; ODK attachments use correct transport; module-owned XLSForms are discovered and validate or intentional warnings are documented; module docs reflect actual behaviour; shared shell special-casing has not been introduced unnecessarily; handoff is one clean module folder.
+A reviewed module is done when it builds in target context where build access exists; stable contracts are preserved or migrations documented; every capability remains discoverable; dashboard/direct/preset/protocol/ODK parity is verified; schedule/widget parity is verified where applicable; explicit maturity/connectivity tags are present; native UI is capability-appropriate and does not detour through a generic result screen; live-result -> Commit is correct where relevant; launch-origin closeout works; meaningful working state survives ordinary lifecycle changes; displayed scalar/text outputs are tap-to-copy; full canonical outputs remain available; ODK always captures metadata JSON on a handled roundtrip; ODK file outputs are real attachments rather than obscure URIs/paths; the ODK Integration Card matches implementation/XLSForms; module-owned XLSForms are discovered and validate or intentional warnings are documented; module docs reflect actual behaviour; shared shell special-casing has not been introduced unnecessarily; handoff is one clean module folder.
 
 ## Required final self-review
 
@@ -2144,9 +2655,13 @@ Before handoff check:
 7. Does Commit freeze the actual canonical payload?
 8. Does Done/Cancel return to the correct launch origin?
 9. Does rotation/state restoration behave sensibly?
-10. Can displayed useful values be copied directly?
-11. Did I add capability-specific knowledge to shared code?
-12. Is the handoff exactly one clean module folder?
+10. Can displayed useful scalar/text values be copied directly?
+11. Does native execution stay on a polished capability/toolkit dashboard rather than a generic result screen?
+12. Does every ODK call capture `methodmesh_full_json` and every file return become a real ODK attachment?
+13. Does the ODK Integration Card show exact inputs, intent call, modifiers, canonical return keys, group/namespace guidance and return semantics?
+14. Are exactly one maturity tag and one connectivity tag declared?
+15. Did I add capability-specific knowledge to shared code?
+16. Is the handoff exactly one clean module folder?
 
 ## Required module-review response format
 
@@ -2186,9 +2701,11 @@ hand-maintained lists.
 build debug APK; exercise the dashboard presence; exercise direct native run; verify the production screen is capability-relevant rather than a raw generic form where richer UI is warranted; verify current results update in-place; verify tapping displayed results copies the intended value; verify Commit freezes the payload and reveals post-commit actions without forcing a generic result page; verify Home/Done routing for app and widget origins; verify ODK interactive and non-interactive routes return cleanly to ODK; verify every individual capability appears in preset creation;
 verify every individual capability appears in protocol creation;
 exercise native preset run; verify ODK can invoke each method and
-project every declared output; exercise each focused capability showcase where
-possible and retain broader/legacy examples as additional workflow coverage;
-check canonical field names/types/semantics match across
+project every declared output; exercise each single-invocation capability
+showcase where possible; verify canonical examples contain no return namespace
+and are provider-portable to both ODK Central and Kobo where supported; treat
+legacy multi-call forms as migration work rather than required workflow
+coverage; check canonical field names/types/semantics match across
 surfaces; check share/copy/save behaviour; check no golden-rule or
 contract-parity violation.
 
@@ -2200,14 +2717,17 @@ Where feasible, tests verify that the same canonical method ID/input/output sema
 ## XLSForm validation tests
 
 The repository-level form validator is runnable in batch and makes invalid
-module-owned examples visible before deployment. Validation should report
-broader/legacy examples and dedicated capability showcases independently and
-attribute each finding to the exact module/workbook.
+module-owned examples visible before deployment. Validation attributes each
+finding to the exact module/workbook and distinguishes generic XLSForm syntax
+from MethodMesh canonical-example/provider-portability conformance.
 
 At minimum, repository checks cover workbook/sheet structure, duplicate/missing
 field names, group/repeat balance, `${field}` references, choice integrity,
-`form_id` uniqueness/settings metadata, MethodMesh naming/version conventions
-and known JavaRosa hazards such as unsupported XPath 2.0 `replace()` usage.
+`form_id` uniqueness/settings metadata, MethodMesh naming/version conventions,
+known JavaRosa hazards such as unsupported XPath 2.0 `replace()` usage, exactly
+one MethodMesh capability invocation per canonical example, absence of
+`methodmesh_return_namespace` from canonical examples, and provider-portability
+findings such as global duplicate survey node names that Kobo rejects.
 
 A clean MethodMesh linter result is not equivalent to an ODK Validate result.
 Use `pyxform`/ODK Validate as a second layer where available. A failing
@@ -2270,11 +2790,11 @@ packs.
 
 # 24. Implementation status and roadmap
 
-This chapter is informative. It records project-wide status/direction and MUST NOT be used to infer that a particular module is Production-ready. Production/Development status is derived from current method metadata and review evidence; module-specific issues belong in that module's docs.
+This chapter is informative. It records project-wide status/direction and MUST NOT be used to infer that a particular module is Production-ready. Production/Development/Experimental status and connectivity are derived from current module/capability metadata and review evidence; module-specific issues belong in that module's docs.
 
 ## 24.1 Status is dynamic
 
-Presence in source is not Production status. A module is promoted only after the applicable contract, UX, parity, hardware/physical-device and ODK/XLSForm checks have passed.
+Presence in source is not Production status. Explicit maturity metadata distinguishes Production, Development and Experimental modules/capabilities. A module/capability is promoted only after the applicable contract, UX, parity, hardware/physical-device and ODK/XLSForm checks have passed.
 
 The Master Book deliberately does not maintain a hand-written list of every Production method because such a list would drift from runtime metadata.
 
@@ -2304,7 +2824,7 @@ This is a roadmap direction, not the current module handoff contract. Current mo
 
 Known cross-project concerns retained from current documentation include:
 
-- capability lane/status displays must derive consistently from current metadata;
+- capability maturity/connectivity tags and related filters/ranking must derive consistently from current metadata;
 - Home/Done routing has had regressions and remains subject to the launch-origin rules in this book;
 - protocol/schedule completion should achieve the same clean final-result semantics as single-capability runs;
 - online-data/provider UX continues to evolve around the generic API-definition model;
@@ -2320,15 +2840,28 @@ Treat this as a parity/discovery problem first. Dashboard, direct capability dis
 
 ## ODK returns the wrong fields
 
-Check the canonical method ID, requested return namespace, field-name collisions, `methodmesh_full_json`, and whether the module actually declares the output. Example XLSForms are demonstrations, not a second schema.
+Check the canonical method ID, XLSForm group/path placement,
+`methodmesh_full_json`, and whether the module actually declares the output.
+Canonical MethodMesh examples use one call and unprefixed return fields, so
+`methodmesh_return_namespace` should not be involved. Namespace troubleshooting
+belongs to advanced user-authored composite forms, not the shipped example
+contract.
 
 ## An XLSForm will not validate/upload
 
-Use the batch XLSForm validator first, then inspect provider diagnostics. A Central/Kobo HTTP failure is not a substitute for local validation. Preserve the exact form/module/error attribution and copyable diagnostic report.
+Use the batch XLSForm validator first, then inspect provider diagnostics. A
+Central/Kobo HTTP failure is not a substitute for local validation. Preserve the
+exact form/module/error attribution and copyable diagnostic report.
+
+For Kobo `DuplicateNameException`, distinguish a provider warning from a genuine
+import failure. In a canonical MethodMesh example, a global duplicate node name
+or several MethodMesh calls means the example needs source repair/splitting; do
+not silently namespace or mutate the workbook during upload. In an explicitly
+user-authored composite form, advanced return namespaces may be appropriate.
 
 ## Binary output cannot be opened
 
-Verify a content URI is returned with `ClipData` and read grants and that the XLSForm target field is an attachment-compatible question type.
+Verify the XLSForm target is an attachment-compatible field and that the shared transport uses `ClipData` plus read grants to let ODK import the bytes. The ODK-visible result should be the attachment, not a raw MethodMesh URI/path.
 
 ## Done goes to the wrong place
 
@@ -2356,7 +2889,11 @@ If another AI chat is writing a capability, give it these rules:
 
 5. For a multi-capability module, include clearly identifiable per-capability method implementations and documentation/ODK coverage. Dashboard aggregation must not collapse those capabilities into a single inaccessible private implementation.
 
-6. Put docs and ODK XLSForms inside that folder. For each independently callable capability, provide a focused `example_odk_showcase_<purpose>.xlsx`; broader `example_odk_<purpose>.xlsx` examples may coexist where they add distinct workflow or compatibility value.
+6. Put docs and ODK XLSForms inside that folder. Every canonical XLSForm
+example contains exactly one MethodMesh capability invocation. Provide one or
+more focused `example_odk_showcase_<purpose>.xlsx` files where needed for
+distinct single-call modes. Do not create new multi-capability example forms;
+legacy `example_odk_<purpose>.xlsx` files are migration artefacts.
 
 7. Do not edit HomeScreen for capability-specific logic.
 
@@ -2372,33 +2909,46 @@ If another AI chat is writing a capability, give it these rules:
 
 13. Expose every individual capability independently for preset creation and protocol creation, even when the dashboard aggregates several capabilities.
 
-14. Make every declared capability and every declared output available to the ODK/XLSForm roundtrip; examples are not allow-lists. Showcase forms must use the existing runtime contract and must not invent success/time/JSON or other returns merely for uniformity.
+14. Make every declared capability and every declared output available to the
+ODK/XLSForm roundtrip; examples are not allow-lists. Each canonical showcase
+uses exactly one MethodMesh call, canonical unprefixed return fields, no
+`methodmesh_return_namespace`, and must not invent success/time/JSON or other
+returns merely for uniformity.
 
-15. Keep method IDs and input/output field names, types and semantics canonical across all surfaces; only presentation/transport may differ.
+15. Every admitted module/capability declares exactly one maturity tag (`PRODUCTION`, `DEVELOPMENT`, `EXPERIMENTAL`) and exactly one connectivity tag (`ONLINE_ONLY`, `OFFLINE`, `ONLINE_OFFLINE`). Do not infer these from location or UI surface.
 
-16. Return beef first, JSON/audit second; presentation selectivity must not remove obscure outputs from the contract.
+16. Every module provides the standard ODK Integration Card with exact
+copyable intent call, canonical ODK inputs, direct/interactive acquisition
+modes, modifiers, canonical returns, canonical single-example XLSForm
+field/group placement, attachment semantics, runtime inputs/outputs and the two
+status tags. Return namespaces may be documented separately as advanced
+composition, not as part of the canonical example.
 
-17. Give production capabilities a polished, task-relevant native interface. Generic MethodSetting forms are infrastructure, not an excuse for debug-looking UI where the task benefits from a purpose-built surface.
+17. Keep method IDs and input/output field names, types and semantics canonical across all surfaces; only presentation/transport may differ.
 
-18. Keep current calculated/acquired results on the same capability screen and update them live or immediately after the relevant action. Do not default to settings -> Go -> generic result page.
+18. Return beef first, JSON/audit second in native runtime. Native Share is communication-oriented and receiver-compatible (beef in `EXTRA_TEXT` plus the same payload in a `text/plain` sidecar, typed media as streams, optional FULL JSON appended as text in both text representations); Save/Export is file-oriented (`result.txt` + media/domain files + optional `metadata.json`). ODK always receives `methodmesh_full_json` plus applicable data/media on a handled roundtrip. Presentation selectivity must not remove obscure outputs from the contract.
 
-19. Make every displayed calculated/returned scalar or text value tap-to-copy using its primary clipboard projection.
+19. Give production capabilities a polished, task-relevant native interface. Generic MethodSetting forms are infrastructure, not an excuse for debug-looking UI where the task benefits from a purpose-built surface.
 
-20. Use Commit as the native finalisation boundary. Commit freezes the canonical payload and reveals share/save/copy/JSON/Done actions on the same screen where feasible.
+20. Keep current calculated/acquired results on the same capability screen and update them live or immediately after the relevant action. Do not default to settings -> Go -> a generic/random result page; even a one-result capability should feel like a coherent toolkit dashboard.
 
-21. Preserve launch origin. App/preset Home/Done returns to the MethodMesh dashboard; widget closeout returns to the Android desktop; ODK Commit/Cancel returns to ODK; protocol/schedule closeout returns to its runner.
+21. Make every displayed calculated/returned scalar or text value tap-to-copy using its primary clipboard projection. File/media results expose meaningful Save/Share/Export actions rather than raw URI/path text.
 
-22. Preserve working and committed state across rotation where relevant and do not auto-save internal files by default.
+22. Use Commit as the native finalisation boundary. Commit freezes the canonical payload and reveals share/save/copy/JSON/Done actions on the same screen where feasible.
 
-23. Include attribution/permissions/offline notes.
+23. Preserve launch origin. App/preset Home/Done returns to the MethodMesh dashboard; widget closeout returns to the Android desktop; ODK Commit/Cancel returns to ODK; protocol/schedule closeout returns to its runner.
 
-24. Start as Development unless explicitly promoted.
+24. Preserve working and committed state across rotation where relevant and do not auto-save internal files by default.
 
-25. If it cannot build the app, put the result in incoming_capability_prototypes/ .
+25. Include attribution/permissions/offline notes.
 
-26. Expect Work-mode review before admission.
+26. Start as Development unless explicitly promoted.
 
-27. Before handoff, verify dashboard + direct capability + preset + protocol + ODK are all projections of the same contract and that none has a private feature or output schema.
+27. If it cannot build the app, put the result in incoming_capability_prototypes/ .
+
+28. Expect Work-mode review before admission.
+
+29. Before handoff, verify dashboard + direct capability + preset + protocol + ODK are all projections of the same contract and that none has a private feature or output schema.
 
 # 27. The MethodMesh taste test
 
@@ -2457,6 +3007,7 @@ These IDs are stable anchors for module reviews, migration scorecards and tests.
 - **`MM-CAP-002`** - Stable method IDs, input/output names, types and semantics are preserved unless a breaking migration is explicitly justified.
 - **`MM-CAP-003`** - Dashboard aggregation never becomes the only invocation path for an individual capability.
 - **`MM-CAP-004`** - Capability-specific code, UI, settings, docs and examples remain module-owned.
+- **`MM-CAP-005`** - Every admitted module/capability declares exactly one maturity tag (Production/Development/Experimental) and exactly one connectivity tag (Online only/Offline/Online/Offline); status is not inferred from location or surface.
 
 ## Surfaces
 
@@ -2472,6 +3023,7 @@ These IDs are stable anchors for module reviews, migration scorecards and tests.
 - **`MM-UX-005`** - Editing after Commit does not silently mutate the committed payload.
 - **`MM-UX-006`** - Meaningful working/committed state survives ordinary lifecycle changes.
 - **`MM-UX-007`** - Closeout returns to the correct launch origin.
+- **`MM-UX-008`** - Native results remain on a polished capability/toolkit surface rather than detouring to an arbitrary generic result screen; file/media beef exposes appropriate Save/Share/Export actions.
 
 ## Safety
 
@@ -2486,25 +3038,36 @@ These IDs are stable anchors for module reviews, migration scorecards and tests.
 - **`MM-ODK-004`** - Binary returns use proper content URIs, ClipData/read grants and attachment-compatible form fields.
 - **`MM-ODK-005`** - ODK owns returned study data unless a capability has an independent persistence reason.
 - **`MM-ODK-006`** - `methodmesh_full_json` is the shared complete structured/audit return for ODK calls and remains available independently of any capability-owned `*_json` field; a universal scalar success/time envelope, if introduced, is defined centrally rather than per XLSForm.
+- **`MM-ODK-007`** - Every handled MethodMesh -> ODK roundtrip returns/captures `methodmesh_full_json`; native runtime may keep JSON secondary/optional.
+- **`MM-ODK-008`** - ODK file/media results are actual caller-owned submission attachments; raw private filesystem paths or obscure MethodMesh/Android URIs are never the useful ODK return.
+- **`MM-ODK-009`** - ODK/JavaRosa may allow repeated leaf names at distinct group paths, while stricter providers such as Kobo may require global node-name uniqueness; provider portability is a separate conformance concern from generic ODK syntax.
+- **`MM-ODK-010`** - Every module exposes a standard ODK Integration Card showing exact inputs, interactive acquisition modes, copyable intent call, modifiers, canonical returns, canonical single-example XLSForm field/group placement, attachment semantics, runtime contract and status tags. Return namespaces are an advanced composition feature, not a canonical-example requirement.
 
 ## XLSForm
 
-- **`MM-XLS-001`** - Module-owned docs may contain zero, one or many XLSForms; each discovered form is catalogued independently.
-- **`MM-XLS-002`** - Canonical filenames are `example_odk_<purpose>.xlsx` for broader examples and `example_odk_showcase_<purpose>.xlsx` for focused capability showcases; legacy names are warned, not silently excluded.
+- **`MM-XLS-001`** - Module-owned docs may contain zero, one or many XLSForms; each discovered form is catalogued independently, but every active canonical example contains exactly one MethodMesh capability invocation.
+- **`MM-XLS-002`** - New canonical examples use `example_odk_showcase_<purpose>.xlsx`; `example_odk_<purpose>.xlsx` is a legacy/migration filename and is warned rather than silently excluded.
 - **`MM-XLS-003`** - `form_id` is a stable external identity and is never silently renamed for filename/style cleanup.
-- **`MM-XLS-004`** - Batch validation reports form/module-specific structural, JavaRosa/ODK and naming findings and supports copy/export.
+- **`MM-XLS-004`** - Batch validation reports form/module-specific structural, JavaRosa/ODK, naming and provider-portability findings and supports copy/export.
 - **`MM-XLS-005`** - Central access state, Kobo deployment state and collector-device state are represented separately.
-- **`MM-XLS-006`** - A showcase XLSForm demonstrates one resolved declared MethodMesh capability contract; it does not invent inputs, outputs, success fields, timestamps, JSON fields or other runtime behaviour.
+- **`MM-XLS-006`** - A canonical showcase XLSForm demonstrates one resolved declared MethodMesh capability contract exactly once; it does not invent inputs, outputs, success fields, timestamps, JSON fields or other runtime behaviour.
 - **`MM-XLS-007`** - Filename, human-readable title, version and `form_id` are distinct concerns; identity metadata from the standard row-oriented XLSForm `settings` sheet is authoritative where present.
 - **`MM-XLS-008`** - New forms and intentional revisions prefer monotonically increasing `YYYYMMDDrr` versions; historical version strings may be retained where gratuitous rewriting would create deployment churn.
-- **`MM-XLS-009`** - Broader/legacy examples and focused capability showcases may coexist; a dashboard or multi-capability form does not substitute for focused independently callable capability coverage.
-- **`MM-XLS-010`** - Focused showcases capture `methodmesh_status`, `methodmesh_full_json` and only capability-specific return fields declared/resolved for that call; unrelated module leaves and synthetic uniformity fields are excluded.
+- **`MM-XLS-009`** - Active canonical MethodMesh examples are single-invocation forms. Existing broader/multi-call examples are migration artefacts to split or archive, not a parallel canonical example class.
+- **`MM-XLS-010`** - Canonical showcases capture `methodmesh_status`, `methodmesh_full_json` and only capability-specific return fields declared/resolved for that call; unrelated module leaves and synthetic uniformity fields are excluded.
+- **`MM-XLS-011`** - Canonical showcases use canonical unprefixed return keys, MUST NOT set `methodmesh_return_namespace`, and SHOULD avoid global survey-node collisions so the same workbook can be uploaded unchanged to ODK Central and Kobo where supported.
+- **`MM-XLS-012`** - `methodmesh_return_namespace` remains supported for advanced user-authored composite forms but is not taught or required by canonical MethodMesh examples.
 
 ## Outputs
 
 - **`MM-OUT-001`** - Native presentation may hide metadata but cannot remove canonical outputs from the contract.
 - **`MM-OUT-002`** - `methodmesh_full_json` remains available as the shared complete structured/audit projection, including for ODK capability calls even when no capability-owned JSON field exists.
 - **`MM-OUT-003`** - Hashes identify the final bytes/canonical content they claim to identify.
+- **`MM-OUT-004`** - Native presentation is beef-first: useful files/media are Save/Share/Export artefacts, scalar/text results are tap-to-copy, and JSON/audit metadata is secondary unless explicitly requested.
+- **`MM-OUT-005`** - Native Share is communication-oriented but receiver-compatible: scalar/text beef is carried in `Intent.EXTRA_TEXT` **and** mirrored into a caller-readable `text/plain` result sidecar; useful media/domain artefacts are typed streams; generic debug/audit JSON is never added as a separate JSON share stream and, when explicitly enabled, is appended to the textual payload in both text representations.
+- **`MM-OUT-006`** - Native Save/Export is file-oriented: generic committed-run persistence writes `result.txt` where applicable, all relevant media/domain artefacts, and `metadata.json` only when full JSON/audit inclusion is enabled.
+- **`MM-OUT-007`** - A module MUST NOT implement receiver-specific contracts for WhatsApp, Files by Google or another named target. Generic receiver interoperability is owned by shared transport; module-local share logic is reserved for genuine domain artefacts/workflow actions.
+- **`MM-OUT-008`** - Manual/native JSON inclusion never governs ODK. Every handled ODK roundtrip returns canonical `methodmesh_full_json` and applicable data/media attachments regardless of the native toggle.
 
 ## Offline
 
@@ -2535,12 +3098,14 @@ These IDs are stable anchors for module reviews, migration scorecards and tests.
 
 - **`MM-MOD-001`** - Canonical handoff is exactly one clean <module_name>/ root, not a whole application tree.
 - **`MM-MOD-002`** - New/unverified prototypes do not break auto-discovery; admission follows build/review.
+- **`MM-MOD-003`** - Module/capability maturity and connectivity are explicit module-owned metadata projected generically across UI/search/filter surfaces.
 
 ## Review
 
 - **`MM-REV-001`** - Review begins with capability inventory and preserves established contracts unless genuinely broken.
 - **`MM-REV-002`** - Review verifies dashboard/direct/preset/protocol/ODK parity plus schedules/widgets where applicable.
 - **`MM-REV-003`** - Supplied XLSForms are part of module completeness and must be discovered/validated.
+- **`MM-REV-004`** - Module Reviewer begins from owner-declared ODK inputs, ODK outputs, runtime inputs, runtime outputs and the two status tags, then reconciles implementation, UI, descriptors, XLSForms, Integration Card and docs before returning one clean module ZIP.
 
 ## Testing
 
@@ -6742,6 +7307,72 @@ Generated website output, packaged XLSForm assets, mirrored module reference pag
 Standalone source documents should only be archived after the repository reorganisation dry-run confirms their final disposition.
 
 # Appendix M. Version history
+
+## v1.11 - 2026-09-11
+
+- Made the existing tap-to-copy invariant explicit for the legacy generic result surface: every displayed result value must itself be tappable to copy while that surface remains in use.
+- Required generic result fields, including expanded input/settings detail values, to expose a visible copy affordance and brief confirmation after copying.
+- Reaffirmed that file/media results copy only a useful human-facing filename/identifier where appropriate rather than exposing an internal Android URI as the clipboard result.
+- No change to the v1.10 Share/Save/ODK transport contracts.
+
+## v1.10 - 2026-09-11
+
+- Refined native Share receiver compatibility after device testing with messaging and file-oriented Sharesheet targets.
+- Required the final human-readable Share payload to be represented simultaneously in `Intent.EXTRA_TEXT` and as a caller-readable `text/plain` result sidecar.
+- Required that sidecar to mirror the exact final communication text, including appended FULL debug JSON when the manual JSON toggle is enabled.
+- Continued to prohibit generic FULL JSON as a separate `application/json` Share stream, preserving media attachment behaviour.
+- Kept Save/Export as the canonical explicit persistence path with separate `result.txt`, media/domain files and optional `metadata.json`.
+
+## v1.09 - 2026-09-11
+
+- Made the native post-Commit transport split explicit: Share is communication-oriented; Save/Export is file-oriented.
+- Required scalar/text beef to use `Intent.EXTRA_TEXT` for Share and prohibited manufacturing a text sidecar solely for file-manager share targets.
+- Required media/domain artefacts to remain typed streams with content URIs/read grants.
+- Defined manual FULL JSON as a default-off debug/audit option: appended as text for Share/Copy, materialised as `metadata.json` for Save, and never added as a competing generic JSON share stream.
+- Clarified that genuine domain JSON/YAML/CSV/ZIP/PDF artefacts remain shareable files when they are themselves useful outputs.
+- Prohibited module-level receiver-specific behaviour for named apps such as WhatsApp or Files by Google.
+- Reaffirmed ODK as an independent transport contract that always returns declared data, canonical `methodmesh_full_json`, and applicable file/media attachments.
+
+## v1.08 - 2026-09-09
+
+- defined optional persistent preset logs while keeping capability outputs
+  transient by default;
+- defined log bundles with a human-readable summary, complete JSONL data and
+  UUID-linked media artifacts;
+- defined idempotent result logging, explicit media-error recording and
+  complete bundle export/share behaviour in Files;
+- clarified that copy exposes the readable summary while export/share carries
+  the complete bundle.
+
+## v1.07 - 2026-09-08
+
+- made canonical MethodMesh XLSForm examples single-invocation by rule: exactly
+  one MethodMesh capability call per workbook;
+- removed return-namespace customisation from the canonical example contract;
+  examples use canonical unprefixed return fields;
+- retained `methodmesh_return_namespace` as an advanced user-authored
+  composition feature rather than a normal example pattern;
+- added cross-provider portability doctrine: canonical examples should upload
+  unchanged to ODK Central and Kobo where their underlying features are
+  supported;
+- distinguished generic ODK group-scoped duplicate-name validity from Kobo's
+  stricter global node-name import constraint;
+- made legacy broader/multi-call examples migration artefacts to split or
+  archive rather than a parallel canonical example class;
+- aligned module authoring, review, validation, troubleshooting, contributor
+  guidance and normative XLSForm requirements with the single-invocation
+  policy.
+
+## v1.06 amendment - 2026-09-08
+
+- restored explicit module/capability maturity tags: Production, Development or Experimental;
+- added mutually exclusive connectivity tags: Online only, Offline or Online/Offline;
+- defined the standard Module Reviewer role and its five owner-declared review inputs;
+- defined the standard ODK Integration Card, including exact copyable intent calls, modifiers, canonical return keys, XLSForm group/field placement and runtime contract summary;
+- clarified that repeated XLSForm leaf names are valid in separate groups and that `methodmesh_return_namespace` is optional collision-avoidance for flat projections rather than mandatory for repeated capability calls;
+- made `methodmesh_full_json` the mandatory metadata JSON return for handled ODK roundtrips while retaining beef-first/JSON-secondary native presentation;
+- strengthened file-return semantics so ODK receives real submission attachments rather than obscure Android URIs/private paths;
+- reinforced the no-generic-result-screen toolkit-dashboard rule and tap-to-copy/native Save/Share/Export behaviour.
 
 ## v1.06 - 2026-09-07
 

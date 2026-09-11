@@ -72,6 +72,7 @@ import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.platform.camera.LiveCameraPreview
 import com.example.methodmesh.platform.sensors.PhoneSensorRepository
 import com.example.methodmesh.transport.OutputExportRepository
+import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
@@ -270,25 +271,22 @@ object CompassCapabilityScreen : CapabilityScreenSpec {
 
         fun resultPayload(): String {
             val beef = frozenFields[CompassFields.RESULT]?.toString().orEmpty()
-            return if (includeFullJson && fullJsonText.isNotBlank()) {
-                "$beef\n\n$fullJsonText"
-            } else {
-                beef
-            }
+            return ResultShare.buildShareText(
+                text = beef,
+                jsonText = if (includeFullJson) fullJsonText else ""
+            )
         }
 
         fun shareCommitted() {
-            val text = resultPayload()
-            if (text.isBlank()) return
+            val beef = frozenFields[CompassFields.RESULT]?.toString().orEmpty()
+            if (beef.isBlank()) return
             runCatching {
-                androidContext.startActivity(
-                    Intent.createChooser(
-                        Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, text)
-                        },
-                        "Share compass reading"
-                    )
+                ResultShare.share(
+                    context = androidContext,
+                    chooserTitle = "Share compass reading",
+                    text = beef,
+                    attachments = emptyList(),
+                    jsonText = if (includeFullJson) fullJsonText else ""
                 )
             }.onFailure {
                 exportStatus = "Share failed: ${it.message ?: "no sharing app available"}"
@@ -788,7 +786,7 @@ private fun CommittedReadingCard(
                 Column(Modifier.weight(1f)) {
                     Text("Include full JSON", style = MaterialTheme.typography.titleSmall)
                     Text(
-                        if (includeFullJson) "Copy, share and save include the full auditable payload." else "Actions use only the main compass result.",
+                        if (includeFullJson) "Share/copy append debug JSON text; Save adds metadata.json." else "Actions use only the main compass result.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

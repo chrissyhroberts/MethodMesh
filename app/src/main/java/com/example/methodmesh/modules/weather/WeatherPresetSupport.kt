@@ -48,6 +48,7 @@ import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
 import com.example.methodmesh.core.protocols.ProtocolPayloadMode
 import com.example.methodmesh.settings.MethodSetting
 import com.example.methodmesh.transport.OutputExportRepository
+import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
@@ -486,7 +487,7 @@ internal fun WeatherCommittedActions(
     }
 
     fun copyResult() {
-        val text = shareText + if (includeFullJson && fullJson.isNotBlank()) "\n\n$fullJson" else ""
+        val text = ResultShare.buildShareText(shareText, if (includeFullJson) fullJson else "")
         if (text.isBlank()) return
         appContext.getSystemService(ClipboardManager::class.java)
             .setPrimaryClip(ClipData.newPlainText("$label result", text))
@@ -494,17 +495,14 @@ internal fun WeatherCommittedActions(
     }
 
     fun shareResult() {
-        val text = shareText + if (includeFullJson && fullJson.isNotBlank()) "\n\n$fullJson" else ""
-        if (text.isBlank()) return
+        if (shareText.isBlank() && (!includeFullJson || fullJson.isBlank())) return
         runCatching {
-            appContext.startActivity(
-                Intent.createChooser(
-                    Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, text)
-                    },
-                    "Share $label result"
-                )
+            ResultShare.share(
+                context = appContext,
+                chooserTitle = "Share $label result",
+                text = shareText,
+                attachments = emptyList(),
+                jsonText = if (includeFullJson) fullJson else ""
             )
         }.onSuccess {
             actionStatus = "Sharing committed result…"

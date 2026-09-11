@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -44,7 +44,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.artifacts.AndroidArtifacts
 import com.example.methodmesh.core.artifacts.ArtifactRef
@@ -53,9 +52,9 @@ import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputExportRepository
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.ReturnMode
+import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
 import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
-import java.io.File
 import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
@@ -291,7 +290,8 @@ fun CapabilityScreenScaffold(
                     context = appContext,
                     label = title,
                     text = humanShareText(userResultPreview),
-                    mediaUris = mediaResultUris.map(Uri::toString)
+                    mediaUris = mediaResultUris.map(Uri::toString),
+                    jsonText = if (includeFullJson) fullJsonText else ""
                 )
             }
                 .onSuccess {
@@ -415,7 +415,7 @@ fun CapabilityScreenScaffold(
                         )
                     }
                     Text(
-                        if (includeFullJson) "Share, copy and downloads will include metadata JSON." else "Share, copy and downloads use only the main result.",
+                        if (includeFullJson) "Share/copy append full JSON as debug text; Save adds metadata.json." else "Share/copy use the main result; Save writes result.txt plus relevant media.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -426,6 +426,7 @@ fun CapabilityScreenScaffold(
                             runCatching {
                                 shareResultBundle(
                                     context = appContext,
+                                    label = title,
                                     text = humanShareText(userResultPreview),
                                     mediaUris = mediaResultUris,
                                     jsonText = if (includeFullJson) fullJsonText else ""
@@ -440,11 +441,10 @@ fun CapabilityScreenScaffold(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             runCatching {
-                                val text = humanShareText(userResultPreview) + if (includeFullJson && fullJsonText.isNotBlank()) {
-                                    "\n\nmetadata.json\n$fullJsonText"
-                                } else {
-                                    ""
-                                }
+                                val text = ResultShare.buildShareText(
+                                    humanShareText(userResultPreview),
+                                    if (includeFullJson) fullJsonText else ""
+                                )
                                 if (text.isBlank()) throw IllegalStateException("No text result to copy.")
                                 appContext.getSystemService(ClipboardManager::class.java)
                                     .setPrimaryClip(ClipData.newPlainText("MethodMesh result", text))
@@ -690,12 +690,11 @@ private fun ResultDetailsToggle(
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
-                SelectionContainer {
-                    Text(
-                        text = value?.toString().orEmpty(),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                CopyableResultValue(
+                    key = key,
+                    value = value,
+                    textStyle = MaterialTheme.typography.bodyMedium
+                )
                 Spacer(Modifier.height(8.dp))
             }
         }
@@ -724,31 +723,100 @@ private fun ResultField(key: String, value: Any?) {
     )
     Spacer(Modifier.height(4.dp))
     if (bitmap != null) {
-        Image(
-            bitmap = bitmap.asImageBitmap(),
-            contentDescription = friendlyResultLabel(key),
+        val copyText = clipboardValueForResult(key, valueText)
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 340.dp),
-            contentScale = ContentScale.Fit
-        )
-        Text(
-            text = valueText,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    } else {
-        SelectionContainer {
-            Text(
-                text = valueText,
-                style = if (valueText.length > 120) {
-                    MaterialTheme.typography.bodyLarge
-                } else {
-                    MaterialTheme.typography.headlineSmall
+                .clickable(enabled = copyText.isNotBlank()) {
+                    copyResultValue(context, friendlyResultLabel(key), copyText)
                 }
+        ) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = friendlyResultLabel(key),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 340.dp),
+                contentScale = ContentScale.Fit
+            )
+            if (copyText.isNotBlank()) {
+                Text(
+                    text = copyText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Tap to copy",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    } else {
+        CopyableResultValue(
+            key = key,
+            value = value,
+            textStyle = if (valueText.length > 120) {
+                MaterialTheme.typography.bodyLarge
+            } else {
+                MaterialTheme.typography.headlineSmall
+            }
+        )
+    }
+}
+
+@Composable
+private fun CopyableResultValue(
+    key: String,
+    value: Any?,
+    textStyle: androidx.compose.ui.text.TextStyle
+) {
+    val context = LocalContext.current
+    val rawValueText = value?.toString().orEmpty()
+    val copyText = clipboardValueForResult(key, rawValueText)
+    val displayText = if (rawValueText.startsWith("content://") || rawValueText.startsWith("file://")) {
+        copyText
+    } else {
+        rawValueText
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = copyText.isNotBlank()) {
+                copyResultValue(context, friendlyResultLabel(key), copyText)
+            }
+            .padding(vertical = 2.dp)
+    ) {
+        Text(text = displayText, style = textStyle)
+        if (copyText.isNotBlank()) {
+            Text(
+                text = "Tap to copy",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }
+}
+
+private fun clipboardValueForResult(key: String, valueText: String): String {
+    if (valueText.isBlank()) return ""
+    if (valueText.startsWith("content://") || valueText.startsWith("file://")) {
+        val parsed = runCatching { Uri.parse(valueText) }.getOrNull()
+        val friendly = parsed?.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+        return friendly ?: friendlyResultLabel(key)
+    }
+    return valueText
+}
+
+private fun copyResultValue(
+    context: android.content.Context,
+    label: String,
+    value: String
+) {
+    if (value.isBlank()) return
+    context.getSystemService(ClipboardManager::class.java)
+        .setPrimaryClip(ClipData.newPlainText(label, value))
+    Toast.makeText(context, "Copied $label", Toast.LENGTH_SHORT).show()
 }
 
 private fun looksLikeImageUri(key: String, value: String): Boolean {
@@ -772,53 +840,21 @@ private fun isInputDetailField(key: String): Boolean =
 
 private fun shareResultBundle(
     context: android.content.Context,
+    label: String,
     text: String,
     mediaUris: List<Uri>,
     jsonText: String
 ) {
-    val media = mediaUris.map { shareableUri(context, it) }.distinctBy(Uri::toString)
-    val shareable = ArrayList<Uri>().apply {
-        addAll(media)
-        if (jsonText.isNotBlank()) add(temporaryJsonShareUri(context, jsonText))
-    }
-    val intent = if (shareable.isEmpty()) {
-        if (text.isBlank()) throw IllegalStateException("No shareable result.")
-        Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, text)
-        }
-    } else {
-        if (shareable.size == 1) {
-            Intent(Intent.ACTION_SEND).apply {
-                // A text result plus a JSON sidecar is still a text share.
-                // Advertising it as application/octet-stream makes receivers
-                // such as WhatsApp turn the result itself into a document.
-                type = if (media.isEmpty() && jsonText.isNotBlank() && text.isNotBlank()) "text/plain" else mediaMimeType(shareable.first().toString())
-                putExtra(Intent.EXTRA_STREAM, shareable.first())
-                if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
-                clipData = ClipData.newRawUri("MethodMesh result", shareable.first())
-            }
-        } else {
-            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-                type = "*/*"
-                putParcelableArrayListExtra(Intent.EXTRA_STREAM, shareable)
-                if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
-                clipData = ClipData.newRawUri("MethodMesh result", shareable.first()).apply {
-                    shareable.drop(1).forEach { addItem(ClipData.Item(it)) }
-                }
-            }
-        }
-    }.apply {
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    context.startActivity(Intent.createChooser(intent, "Share result").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-}
-
-private fun temporaryJsonShareUri(context: android.content.Context, jsonText: String): Uri {
-    val folder = File(context.cacheDir, "methodmesh_share").apply { mkdirs() }
-    val file = File(folder, "metadata_${System.currentTimeMillis()}.json")
-    file.writeText(jsonText, Charsets.UTF_8)
-    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    ResultShare.share(
+        context = context,
+        chooserTitle = "Share result",
+        text = text,
+        attachments = mediaUris.map { uri ->
+            ResultShare.Attachment(uri.lastPathSegment.orEmpty().ifBlank { "attachment" }, uri)
+        },
+        jsonText = jsonText,
+        fileLabel = label
+    )
 }
 
 private fun shareMediaLabel(uris: List<Uri>): String {
@@ -843,37 +879,7 @@ private fun humanShareText(fields: Map<String, Any?>): String {
 }
 
 private fun looksLikeShareableMediaUri(key: String, value: String): Boolean {
-    if (!(value.startsWith("content://") || value.startsWith("file://") || value.startsWith("/"))) return false
-    val lower = value.lowercase()
-    return key.contains("image", ignoreCase = true) ||
-        key.contains("photo", ignoreCase = true) ||
-        key.contains("pdf", ignoreCase = true) ||
-        lower.endsWith(".jpg") ||
-        lower.endsWith(".jpeg") ||
-        lower.endsWith(".png") ||
-        lower.endsWith(".webp") ||
-        lower.endsWith(".pdf")
-}
-
-private fun shareableUri(context: android.content.Context, uri: Uri): Uri {
-    val value = uri.toString()
-    return when {
-        value.startsWith("content://") -> uri
-        value.startsWith("file://") -> File(value.removePrefix("file://")).let { file ->
-            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        }
-        else -> File(value).let { file ->
-            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        }
-    }
-}
-
-private fun mediaMimeType(value: String): String = when (value.substringAfterLast('.', "").lowercase()) {
-    "jpg", "jpeg" -> "image/jpeg"
-    "png" -> "image/png"
-    "webp" -> "image/webp"
-    "pdf" -> "application/pdf"
-    else -> "*/*"
+    return ResultShare.isShareableMediaField(key, value)
 }
 
 private fun friendlyResultLabel(key: String): String {

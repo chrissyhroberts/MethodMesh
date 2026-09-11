@@ -60,6 +60,7 @@ import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputExportRepository
+import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
@@ -432,7 +433,7 @@ private class CodeScanCapabilityScreen(
                         Column(Modifier.weight(1f)) {
                             Text("Include full JSON", style = MaterialTheme.typography.titleSmall)
                             Text(
-                                "Adds audit metadata to share/copy/save.",
+                                "Share/copy append debug JSON text; Save adds metadata.json.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -454,9 +455,10 @@ private class CodeScanCapabilityScreen(
                     OutlinedButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            val text = committedPayload.orEmpty() + if (includeFullJson && fullJsonText.isNotBlank()) {
-                                "\n\n$fullJsonText"
-                            } else ""
+                            val text = ResultShare.buildShareText(
+                                committedPayload.orEmpty(),
+                                if (includeFullJson) fullJsonText else ""
+                            )
                             copyValue(appContext, text, "Barcode result")
                         }
                     ) { Text("Copy result") }
@@ -814,16 +816,13 @@ private fun openHttpLink(context: Context, url: String) {
 }
 
 private fun shareText(context: Context, payload: String, jsonText: String) {
-    val shared = payload + if (jsonText.isNotBlank()) "\n\n$jsonText" else ""
-    if (shared.isBlank()) return
-    context.startActivity(
-        Intent.createChooser(
-            Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, shared)
-            },
-            "Share code result"
-        )
+    if (payload.isBlank() && jsonText.isBlank()) return
+    ResultShare.share(
+        context = context,
+        chooserTitle = "Share code result",
+        text = payload,
+        attachments = emptyList(),
+        jsonText = jsonText
     )
 }
 

@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.workflow.ui.CanonicalCommittedResultActions
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import kotlinx.coroutines.Dispatchers
@@ -306,6 +307,26 @@ object MediaCatalogueSearchCapabilityScreen : CapabilityScreenSpec {
         var enrichmentBusyId by remember { mutableStateOf("") }
         var enrichmentMessage by remember { mutableStateOf("") }
         var enrichmentRevision by remember { mutableStateOf(0) }
+        var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
+
+        val frozenResult = committedResult
+        if (frozenResult != null && !context.submitsImmediately) {
+            val fields = OutputFormatter.fields(frozenResult, includeProvenance = false)
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                MediaHero(
+                    "Committed",
+                    fields[MediaFields.TITLE]?.toString().orEmpty().ifBlank { "Media selection" },
+                    "Result frozen for this capability run."
+                )
+                CanonicalCommittedResultActions(
+                    result = frozenResult,
+                    label = "media selection",
+                    onDone = { onConfirmed(frozenResult) },
+                    onEdit = { committedResult = null }
+                )
+            }
+            return
+        }
 
         fun settings() = initial + mapOf(
             "query" to query, "providers" to providers, "media_type" to mediaType,
@@ -570,7 +591,8 @@ object MediaCatalogueSearchCapabilityScreen : CapabilityScreenSpec {
                             context = context.request.invocationContext.asMap(context.action.canonicalId) + selectedSettings,
                             signals = emptyList(), inputs = emptyList()
                         )
-                        onConfirmed(As100MediaCatalogueSearchMethod.executeWithAndroidContext(req, androidContext, selectedSettings))
+                        val result = As100MediaCatalogueSearchMethod.executeWithAndroidContext(req, androidContext, selectedSettings)
+                        if (context.submitsImmediately) onConfirmed(result) else committedResult = result
                     }, modifier = Modifier.fillMaxWidth()) { Text("Use ${item.title}") }
                 }
             }
@@ -615,6 +637,26 @@ object MediaCatalogueImportCapabilityScreen : CapabilityScreenSpec {
         var showManual by rememberSaveable { mutableStateOf(false) }
         var replace by rememberSaveable { mutableStateOf(context.action.settings["import_mode"] != "merge") }
         var pendingResult by remember { mutableStateOf<ExecutionResult?>(null) }
+        var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
+
+        val frozenResult = committedResult
+        if (frozenResult != null && !context.submitsImmediately) {
+            val fields = OutputFormatter.fields(frozenResult, includeProvenance = false)
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                MediaHero(
+                    "Committed",
+                    "Catalogue import",
+                    fields.values.firstOrNull { it?.toString()?.isNotBlank() == true }?.toString().orEmpty().ifBlank { "Catalogue result frozen." }
+                )
+                CanonicalCommittedResultActions(
+                    result = frozenResult,
+                    label = "media catalogue import",
+                    onDone = { onConfirmed(frozenResult) },
+                    onEdit = { committedResult = null }
+                )
+            }
+            return
+        }
 
         val selectedServices = selectedServicesWire.split(',').map { it.trim() }.filter { it.isNotBlank() }.toSet()
         val visibleServices = publisherServices.filter { serviceSearch.isBlank() || it.contains(serviceSearch, ignoreCase = true) }.take(24)
@@ -787,7 +829,7 @@ object MediaCatalogueImportCapabilityScreen : CapabilityScreenSpec {
                 MediaToggle("Replace matching service + region", "Replace rows for service/region pairs contained in the file.", replace) { replace = it }
                 OutlinedButton(onClick = { launcher.launch(arrayOf("text/csv", "application/json", "text/plain", "application/octet-stream")) }, modifier = Modifier.fillMaxWidth()) { Text("Choose catalogue file") }
                 pendingResult?.takeIf { !context.submitsImmediately }?.let { result ->
-                    Button(onClick = { onConfirmed(result) }, modifier = Modifier.fillMaxWidth()) { Text("Commit file import") }
+                    Button(onClick = { committedResult = result }, modifier = Modifier.fillMaxWidth()) { Text("Commit file import") }
                 }
             }
 
@@ -839,10 +881,12 @@ object MediaCaptureCapabilityScreen : CapabilityScreenSpec {
                 val detail = listOf(fields[MediaFields.CREATOR], fields[MediaFields.CLASS]).map { it?.toString().orEmpty() }.filter { it.isNotBlank() }.joinToString(" · ")
                 if (detail.isNotBlank()) Text(detail, style = MaterialTheme.typography.titleMedium)
                 Text("Tap the title to copy it.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable { copy(androidContext, "media title", fields[MediaFields.TITLE]?.toString().orEmpty()) })
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { committed = null }) { Text("Edit") }
-                    Button(onClick = { onConfirmed(frozen) }) { Text("Done") }
-                }
+                CanonicalCommittedResultActions(
+                    result = frozen,
+                    label = "captured media",
+                    onDone = { onConfirmed(frozen) },
+                    onEdit = { committed = null }
+                )
             }
             return
         }
@@ -899,6 +943,7 @@ object MediaLibraryCapabilityScreen : CapabilityScreenSpec {
         var items by remember { mutableStateOf<List<MediaPersonalItem>>(emptyList()) }
         var selectedWorkId by rememberSaveable { mutableStateOf("") }
         var enrichmentBusyId by remember { mutableStateOf("") }
+        var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
         var enrichmentRevision by remember { mutableStateOf(0) }
 
         fun refresh() {
@@ -925,6 +970,21 @@ object MediaLibraryCapabilityScreen : CapabilityScreenSpec {
         LaunchedEffect(mode, provider, includedOnly) {
             context.onSettingsChanged(mapOf("mode" to mode, "provider" to provider, "included_only" to includedOnly.toString(), "limit" to "250"))
             refresh()
+        }
+
+
+        val frozenResult = committedResult
+        if (frozenResult != null && !context.submitsImmediately) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                MediaHero("Committed", "Media shelf", "Result frozen for this capability run.")
+                CanonicalCommittedResultActions(
+                    result = frozenResult,
+                    label = "media library result",
+                    onDone = { onConfirmed(frozenResult) },
+                    onEdit = { committedResult = null }
+                )
+            }
+            return
         }
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -990,7 +1050,8 @@ object MediaLibraryCapabilityScreen : CapabilityScreenSpec {
                     Button(onClick = {
                         val reqSettings = mapOf("mode" to mode, "provider" to provider, "included_only" to includedOnly.toString())
                         val req = As100MediaLibraryListMethod.request(action = context.action.canonicalId, context = context.request.invocationContext.asMap(context.action.canonicalId) + reqSettings, signals = emptyList(), inputs = emptyList())
-                        onConfirmed(As100MediaLibraryListMethod.executeWithAndroidContext(req, androidContext, reqSettings))
+                        val result = As100MediaLibraryListMethod.executeWithAndroidContext(req, androidContext, reqSettings)
+                        if (context.submitsImmediately) onConfirmed(result) else committedResult = result
                     }, modifier = Modifier.fillMaxWidth()) { Text("Use this shelf") }
                 }
             }
@@ -1023,10 +1084,12 @@ object MediaLibraryStateCapabilityScreen : CapabilityScreenSpec {
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 MediaHero("Updated", title, "Your MethodMesh media state has been saved.")
                 Text(listOf(if (favourite) "★ Favourite" else "", if (watchlist) "✓ Watchlist" else "", if (watched) "✓ Watched" else "").filter { it.isNotBlank() }.joinToString("   "), style = MaterialTheme.typography.titleMedium)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { result = null }) { Text("Edit") }
-                    Button(onClick = { onConfirmed(frozen) }) { Text("Done") }
-                }
+                CanonicalCommittedResultActions(
+                    result = frozen,
+                    label = "media state",
+                    onDone = { onConfirmed(frozen) },
+                    onEdit = { result = null }
+                )
             }
             return
         }
@@ -1178,18 +1241,20 @@ object MediaAudioIdentifyCapabilityScreen : CapabilityScreenSpec {
                         if (album.isNotBlank()) {
                             Text("Album · $album", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = {
-                                val wid = currentFields[MediaFields.WORK_ID]?.toString().orEmpty()
-                                MediaCatalogueRepository(androidContext).setState(workId = wid, title = matchedTitle, mediaType = "music", creator = artist, favourite = true, externalUri = currentFields[MediaFields.SONG_LINK]?.toString().orEmpty())
-                                Toast.makeText(androidContext, "Added to favourites", Toast.LENGTH_SHORT).show()
-                            }) { Text("☆ Favourite") }
-                            Button(onClick = { onConfirmed(currentResult) }) { Text("Done") }
-                        }
+                        OutlinedButton(onClick = {
+                            val wid = currentFields[MediaFields.WORK_ID]?.toString().orEmpty()
+                            MediaCatalogueRepository(androidContext).setState(workId = wid, title = matchedTitle, mediaType = "music", creator = artist, favourite = true, externalUri = currentFields[MediaFields.SONG_LINK]?.toString().orEmpty())
+                            Toast.makeText(androidContext, "Added to favourites", Toast.LENGTH_SHORT).show()
+                        }) { Text("☆ Favourite") }
                     } else {
                         Text("Nothing matched this sample. Tap the listen button and try again closer to the source.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Button(onClick = { onConfirmed(currentResult) }) { Text("Done") }
                     }
+                    CanonicalCommittedResultActions(
+                        result = currentResult,
+                        label = "audio identification",
+                        onDone = { onConfirmed(currentResult) },
+                        onEdit = { result = null; status = "Ready" }
+                    )
                 }
             }
 

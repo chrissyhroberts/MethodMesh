@@ -1,12 +1,12 @@
 ---
 title: "MethodMesh Master Book"
 subtitle: "Canonical architecture, capability runtime, integration, UX and review standard"
-date: "2026-09-08"
+date: "2026-09-11"
 ---
 
-Version: v1.08
+Version: v1.12
 Status: FINAL - canonical project-wide documentation
-Last updated: 2026-09-08
+Last updated: 2026-09-11
 Authority: sole normative project-wide MethodMesh documentation resource
 
 This edition consolidates the previously separate Master Book, architecture and conceptual specifications, capability-writing guidance, module-review manual, UI/UX standards, ODK/XLSForm integration guidance, provider notes, scheduling guidance, testing guidance and current project-wide implementation doctrine into one resource.
@@ -1167,7 +1167,7 @@ primary actions remain Save/Share/Export rather than copying an internal URI.
 
 ## Tap-to-copy invariant
 
-Any calculated or returned scalar/text value presented as a result in native MethodMesh should be directly tappable to copy its primary clipboard value. This applies on capability screens as well as dashboard cards.
+Any calculated or returned scalar/text value presented as a result in native MethodMesh should be directly tappable to copy its primary clipboard value. This applies on capability screens as well as dashboard cards. **Legacy/generic result pages are not exempt:** while they remain in the app, every displayed result value on the generic result surface must itself be tappable to copy rather than relying only on the page-level Copy action.
 
 Copy the useful value, not the UI label or debug field name. For example, tapping a Plus Code copies the Plus Code itself, not `Plus Code: ...`. The capability may define whether a unit is part of the useful clipboard representation, but labels and surrounding prose are not.
 
@@ -1194,25 +1194,70 @@ If the user edits inputs after commitment, do not silently mutate the already co
 
 ## Sharing and saving after Commit
 
+Native **Share** and **Save/Export** are deliberately different transport contracts. Do not make one operation imitate the other merely because a storage app happens to appear in the Android Sharesheet.
+
+### Native Share is communication-oriented
+
 Share only the beef by default.
 
 Examples:
 
-barcode scan shares only the decoded payload; Plus Code capture shares only the Plus Code; translation shares only the translated text; image redaction shares only the redacted image; document scanner shares the chosen document/text output; sensor read shares the primary readings; conversation translator shares the transcript.
+barcode scan shares only the decoded payload; Plus Code capture shares only the Plus Code; translation shares only the translated text; image redaction shares the redacted image with useful human text where relevant; document scanner shares the chosen document/text output; sensor read shares the primary readings; conversation translator shares the transcript.
 
-If the user enables full JSON/audit inclusion:
+For ordinary scalar/text results, native Share MUST represent the useful human result in **two equivalent forms at the same time**:
 
-share includes beef + relevant media + JSON; save to Downloads includes beef/text + media + JSON; generic Copy includes beef text + JSON text where that is a sensible clipboard representation.
+- `Intent.EXTRA_TEXT`, so messaging/communication targets receive normal message text; and
+- a caller-readable `text/plain` sidecar stream with a coherent run-specific filename (for example `methodmesh_random_number_20260911_162145_123Z_result.txt`), so file-oriented receivers in the Android Sharesheet have a real, identifiable file to persist.
 
-With the option off:
+The text sidecar is a receiver-compatibility projection of the same communication payload, not a second independent result. It MUST contain the same final text carried in `Intent.EXTRA_TEXT`. A text-only result therefore remains a communication share while also being saveable by file-oriented Sharesheet targets. The sidecar filename MUST identify the MethodMesh capability/run rather than using a bare generic name such as `result.txt` or `methodmesh_result.txt`. **Save to Downloads** remains the canonical explicit persistence operation and is not replaced by Sharesheet saving.
 
-share/save/copy include only the beef and relevant media.
+Relevant file/media beef is shared as the actual typed stream, using a readable `content://` URI, the most specific useful MIME type, `ClipData` where required and read permission grants. Human result text remains in `Intent.EXTRA_TEXT` and in the text sidecar so messaging and file-oriented applications can each consume the representation they understand. Media MUST NOT be reduced to a URI/path string.
 
-For a preset with an explicit persistent log, each completed invocation also
-updates the log bundle. This logging is independent of whether the user
-shares or saves that individual result.
+Capability-owned domain artefacts such as a PDF, GPX, CSV, ZIP, template JSON/YAML or other file that is itself part of the useful result remain real typed attachments. This rule about debug JSON does not demote a genuine domain artefact merely because its file format happens to be JSON.
 
-Do not automatically save internal archive copies merely because the user committed a result. Commit finalises the execution; Share/Save are explicit persistence/export actions.
+### Full JSON/audit on native Share and Copy
+
+The **Include full JSON / audit** control is **off by default** for manual/native runs. Its main purpose is diagnostics, provenance inspection and debugging; it is not part of the normal human-facing result.
+
+When the option is off:
+
+- Share sends beef text in `Intent.EXTRA_TEXT`, materialises the same beef text as the `text/plain` result sidecar, and includes relevant typed media/domain attachments;
+- Copy copies the beef text;
+- Save/Export writes the beef/text and relevant media/domain artefacts.
+
+When the option is on:
+
+- Share MUST keep exactly the same media/domain attachment set as it would with the option off;
+- canonical FULL execution JSON is appended to the textual share payload, normally after a clear `metadata.json` marker;
+- the `text/plain` result sidecar MUST contain that same final beef-plus-JSON textual payload;
+- generic Copy may append the same canonical FULL JSON as text where a clipboard representation is sensible;
+- debug/audit JSON MUST NOT be added to the generic Android Share as a separate `application/json` stream, because doing so changes the share envelope and can cause messaging/media receivers to drop the useful attachments;
+- the toggle MUST use the shared canonical FULL execution projection, not a module-private map or ad-hoc JSON substitute.
+
+Modules MUST NOT special-case WhatsApp, Files by Google or another named receiver. Target compatibility policy belongs in shared transport code. Module-specific sharing is allowed only where the capability is deliberately delivering a domain artefact or workflow action distinct from generic committed-result sharing.
+
+### Save/Export is file-oriented
+
+**Save to Downloads** is the canonical persistence route for a manual committed run. The generic saved bundle uses one coherent, run-specific filename stem derived from the human capability/run label plus a UTC timestamp, for example `methodmesh_compass_20260911_162145_123Z`. Files belonging to that operation MUST remain recognisable when detached from their containing folder. The bundle is therefore:
+
+- `<stem>_result.txt` when there is human-readable beef text;
+- every relevant media/domain artefact as a real file with an appropriate MIME type, preferably `<stem>_<source-name>.<ext>` when a useful source/display name exists and otherwise `<stem>_media_<n>.<ext>`;
+- saved media MUST preserve its specific media type/usable extension from resolver MIME metadata when a `content://` source does not expose a filename extension;
+- `<stem>_metadata.json` only when **Include full JSON / audit** is enabled.
+
+Bare generic filenames such as `result.txt`, `metadata.json`, `media_1.jpg` or `methodmesh_result.txt` MUST NOT be emitted by the generic manual Share/Save transport. Capability-owned domain artefacts with established meaningful filenames (for example GPX, CSV, PDF, proof ZIP or template files) MAY retain those domain-native filenames.
+
+The JSON toggle therefore affects file persistence differently from communication sharing: Share appends debug JSON to human text, while Save materialises it as the `metadata.json` sidecar. A manual run MUST NOT save FULL JSON by default merely because the capability has it available internally.
+
+A capability with a genuine domain export operation may additionally offer named exports such as CSV, GPX, ZIP or PDF. Those exports do not replace the generic committed-result contract unless the exported file is itself the complete primary beef for that capability.
+
+### ODK/external return is a separate contract
+
+ODK/external roundtrip MUST NOT inherit the user's native Share/Save toggle. On every handled ODK return, MethodMesh returns the capability data required by the declared contract, canonical `methodmesh_full_json`, and every applicable file/media attachment as a caller-readable `content://` attachment with the required URI grants/`ClipData` transport. ODK therefore always receives **data + canonical JSON + media/files**, even though FULL JSON is optional in manual/native Share and Save.
+
+For a preset with an explicit persistent log, each completed invocation also updates the log bundle. This logging is independent of whether the user shares or saves that individual result.
+
+Do not automatically save internal archive copies merely because the user committed a result. Commit finalises the execution; Share/Save are explicit communication/persistence actions.
 
 ## Origin-aware Home, Done and closeout
 
@@ -1866,10 +1911,11 @@ diagnostics.
 
 Full JSON is the complete auditable payload.
 
-It should be available:
-
-as methodmesh_full_json for ODK where requested; as opt-in export/share
-metadata for native runs; as background data for verification workflows.
+It should be available as background data for verification workflows. On every
+handled ODK/external roundtrip it MUST be returned as `methodmesh_full_json`,
+independently of native sharing preferences. In manual/native runs it is a
+default-off audit/debug option: Share/Copy append it as text when enabled, while
+Save/Export materialises it as `metadata.json`.
 
 It should not be the primary native result screen.
 
@@ -2129,68 +2175,6 @@ Potential shared surfaces include notification shade, heads-up notifications, fo
 Security/operational status may use semantic states such as **good**, **attention** and **alert**, rendered as green/amber/red where the Android surface permits. Do not promise arbitrary coloured status-bar indicators that Android does not expose.
 
 Modules declare generic descriptors, state and actions. Shared Android infrastructure owns platform APIs, permissions, lifecycle and policy requirements.
-
-## Shared native fiducial detection
-
-`platform/fiducial/AprilTagDetector` is a capability-independent, offline AprilTag
-boundary. Create it with `AprilTagDetector.create().getOrThrow()`, use it on a
-worker thread, and close it deterministically (`use { ... }` for short work;
-close from the owning lifecycle for live analysis). Creation and detection return
-Kotlin `Result` values. A closed detector rejects further frames; close is
-idempotent and synchronized with detection. Library-load, invalid configuration
-and malformed-frame failures are reported, never replaced with synthetic results.
-Like other in-process native libraries, upstream allocation failures under severe
-process-wide memory exhaustion are not a recoverable isolation boundary.
-
-The default is `tagStandard41h12`. All nine families in the pinned distribution
-are available. Results contain ID, family, four tag-relative ordered corners,
-centre, corrected-bit count and decision margin. There are no protocol, result
-schema, pose or range semantics in this boundary. Corner order follows upstream
-`(-1,+1), (+1,+1), (+1,-1), (-1,-1)` and must not be screen-sorted.
-
-Pass a direct grayscale buffer at its current position with width, height, row
-stride and pixel stride. Unit-pixel-stride input is borrowed without a JNI frame
-copy; non-unit strides are packed once. Keep the buffer valid until the call
-returns. Supported dimensions are 8–8192 pixels per side, at most 16 megapixels.
-The detector uses one native worker, one corrected bit and configurable decimation
-(default 2, range 1–8). It does not modify the borrowed input or write debug files.
-
-`LiveCameraPreview` optionally accepts `onAnalysisFrame` and `analysisResolution`.
-It uses CameraX's KEEP_ONLY_LATEST strategy on a single executor and always closes
-images in `finally`. Consumers must finish using the frame before their callback
-returns; no asynchronous retention or extra camera framework is needed. Callback
-errors are delivered on the analysis thread. Leaving the surface clears analysis,
-unbinds the camera and shuts down the executor without blocking the UI; pending
-frames are discarded, while any current callback is allowed to finish. The
-consumer separately owns and closes its detector.
-
-The `AprilTagDetector.detect(ImageProxy)` adapter reads the Y plane directly.
-It returns full-frame coordinates rotated clockwise by `rotationDegrees`, swapping
-output width/height at 90/270 degrees. Preview cropping, mirroring and overlay
-transforms remain with the caller. The adapter does not close the frame itself;
-`LiveCameraPreview` owns that lifetime. Standalone analyzer callers must close their
-own `ImageProxy` in `finally`.
-
-Generic CMake builds `libmethodmesh_apriltag.so`, statically incorporating the
-upstream C library and all its families. No named module paths or central module registrations are involved.
-Optional module-owned JNI projects are discovered from
-`modules/*/native/CMakeLists.txt` using CMake CONFIGURE_DEPENDS. Each owns its
-uniquely named library target and may link the generic `apriltag` target.
-Detection interpretation and module result schemas stay in that module-owned
-bridge; the generic Kotlin API and native detector do not depend on it. Any module can use the Kotlin API; native consumers
-in this CMake project can link the `apriltag` target and its public includes.
-Build requirements are NDK `28.2.13676358`, CMake `3.22.1`, and the existing Android
-API 27 minimum. No ABI filters were added: arm64-v8a, armeabi-v7a, x86 and x86_64
-are built. The shared object supports 16 KiB page alignment. Sources are vendored;
-Android builds perform no source downloads.
-
-Validation: `:app:assembleDebug` and `:app:assembleDebugAndroidTest`; run
-`com.example.methodmesh.platform.fiducial.AprilTagDetectorTest` with the Android
-instrumentation runner. Its shared-boundary fixture is upstream-generated family
-`tagStandard41h12`, ID 23, raw 400×320 grayscale. It tests load, every family,
-known detection, corner ordering, stride/offset handling, rotation, malformed
-frames and 20 repeated create/detect/close cycles. Printed-tag camera and physical
-device lifecycle validation remain separate from this synthetic test.
 
 # 17. Location tools
 
@@ -2806,18 +2790,6 @@ OpenStreetMap volunteer tile servers should not be used in a way that
 violates tile usage policy. Prefer appropriate tile providers or offline
 packs.
 
-### Bundled native AprilTag dependency
-
-AprilTag **3.4.5**, upstream <https://github.com/AprilRobotics/apriltag>, is pinned
-to revision `94be783968e5091bcc9972c72c84fd63efce2935`. The tracked release sources
-are vendored unmodified at `app/src/main/cpp/third_party/apriltag/`; MethodMesh's
-CMake configuration and JNI wrapper are separate files in the parent directory.
-The upstream BSD-2-Clause licence and individual source notices are retained.
-An aggregated notice is also included in the APK at `assets/native/apriltag-NOTICES.txt`.
-See the vendor's `METHODMESH_VENDOR.txt` for provenance. Detection is entirely
-local/offline, requires no credentials and sends no image data off-device.
-This native dependency does not require OpenCV.
-
 # 24. Implementation status and roadmap
 
 This chapter is informative. It records project-wide status/direction and MUST NOT be used to infer that a particular module is Production-ready. Production/Development/Experimental status and connectivity are derived from current module/capability metadata and review evidence; module-specific issues belong in that module's docs.
@@ -2956,7 +2928,7 @@ composition, not as part of the canonical example.
 
 17. Keep method IDs and input/output field names, types and semantics canonical across all surfaces; only presentation/transport may differ.
 
-18. Return beef first, JSON/audit second in native runtime; ODK always receives `methodmesh_full_json` on a handled roundtrip. Presentation selectivity must not remove obscure outputs from the contract.
+18. Return beef first, JSON/audit second in native runtime. Native Share is communication-oriented and receiver-compatible (beef in `EXTRA_TEXT` plus the same payload in a `text/plain` sidecar, typed media as streams, optional FULL JSON appended as text in both text representations); Save/Export is file-oriented (`result.txt` + media/domain files + optional `metadata.json`). ODK always receives `methodmesh_full_json` plus applicable data/media on a handled roundtrip. Presentation selectivity must not remove obscure outputs from the contract.
 
 19. Give production capabilities a polished, task-relevant native interface. Generic MethodSetting forms are infrastructure, not an excuse for debug-looking UI where the task benefits from a purpose-built surface.
 
@@ -3094,6 +3066,11 @@ These IDs are stable anchors for module reviews, migration scorecards and tests.
 - **`MM-OUT-002`** - `methodmesh_full_json` remains available as the shared complete structured/audit projection, including for ODK capability calls even when no capability-owned JSON field exists.
 - **`MM-OUT-003`** - Hashes identify the final bytes/canonical content they claim to identify.
 - **`MM-OUT-004`** - Native presentation is beef-first: useful files/media are Save/Share/Export artefacts, scalar/text results are tap-to-copy, and JSON/audit metadata is secondary unless explicitly requested.
+- **`MM-OUT-005`** - Native Share is communication-oriented but receiver-compatible: scalar/text beef is carried in `Intent.EXTRA_TEXT` **and** mirrored into a caller-readable `text/plain` result sidecar; useful media/domain artefacts are typed streams; generic debug/audit JSON is never added as a separate JSON share stream and, when explicitly enabled, is appended to the textual payload in both text representations.
+- **`MM-OUT-006`** - Native Save/Export is file-oriented: generic committed-run persistence writes coherently named run-specific text/media files and a run-specific metadata JSON sidecar only when full JSON/audit inclusion is enabled.
+- **`MM-OUT-007`** - A module MUST NOT implement receiver-specific contracts for WhatsApp, Files by Google or another named target. Generic receiver interoperability is owned by shared transport; module-local share logic is reserved for genuine domain artefacts/workflow actions.
+- **`MM-OUT-008`** - Manual/native JSON inclusion never governs ODK. Every handled ODK roundtrip returns canonical `methodmesh_full_json` and applicable data/media attachments regardless of the native toggle.
+- **`MM-OUT-009`** - Generic manual Share/Save filenames are self-identifying outside their folder: use one `methodmesh_<capability-or-run>_<UTC timestamp>` stem per operation, suffix result/metadata/media roles coherently, preserve useful source filenames where available, and reserve bare generic names only for legacy/migration artefacts.
 
 ## Offline
 
@@ -7334,6 +7311,31 @@ Standalone source documents should only be archived after the repository reorgan
 
 # Appendix M. Version history
 
+## v1.11 - 2026-09-11
+
+- Made the existing tap-to-copy invariant explicit for the legacy generic result surface: every displayed result value must itself be tappable to copy while that surface remains in use.
+- Required generic result fields, including expanded input/settings detail values, to expose a visible copy affordance and brief confirmation after copying.
+- Reaffirmed that file/media results copy only a useful human-facing filename/identifier where appropriate rather than exposing an internal Android URI as the clipboard result.
+- No change to the v1.10 Share/Save/ODK transport contracts.
+
+## v1.10 - 2026-09-11
+
+- Refined native Share receiver compatibility after device testing with messaging and file-oriented Sharesheet targets.
+- Required the final human-readable Share payload to be represented simultaneously in `Intent.EXTRA_TEXT` and as a caller-readable `text/plain` result sidecar.
+- Required that sidecar to mirror the exact final communication text, including appended FULL debug JSON when the manual JSON toggle is enabled.
+- Continued to prohibit generic FULL JSON as a separate `application/json` Share stream, preserving media attachment behaviour.
+- Kept Save/Export as the canonical explicit persistence path with separate `result.txt`, media/domain files and optional `metadata.json`.
+
+## v1.09 - 2026-09-11
+
+- Made the native post-Commit transport split explicit: Share is communication-oriented; Save/Export is file-oriented.
+- Required scalar/text beef to use `Intent.EXTRA_TEXT` for Share and prohibited manufacturing a text sidecar solely for file-manager share targets.
+- Required media/domain artefacts to remain typed streams with content URIs/read grants.
+- Defined manual FULL JSON as a default-off debug/audit option: appended as text for Share/Copy, materialised as `metadata.json` for Save, and never added as a competing generic JSON share stream.
+- Clarified that genuine domain JSON/YAML/CSV/ZIP/PDF artefacts remain shareable files when they are themselves useful outputs.
+- Prohibited module-level receiver-specific behaviour for named apps such as WhatsApp or Files by Google.
+- Reaffirmed ODK as an independent transport contract that always returns declared data, canonical `methodmesh_full_json`, and applicable file/media attachments.
+
 ## v1.08 - 2026-09-09
 
 - defined optional persistent preset logs while keeping capability outputs
@@ -7400,3 +7402,8 @@ Introduced the live-working-result -> Commit lifecycle, tap-to-copy, origin-awar
 ## v1.04 and earlier
 
 Established the module-folder handoff contract, one canonical capability contract across multiple interaction surfaces, ODK transport/output rules and the earlier consolidated MethodMesh architecture baseline. Historical copies remain archival provenance only.
+
+
+## v1.12 filename contract update — 2026-09-11
+
+Generic native Share/Save outputs now use a coherent `methodmesh_<capability-or-run>_<UTC timestamp>` filename family. Result text, optional metadata JSON and saved media remain recognisable when removed from their containing folder; meaningful domain-native artefact names remain permitted.

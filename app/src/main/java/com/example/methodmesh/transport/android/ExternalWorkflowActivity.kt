@@ -148,13 +148,7 @@ class ExternalWorkflowActivity : FragmentActivity() {
         )
         OutputFormatter.fields(combined, includeProvenance = true).forEach { (key, value) ->
             val text = value?.toString().orEmpty()
-            if (text.startsWith("content://") && (
-                    key.endsWith("_uri") ||
-                        key.endsWith("_uris") ||
-                        listOf("attachment", "audio", "document", "file", "image", "media", "pdf", "photo", "video")
-                            .any { hint -> hint in key.lowercase() }
-                    )
-            ) {
+            if (text.startsWith("content://")) {
                 flatReturnFields[key] = text
             }
         }

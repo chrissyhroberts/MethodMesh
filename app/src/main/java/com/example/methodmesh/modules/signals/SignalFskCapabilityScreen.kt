@@ -348,9 +348,9 @@ private fun AudioFskTransmitUi(
                 ),
                 status = exportStatus,
                 onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                onShare = { exportStatus = shareSignalText(androidContext, "Share signal payload", committedFields[resultKey].orEmpty()) ?: "" },
-                onSave = { exportStatus = saveSignalText(androidContext, if (ultrasonic) "near_ultrasonic_transmission" else "audio_fsk_transmission", committedFields[resultKey].orEmpty(), committedFullJson) },
-                onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, if (ultrasonic) "near_ultrasonic_transmission" else "audio_fsk_transmission", committedFields[resultKey].orEmpty(), committedFullJson) } }
+                onShare = { includeFullJson -> exportStatus = shareSignalText(androidContext, "Share signal payload", committedFields[resultKey].orEmpty(), if (includeFullJson) committedFullJson else "") ?: "" },
+                onSave = { includeFullJson -> exportStatus = saveSignalText(androidContext, if (ultrasonic) "near_ultrasonic_transmission" else "audio_fsk_transmission", committedFields[resultKey].orEmpty(), if (includeFullJson) committedFullJson else "") },
+                onDone = { includeFullJson -> finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, if (ultrasonic) "near_ultrasonic_transmission" else "audio_fsk_transmission", committedFields[resultKey].orEmpty(), if (includeFullJson) committedFullJson else "") } }
             )
         }
 
@@ -794,9 +794,9 @@ private fun AudioFskReceiveUi(
                 ),
                 status = exportStatus,
                 onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                onShare = { exportStatus = shareSignalText(androidContext, "Share recovered signal", committedFields[resultKey].orEmpty()) ?: "" },
-                onSave = { exportStatus = saveSignalText(androidContext, if (ultrasonic) "near_ultrasonic_reception" else "audio_fsk_reception", committedFields[resultKey].orEmpty(), committedFullJson) },
-                onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, if (ultrasonic) "near_ultrasonic_reception" else "audio_fsk_reception", committedFields[resultKey].orEmpty(), committedFullJson) } }
+                onShare = { includeFullJson -> exportStatus = shareSignalText(androidContext, "Share recovered signal", committedFields[resultKey].orEmpty(), if (includeFullJson) committedFullJson else "") ?: "" },
+                onSave = { includeFullJson -> exportStatus = saveSignalText(androidContext, if (ultrasonic) "near_ultrasonic_reception" else "audio_fsk_reception", committedFields[resultKey].orEmpty(), if (includeFullJson) committedFullJson else "") },
+                onDone = { includeFullJson -> finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, if (ultrasonic) "near_ultrasonic_reception" else "audio_fsk_reception", committedFields[resultKey].orEmpty(), if (includeFullJson) committedFullJson else "") } }
             )
         }
 

@@ -1,0 +1,19 @@
+<!-- Merge these declarations into app/src/main/AndroidManifest.xml when admitting time_tools.
+     Android components cannot be discovered from Kotlin source in modules/<module>/ alone. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <application>
+        <receiver android:name=".modules.time_tools.notifications.TimerAlertReceiver" android:exported="false" />
+        <receiver android:name=".modules.time_tools.notifications.TimerControlReceiver" android:exported="false" />
+        <receiver android:name=".modules.time_tools.notifications.TimerRestoreReceiver" android:enabled="true" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
