@@ -1,0 +1,47 @@
+# Example integration target for MethodMesh's Android app.
+# This file is intentionally module-local and is NOT wired into app/build.gradle.kts.
+# Copy/adapt it during integration rather than adding hidden project-level changes.
+cmake_minimum_required(VERSION 3.22.1)
+project(methodmesh_apriltag LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(APRILTAG_ROOT "${CMAKE_CURRENT_LIST_DIR}/apriltag" CACHE PATH "Path to AprilRobotics/apriltag source")
+
+add_library(methodmesh_apriltag SHARED
+    apriltag_jni.cpp
+    ${APRILTAG_ROOT}/apriltag.c
+    ${APRILTAG_ROOT}/apriltag_pose.c
+    ${APRILTAG_ROOT}/apriltag_quad_thresh.c
+    ${APRILTAG_ROOT}/tag16h5.c
+    ${APRILTAG_ROOT}/tag25h9.c
+    ${APRILTAG_ROOT}/tag36h11.c
+    ${APRILTAG_ROOT}/tagCircle21h7.c
+    ${APRILTAG_ROOT}/tagCircle49h12.c
+    ${APRILTAG_ROOT}/tagStandard41h12.c
+    ${APRILTAG_ROOT}/tagStandard52h13.c
+    ${APRILTAG_ROOT}/common/g2d.c
+    ${APRILTAG_ROOT}/common/getopt.c
+    ${APRILTAG_ROOT}/common/homography.c
+    ${APRILTAG_ROOT}/common/image_u8.c
+    ${APRILTAG_ROOT}/common/image_u8x3.c
+    ${APRILTAG_ROOT}/common/image_u8x4.c
+    ${APRILTAG_ROOT}/common/matd.c
+    ${APRILTAG_ROOT}/common/pam.c
+    ${APRILTAG_ROOT}/common/pjpeg-idct.c
+    ${APRILTAG_ROOT}/common/pjpeg.c
+    ${APRILTAG_ROOT}/common/pnm.c
+    ${APRILTAG_ROOT}/common/postscript_utils.c
+    ${APRILTAG_ROOT}/common/string_util.c
+    ${APRILTAG_ROOT}/common/svd22.c
+    ${APRILTAG_ROOT}/common/time_util.c
+    ${APRILTAG_ROOT}/common/timeprofile.c
+    ${APRILTAG_ROOT}/common/unionfind.c
+    ${APRILTAG_ROOT}/common/workerpool.c
+    ${APRILTAG_ROOT}/common/zarray.c
+    ${APRILTAG_ROOT}/common/zhash.c
+    ${APRILTAG_ROOT}/common/zmaxheap.c
+)
+
+target_include_directories(methodmesh_apriltag PRIVATE ${APRILTAG_ROOT} ${APRILTAG_ROOT}/common)
+find_library(log-lib log)
+target_link_libraries(methodmesh_apriltag ${log-lib} m)

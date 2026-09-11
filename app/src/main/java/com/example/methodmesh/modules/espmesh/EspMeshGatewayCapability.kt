@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -103,8 +101,9 @@ object EspMeshGatewayCapabilityScreen : CapabilityScreenSpec {
             ) { Text("Provision network") }
             if (configStatus.isNotBlank()) Text(configStatus, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(8.dp))
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(candidates, key = { it.address }) { candidate ->
+            // The host owns vertical scrolling; do not nest an unbounded lazy list.
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                candidates.forEach { candidate ->
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column(Modifier.weight(1f)) {

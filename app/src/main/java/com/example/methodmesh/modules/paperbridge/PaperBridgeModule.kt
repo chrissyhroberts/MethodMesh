@@ -7,7 +7,7 @@ import com.example.methodmesh.settings.MethodSetting
 object PaperBridgeModule : MethodMeshModule {
     override val moduleId = "paperbridge"
     override val displayName = "Paper Bridge"
-    override val summary = "Visually design ODK-mapped paper forms, scan anchored questionnaires, review uncertainty, and return validated structured data to the calling workflow."
+    override val summary = "Design portable paper-form mappings from standard survey/choices workbooks, scan registered questionnaires, review uncertainty, and return validated data with source and registered-page evidence."
     override val iconKey = "document"
 
     val maturityTag = PaperBridgeContractMetadata.MATURITY
@@ -16,9 +16,9 @@ object PaperBridgeModule : MethodMeshModule {
     override fun as100Methods() = listOf(As100PaperFormTranscribeMethod, As100PaperFormDesignMethod)
 
     override fun rilBindings() = listOf(
-        RilBinding("transcribe paper form", As100PaperFormTranscribeMethod.ID, "Scan an anchored paper questionnaire and return validated field values"),
+        RilBinding("transcribe paper form", As100PaperFormTranscribeMethod.ID, "Scan a registered paper questionnaire and return validated field values"),
         RilBinding("scan paper questionnaire", As100PaperFormTranscribeMethod.ID, "Capture a paper form, review uncertain fields and Commit the result"),
-        RilBinding("design paper form", As100PaperFormDesignMethod.ID, "Visually map a blank paper questionnaire to ODK variables and recognition regions"),
+        RilBinding("design paper form", As100PaperFormDesignMethod.ID, "Match a registered paper questionnaire to survey/choices workbook fields and recognition regions"),
         RilBinding("mark up paper questionnaire", As100PaperFormDesignMethod.ID, "Place and edit persistent regions, link return values and validate a Paper Bridge form")
     )
 
@@ -51,25 +51,11 @@ object PaperBridgeModule : MethodMeshModule {
             ),
             MethodSetting.BooleanSetting(
                 id = PaperBridgeInputs.AUTO_ACCEPT_OCR,
-                label = "Auto-accept validated OCR",
-                description = "Off by default. OCR candidates normally require human confirmation even when constraints pass.",
+                label = "Auto-accept constrained numeric OCR",
+                description = "Off by default. Integer/decimal candidates may auto-accept when constraints pass; free-text OCR always requires human confirmation.",
                 group = "Review",
                 defaultValue = false
             ),
-            MethodSetting.BooleanSetting(
-                id = PaperBridgeInputs.RETURN_SOURCE_IMAGE,
-                label = "Return source image",
-                description = "Expose the captured page as a caller-owned attachment after Commit.",
-                group = "Returns",
-                defaultValue = true
-            ),
-            MethodSetting.BooleanSetting(
-                id = PaperBridgeInputs.RETURN_RECTIFIED_IMAGE,
-                label = "Return rectified image",
-                description = "Expose the anchor-rectified page as a caller-owned attachment after Commit.",
-                group = "Returns",
-                defaultValue = true
-            )
         )
     )
 }

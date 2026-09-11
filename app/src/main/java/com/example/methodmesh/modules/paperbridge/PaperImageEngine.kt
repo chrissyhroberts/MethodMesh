@@ -25,11 +25,25 @@ internal data class PaperAnchorEvidence(
     val boundingHeight: Int
 )
 
+internal data class PaperRegistrationResidual(
+    val target: PointF,
+    val projected: PointF
+)
+
 internal data class PaperRectification(
     val bitmap: Bitmap,
     val anchors: List<PaperAnchorEvidence>,
     val sourceWidth: Int,
-    val sourceHeight: Int
+    val sourceHeight: Int,
+    val registrationMode: String,
+    val detectedMarkerCount: Int = anchors.size,
+    val expectedMarkerCount: Int = anchors.size,
+    val correspondenceCount: Int = anchors.size,
+    val reprojectionRmsPx: Float? = null,
+    val reprojectionMaxPx: Float? = null,
+    val registrationQuality: String = "legacy",
+    val registrationPassed: Boolean = true,
+    val residualVectors: List<PaperRegistrationResidual> = emptyList()
 )
 
 internal object PaperImageEngine {
@@ -54,13 +68,35 @@ internal object PaperImageEngine {
         }
     }
 
-    fun rectify(source: Bitmap, template: PaperTemplate): PaperRectification {
+    fun rectify(source: Bitmap, template: PaperTemplate, mlKitPreprocessed: Boolean = false): PaperRectification {
         val maxDimension = max(source.width, source.height)
         val scale = min(1f, 1200f / maxDimension.toFloat())
         val analysis = if (scale < 0.999f) {
             Bitmap.createScaledBitmap(source, (source.width * scale).roundToInt(), (source.height * scale).roundToInt(), true)
         } else source
-        val anchors = detectAnchors(analysis, template.anchors).map { evidence ->
+        val detected = runCatching { detectAnchors(analysis, template.anchors) }.getOrElse { primaryError ->
+            if (!mlKitPreprocessed) throw primaryError
+            // ML Kit has already established a credible page boundary and corrected
+            // coarse perspective. Its crop can nevertheless move a registration target
+            // farther inward than the manifest's normal quiet-corner search window.
+            // Retry with a wider but still target-structure-scored search before failing.
+            val relaxed = template.anchors.copy(
+                searchFraction = max(template.anchors.searchFraction, 0.34f),
+                minComponentFraction = (template.anchors.minComponentFraction * 0.35f).coerceAtLeast(0.00008f),
+                maxComponentFraction = max(template.anchors.maxComponentFraction, 0.06f),
+                maxAspectError = max(template.anchors.maxAspectError, 0.68f),
+                minimumScore = (template.anchors.minimumScore - 0.05f).coerceAtLeast(0.20f),
+                thresholdLuma = max(template.anchors.thresholdLuma, 165)
+            )
+            runCatching { detectAnchors(analysis, relaxed) }.getOrElse { relaxedError ->
+                throw IllegalArgumentException(
+                    "ML Kit found and straightened the page, but Paper Bridge could not confidently register all four targets. " +
+                        (relaxedError.message ?: primaryError.message ?: "Keep every target fully visible and try again."),
+                    relaxedError
+                )
+            }
+        }
+        val anchors = detected.map { evidence ->
             if (scale >= 0.999f) evidence else evidence.copy(
                 point = PointF(evidence.point.x / scale, evidence.point.y / scale),
                 componentArea = (evidence.componentArea / (scale * scale)).roundToInt(),
@@ -71,13 +107,28 @@ internal object PaperImageEngine {
         if (analysis !== source) analysis.recycle()
         validateAnchorGeometry(anchors, source.width, source.height)
 
+        if (mlKitPreprocessed) {
+            // ML Kit Document Scanner already owns page detection, deskew and coarse
+            // perspective correction. Applying a second four-point homography here
+            // can warp an already-flat page. On this path the four targets are only
+            // registration rulers: their CENTRES define the canonical analysis
+            // rectangle. Crop exactly between those centres, then resize once to
+            // the template dimensions. No page-edge inference is involved.
+            return rectangularRegisterMlKitPage(source, template, anchors)
+        }
+
         val src = FloatArray(8)
-        val dst = FloatArray(8)
+        val rightEdge = (template.pageWidthPx - 1).coerceAtLeast(1).toFloat()
+        val bottomEdge = (template.pageHeightPx - 1).coerceAtLeast(1).toFloat()
+        val dst = floatArrayOf(
+            0f, 0f,
+            rightEdge, 0f,
+            rightEdge, bottomEdge,
+            0f, bottomEdge
+        )
         anchors.forEachIndexed { index, evidence ->
             src[index * 2] = evidence.point.x
             src[index * 2 + 1] = evidence.point.y
-            dst[index * 2] = template.anchors.targets[index].first * template.pageWidthPx
-            dst[index * 2 + 1] = template.anchors.targets[index].second * template.pageHeightPx
         }
         val matrix = Matrix()
         require(matrix.setPolyToPoly(src, 0, dst, 0, 4)) { "Could not compute four-anchor perspective transform." }
@@ -86,7 +137,108 @@ internal object PaperImageEngine {
             drawColor(Color.WHITE)
             drawBitmap(source, matrix, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
         }
-        return PaperRectification(rectified, anchors, source.width, source.height)
+        return PaperRectification(
+            bitmap = rectified,
+            anchors = anchors,
+            sourceWidth = source.width,
+            sourceHeight = source.height,
+            registrationMode = "four_anchor_perspective"
+        )
+    }
+
+
+    private fun rectangularRegisterMlKitPage(
+        source: Bitmap,
+        template: PaperTemplate,
+        anchors: List<PaperAnchorEvidence>
+    ): PaperRectification {
+        val bounds = anchorCentreBounds(source, anchors)
+        val registered = Bitmap.createBitmap(template.pageWidthPx, template.pageHeightPx, Bitmap.Config.ARGB_8888)
+        Canvas(registered).apply {
+            drawColor(Color.WHITE)
+            drawBitmap(
+                source,
+                bounds,
+                Rect(0, 0, template.pageWidthPx, template.pageHeightPx),
+                Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+            )
+        }
+        return PaperRectification(
+            bitmap = registered,
+            anchors = anchors,
+            sourceWidth = source.width,
+            sourceHeight = source.height,
+            registrationMode = "mlkit_anchor_centre_crop_resize"
+        )
+    }
+
+    /**
+     * The four registration target CENTRES are the Paper Bridge coordinate frame.
+     * Nothing outside this rectangle participates in field geometry.
+     */
+    private fun anchorCentreBounds(source: Bitmap, anchors: List<PaperAnchorEvidence>): Rect {
+        require(anchors.size == 4) { "Four registration targets are required." }
+        val topLeft = anchors[0].point
+        val topRight = anchors[1].point
+        val bottomRight = anchors[2].point
+        val bottomLeft = anchors[3].point
+
+        // ML Kit has already flattened the sheet, so collapse tiny residual target
+        // jitter to one axis-aligned rectangle. Each edge passes through the mean
+        // centreline of its corresponding target pair.
+        val leftF = (topLeft.x + bottomLeft.x) / 2f
+        val rightF = (topRight.x + bottomRight.x) / 2f
+        val topF = (topLeft.y + topRight.y) / 2f
+        val bottomF = (bottomLeft.y + bottomRight.y) / 2f
+        val left = leftF.roundToInt().coerceIn(0, source.width - 2)
+        val right = rightF.roundToInt().coerceIn(left + 1, source.width)
+        val top = topF.roundToInt().coerceIn(0, source.height - 2)
+        val bottom = bottomF.roundToInt().coerceIn(top + 1, source.height)
+        val width = right - left
+        val height = bottom - top
+        require(width > source.width * 0.25f && height > source.height * 0.25f) {
+            "Detected registration target centres do not define a credible analysis rectangle."
+        }
+        return Rect(left, top, right, bottom)
+    }
+
+    /**
+     * Used by the visual designer. The blank form is already flat (PDF render/image),
+     * so detection is followed by a literal crop between target centres with no
+     * perspective transform and no page-edge extrapolation. The returned bitmap is
+     * therefore in the exact same normalised coordinate frame used at scan time.
+     */
+    fun cropFlatDesignToAnchorCentres(source: Bitmap, spec: PaperAnchorSpec = PaperAnchorSpec()): PaperRectification {
+        val maxDimension = max(source.width, source.height)
+        val scale = min(1f, 1200f / maxDimension.toFloat())
+        val analysis = if (scale < 0.999f) {
+            Bitmap.createScaledBitmap(
+                source,
+                (source.width * scale).roundToInt(),
+                (source.height * scale).roundToInt(),
+                true
+            )
+        } else source
+        val detected = detectAnchors(analysis, spec)
+        val anchors = detected.map { evidence ->
+            if (scale >= 0.999f) evidence else evidence.copy(
+                point = PointF(evidence.point.x / scale, evidence.point.y / scale),
+                componentArea = (evidence.componentArea / (scale * scale)).roundToInt(),
+                boundingWidth = (evidence.boundingWidth / scale).roundToInt(),
+                boundingHeight = (evidence.boundingHeight / scale).roundToInt()
+            )
+        }
+        if (analysis !== source) analysis.recycle()
+        validateAnchorGeometry(anchors, source.width, source.height)
+        val bounds = anchorCentreBounds(source, anchors)
+        val cropped = Bitmap.createBitmap(source, bounds.left, bounds.top, bounds.width(), bounds.height())
+        return PaperRectification(
+            bitmap = cropped,
+            anchors = anchors,
+            sourceWidth = source.width,
+            sourceHeight = source.height,
+            registrationMode = "designer_anchor_centre_crop"
+        )
     }
 
     fun roiRect(bitmap: Bitmap, roi: NormalisedRoi, insetFraction: Float = 0f): Rect {
@@ -108,6 +260,19 @@ internal object PaperImageEngine {
     fun crop(bitmap: Bitmap, roi: NormalisedRoi): Bitmap {
         val rect = roiRect(bitmap, roi)
         return Bitmap.createBitmap(bitmap, rect.left, rect.top, rect.width(), rect.height())
+    }
+
+    /** Review/display crop only. Extraction continues to use the exact saved ROI. */
+    fun cropExpanded(bitmap: Bitmap, roi: NormalisedRoi, marginFraction: Float = 0.18f): Bitmap {
+        val width = roi.right - roi.left
+        val height = roi.bottom - roi.top
+        val expanded = NormalisedRoi(
+            (roi.left - width * marginFraction).coerceAtLeast(0f),
+            (roi.top - height * marginFraction).coerceAtLeast(0f),
+            (roi.right + width * marginFraction).coerceAtMost(1f),
+            (roi.bottom + height * marginFraction).coerceAtMost(1f)
+        )
+        return crop(bitmap, expanded)
     }
 
     fun markScore(bitmap: Bitmap, roi: NormalisedRoi, pageWhiteLuma: Float): Float {

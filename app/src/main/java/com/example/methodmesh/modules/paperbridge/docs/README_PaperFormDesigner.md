@@ -1,73 +1,77 @@
-# Paper Bridge visual designer — `paper.form.design`
+# Paper Bridge — `paper.form.design`
 
-The designer is the canonical authoring surface for paper templates. Study teams should not normally hand-edit `methodmesh.paper.v1` JSON.
+**Maturity:** Development  
+**Connectivity:** Offline  
+**Canonical method:** `paper.form.design`
 
-## Fast path
+The Paper Form Designer creates and manages versioned Paper Bridge schemas from a blank paper questionnaire plus an XLSForm-style survey/choices workbook. It owns the visual mapping task; the same method is exposed to direct native use, presets, protocols and ODK/external round-trips.
 
-1. Open **Paper Bridge → Design a form**.
-2. Choose the blank questionnaire PDF/image.
-3. Import the corresponding XLSForm.
-4. Use **Place box** and drag once over an answer region.
-5. The new box remains selected; choose the ODK field (and return option for OMR) and press **Link to ODK**.
-6. Use **Edit boxes** to drag a box to move it or drag one of its four corner handles to resize it. Existing boxes are never silently replaced.
-7. Fix all red design errors, then use **Test with completed page**.
-8. **Save Paper Bridge form**. The designer saves both the JSON definition and a marked-up PNG showing every linked bounding box and its ODK mapping.
+## Lifecycle
 
-The saved form is immediately available to `paper.form.transcribe` and becomes the active native Paper Bridge form.
+The persistent design lifecycle is:
 
-## What XLSForm import provides
+**SAVE SCHEMA → TEST EMPTY → TEST DATA → COMMIT**
 
-For compatible rows the designer imports:
+- **Save schema** explicitly persists the current named schema and its bound blank-form source. It does not close the editor.
+- **Test empty** verifies that an unfilled prepared form does not generate false responses.
+- **Test data** exercises the same registration/extraction pipeline using a completed page.
+- Editing the design after a test invalidates that test for the changed design.
+- **Commit** is enabled only when the current saved design has passed the required tests. Commit freezes the canonical design-result payload.
 
-- variable name and label;
-- paper recognition type;
-- required state;
-- `select_one` / `select_multiple` choice values and labels;
-- simple `regex(., '…')` constraints;
-- simple numeric lower/upper bounds.
+Because designing a Paper Bridge form is itself a persistence task, Save schema is an explicit durable action. This is distinct from the result lifecycle: Commit does not silently create unrelated output/archive copies.
 
-Compatible ODK types are `text`, `integer`, `decimal`, `select_one`, `select_multiple` and `barcode`. Other rows are skipped with a warning. The XLSForm remains authoritative for constraints that the designer cannot safely reduce.
+## Registration produced by the designer
 
-## Error detection
+New schemas default to eight unique `tag36h11` AprilTags around the page perimeter. The prepared printable form embeds the required tags and the schema stores their IDs/canonical positions. QR4 and bullseye4 remain supported for legacy schemas.
 
-Save is blocked for structural errors: missing registration targets, unlinked placed boxes, missing field/choice mappings, invalid or duplicate variable names, reserved `paper_`/`methodmesh_` names, out-of-page/inverted boxes, target-zone intrusion and substantial overlaps. Very small regions are warnings because they are likely to be fragile in real photographs.
+## Authoring workflow
 
-Testing uses the actual Paper Bridge rectification + ML Kit/OMR extraction path; it is not a mock preview.
+A normal design run is:
 
-## Bundled fixture
+1. open an existing schema or create a new schema;
+2. choose/import the blank paper form;
+3. import the survey/choices workbook;
+4. use colour-authoring envelopes and/or automatic region detection where appropriate;
+5. review field/choice mappings and constraints;
+6. Save schema;
+7. run TEST EMPTY;
+8. run TEST DATA;
+9. Commit.
 
-Use `example_paper_form_for_designer.pdf` together with `example_odk_showcase_paper_form_transcribe.xlsx`. They share six fields and cover every currently supported recognition family.
+The designer returns a portable template JSON plus generated design artefacts. It can be used without the colour authoring convention; colour authoring is an accelerator, not a runtime dependency.
 
-### Pan and zoom
+## Canonical returns
 
-The designer opens in a full-screen dialog and uses the same document-viewport discipline as MethodMesh Digital Signing: the page opens fitted at 1×, **NAV** supports drag-to-pan and pinch-to-zoom up to 48×, dedicated **+ / −** controls provide coarse zoom steps, and **FIT** restores the whole page. **+ BOX** is always available when a page is loaded. Every box is stored in normalized page coordinates after inverting the active viewport transform, so geometry is invariant to zoom/pan. Linked boxes remain visible with `variable` or `variable = return_value` labels. A persistent left sidebar holds NAV / + BOX / EDIT / zoom / FIT. Tapping a box selects it independently of drag detection; if regions overlap, the smallest region under the tap wins. In **EDIT**, drag inside a box to move it and drag a corner handle to resize it. There is no redraw operation: unlink/delete is explicit.
+`paper_design_status`, `paper_template_json`, `paper_template_id`, `paper_template_version`, `paper_template_json_uri`, `paper_template_yaml_uri`, `paper_template_bundle_uri`, `paper_design_template_image`, `paper_design_prepared_form_image`, `paper_design_markup_image`, `paper_design_field_count`, `paper_design_odk_field_count`, `paper_design_error_count`, `paper_design_warning_count`, `paper_design_source_type`, `paper_design_error`.
 
-### Full-screen split workspace
+The JSON/YAML/bundle and design images are real file/media outputs, not clipboard-oriented URI strings.
 
-The designer is a fixed full-screen workspace rather than a vertically stacked capability page. After the slim header, the paper canvas receives two-thirds of the available height and the ODK data-linkage pane receives one-third. Only the lower linkage pane scrolls. This prevents page overlays, field cards and controls from occupying the same layout layer. Selecting a mapped box shows the ODK variable name, Paper Bridge type, required state, imported regex/range, or select-one/select-multiple return options directly in the lower pane.
+## Native committed state
 
-## Built-in example
+After Commit the native designer remains on its committed surface and exposes:
 
-Paper Bridge ships with a ready-to-use example form. The canonical source files remain in this module's `docs/` directory:
+- tap-to-copy scalar identifiers/counts;
+- **Share** of the useful summary plus generated design artefacts;
+- **Save** to the shared MethodMesh **Files** surface;
+- optional **Include full JSON / audit**;
+- **Done** with launch-origin-aware closeout;
+- **Edit design**;
+- **Copy template JSON**.
 
-- `example_paper_form_for_designer.pdf` — anchored blank paper questionnaire;
-- `example_odk_showcase_paper_form_transcribe.xlsx` — matching XLSForm;
-- `example_template_manifest.json` — generated Paper Bridge mapping;
-- `example_paper_form_for_designer.png` — documentation preview.
+## ODK/external behaviour
 
-The Android runtime does not assume `docs/` is an APK asset directory. Therefore the exact PDF/XLSX bytes are embedded in `PaperBridgeBuiltInExamples.kt` and materialised into app-private storage on first use. The example appears in **Form setup** automatically and is the fallback active form on a clean install. Opening it in Designer automatically loads both its paper PDF and ODK schema. The built-in example is immutable: Designer opens it as an editable copy with a new form ID so experimental changes cannot silently replace the shipped fixture.
+An external/ODK launch opens the same visual designer. Commit returns the canonical design payload directly to the calling form and finishes the MethodMesh round-trip. It does not detour through the native share/save surface. ODK owns the calling form/submission; Paper Bridge owns its explicitly saved reusable schema.
 
+The canonical example is `example_odk_showcase_paper_form_design.xlsx`. See `ODK_INTEGRATION.md`.
 
-## Designer outputs
+## Deletion
 
-Saving `paper.form.design` creates durable app-private design artefacts and returns both of them to the caller:
+Deleting a saved Paper Bridge schema is a destructive action and requires confirmation. The UI states that deletion removes the saved schema/bound blank-form source; it does not claim to delete completed ODK submissions.
 
-- `paper_template_json` — the canonical JSON definition as text;
-- `paper_template_json_uri` — a shareable URI for the saved `.paperbridge.json` file;
-- `paper_design_markup_image` — a shareable PNG URI containing the blank page with every linked bounding box and mapping label burned into the image.
+## Lifecycle restoration
 
-These are design/configuration artefacts only; they contain no completed questionnaire values.
+Meaningful in-progress editor state is encoded in saveable state: selected source identity, imported ODK schema, field mappings, loose regions, selection/editing controls, test state and registration configuration. Large bitmaps are reloaded/rederived from the persistent source identity after ordinary Activity recreation rather than serialised into the state bundle. Committed design values are separately frozen and saveable.
 
-## Registration targets
+## Status
 
-The bundled example now uses bullseye-style registration targets (dark centre, light annulus, dark outer ring) rather than plain black dots. The detector scores this target structure explicitly while retaining compatibility with older solid-dot forms. This is intended to reduce accidental matches on ordinary corner content.
+The module remains **Development** pending target-app integration build and representative ODK/Kobo device round-trip validation. Documentation and bundled XLSForms describe implemented behaviour rather than implying Production readiness.

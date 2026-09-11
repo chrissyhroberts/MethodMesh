@@ -28,6 +28,14 @@ object ConversationTranslateFields {
     const val LANGUAGE_B = "conversation_language_b"
     const val LABEL_A = "conversation_label_a"
     const val LABEL_B = "conversation_label_b"
+    const val ARABIC_VARIANT_A = "conversation_arabic_variant_a"
+    const val ARABIC_VARIANT_B = "conversation_arabic_variant_b"
+    const val SPEECH_LOCALE_A = "conversation_speech_locale_a"
+    const val SPEECH_LOCALE_B = "conversation_speech_locale_b"
+    const val VOICE_A = "conversation_voice_a"
+    const val VOICE_B = "conversation_voice_b"
+    const val TRANSCRIPT_EVENTS_JSON = "conversation_transcript_events_json"
+    const val TRANSCRIPT_ENABLED_AT_END = "conversation_transcript_enabled_at_end"
     const val SPOKEN_OUTPUT = "conversation_spoken_output"
     const val PREFER_OFFLINE = "conversation_prefer_offline"
     const val TURN_COUNT = "conversation_turn_count"
@@ -43,6 +51,14 @@ object ConversationTranslateFields {
         LANGUAGE_B,
         LABEL_A,
         LABEL_B,
+        ARABIC_VARIANT_A,
+        ARABIC_VARIANT_B,
+        SPEECH_LOCALE_A,
+        SPEECH_LOCALE_B,
+        VOICE_A,
+        VOICE_B,
+        TRANSCRIPT_EVENTS_JSON,
+        TRANSCRIPT_ENABLED_AT_END,
         SPOKEN_OUTPUT,
         PREFER_OFFLINE,
         TURN_COUNT,
@@ -55,7 +71,7 @@ object ConversationTranslateFields {
 
 object As100ConversationTranslateMethod : As100Method {
     const val ID = "conversation.translate"
-    private const val VERSION = "0.1.0"
+    private const val VERSION = "0.7.0"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Live conversation translator")
@@ -64,7 +80,7 @@ object As100ConversationTranslateMethod : As100Method {
         methodType = MethodObjectType.SignalInterpreter,
         name = "Live conversation translator",
         version = VERSION,
-        description = "Capture a bilingual conversation as turn-by-turn speech, translation and optional spoken output.",
+        description = "Capture a bilingual conversation as turn-by-turn speech and translation, with optional spoken output and pauseable transcript recording.",
         outputs = ConversationTranslateFields.outputs,
         graphOutputs = listOf("conversation.translate"),
         parameters = mapOf(

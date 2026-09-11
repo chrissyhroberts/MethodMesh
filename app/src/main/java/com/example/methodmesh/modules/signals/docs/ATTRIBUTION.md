@@ -15,3 +15,8 @@ Light, magnetic-field, accelerometer, gyroscope, pressure and proximity observat
 QR rendering uses ZXing QR encoding APIs. Continuous QR receive uses the JourneyApps ZXing Android Embedded camera view already present in MethodMesh.
 
 See `THIRD_PARTY_NOTICES.md` for the applicable third-party project/licence summary.
+
+
+## AprilTag tag16h5
+
+Screen AprilTag Burst uses the published AprilRobotics `tag16h5` family constants for local fiducial rendering/decoding. The native AprilTag detector is not bundled; MethodMesh uses a constrained Kotlin camera analyser for the full-screen signalling case. See `THIRD_PARTY_NOTICES.md`.

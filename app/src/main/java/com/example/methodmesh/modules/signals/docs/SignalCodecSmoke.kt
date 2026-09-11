@@ -17,8 +17,8 @@ fun main() {
         if (!condition) error(message)
     }
 
-    requireSmoke(MorseCodec.encode("SOS") == "... --- ...", "Morse encode")
-    requireSmoke(MorseCodec.decode("... --- ...") == "SOS", "Morse decode")
+    requireSmoke(MorseCodec.encode("hello, world") == ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -..", "Morse encode")
+    requireSmoke(MorseCodec.decode(".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -..") == "HELLO, WORLD", "Morse decode")
     requireSmoke(MorseCodec.dotDurationMs(12) == 100L, "Morse PARIS dot")
 
     fun simulateMorse(text: String, actualDotMs: Long, initialDotMs: Long, jitter: Double = 0.0): MorseTimingDecoder.Snapshot {
@@ -51,7 +51,7 @@ fun main() {
             requireSmoke(snapshot.decodedText.trim() == "FIELD TEST 123", "Morse adaptive actual=$actual factor=$factor: $snapshot")
         }
     }
-    listOf("OOO", "EEEE", "TTT", "SOS").forEach { text ->
+    listOf("OOO", "EEEE", "TTT", "HELLO, WORLD").forEach { text ->
         val snapshot = simulateMorse(text, 100, 100, jitter = 0.05)
         requireSmoke(snapshot.decodedText.trim() == text, "Morse edge traffic $text: $snapshot")
     }
@@ -342,13 +342,326 @@ fun main() {
         requireSmoke(maxTransfer.frames.isNotEmpty(), "QR 1 MiB transfer produces frames")
     }
 
-    // v0.4.5 shared discrete catalog invariants: TX/RX select the same named
+    // v0.4.6 shared discrete catalog invariants: TX/RX select the same named
     // physical geometry, and the Morse sound ceiling remains 30 WPM.
     run {
         requireSmoke(SignalFskProfiles.audible.map { it.id } == listOf("A", "B", "C", "D"), "Audible FSK profiles A-D")
         requireSmoke(SignalFskProfiles.highBand.map { it.id } == listOf("A", "B", "C", "D"), "High-band FSK profiles A-D")
         requireSmoke(SignalPresetCatalog.morseAudioWpm.maxOrNull() == 30, "Morse audio shared 30 WPM ceiling")
         requireSmoke(SignalPresetCatalog.surfaceProfiles.map { it.id }.distinct().size == 4, "Surface matched profiles A-D")
+    }
+
+
+
+
+    // v0.5.1 human Morse capture: START anchors copies; dot/dash taps are authoritative,
+    // spacing is inferred globally from raw tap timing rather than committed early.
+    run {
+        fun feedManualCopy(
+            decoder: MorseManualTapDecoder,
+            text: String,
+            startMs: Long,
+            actualDotMs: Long,
+            endOfMarkStyle: Boolean,
+            jitterFraction: Double = 0.0,
+            seed: Int = 1
+        ): Long {
+            val random = Random(seed)
+            var now = startMs
+            decoder.startSignal(now)
+            var previous: Char? = null
+            val words = MorseCodec.encode(text).split(" / ")
+            for ((wordIndex, word) in words.withIndex()) {
+                val letters = word.split(" ")
+                for ((letterIndex, letter) in letters.withIndex()) {
+                    for ((symbolIndex, symbol) in letter.withIndex()) {
+                        val currentUnits = if (symbol == '-') 3 else 1
+                        val gapUnits = when {
+                            previous == null -> 0
+                            symbolIndex > 0 -> 1
+                            letterIndex > 0 -> 3
+                            wordIndex > 0 -> 7
+                            else -> 1
+                        }
+                        val nominal = if (previous == null) {
+                            if (endOfMarkStyle) currentUnits * actualDotMs else actualDotMs
+                        } else {
+                            val previousUnits = if (previous == '-') 3 else 1
+                            if (endOfMarkStyle) (gapUnits + currentUnits) * actualDotMs
+                            else (previousUnits + gapUnits) * actualDotMs
+                        }
+                        val scale = if (jitterFraction <= 0.0) 1.0 else 1.0 + (random.nextDouble() * 2.0 - 1.0) * jitterFraction
+                        now += (nominal * scale).roundToLong().coerceAtLeast(1L)
+                        if (symbol == '.') decoder.tapDot(now) else decoder.tapDash(now)
+                        previous = symbol
+                    }
+                }
+            }
+            now += actualDotMs * 10
+            decoder.startSignal(now)
+            return now
+        }
+
+        val preStart = MorseManualTapDecoder(initialDotMs = 240)
+        preStart.tapDot(100)
+        requireSmoke(preStart.snapshot().marksSeen == 0 && preStart.snapshot().decodedText.isBlank(), "Manual Morse quarantines pre-START taps")
+
+        listOf(false, true).forEachIndexed { styleIndex, endStyle ->
+            val manual = MorseManualTapDecoder(initialDotMs = 240)
+            var now = 1_000L
+            repeat(3) { copy ->
+                now = feedManualCopy(manual, "HELLO WORLD", now + 1_000, 120, endStyle, jitterFraction = 0.06, seed = 100 + styleIndex * 10 + copy)
+            }
+            val snap = manual.snapshot()
+            requireSmoke(snap.decodedText == "HELLO WORLD", "Manual Morse ${if (endStyle) "end-of-mark" else "onset"} tapping decodes")
+            requireSmoke(snap.completedCopies == 3, "Manual Morse START closes three observations")
+            requireSmoke(snap.consensusConfidence > 0.85, "Manual Morse repeated-copy consensus confidence")
+            requireSmoke(snap.dotMs in 100L..145L, "Manual Morse learns cadence despite wrong WPM prior")
+        }
+    }
+
+    // v0.5.3 colour-assisted screen Morse: chroma adds soft evidence while canonical timing remains valid.
+    run {
+        val colour = MorseColourAssistCalibrator()
+        colour.observeWhite(128.0, 128.0)
+        colour.observeWhite(127.0, 129.0)
+        colour.observeRed(94.0, 210.0)
+        colour.observeRed(96.0, 206.0)
+        val white = colour.classify(129.0, 127.0)
+        val red = colour.classify(95.0, 208.0)
+        requireSmoke(white.hint == '.' && white.confidence > 0.5, "Colour Morse recognises calibrated white dot evidence")
+        requireSmoke(red.hint == '-' && red.confidence > 0.5, "Colour Morse recognises calibrated red dash evidence")
+        val blackActivity = MorseColourAssistCalibrator.activityLevel(8.0, 128.0)
+        val redActivity = MorseColourAssistCalibrator.activityLevel(75.0, 240.0)
+        val whiteActivity = MorseColourAssistCalibrator.activityLevel(235.0, 128.0)
+        requireSmoke(redActivity > (blackActivity + whiteActivity) / 2.0, "Red chroma remains an ON-level activity despite lower luminance")
+        val monochrome = MorseColourAssistCalibrator()
+        monochrome.observeWhite(128.0, 128.0)
+        monochrome.observeRed(128.0, 128.0)
+        requireSmoke(monochrome.classify(128.0, 128.0).hint == null, "Monochrome sender collapses colour evidence to timing-only")
+
+        val smeared = MorseTimingDecoder(initialDotMs = 100, autoTiming = false)
+        smeared.reset(0)
+        smeared.update(true, 10)
+        val colourRescued = smeared.update(false, 190, markHint = '-', markHintConfidence = 0.95)
+        requireSmoke(colourRescued.currentSymbols == "-", "Strong red evidence rescues a timing-ambiguous dash")
+
+        val timingFallback = MorseTimingDecoder(initialDotMs = 100, autoTiming = false)
+        timingFallback.reset(0)
+        timingFallback.update(true, 10)
+        val weakColour = timingFallback.update(false, 190, markHint = '-', markHintConfidence = 0.05)
+        requireSmoke(weakColour.currentSymbols == ".", "Weak colour evidence falls back to ordinary Morse timing")
+
+        val tracker = MorseColourMarkTracker(MorseColourAssistCalibrator())
+        tracker.start(0); tracker.observe(128.0, 128.0)
+        val preamble = tracker.finish(100, 100, MorseTimingDecoder.FrameState.SEEKING_START)
+        tracker.start(200); tracker.observe(95.0, 208.0)
+        val start = tracker.finish(1_400, 100, MorseTimingDecoder.FrameState.SEEKING_START)
+        requireSmoke(preamble?.calibrationEvent?.contains("white") == true, "Acquisition dot calibrates white")
+        requireSmoke(start?.calibrationEvent?.contains("START red") == true, "START marker calibrates red")
+    }
+
+    // v0.5.1 compact optical short-message transport: tiny CRC frame, self-registering
+    // loop-accumulating grid states, and single-flash 8-PPM with one-erasure repair.
+    run {
+        val text = "hello from methodmesh torch"
+        val packet = OpticalCompactTextCodec.encode(text, "manual-range-test")
+        requireSmoke(packet.size == 26, "Compact optical test phrase is 26 bytes")
+        requireSmoke(OpticalCompactTextCodec.decode(packet)?.text == text, "Compact optical CRC text round-trip")
+
+        val longProfile = SignalOpticalProfiles.byId("long")
+        val gridStates = OpticalCompactGridCodec.encode(packet, longProfile)
+        requireSmoke(OpticalGridCodec.dataCellCount(longProfile.gridSize) == 9, "Long grid has nine payload cells per state")
+        requireSmoke(gridStates.size == 12, "Compact long grid phrase uses twelve states")
+        val gridCollector = OpticalCompactGridCollector(longProfile)
+        val missingGridIndex = 5
+        gridStates.filterNot { it.index == missingGridIndex }.forEach { state ->
+            val rotated = OpticalGridCodec.rotate(state.levels, state.size, state.index % 4)
+            val canonical = OpticalGridCodec.decodeQuantized(rotated, state.size)
+            requireSmoke(canonical != null, "Compact grid rotated state remains self-oriented")
+            if (canonical != null) gridCollector.offer(canonical)
+        }
+        requireSmoke(gridCollector.snapshot().decoded == null, "Compact grid waits for a missing state")
+        val recoveredGrid = OpticalGridCodec.decodeQuantized(gridStates[missingGridIndex].levels, gridStates[missingGridIndex].size)!!
+        val gridDone = gridCollector.offer(recoveredGrid)
+        requireSmoke(gridDone.decoded?.text == text, "Compact grid recovers missing state from later loop")
+
+        val tx = Torch8PpmCodec.encode(packet, parityStripes = 6)
+        requireSmoke(tx.dataSymbols.size == 70, "Torch 8-PPM phrase uses 70 data symbols")
+        requireSmoke(tx.paritySymbols.size == 6, "Torch 8-PPM long profile uses six parity symbols")
+        requireSmoke(tx.flashCount == 83, "Torch 8-PPM phrase uses 83 flashes")
+
+        fun decodeTorch(dropIndex: Int? = null): Torch8PpmCompactCollector.Snapshot {
+            val slotMs = longProfile.torchSlotMs
+            val pulseDecoder = Torch8PpmPulseDecoder(slotMs)
+            val collector = Torch8PpmCompactCollector(6)
+            val events = mutableListOf<Torch8PpmPulseDecoder.Event>()
+            val base = 10_000L
+            repeat(Torch8PpmCodec.PREAMBLE_FLASHES) { i ->
+                val timestamp = base + (i * Torch8PpmCodec.SYMBOL_SLOTS + Torch8PpmCodec.SYNC_SLOT) * slotMs.toLong()
+                events += pulseDecoder.feedPulse(timestamp)
+            }
+            events.filter { it.cycleStarted }.forEach { collector.startCycle() }
+            val dataEpoch = base + Torch8PpmCodec.PREAMBLE_FLASHES * Torch8PpmCodec.SYMBOL_SLOTS * slotMs.toLong()
+            tx.symbols.forEachIndexed { index, value ->
+                if (index != dropIndex) {
+                    val timestamp = dataEpoch + (index * Torch8PpmCodec.SYMBOL_SLOTS + value) * slotMs.toLong()
+                    pulseDecoder.feedPulse(timestamp).forEach { event ->
+                        if (event.cycleStarted) collector.startCycle()
+                        if (event.symbolIndex != null && event.slot != null) collector.offer(event.symbolIndex, event.slot)
+                    }
+                }
+            }
+            return collector.snapshot()
+        }
+
+        val torchExact = decodeTorch()
+        requireSmoke(torchExact.decoded?.text == text, "Torch 8-PPM timestamp round-trip")
+        val torchErasure = decodeTorch(dropIndex = 30)
+        requireSmoke(torchErasure.decoded?.text == text, "Torch 8-PPM repairs one missing flash")
+        requireSmoke(torchErasure.recovered >= 1, "Torch 8-PPM reports repaired erasure")
+    }
+
+    // v0.5.2 AprilTag Burst: real tag16h5 codewords carry complete self-registering states.
+    run {
+        fun rotate4(input: Array<BooleanArray>): Array<BooleanArray> =
+            Array(4) { y -> BooleanArray(4) { x -> input[3 - x][y] } }
+
+        for (id in 0 until AprilTag16h5.TAG_COUNT) {
+            val data = AprilTag16h5.dataForId(id)
+            val exact = AprilTag16h5.decodeData(data)
+            requireSmoke(exact?.id == id && exact.hamming == 0, "AprilTag16h5 exact id $id")
+            var rotated = data
+            repeat(4) { turns ->
+                val decoded = AprilTag16h5.decodeData(rotated)
+                requireSmoke(decoded?.id == id, "AprilTag16h5 id $id rotation $turns")
+                rotated = rotate4(rotated)
+            }
+        }
+        val damaged = AprilTag16h5.dataForId(7)
+        damaged[1][2] = !damaged[1][2]
+        val corrected = AprilTag16h5.decodeData(damaged)
+        requireSmoke(corrected?.id == 7 && corrected.hamming == 1, "AprilTag16h5 corrects one bad module")
+
+        val text = "hello from methodmesh torch"
+        val packet = OpticalCompactTextCodec.encode(text, "apriltag-burst-test")
+        val burst = AprilTagBurstCodec.encode(packet)
+        requireSmoke(burst.size == 86, "AprilTag Burst phrase uses 86 tag states")
+        requireSmoke(burst.first().tagId == AprilTagBurstCodec.START_ID, "AprilTag Burst starts with START tag")
+        requireSmoke(burst.last().tagId == AprilTagBurstCodec.END_ID, "AprilTag Burst ends with END tag")
+
+        val exactCollector = AprilTagBurstCollector()
+        burst.forEach { exactCollector.offer(it.tagId) }
+        val exactSnapshot = exactCollector.snapshot()
+        requireSmoke(exactSnapshot.decoded?.text == text, "AprilTag Burst exact compact round-trip")
+        requireSmoke(exactSnapshot.blocksNeeded == 6, "AprilTag Burst resolves six blocks")
+
+        val erasureCollector = AprilTagBurstCollector()
+        burst.filterNot { it.kind == AprilTagBurstCodec.Kind.DATA && it.block == 2 && it.position == 4 }
+            .forEach { erasureCollector.offer(it.tagId) }
+        val repaired = erasureCollector.snapshot()
+        requireSmoke(repaired.decoded?.text == text, "AprilTag Burst repairs one dropped data tag")
+        requireSmoke(repaired.recovered >= 1, "AprilTag Burst reports parity repair")
+
+        val loopCollector = AprilTagBurstCollector()
+        burst.filterNot { it.kind == AprilTagBurstCodec.Kind.DATA && it.block == 3 && it.position in setOf(2, 3) }
+            .forEach { loopCollector.offer(it.tagId) }
+        requireSmoke(loopCollector.snapshot().decoded == null, "AprilTag Burst waits when a block loses two states")
+        burst.forEach { loopCollector.offer(it.tagId) }
+        requireSmoke(loopCollector.snapshot().decoded?.text == text, "AprilTag Burst fills worse loss from a later loop")
+
+        val gate = AprilTagBurstStableGate(2)
+        requireSmoke(gate.feed(29) == null, "AprilTag stable gate waits one camera frame")
+        requireSmoke(gate.feed(29) == 29, "AprilTag stable gate accepts second matching frame")
+        requireSmoke(gate.feed(29) == null, "AprilTag stable gate suppresses duplicate camera frames")
+        requireSmoke(gate.feed(16) == null && gate.feed(16) == 16, "AprilTag stable gate advances on a new state")
+    }
+
+    // v0.5 optical modem physical layers: compact MMS/1 survives scalar 4-PAM,
+    // spatial pilot grids (including camera rotation), and edge-timed torch 4-PPM.
+    run {
+        val opticalEnvelope = SignalContentEnvelope.encodeText("OPTICAL MODEM RANGE TEST")
+        val compressedEnvelope = SignalAcousticPayloadCodec.encodeBytes(opticalEnvelope)
+        val opticalPacket = SignalPacketCodec.encode(
+            compressedEnvelope.bytes,
+            SignalPacketCodec.Robustness.ROBUST,
+            24,
+            "0123456789abcdef"
+        )
+        val rawFrame = opticalPacket.frames.first()
+
+        val pam = OpticalPamCodec.encodeFrame(rawFrame)
+        val pamDecoder = OpticalPamStreamDecoder()
+        val pamRecovered = mutableListOf<String>()
+        listOf(2, 2, 1).forEach { pamDecoder.feed(it) }
+        pam.forEach { pamDecoder.feed(it).forEach(pamRecovered::add) }
+        requireSmoke(rawFrame in pamRecovered, "Optical scalar 4-PAM exact MMS frame round-trip")
+
+        val detector = AdaptivePam4Detector(minimumSpan = 20.0)
+        detector.feed(0.0); detector.feed(255.0)
+        listOf(0.0, 85.0, 170.0, 255.0).forEachIndexed { level, value ->
+            requireSmoke(detector.feed(value).level == level, "Adaptive 4-PAM classifies level $level")
+        }
+
+        SignalOpticalProfiles.all.forEach { profile ->
+            val states = OpticalGridCodec.encodeFrame(rawFrame, profile)
+            requireSmoke(states.isNotEmpty(), "Optical grid ${profile.id} emits states")
+            val collector = OpticalGridFrameCollector(profile)
+            var recovered: String? = null
+            states.forEach { state ->
+                // Verify all four camera rotations recover the same canonical state.
+                repeat(4) { turns ->
+                    val rotated = OpticalGridCodec.rotate(state.levels, state.size, turns)
+                    val decoded = OpticalGridCodec.decodeQuantized(rotated, state.size)
+                    requireSmoke(decoded?.index == state.index && decoded.dataSymbols.contentEquals(state.dataSymbols), "Optical grid ${profile.id} rotation $turns")
+                }
+                recovered = collector.feed(state) ?: recovered
+            }
+            requireSmoke(recovered == rawFrame, "Optical grid ${profile.id} exact MMS frame round-trip")
+        }
+
+        val stableGate = OpticalGridStableGate(2)
+        val firstGridState = OpticalGridCodec.encodeFrame(rawFrame, SignalOpticalProfiles.byId("long")).first()
+        requireSmoke(stableGate.feed(firstGridState) == null, "Optical grid first camera observation waits")
+        requireSmoke(stableGate.feed(firstGridState)?.index == 0, "Optical grid second matching camera observation accepted")
+
+        val ppmSlots = TorchPpmCodec.encodeFrame(rawFrame)
+        val pulseDecoder = TorchPpmPulseDecoder(100)
+        val recoveredSlots = mutableListOf<Int>()
+        var sync = 10_000L
+        ppmSlots.forEach { slot ->
+            val data = sync + (slot + 1) * 100L
+            val nextSync = sync + 500L
+            pulseDecoder.feedPulse(sync).forEach(recoveredSlots::add)
+            pulseDecoder.feedPulse(data).forEach(recoveredSlots::add)
+            pulseDecoder.feedPulse(nextSync).forEach(recoveredSlots::add)
+            sync = nextSync
+        }
+        // The shared sync pulse is deliberately repeated by the synthetic loop above;
+        // de-duplicate equal timestamps as a real edge detector would.
+        val pulseDecoder2 = TorchPpmPulseDecoder(100)
+        val cleanSlots = mutableListOf<Int>()
+        sync = 20_000L
+        pulseDecoder2.feedPulse(sync)
+        ppmSlots.forEach { slot ->
+            val data = sync + (slot + 1) * 100L
+            val nextSync = sync + 500L
+            pulseDecoder2.feedPulse(data).forEach(cleanSlots::add)
+            pulseDecoder2.feedPulse(nextSync).forEach(cleanSlots::add)
+            sync = nextSync
+        }
+        requireSmoke(cleanSlots == ppmSlots.toList(), "Torch 4-PPM pulse timing recovers every slot")
+        val ppmFrameDecoder = TorchPpmFrameDecoder()
+        val ppmRecovered = mutableListOf<String>()
+        cleanSlots.forEach { ppmFrameDecoder.feed(it).forEach(ppmRecovered::add) }
+        requireSmoke(rawFrame in ppmRecovered, "Torch 4-PPM exact MMS frame round-trip")
+
+        val inflated = opticalPacket.frames.take(opticalPacket.dataShardCount).let { frames ->
+            val collector = SignalFrameCollector(); frames.forEach(collector::offer); collector.state().payload
+        }
+        requireSmoke(inflated != null, "Optical MMS source shards reconstruct")
+        val decodedEnvelope = inflated?.let(SignalAcousticPayloadCodec::decodeBytes)?.let(SignalContentEnvelope::decode)
+        requireSmoke(decodedEnvelope?.text == "OPTICAL MODEM RANGE TEST" && decodedEnvelope.checksumVerified, "Optical compression + SHA-256 envelope round-trip")
     }
 
     println("Signals codec smoke PASS: $assertions assertions")

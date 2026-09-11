@@ -164,6 +164,11 @@ object SignalSurfaceTransmitCapabilityScreen : CapabilityScreenSpec {
         val committedFullJson = remember(committedJson) { fullJson(committedResult) }
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = { if (sending) stop() else start() },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (sending) "Stop transmission" else "Start tabletop transmission") }
+
             SignalInstrumentPanel("EXPERIMENTAL CONTACT-COUPLED OOK", "Tabletop transmitter", SignalAmber, badge = if (sending) "Vibrating" else "Experimental") {
                 Text(payload.ifBlank { "NO MESSAGE" }, color = SignalText, style = MaterialTheme.typography.headlineSmall, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -175,9 +180,8 @@ object SignalSurfaceTransmitCapabilityScreen : CapabilityScreenSpec {
                 Text("SHA-256 ${envelope.expectedSha256}", color = SignalMuted, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, modifier = Modifier.clickable { copySignalValue(androidContext, "SHA-256", envelope.expectedSha256) })
                 Text("Experimental: current phone-pair testing has not produced reliable surface reception. Retained as a research channel. Best coupling: phone speaker edge firmly touching a rigid table, case, box or rail.", color = SignalMuted, style = MaterialTheme.typography.bodySmall)
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { if (sending) stop() else start() }, modifier = Modifier.weight(1f)) { Text(if (sending) "Stop" else "Transmit") }
-                Button(onClick = ::commit, enabled = completedCycles > 0, modifier = Modifier.weight(1f)) { Text(if (committedResult == null) "Commit" else "Recommit") }
+            Button(onClick = ::commit, enabled = completedCycles > 0, modifier = Modifier.fillMaxWidth()) {
+                Text(if (committedResult == null) "Commit" else "Recommit")
             }
             if (committedResult != null && !context.submitsImmediately) {
                 SignalCommittedCard("Committed tabletop transmission", "message", committedFields[SignalSurfaceTransmitFields.RESULT].orEmpty(), listOf(
@@ -361,6 +365,11 @@ object SignalSurfaceReceiveCapabilityScreen : CapabilityScreenSpec {
         val committedFields=fieldsFromJson(committedJson); val committedResult=remember(committedJson){committedFields.takeIf{it.isNotEmpty()}?.let{signalResult(As100SignalSurfaceReceiveMethod,context,it)}}; val committedFullJson=remember(committedJson){fullJson(committedResult)}
 
         Column(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick=::startCalibration,
+                modifier=Modifier.fillMaxWidth()
+            ){Text(if(calibrating) "Restart calibration" else if(listening) "Recalibrate & listen" else "Calibrate & listen")}
+
             SignalInstrumentPanel("EXPERIMENTAL ACCELEROMETER CONTACT MODEM","Tabletop receiver",SignalAmber,badge=when{content?.checksumVerified==true->"Verified"; calibrating->"Calibrating"; listening->"Listening"; else->"Experimental"}) {
                 Text(content?.text?.ifBlank{null} ?: if(collectorState.requiredRank>0) "${collectorState.rank}/${collectorState.requiredRank} SHARDS" else "RESTING SURFACE", color=if(content==null) SignalMuted else SignalText, style=MaterialTheme.typography.headlineSmall,fontFamily=FontFamily.Monospace,fontWeight=FontWeight.SemiBold)
                 SignalScopeTrace(trace,SignalAmber)
@@ -371,7 +380,7 @@ object SignalSurfaceReceiveCapabilityScreen : CapabilityScreenSpec {
                 content?.let { SignalStatusPill(if(it.checksumVerified) "SHA-256 MATCH" else "SHA-256 FAIL",if(it.checksumVerified) SignalGreen else SignalRed) }
                 Text("Experimental: current phone-pair testing has not produced reliable surface reception. Retained as a research channel.", color=SignalMuted, style=MaterialTheme.typography.bodySmall)
             }
-            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) { Button(onClick=::startCalibration,modifier=Modifier.weight(1f)){Text(if(calibrating) "Restart calibration" else if(listening) "Recalibrate" else "Calibrate & listen")}; Button(onClick=::commit,enabled=content?.checksumVerified==true,modifier=Modifier.weight(1f)){Text(if(committedResult==null)"Commit verified" else "Recommit")}; OutlinedButton(onClick={stop();resetWorking()}){Text("Reset")} }
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) { Button(onClick=::commit,enabled=content?.checksumVerified==true,modifier=Modifier.weight(1f)){Text(if(committedResult==null)"Commit verified" else "Recommit")}; OutlinedButton(onClick={stop();resetWorking()},modifier=Modifier.weight(1f)){Text("Reset")} }
             if(committedResult!=null && !context.submitsImmediately) SignalCommittedCard("Committed tabletop reception","received text",committedFields[SignalSurfaceReceiveFields.RESULT].orEmpty(),listOf("SHA-256" to committedFields[SignalSurfaceReceiveFields.CHECKSUM_SHA256].orEmpty(),"Verified" to committedFields[SignalSurfaceReceiveFields.CHECKSUM_VERIFIED].orEmpty(),"Recovered" to committedFields[SignalSurfaceReceiveFields.RECOVERED_MISSING].orEmpty(),"Baseline" to committedFields[SignalSurfaceReceiveFields.BASELINE].orEmpty()),exportStatus,{l,v->copySignalValue(androidContext,l,v)},{exportStatus=shareSignalText(androidContext,"Share tabletop message",committedFields[SignalSurfaceReceiveFields.RESULT].orEmpty())?:""},{exportStatus=saveSignalText(androidContext,"surface_reception",committedFields.entries.joinToString("\n"){"${it.key}=${it.value}"},committedFullJson)},{finishSignalResult(context,androidContext,committedResult,onConfirmed){saveSignalText(androidContext,"surface_reception",committedFields.entries.joinToString("\n"){"${it.key}=${it.value}"},committedFullJson)}})
             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
                 Text("Calibration & clock",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)

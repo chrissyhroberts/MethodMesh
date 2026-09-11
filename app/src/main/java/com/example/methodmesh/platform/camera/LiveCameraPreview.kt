@@ -1,5 +1,11 @@
 package com.example.methodmesh.platform.camera
 
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
+import androidx.camera.view.CameraController
+import androidx.camera.view.CameraController.OutputSize
+import java.util.concurrent.Executors
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.camera.core.CameraSelector
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
@@ -20,7 +26,10 @@ fun LiveCameraPreview(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     onError: (String) -> Unit = {},
-    restartKey: Any = Unit
+    restartKey: Any = Unit,
+    /** Runs on a single worker. Return promptly; the surface always closes the image. */
+    onAnalysisFrame: ((ImageProxy) -> Unit)? = null,
+    analysisResolution: android.util.Size? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -30,19 +39,39 @@ fun LiveCameraPreview(
         }
     }
 
-    DisposableEffect(controller, lifecycleOwner, enabled, restartKey) {
-        if (enabled) {
-            runCatching {
-                controller.bindToLifecycle(lifecycleOwner)
-            }.onFailure { error ->
-                onError(error.message ?: "Camera preview is unavailable.")
+    val currentAnalysis = rememberUpdatedState(onAnalysisFrame)
+    val currentError = rememberUpdatedState(onError)
+    DisposableEffect(controller, lifecycleOwner, enabled, restartKey, onAnalysisFrame != null, analysisResolution) {
+        val active = java.util.concurrent.atomic.AtomicBoolean(true)
+        val executor = if (enabled && onAnalysisFrame != null) Executors.newSingleThreadExecutor() else null
+        runCatching {
+            if (executor != null) {
+                controller.setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
+                controller.imageAnalysisBackpressureStrategy = ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
+                controller.imageAnalysisTargetSize = analysisResolution?.let { OutputSize(it) }
+                controller.setImageAnalysisAnalyzer(executor) { image ->
+                    try { if (active.get()) currentAnalysis.value?.invoke(image) }
+                    catch (e: Exception) { if (active.get()) currentError.value(e.message ?: "Camera analysis failed") }
+                    finally { image.close() }
+                }
+            } else {
+                controller.clearImageAnalysisAnalyzer()
+                controller.setEnabledUseCases(CameraController.IMAGE_CAPTURE)
             }
-        } else {
+            if (enabled) controller.bindToLifecycle(lifecycleOwner) else controller.unbind()
+        }.onFailure { error ->
+            active.set(false)
+            controller.clearImageAnalysisAnalyzer()
             controller.unbind()
+            executor?.shutdown()
+            onError(error.message ?: "Camera preview is unavailable.")
         }
 
         onDispose {
+            active.set(false)
+            controller.clearImageAnalysisAnalyzer()
             controller.unbind()
+            executor?.shutdown()
         }
     }
 

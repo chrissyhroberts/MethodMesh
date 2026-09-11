@@ -1,4 +1,4 @@
-# Signals v0.4.5 validation
+# Signals v0.5.3 validation
 
 Status: **Development**  
 Near-ultrasonic capabilities: **Experimental**
@@ -8,10 +8,10 @@ Review basis: current `docs/METHODMESH_MASTER_BOOK.md` on MethodMesh `master`, *
 ## Pass A — contract correctness
 
 - Module ID is `signals`; the handoff root is one self-contained `signals/` folder.
-- Eleven independently callable methods are registered by `SignalsModule.as100Methods()`.
-- All eleven have matching `CapabilityScreenSpec` entries and module-owned settings.
+- Fifteen independently callable methods are registered by `SignalsModule.as100Methods()`.
+- All fifteen have matching `CapabilityScreenSpec` entries and module-owned settings.
 - Every method declares exactly one maturity value through descriptor `maturity` metadata and exactly one `OFFLINE` connectivity value.
-- Development: Morse TX/RX, QR TX/RX, audio FSK TX/RX, sensor scope.
+- Development: Morse TX/RX, QR TX/RX, audio FSK TX/RX, Screen Optical TX/RX, Torch PPM TX/RX, sensor scope.
 - Experimental: near-ultrasonic TX/RX and tabletop surface TX/RX.
 - No ESP32/ESP-NOW/magnetic-coil method is registered without a real Android/hardware execution path.
 - Existing Acoustics IDs/contracts are not moved or duplicated.
@@ -29,13 +29,16 @@ Review basis: current `docs/METHODMESH_MASTER_BOOK.md` on MethodMesh `master`, *
 - Fixed preset settings use `CapabilityScreenContext.settingShouldBeShown()`.
 - Walkie-talkie audio FSK exposes an explicit PTT/squelch lead-in and explains the manual PTT/VOX use case.
 - Near-ultrasonic UI explicitly states that high-frequency audio is device-specific and not guaranteed inaudible.
-- Morse front-screen transmission uses a full-screen black/white emitter surface, raises the activity brightness request to maximum for the live transmission, restores the prior brightness on exit, and retains an explicit Stop control.
+- Morse front-screen transmission uses a full-screen colour-assisted emitter by default: white dots/acquisition and red dashes/START/END over black OFF intervals. Canonical Morse timing is unchanged; activity brightness is raised to maximum during live transmission, restored on exit, and Stop remains explicit.
 - Physical TX/RX channel/timing controls are disabled while active so the visible configuration cannot drift from the running hardware session.
 - The 0.2 instrument redesign uses capability-specific live surfaces: amber telegraph Morse, cyan optical QR modem, cyan audible FSK modem, violet near-ultrasonic modem and channel-accented sensor oscilloscope. Settings remain subordinate/theme-native.
 - QR transmission expands to a full-screen optical surface and requests maximum activity brightness while active; Stop remains explicitly available.
-- Morse camera receive uses the same visible ROI that drives luminance analysis, now with Full/Focus/Pinpoint sizes, tap-to-position manual placement, real CameraX zoom and temporal-modulation auto-lock. The lock scores frame-to-frame modulation after removing frame-wide exposure change, then tracks locally around the acquired source.
+- Morse camera receive uses the same visible ROI that drives luminance and median YUV-chroma analysis, with Full/Focus/Pinpoint sizes, tap-to-position manual placement, real CameraX zoom and temporal-modulation auto-lock. Screen colour assist calibrates white from acquisition dots and red from START, fuses colour/duration evidence, and automatically degenerates to timing-only Morse when chroma is not discriminative.
 - Auto-lock deliberately withholds Morse transitions until a source is locked; acquiring/reacquiring the ROI resets the working decoder boundary so search motion cannot be mistaken for Morse.
 - QR receive exposes real camera optical zoom through JourneyApps camera parameters (1x / 2x / 4x / device maximum) without changing the QR/MMS contract.
+- Screen Optical TX/RX exposes whole-screen 4-PAM and AprilTag16h5 Burst as one matched capability pair. The legacy `grid` setting now selects a full-screen self-registering tag state with a two-observation gate; scalar PAM uses camera-clock recovery and may use temporal-modulation auto-targeting.
+- Torch PPM TX/RX carries quaternary symbols in leading-edge pulse positions rather than multiple torch amplitudes; RX combines strong underexposure, real CameraX zoom, Point/Focus ROI and temporal-modulation auto-targeting for distant point-source acquisition.
+- Long / Balanced / Fast optical profiles are shared by direct capability use, presets/protocols and XLSForms. Long is the default and intentionally uses larger/slower optical symbols plus smaller MMS shards.
 - Tabletop transfer presents contact-modem TX plus accelerometer rest calibration, seismograph trace and SIGNAL -> CLOCK -> SYNC -> FRAME -> MMS telemetry.
 - QR text/file reception is Commit-eligible only after end-to-end SHA-256 verification of the reconstructed useful object. Multi-segment transfers also verify a transfer-envelope SHA-256. Verified files expose Open, Share, Save, frozen checksum sidecar data and provenance JSON.
 - Audible/high-band FSK receive presents a live microphone spectrum, peak frequency, MARK/SPACE confidence and CLOCK/SYNC/FRAME/MMS telemetry so physical acquisition can be separated from packet failure. Matched A/B/C/D channel profiles set carrier pair and bit timing together while preserving the underlying canonical settings.
@@ -111,6 +114,20 @@ These are codec/unit smoke tests, not evidence that every phone/radio acoustic p
 
 A deeper receiver smoke test identified that the first draft allowed 25 ms and 35 ms bit periods while the dominant-tone receiver emits decisions in 10 ms windows. That quantisation can over/under-count a run. The module contract/UI remains 20–250 ms in 10 ms steps. Physical testing then moved the practical defaults to 60 ms for audible FSK and 100 ms for near-ultrasonic, with matched A/B/C/D profiles available on both TX and RX.
 
+### v0.5 optical physical-layer smoke tests
+
+The v0.5 pure-code suite adds:
+
+- compact MMS/1 physical packet reuse with a local physical CRC;
+- scalar 4-PAM exact MMS frame round-trip and adaptive four-level classification;
+- Long / Balanced / Fast Grid encoding;
+- Grid orientation recovery at 0/90/180/270 degrees for every emitted state;
+- two-observation Grid stability gating and sequential state collection;
+- synthetic Torch 4-PPM pulse timing recovery and exact MMS frame reconstruction;
+- byte-oriented transparent compression around the SHA-256 content envelope, followed by final content verification.
+
+Final pure Kotlin regression result for v0.5.0: **20,806 assertions PASS**. This verifies coding/framing logic only. It does **not** establish real-world range, camera exposure portability, screen PWM behaviour or torch-driver timing across Android devices.
+
 ## Kotlin static compile-oriented review
 
 The sandbox does not contain a network-clonable MethodMesh repository or the full Android/Compose dependency graph, so a true `:app:compileDebugKotlin` run could not be executed here.
@@ -124,7 +141,7 @@ Current MethodMesh `master` interfaces were inspected directly before finalising
 - current manifest `CAMERA` and `RECORD_AUDIO` permissions;
 - current `PhoneSensorRepository` sensor IDs/units.
 
-A standalone Kotlin parse/compile attempt over the complete module reported the expected unresolved Android/Compose/MethodMesh references in the stripped sandbox; no Kotlin parser `expecting ...` syntax error was identified. A final lexical delimiter/TODO hygiene pass covered all 17 Kotlin source files. Pure non-Android sources compile and run as described above. The FSK clock decoder retains its acquired preamble candidate while waiting for length/payload windows, avoiding drift to a later equivalent preamble phase. The v0.4 review additionally found that v0.3 had left the live receiver wired to the old run-length decoder despite the newer decoder passing tests; the live screen is now explicitly connected to `FskClockRecoveryDecoder`.
+A standalone Kotlin parse/compile attempt over the complete module reported the expected unresolved Android/Compose/MethodMesh references in the stripped sandbox; no Kotlin parser `expecting ...` syntax error was identified. A final lexical delimiter/TODO hygiene pass covered all 22 Kotlin source files. Pure non-Android sources compile and run as described above. The FSK clock decoder retains its acquired preamble candidate while waiting for length/payload windows, avoiding drift to a later equivalent preamble phase. The v0.4 review additionally found that v0.3 had left the live receiver wired to the old run-length decoder despite the newer decoder passing tests; the live screen is now explicitly connected to `FskClockRecoveryDecoder`.
 
 ## ODK/XLSForm review
 
@@ -140,9 +157,13 @@ Canonical v1.08 showcase workbooks:
 - `example_odk_showcase_signal_ultrasonic_receive.xlsx`
 - `example_odk_showcase_signal_surface_transmit.xlsx`
 - `example_odk_showcase_signal_surface_receive.xlsx`
+- `example_odk_showcase_signal_optical_screen_transmit.xlsx`
+- `example_odk_showcase_signal_optical_screen_receive.xlsx`
+- `example_odk_showcase_signal_optical_torch_ppm_transmit.xlsx`
+- `example_odk_showcase_signal_optical_torch_ppm_receive.xlsx`
 - `example_odk_showcase_signal_sensor_scope.xlsx`
 
-All eleven generated workbooks were re-imported with `artifact_tool` and inspected during final packaging. The audit found, for every workbook:
+All fifteen generated workbooks were re-imported with `artifact_tool` and inspected during final packaging. The audit found, for every workbook:
 
 - exactly one MethodMesh intent invocation;
 - the expected canonical method ID;
@@ -152,10 +173,10 @@ All eleven generated workbooks were re-imported with `artifact_tool` and inspect
 - direct group-child canonical return names;
 - shared `methodmesh_status` and `methodmesh_full_json`;
 - no duplicate survey node names;
-- human-readable title, lower-snake-case `form_id`, and `2026090905` version;
+- human-readable title and lower-snake-case `form_id`; ten unchanged pre-v0.5 forms retain `2026090906` while Morse RX and the four repaired optical forms use `2026091002`;
 - no spreadsheet formula-error tokens in the inspected workbook.
 
-Cell/formula error search matched 0 entries across the eleven canonical workbooks.
+Cell/formula error search matched 0 entries across the fifteen canonical workbooks.
 
 The capability-return inventory had already been cross-checked against the declared method outputs when the workbooks were generated; no XLSForm-only capability return field was added.
 
@@ -195,7 +216,7 @@ Then run the MethodMesh XLSForm batch validator and, where available, pyxform/OD
 - Acoustic FSK/tabletop links compact normal generated MMS/1 frames for the physical wire and reconstruct the exact CRC-bearing ASCII frame before transport validation. They remain deliberately low-throughput.
 - Ordinary Morse uses repetition/looping and adaptive timing, not MMS/1 Reed-Solomon packet mode yet.
 - `light_sensor` remains accepted for backwards compatibility but is hidden from ordinary Morse receiver selection; camera and microphone are the supported native paths.
-- A future manual-Morse capture/infer mode is not yet implemented; current live decoding still begins from an approximate dot/WPM estimate unless a MethodMesh START beacon is present.
+- Manual Morse is implemented as a human-observed START/DOT/DASH source. START-bounded copies are re-decoded from retained tap timings as cadence inference improves; camera/microphone live decoders retain their existing timing behaviour.
 - ESP-NOW, ESP32-LR and magnetic-coil modems remain roadmap work. Tabletop/surface transfer is retained as explicitly Experimental; current phone-pair testing has not produced reliable reception.
 - QR supports files up to 1 MiB but this does not imply high throughput: a 1 MiB object can require thousands of displayed QR frames with the current ASCII MMS/1 wire format.
 - Full Android Gradle compilation and physical hardware validation must be completed in the receiving repository/device environment before Production promotion.
@@ -220,6 +241,70 @@ Then run the MethodMesh XLSForm batch validator and, where available, pyxform/OD
 6. Tabletop RX: Calibrate must immediately increment SAMPLES, complete baseline calibration, or surface a no-samples error in ~1.2 s.
 7. Tabletop TX: UI BIT progress must continue throughout the physical frame and Stop must remain responsive.
 
+
+
+
+## v0.5.2 AprilTag Burst + Manual Morse ergonomics regression
+
+Pure JVM regression result: **21,002 assertions PASS**. New coverage includes:
+
+- all 30 current `tag16h5` family IDs render/decode exactly and remain identifiable through 0/90/180/270-degree rotations;
+- one corrupted tag data module is corrected at Hamming distance 1;
+- the compact test phrase `hello from methodmesh torch` becomes **86 AprilTag states**;
+- exact AprilTag Burst reconstruction is CRC-32 verified;
+- one dropped data tag inside a block is reconstructed from XOR parity;
+- a block with two missing observations is discarded rather than shifted/corrupted, then filled from a later loop;
+- the camera-state gate requires two matching detections and suppresses duplicate frames of the same displayed tag;
+- all prior manual Morse and Torch 8-PPM tests continue to pass.
+
+Calculated complete AprilTag Burst cycles for the 86-state test phrase are: Long **15.48 s** (180 ms/state), Balanced **10.32 s** (120 ms/state), Fast **7.74 s** (90 ms/state). These are scheduler/codec timings, not range measurements.
+
+### Required v0.5.2 two-phone retest
+
+1. **Manual Morse ergonomics:** confirm the decode remains visible in the upper live area and DOT/DASH are comfortably tappable without looking down; deliberately tap repeated copies at an initially wrong WPM.
+2. **AprilTag acquisition:** Long profile at 1–2 m first. Hand-hold both phones, vary rotation and modest perspective, and confirm the green detected tag box follows the transmitter without a fixed read lattice.
+3. **AprilTag distance:** increase range while keeping the full tag inside the search ROI; record phone pair, zoom, lighting and the farthest CRC-verified decode.
+4. **AprilTag erasure:** briefly occlude one displayed data state; one missing state in a block should repair immediately from parity. Occlude two states in one block; that ambiguous block must be discarded and then recovered on the next loop rather than shifting subsequent data.
+5. **Integrity display:** AprilTag Burst must report CRC-32 verification and may show a local SHA-256 fingerprint, but must **not** label that locally reconstructed fingerprint as end-to-end SHA verification.
+6. **Torch regression:** confirm the v0.5.1 8-PPM path still shows 83 flashes for `hello from methodmesh torch` in Long and remains independently usable.
+
+## v0.5.1 manual Morse + optical repair regression
+
+Pure JVM regression result: **20,838 assertions PASS**. New coverage includes:
+
+- pre-START manual Morse taps are quarantined;
+- three START-bounded manual observations converge through the existing repeat consensus chain;
+- both onset-style tapping and end-of-mark recognition tapping decode `HELLO WORLD` with a deliberately 2× wrong starting dot prior and ±6% timing jitter;
+- the short optical frame for `hello from methodmesh torch` is 26 bytes and CRC-32 verifies;
+- Long compact Grid encodes that phrase in 12 states, survives 0/90/180/270-degree state orientation, withholds completion when one state is absent, then completes when that state arrives on a later loop;
+- Long compact Torch 8-PPM encodes the phrase as 70 data symbols + 6 parity symbols + 7 preamble flashes = **83 flashes**;
+- synthetic leading-edge timestamps reconstruct the exact message; dropping one data flash is repaired by the parity stripe and reported as a recovered erasure.
+
+Calculated full-cycle timings for the same phrase are: Long **41.085 s** (83 flashes, 55 ms slots), Balanced **29.16 s** (81 flashes, 40 ms slots), Fast **22.752 s** (79 flashes, 32 ms slots). These are scheduler/codec timings, not physical range measurements.
+
+### Required v0.5.1 two-phone retest
+
+1. **Manual Morse:** watch a MethodMesh Morse TX with the receiving phone in Manual mode. Tap START SIGNAL on each START marker and DOT/DASH for the observed message. Deliberately choose a wrong initial WPM and verify later START-bounded copies converge without permanently merging the first letters.
+2. **Screen Grid hand motion:** start with Long. Keep the luminous finder field somewhere inside the cyan search area but deliberately hand-hold both phones. The green detected geometry should track the screen; small movement must not require pixel-stable registration.
+3. **Screen Grid missed state:** briefly occlude/move through one state. Reception should retain other compact states and complete when the missing index reappears on a later loop.
+4. **Torch airtime:** transmit `hello from methodmesh torch` in Long. TX must show **83 flashes** and an approximately **41.1 s** complete cycle before starting. It must no longer enter the thousands-of-pulses v0.5.0 regime.
+5. **Torch erasure:** briefly occlude one isolated data flash after acquisition; where exactly one symbol in a parity stripe is absent, RX should report recovered missing symbol(s) and still require CRC-verified text before Commit.
+6. **Range:** record phone pair, ambient light, zoom, profile and maximum verified distance separately for Screen Grid, whole-screen 4-PAM, Torch 8-PPM and Morse. No universal metre claim should be inferred from one device pair.
+
+The v0.5.0 Screen Grid and Torch 4-PPM device-test instructions below are retained as historical baseline only; their fixed-registration/sync-per-symbol behaviour is superseded by this section.
+
+## v0.5.0 optical modem device retest
+
+1. Screen 4-PAM, Long profile: start at 1-2 m, then increase distance. Confirm auto-target acquires the modulated region, all four levels remain distinguishable, and MMS frames accumulate without false frame acceptance.
+2. Screen Grid, Long profile: keep the complete 4×4 grid inside Focus ROI. Rotate the transmitter through all four right-angle orientations and confirm pilot orientation recovery. Deliberately move during a state transition and confirm the two-observation gate rejects smear/rolling-shutter transition frames.
+3. Screen Grid profiles: compare 4×4 Long, 6×6 Balanced and 8×8 Fast at a fixed distance; record completion time and the distance at which each profile ceases to recover a verified message.
+4. Torch PPM, Long profile: use strong underexposure and Pinpoint ROI. Confirm one saturated/decaying flash still yields one leading edge rather than multiple pulses, and that received slot positions reconstruct the exact MMS/1 frame.
+5. Torch range: test 1×/2×/4×/device-max zoom while keeping the point source comfortably inside the reticle. Record device pair, ambient light and maximum verified range; do not promote a universal range claim from a single pair.
+6. Join each transmitter mid-cycle and verify the receiver can accumulate later distinct MMS shards until Reed-Solomon recovery succeeds.
+7. Occlude/drop complete physical frames. Reception may slow, but no payload is Commit-eligible unless MMS CRC and final SHA-256 both verify.
+8. Compare Long/Balanced/Fast completion time and range. Long should trade bitrate for acquisition margin rather than merely being an alias of Balanced.
+9. Confirm the four optical capabilities appear independently in dashboard/direct use, presets, protocols and ODK, and that all 15 canonical XLSForms share the same profile vocabulary.
+10. Rolling-shutter-specific high-speed modulation is not required for any v0.5.0 pass; visible transition bands should be rejected rather than decoded as data.
 
 ## v0.4.3 focused Morse framing retest
 
@@ -255,6 +340,26 @@ Pure-code validation additionally covers transparent acoustic DEFLATE round-trip
 6. During every active camera, microphone, speaker, torch and surface/sensor session, attempt rotation. The Activity must remain in its current orientation and the session must continue. After Stop, normal rotation must return.
 7. Feed a corrupted/incomplete FSK physical frame and confirm the UI reports `PHY retry: <reason>` without presenting it as a fatal MMS/1 result.
 8. Tabletop TX/RX must be visibly labelled Experimental in both capability surfaces and documentation.
-9. Presets/protocols and all 11 canonical XLSForms must use the same discrete preset vocabulary as native direct use.
+9. Presets/protocols and all 15 canonical XLSForms must use the same discrete preset vocabulary as native direct use.
 
 Pure-code v0.4.5 regression: **20,649 assertions PASS**, including shared A–D profile catalogue invariants and the common 30 WPM Morse audio ceiling.
+
+
+## v0.4.6 example payload
+
+The native Morse transmitter default/demo payload is `hello, world`, matching the documented example and exercising letters, a word boundary and punctuation. The previous emergency-distress shorthand is no longer used as the user-facing demo/default.
+
+
+## v0.4.7 primary-control placement
+- Verify Start/Stop/Listen/Transmit/Calibrate appears before the instrument surface for Morse, FSK, near-ultrasonic, QR and experimental tabletop live sessions.
+- Verify Commit and Reset remain secondary actions below the live instrument/result rather than displacing the session toggle.
+- During full-screen QR blast, verify Stop transmission appears at the top, above the QR field.
+
+## v0.5.3 colour-assisted Morse regression
+
+- TX colour assist defaults ON for screen-bearing routes only; timing, torch and audio output remain unchanged.
+- WHITE acquisition/dot and RED START/END/dash semantics are redundant evidence, not a replacement alphabet.
+- RX `colour_assist=auto` uses ROI U/V chroma with local white/red calibration and soft evidence fusion. `off` retains timing-only behaviour.
+- Conventional monochrome Morse remains compatible because indistinguishable white/red calibration yields zero useful colour confidence.
+- Pure Kotlin smoke: **21,010 assertions PASS**, including strong-red recovery of a timing-ambiguous 1.8-unit dash and weak-colour fallback to the ordinary duration decision.
+- Required real-device check: repeat the existing two-phone 5/8/10 WPM screen test at increasing range, recording whether colour confidence remains useful before luminance timing itself fails.

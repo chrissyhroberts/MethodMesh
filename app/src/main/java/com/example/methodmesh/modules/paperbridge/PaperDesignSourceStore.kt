@@ -10,7 +10,9 @@ import java.util.UUID
 internal data class PaperDesignSource(
     val path: String,
     val mimeType: String,
-    val displayName: String
+    val displayName: String,
+    /** True when the stored image is already the canonical Paper Bridge canvas. */
+    val alreadyRegistered: Boolean = false
 )
 
 /** Persistent blank-form sources only. No completed questionnaire images live here. */
@@ -53,16 +55,53 @@ internal object PaperDesignSourceStore {
         return PaperDesignSource(file.absolutePath, mime, name)
     }
 
+    fun importBytes(
+        context: Context,
+        bytes: ByteArray,
+        mimeType: String,
+        displayName: String,
+        alreadyRegistered: Boolean = false
+    ): PaperDesignSource {
+        require(bytes.isNotEmpty()) { "Blank paper form was empty." }
+        require(bytes.size <= 50 * 1024 * 1024) { "Blank paper source is larger than 50 MB." }
+        val extension = when {
+            mimeType == "application/pdf" -> ".pdf"
+            mimeType.contains("png") -> ".png"
+            mimeType.contains("webp") -> ".webp"
+            else -> ".jpg"
+        }
+        val dir = File(context.filesDir, "paperbridge/design_sources").apply { mkdirs() }
+        val file = File(dir, "${UUID.randomUUID()}$extension")
+        file.writeBytes(bytes)
+        return PaperDesignSource(file.absolutePath, mimeType, displayName.ifBlank { "paper-form$extension" }, alreadyRegistered)
+    }
+
     fun bind(context: Context, template: PaperTemplate, source: PaperDesignSource) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val root = runCatching { JSONObject(prefs.getString(KEY_BINDINGS, "{}") ?: "{}") }.getOrDefault(JSONObject())
         root.put(
             PaperBridgeWorkspace.templateKey(template),
-            JSONObject().put("path", source.path).put("mime", source.mimeType).put("name", source.displayName)
+            JSONObject()
+                .put("path", source.path)
+                .put("mime", source.mimeType)
+                .put("name", source.displayName)
+                .put("already_registered", source.alreadyRegistered)
         )
         prefs.edit().putString(KEY_BINDINGS, root.toString()).apply()
     }
 
+
+    fun copyBinding(context: Context, from: PaperTemplate, to: PaperTemplate) {
+        val source = sourceFor(context, from) ?: return
+        bind(context, to, source)
+    }
+
+    fun removeBinding(context: Context, template: PaperTemplate) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val root = runCatching { JSONObject(prefs.getString(KEY_BINDINGS, "{}") ?: "{}") }.getOrDefault(JSONObject())
+        root.remove(PaperBridgeWorkspace.templateKey(template))
+        prefs.edit().putString(KEY_BINDINGS, root.toString()).apply()
+    }
     fun sourceFor(context: Context, template: PaperTemplate): PaperDesignSource? {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val root = runCatching { JSONObject(prefs.getString(KEY_BINDINGS, "{}") ?: "{}") }.getOrNull() ?: JSONObject()
@@ -70,7 +109,12 @@ internal object PaperDesignSourceStore {
         if (item != null) {
             val path = item.optString("path")
             if (path.isNotBlank() && File(path).exists()) {
-                return PaperDesignSource(path, item.optString("mime", "image/*"), item.optString("name", File(path).name))
+                return PaperDesignSource(
+                    path,
+                    item.optString("mime", "image/*"),
+                    item.optString("name", File(path).name),
+                    item.optBoolean("already_registered", false)
+                )
             }
         }
         return if (PaperBridgeBuiltInExamples.isDemo(template)) {

@@ -1,15 +1,15 @@
 {
   "schema": "methodmesh.odk_template_index.v3",
   "generatedFrom": "/Users/icrucrob/AndroidStudioProjects/MethodMesh/app/src/main/java/com/example/methodmesh",
-  "templateCount": 386,
-  "moduleCount": 72,
+  "templateCount": 409,
+  "moduleCount": 74,
   "validationSummary": {
-    "formsNeedingRevision": 95,
-    "cleanForms": 291,
+    "formsNeedingRevision": 112,
+    "cleanForms": 297,
     "severityCounts": {
       "error": 4,
       "warning": 36,
-      "style": 77,
+      "style": 94,
       "info": 0
     },
     "authoritativeValidatedForms": 0,
@@ -215,6 +215,186 @@
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": []
+      }
+    },
+    {
+      "id": "apriltag.example_odk_showcase_apriltag_calibrate_focal",
+      "moduleId": "apriltag",
+      "moduleName": "Apriltag",
+      "displayName": "MethodMesh — Calibrate AprilTag range",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_apriltag_calibrate_focal.xlsx",
+      "sourceRelativePath": "modules/apriltag/docs/example_odk_showcase_apriltag_calibrate_focal.xlsx",
+      "centralFormId": "methodmesh_apriltag_calibrate_focal_showcase",
+      "formVersion": "2026091101",
+      "assetPath": "methodmesh/odk_templates/apriltag/example_odk_showcase_apriltag_calibrate_focal.xlsx",
+      "sha256": "519a54457372bf1e90aa1d288875dbf8f6dbf035331033e51914677baea4e240",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_apriltag_calibrate_focal_showcase' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'apriltag_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "apriltag.example_odk_showcase_apriltag_detect",
+      "moduleId": "apriltag",
+      "moduleName": "Apriltag",
+      "displayName": "MethodMesh — Detect AprilTags",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_apriltag_detect.xlsx",
+      "sourceRelativePath": "modules/apriltag/docs/example_odk_showcase_apriltag_detect.xlsx",
+      "centralFormId": "methodmesh_apriltag_detect_showcase",
+      "formVersion": "2026091101",
+      "assetPath": "methodmesh/odk_templates/apriltag/example_odk_showcase_apriltag_detect.xlsx",
+      "sha256": "1fede60ef1b7129b5c9c6a19e6ee93230ee178110a448719dddaa9a23bec866d",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_apriltag_detect_showcase' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'apriltag_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "apriltag.example_odk_showcase_apriltag_planar_measure",
+      "moduleId": "apriltag",
+      "moduleName": "Apriltag",
+      "displayName": "MethodMesh — Planar AprilTag measurement",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_apriltag_planar_measure.xlsx",
+      "sourceRelativePath": "modules/apriltag/docs/example_odk_showcase_apriltag_planar_measure.xlsx",
+      "centralFormId": "methodmesh_apriltag_planar_measure_showcase",
+      "formVersion": "2026091101",
+      "assetPath": "methodmesh/odk_templates/apriltag/example_odk_showcase_apriltag_planar_measure.xlsx",
+      "sha256": "a7a36a30188adea70fab6bacd0c0c7e15ef2de1040e07a88881856f2b91072fb",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_apriltag_planar_measure_showcase' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'apriltag_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "apriltag.example_odk_showcase_apriltag_range_pose",
+      "moduleId": "apriltag",
+      "moduleName": "Apriltag",
+      "displayName": "MethodMesh — Tag range and pose",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_apriltag_range_pose.xlsx",
+      "sourceRelativePath": "modules/apriltag/docs/example_odk_showcase_apriltag_range_pose.xlsx",
+      "centralFormId": "methodmesh_apriltag_range_pose_showcase",
+      "formVersion": "2026091101",
+      "assetPath": "methodmesh/odk_templates/apriltag/example_odk_showcase_apriltag_range_pose.xlsx",
+      "sha256": "2cb2eae6ef4d5a906e01121e77d3b76ef33ac3f54bcb0e6d10fa7b4b0140ea3b",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_apriltag_range_pose_showcase' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'apriltag_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "apriltag.example_odk_showcase_apriltag_relative_pose",
+      "moduleId": "apriltag",
+      "moduleName": "Apriltag",
+      "displayName": "MethodMesh — Relative tag pose",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_apriltag_relative_pose.xlsx",
+      "sourceRelativePath": "modules/apriltag/docs/example_odk_showcase_apriltag_relative_pose.xlsx",
+      "centralFormId": "methodmesh_apriltag_relative_pose_showcase",
+      "formVersion": "2026091101",
+      "assetPath": "methodmesh/odk_templates/apriltag/example_odk_showcase_apriltag_relative_pose.xlsx",
+      "sha256": "6ca1dd1215a4e2d6e974d09bfe5116d3972a75fb9edf0efe1957b94f4efa5f96",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_apriltag_relative_pose_showcase' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'apriltag_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "apriltag.example_odk_showcase_apriltag_track_pose",
+      "moduleId": "apriltag",
+      "moduleName": "Apriltag",
+      "displayName": "MethodMesh — Track tagged object",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_apriltag_track_pose.xlsx",
+      "sourceRelativePath": "modules/apriltag/docs/example_odk_showcase_apriltag_track_pose.xlsx",
+      "centralFormId": "methodmesh_apriltag_track_pose_showcase",
+      "formVersion": "2026091101",
+      "assetPath": "methodmesh/odk_templates/apriltag/example_odk_showcase_apriltag_track_pose.xlsx",
+      "sha256": "5be1e23a0c9349ebe0c8ed952e9ee8d8d7480b25b8a4dc622f86f905a6751361",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_apriltag_track_pose_showcase' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'apriltag_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
@@ -1981,9 +2161,9 @@
       "sourceFileName": "example_odk_conversation_translate.xlsx",
       "sourceRelativePath": "modules/conversationtranslate/docs/example_odk_conversation_translate.xlsx",
       "centralFormId": "example_odk_conversation_translate",
-      "formVersion": "2026090102",
+      "formVersion": "2026091102",
       "assetPath": "methodmesh/odk_templates/conversationtranslate/example_odk_conversation_translate.xlsx",
-      "sha256": "ce902798d5190ce94173e88f780537c61fb770dc8f8a0c0c2699c7ce8ac072c3",
+      "sha256": "0fb1d9551f52a4bb21c74e21d8f38aa09d297fb22a3c30db205fc6ed084ed3bf",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -2003,6 +2183,36 @@
       }
     },
     {
+      "id": "conversationtranslate.example_odk_conversation_translate_table4",
+      "moduleId": "conversationtranslate",
+      "moduleName": "Conversationtranslate",
+      "displayName": "MethodMesh four-person conversation translator",
+      "description": "",
+      "sourceFileName": "example_odk_conversation_translate_table4.xlsx",
+      "sourceRelativePath": "modules/conversationtranslate/docs/example_odk_conversation_translate_table4.xlsx",
+      "centralFormId": "example_odk_conversation_translate_table4",
+      "formVersion": "2026091102",
+      "assetPath": "methodmesh/odk_templates/conversationtranslate/example_odk_conversation_translate_table4.xlsx",
+      "sha256": "1cd1ba970a2876798007816b89ab3af9f4b9de9f8f9fc526494348432fdd4edd",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'example_odk_conversation_translate_table4' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'conversationtranslate_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
       "id": "conversationtranslate.example_odk_showcase_conversation_translate",
       "moduleId": "conversationtranslate",
       "moduleName": "Conversationtranslate",
@@ -2011,9 +2221,9 @@
       "sourceFileName": "example_odk_showcase_conversation_translate.xlsx",
       "sourceRelativePath": "modules/conversationtranslate/docs/example_odk_showcase_conversation_translate.xlsx",
       "centralFormId": "conversationtranslate_conversation_translate",
-      "formVersion": "2026090701",
+      "formVersion": "2026091102",
       "assetPath": "methodmesh/odk_templates/conversationtranslate/example_odk_showcase_conversation_translate.xlsx",
-      "sha256": "ada7b659a82b65820d875fce29de655e68ecdf04fb44d22a742a99313bd5e0e7",
+      "sha256": "e33f28dcece92fbd2a3279bc2881d9116ccbb07ce5bb33d9cbdaedcc964fb00e",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6260,33 +6470,43 @@
       }
     },
     {
-      "id": "paperbridge.example_odk_showcase_paper_form_transcribe",
+      "id": "paperbridge.example_odk_showcase_paper_form_design",
       "moduleId": "paperbridge",
       "moduleName": "Paperbridge",
-      "displayName": "Paper Bridge designer demo",
+      "displayName": "Paper Bridge form design showcase",
       "description": "",
-      "sourceFileName": "example_odk_showcase_paper_form_transcribe.xlsx",
-      "sourceRelativePath": "modules/paperbridge/docs/example_odk_showcase_paper_form_transcribe.xlsx",
-      "centralFormId": "paperbridge_designer_demo",
-      "formVersion": "1",
-      "assetPath": "methodmesh/odk_templates/paperbridge/example_odk_showcase_paper_form_transcribe.xlsx",
-      "sha256": "fa9d0dc8640de03e1d110e372b219bdee806c1d730ba316fea01ba6d08aa368e",
+      "sourceFileName": "example_odk_showcase_paper_form_design.xlsx",
+      "sourceRelativePath": "modules/paperbridge/docs/example_odk_showcase_paper_form_design.xlsx",
+      "centralFormId": "paperbridge_form_design_showcase",
+      "formVersion": "2026091001",
+      "assetPath": "methodmesh/odk_templates/paperbridge/example_odk_showcase_paper_form_design.xlsx",
+      "sha256": "c16910079e6b34ffc9ca3911e93ae1f48bb1c8da5404b2a4cd05f94cf3ce7721",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": [
-          {
-            "severity": "style",
-            "code": "FORM_VERSION_NONSTANDARD",
-            "message": "version '1' does not use the MethodMesh YYYYMMDDrr convention.",
-            "location": "settings.version",
-            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
-            "source": "MethodMesh XLSForm lint",
-            "details": ""
-          }
-        ]
+        "issues": []
+      }
+    },
+    {
+      "id": "paperbridge.example_odk_showcase_paper_form_transcribe",
+      "moduleId": "paperbridge",
+      "moduleName": "Paperbridge",
+      "displayName": "Paper Bridge transcription showcase",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_paper_form_transcribe.xlsx",
+      "sourceRelativePath": "modules/paperbridge/docs/example_odk_showcase_paper_form_transcribe.xlsx",
+      "centralFormId": "paperbridge_form_transcribe_showcase",
+      "formVersion": "2026091101",
+      "assetPath": "methodmesh/odk_templates/paperbridge/example_odk_showcase_paper_form_transcribe.xlsx",
+      "sha256": "edbddb0239f72f69beb495e71a3d7cbf136ca42813864f7bb85e49a0d4ef5458",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
       }
     },
     {
@@ -7492,9 +7712,9 @@
       "sourceFileName": "example_odk_showcase_signal_morse_receive.xlsx",
       "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_morse_receive.xlsx",
       "centralFormId": "signals_signal_morse_receive",
-      "formVersion": "2026090906",
+      "formVersion": "2026091101",
       "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_morse_receive.xlsx",
-      "sha256": "caea5a6d0eaa87fcb6ef17d036a968ad3301937e92eb5891a1856308ee8ae233",
+      "sha256": "0f23c8882b6764a4efeadf0c0455f31b580ab6fb61b58e0a8123371e12ae37e2",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -7512,9 +7732,89 @@
       "sourceFileName": "example_odk_showcase_signal_morse_transmit.xlsx",
       "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_morse_transmit.xlsx",
       "centralFormId": "signals_signal_morse_transmit",
-      "formVersion": "2026090906",
+      "formVersion": "2026091101",
       "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_morse_transmit.xlsx",
-      "sha256": "5bf3e32e871f4bb95dafd7763e0d2957aeb70a5c2818cdd019b8cfb84598ae1a",
+      "sha256": "22ad86fbedf3c26a639045274208d2a30528651da558494eb4235bbdb08b3c69",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_optical_screen_receive",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Screen optical receive",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_optical_screen_receive.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_optical_screen_receive.xlsx",
+      "centralFormId": "signals_signal_optical_screen_receive",
+      "formVersion": "2026091003",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_optical_screen_receive.xlsx",
+      "sha256": "032dd39bd352239eb1b0996b411d2601284ee6372c6edfb29de945bb65b129e0",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_optical_screen_transmit",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Screen optical transmit",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_optical_screen_transmit.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_optical_screen_transmit.xlsx",
+      "centralFormId": "signals_signal_optical_screen_transmit",
+      "formVersion": "2026091003",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_optical_screen_transmit.xlsx",
+      "sha256": "3f50f3f395e4e5839e894869bb7cbc6a7a06734cb7393632185965730ef1cd5c",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_optical_torch_ppm_receive",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Torch PPM receive",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_optical_torch_ppm_receive.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_optical_torch_ppm_receive.xlsx",
+      "centralFormId": "signals_signal_optical_torch_ppm_receive",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_optical_torch_ppm_receive.xlsx",
+      "sha256": "8ee3127f4a386fc6999a6f4cfc40b82486bfbf6343089c31c220b2b7278eaf78",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_optical_torch_ppm_transmit",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — Torch PPM transmit",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_optical_torch_ppm_transmit.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_optical_torch_ppm_transmit.xlsx",
+      "centralFormId": "signals_signal_optical_torch_ppm_transmit",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_optical_torch_ppm_transmit.xlsx",
+      "sha256": "a5b9eb5b1892dc4f47f33c4e651be805bdfbf8a4d9a05e4fc0420cf9ab1d040c",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -8647,6 +8947,336 @@
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": []
+      }
+    },
+    {
+      "id": "weather.example_odk_showcase_weather_atmosphere",
+      "moduleId": "weather",
+      "moduleName": "Weather",
+      "displayName": "MethodMesh Detailed Atmosphere",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_weather_atmosphere.xlsx",
+      "sourceRelativePath": "modules/weather/docs/example_odk_showcase_weather_atmosphere.xlsx",
+      "centralFormId": "methodmesh_weather_atmosphere",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/weather/example_odk_showcase_weather_atmosphere.xlsx",
+      "sha256": "5297afe57c43e68bb568f571b70972cd4d21053823c9a9bbfdc0ae7f338c949e",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_weather_atmosphere' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'weather_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "weather.example_odk_showcase_weather_conditions",
+      "moduleId": "weather",
+      "moduleName": "Weather",
+      "displayName": "MethodMesh Weather Conditions",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_weather_conditions.xlsx",
+      "sourceRelativePath": "modules/weather/docs/example_odk_showcase_weather_conditions.xlsx",
+      "centralFormId": "methodmesh_weather_conditions",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/weather/example_odk_showcase_weather_conditions.xlsx",
+      "sha256": "ebab92b78e422c38ddc62e8ecdfa201ed89ff5655f62fc100fecce0589262fc8",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_weather_conditions' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'weather_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "weather.example_odk_showcase_weather_dashboard",
+      "moduleId": "weather",
+      "moduleName": "Weather",
+      "displayName": "MethodMesh Weather Dashboard",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_weather_dashboard.xlsx",
+      "sourceRelativePath": "modules/weather/docs/example_odk_showcase_weather_dashboard.xlsx",
+      "centralFormId": "methodmesh_weather_dashboard",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/weather/example_odk_showcase_weather_dashboard.xlsx",
+      "sha256": "ab7fd9f475a3301dd0dd3471d0d0b450203bf7a5fe2f6e3c33ccd921e8931fb2",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_weather_dashboard' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'weather_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "weather.example_odk_showcase_weather_forecast",
+      "moduleId": "weather",
+      "moduleName": "Weather",
+      "displayName": "MethodMesh Weather Forecast",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_weather_forecast.xlsx",
+      "sourceRelativePath": "modules/weather/docs/example_odk_showcase_weather_forecast.xlsx",
+      "centralFormId": "methodmesh_weather_forecast",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/weather/example_odk_showcase_weather_forecast.xlsx",
+      "sha256": "0b43821334c7ce7e012d61e37e6f380387e187b854101bd3b8624796287cc03a",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_weather_forecast' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'weather_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "weather.example_odk_showcase_weather_meteogram",
+      "moduleId": "weather",
+      "moduleName": "Weather",
+      "displayName": "MethodMesh Weather Meteogram",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_weather_meteogram.xlsx",
+      "sourceRelativePath": "modules/weather/docs/example_odk_showcase_weather_meteogram.xlsx",
+      "centralFormId": "methodmesh_weather_meteogram",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/weather/example_odk_showcase_weather_meteogram.xlsx",
+      "sha256": "7528d7b071ff19a6b9701bb36f49fe0ab7c2f132b9167acc765af14489fa07e2",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_weather_meteogram' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'weather_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "weather.example_odk_showcase_weather_model_compare",
+      "moduleId": "weather",
+      "moduleName": "Weather",
+      "displayName": "MethodMesh Weather Model Comparison",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_weather_model_compare.xlsx",
+      "sourceRelativePath": "modules/weather/docs/example_odk_showcase_weather_model_compare.xlsx",
+      "centralFormId": "methodmesh_weather_model_compare",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/weather/example_odk_showcase_weather_model_compare.xlsx",
+      "sha256": "60565d67872882e0b6f30e16254e2c57389725a1715a14e7ad47fbaa0cc86a2c",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_weather_model_compare' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'weather_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "weather.example_odk_showcase_weather_precipitation",
+      "moduleId": "weather",
+      "moduleName": "Weather",
+      "displayName": "MethodMesh Precipitation",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_weather_precipitation.xlsx",
+      "sourceRelativePath": "modules/weather/docs/example_odk_showcase_weather_precipitation.xlsx",
+      "centralFormId": "methodmesh_weather_precipitation",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/weather/example_odk_showcase_weather_precipitation.xlsx",
+      "sha256": "f7789210845d36e81da0b1ffd79b98b1bdbd64134a077c69f56ce5590ac37680",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_weather_precipitation' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'weather_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "weather.example_odk_showcase_weather_radar",
+      "moduleId": "weather",
+      "moduleName": "Weather",
+      "displayName": "MethodMesh Weather Radar",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_weather_radar.xlsx",
+      "sourceRelativePath": "modules/weather/docs/example_odk_showcase_weather_radar.xlsx",
+      "centralFormId": "methodmesh_weather_radar",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/weather/example_odk_showcase_weather_radar.xlsx",
+      "sha256": "56245a3765bb146f2ffac0d03c6d07ad542635ef6c86761051006aecba8e2658",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_weather_radar' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'weather_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "weather.example_odk_showcase_weather_snapshot",
+      "moduleId": "weather",
+      "moduleName": "Weather",
+      "displayName": "MethodMesh Weather Snapshot",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_weather_snapshot.xlsx",
+      "sourceRelativePath": "modules/weather/docs/example_odk_showcase_weather_snapshot.xlsx",
+      "centralFormId": "methodmesh_weather_snapshot",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/weather/example_odk_showcase_weather_snapshot.xlsx",
+      "sha256": "93f221a3c5ac681fca91ebe7c1609f248d6aff75cc10f85802b8272b3bb73f7f",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_weather_snapshot' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'weather_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "weather.example_odk_showcase_weather_sun",
+      "moduleId": "weather",
+      "moduleName": "Weather",
+      "displayName": "MethodMesh Sun and UV",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_weather_sun.xlsx",
+      "sourceRelativePath": "modules/weather/docs/example_odk_showcase_weather_sun.xlsx",
+      "centralFormId": "methodmesh_weather_sun",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/weather/example_odk_showcase_weather_sun.xlsx",
+      "sha256": "4a3d67a2e42652a18e282eb6c805d60f5cc462ad43b2f9f68cc7837343d5abda",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_weather_sun' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'weather_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "weather.example_odk_showcase_weather_wind",
+      "moduleId": "weather",
+      "moduleName": "Weather",
+      "displayName": "MethodMesh Wind",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_weather_wind.xlsx",
+      "sourceRelativePath": "modules/weather/docs/example_odk_showcase_weather_wind.xlsx",
+      "centralFormId": "methodmesh_weather_wind",
+      "formVersion": "2026091002",
+      "assetPath": "methodmesh/odk_templates/weather/example_odk_showcase_weather_wind.xlsx",
+      "sha256": "091c14b602a3efa0b487ce0da169cb511e3a3b86b04b566bb1a326162a8e380d",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_weather_wind' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'weather_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {

@@ -277,6 +277,12 @@ private fun AudioFskTransmitUi(
         val accent = if (ultrasonic) SignalViolet else SignalCyan
         val railMin = if (ultrasonic) 11000.0 else 200.0
         val railMax = if (ultrasonic) 17000.0 else 8000.0
+        Button(
+            onClick = { if (sending) stop() else start() },
+            enabled = encoded != null,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (sending) "Stop transmission" else "Start transmission") }
+
         SignalInstrumentPanel(
             kicker = if (ultrasonic) "EXPERIMENTAL HIGH-BAND MODEM" else "MMS/1 ACOUSTIC / RADIO MODEM",
             title = if (ultrasonic) "Near-ultrasonic transmitter" else "Audio FSK transmitter",
@@ -323,9 +329,8 @@ private fun AudioFskTransmitUi(
             )
         }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { if (sending) stop() else start() }, enabled = encoded != null, modifier = Modifier.weight(1f)) { Text(if (sending) "Stop" else "Transmit") }
-            Button(onClick = ::commit, enabled = cyclesCompleted > 0, modifier = Modifier.weight(1f)) { Text(if (committedResult == null) "Commit" else "Recommit") }
+        Button(onClick = ::commit, enabled = cyclesCompleted > 0, modifier = Modifier.fillMaxWidth()) {
+            Text(if (committedResult == null) "Commit" else "Recommit")
         }
 
         if (committedResult != null && !context.submitsImmediately) {
@@ -712,6 +717,11 @@ private fun AudioFskReceiveUi(
         val accent = if (ultrasonic) SignalViolet else SignalCyan
         val railMin = if (ultrasonic) 11000.0 else 200.0
         val railMax = if (ultrasonic) 17000.0 else 8000.0
+        Button(
+            onClick = { if (listening) stop() else start() },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (listening) "Pause listening" else "Start listening") }
+
         SignalInstrumentPanel(
             kicker = if (ultrasonic) "EXPERIMENTAL HIGH-BAND RECEIVER" else "MMS/1 ACOUSTIC / RADIO RECEIVER",
             title = if (ultrasonic) "Near-ultrasonic receiver" else "Audio FSK receiver",
@@ -765,9 +775,8 @@ private fun AudioFskReceiveUi(
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { if (listening) stop() else start() }, modifier = Modifier.weight(1f)) { Text(if (listening) "Pause" else "Start listening") }
             Button(onClick = ::commit, enabled = collectorState.complete, modifier = Modifier.weight(1f)) { Text(if (committedResult == null) "Commit" else "Recommit") }
-            OutlinedButton(onClick = ::reset) { Text("Reset") }
+            OutlinedButton(onClick = ::reset, modifier = Modifier.weight(1f)) { Text("Reset") }
         }
 
         if (committedResult != null && !context.submitsImmediately) {

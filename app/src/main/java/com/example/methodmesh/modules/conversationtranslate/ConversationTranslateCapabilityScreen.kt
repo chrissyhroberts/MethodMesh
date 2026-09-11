@@ -3,6 +3,7 @@ package com.example.methodmesh.modules.conversationtranslate
 import android.Manifest
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
@@ -11,6 +12,7 @@ import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -92,17 +95,34 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
         var languageB by rememberSaveable {
             mutableStateOf(MlKitLanguageCatalog.canonicalCode(context.action.settings["language_b"] ?: context.action.settings["input_language_b"], "es"))
         }
-        var labelA by rememberSaveable { mutableStateOf(context.action.settings["label_a"] ?: context.action.settings["input_label_a"] ?: defaultButtonLabel(languageA)) }
-        var labelB by rememberSaveable { mutableStateOf(context.action.settings["label_b"] ?: context.action.settings["input_label_b"] ?: defaultButtonLabel(languageB)) }
+        var arabicVariantA by rememberSaveable { mutableStateOf(context.action.settings["arabic_variant_a"] ?: context.action.settings["input_arabic_variant_a"] ?: ARABIC_VARIANT_GULF) }
+        var arabicVariantB by rememberSaveable { mutableStateOf(context.action.settings["arabic_variant_b"] ?: context.action.settings["input_arabic_variant_b"] ?: ARABIC_VARIANT_GULF) }
+        var speechLocaleA by rememberSaveable { mutableStateOf(context.action.settings["speech_locale_a"] ?: context.action.settings["input_speech_locale_a"] ?: "") }
+        var speechLocaleB by rememberSaveable { mutableStateOf(context.action.settings["speech_locale_b"] ?: context.action.settings["input_speech_locale_b"] ?: "") }
+        var flagA by rememberSaveable { mutableStateOf(defaultFlagForLanguage(languageA)) }
+        var flagB by rememberSaveable { mutableStateOf(defaultFlagForLanguage(languageB)) }
+        var labelA by rememberSaveable { mutableStateOf(normalizeCustomButtonLabel(context.action.settings["label_a"] ?: context.action.settings["input_label_a"], languageA)) }
+        var labelB by rememberSaveable { mutableStateOf(normalizeCustomButtonLabel(context.action.settings["label_b"] ?: context.action.settings["input_label_b"], languageB)) }
+        var voicePreferenceA by rememberSaveable { mutableStateOf(normalizeConversationVoicePreference(context.action.settings["voice_a"] ?: context.action.settings["input_voice_a"] ?: CONVERSATION_VOICE_FEMALE)) }
+        var voicePreferenceB by rememberSaveable { mutableStateOf(normalizeConversationVoicePreference(context.action.settings["voice_b"] ?: context.action.settings["input_voice_b"] ?: CONVERSATION_VOICE_FEMALE)) }
         var spokenOutput by rememberSaveable { mutableStateOf((context.action.settings["spoken_output"] ?: context.action.settings["input_spoken_output"] ?: "true").equals("true", true)) }
-        var preferOffline by rememberSaveable { mutableStateOf((context.action.settings["prefer_offline"] ?: context.action.settings["input_prefer_offline"] ?: "true").equals("true", true)) }
+        var preferOffline by rememberSaveable { mutableStateOf((context.action.settings["prefer_offline"] ?: context.action.settings["input_prefer_offline"] ?: "false").equals("true", true)) }
+        var transcriptEnabled by rememberSaveable { mutableStateOf((context.action.settings["transcript_on_start"] ?: context.action.settings["input_transcript_on_start"] ?: "true").equals("true", true)) }
+        var transcriptEventsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("[]") }
+        var conversationHasOccurred by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var unrecordedSpeechSinceMarker by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var transcriptPausedByUser by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var hasAudioPermission by remember { mutableStateOf(ContextCompat.checkSelfPermission(androidContext, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) }
-        var status by rememberSaveable { mutableStateOf("Choose who is speaking.") }
+        var status by rememberSaveable { mutableStateOf("Ready.") }
         var listeningSide by rememberSaveable { mutableStateOf<String?>(null) }
         var latestTranslated by rememberSaveable { mutableStateOf("") }
         var latestOriginal by rememberSaveable { mutableStateOf("") }
         var latestTextA by rememberSaveable { mutableStateOf("") }
         var latestTextB by rememberSaveable { mutableStateOf("") }
+        var latestVoiceA by rememberSaveable { mutableStateOf(CONVERSATION_VOICE_FEMALE) }
+        var latestVoiceB by rememberSaveable { mutableStateOf(CONVERSATION_VOICE_FEMALE) }
+        var latestSpeakerA by rememberSaveable { mutableStateOf("a") }
+        var latestSpeakerB by rememberSaveable { mutableStateOf("b") }
         var operatorFacing by rememberSaveable { mutableStateOf(false) }
         val runtimeSettingsVisible = listOf(
             "language_a",
@@ -110,7 +130,12 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
             "label_a",
             "label_b",
             "spoken_output",
-            "prefer_offline"
+            "prefer_offline",
+            "transcript_on_start",
+            "arabic_variant_a",
+            "arabic_variant_b",
+            "voice_a",
+            "voice_b"
         ).any(context::settingIsRuntimeInput)
         var conversationOpen by rememberSaveable(context.action.canonicalId) { mutableStateOf(context.startsImmediately && !runtimeSettingsVisible) }
         var turnsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("[]") }
@@ -123,17 +148,47 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
         var modelDebugLog by rememberSaveable { mutableStateOf(timestampedLog("Opened conversation language check.")) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var ttsReady by remember { mutableStateOf(false) }
+        var advertisedSpeechLocalesPacked by rememberSaveable { mutableStateOf("") }
+        val advertisedSpeechLocales = remember(advertisedSpeechLocalesPacked) {
+            advertisedSpeechLocalesPacked.split('\u001F').map { it.trim() }.filter { it.isNotBlank() }.toSet()
+        }
         val supportedLanguageCodes = remember { MlKitLanguageCatalog.supportedCodes() }
         val downloadedLanguages = remember(downloadedModelCodes) {
             downloadedModelCodes.split(',').map { it.trim() }.filter { it.isNotBlank() }.toSet()
         }
-        val requiredTranslationLanguages = remember(languageA, languageB) { listOf(languageA, languageB).distinct() }
+        val requiredTranslationLanguages = remember(languageA, languageB) {
+            if (languageA == languageB) emptyList() else listOf(languageA, languageB).distinct()
+        }
         val unsupportedTranslationLanguages = requiredTranslationLanguages.filter { it !in supportedLanguageCodes }
         val missingTranslationLanguages = requiredTranslationLanguages.filter { it in supportedLanguageCodes && it !in downloadedLanguages }
         val canTranslateConversation = missingTranslationLanguages.isEmpty() && unsupportedTranslationLanguages.isEmpty()
         val tts = remember {
             TextToSpeech(androidContext.applicationContext) { state ->
                 ttsReady = state == TextToSpeech.SUCCESS
+            }
+        }
+
+        LaunchedEffect(Unit) {
+            val receiver = object : BroadcastReceiver() {
+                override fun onReceive(context: android.content.Context?, intent: Intent?) {
+                    val supported = getResultExtras(false)
+                        ?.getStringArrayList(RecognizerIntent.EXTRA_SUPPORTED_LANGUAGES)
+                        .orEmpty()
+                    if (supported.isNotEmpty()) {
+                        advertisedSpeechLocalesPacked = supported.distinct().joinToString("\u001F")
+                    }
+                }
+            }
+            runCatching {
+                androidContext.sendOrderedBroadcast(
+                    Intent(RecognizerIntent.ACTION_GET_LANGUAGE_DETAILS),
+                    null,
+                    receiver,
+                    null,
+                    Activity.RESULT_OK,
+                    null,
+                    null
+                )
             }
         }
 
@@ -151,7 +206,9 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                     As100ConversationTranslateMethod.result(
                         request = As100ConversationTranslateMethod.request(
                             action = As100ConversationTranslateMethod.ID,
-                            context = context.request.invocationContext.asMap(As100ConversationTranslateMethod.ID) + context.action.settings + values
+                            context = context.request.invocationContext.asMap(As100ConversationTranslateMethod.ID) + context.action.settings + values,
+                            signals = emptyList(),
+                            inputs = emptyList()
                         ),
                         values = values,
                         invocation = context.request.invocationContext
@@ -159,13 +216,20 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                 }
         }
 
-        LaunchedEffect(languageA, languageB, labelA, labelB, spokenOutput, preferOffline) {
+        LaunchedEffect(languageA, languageB, labelA, labelB, voicePreferenceA, voicePreferenceB, spokenOutput, preferOffline, transcriptEnabled, arabicVariantA, arabicVariantB, speechLocaleA, speechLocaleB) {
             context.onSettingsChanged(
                 mapOf(
                     "language_a" to languageA,
                     "language_b" to languageB,
                     "label_a" to labelA,
                     "label_b" to labelB,
+                    "arabic_variant_a" to arabicVariantA,
+                    "arabic_variant_b" to arabicVariantB,
+                    "speech_locale_a" to speechLocaleA,
+                    "speech_locale_b" to speechLocaleB,
+                    "voice_a" to voicePreferenceA,
+                    "voice_b" to voicePreferenceB,
+                    "transcript_on_start" to transcriptEnabled.toString(),
                     "spoken_output" to spokenOutput.toString(),
                     "prefer_offline" to preferOffline.toString()
                 )
@@ -244,10 +308,18 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
         fun finishConversation(state: String = "succeeded", error: String = "") {
             val values = conversationValues(
                 turnsJson = turnsJson,
+                transcriptEventsJson = transcriptEventsJson,
+                transcriptEnabled = transcriptEnabled,
                 languageA = languageA,
                 languageB = languageB,
                 labelA = labelA,
                 labelB = labelB,
+                arabicVariantA = arabicVariantA,
+                arabicVariantB = arabicVariantB,
+                speechLocaleA = speechLocaleA,
+                speechLocaleB = speechLocaleB,
+                voicePreferenceA = voicePreferenceA,
+                voicePreferenceB = voicePreferenceB,
                 spokenOutput = spokenOutput,
                 preferOffline = preferOffline,
                 startedAt = startedAt,
@@ -268,15 +340,68 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
             if (context.submitsImmediately && state == "succeeded") onConfirmed(execution)
         }
 
-        fun speak(text: String, language: String) {
+        fun speechSettingsForSide(side: String): Pair<String, String> =
+            if (side == "a") speechLocaleA to arabicVariantA else speechLocaleB to arabicVariantB
+
+        fun speak(text: String, language: String, side: String, voicePreference: String, speakerId: String) {
             if (!spokenOutput || text.isBlank() || !ttsReady) return
-            tts.language = localeFor(language)
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "methodmesh-conversation-${System.currentTimeMillis()}")
+            val (localeOverride, variant) = speechSettingsForSide(side)
+            val locale = localeFor(language, advertisedSpeechLocales, localeOverride, variant)
+            val liveVoicePreference = when (speakerId) {
+                "a" -> voicePreferenceA
+                "b" -> voicePreferenceB
+                else -> voicePreference
+            }
+            when (tts.setLanguage(locale)) {
+                TextToSpeech.LANG_MISSING_DATA -> status = "Translated. ${languageLabel(language)} text-to-speech data is not installed on this device."
+                TextToSpeech.LANG_NOT_SUPPORTED -> status = "Translated. ${languageLabel(language)} text-to-speech is not supported by the current Android voice engine."
+                else -> {
+                    // Re-resolve the selected voice immediately before every
+                    // vocalisation, including replays. Android TTS language and
+                    // voice are global engine state and must not be assumed to
+                    // persist correctly across turn-taking.
+                    tts.applyConversationVoicePreference(locale, liveVoicePreference, speakerId)
+                    tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "methodmesh-conversation-${System.currentTimeMillis()}")
+                }
+            }
         }
 
-        fun addTurn(side: String, original: String, translated: String) {
+        fun setTranscriptRecording(enabled: Boolean) {
+            if (enabled == transcriptEnabled) return
+            val now = Instant.now().toString()
+            if (enabled) {
+                if (transcriptPausedByUser || (conversationHasOccurred && unrecordedSpeechSinceMarker)) {
+                    transcriptEventsJson = appendTranscriptMarker(
+                        transcriptEventsJson,
+                        type = if (!transcriptPausedByUser && turns(turnsJson).isEmpty()) "started_after_gap" else "resumed",
+                        timeIso = now,
+                        note = when {
+                            transcriptPausedByUser && unrecordedSpeechSinceMarker -> "Transcript resumed; conversation during the break was not transcribed."
+                            transcriptPausedByUser -> "Transcript resumed after a recording break."
+                            else -> "Transcript started; earlier conversation was not transcribed."
+                        }
+                    )
+                }
+                transcriptPausedByUser = false
+                unrecordedSpeechSinceMarker = false
+                status = "Transcript on."
+            } else {
+                transcriptEventsJson = appendTranscriptMarker(
+                    transcriptEventsJson,
+                    type = "paused",
+                    timeIso = now,
+                    note = "Transcript paused. Conversation can continue without being recorded."
+                )
+                transcriptPausedByUser = true
+                status = "Transcript off. Translation continues."
+            }
+            transcriptEnabled = enabled
+        }
+
+        fun addTurn(side: String, original: String, translated: String, translationPerformed: Boolean = true) {
             val source = MlKitLanguageCatalog.canonicalCode(if (side == "a") languageA else languageB)
             val target = MlKitLanguageCatalog.canonicalCode(if (side == "a") languageB else languageA)
+            val targetSide = if (side == "a") "b" else "a"
             val speaker = if (side == "a") labelA else labelB
             val turn = ConversationTurn(
                 side = side,
@@ -287,18 +412,34 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                 translatedText = translated,
                 timeIso = Instant.now().toString()
             )
-            turnsJson = appendTurn(turnsJson, turn)
+            conversationHasOccurred = true
+            if (transcriptEnabled) {
+                turnsJson = appendTurn(turnsJson, turn)
+                transcriptEventsJson = appendTranscriptTurn(transcriptEventsJson, turn)
+            } else {
+                unrecordedSpeechSinceMarker = true
+            }
             latestOriginal = original
-            latestTranslated = translated
+            latestTranslated = if (translationPerformed) translated else ""
+            val targetDisplay = if (translationPerformed) translated else original
+            val sourceVoice = if (side == "a") voicePreferenceA else voicePreferenceB
             if (side == "a") {
                 latestTextA = original
-                latestTextB = translated
+                latestTextB = targetDisplay
             } else {
-                latestTextA = translated
+                latestTextA = targetDisplay
                 latestTextB = original
             }
-            status = "Translated."
-            speak(translated, target)
+            latestVoiceA = sourceVoice
+            latestVoiceB = sourceVoice
+            latestSpeakerA = side
+            latestSpeakerB = side
+            status = if (translationPerformed) {
+                if (transcriptEnabled) "Translated · transcript on." else "Translated · transcript off."
+            } else {
+                if (transcriptEnabled) "Shared language · no translation needed · transcript on." else "Shared language · no translation needed · transcript off."
+            }
+            if (translationPerformed) speak(translated, target, targetSide, sourceVoice, side)
         }
 
         fun translateSpeech(side: String, text: String) {
@@ -306,6 +447,10 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
             val target = if (side == "a") languageB else languageA
             if (text.isBlank()) {
                 status = "No speech detected."
+                return
+            }
+            if (source == target) {
+                addTurn(side, text, "", translationPerformed = false)
                 return
             }
             if (!canTranslateConversation) {
@@ -369,16 +514,26 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                 return
             }
             val source = MlKitLanguageCatalog.canonicalCode(if (side == "a") languageA else languageB)
-            val prompt = "${if (side == "a") labelA else labelB}: speak now"
+            if (advertisedSpeechLocales.isNotEmpty() && !ConversationLanguageSupport.isAdvertisedByRecognizer(source, advertisedSpeechLocales)) {
+                status = "Android speech recognition on this device does not advertise ${languageLabel(source)}. The ML Kit translation pack and Android speech pack are separate."
+                return
+            }
+            val prompt = ConversationLanguageSupport.initialInstruction(source)
+            val (localeOverride, variant) = speechSettingsForSide(side)
             listeningSide = side
             status = "Listening…"
             val recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                val speechLocale = speechLocaleTagFor(source)
+                val speechLocale = ConversationLanguageSupport.speechLocaleTag(
+                    source,
+                    advertisedSpeechLocales,
+                    localeOverride = localeOverride,
+                    arabicVariant = variant
+                )
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, speechLocale)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, speechLocale)
                 putExtra(RecognizerIntent.EXTRA_PROMPT, prompt)
-                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, preferOffline && source !in onlineFirstSpeechLanguages)
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, preferOffline)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             }
             try {
@@ -395,16 +550,35 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
             context = context,
             canGoBack = context.stepNumber > 1,
             capturedResult = capturedResult,
-            resultPreview = capturedResult?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
+            resultPreview = capturedResult
+                ?.let { OutputFormatter.fields(it, includeProvenance = false) }
+                ?.filterValues { value -> value?.toString()?.isNotBlank() == true }
+                ?.filterKeys { key -> key !in setOf(
+                    ConversationTranslateFields.ARABIC_VARIANT_A,
+                    ConversationTranslateFields.ARABIC_VARIANT_B,
+                    ConversationTranslateFields.SPEECH_LOCALE_A,
+                    ConversationTranslateFields.SPEECH_LOCALE_B,
+                    ConversationTranslateFields.VOICE_A,
+                    ConversationTranslateFields.VOICE_B
+                ) }
+                .orEmpty(),
             onBack = onBack,
             onRetry = {
                 result = null
                 resultValuesJson = null
                 turnsJson = "[]"
+                transcriptEventsJson = "[]"
+                conversationHasOccurred = false
+                unrecordedSpeechSinceMarker = false
+                transcriptPausedByUser = false
                 latestOriginal = ""
                 latestTranslated = ""
                 latestTextA = ""
                 latestTextB = ""
+                latestVoiceA = CONVERSATION_VOICE_FEMALE
+                latestVoiceB = CONVERSATION_VOICE_FEMALE
+                latestSpeakerA = "a"
+                latestSpeakerB = "b"
                 conversationOpen = context.startsImmediately && !runtimeSettingsVisible
                 startedAt = Instant.now().toString()
                 status = "Conversation cleared."
@@ -419,14 +593,12 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                     if (!context.settingIsFixedInNativePreset("language_a")) {
                     ConversationLanguagePicker("First language", languageA, onSelected = {
                         languageA = MlKitLanguageCatalog.canonicalCode(it, "en")
-                        labelA = defaultButtonLabel(languageA)
                     })
                     Spacer(Modifier.height(8.dp))
                     }
                     if (!context.settingIsFixedInNativePreset("language_b")) {
                     ConversationLanguagePicker("Second language", languageB, onSelected = {
                         languageB = MlKitLanguageCatalog.canonicalCode(it, "es")
-                        labelB = defaultButtonLabel(languageB)
                     })
                     Spacer(Modifier.height(8.dp))
                     }
@@ -435,6 +607,9 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                     }
                     if (!context.settingIsFixedInNativePreset("prefer_offline")) {
                     ToggleRow("Prefer offline speech recognition", preferOffline) { preferOffline = it }
+                    }
+                    if (!context.settingIsFixedInNativePreset("transcript_on_start")) {
+                    ToggleRow("Transcript on when conversation starts", transcriptEnabled) { transcriptEnabled = it }
                     }
                     Spacer(Modifier.height(12.dp))
                     Button(
@@ -447,7 +622,7 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                     Text(status, style = MaterialTheme.typography.bodySmall)
                 }
                 Spacer(Modifier.height(8.dp))
-                val transcript = transcriptFromTurns(turnsJson)
+                val transcript = transcriptFromEvents(transcriptEventsJson, turnsJson)
                 if (transcript.isNotBlank()) {
                     Spacer(Modifier.height(12.dp))
                     Card(
@@ -482,6 +657,10 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                         ConversationSharedSurface(
                             languageA = languageA,
                             languageB = languageB,
+                            flagA = flagA,
+                            flagB = flagB,
+                            arabicVariantA = arabicVariantA,
+                            arabicVariantB = arabicVariantB,
                             labelA = labelA,
                             labelB = labelB,
                             textA = latestTextA,
@@ -495,14 +674,43 @@ object ConversationTranslateCapabilityScreen : CapabilityScreenSpec {
                             busyLanguageSeconds = busyLanguageSeconds,
                             operatorFacing = operatorFacing,
                             spokenOutput = spokenOutput,
-                            hasTurns = turns(turnsJson).isNotEmpty(),
+                            transcriptEnabled = transcriptEnabled,
+                            voicePreferenceA = voicePreferenceA,
+                            voicePreferenceB = voicePreferenceB,
                             onOperatorFacingChanged = { operatorFacing = it },
+                            onTranscriptChanged = ::setTranscriptRecording,
+                            onLanguageAChanged = { choice ->
+                                languageA = MlKitLanguageCatalog.canonicalCode(choice.language, "en")
+                                speechLocaleA = choice.speechLocaleOverride
+                                if (choice.arabicVariant.isNotBlank()) arabicVariantA = choice.arabicVariant
+                                flagA = choice.flag.ifBlank { defaultFlagForLanguage(languageA) }
+                            },
+                            onLanguageBChanged = { choice ->
+                                languageB = MlKitLanguageCatalog.canonicalCode(choice.language, "es")
+                                speechLocaleB = choice.speechLocaleOverride
+                                if (choice.arabicVariant.isNotBlank()) arabicVariantB = choice.arabicVariant
+                                flagB = choice.flag.ifBlank { defaultFlagForLanguage(languageB) }
+                            },
+                            onArabicVariantAChanged = { arabicVariantA = it; speechLocaleA = "" },
+                            onArabicVariantBChanged = { arabicVariantB = it; speechLocaleB = "" },
+                            onVoiceAChanged = {
+                                val next = toggleConversationVoicePreference(voicePreferenceA)
+                                voicePreferenceA = next
+                                if (latestSpeakerA == "a") latestVoiceA = next
+                                if (latestSpeakerB == "a") latestVoiceB = next
+                            },
+                            onVoiceBChanged = {
+                                val next = toggleConversationVoicePreference(voicePreferenceB)
+                                voicePreferenceB = next
+                                if (latestSpeakerA == "b") latestVoiceA = next
+                                if (latestSpeakerB == "b") latestVoiceB = next
+                            },
                             onDownloadLanguage = ::downloadLanguagePack,
                             onRefreshLanguagePacks = ::refreshLanguagePacks,
                             onListenA = { listen("a") },
                             onListenB = { listen("b") },
-                            onReplayA = { speak(latestTextA, languageA) },
-                            onReplayB = { speak(latestTextB, languageB) },
+                            onReplayA = { speak(latestTextA, languageA, "a", latestVoiceA, latestSpeakerA) },
+                            onReplayB = { speak(latestTextB, languageB, "b", latestVoiceB, latestSpeakerB) },
                             onEnd = { finishConversation() }
                         )
                         if (!context.startsImmediately) {
@@ -534,6 +742,10 @@ private data class ConversationTurn(
 private fun ConversationSharedSurface(
     languageA: String,
     languageB: String,
+    flagA: String,
+    flagB: String,
+    arabicVariantA: String,
+    arabicVariantB: String,
     labelA: String,
     labelB: String,
     textA: String,
@@ -547,8 +759,17 @@ private fun ConversationSharedSurface(
     busyLanguageSeconds: Int,
     operatorFacing: Boolean,
     spokenOutput: Boolean,
-    hasTurns: Boolean,
+    transcriptEnabled: Boolean,
+    voicePreferenceA: String,
+    voicePreferenceB: String,
     onOperatorFacingChanged: (Boolean) -> Unit,
+    onTranscriptChanged: (Boolean) -> Unit,
+    onLanguageAChanged: (ParticipantLanguageChoice) -> Unit,
+    onLanguageBChanged: (ParticipantLanguageChoice) -> Unit,
+    onArabicVariantAChanged: (String) -> Unit,
+    onArabicVariantBChanged: (String) -> Unit,
+    onVoiceAChanged: () -> Unit,
+    onVoiceBChanged: () -> Unit,
     onDownloadLanguage: (String) -> Unit,
     onRefreshLanguagePacks: () -> Unit,
     onListenA: () -> Unit,
@@ -559,26 +780,28 @@ private fun ConversationSharedSurface(
 ) {
     val canListen = missingLanguages.isEmpty() && unsupportedLanguages.isEmpty() && busyLanguageCode == null
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxWidth().fillMaxSize(),
         color = MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.large
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             ConversationPersonPanel(
                 language = languageB,
-                buttonLabel = labelB.ifBlank { languageLabel(languageB) },
-                text = textB.ifBlank { "Ready for ${languageLabel(languageB)}" },
+                flag = flagB,
+                arabicVariant = arabicVariantB,
+                voicePreference = voicePreferenceB,
+                buttonLabel = labelB,
+                text = textB,
                 rotated = !operatorFacing,
                 spokenOutput = spokenOutput,
                 listenEnabled = canListen,
                 modifier = Modifier.weight(1f),
+                onLanguageChanged = onLanguageBChanged,
+                onArabicVariantChanged = onArabicVariantBChanged,
+                onVoiceToggle = onVoiceBChanged,
                 onListen = onListenB,
                 onReplay = onReplayB
             )
@@ -588,14 +811,20 @@ private fun ConversationSharedSurface(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
                 shape = MaterialTheme.shapes.medium
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(status, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-                    Text("Operator view", style = MaterialTheme.typography.labelSmall)
-                    Spacer(Modifier.width(6.dp))
-                    Switch(checked = operatorFacing, onCheckedChange = onOperatorFacingChanged)
+                Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(status, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                        Text("Operator view", style = MaterialTheme.typography.labelSmall)
+                        Spacer(Modifier.width(6.dp))
+                        Switch(checked = operatorFacing, onCheckedChange = onOperatorFacingChanged)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = { onTranscriptChanged(!transcriptEnabled) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (transcriptEnabled) "● Transcript ON · tap to pause" else "○ Transcript OFF · tap to resume")
+                    }
                 }
             }
             if (!canListen) {
@@ -614,19 +843,24 @@ private fun ConversationSharedSurface(
             Spacer(Modifier.height(6.dp))
             ConversationPersonPanel(
                 language = languageA,
-                buttonLabel = labelA.ifBlank { languageLabel(languageA) },
-                text = textA.ifBlank { "Ready for ${languageLabel(languageA)}" },
+                flag = flagA,
+                arabicVariant = arabicVariantA,
+                voicePreference = voicePreferenceA,
+                buttonLabel = labelA,
+                text = textA,
                 rotated = false,
                 spokenOutput = spokenOutput,
                 listenEnabled = canListen,
                 modifier = Modifier.weight(1f),
+                onLanguageChanged = onLanguageAChanged,
+                onArabicVariantChanged = onArabicVariantAChanged,
+                onVoiceToggle = onVoiceAChanged,
                 onListen = onListenA,
                 onReplay = onReplayA
             )
             Spacer(Modifier.height(6.dp))
             Button(
                 onClick = onEnd,
-                enabled = hasTurns,
                 modifier = Modifier.fillMaxWidth().height(48.dp)
             ) {
                 Text("End conversation")
@@ -638,20 +872,27 @@ private fun ConversationSharedSurface(
 @Composable
 private fun ConversationPersonPanel(
     language: String,
+    flag: String,
+    arabicVariant: String,
+    voicePreference: String,
     buttonLabel: String,
     text: String,
     rotated: Boolean,
     spokenOutput: Boolean,
     listenEnabled: Boolean,
     modifier: Modifier = Modifier,
+    onLanguageChanged: (ParticipantLanguageChoice) -> Unit,
+    onArabicVariantChanged: (String) -> Unit,
+    onVoiceToggle: () -> Unit,
     onListen: () -> Unit,
     onReplay: () -> Unit
 ) {
+    val rotation = if (rotated) 180f else 0f
     val rotateModifier = if (rotated) Modifier.rotate(180f) else Modifier
+    val displayButtonLabel = buttonLabel.ifBlank { ConversationLanguageSupport.pressToSpeak(language) }
+    val displayText = text.ifBlank { ConversationLanguageSupport.initialInstruction(language) }
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(rotateModifier),
+        modifier = modifier.fillMaxWidth().then(rotateModifier),
         color = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
         shape = MaterialTheme.shapes.large
@@ -660,52 +901,73 @@ private fun ConversationPersonPanel(
             modifier = Modifier.fillMaxSize().padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            ParticipantLanguageButton(
+                selectedLanguage = language,
+                selectedFlag = flag,
+                rotationDegrees = rotation,
+                prominent = true,
+                onSelected = onLanguageChanged
+            )
+            if (MlKitLanguageCatalog.canonicalCode(language, language) == "ar") {
+                Spacer(Modifier.height(6.dp))
+                ArabicVariantButton(
+                    language = language,
+                    variant = arabicVariant,
+                    rotationDegrees = rotation,
+                    onVariantSelected = onArabicVariantChanged
+                )
+            }
+            Spacer(Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                OutlinedButton(
+                    onClick = onVoiceToggle,
+                    modifier = Modifier.width(46.dp).height(58.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.88f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onPrimary)
+                ) {
+                    Text(conversationVoiceSymbol(voicePreference), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
                 Button(
                     onClick = onListen,
                     enabled = listenEnabled,
-                    modifier = Modifier.weight(1f).height(42.dp),
+                    modifier = Modifier.weight(1f).height(58.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                         contentColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text(buttonLabel.uppercase(Locale.ROOT), textAlign = TextAlign.Center)
+                    Text(displayButtonLabel, textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium)
                 }
-                Spacer(Modifier.width(8.dp))
-                Button(
+                OutlinedButton(
                     onClick = onReplay,
-                    enabled = spokenOutput && !text.startsWith("Ready for"),
-                    modifier = Modifier.height(42.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = MaterialTheme.colorScheme.primary
+                    enabled = spokenOutput && text.isNotBlank(),
+                    modifier = Modifier.width(46.dp).height(58.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.66f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.34f)
                     )
                 ) {
-                    Text("Replay")
+                    Text("↻", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(Modifier.height(6.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 Text(
-                    text = text,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
+                    text = displayText,
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
             }
-            Text(languageLabel(language), modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelSmall)
+            Text(nativeConversationLanguageLabel(language), modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -820,22 +1082,38 @@ private fun conversationLanguages(): List<String> =
 
 private fun conversationValues(
     turnsJson: String,
+    transcriptEventsJson: String,
+    transcriptEnabled: Boolean,
     languageA: String,
     languageB: String,
     labelA: String,
     labelB: String,
+    arabicVariantA: String,
+    arabicVariantB: String,
+    speechLocaleA: String,
+    speechLocaleB: String,
+    voicePreferenceA: String,
+    voicePreferenceB: String,
     spokenOutput: Boolean,
     preferOffline: Boolean,
     startedAt: String,
     status: String,
     error: String
 ): Map<String, String> = linkedMapOf(
-    ConversationTranslateFields.TRANSCRIPT to transcriptFromTurns(turnsJson),
+    ConversationTranslateFields.TRANSCRIPT to transcriptFromEvents(transcriptEventsJson, turnsJson),
     ConversationTranslateFields.TURNS_JSON to turnsJson,
     ConversationTranslateFields.LANGUAGE_A to languageA,
     ConversationTranslateFields.LANGUAGE_B to languageB,
     ConversationTranslateFields.LABEL_A to labelA,
     ConversationTranslateFields.LABEL_B to labelB,
+    ConversationTranslateFields.ARABIC_VARIANT_A to if (languageA == "ar") arabicVariantA else "",
+    ConversationTranslateFields.ARABIC_VARIANT_B to if (languageB == "ar") arabicVariantB else "",
+    ConversationTranslateFields.SPEECH_LOCALE_A to speechLocaleA,
+    ConversationTranslateFields.SPEECH_LOCALE_B to speechLocaleB,
+    ConversationTranslateFields.VOICE_A to voicePreferenceA,
+    ConversationTranslateFields.VOICE_B to voicePreferenceB,
+    ConversationTranslateFields.TRANSCRIPT_EVENTS_JSON to transcriptEventsJson,
+    ConversationTranslateFields.TRANSCRIPT_ENABLED_AT_END to transcriptEnabled.toString(),
     ConversationTranslateFields.SPOKEN_OUTPUT to spokenOutput.toString(),
     ConversationTranslateFields.PREFER_OFFLINE to preferOffline.toString(),
     ConversationTranslateFields.TURN_COUNT to turns(turnsJson).size.toString(),
@@ -860,6 +1138,33 @@ private fun appendTurn(json: String, turn: ConversationTurn): String {
     return array.toString()
 }
 
+private fun appendTranscriptTurn(json: String, turn: ConversationTurn): String {
+    val array = JSONArray(json.ifBlank { "[]" })
+    array.put(
+        JSONObject()
+            .put("event_type", "turn")
+            .put("time_iso", turn.timeIso)
+            .put("side", turn.side)
+            .put("speaker", turn.speaker)
+            .put("source_language", turn.sourceLanguage)
+            .put("target_language", turn.targetLanguage)
+            .put("original_text", turn.originalText)
+            .put("translated_text", turn.translatedText)
+    )
+    return array.toString()
+}
+
+private fun appendTranscriptMarker(json: String, type: String, timeIso: String, note: String): String {
+    val array = JSONArray(json.ifBlank { "[]" })
+    array.put(
+        JSONObject()
+            .put("event_type", type)
+            .put("time_iso", timeIso)
+            .put("note", note)
+    )
+    return array.toString()
+}
+
 private fun turns(json: String): List<ConversationTurn> = runCatching {
     val array = JSONArray(json.ifBlank { "[]" })
     (0 until array.length()).map { index ->
@@ -879,8 +1184,39 @@ private fun turns(json: String): List<ConversationTurn> = runCatching {
 private fun transcriptFromTurns(json: String): String =
     turns(json).joinToString("\n\n") { turn ->
         val speaker = turn.speaker.ifBlank { languageLabel(turn.sourceLanguage) }
-        "$speaker (${turn.sourceLanguage}): ${turn.originalText}\n${languageLabel(turn.targetLanguage)}: ${turn.translatedText}"
+        if (turn.sourceLanguage == turn.targetLanguage || turn.translatedText.isBlank()) {
+            "$speaker (${turn.sourceLanguage}): ${turn.originalText}"
+        } else {
+            "$speaker (${turn.sourceLanguage}): ${turn.originalText}\n${languageLabel(turn.targetLanguage)}: ${turn.translatedText}"
+        }
     }
+
+private fun transcriptFromEvents(eventsJson: String, legacyTurnsJson: String): String = runCatching {
+    val array = JSONArray(eventsJson.ifBlank { "[]" })
+    if (array.length() == 0) return@runCatching transcriptFromTurns(legacyTurnsJson)
+    buildList {
+        for (index in 0 until array.length()) {
+            val item = array.getJSONObject(index)
+            when (item.optString("event_type")) {
+                "turn" -> {
+                    val source = item.optString("source_language")
+                    val target = item.optString("target_language")
+                    val speaker = item.optString("speaker").ifBlank { languageLabel(source) }
+                    val original = item.optString("original_text")
+                    val translated = item.optString("translated_text")
+                    add(
+                        if (source == target || translated.isBlank()) {
+                            "$speaker ($source): $original"
+                        } else {
+                            "$speaker ($source): $original\n${languageLabel(target)}: $translated"
+                        }
+                    )
+                }
+                "paused", "resumed", "started_after_gap" -> add("[${item.optString("time_iso")}] ${item.optString("note")}")
+            }
+        }
+    }.joinToString("\n\n")
+}.getOrElse { transcriptFromTurns(legacyTurnsJson) }
 
 private fun conversationValuesToJson(values: Map<String, String>): String =
     JSONObject().apply { values.toSortedMap().forEach { (key, value) -> put(key, value) } }.toString()
@@ -933,36 +1269,31 @@ private fun languagePackConnectivityStatus(context: android.content.Context): St
     return "network=$transport internet=$hasInternet validated=$validated $playServices"
 }
 
-private fun defaultButtonLabel(language: String): String = when (language) {
-    "es" -> "Habla"
-    "fr" -> "Parlez"
-    "pt" -> "Fale"
-    "sw" -> "Ongea"
-    "zh" -> "说话"
-    "ja" -> "話す"
-    "ko" -> "말하기"
-    else -> "Speak"
+private fun normalizeCustomButtonLabel(value: String?, language: String): String {
+    val trimmed = value.orEmpty().trim()
+    if (trimmed.isBlank()) return ""
+    // v0.1 defaults were fixed English/Spanish labels and therefore defeated localisation.
+    if (trimmed == "Speak") return ""
+    if (trimmed == "Habla" && MlKitLanguageCatalog.canonicalCode(language, language) == "es") return ""
+    return trimmed
 }
 
-private val onlineFirstSpeechLanguages = setOf("zh", "ja", "ko")
+private fun localeFor(
+    language: String,
+    advertisedLocales: Set<String> = emptySet(),
+    localeOverride: String = "",
+    arabicVariant: String = ""
+): Locale = Locale.forLanguageTag(
+    ConversationLanguageSupport.speechLocaleTag(
+        language,
+        advertisedLocales,
+        localeOverride = localeOverride,
+        arabicVariant = arabicVariant
+    )
+)
 
-private fun speechLocaleTagFor(language: String): String = when (language) {
-    "en" -> "en-US"
-    "es" -> "es-ES"
-    "fr" -> "fr-FR"
-    "pt" -> "pt-PT"
-    "de" -> "de-DE"
-    "it" -> "it-IT"
-    "sw" -> "sw-KE"
-    "zh" -> "zh-CN"
-    "ja" -> "ja-JP"
-    "ko" -> "ko-KR"
-    else -> MlKitLanguageCatalog.canonicalCode(language, language)
-}
-
-private fun localeFor(language: String): Locale = when (language) {
-    "zh" -> Locale.SIMPLIFIED_CHINESE
-    "ja" -> Locale.JAPANESE
-    "ko" -> Locale.KOREAN
-    else -> Locale.forLanguageTag(speechLocaleTagFor(language))
+private fun nativeLanguageLabel(language: String): String {
+    val locale = localeFor(language)
+    val native = locale.getDisplayLanguage(locale).trim()
+    return native.ifBlank { languageLabel(language) }
 }

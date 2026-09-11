@@ -2130,6 +2130,68 @@ Security/operational status may use semantic states such as **good**, **attentio
 
 Modules declare generic descriptors, state and actions. Shared Android infrastructure owns platform APIs, permissions, lifecycle and policy requirements.
 
+## Shared native fiducial detection
+
+`platform/fiducial/AprilTagDetector` is a capability-independent, offline AprilTag
+boundary. Create it with `AprilTagDetector.create().getOrThrow()`, use it on a
+worker thread, and close it deterministically (`use { ... }` for short work;
+close from the owning lifecycle for live analysis). Creation and detection return
+Kotlin `Result` values. A closed detector rejects further frames; close is
+idempotent and synchronized with detection. Library-load, invalid configuration
+and malformed-frame failures are reported, never replaced with synthetic results.
+Like other in-process native libraries, upstream allocation failures under severe
+process-wide memory exhaustion are not a recoverable isolation boundary.
+
+The default is `tagStandard41h12`. All nine families in the pinned distribution
+are available. Results contain ID, family, four tag-relative ordered corners,
+centre, corrected-bit count and decision margin. There are no protocol, result
+schema, pose or range semantics in this boundary. Corner order follows upstream
+`(-1,+1), (+1,+1), (+1,-1), (-1,-1)` and must not be screen-sorted.
+
+Pass a direct grayscale buffer at its current position with width, height, row
+stride and pixel stride. Unit-pixel-stride input is borrowed without a JNI frame
+copy; non-unit strides are packed once. Keep the buffer valid until the call
+returns. Supported dimensions are 8–8192 pixels per side, at most 16 megapixels.
+The detector uses one native worker, one corrected bit and configurable decimation
+(default 2, range 1–8). It does not modify the borrowed input or write debug files.
+
+`LiveCameraPreview` optionally accepts `onAnalysisFrame` and `analysisResolution`.
+It uses CameraX's KEEP_ONLY_LATEST strategy on a single executor and always closes
+images in `finally`. Consumers must finish using the frame before their callback
+returns; no asynchronous retention or extra camera framework is needed. Callback
+errors are delivered on the analysis thread. Leaving the surface clears analysis,
+unbinds the camera and shuts down the executor without blocking the UI; pending
+frames are discarded, while any current callback is allowed to finish. The
+consumer separately owns and closes its detector.
+
+The `AprilTagDetector.detect(ImageProxy)` adapter reads the Y plane directly.
+It returns full-frame coordinates rotated clockwise by `rotationDegrees`, swapping
+output width/height at 90/270 degrees. Preview cropping, mirroring and overlay
+transforms remain with the caller. The adapter does not close the frame itself;
+`LiveCameraPreview` owns that lifetime. Standalone analyzer callers must close their
+own `ImageProxy` in `finally`.
+
+Generic CMake builds `libmethodmesh_apriltag.so`, statically incorporating the
+upstream C library and all its families. No named module paths or central module registrations are involved.
+Optional module-owned JNI projects are discovered from
+`modules/*/native/CMakeLists.txt` using CMake CONFIGURE_DEPENDS. Each owns its
+uniquely named library target and may link the generic `apriltag` target.
+Detection interpretation and module result schemas stay in that module-owned
+bridge; the generic Kotlin API and native detector do not depend on it. Any module can use the Kotlin API; native consumers
+in this CMake project can link the `apriltag` target and its public includes.
+Build requirements are NDK `28.2.13676358`, CMake `3.22.1`, and the existing Android
+API 27 minimum. No ABI filters were added: arm64-v8a, armeabi-v7a, x86 and x86_64
+are built. The shared object supports 16 KiB page alignment. Sources are vendored;
+Android builds perform no source downloads.
+
+Validation: `:app:assembleDebug` and `:app:assembleDebugAndroidTest`; run
+`com.example.methodmesh.platform.fiducial.AprilTagDetectorTest` with the Android
+instrumentation runner. Its shared-boundary fixture is upstream-generated family
+`tagStandard41h12`, ID 23, raw 400×320 grayscale. It tests load, every family,
+known detection, corner ordering, stride/offset handling, rotation, malformed
+frames and 20 repeated create/detect/close cycles. Printed-tag camera and physical
+device lifecycle validation remain separate from this synthetic test.
+
 # 17. Location tools
 
 ## Plus Code capture
@@ -2743,6 +2805,18 @@ providers; RFC 3161 timestamp authorities.
 OpenStreetMap volunteer tile servers should not be used in a way that
 violates tile usage policy. Prefer appropriate tile providers or offline
 packs.
+
+### Bundled native AprilTag dependency
+
+AprilTag **3.4.5**, upstream <https://github.com/AprilRobotics/apriltag>, is pinned
+to revision `94be783968e5091bcc9972c72c84fd63efce2935`. The tracked release sources
+are vendored unmodified at `app/src/main/cpp/third_party/apriltag/`; MethodMesh's
+CMake configuration and JNI wrapper are separate files in the parent directory.
+The upstream BSD-2-Clause licence and individual source notices are retained.
+An aggregated notice is also included in the APK at `assets/native/apriltag-NOTICES.txt`.
+See the vendor's `METHODMESH_VENDOR.txt` for provenance. Detection is entirely
+local/offline, requires no credentials and sends no image data off-device.
+This native dependency does not require OpenCV.
 
 # 24. Implementation status and roadmap
 

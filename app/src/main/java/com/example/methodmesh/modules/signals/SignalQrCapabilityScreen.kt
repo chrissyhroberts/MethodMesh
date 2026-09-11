@@ -238,6 +238,12 @@ object SignalQrTransmitCapabilityScreen : CapabilityScreenSpec {
         val committedFullJson = remember(committedJson) { fullJson(committedResult) }
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = { if (active) stop() else start() },
+                enabled = frames.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (active) "Stop blast" else "Start blast") }
+
             SignalInstrumentPanel(
                 kicker = "MMS/1 OPTICAL TRANSMITTER",
                 title = if (contentMode == "file") "QR file blast" else "QR burst transmitter",
@@ -263,9 +269,8 @@ object SignalQrTransmitCapabilityScreen : CapabilityScreenSpec {
                 }
             }
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { if (active) stop() else start() }, enabled = frames.isNotEmpty(), modifier = Modifier.weight(1f)) { Text(if (active) "Stop blast" else "Start blast") }
-                Button(onClick = ::commit, enabled = cycles > 0, modifier = Modifier.weight(1f)) { Text(if (committedResult == null) "Commit" else "Recommit") }
+            Button(onClick = ::commit, enabled = cycles > 0, modifier = Modifier.fillMaxWidth()) {
+                Text(if (committedResult == null) "Commit" else "Recommit")
             }
 
             if (committedResult != null && !context.submitsImmediately) {
@@ -361,10 +366,10 @@ object SignalQrTransmitCapabilityScreen : CapabilityScreenSpec {
                         Column { Text(if (contentMode == "file") "QR FILE BLAST" else "MMS/1 OPTICAL TRANSMITTER", color = SignalCyan, fontWeight = FontWeight.Bold); Text("Frame ${frameIndex + 1}/${frames.size} • cycle ${cycles + 1}", color = SignalMuted, fontFamily = FontFamily.Monospace) }
                         SignalStatusPill("On air", SignalCyan)
                     }
+                    Button(onClick = ::stop, modifier = Modifier.fillMaxWidth()) { Text("Stop transmission") }
                     Box(Modifier.fillMaxWidth().weight(1f).background(Color.White, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
                         Image(qrBitmap.asImageBitmap(), "Full-screen MMS/1 QR frame", Modifier.fillMaxSize().padding(12.dp), contentScale = ContentScale.Fit)
                     }
-                    Button(onClick = ::stop, modifier = Modifier.fillMaxWidth()) { Text("Stop transmission") }
                 }
             }
         }
@@ -516,6 +521,11 @@ object SignalQrReceiveCapabilityScreen : CapabilityScreenSpec {
         }
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = { if (listening) { listening = false; status = "Paused. Collected shards are retained." } else start() },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (listening) "Pause camera" else "Start camera") }
+
             SignalInstrumentPanel(kicker = "MMS/1 OPTICAL COLLECTOR", title = "QR blast receiver", accent = SignalCyan, badge = when { decodedContent?.checksumVerified == true -> "Verified"; transferState.contentEnvelope != null -> "Integrity fail"; listening -> "Scanning"; else -> "Paused" }) {
                 val headline = when {
                     decodedContent?.type == "file" -> decodedContent.fileName.orEmpty()
@@ -557,9 +567,8 @@ object SignalQrReceiveCapabilityScreen : CapabilityScreenSpec {
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { if (listening) { listening = false; status = "Paused. Collected shards are retained." } else start() }, modifier = Modifier.weight(1f)) { Text(if (listening) "Pause" else "Start camera") }
                 Button(onClick = ::commit, enabled = transferState.complete && decodedContent?.checksumVerified == true, modifier = Modifier.weight(1f)) { Text(if (committedResult == null) "Commit verified" else "Recommit") }
-                OutlinedButton(onClick = { clearReception() }) { Text("Reset") }
+                OutlinedButton(onClick = { clearReception() }, modifier = Modifier.weight(1f)) { Text("Reset") }
             }
 
             if (committedResult != null && !context.submitsImmediately) {

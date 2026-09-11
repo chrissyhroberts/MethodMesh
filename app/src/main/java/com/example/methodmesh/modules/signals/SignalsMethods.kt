@@ -20,7 +20,7 @@ import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.settings.SettingsState
 
-private const val SIGNALS_VERSION = "0.4.5"
+private const val SIGNALS_VERSION = "0.5.3"
 
 object SignalMorseTransmitFields {
     const val RESULT = "signal_morse_result"
@@ -182,6 +182,78 @@ object SignalSurfaceReceiveFields {
     val outputs = listOf(RESULT, MESSAGE_ID, FRAMES_ACCEPTED, FRAMES_REJECTED, RECOVERED_MISSING, CRC_VERIFIED, CHECKSUM_SHA256, CHECKSUM_VERIFIED, CARRIER_HZ, BIT_MS, BASELINE, THRESHOLD, STATUS, ERROR)
 }
 
+
+object SignalOpticalScreenTransmitFields {
+    const val RESULT = "signal_optical_screen_result"
+    const val PAYLOAD = "signal_optical_screen_payload"
+    const val MESSAGE_ID = "signal_optical_screen_message_id"
+    const val MODE = "signal_optical_screen_mode"
+    const val RANGE_PROFILE = "signal_optical_screen_range_profile"
+    const val DATA_SHARDS = "signal_optical_screen_data_shards"
+    const val PARITY_FRAMES = "signal_optical_screen_parity_frames"
+    const val FRAME_COUNT = "signal_optical_screen_frame_count"
+    const val SHARD_BYTES = "signal_optical_screen_shard_bytes"
+    const val SYMBOL_MS = "signal_optical_screen_symbol_ms"
+    const val GRID_SIZE = "signal_optical_screen_grid_size"
+    const val CYCLES = "signal_optical_screen_cycles"
+    const val CHECKSUM_SHA256 = "signal_optical_screen_checksum_sha256"
+    const val STATUS = "signal_optical_screen_status"
+    const val ERROR = "signal_optical_screen_error"
+    val outputs = listOf(RESULT, PAYLOAD, MESSAGE_ID, MODE, RANGE_PROFILE, DATA_SHARDS, PARITY_FRAMES, FRAME_COUNT, SHARD_BYTES, SYMBOL_MS, GRID_SIZE, CYCLES, CHECKSUM_SHA256, STATUS, ERROR)
+}
+
+object SignalOpticalScreenReceiveFields {
+    const val RESULT = "signal_optical_screen_received_text"
+    const val MESSAGE_ID = "signal_optical_screen_message_id"
+    const val MODE = "signal_optical_screen_mode"
+    const val RANGE_PROFILE = "signal_optical_screen_range_profile"
+    const val FRAMES_ACCEPTED = "signal_optical_screen_frames_accepted"
+    const val FRAMES_REJECTED = "signal_optical_screen_frames_rejected"
+    const val RECOVERED_MISSING = "signal_optical_screen_recovered_missing_shards"
+    const val CRC_VERIFIED = "signal_optical_screen_crc_verified"
+    const val CHECKSUM_SHA256 = "signal_optical_screen_checksum_sha256"
+    const val CHECKSUM_VERIFIED = "signal_optical_screen_checksum_verified"
+    const val ZOOM_RATIO = "signal_optical_screen_zoom_ratio"
+    const val STATUS = "signal_optical_screen_status"
+    const val ERROR = "signal_optical_screen_error"
+    val outputs = listOf(RESULT, MESSAGE_ID, MODE, RANGE_PROFILE, FRAMES_ACCEPTED, FRAMES_REJECTED, RECOVERED_MISSING, CRC_VERIFIED, CHECKSUM_SHA256, CHECKSUM_VERIFIED, ZOOM_RATIO, STATUS, ERROR)
+}
+
+object SignalOpticalTorchTransmitFields {
+    const val RESULT = "signal_optical_torch_result"
+    const val PAYLOAD = "signal_optical_torch_payload"
+    const val MESSAGE_ID = "signal_optical_torch_message_id"
+    const val RANGE_PROFILE = "signal_optical_torch_range_profile"
+    const val DATA_SHARDS = "signal_optical_torch_data_shards"
+    const val PARITY_FRAMES = "signal_optical_torch_parity_frames"
+    const val FRAME_COUNT = "signal_optical_torch_frame_count"
+    const val SHARD_BYTES = "signal_optical_torch_shard_bytes"
+    const val SLOT_MS = "signal_optical_torch_slot_ms"
+    const val PULSE_MS = "signal_optical_torch_pulse_ms"
+    const val CYCLES = "signal_optical_torch_cycles"
+    const val CHECKSUM_SHA256 = "signal_optical_torch_checksum_sha256"
+    const val STATUS = "signal_optical_torch_status"
+    const val ERROR = "signal_optical_torch_error"
+    val outputs = listOf(RESULT, PAYLOAD, MESSAGE_ID, RANGE_PROFILE, DATA_SHARDS, PARITY_FRAMES, FRAME_COUNT, SHARD_BYTES, SLOT_MS, PULSE_MS, CYCLES, CHECKSUM_SHA256, STATUS, ERROR)
+}
+
+object SignalOpticalTorchReceiveFields {
+    const val RESULT = "signal_optical_torch_received_text"
+    const val MESSAGE_ID = "signal_optical_torch_message_id"
+    const val RANGE_PROFILE = "signal_optical_torch_range_profile"
+    const val FRAMES_ACCEPTED = "signal_optical_torch_frames_accepted"
+    const val FRAMES_REJECTED = "signal_optical_torch_frames_rejected"
+    const val RECOVERED_MISSING = "signal_optical_torch_recovered_missing_shards"
+    const val CRC_VERIFIED = "signal_optical_torch_crc_verified"
+    const val CHECKSUM_SHA256 = "signal_optical_torch_checksum_sha256"
+    const val CHECKSUM_VERIFIED = "signal_optical_torch_checksum_verified"
+    const val ZOOM_RATIO = "signal_optical_torch_zoom_ratio"
+    const val PULSES = "signal_optical_torch_pulses"
+    const val STATUS = "signal_optical_torch_status"
+    const val ERROR = "signal_optical_torch_error"
+    val outputs = listOf(RESULT, MESSAGE_ID, RANGE_PROFILE, FRAMES_ACCEPTED, FRAMES_REJECTED, RECOVERED_MISSING, CRC_VERIFIED, CHECKSUM_SHA256, CHECKSUM_VERIFIED, ZOOM_RATIO, PULSES, STATUS, ERROR)
+}
+
 object SignalSensorScopeFields {
     const val RESULT = "signal_sensor_result"
     const val SENSOR_ID = "signal_sensor_id"
@@ -304,9 +376,9 @@ abstract class SignalsMethod(
 object As100SignalMorseTransmitMethod : SignalsMethod(
     id = "signal.morse.transmit",
     name = "Morse transmitter",
-    description = "Transmit text as Morse code using the front screen, rear torch, sound, or combined routes.",
+    description = "Transmit text as Morse code using the front screen, rear torch, sound, or combined routes; screen output can add redundant white-dot/red-dash colour evidence without changing Morse timing.",
     type = MethodObjectType.Workflow,
-    inputs = listOf("payload", "route", "wpm", "tone_frequency_hz", "element_gap_units", "letter_gap_units", "word_gap_units", "loop_mode", "repeat_count", "loop_gap_units"),
+    inputs = listOf("payload", "route", "wpm", "tone_frequency_hz", "colour_assist", "element_gap_units", "letter_gap_units", "word_gap_units", "loop_mode", "repeat_count", "loop_gap_units"),
     outputs = SignalMorseTransmitFields.outputs,
     graphOutput = "signal.morse.transmission",
     statusField = SignalMorseTransmitFields.STATUS,
@@ -318,9 +390,9 @@ object As100SignalMorseTransmitMethod : SignalsMethod(
 object As100SignalMorseReceiveMethod : SignalsMethod(
     id = "signal.morse.receive",
     name = "Morse receiver",
-    description = "Decode framed Morse timing from camera luminance or microphone tone envelope.",
+    description = "Decode framed Morse from camera timing with optional white-dot/red-dash colour fusion, microphone tone envelope, or human-observed START/DOT/DASH taps through the same repeated-copy consensus chain.",
     type = MethodObjectType.SignalInterpreter,
-    inputs = listOf("source", "dot_ms", "auto_timing", "optical_profile", "microphone_tone_hz", "microphone_tolerance_hz", "microphone_min_dbfs", "element_gap_units", "letter_gap_units", "word_gap_units"),
+    inputs = listOf("source", "dot_ms", "auto_timing", "optical_profile", "colour_assist", "microphone_tone_hz", "microphone_tolerance_hz", "microphone_min_dbfs", "element_gap_units", "letter_gap_units", "word_gap_units"),
     outputs = SignalMorseReceiveFields.outputs,
     graphOutput = "signal.morse.reception",
     statusField = SignalMorseReceiveFields.STATUS,
@@ -439,6 +511,63 @@ object As100SignalSurfaceReceiveMethod : SignalsMethod(
     errorField = SignalSurfaceReceiveFields.ERROR,
     phenomenon = "signal.surface.reception",
     maturity = "Experimental"
+)
+
+
+object As100SignalOpticalScreenTransmitMethod : SignalsMethod(
+    id = "signal.optical_screen.transmit",
+    name = "Screen optical modem transmitter",
+    description = "Transmit short text through whole-screen 4-PAM or a self-registering spatial 4-PAM grid, using compact CRC framing where possible and MMS/1 fallback for broader payloads.",
+    type = MethodObjectType.Workflow,
+    inputs = listOf("payload", "mode", "range_profile", "robustness", "loop_mode", "repeat_count"),
+    outputs = SignalOpticalScreenTransmitFields.outputs,
+    graphOutput = "signal.optical_screen.transmission",
+    statusField = SignalOpticalScreenTransmitFields.STATUS,
+    errorField = SignalOpticalScreenTransmitFields.ERROR,
+    phenomenon = "signal.optical_screen.transmission",
+    maturity = "Development"
+)
+
+object As100SignalOpticalScreenReceiveMethod : SignalsMethod(
+    id = "signal.optical_screen.receive",
+    name = "Screen optical modem receiver",
+    description = "Recover short text from scalar four-level screen luminance or full-screen AprilTag16h5 Burst; every tag self-registers and missing symbols can be repaired or filled on later loops.",
+    type = MethodObjectType.SignalInterpreter,
+    inputs = listOf("mode", "range_profile", "zoom_ratio", "roi_mode", "exposure_reduction", "auto_lock"),
+    outputs = SignalOpticalScreenReceiveFields.outputs,
+    graphOutput = "signal.optical_screen.reception",
+    statusField = SignalOpticalScreenReceiveFields.STATUS,
+    errorField = SignalOpticalScreenReceiveFields.ERROR,
+    phenomenon = "signal.optical_screen.reception",
+    maturity = "Development"
+)
+
+object As100SignalOpticalTorchTransmitMethod : SignalsMethod(
+    id = "signal.optical_torch_ppm.transmit",
+    name = "Torch PPM optical modem transmitter",
+    description = "Transmit compact checksum-protected short text as range-oriented single-flash 8-PPM, with seven-flash clock acquisition and parity stripes for missed-flash repair.",
+    type = MethodObjectType.Workflow,
+    inputs = listOf("payload", "range_profile", "robustness", "loop_mode", "repeat_count"),
+    outputs = SignalOpticalTorchTransmitFields.outputs,
+    graphOutput = "signal.optical_torch_ppm.transmission",
+    statusField = SignalOpticalTorchTransmitFields.STATUS,
+    errorField = SignalOpticalTorchTransmitFields.ERROR,
+    phenomenon = "signal.optical_torch_ppm.transmission",
+    maturity = "Development"
+)
+
+object As100SignalOpticalTorchReceiveMethod : SignalsMethod(
+    id = "signal.optical_torch_ppm.receive",
+    name = "Torch PPM optical modem receiver",
+    description = "Recover compact short text from a distant blinking torch using leading-edge 8-PPM timing, repeated-cycle voting and parity repair for missed flashes.",
+    type = MethodObjectType.SignalInterpreter,
+    inputs = listOf("range_profile", "zoom_ratio", "roi_mode", "exposure_reduction", "auto_lock"),
+    outputs = SignalOpticalTorchReceiveFields.outputs,
+    graphOutput = "signal.optical_torch_ppm.reception",
+    statusField = SignalOpticalTorchReceiveFields.STATUS,
+    errorField = SignalOpticalTorchReceiveFields.ERROR,
+    phenomenon = "signal.optical_torch_ppm.reception",
+    maturity = "Development"
 )
 
 object As100SignalSensorScopeMethod : SignalsMethod(

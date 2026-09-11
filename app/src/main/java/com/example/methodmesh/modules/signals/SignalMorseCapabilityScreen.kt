@@ -79,7 +79,7 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
         val torch = remember(androidContext) { SignalTorchController(androidContext) }
         val settings = context.action.settings
 
-        var payload by rememberSaveable(context.action.canonicalId) { mutableStateOf(settings.signalSetting("payload", "SOS")) }
+        var payload by rememberSaveable(context.action.canonicalId) { mutableStateOf(settings.signalSetting("payload", "hello, world")) }
         var route by rememberSaveable(context.action.canonicalId) { mutableStateOf(settings.signalSetting("route", "screen")) }
         val initialWpmRaw = settings.signalSetting("wpm", "5").toIntOrNull()?.coerceIn(3, 30) ?: 5
         val initialWpmOptions = if (route == "sound") SignalPresetCatalog.morseAudioWpm else SignalPresetCatalog.morseOpticalWpm
@@ -95,6 +95,7 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
         var letterGapUnits by rememberSaveable(context.action.canonicalId) { mutableStateOf(SignalPresetCatalog.letterGapUnits.minByOrNull { kotlin.math.abs(it - (settings.signalSetting("letter_gap_units", "4").toDoubleOrNull() ?: 4.0)) } ?: 4.0) }
         var wordGapUnits by rememberSaveable(context.action.canonicalId) { mutableStateOf(SignalPresetCatalog.wordGapUnits.minByOrNull { kotlin.math.abs(it - (settings.signalSetting("word_gap_units", "9").toDoubleOrNull() ?: 9.0)) } ?: 9.0) }
         var loopGap by rememberSaveable(context.action.canonicalId) { mutableStateOf(SignalPresetCatalog.cycleGapUnits.minByOrNull { kotlin.math.abs(it - (settings.signalSetting("loop_gap_units", "15").toIntOrNull() ?: 15)) } ?: 15) }
+        var colourAssist by rememberSaveable(context.action.canonicalId) { mutableStateOf(settings.signalSetting("colour_assist", "true").toBooleanStrictOrNull() ?: true) }
 
         var sending by remember { mutableStateOf(false) }
         var screenOn by remember { mutableStateOf(false) }
@@ -124,7 +125,7 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
             if (wpm > maxForRoute) wpm = maxForRoute
         }
 
-        LaunchedEffect(payload, route, wpm, toneHz, loopMode, repeatCount, elementGapUnits, letterGapUnits, wordGapUnits, loopGap) {
+        LaunchedEffect(payload, route, wpm, toneHz, loopMode, repeatCount, elementGapUnits, letterGapUnits, wordGapUnits, loopGap, colourAssist) {
             context.onSettingsChanged(
                 mapOf(
                     "payload" to payload,
@@ -136,7 +137,8 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
                     "element_gap_units" to elementGapUnits.toString(),
                     "letter_gap_units" to letterGapUnits.toString(),
                     "word_gap_units" to wordGapUnits.toString(),
-                    "loop_gap_units" to loopGap.toString()
+                    "loop_gap_units" to loopGap.toString(),
+                    "colour_assist" to colourAssist.toString()
                 )
             )
         }
@@ -291,6 +293,11 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Button(
+                onClick = { if (sending) stopTransmission() else startTransmission() },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (sending) "Stop beacon" else "Start looping beacon") }
+
             SignalInstrumentPanel(
                 kicker = "OPTICAL / AUDIO TELEGRAPH",
                 title = "Morse beacon",
@@ -301,12 +308,19 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(2.55f)
-                        .background(if (screenOn) Color(0xFFFFFDF5) else SignalBlack, RoundedCornerShape(20.dp)),
+                        .background(
+                            if (!screenOn) SignalBlack
+                            else if (colourAssist && (currentMark == "-" || currentMark == "START" || currentMark == "END")) Color.Red
+                            else Color(0xFFFFFDF5),
+                            RoundedCornerShape(20.dp)
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         if (sending) currentMark.ifBlank { "·" } else "READY",
-                        color = if (screenOn) SignalBlack else SignalAmber,
+                        color = if (!screenOn) SignalAmber
+                        else if (colourAssist && (currentMark == "-" || currentMark == "START" || currentMark == "END")) Color.White
+                        else SignalBlack,
                         style = MaterialTheme.typography.displayMedium,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Black
@@ -326,7 +340,13 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
                     SignalTelemetryTile("SPEED", "$wpm WPM", SignalAmber, Modifier.weight(1f))
                     SignalTelemetryTile("CYCLES", completedCycles.toString(), SignalAmber, Modifier.weight(1f))
                 }
-                Text("Every cycle is self-framing: three acquisition flashes → START → message → END → repeat. Partial pre-START text is quarantined until a bounded cycle proves its alignment.", color = SignalMuted, style = MaterialTheme.typography.labelSmall)
+                Text(
+                    if (usesScreen && colourAssist)
+                        "Colour assist: acquisition/dots are WHITE; START/END/dashes are RED. Timing remains canonical Morse, so monochrome reception still works."
+                    else
+                        "Every cycle is self-framing: three acquisition flashes → START → message → END → repeat. Partial pre-START text is quarantined until a bounded cycle proves its alignment.",
+                    color = SignalMuted, style = MaterialTheme.typography.labelSmall
+                )
                 Text(
                     if (sending) "${route.replace('_', '+')} • ${if (loopMode == "continuous") "continuous beacon" else "transmitting"}" else status,
                     color = SignalMuted,
@@ -334,13 +354,8 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
                 )
             }
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { if (sending) stopTransmission() else startTransmission() }, modifier = Modifier.weight(1f)) {
-                    Text(if (sending) "Stop" else "Start looping beacon")
-                }
-                Button(onClick = ::commit, enabled = completedCycles > 0, modifier = Modifier.weight(1f)) {
-                    Text(if (committedResult == null) "Commit" else "Recommit")
-                }
+            Button(onClick = ::commit, enabled = completedCycles > 0, modifier = Modifier.fillMaxWidth()) {
+                Text(if (committedResult == null) "Commit" else "Recommit")
             }
 
             if (committedResult != null && !context.submitsImmediately) {
@@ -391,7 +406,9 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
                 wordGapUnits = wordGapUnits,
                 onWordGapUnits = { next -> if (next != wordGapUnits) { wordGapUnits = next; completedCycles = 0 } },
                 loopGap = loopGap,
-                onLoopGap = { next -> if (next != loopGap) { loopGap = next; completedCycles = 0 } }
+                onLoopGap = { next -> if (next != loopGap) { loopGap = next; completedCycles = 0 } },
+                colourAssist = colourAssist,
+                onColourAssist = { next -> if (next != colourAssist) { colourAssist = next; completedCycles = 0 } }
             )
 
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
@@ -415,12 +432,18 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
                 )
             ) {
                 Box(
-                    modifier = Modifier.fillMaxSize().background(if (screenOn) Color.White else Color.Black),
+                    modifier = Modifier.fillMaxSize().background(
+                        if (!screenOn) Color.Black
+                        else if (colourAssist && (currentMark == "-" || currentMark == "START" || currentMark == "END")) Color.Red
+                        else Color.White
+                    ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         currentMark.ifBlank { " " },
-                        color = if (screenOn) Color.Black else Color.White,
+                        color = if (!screenOn) Color.White
+                        else if (colourAssist && (currentMark == "-" || currentMark == "START" || currentMark == "END")) Color.White
+                        else Color.Black,
                         style = MaterialTheme.typography.displayLarge,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Black
@@ -458,7 +481,9 @@ private fun MorseTransmitSettings(
     wordGapUnits: Double,
     onWordGapUnits: (Double) -> Unit,
     loopGap: Int,
-    onLoopGap: (Int) -> Unit
+    onLoopGap: (Int) -> Unit,
+    colourAssist: Boolean,
+    onColourAssist: (Boolean) -> Unit
 ) {
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -478,6 +503,14 @@ private fun MorseTransmitSettings(
                         FilterChip(selected = route == item, enabled = !sending, onClick = { onRoute(item) }, label = { Text(item.replace('_', '+')) })
                     }
                 }
+            }
+            if (route in setOf("screen", "screen_sound", "all") && context.settingShouldBeShown("colour_assist")) {
+                Text("Screen colour assist")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(selected = colourAssist, enabled = !sending, onClick = { onColourAssist(true) }, label = { Text("On") })
+                    FilterChip(selected = !colourAssist, enabled = !sending, onClick = { onColourAssist(false) }, label = { Text("Off") })
+                }
+                Text("On keeps ordinary Morse timing but displays dots/acquisition in white and dashes/START/END in red.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (context.settingShouldBeShown("wpm")) {
                 val opticalOutput = route != "sound"
@@ -543,7 +576,7 @@ private fun MorseTransmitSettings(
 object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100SignalMorseReceiveMethod.id
     override val title = "Morse receiver"
-    override val description = "Decode Morse from light, camera brightness or an audible tone."
+    override val description = "Decode Morse from camera, microphone, legacy light sensor or a human observer tapping dot/dash with START anchors."
 
     @Composable
     override fun Render(
@@ -558,15 +591,16 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
         var dotMsSetting by rememberSaveable(context.action.canonicalId) {
             val defaultDot = if (source == "microphone") 60L else 240L
             val raw = settings.signalSetting("dot_ms", defaultDot.toString()).toLongOrNull()?.coerceIn(40, 1000) ?: defaultDot
-            val options = if (source == "microphone") SignalPresetCatalog.morseAudioWpm else SignalPresetCatalog.morseOpticalWpm
+            val options = if (source == "camera" || source == "light_sensor") SignalPresetCatalog.morseOpticalWpm else SignalPresetCatalog.morseAudioWpm
             val closestWpm = options.minByOrNull { kotlin.math.abs(MorseCodec.dotDurationMs(it) - raw) } ?: 5
             mutableStateOf(MorseCodec.dotDurationMs(closestWpm))
         }
         var autoTiming by rememberSaveable(context.action.canonicalId) {
-            val defaultAuto = if (source == "microphone") "true" else "false"
-            mutableStateOf(settings.signalSetting("auto_timing", defaultAuto).toBooleanStrictOrNull() ?: (source == "microphone"))
+            val defaultAuto = if (source == "microphone" || source == "manual") "true" else "false"
+            mutableStateOf(settings.signalSetting("auto_timing", defaultAuto).toBooleanStrictOrNull() ?: (source == "microphone" || source == "manual"))
         }
         var opticalProfile by rememberSaveable(context.action.canonicalId) { mutableStateOf(settings.signalSetting("optical_profile", "screen")) }
+        var colourAssistMode by rememberSaveable(context.action.canonicalId) { mutableStateOf(settings.signalSetting("colour_assist", "auto").lowercase().let { if (it == "off") "off" else "auto" }) }
         val initialRxTone = SignalPresetCatalog.closestMorseTone(settings.signalSetting("microphone_tone_hz", "700").toDoubleOrNull() ?: 700.0)
         var toneHz by rememberSaveable(context.action.canonicalId) { mutableStateOf(initialRxTone.hz) }
         var toneTolerance by rememberSaveable(context.action.canonicalId) {
@@ -609,6 +643,7 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
         var cameraSearchGeneration by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var cameraLockState by remember { mutableStateOf(SignalCameraLockState.MANUAL) }
         var cameraLockConfidence by remember { mutableStateOf(0.0) }
+        var colourAssistStatus by remember { mutableStateOf("timing only") }
         SignalActiveSessionOrientationGuard(listening)
 
         val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { cameraGranted = it || hasPermission(androidContext, Manifest.permission.CAMERA) }
@@ -626,15 +661,18 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
                 wordGapUnits = wordGapUnits
             )
         }
+        val manualDecoder = remember(dotMsSetting, source) { MorseManualTapDecoder(initialDotMs = dotMsSetting) }
         val lightDetector = remember { AdaptiveLevelDetector(minimumSpan = 1.0) }
         val cameraDetector = remember { AdaptiveLevelDetector(minimumSpan = 14.0) }
         val cameraStableGate = remember(opticalProfile) { MorseStableSignalGate(if (opticalProfile == "torch") 3 else 2) }
+        val colourCalibrator = remember { MorseColourAssistCalibrator() }
+        val colourTracker = remember { MorseColourMarkTracker(colourCalibrator) }
         val microphoneEngine = remember(androidContext) { SignalToneReceiverEngine(androidContext) }
 
-        fun acceptSignal(on: Boolean, timestampMs: Long) {
+        fun acceptSignal(on: Boolean, timestampMs: Long, markHint: Char? = null, markHintConfidence: Double = 0.0) {
             if (!listening) return
             levelOn = on
-            val snapshot = decoder.update(on, timestampMs)
+            val snapshot = decoder.update(on, timestampMs, markHint, markHintConfidence)
             decodedText = snapshot.decodedText
             currentSymbols = snapshot.currentSymbols
             effectiveDotMs = snapshot.dotMs
@@ -646,6 +684,25 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
             orphanObservations = snapshot.orphanObservations
             unanimousCharacters = snapshot.unanimousCharacters
             consensusCharacters = snapshot.characterCount
+            status = snapshot.quality
+        }
+
+        fun acceptManual(snapshot: MorseManualTapDecoder.Snapshot) {
+            decodedText = snapshot.decodedText
+            currentSymbols = snapshot.currentSymbols
+            effectiveDotMs = snapshot.dotMs
+            pulsesSeen = snapshot.marksSeen
+            consensusCopies = snapshot.completedCopies
+            consensusConfidence = snapshot.consensusConfidence
+            framedSignal = snapshot.anchored
+            frameState = if (!snapshot.anchored) MorseTimingDecoder.FrameState.SEEKING_START
+                else if (snapshot.completedCopies > 0) MorseTimingDecoder.FrameState.HAVE_COMPLETE_FRAME
+                else MorseTimingDecoder.FrameState.IN_FRAME
+            orphanObservations = 0
+            unanimousCharacters = snapshot.unanimousCharacters
+            consensusCharacters = snapshot.characterCount
+            levelOn = false
+            levelText = "human observer"
             status = snapshot.quality
         }
 
@@ -662,6 +719,9 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
             unanimousCharacters = 0
             consensusCharacters = 0
             cameraStableGate.reset()
+            colourTracker.reset()
+            colourAssistStatus = "timing only"
+            manualDecoder.reset()
             levelOn = false
             levelText = "—"
             status = "Receiver settings changed; working decode was cleared. Any committed result remains frozen."
@@ -683,6 +743,8 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
             unanimousCharacters = 0
             consensusCharacters = 0
             cameraStableGate.reset()
+            colourTracker.reset()
+            colourAssistStatus = "timing only"
             levelOn = false
             levelText = "—"
             if (listening && source == "camera") status = message
@@ -716,6 +778,7 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
                 return
             }
             decoder.reset(System.currentTimeMillis())
+            manualDecoder.reset()
             lightDetector.reset()
             cameraDetector.reset()
             decodedText = ""
@@ -729,9 +792,11 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
             unanimousCharacters = 0
             consensusCharacters = 0
             cameraStableGate.reset()
+            colourTracker.reset()
+            colourAssistStatus = "timing only"
             effectiveDotMs = dotMsSetting
             listening = true
-            status = "Listening…"
+            status = if (source == "manual") "Manual receiver ready — tap START SIGNAL when you see the start marker." else "Listening…"
             if (source == "microphone") {
                 microphoneEngine.start(
                     toneHz = toneHz,
@@ -748,6 +813,12 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
 
         fun stopListening() {
             if (source == "microphone") microphoneEngine.stop()
+            if (source == "manual") {
+                val snapshot = manualDecoder.snapshot("Manual receiver paused. Only START-bounded observations are committable.")
+                acceptManual(snapshot)
+                listening = false
+                return
+            }
             val snapshot = decoder.flush(System.currentTimeMillis())
             decodedText = snapshot.decodedText
             currentSymbols = snapshot.currentSymbols
@@ -771,7 +842,7 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
 
         fun commit() {
             if (decodedText.isBlank() || consensusCopies <= 0) {
-                error = "Wait for at least one complete START→END cycle before Commit. Partial/orphan text is deliberately not committable."
+                error = if (source == "manual") "Tap START SIGNAL again to close at least one observed copy before Commit." else "Wait for at least one complete START→END cycle before Commit. Partial/orphan text is deliberately not committable."
                 return
             }
             if (listening) stopListening()
@@ -794,16 +865,17 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
         }
 
         LaunchedEffect(source, dotMsSetting) {
-            if (source != "microphone" && dotMsSetting < 120L) dotMsSetting = 120L
+            if ((source == "camera" || source == "light_sensor") && dotMsSetting < 120L) dotMsSetting = 120L
         }
 
-        LaunchedEffect(source, dotMsSetting, autoTiming, opticalProfile, toneHz, toneTolerance, minDbfs, elementGapUnits, letterGapUnits, wordGapUnits) {
+        LaunchedEffect(source, dotMsSetting, autoTiming, opticalProfile, colourAssistMode, toneHz, toneTolerance, minDbfs, elementGapUnits, letterGapUnits, wordGapUnits) {
             context.onSettingsChanged(
                 mapOf(
                     "source" to source,
                     "dot_ms" to dotMsSetting.toString(),
                     "auto_timing" to autoTiming.toString(),
                     "optical_profile" to opticalProfile,
+                    "colour_assist" to colourAssistMode,
                     "microphone_tone_hz" to toneHz.roundToInt().toString(),
                     "microphone_tolerance_hz" to toneTolerance.roundToInt().toString(),
                     "microphone_min_dbfs" to minDbfs.toString(),
@@ -847,6 +919,83 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
         val committedFullJson = remember(committedJson) { fullJson(committedResult) }
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (source != "manual") {
+                Button(
+                    onClick = { if (listening) stopListening() else startListening() },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(if (listening) "Stop listening" else "Start listening") }
+            }
+
+            if (source == "manual") {
+                Card(
+                    Modifier.fillMaxWidth().height(270.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = SignalBlack)
+                ) {
+                    Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("HUMAN MORSE", color = SignalAmber, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            Text(if (listening) "LIVE" else "READY", color = if (listening) SignalGreen else SignalMuted, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        }
+                        Text(
+                            decodedText.ifBlank { "WAITING FOR START SIGNAL" },
+                            modifier = Modifier.fillMaxWidth().weight(1f).clickable(enabled = decodedText.isNotBlank()) {
+                                copySignalValue(androidContext, "decoded Morse", decodedText)
+                            },
+                            color = if (decodedText.isBlank()) SignalMuted else SignalText,
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            if (currentSymbols.isBlank()) "· · ·" else currentSymbols,
+                            color = SignalAmber,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SignalTelemetryTile("BEST", if (consensusCopies > 0) "${(consensusConfidence * 100).roundToInt()}%" else "acquiring", SignalGreen, Modifier.weight(1f))
+                            SignalTelemetryTile("COPIES", consensusCopies.toString(), SignalAmber, Modifier.weight(1f))
+                            SignalTelemetryTile("DOT", "~${effectiveDotMs} ms", SignalAmber, Modifier.weight(1f))
+                        }
+                    }
+                }
+
+                Button(
+                    onClick = {
+                        if (!listening) listening = true
+                        acceptManual(manualDecoder.startSignal(System.currentTimeMillis()))
+                    },
+                    modifier = Modifier.fillMaxWidth().height(78.dp)
+                ) { Text("START SIGNAL", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+
+                Row(Modifier.fillMaxWidth().height(290.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = { if (listening) acceptManual(manualDecoder.tapDot(System.currentTimeMillis())) },
+                        enabled = listening,
+                        modifier = Modifier.weight(1f).fillMaxSize()
+                    ) { Text("DOT\n·", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold) }
+                    Button(
+                        onClick = { if (listening) acceptManual(manualDecoder.tapDash(System.currentTimeMillis())) },
+                        enabled = listening,
+                        modifier = Modifier.weight(1f).fillMaxSize()
+                    ) { Text("DASH\n—", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold) }
+                }
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(onClick = { if (listening) stopListening() else startListening() }, modifier = Modifier.weight(1f)) {
+                        Text(if (listening) "Pause" else "Resume")
+                    }
+                    Text(
+                        "Eyes stay on the signal: START anchors each copy; the next START closes it. Tap only dot or dash.",
+                        modifier = Modifier.weight(2f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            if (source != "manual") {
             SignalInstrumentPanel(
                 kicker = "ADAPTIVE TELEGRAPH DECODER",
                 title = "Morse receiver",
@@ -891,6 +1040,7 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
                     Text("Orphan suffix buffered but excluded from the best guess until a complete START→END cycle is seen.", color = SignalMuted, style = MaterialTheme.typography.labelSmall)
                 }
             }
+            }
 
             if (source == "camera" && listening && cameraGranted) {
                 Card(
@@ -934,16 +1084,42 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
                                     if (cameraAutoLock && previousLock != SignalCameraLockState.LOCKED && sample.lockState == SignalCameraLockState.LOCKED) {
                                         cameraDetector.reset()
                                         cameraStableGate.reset()
+                                        colourTracker.reset()
+                                        colourAssistStatus = "timing only"
                                         decoder.reset(sample.timestampMs)
                                         decodedText = ""
                                         currentSymbols = ""
                                         pulsesSeen = 0
                                         effectiveDotMs = dotMsSetting
                                     }
-                                    val detection = cameraDetector.feed(sample.luma)
-                                    levelText = "luma ${"%.0f".format(Locale.US, sample.luma)} • span ${"%.0f".format(Locale.US, detection.span.takeIf { it.isFinite() } ?: 0.0)}"
+                                    val colourEnabled = colourAssistMode == "auto" && opticalProfile == "screen"
+                                    val activity = if (colourEnabled) MorseColourAssistCalibrator.activityLevel(sample.luma, sample.chromaV) else sample.luma
+                                    val detection = cameraDetector.feed(activity)
+                                    levelText = buildString {
+                                        append("luma ${"%.0f".format(Locale.US, sample.luma)}")
+                                        if (colourEnabled) append(" • activity ${"%.0f".format(Locale.US, activity)}")
+                                        append(" • span ${"%.0f".format(Locale.US, detection.span.takeIf { it.isFinite() } ?: 0.0)}")
+                                        if (colourEnabled) append(" • $colourAssistStatus")
+                                    }
                                     detection.state?.let { rawState ->
-                                        cameraStableGate.feed(rawState)?.let { stableState -> acceptSignal(stableState, sample.timestampMs) }
+                                        val stableState = cameraStableGate.feed(rawState)
+                                        if (colourEnabled) {
+                                            if (stableState == true) colourTracker.start(sample.timestampMs)
+                                            if (rawState) colourTracker.observe(sample.chromaU, sample.chromaV)
+                                        }
+                                        stableState?.let { stable ->
+                                            if (!stable && colourEnabled) {
+                                                val colour = colourTracker.finish(sample.timestampMs, effectiveDotMs, frameState)
+                                                colourAssistStatus = when {
+                                                    colour?.calibrationEvent != null -> colour.calibrationEvent
+                                                    colour?.hint != null -> "${if (colour.hint == '.') "WHITE→dot" else "RED→dash"} ${"%.0f".format(Locale.US, colour.confidence * 100)}%"
+                                                    else -> colourCalibrator.calibrationLabel()
+                                                }
+                                                acceptSignal(false, sample.timestampMs, colour?.hint, colour?.confidence ?: 0.0)
+                                            } else {
+                                                acceptSignal(stable, sample.timestampMs)
+                                            }
+                                        }
                                     }
                                 },
                                 onError = { error = it; listening = false }
@@ -974,7 +1150,7 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
                                 }
                             }
                             Text(
-                                if (opticalProfile == "screen") "Screen mode underexposes slightly and requires 2 stable frames, rejecting rolling-shutter swipe transitions."
+                                if (opticalProfile == "screen") "Screen mode underexposes slightly, requires 2 stable frames, and can fuse WHITE-dot / RED-dash chroma with timing while falling back cleanly to monochrome Morse."
                                 else "Torch mode underexposes more, uses a small ROI and requires 3 stable frames so flare decay does not become extra edges.",
                                 color = SignalMuted,
                                 style = MaterialTheme.typography.bodySmall
@@ -1035,10 +1211,11 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
                 }
             }
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { if (listening) stopListening() else startListening() }, modifier = Modifier.weight(1f)) { Text(if (listening) "Stop" else "Start listening") }
-                Button(onClick = ::commit, enabled = decodedText.isNotBlank() && consensusCopies > 0, modifier = Modifier.weight(1f)) { Text(if (committedResult == null) "Commit" else "Recommit") }
-            }
+            Button(
+                onClick = ::commit,
+                enabled = decodedText.isNotBlank() && consensusCopies > 0,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (committedResult == null) "Commit" else "Recommit") }
 
             if (committedResult != null && !context.submitsImmediately) {
                 SignalCommittedCard(
@@ -1068,13 +1245,14 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
                                 if (source == "light_sensor") add("light_sensor" to "Lux · legacy")
                                 add("camera" to "Camera")
                                 add("microphone" to "Mic")
+                                add("manual" to "Manual")
                             }
                             nativeSources.forEach { (id, label) ->
                                 FilterChip(selected = source == id, enabled = !listening, onClick = {
                                     if (source != id) {
                                         source = id
-                                        if (id != "microphone" && dotMsSetting < 120L) dotMsSetting = 240L
-                                        autoTiming = id == "microphone"
+                                        if ((id == "camera" || id == "light_sensor") && dotMsSetting < 120L) dotMsSetting = 240L
+                                        autoTiming = id == "microphone" || id == "manual"
                                         invalidateWorkingReception()
                                     }
                                 }, label = { Text(label) })
@@ -1085,7 +1263,7 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
                         val startingWpm = (1200.0 / dotMsSetting.toDouble()).roundToInt().coerceAtLeast(1)
                         Text("Starting speed: ~$startingWpm WPM  ·  $dotMsSetting ms dot")
                         Text("PARIS timing uses dot = 1200 / WPM. TX and RX use the same discrete speed presets.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        val opticalSource = source != "microphone"
+                        val opticalSource = source == "camera" || source == "light_sensor"
                         Text(
                             if (opticalSource) "Camera/light timing is capped at 10 WPM; 5 WPM is the long-range default."
                             else "Audio TX and RX are capped at 30 WPM (40 ms dot).",
@@ -1099,10 +1277,21 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
                             }
                         }
                     }
+                    if (source == "manual") {
+                        Text("Manual mode treats your dot/dash choice as authoritative and uses tap timing only to infer element, letter and word spacing. Starting speed is a weak prior, not a lock.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     if (source == "camera") {
                         Text("Optical timing is most reliable locked to the sender speed; 5 WPM is the default test profile. Auto timing is optional because rolling shutter and torch decay bias ON and OFF durations differently.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (opticalProfile == "screen" && context.settingShouldBeShown("colour_assist")) {
+                            Text("Colour-assisted Morse")
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                FilterChip(selected = colourAssistMode == "auto", enabled = !listening, onClick = { if (colourAssistMode != "auto") { colourAssistMode = "auto"; invalidateWorkingReception() } }, label = { Text("Auto") })
+                                FilterChip(selected = colourAssistMode == "off", enabled = !listening, onClick = { if (colourAssistMode != "off") { colourAssistMode = "off"; invalidateWorkingReception() } }, label = { Text("Off") })
+                            }
+                            Text("Auto learns WHITE from acquisition dots and RED from START, then fuses colour with duration. If colour separation is weak it becomes ordinary timing-only Morse automatically.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
-                    if (context.settingShouldBeShown("auto_timing")) {
+                    if (context.settingShouldBeShown("auto_timing") && source != "manual") {
                         Text("Timing mode")
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             FilterChip(selected = !autoTiming, enabled = !listening, onClick = { if (autoTiming) { autoTiming = false; invalidateWorkingReception() } }, label = { Text("Locked") })

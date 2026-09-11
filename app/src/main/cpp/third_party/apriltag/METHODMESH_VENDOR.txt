@@ -1,0 +1,9 @@
+AprilTag 3.4.5
+Upstream: https://github.com/AprilRobotics/apriltag
+Revision: 94be783968e5091bcc9972c72c84fd63efce2935
+Licence: BSD-2-Clause (see LICENSE.md and individual source notices).
+Source files unmodified. Full tracked release source retained, .git excluded.
+Android integration lives in the parent CMakeLists.txt and apriltag_jni.cpp.
+NDK 28.2.13676358; CMake 3.22.1; Android API 27 minimum.
+All default Android NDK ABIs retained; no ABI filter introduced.
+No network fetch takes place during the Android build.

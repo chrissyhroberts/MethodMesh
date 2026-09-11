@@ -16,7 +16,7 @@ object FskPhysicalCodec {
     const val MAX_FRAME_BYTES = 4096
 
     fun encodeFrame(frame: String): BooleanArray {
-        val payload = compactPayload(frame) ?: byteArrayOf(0x00) + frame.toByteArray(StandardCharsets.UTF_8)
+        val payload = encodeFramePayload(frame)
         require(payload.size <= MAX_FRAME_BYTES) { "FSK frame is too large (${payload.size} bytes)." }
         val packet = ByteArray(PREAMBLE.size + SYNC.size + 2 + payload.size)
         var p = 0
@@ -27,6 +27,10 @@ object FskPhysicalCodec {
         payload.copyInto(packet, p)
         return bytesToBits(packet)
     }
+
+    /** Compact binary MMS/1 payload shared by bit-at-a-time physical links. */
+    internal fun encodeFramePayload(frame: String): ByteArray =
+        compactPayload(frame) ?: byteArrayOf(0x00) + frame.toByteArray(StandardCharsets.UTF_8)
 
     /**
      * MMS/1 is human-readable ASCII, which is useful for QR/debugging but wasteful on

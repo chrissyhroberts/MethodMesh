@@ -83,6 +83,8 @@ enum class SignalCameraLockState {
 data class CameraLumaSample(
     val timestampMs: Long,
     val luma: Double,
+    val chromaU: Double? = null,
+    val chromaV: Double? = null,
     val roiCenterX: Float = 0.5f,
     val roiCenterY: Float = 0.5f,
     val lockState: SignalCameraLockState = SignalCameraLockState.MANUAL,
@@ -279,12 +281,22 @@ class SignalCameraLumaAnalyzer(
                 fraction = roiMode.fraction,
                 profile = opticalProfile
             )
+            val chroma = roiChroma(
+                image = image,
+                width = width,
+                height = height,
+                centerX = rawCenter.first,
+                centerY = rawCenter.second,
+                fraction = roiMode.fraction
+            )
 
             main.post {
                 onSample(
                     CameraLumaSample(
                         timestampMs = System.currentTimeMillis(),
                         luma = luma,
+                        chromaU = chroma?.first,
+                        chromaV = chroma?.second,
                         roiCenterX = selectedDisplayCenter.first,
                         roiCenterY = selectedDisplayCenter.second,
                         lockState = state,
@@ -337,6 +349,50 @@ class SignalCameraLumaAnalyzer(
         val quantile = if (profile == "torch") 0.75 else 0.50
         val index = ((samples.lastIndex) * quantile).roundToInt().coerceIn(0, samples.lastIndex)
         return samples[index].toDouble()
+    }
+
+    /** Median U/V chroma in the same analysis ROI as luminance. YUV_420_888
+     * keeps chroma at half resolution; sampling normalized coordinates avoids assumptions
+     * about interleaved vs planar pixel strides. */
+    private fun roiChroma(
+        image: ImageProxy,
+        width: Int,
+        height: Int,
+        centerX: Float,
+        centerY: Float,
+        fraction: Double
+    ): Pair<Double, Double>? {
+        val uPlane = image.planes.getOrNull(1) ?: return null
+        val vPlane = image.planes.getOrNull(2) ?: return null
+        val roiWidth = (width * fraction).toInt().coerceIn(10, width)
+        val roiHeight = (height * fraction).toInt().coerceIn(10, height)
+        val centerPixelX = (centerX.coerceIn(0f, 1f) * width).toInt()
+        val centerPixelY = (centerY.coerceIn(0f, 1f) * height).toInt()
+        val x0 = (centerPixelX - roiWidth / 2).coerceIn(0, max(0, width - roiWidth))
+        val y0 = (centerPixelY - roiHeight / 2).coerceIn(0, max(0, height - roiHeight))
+        val x1 = min(width, x0 + roiWidth)
+        val y1 = min(height, y0 + roiHeight)
+        val stepX = max(2, roiWidth / 20)
+        val stepY = max(2, roiHeight / 20)
+        val us = ArrayList<Int>(400)
+        val vs = ArrayList<Int>(400)
+        val ub = uPlane.buffer
+        val vb = vPlane.buffer
+        for (y in y0 until y1 step stepY) {
+            for (x in x0 until x1 step stepX) {
+                val cx = x / 2
+                val cy = y / 2
+                val ui = cy * uPlane.rowStride + cx * uPlane.pixelStride
+                val vi = cy * vPlane.rowStride + cx * vPlane.pixelStride
+                if (ui in 0 until ub.limit() && vi in 0 until vb.limit()) {
+                    us += ub.get(ui).toInt() and 0xFF
+                    vs += vb.get(vi).toInt() and 0xFF
+                }
+            }
+        }
+        if (us.isEmpty() || vs.isEmpty()) return null
+        us.sort(); vs.sort()
+        return us[us.size / 2].toDouble() to vs[vs.size / 2].toDouble()
     }
 
     private fun displayToRaw(x: Float, y: Float, rotation: Int): Pair<Float, Float> = when (rotation) {
@@ -619,7 +675,7 @@ fun SignalQrScanner(
     }
 }
 
-private fun Context.findLifecycleOwner(): LifecycleOwner? {
+internal fun Context.findLifecycleOwner(): LifecycleOwner? {
     var current: Context? = this
     while (current is ContextWrapper) {
         if (current is LifecycleOwner) return current

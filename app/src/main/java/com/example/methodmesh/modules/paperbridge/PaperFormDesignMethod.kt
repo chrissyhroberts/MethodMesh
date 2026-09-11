@@ -26,6 +26,10 @@ object PaperDesignFields {
     const val TEMPLATE_ID = "paper_template_id"
     const val TEMPLATE_VERSION = "paper_template_version"
     const val TEMPLATE_JSON_URI = "paper_template_json_uri"
+    const val TEMPLATE_YAML_URI = "paper_template_yaml_uri"
+    const val TEMPLATE_BUNDLE_URI = "paper_template_bundle_uri"
+    const val TEMPLATE_IMAGE_URI = "paper_design_template_image"
+    const val PREPARED_FORM_URI = "paper_design_prepared_form_image"
     const val MARKUP_IMAGE_URI = "paper_design_markup_image"
     const val FIELD_COUNT = "paper_design_field_count"
     const val ODK_FIELD_COUNT = "paper_design_odk_field_count"
@@ -35,14 +39,15 @@ object PaperDesignFields {
     const val ERROR = "paper_design_error"
 
     val outputs = listOf(
-        STATUS, TEMPLATE_JSON, TEMPLATE_ID, TEMPLATE_VERSION, TEMPLATE_JSON_URI, MARKUP_IMAGE_URI, FIELD_COUNT,
+        STATUS, TEMPLATE_JSON, TEMPLATE_ID, TEMPLATE_VERSION, TEMPLATE_JSON_URI, TEMPLATE_YAML_URI, TEMPLATE_BUNDLE_URI,
+        TEMPLATE_IMAGE_URI, PREPARED_FORM_URI, MARKUP_IMAGE_URI, FIELD_COUNT,
         ODK_FIELD_COUNT, ERROR_COUNT, WARNING_COUNT, SOURCE_TYPE, ERROR
     )
 }
 
 object As100PaperFormDesignMethod : As100Method {
     const val ID = "paper.form.design"
-    private const val VERSION = "0.3.0"
+    private const val VERSION = "0.6.0"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Paper form designer")
@@ -51,7 +56,7 @@ object As100PaperFormDesignMethod : As100Method {
         methodType = MethodObjectType.SignalInterpreter,
         name = "Paper form designer",
         version = VERSION,
-        description = "Visually place, move and resize persistent paper regions, link them to ODK-safe fields, validate geometry and anchors, test extraction, and save both the machine definition and an annotated design image.",
+        description = "Import an XLSForm-style survey workbook and paper template, detect semantic colour envelopes/response geometry, match printed labels, review mappings, test extraction, and export a portable Paper Bridge bundle.",
         inputs = emptyList(),
         outputs = PaperDesignFields.outputs,
         graphOutputs = listOf("paper.form.design"),

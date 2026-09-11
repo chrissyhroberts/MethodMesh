@@ -56,17 +56,18 @@ Required engineering before exposure as a MethodMesh capability:
 
 A bidirectional node could add its own magnetometer/coil rather than pretending phone-to-phone magnetic transmit is generally available.
 
-## 3. Optical binary modem
+## 3. Optical modem — Development baseline v0.5.0, field-test repair v0.5.1–v0.5.3
 
-Add a faster machine-oriented screen/torch -> camera modem distinct from human Morse:
+The machine-oriented optical modem is now a canonical phone-only capability family distinct from human Morse:
 
-- preamble/sync;
-- Manchester or similarly transition-rich physical symbols;
-- camera centre-ROI luminance and automatic thresholding;
-- MMS/1 coded frames;
-- link-quality and recovered-shard display;
-- screen and rear-torch transmit modes;
-- empirical device frame-rate/rolling-shutter testing.
+- `signal.optical_screen.transmit` / `signal.optical_screen.receive`: whole-screen 4-PAM plus v0.5.2 AprilTag16h5 Burst. The legacy `grid` token is retained for compatibility but the luminance lattice is retired; every changing tag is its own localisation/orientation symbol with block parity and loop recovery;
+- `signal.optical_torch_ppm.transmit` / `signal.optical_torch_ppm.receive`: compact single-flash 8-PPM with seven-flash clock acquisition and profile-defined parity;
+- MMS/1 remains available on general links; v0.5.1 adds a compact short-text CRC frame for low-bitrate optical modes to avoid disproportionate framing overhead;
+- Long / Balanced / Fast matched profiles with Long explicitly prioritising range;
+- camera ROI, hardware zoom and underexposure controls;
+- unstable camera observations treated as erasures rather than guessed symbols.
+
+Remaining work is empirical device characterisation: maximum practical range by phone pair/environment, camera frame-rate limits, screen PWM interactions and whether a separate rolling-shutter mode is portable enough to expose as Experimental. Rolling-shutter exploitation is not part of the canonical v0.5.2 contract.
 
 ## 4. MMS/1-over-Morse
 
@@ -80,17 +81,18 @@ Keep ordinary Morse human-readable, but add an explicit machine packet mode for 
 This should be a mode, not a silent change to ordinary `signal.morse.transmit` semantics.
 
 
-## 5. Manual Morse capture-and-infer
+## 5. Manual Morse capture-and-infer — implemented v0.5.1, large-control UI v0.5.2
 
-Add a distinct receiver mode for human/manual signalling where dot duration is unknown in advance:
+`signal.morse.receive` now exposes a **Manual** source for human-observed signalling:
 
-- camera auto-lock/Pinpoint ROI acquires a flashing torch or screen;
-- record the raw ON/OFF duration series without forcing live character decisions;
-- cluster mark durations into dot/dash populations and gaps into intra-character / character / word groups;
-- infer the most plausible base unit and decode afterwards;
-- expose per-character confidence and retain the raw timing series in the committed provenance record when explicitly requested.
+- the operator presses START SIGNAL on the observed MethodMesh start marker, then DOT/DASH for each observed mark; in v0.5.2 the live decode occupies the upper instrument area and DOT/DASH are deliberately very large side-by-side controls for eyes-on-signal tapping;
+- the next START closes that observation and immediately anchors the next copy;
+- no manual letter/word/end controls are required;
+- taps before START are quarantined;
+- raw tap timestamps for the current observation are re-segmented as the inferred cadence changes, so the configured WPM is only a weak prior;
+- onset-style and end-of-mark recognition tapping are both fitted; complete START-bounded copies feed the existing probabilistic repeat-consensus chain.
 
-This is intentionally separate from the current live decoder. MethodMesh-generated cycles already carry a distinctive START beacon and can refine repeated copies without needing this inference pass.
+Future refinement may expose per-character timing confidence and optional committed raw tap provenance, but the basic human receiver is no longer roadmap-only.
 
 ## 6. DTMF and additional acoustic channels
 
@@ -136,3 +138,8 @@ If Signal Node firmware becomes part of MethodMesh:
 - provision/install through an appropriate Workbench capability;
 - expose firmware version/protocol compatibility in the device registry;
 - preserve phone-only Signals capabilities when no external node exists.
+
+
+## 6. Colour-assisted screen Morse — implemented v0.5.3
+
+Screen Morse now carries redundant mark identity in colour while preserving ordinary Morse timing: WHITE dots/acquisition and RED dashes/START/END. Camera Auto mode calibrates those colours from the known preamble/START sequence and fuses chroma with duration probabilistically. Weak colour is ignored, preserving monochrome interoperability.

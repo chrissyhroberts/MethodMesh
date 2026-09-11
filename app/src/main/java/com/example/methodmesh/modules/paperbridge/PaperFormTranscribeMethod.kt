@@ -47,6 +47,13 @@ object PaperBridgeFields {
     const val SOURCE_SHA256 = "paper_source_sha256"
     const val RECTIFIED_SHA256 = "paper_rectified_sha256"
     const val EXTRACTION_AUDIT_JSON = "paper_extraction_audit_json"
+    const val MANUAL_EDITS_JSON = "paper_manual_edits_json"
+    const val MANUAL_EDIT_COUNT = "paper_manual_edit_count"
+    const val LOGIC_CHECKS_JSON = "paper_logic_checks_json"
+    const val LOGIC_VIOLATION_COUNT = "paper_logic_violation_count"
+    const val LOGIC_UNKNOWN_COUNT = "paper_logic_unknown_count"
+    const val NA_FIELDS_JSON = "paper_na_fields_json"
+    const val ATTACHMENT_METADATA_JSON = "paper_attachment_metadata_json"
     const val SCAN_TIME_ISO = "paper_scan_time_iso"
     const val ERROR = "paper_error"
 
@@ -54,7 +61,9 @@ object PaperBridgeFields {
         STATUS, TEMPLATE_ID, TEMPLATE_VERSION, VALUES_JSON, DYNAMIC_FIELDS_JSON,
         FIELD_COUNT, AUTO_ACCEPTED_COUNT, REVIEWED_COUNT, UNRESOLVED_COUNT,
         SOURCE_IMAGE, RECTIFIED_IMAGE, TEMPLATE_SHA256, SOURCE_SHA256,
-        RECTIFIED_SHA256, EXTRACTION_AUDIT_JSON, SCAN_TIME_ISO, ERROR
+        RECTIFIED_SHA256, EXTRACTION_AUDIT_JSON, MANUAL_EDITS_JSON, MANUAL_EDIT_COUNT,
+        LOGIC_CHECKS_JSON, LOGIC_VIOLATION_COUNT, LOGIC_UNKNOWN_COUNT, NA_FIELDS_JSON,
+        ATTACHMENT_METADATA_JSON, SCAN_TIME_ISO, ERROR
     )
 }
 
@@ -69,14 +78,12 @@ object PaperBridgeContractMetadata {
             "input_source_mode='camera'," +
             "input_auto_accept_omr='true'," +
             "input_auto_accept_ocr='false'," +
-            "input_return_source_image='true'," +
-            "input_return_rectified_image='true'," +
             "input_payload_mode='FULL',return_mode='flat')"
 }
 
 object As100PaperFormTranscribeMethod : As100Method {
     const val ID = "paper.form.transcribe"
-    private const val VERSION = "0.1.0"
+    private const val VERSION = "0.5.5"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Paper form transcription")
@@ -85,7 +92,7 @@ object As100PaperFormTranscribeMethod : As100Method {
         methodType = MethodObjectType.SignalInterpreter,
         name = "Paper form transcription",
         version = VERSION,
-        description = "Rectify an anchored paper questionnaire, extract marks/text in declared ROIs, fail closed on ambiguity, review, then return structured values.",
+        description = "Scan and register a paper questionnaire, extract declared ROIs, apply imported XLSForm relevance/required/constraint checks, review uncertainty or confirmed NA overrides, then return structured values with explicit manual-edit and logic audit metadata.",
         inputs = listOf(
             PaperBridgeInputs.TEMPLATE_JSON,
             PaperBridgeInputs.INPUT_SOURCE,

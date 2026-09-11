@@ -14,6 +14,10 @@ internal data class PaperOdkField(
     val label: String,
     val type: PaperFieldType,
     val required: Boolean,
+    val requiredExpression: String? = null,
+    val relevanceExpression: String? = null,
+    val constraintExpression: String? = null,
+    val constraintMessage: String? = null,
     val options: List<Pair<String, String>> = emptyList(),
     val regex: String? = null,
     val minimum: Double? = null,
@@ -29,18 +33,20 @@ internal data class PaperOdkSchema(
 )
 
 /**
- * Tiny dependency-free XLSForm reader used only by Paper Bridge's designer.
+ * Tiny dependency-free XLSX survey/choices reader used only by Paper Bridge's designer.
  *
  * It reads the Open XML container directly and deliberately extracts only the
- * small subset needed for paper mapping: survey type/name/label/required/
- * constraint plus choices. It is not intended to be a general XLSX engine.
+ * fixed XLSForm-compatible subset needed for paper mapping: survey
+ * type/name/label/required/constraint plus choices list_name/name/label.
+ * ODK is not required: any ordinary .xlsx authored with these sheets/columns
+ * can be used. It is not intended to be a general XLSX engine.
  */
 internal object PaperXlsFormReader {
     private const val REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 
     fun read(context: Context, uri: Uri): PaperOdkSchema {
         val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            ?: throw IllegalArgumentException("Could not open XLSForm.")
+            ?: throw IllegalArgumentException("Could not open survey workbook.")
         return readBytes(bytes)
     }
 
@@ -49,7 +55,7 @@ internal object PaperXlsFormReader {
         val shared = entries["xl/sharedStrings.xml"]?.let(::parseSharedStrings).orEmpty()
         val sheetPaths = workbookSheetPaths(entries)
         val surveyPath = sheetPaths.entries.firstOrNull { it.key.equals("survey", true) }?.value
-            ?: throw IllegalArgumentException("XLSForm has no survey sheet.")
+            ?: throw IllegalArgumentException("Workbook has no survey sheet.")
         val survey = parseSheet(entries[surveyPath] ?: error("survey worksheet missing"), shared)
         val choices = sheetPaths.entries.firstOrNull { it.key.equals("choices", true) }?.value
             ?.let { path -> entries[path]?.let { parseSheet(it, shared) } }
@@ -65,13 +71,38 @@ internal object PaperXlsFormReader {
 
         val warnings = mutableListOf<String>()
         val fields = mutableListOf<PaperOdkField>()
+        val inheritedRelevance = mutableListOf<String>()
+        var repeatDepth = 0
+
         survey.forEach { row ->
             val rawType = row["type"].orEmpty().trim()
             val name = row["name"].orEmpty().trim()
-            if (rawType.isBlank() || name.isBlank()) return@forEach
-            if (name.startsWith("paper_") || name.startsWith("methodmesh_")) return@forEach
+            if (rawType.isBlank()) return@forEach
             val lower = rawType.lowercase()
-            if (lower.startsWith("begin_") || lower.startsWith("end_") || lower in setOf("note", "calculate", "hidden", "start", "end")) return@forEach
+            val structural = lower.replace(' ', '_')
+
+            if (structural.startsWith("begin_group")) {
+                inheritedRelevance += row["relevant"].orEmpty().trim()
+                return@forEach
+            }
+            if (structural.startsWith("end_group")) {
+                if (inheritedRelevance.isNotEmpty()) inheritedRelevance.removeAt(inheritedRelevance.lastIndex)
+                return@forEach
+            }
+            if (structural.startsWith("begin_repeat")) {
+                inheritedRelevance += row["relevant"].orEmpty().trim()
+                repeatDepth++
+                return@forEach
+            }
+            if (structural.startsWith("end_repeat")) {
+                if (inheritedRelevance.isNotEmpty()) inheritedRelevance.removeAt(inheritedRelevance.lastIndex)
+                repeatDepth = (repeatDepth - 1).coerceAtLeast(0)
+                return@forEach
+            }
+
+            if (name.isBlank()) return@forEach
+            if (name.startsWith("paper_") || name.startsWith("methodmesh_")) return@forEach
+            if (structural in setOf("note", "calculate", "hidden", "start", "end")) return@forEach
 
             val mappedType: PaperFieldType
             val options: List<Pair<String, String>>
@@ -80,6 +111,7 @@ internal object PaperXlsFormReader {
                 lower == "integer" -> { mappedType = PaperFieldType.OCR_INTEGER; options = emptyList() }
                 lower == "decimal" -> { mappedType = PaperFieldType.OCR_DECIMAL; options = emptyList() }
                 lower == "barcode" -> { mappedType = PaperFieldType.BARCODE; options = emptyList() }
+                lower == "image" -> { mappedType = PaperFieldType.IMAGE; options = emptyList() }
                 lower.startsWith("select_one ") -> {
                     mappedType = PaperFieldType.OMR_SINGLE
                     val listName = rawType.substringAfter(' ').trim()
@@ -93,27 +125,48 @@ internal object PaperXlsFormReader {
                     if (options.isEmpty()) warnings += "$name: choice list '$listName' was not found or is empty."
                 }
                 else -> {
-                    warnings += "$name: ODK type '$rawType' is not directly supported by Paper Bridge and was skipped."
+                    warnings += "$name: survey type '$rawType' is not directly supported by Paper Bridge and was skipped."
                     return@forEach
                 }
             }
 
-            val constraint = row["constraint"].orEmpty()
+            val constraint = row["constraint"].orEmpty().trim()
             val minimum = Regex("\\.\\s*>=\\s*(-?\\d+(?:\\.\\d+)?)").find(constraint)?.groupValues?.getOrNull(1)?.toDoubleOrNull()
                 ?: Regex("(-?\\d+(?:\\.\\d+)?)\\s*<=\\s*\\.").find(constraint)?.groupValues?.getOrNull(1)?.toDoubleOrNull()
             val maximum = Regex("\\.\\s*<=\\s*(-?\\d+(?:\\.\\d+)?)").find(constraint)?.groupValues?.getOrNull(1)?.toDoubleOrNull()
                 ?: Regex("\\.\\s*<\\s*(-?\\d+(?:\\.\\d+)?)").find(constraint)?.groupValues?.getOrNull(1)?.toDoubleOrNull()
             val regex = Regex("regex\\s*\\(\\s*\\.\\s*,\\s*['\"]([^'\"]+)['\"]\\s*\\)", RegexOption.IGNORE_CASE)
                 .find(constraint)?.groupValues?.getOrNull(1)
-            if (constraint.isNotBlank() && minimum == null && maximum == null && regex == null) {
-                warnings += "$name: constraint was retained in ODK but is too complex to import automatically into Paper Bridge."
+
+            val requiredRaw = row["required"].orEmpty().trim()
+            val requiredLower = requiredRaw.lowercase()
+            val requiredLiteral = requiredLower in setOf("yes", "true", "1")
+            val requiredExpression = requiredRaw.takeIf {
+                it.isNotBlank() && requiredLower !in setOf("yes", "true", "1", "no", "false", "0")
             }
 
+            val localRelevance = row["relevant"].orEmpty().trim()
+            val relevanceParts = inheritedRelevance.filter(String::isNotBlank) + listOfNotNull(localRelevance.takeIf(String::isNotBlank))
+            val effectiveRelevance = relevanceParts.takeIf { it.isNotEmpty() }
+                ?.joinToString(" and ") { "($it)" }
+
+            if (repeatDepth > 0) {
+                warnings += "$name: field is inside a repeat; Paper Bridge evaluates imported relevance/constraints as a single paper instance only."
+            }
+
+            val resolvedLabel = labelValue(row, name)
+            if (row["label"].orEmpty().isBlank() && row.keys.none { it.startsWith("label::") && row[it].orEmpty().isNotBlank() }) {
+                warnings += "$name: no question label was supplied; colour-template OCR cannot auto-match this field by question text."
+            }
             fields += PaperOdkField(
                 name = name,
-                label = labelValue(row, name),
+                label = resolvedLabel,
                 type = mappedType,
-                required = row["required"].orEmpty().trim().lowercase() in setOf("yes", "true", "1"),
+                required = requiredLiteral,
+                requiredExpression = requiredExpression,
+                relevanceExpression = effectiveRelevance,
+                constraintExpression = constraint.takeIf(String::isNotBlank),
+                constraintMessage = messageValue(row, "constraint_message"),
                 options = options,
                 regex = regex,
                 minimum = minimum,
@@ -121,7 +174,7 @@ internal object PaperXlsFormReader {
             )
         }
 
-        require(fields.isNotEmpty()) { "No Paper Bridge-compatible ODK fields were found in the XLSForm." }
+        require(fields.isNotEmpty()) { "No Paper Bridge-compatible fields were found in the survey sheet." }
         val settingsRow = settings.firstOrNull().orEmpty()
         return PaperOdkSchema(
             formId = settingsRow["form_id"].orEmpty().ifBlank { "paper_form" },
@@ -137,8 +190,13 @@ internal object PaperXlsFormReader {
         return row.entries.firstOrNull { (key, value) -> key.startsWith("label::") && value.isNotBlank() }?.value ?: fallback
     }
 
+    private fun messageValue(row: Map<String, String>, base: String): String? {
+        row[base]?.takeIf { it.isNotBlank() }?.let { return it }
+        return row.entries.firstOrNull { (key, value) -> key.startsWith("$base::") && value.isNotBlank() }?.value
+    }
+
     private fun unzip(bytes: ByteArray): Map<String, ByteArray> {
-        require(bytes.size <= 25 * 1024 * 1024) { "XLSForm is too large for the Paper Bridge schema importer." }
+        require(bytes.size <= 25 * 1024 * 1024) { "Survey workbook is too large for the Paper Bridge schema importer." }
         val entries = linkedMapOf<String, ByteArray>()
         var totalExpanded = 0L
         ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->

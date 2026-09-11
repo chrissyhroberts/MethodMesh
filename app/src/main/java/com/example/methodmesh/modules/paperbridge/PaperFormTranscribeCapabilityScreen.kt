@@ -2,11 +2,14 @@ package com.example.methodmesh.modules.paperbridge
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.net.Uri
 import android.widget.Toast
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -17,12 +20,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,6 +39,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,31 +56,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.PresetResultAction
-import com.example.methodmesh.transport.OutputExportRepository
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100PaperFormTranscribeMethod.ID
     override val title = "Paper Bridge"
-    override val description = "Scan, verify and transcribe an anchored paper questionnaire."
+    override val description = "Scan, verify and transcribe a registered paper questionnaire."
 
     @Composable
     override fun Render(
@@ -114,7 +132,11 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
             PaperTemplateSamples.DEMO_MANIFEST_JSON
         }
         var templateJson by rememberSaveable(context.action.canonicalId) {
-            mutableStateOf(initial(PaperBridgeInputs.TEMPLATE_JSON, dashboardTemplateFallback))
+            mutableStateOf(
+                PaperBridgeWorkspace.normalizeManifest(
+                    initial(PaperBridgeInputs.TEMPLATE_JSON, dashboardTemplateFallback)
+                )
+            )
         }
         var inputSource by rememberSaveable(context.action.canonicalId) {
             mutableStateOf(initial(PaperBridgeInputs.INPUT_SOURCE, "camera"))
@@ -125,25 +147,34 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
         var autoAcceptOcr by rememberSaveable(context.action.canonicalId) {
             mutableStateOf(initial(PaperBridgeInputs.AUTO_ACCEPT_OCR, "false").equals("true", true))
         }
-        var returnSourceImage by rememberSaveable(context.action.canonicalId) {
-            mutableStateOf(initial(PaperBridgeInputs.RETURN_SOURCE_IMAGE, "true").equals("true", true))
-        }
-        var returnRectifiedImage by rememberSaveable(context.action.canonicalId) {
-            mutableStateOf(initial(PaperBridgeInputs.RETURN_RECTIFIED_IMAGE, "true").equals("true", true))
-        }
+        // Source and registered-page evidence are part of the Paper Bridge commit contract.
+        // Legacy inputs remain accepted for method compatibility but can no longer disable them.
+        val returnSourceImage = true
+        val returnRectifiedImage = true
+        val initialSourceImageUri = initial(PaperBridgeInputs.SOURCE_IMAGE_URI)
         var sourceUriText by rememberSaveable(context.action.canonicalId) {
-            mutableStateOf(initial(PaperBridgeInputs.SOURCE_IMAGE_URI))
+            mutableStateOf(initialSourceImageUri)
         }
         var pendingCaptureUriText by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         var manualQuarterTurns by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var manualOverridesJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("{}") }
+        var naOverridesJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("[]") }
+        var manualAuditJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("[]") }
         var session by remember { mutableStateOf<PaperExtractionSession?>(null) }
         var results by remember { mutableStateOf<List<PaperFieldResult>>(emptyList()) }
         var processing by remember { mutableStateOf(false) }
         var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Ready to scan a paper questionnaire.") }
+        var scannerActive by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var lastAcquisitionMode by rememberSaveable(context.action.canonicalId) {
+            mutableStateOf(if (initialSourceImageUri.isNotBlank()) "caller_supplied" else "direct")
+        }
         var sourceMenu by rememberSaveable { mutableStateOf(false) }
         var technicalOpen by rememberSaveable { mutableStateOf(false) }
         var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
+        var committedStableJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
+        var committedDynamicJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
+        var includeFullJson by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         var workspaceMode by rememberSaveable(context.action.canonicalId) {
             mutableStateOf(if (nativeDashboard) "dashboard" else "scan")
         }
@@ -178,26 +209,115 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
             o.keys().asSequence().associateWith { key -> o.optString(key, "") }
         }.getOrDefault(emptyMap())
 
-        fun saveOverride(fieldName: String, value: String) {
-            val objectValue = runCatching { JSONObject(manualOverridesJson) }.getOrDefault(JSONObject())
-            objectValue.put(fieldName, value)
-            manualOverridesJson = objectValue.toString()
-            results = results.map { result ->
-                if (result.spec.name == fieldName) PaperExtractionEngine.withManualValue(result, value) else result
+        fun naOverrides(): Set<String> = runCatching {
+            val a = JSONArray(naOverridesJson)
+            (0 until a.length()).map(a::getString).toSet()
+        }.getOrDefault(emptySet())
+
+        fun reviewStatus(current: List<PaperFieldResult>): String {
+            val unresolved = current.count { !it.resolved }
+            val unknown = current.count { it.logicUnknown }
+            return when {
+                unresolved > 0 -> "$unresolved field${if (unresolved == 1) "" else "s"} require review."
+                unknown > 0 -> "All ${current.size} fields are resolved; $unknown XLSForm logic check${if (unknown == 1) "" else "s"} could not be evaluated and are flagged in the audit."
+                else -> "All ${current.size} fields are ready to Commit."
             }
         }
 
-        fun runExtraction(stableUri: Uri) {
+        fun appendManualAudit(before: PaperFieldResult, after: PaperFieldResult, action: String) {
+            if (action == "manual_edit" && before.finalValue == after.finalValue) return
+            val events = runCatching { JSONArray(manualAuditJson) }.getOrDefault(JSONArray())
+            events.put(JSONObject().apply {
+                put("timestamp_iso", Instant.now().toString())
+                put("field", before.spec.name)
+                put("action", action)
+                put("candidate", before.candidate)
+                put("previous_value", before.finalValue)
+                put("new_value", after.finalValue)
+                put("previous_reason", before.reason)
+                put("new_reason", after.reason)
+                put("previous_logic_message", before.logicMessage)
+                put("new_logic_message", after.logicMessage)
+                put("previous_relevant", before.relevant ?: JSONObject.NULL)
+                put("new_relevant", after.relevant ?: JSONObject.NULL)
+                put("previous_required_now", before.requiredNow ?: JSONObject.NULL)
+                put("new_required_now", after.requiredNow ?: JSONObject.NULL)
+                put("previous_constraint_satisfied", before.constraintSatisfied ?: JSONObject.NULL)
+                put("new_constraint_satisfied", after.constraintSatisfied ?: JSONObject.NULL)
+                put("previous_logic_violation", before.logicViolation)
+                put("new_logic_violation", after.logicViolation)
+                put("previous_logic_unknown", before.logicUnknown)
+                put("new_logic_unknown", after.logicUnknown)
+                put("previous_na_override", before.naOverride)
+                put("new_na_override", after.naOverride)
+                put("operator_confirmed", true)
+            })
+            manualAuditJson = events.toString()
+        }
+
+        fun saveOverride(fieldName: String, value: String) {
+            val before = results.firstOrNull { it.spec.name == fieldName } ?: return
+            val provisional = PaperExtractionEngine.withManualValue(before, value)
+
+            val objectValue = runCatching { JSONObject(manualOverridesJson) }.getOrDefault(JSONObject())
+            objectValue.put(fieldName, provisional.finalValue)
+            manualOverridesJson = objectValue.toString()
+
+            val na = naOverrides().toMutableSet().apply { remove(fieldName) }
+            naOverridesJson = JSONArray(na.toList()).toString()
+
+            val recalculated = PaperXlsLogic.apply(results.map { result ->
+                if (result.spec.name == fieldName) provisional else result
+            })
+            val after = recalculated.first { it.spec.name == fieldName }
+            appendManualAudit(before, after, "manual_edit")
+            results = recalculated
+            status = reviewStatus(results)
+        }
+
+        fun setNaOverride(fieldName: String) {
+            val before = results.firstOrNull { it.spec.name == fieldName } ?: return
+            if (before.naOverride) return
+            val provisional = PaperExtractionEngine.withNaOverride(before)
+
+            val objectValue = runCatching { JSONObject(manualOverridesJson) }.getOrDefault(JSONObject())
+            objectValue.put(fieldName, "na")
+            manualOverridesJson = objectValue.toString()
+
+            val na = naOverrides().toMutableSet().apply { add(fieldName) }
+            naOverridesJson = JSONArray(na.toList()).toString()
+
+            val recalculated = PaperXlsLogic.apply(results.map { result ->
+                if (result.spec.name == fieldName) provisional else result
+            })
+            val after = recalculated.first { it.spec.name == fieldName }
+            appendManualAudit(before, after, "na_override")
+            results = recalculated
+            status = reviewStatus(results)
+        }
+
+        fun runExtraction(
+            stableUri: Uri,
+            acquisitionMode: String = "direct",
+            preserveExistingPreview: Boolean = false
+        ) {
             val parsed = template
             if (parsed == null) {
                 status = templateError ?: "Paper template is invalid."
                 return
             }
+            lastAcquisitionMode = acquisitionMode
             processing = true
             committedResult = null
-            session = null
-            results = emptyList()
-            status = "Finding anchors and rectifying page…"
+            if (!preserveExistingPreview) {
+                session = null
+                results = emptyList()
+            }
+            status = if (acquisitionMode == "mlkit_document_scanner") {
+                "Cropping to registration-centre rectangle and reading fields…"
+            } else {
+                "Finding registration targets and rectifying target rectangle…"
+            }
             scope.launch {
                 val outcome = runCatching {
                     PaperExtractionEngine.extract(
@@ -206,22 +326,30 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         template = parsed,
                         settings = PaperExtractionSettings(autoAcceptOmr, autoAcceptOcr),
                         manualQuarterTurns = manualQuarterTurns,
-                        scanTimeIso = Instant.now().toString()
+                        scanTimeIso = Instant.now().toString(),
+                        acquisitionMode = acquisitionMode
                     )
                 }
                 processing = false
                 outcome.onFailure { error ->
                     status = error.message ?: "Paper extraction failed."
-                    session = null
-                    results = emptyList()
+                    if (!preserveExistingPreview) {
+                        session = null
+                        results = emptyList()
+                    }
                 }.onSuccess { extracted ->
                     session = extracted
                     val manual = overrides()
-                    results = extracted.results.map { result ->
-                        manual[result.spec.name]?.let { PaperExtractionEngine.withManualValue(result, it) } ?: result
+                    val na = naOverrides()
+                    val reapplied = extracted.results.map { result ->
+                        when {
+                            result.spec.name in na -> PaperExtractionEngine.withNaOverride(result)
+                            manual[result.spec.name] != null -> PaperExtractionEngine.withManualValue(result, manual.getValue(result.spec.name))
+                            else -> result
+                        }
                     }
-                    val unresolved = results.count { !it.resolved }
-                    status = if (unresolved == 0) "All ${results.size} fields are ready to Commit." else "$unresolved field${if (unresolved == 1) "" else "s"} require review."
+                    results = PaperXlsLogic.apply(reapplied)
+                    status = reviewStatus(results)
                 }
             }
         }
@@ -231,8 +359,11 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
             if (ok && pending != null) {
                 sourceUriText = pending.toString()
                 manualOverridesJson = "{}"
+                naOverridesJson = "[]"
+                manualAuditJson = "[]"
                 manualQuarterTurns = 0
-                runExtraction(pending)
+                status = "Fallback camera capture complete. Finding registration targets…"
+                runExtraction(pending, acquisitionMode = "camera")
             } else {
                 status = "Camera capture cancelled."
                 if (nativeDashboard && session == null) workspaceMode = "dashboard"
@@ -253,22 +384,101 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         .onSuccess { stable ->
                             sourceUriText = stable.toString()
                             manualOverridesJson = "{}"
+                            naOverridesJson = "[]"
+                            manualAuditJson = "[]"
                             manualQuarterTurns = 0
                             workspaceMode = "scan"
-                            runExtraction(stable)
+                            runExtraction(stable, acquisitionMode = "file_picker")
                         }
                 }
             }
+        }
+        val scannerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { activityResult ->
+            scannerActive = false
+            if (activityResult.resultCode != Activity.RESULT_OK) {
+                status = "Document scan cancelled."
+                if (nativeDashboard && session == null) workspaceMode = "dashboard"
+                return@rememberLauncherForActivityResult
+            }
+            val scanResult = activityResult.data?.let { GmsDocumentScanningResult.fromActivityResultIntent(it) }
+            val scannedPage = scanResult?.pages?.firstOrNull()?.imageUri
+            if (scannedPage == null) {
+                status = "ML Kit did not return a scanned page."
+                if (nativeDashboard && session == null) workspaceMode = "dashboard"
+                return@rememberLauncherForActivityResult
+            }
+            status = "Page cropped and straightened. Preparing template registration…"
+            scope.launch {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        PaperBridgeFiles.copyIntoCache(appContext, scannedPage, "mlkit-page")
+                    }
+                }.onFailure { error ->
+                    status = "Could not copy ML Kit scan: ${error.message ?: "scanner output unavailable"}"
+                    if (nativeDashboard && session == null) workspaceMode = "dashboard"
+                }.onSuccess { stable ->
+                    sourceUriText = stable.toString()
+                    manualOverridesJson = "{}"
+                    naOverridesJson = "[]"
+                    manualAuditJson = "[]"
+                    manualQuarterTurns = 0
+                    workspaceMode = "scan"
+                    status = "ML Kit page ready. Finding registration targets…"
+                    runExtraction(stable, acquisitionMode = "mlkit_document_scanner")
+                }
+            }
+        }
+
+        fun launchFallbackAcquisition(source: String) {
+            if (source == "file_picker") {
+                pickImage.launch("image/*")
+            } else {
+                val uri = PaperBridgeFiles.newCaptureUri(appContext)
+                pendingCaptureUriText = uri.toString()
+                takePicture.launch(uri)
+            }
+        }
+
+        fun startMlKitDocumentScan(source: String) {
+            val activity = appContext.findPaperBridgeActivity()
+            if (activity == null) {
+                scannerActive = false
+                status = "No Android activity was available for ML Kit scanning; using basic acquisition instead."
+                launchFallbackAcquisition(source)
+                return
+            }
+            val options = GmsDocumentScannerOptions.Builder()
+                .setGalleryImportAllowed(true)
+                .setPageLimit(1)
+                .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_JPEG)
+                .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
+                .build()
+            status = if (source == "file_picker") {
+                "Opening ML Kit scanner — choose the page from gallery if needed…"
+            } else {
+                "Opening ML Kit document scanner…"
+            }
+            GmsDocumentScanning.getClient(options)
+                .getStartScanIntent(activity)
+                .addOnSuccessListener { sender ->
+                    // Keep the host behind ML Kit visually blank. Some scanner builds
+                    // use translucent transitions; dashboard help text must never show
+                    // through the acquisition UI.
+                    scannerActive = true
+                    scannerLauncher.launch(IntentSenderRequest.Builder(sender).build())
+                }
+                .addOnFailureListener { error ->
+                    scannerActive = false
+                    status = "ML Kit scanner unavailable (${error.message.orEmpty()}). Using basic acquisition instead."
+                    launchFallbackAcquisition(source)
+                }
         }
         val pickTemplate = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) {
                 scope.launch {
                     val outcome = runCatching {
-                        withContext(Dispatchers.IO) {
-                            appContext.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                                ?: error("Could not read template file.")
-                        }
-                    }.mapCatching { raw -> PaperBridgeWorkspace.saveAndActivateTemplate(appContext, raw) }
+                        withContext(Dispatchers.IO) { PaperTemplateImport.importIntoWorkspace(appContext, uri) }
+                    }
                     outcome.onFailure { error ->
                         dashboardMessage = "Template not imported: ${error.message ?: "invalid manifest"}"
                     }.onSuccess { imported ->
@@ -290,14 +500,16 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
             val source = sourceOverride ?: inputSource
             inputSource = source
             committedResult = null
+            committedStableJson = ""
+            committedDynamicJson = ""
+            includeFullJson = false
+            exportStatus = ""
             workspaceMode = "scan"
-            if (source == "file_picker") {
-                pickImage.launch("image/*")
-            } else {
-                val uri = PaperBridgeFiles.newCaptureUri(appContext)
-                pendingCaptureUriText = uri.toString()
-                takePicture.launch(uri)
-            }
+            // Stage 1: let ML Kit find the sheet, crop it and correct coarse perspective.
+            // Stage 2: Paper Bridge detects the template registration system on that
+            // normalised page. APRILTAG8 schemas use eight unique perimeter tags and all
+            // detected tag corners to rectify once into the canonical page coordinates.
+            startMlKitDocumentScan(source)
         }
 
         LaunchedEffect(Unit) {
@@ -309,7 +521,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                 }.getOrNull()
                 if (stable != null) {
                     sourceUriText = stable.toString()
-                    runExtraction(stable)
+                    runExtraction(stable, acquisitionMode = lastAcquisitionMode)
                 }
             } else if (context.startsImmediately && sourceUriText.isBlank()) {
                 capture()
@@ -319,8 +531,14 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
         fun rotateAndReprocess() {
             val uri = sourceUriText.takeIf(String::isNotBlank)?.let(Uri::parse) ?: return
             manualQuarterTurns = (manualQuarterTurns + 1) % 4
-            manualOverridesJson = "{}"
-            runExtraction(uri)
+            // Rotation is a re-registration of the SAME acquisition. Never switch an
+            // ML Kit page back into the raw-image homography path, and keep the last
+            // good preview/field overlay visible while the replacement is computed.
+            runExtraction(
+                uri,
+                acquisitionMode = lastAcquisitionMode,
+                preserveExistingPreview = true
+            )
         }
 
         fun commit() {
@@ -334,6 +552,11 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                 val stable = runCatching {
                     val sourceHash = withContext(Dispatchers.IO) { PaperBridgeFiles.sha256(appContext, extracted.sourceUri) }
                     val rectifiedHash = withContext(Dispatchers.IO) { PaperBridgeFiles.sha256(appContext, extracted.rectifiedUri) }
+                    val manualEditCount = runCatching { JSONArray(manualAuditJson).length() }.getOrDefault(0)
+                    val logicChecksJson = PaperXlsLogic.checksJson(results)
+                    val logicViolationCount = results.count { it.logicViolation }
+                    val logicUnknownCount = results.count { it.logicUnknown }
+                    val naFieldsJson = JSONArray(results.filter { it.naOverride }.map { it.spec.name }).toString()
                     linkedMapOf(
                         PaperBridgeFields.STATUS to "succeeded",
                         PaperBridgeFields.TEMPLATE_ID to extracted.template.templateId,
@@ -344,12 +567,52 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         PaperBridgeFields.AUTO_ACCEPTED_COUNT to results.count { it.autoAccepted }.toString(),
                         PaperBridgeFields.REVIEWED_COUNT to results.count { it.reviewed }.toString(),
                         PaperBridgeFields.UNRESOLVED_COUNT to "0",
-                        PaperBridgeFields.SOURCE_IMAGE to if (returnSourceImage) extracted.sourceUri.toString() else "",
-                        PaperBridgeFields.RECTIFIED_IMAGE to if (returnRectifiedImage) extracted.rectifiedUri.toString() else "",
+                        // The caller needs the complete scan bundle: original
+                        // acquisition plus registered analysis page. A caller-
+                        // supplied source is still part of that bundle.
+                        PaperBridgeFields.SOURCE_IMAGE to extracted.sourceUri.toString(),
+                        PaperBridgeFields.RECTIFIED_IMAGE to extracted.rectifiedUri.toString(),
                         PaperBridgeFields.TEMPLATE_SHA256 to PaperBridgeFiles.sha256Text(extracted.template.rawJson),
                         PaperBridgeFields.SOURCE_SHA256 to sourceHash,
                         PaperBridgeFields.RECTIFIED_SHA256 to rectifiedHash,
-                        PaperBridgeFields.EXTRACTION_AUDIT_JSON to PaperExtractionEngine.auditJson(extracted, results),
+                        PaperBridgeFields.EXTRACTION_AUDIT_JSON to PaperExtractionEngine.auditJson(extracted, results, manualAuditJson),
+                        PaperBridgeFields.MANUAL_EDITS_JSON to manualAuditJson,
+                        PaperBridgeFields.MANUAL_EDIT_COUNT to manualEditCount.toString(),
+                        PaperBridgeFields.LOGIC_CHECKS_JSON to logicChecksJson,
+                        PaperBridgeFields.LOGIC_VIOLATION_COUNT to logicViolationCount.toString(),
+                        PaperBridgeFields.LOGIC_UNKNOWN_COUNT to logicUnknownCount.toString(),
+                        PaperBridgeFields.NA_FIELDS_JSON to naFieldsJson,
+                        PaperBridgeFields.ATTACHMENT_METADATA_JSON to JSONObject().apply {
+                            put("schema", "methodmesh.paper.attachments.v1")
+                            put("source", JSONObject().apply {
+                                put("sha256", sourceHash)
+                                put("role", "source_scan")
+                                put("returned_to_caller", !(automaticReturn && extracted.acquisitionMode == "caller_supplied"))
+                            })
+                            put("rectified", JSONObject().apply {
+                                put("sha256", rectifiedHash)
+                                put("role", "registered_analysis_page")
+                                put("width_px", extracted.rectifiedBitmap.width)
+                                put("height_px", extracted.rectifiedBitmap.height)
+                                put("coordinate_frame", if (extracted.template.registration.type == PaperRegistrationType.APRILTAG8) "canonical_page" else "anchor_centres")
+                                put("registration_type", extracted.template.registration.type.name.lowercase())
+                                if (extracted.template.registration.type != PaperRegistrationType.BULLSEYE4 && extracted.template.registration.schemaKey.isNotBlank()) put("registration_schema_key", extracted.template.registration.schemaKey)
+                            })
+                            put("field_attachments", org.json.JSONArray().apply {
+                                results.filter { it.spec.type == PaperFieldType.IMAGE && it.finalValue.startsWith("content://") }.forEach { imageResult ->
+                                    val imageUri = Uri.parse(imageResult.finalValue)
+                                    put(JSONObject().apply {
+                                        put("field", imageResult.spec.name)
+                                        put("label", imageResult.spec.label)
+                                        put("sha256", withContext(Dispatchers.IO) { PaperBridgeFiles.sha256(appContext, imageUri) })
+                                        put("role", "paper_roi_image")
+                                    })
+                                }
+                            })
+                            put("acquisition_mode", extracted.acquisitionMode)
+                            put("registration_mode", extracted.rectification.registrationMode)
+                            put("scan_time_iso", extracted.scanTimeIso)
+                        }.toString(),
                         PaperBridgeFields.SCAN_TIME_ISO to extracted.scanTimeIso,
                         PaperBridgeFields.ERROR to ""
                     )
@@ -365,33 +628,137 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                 )
                 val execution = As100PaperFormTranscribeMethod.result(request, stable, dynamic, context.request.invocationContext)
                 committedResult = execution
-                PaperBridgeWorkspace.recordCommit(
-                    context = appContext,
-                    template = extracted.template,
-                    scanTimeIso = extracted.scanTimeIso,
-                    fieldCount = results.size,
-                    autoAcceptedCount = results.count { it.autoAccepted },
-                    reviewedCount = results.count { it.reviewed }
-                )
-                workspaceRevision += 1
-                status = "Committed."
-                if (automaticReturn) onConfirmed(execution)
+                committedStableJson = JSONObject(stable).toString()
+                committedDynamicJson = JSONObject(dynamic).toString()
+                includeFullJson = false
+                exportStatus = ""
+                if (!automaticReturn) {
+                    PaperBridgeWorkspace.recordCommit(
+                        context = appContext,
+                        template = extracted.template,
+                        scanTimeIso = extracted.scanTimeIso,
+                        fieldCount = results.size,
+                        autoAcceptedCount = results.count { it.autoAccepted },
+                        reviewedCount = results.count { it.reviewed }
+                    )
+                    workspaceRevision += 1
+                }
+
+                if (automaticReturn) {
+                    status = "Committed · returning to calling workflow."
+                    onConfirmed(execution)
+                } else {
+                    status = "Committed. Share, Save or Done when ready."
+                }
             }
         }
 
         val unresolved = results.count { !it.resolved }
         val autoAccepted = results.count { it.autoAccepted }
         val reviewed = results.count { it.reviewed }
-        val committedFields = remember(committedResult?.request?.id?.value) {
-            committedResult?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty()
+        fun mapFromJson(raw: String): Map<String, String> = if (raw.isBlank()) emptyMap() else runCatching {
+            val obj = JSONObject(raw)
+            buildMap { obj.keys().forEach { key -> put(key, obj.optString(key, "")) } }
+        }.getOrDefault(emptyMap())
+
+        val committedStable = remember(committedStableJson) { mapFromJson(committedStableJson) }
+        val committedDynamic = remember(committedDynamicJson) { mapFromJson(committedDynamicJson) }
+        val restoredCommittedResult = remember(committedStableJson, committedDynamicJson) {
+            if (committedStable.isEmpty()) null else {
+                val request = As100PaperFormTranscribeMethod.request(
+                    action = As100PaperFormTranscribeMethod.ID,
+                    context = context.request.invocationContext.asMap(As100PaperFormTranscribeMethod.ID) + context.action.settings,
+                    signals = emptyList(),
+                    inputs = emptyList()
+                )
+                As100PaperFormTranscribeMethod.result(request, committedStable, committedDynamic, context.request.invocationContext)
+            }
         }
-        val fullJson = remember(committedResult?.request?.id?.value) {
-            committedResult?.let {
+        val frozenResult = committedResult ?: restoredCommittedResult
+        val committedFields = remember(frozenResult?.request?.id?.value, committedStableJson, committedDynamicJson) {
+            frozenResult?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty()
+        }
+        val fullJson = remember(frozenResult?.request?.id?.value, committedStableJson, committedDynamicJson) {
+            frozenResult?.let {
                 OutputFormatter.format(it, ReturnMode.Json, includeProvenance = true, payloadMode = OutputFormatter.PayloadMode.FULL)
             }.orEmpty()
         }
 
-        if (nativeDashboard && workspaceMode == "designer" && committedResult == null) {
+        fun committedBeefText(): String {
+            val fieldsByName = template?.fields?.associateBy { it.name }.orEmpty()
+            return committedDynamic.entries
+                .filter { (key, _) -> fieldsByName[key]?.type != PaperFieldType.IMAGE }
+                .joinToString("\n") { (key, value) ->
+                    "${fieldsByName[key]?.label.orEmpty().ifBlank { key }}: $value"
+                }
+        }
+
+        fun committedAttachments(): List<PaperBridgeShareAttachment> {
+            val fieldAttachments = template?.fields.orEmpty()
+                .filter { it.type == PaperFieldType.IMAGE }
+                .mapNotNull { field ->
+                    committedDynamic[field.name]
+                        ?.takeIf { it.startsWith("content://") }
+                        ?.let { PaperBridgeShareAttachment("field_${field.name}.jpg", it) }
+                }
+            // Native Share/Save exposes one completed data-form image, not both
+            // the acquisition image and its registered/canonical derivative. The raw
+            // source remains in the committed audit/ODK contract for provenance.
+            val pageAttachments = listOfNotNull(
+                committedStable[PaperBridgeFields.RECTIFIED_IMAGE]
+                    ?.takeIf { it.startsWith("content://") }
+                    ?.let { PaperBridgeShareAttachment("paper_form.jpg", it) }
+            )
+            return (pageAttachments + fieldAttachments).distinctBy { it.uri }
+        }
+
+        fun shareCommitted() {
+            runCatching {
+                PaperBridgeResultActions.share(
+                    context = appContext,
+                    chooserTitle = "Share Paper Bridge transcription",
+                    text = committedBeefText(),
+                    attachments = committedAttachments(),
+                    jsonText = if (includeFullJson) fullJson else ""
+                )
+                exportStatus = "Sharing transcription text plus ${committedAttachments().size} media attachment${if (committedAttachments().size == 1) "" else "s"}."
+            }.onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
+        }
+
+        fun saveCommitted() {
+            val text = committedBeefText()
+            val attachments = committedAttachments()
+            if (text.isBlank() && attachments.isEmpty()) return
+            runCatching {
+                PaperBridgeResultActions.saveToFiles(
+                    context = appContext,
+                    collectionLabel = committedStable[PaperBridgeFields.TEMPLATE_ID].orEmpty().ifBlank { "transcription" },
+                    textFileName = "transcription.txt",
+                    text = text,
+                    attachments = attachments,
+                    jsonText = if (includeFullJson) fullJson else "",
+                    entryId = frozenResult?.request?.id?.value
+                )
+            }.onSuccess { saved ->
+                exportStatus = "Saved ${saved.fileCount} file${if (saved.fileCount == 1) "" else "s"} to MethodMesh Files."
+            }.onFailure { exportStatus = "Save failed: ${it.message ?: "Files storage error"}" }
+        }
+
+        fun finishCommitted(resultValue: ExecutionResult) {
+            if (!context.isNativePresetRun || !context.isLastStep) {
+                onConfirmed(resultValue)
+                return
+            }
+            when {
+                presetResultAction == PresetResultAction.SAVE -> { saveCommitted(); onConfirmed(resultValue) }
+                finishToLauncher -> onConfirmed(resultValue)
+                else -> appContext.startActivity(Intent(appContext, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+            }
+        }
+
+        if (nativeDashboard && workspaceMode == "designer" && frozenResult == null) {
             val designerSeed = remember(designerSeedJson) {
                 designerSeedJson.takeIf { it.isNotBlank() }?.let { runCatching { PaperTemplate.parse(it) }.getOrNull() }
             }
@@ -406,7 +773,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                     workspaceMode = "dashboard"
                 }
             )
-        } else if (nativeDashboard && workspaceMode == "dashboard" && committedResult == null) {
+        } else if (nativeDashboard && workspaceMode == "dashboard" && frozenResult == null) {
             PaperBridgeDashboard(
                 template = template,
                 templateError = templateError,
@@ -436,7 +803,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                     dashboardMessage = "Using ${selected.title}."
                 },
                 onImportTemplate = {
-                    pickTemplate.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+                    pickTemplate.launch(arrayOf("application/json", "application/zip", "text/yaml", "text/plain", "application/octet-stream"))
                 },
                 onRemoveTemplate = { selected ->
                     PaperBridgeWorkspace.removeTemplate(appContext, selected)
@@ -444,7 +811,26 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                     templateJson = active
                     templateDraft = active
                     workspaceRevision += 1
-                    dashboardMessage = "Template removed."
+                    dashboardMessage = "Schema deleted."
+                },
+                onDuplicateTemplate = { selected ->
+                    val duplicate = PaperBridgeWorkspace.duplicateTemplate(appContext, selected)
+                    templateJson = duplicate.rawJson
+                    templateDraft = duplicate.rawJson
+                    designerSeedJson = duplicate.rawJson
+                    workspaceRevision += 1
+                    dashboardMessage = "Created ${duplicate.title}."
+                    workspaceMode = "designer"
+                },
+                onRenameTemplate = { selected, newName ->
+                    runCatching { PaperBridgeWorkspace.renameTemplate(appContext, selected, newName) }
+                        .onFailure { dashboardMessage = "Schema not renamed: ${it.message ?: "invalid name"}" }
+                        .onSuccess { renamed ->
+                            templateJson = renamed.rawJson
+                            templateDraft = renamed.rawJson
+                            workspaceRevision += 1
+                            dashboardMessage = "Renamed schema to ${renamed.title}."
+                        }
                 },
                 onTemplateEditorOpen = { templateEditorOpen = it },
                 onTemplateDraft = { templateDraft = it },
@@ -470,8 +856,8 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                 onCopyTemplate = { copyText(appContext, "Paper Bridge template", templateJson) },
                 onAutoAcceptOmr = { autoAcceptOmr = it },
                 onAutoAcceptOcr = { autoAcceptOcr = it },
-                onReturnSourceImage = { returnSourceImage = it },
-                onReturnRectifiedImage = { returnRectifiedImage = it },
+                onReturnSourceImage = { },
+                onReturnRectifiedImage = { },
                 onClearRecent = {
                     PaperBridgeWorkspace.clearRecent(appContext)
                     workspaceRevision += 1
@@ -496,6 +882,8 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         "‹  Dashboard",
                         modifier = Modifier.clickable {
                             committedResult = null
+                            committedStableJson = ""
+                            committedDynamicJson = ""
                             workspaceMode = "dashboard"
                         }.padding(vertical = 6.dp),
                         style = MaterialTheme.typography.labelLarge,
@@ -512,7 +900,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                 )
                 Spacer(Modifier.height(16.dp))
 
-                if (committedResult != null && !automaticReturn) {
+                if (frozenResult != null && !automaticReturn) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp),
@@ -521,63 +909,76 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         Column(Modifier.padding(18.dp)) {
                             Text("Committed transcription", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.height(8.dp))
-                            results.forEach { result ->
-                                TappablePaperValue(appContext, result.spec.label, result.finalValue)
+                            val fieldsByName = template?.fields?.associateBy { it.name }.orEmpty()
+                            committedDynamic.forEach { (name, value) ->
+                                val field = fieldsByName[name]
+                                if (field?.type == PaperFieldType.IMAGE && value.startsWith("content://")) {
+                                    PaperCommittedAttachment(
+                                        context = appContext,
+                                        label = field.label.ifBlank { name },
+                                        uriText = value
+                                    )
+                                } else {
+                                    TappablePaperValue(appContext, field?.label.orEmpty().ifBlank { name }, value)
+                                }
                                 Spacer(Modifier.height(8.dp))
                             }
                             Text(
-                                "${results.size} fields · $autoAccepted automatic · $reviewed reviewed",
+                                "${committedDynamic.size} fields · ${committedStable[PaperBridgeFields.AUTO_ACCEPTED_COUNT].orEmpty()} automatic · ${committedStable[PaperBridgeFields.REVIEWED_COUNT].orEmpty()} reviewed",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                     Spacer(Modifier.height(12.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(modifier = Modifier.weight(1f), onClick = ::shareCommitted) { Text("Share") }
+                        Button(modifier = Modifier.weight(1f), onClick = ::saveCommitted) { Text("Save") }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Switch(checked = includeFullJson, onCheckedChange = { includeFullJson = it })
+                        Spacer(Modifier.size(8.dp))
+                        Column {
+                            Text("Include full JSON / audit", style = MaterialTheme.typography.labelLarge)
+                            Text("Adds the structured execution payload to Share and Save.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    if (exportStatus.isNotBlank()) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(exportStatus, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Spacer(Modifier.height(8.dp))
                     Button(modifier = Modifier.fillMaxWidth(), onClick = {
-                        val resultValue = requireNotNull(committedResult)
+                        val resultValue = requireNotNull(frozenResult)
                         if (nativeDashboard) {
                             committedResult = null
+                            committedStableJson = ""
+                            committedDynamicJson = ""
+                            includeFullJson = false
+                            exportStatus = ""
                             session = null
                             results = emptyList()
                             sourceUriText = ""
                             manualOverridesJson = "{}"
+                            naOverridesJson = "[]"
+                            manualAuditJson = "[]"
                             manualQuarterTurns = 0
                             workspaceMode = "dashboard"
                             dashboardMessage = "Committed transcription added to recent activity."
                         } else {
-                            if (context.isNativePresetRun && presetResultAction == PresetResultAction.SAVE) {
-                                runCatching {
-                                    OutputExportRepository.saveToDownloads(
-                                        context = appContext,
-                                        label = "paper_transcription",
-                                        text = results.joinToString("\n") { "${it.spec.label}: ${it.finalValue}" },
-                                        mediaUris = listOfNotNull(
-                                            committedFields[PaperBridgeFields.SOURCE_IMAGE]?.toString()?.takeIf(String::isNotBlank),
-                                            committedFields[PaperBridgeFields.RECTIFIED_IMAGE]?.toString()?.takeIf(String::isNotBlank)
-                                        ),
-                                        jsonText = ""
-                                    )
-                                }.onFailure { status = "Save failed: ${it.message ?: "storage error"}" }
-                            }
-                            if (context.isNativePresetRun && !finishToLauncher) {
-                                appContext.startActivity(Intent(appContext, MainActivity::class.java).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-                                })
-                            } else {
-                                onConfirmed(resultValue)
-                            }
+                            finishCommitted(resultValue)
                         }
                     }) {
-                        Text(when {
-                            nativeDashboard -> "Back to Paper Bridge"
-                            context.isNativePresetRun && presetResultAction == PresetResultAction.SAVE -> "Save and finish"
-                            finishToLauncher -> "Done"
-                            else -> "Done"
-                        })
+                        Text(if (nativeDashboard) "Back to Paper Bridge" else "Done")
                     }
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = {
                         committedResult = null
+                        committedStableJson = ""
+                        committedDynamicJson = ""
+                        includeFullJson = false
+                        exportStatus = ""
                         status = "Committed result reopened for editing."
                     }) { Text("Edit") }
                     Spacer(Modifier.height(8.dp))
@@ -599,11 +1000,10 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                     }
 
                     session?.let { extracted ->
-                        Image(
-                            bitmap = extracted.rectifiedBitmap.asImageBitmap(),
-                            contentDescription = "Rectified paper questionnaire",
-                            modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
-                            contentScale = ContentScale.Fit
+                        RegisteredPaperPreview(
+                            bitmap = extracted.rectifiedBitmap,
+                            template = extracted.template,
+                            modifier = Modifier.fillMaxWidth().height(420.dp)
                         )
                         Spacer(Modifier.height(10.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -615,7 +1015,9 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         results.forEach { result ->
                             PaperFieldCard(
                                 result = result,
+                                pageBitmap = extracted.rectifiedBitmap,
                                 onManualValue = { value -> saveOverride(result.spec.name, value) },
+                                onNaOverride = { setNaOverride(result.spec.name) },
                                 onCopy = { copyText(appContext, result.spec.label, it) }
                             )
                             Spacer(Modifier.height(10.dp))
@@ -630,7 +1032,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         ) {
                             Column(Modifier.padding(18.dp)) {
                                 Text("Scan complete page", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                Text("Keep all four anchor symbols visible. Paper Bridge will not infer a page when anchor geometry is uncertain.", style = MaterialTheme.typography.bodySmall)
+                                Text("ML Kit first finds and straightens the sheet. For current schemas Paper Bridge then detects the eight unique AprilTag36h11 perimeter markers, estimates one robust page homography from their tag corners, rectifies into canonical template coordinates, and only then reads saved ROIs. Legacy QR4/bullseye schemas remain supported.", style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
@@ -666,15 +1068,14 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         }
                         Spacer(Modifier.height(8.dp))
                     }
-                    if (!nativeDashboard && (context.settingShouldBeShown(PaperBridgeInputs.RETURN_SOURCE_IMAGE) || context.settingShouldBeShown(PaperBridgeInputs.RETURN_RECTIFIED_IMAGE))) {
-                        Text("Return attachments", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                        if (context.settingShouldBeShown(PaperBridgeInputs.RETURN_SOURCE_IMAGE)) {
-                            ToggleSettingRow("Source photograph", returnSourceImage) { returnSourceImage = it }
-                        }
-                        if (context.settingShouldBeShown(PaperBridgeInputs.RETURN_RECTIFIED_IMAGE)) {
-                            ToggleSettingRow("Rectified page", returnRectifiedImage) { returnRectifiedImage = it }
-                        }
-                        Spacer(Modifier.height(8.dp))
+                    if (!nativeDashboard) {
+                        Text("Return evidence", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            "Every Commit returns both the source scan and the registered analysis page, with SHA-256 and registration metadata. These attachments cannot be disabled.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 3.dp, bottom = 8.dp)
+                        )
                     }
                     Button(modifier = Modifier.fillMaxWidth(), enabled = !processing && template != null, onClick = { capture() }) {
                         Text(if (session == null) "Scan page" else "Rescan page")
@@ -727,11 +1128,32 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                     Text("Maturity: ${PaperBridgeContractMetadata.MATURITY}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                     Text("Connectivity: ${PaperBridgeContractMetadata.CONNECTIVITY}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                     session?.let { extracted ->
-                        Text("Anchors: ${extracted.rectification.anchors.joinToString { "${it.corner}=${"%.2f".format(it.score)}" }}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                        Text("Registration: ${extracted.rectification.registrationMode}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                        Text("Markers: ${extracted.rectification.anchors.joinToString { "${it.corner}=${"%.2f".format(it.score)}" }}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                        Text("Registration type: ${extracted.template.registration.type.name.lowercase()}${if (extracted.template.registration.type != PaperRegistrationType.BULLSEYE4 && extracted.template.registration.schemaKey.isNotBlank()) " · ${extracted.template.registration.schemaKey}" else ""}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                        if (extracted.template.registration.type == PaperRegistrationType.APRILTAG8) {
+                            Text("AprilTags: ${extracted.rectification.detectedMarkerCount}/${extracted.rectification.expectedMarkerCount} · points ${extracted.rectification.correspondenceCount} · RMS ${extracted.rectification.reprojectionRmsPx?.let { String.format("%.2f", it) } ?: "–"} px · max ${extracted.rectification.reprojectionMaxPx?.let { String.format("%.2f", it) } ?: "–"} px · ${extracted.rectification.registrationQuality}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                        }
                         Text("Page white: ${"%.1f".format(extracted.pageWhiteLuma)}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                     }
                     if (committedFields.isNotEmpty()) Text("Committed fields: ${committedFields.size}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                 }
+            }
+        }
+        if (scannerActive) {
+            Dialog(
+                onDismissRequest = { /* ML Kit owns cancellation while active. */ },
+                properties = DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false,
+                    dismissOnBackPress = false,
+                    dismissOnClickOutside = false
+                )
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {}
             }
         }
         }
@@ -760,6 +1182,8 @@ private fun PaperBridgeDashboard(
     onSelectTemplate: (PaperTemplate) -> Unit,
     onImportTemplate: () -> Unit,
     onRemoveTemplate: (PaperTemplate) -> Unit,
+    onDuplicateTemplate: (PaperTemplate) -> Unit,
+    onRenameTemplate: (PaperTemplate, String) -> Unit,
     onTemplateEditorOpen: (Boolean) -> Unit,
     onTemplateDraft: (String) -> Unit,
     onSaveTemplateDraft: () -> Unit,
@@ -778,6 +1202,9 @@ private fun PaperBridgeDashboard(
     var formSetupOpen by rememberSaveable { mutableStateOf(false) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var helpOpen by rememberSaveable { mutableStateOf(false) }
+    var renameTarget by remember { mutableStateOf<PaperTemplate?>(null) }
+    var renameText by rememberSaveable { mutableStateOf("") }
+    var deleteTarget by remember { mutableStateOf<PaperTemplate?>(null) }
 
     val omrCount = template?.fields?.count {
         it.type == PaperFieldType.OMR_SINGLE || it.type == PaperFieldType.OMR_MULTIPLE
@@ -786,6 +1213,7 @@ private fun PaperBridgeDashboard(
         it.type == PaperFieldType.OCR_TEXT || it.type == PaperFieldType.OCR_INTEGER || it.type == PaperFieldType.OCR_DECIMAL
     } ?: 0
     val barcodeCount = template?.fields?.count { it.type == PaperFieldType.BARCODE } ?: 0
+    val imageCount = template?.fields?.count { it.type == PaperFieldType.IMAGE } ?: 0
     val bundledDemo = template?.let(PaperBridgeWorkspace::isBundled) == true
 
     Card(
@@ -795,6 +1223,49 @@ private fun PaperBridgeDashboard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.fillMaxWidth().padding(18.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Paper Bridge", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text("Schema Library", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Choose a named schema, then scan, edit, duplicate or delete it. User schemas are stored as ordinary Paper Bridge files.",
+                        modifier = Modifier.padding(top = 3.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    "Close",
+                    modifier = Modifier.clickable(onClick = onClose).padding(10.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            templates.forEach { item ->
+                val selected = template?.let { PaperBridgeWorkspace.templateKey(it) == PaperBridgeWorkspace.templateKey(item) } == true
+                PaperTemplateDashboardRow(
+                    template = item,
+                    selected = selected,
+                    bundled = PaperBridgeWorkspace.isBundled(item),
+                    onSelect = { onSelectTemplate(item) },
+                    onEdit = { onDesignForm(item) },
+                    onRename = {
+                        renameTarget = item
+                        renameText = item.title
+                    },
+                    onDuplicate = { onDuplicateTemplate(item) },
+                    onRemove = { deleteTarget = item }
+                )
+                Spacer(Modifier.height(7.dp))
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onImportTemplate, modifier = Modifier.weight(1f)) { Text("Import schema") }
+                Button(onClick = { onDesignForm(null) }, modifier = Modifier.weight(1f)) { Text("New schema") }
+            }
+            Spacer(Modifier.height(18.dp))
+            Text("Selected schema workspace", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -855,7 +1326,7 @@ private fun PaperBridgeDashboard(
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f)
                     ) {
                         Column(Modifier.padding(15.dp)) {
-                            Text("FORM IN USE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                            Text("SCHEMA SELECTED", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                             Text(
                                 template?.title ?: "No usable form selected",
                                 modifier = Modifier.padding(top = 3.dp),
@@ -864,8 +1335,8 @@ private fun PaperBridgeDashboard(
                             )
                             Text(
                                 when {
-                                    template == null -> "Choose or import a form before scanning."
-                                    bundledDemo -> "Demo form selected · use this to test Paper Bridge, or choose your real form below."
+                                    template == null -> "Choose or import a schema before scanning."
+                                    bundledDemo -> "Tutorial seed selected · open it and work through AUTO DETECT, linkage, Commit, then the empty/data tests."
                                     else -> "${template.fields.size} fields ready to read."
                                 },
                                 modifier = Modifier.padding(top = 3.dp),
@@ -873,7 +1344,7 @@ private fun PaperBridgeDashboard(
                                 color = if (template == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                if (formSetupOpen) "Hide form setup" else "Change form",
+                                if (formSetupOpen) "Hide schema details" else "More schema tools",
                                 modifier = Modifier.clickable { formSetupOpen = !formSetupOpen }.padding(top = 8.dp, bottom = 2.dp),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = primary,
@@ -882,12 +1353,24 @@ private fun PaperBridgeDashboard(
                         }
                     }
                     Spacer(Modifier.height(12.dp))
-                    Button(onClick = onCameraScan, enabled = template != null, modifier = Modifier.fillMaxWidth()) {
-                        Text("Scan page")
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(onClick = onImageScan, enabled = template != null, modifier = Modifier.fillMaxWidth()) {
-                        Text("Use photo from device")
+                    if (bundledDemo) {
+                        Button(onClick = { template?.let(onDesignForm) }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Open tutorial schema")
+                        }
+                        Text(
+                            "The bundled example is a teaching seed, not a scan-ready schema. Commit your worked copy before operational scanning.",
+                            modifier = Modifier.padding(top = 7.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Button(onClick = onCameraScan, enabled = template != null, modifier = Modifier.fillMaxWidth()) {
+                            Text("Scan page with ML Kit")
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(onClick = onImageScan, enabled = template != null, modifier = Modifier.fillMaxWidth()) {
+                            Text("Choose page in ML Kit scanner")
+                        }
                     }
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(onClick = { onDesignForm(template) }, modifier = Modifier.fillMaxWidth()) {
@@ -912,73 +1395,18 @@ private fun PaperBridgeDashboard(
             PaperDashboardFlowStrip()
 
             Spacer(Modifier.height(18.dp))
-            DashboardSectionTitle(
-                "Built-in examples",
-                "Ready-made fixtures shipped with Paper Bridge. Open one to learn the designer, or use it as a scanner test without importing anything."
-            )
-            val builtInExample = templates.firstOrNull(PaperBridgeWorkspace::isBundled)
-                ?: runCatching { PaperTemplate.parse(PaperTemplateSamples.DEMO_MANIFEST_JSON) }.getOrNull()
-            if (builtInExample != null) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.34f)
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    builtInExample.title,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    "BUILT-IN EXAMPLE · ${builtInExample.fields.size} mapped fields",
-                                    modifier = Modifier.padding(top = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.tertiary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            if (bundledDemo) {
-                                Text(
-                                    "IN USE",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = primary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                        Text(
-                            "Includes its matching blank paper PDF and ODK XLSForm. It demonstrates text, integer and decimal OCR, single- and multiple-choice marks, and a barcode region.",
-                            modifier = Modifier.padding(top = 8.dp),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
-                                onClick = { onDesignForm(builtInExample) },
-                                modifier = Modifier.weight(1f)
-                            ) { Text("Open in Designer") }
-                            OutlinedButton(
-                                onClick = onUseDemoTemplate,
-                                modifier = Modifier.weight(1f)
-                            ) { Text(if (bundledDemo) "Example in use" else "Use for scan") }
-                        }
-                    }
-                }
-            } else {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
-                ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.30f)
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Tutorial schema", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(
-                        "Built-in example could not be loaded.",
-                        modifier = Modifier.padding(14.dp),
+                        "Open the built-in tutorial from the Schema Library. It starts unresolved: view the colour template, press AUTO, inspect the guesses, fix highlighted queries, Commit, then test a blank black production form and a filled form.",
+                        modifier = Modifier.padding(top = 5.dp),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -1041,11 +1469,11 @@ private fun PaperBridgeDashboard(
             if (formSetupOpen) {
                 Spacer(Modifier.height(20.dp))
                 DashboardSectionTitle(
-                    "Form setup",
-                    "Choose the paper questionnaire layout that matches the page you are about to scan."
+                    "Schema library",
+                    "Named Paper Bridge schemas live in the module Files area. Open, duplicate, edit, import or delete them here."
                 )
                 if (templates.isEmpty()) {
-                    Text("No forms are available.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("No schemas are available.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     templates.forEach { item ->
                         val selected = template?.let { PaperBridgeWorkspace.templateKey(it) == PaperBridgeWorkspace.templateKey(item) } == true
@@ -1055,24 +1483,29 @@ private fun PaperBridgeDashboard(
                             bundled = PaperBridgeWorkspace.isBundled(item),
                             onSelect = { onSelectTemplate(item) },
                             onEdit = { onDesignForm(item) },
-                            onRemove = { onRemoveTemplate(item) }
+                            onRename = {
+                                renameTarget = item
+                                renameText = item.title
+                            },
+                            onDuplicate = { onDuplicateTemplate(item) },
+                            onRemove = { deleteTarget = item }
                         )
                         Spacer(Modifier.height(7.dp))
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onImportTemplate, modifier = Modifier.weight(1f)) { Text("Import form") }
-                    OutlinedButton(onClick = { onDesignForm(null) }, modifier = Modifier.weight(1f)) { Text("New form") }
+                    OutlinedButton(onClick = onImportTemplate, modifier = Modifier.weight(1f)) { Text("Import schema") }
+                    OutlinedButton(onClick = { onDesignForm(null) }, modifier = Modifier.weight(1f)) { Text("New schema") }
                 }
                 Text(
-                    "Reset to built-in example",
+                    "Open tutorial example",
                     modifier = Modifier.clickable(onClick = onUseDemoTemplate).padding(top = 8.dp, bottom = 2.dp),
                     style = MaterialTheme.typography.labelLarge,
                     color = primary,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "The built-in example includes its matching paper PDF and ODK XLSForm automatically. Import form accepts an existing MethodMesh paper-form definition. Normally an ODK launch supplies the correct form automatically, so you do not need this screen during routine data collection.",
+                    "The built-in example includes its colour-authoring template PNG and matching standard survey/choices workbook automatically. Import form accepts Paper Bridge JSON, fixed-profile YAML, or a portable .paperbridge.zip bundle. Normally an ODK launch supplies the correct form automatically, so you do not need this screen during routine data collection.",
                     modifier = Modifier.padding(top = 8.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1114,16 +1547,16 @@ private fun PaperBridgeDashboard(
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("How it works", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Text("Four steps from paper to the calling ODK form.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Four steps from paper to structured data or the calling ODK form.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Text(if (helpOpen) "Hide" else "Show", style = MaterialTheme.typography.labelLarge, color = primary, fontWeight = FontWeight.Bold)
                     }
                     if (helpOpen) {
                         Spacer(Modifier.height(10.dp))
-                        SimpleHelpStep("1", "Choose the form", "The selected form tells Paper Bridge where each answer is printed and which ODK field it belongs to.")
-                        SimpleHelpStep("2", "Scan the completed page", "Use the camera or an existing photo. Keep all four registration targets visible.")
+                        SimpleHelpStep("1", "Choose the form", "The selected template tells Paper Bridge where each answer is printed and which survey field or choice key it belongs to.")
+                        SimpleHelpStep("2", "Scan the completed page", "Use the ML Kit document scanner (camera or gallery). Let it crop/straighten the whole sheet and keep the perimeter registration markers visible; current schemas can tolerate missing AprilTags when the remaining tags are well distributed.")
                         SimpleHelpStep("3", "Check anything uncertain", "Clear marks can pass automatically; ambiguous marks and text stay visible until you confirm them.")
-                        SimpleHelpStep("4", "Commit", "Commit freezes the reviewed result and returns the named values and selected page images to the caller. If ODK launched Paper Bridge, you land back in that ODK form.")
+                        SimpleHelpStep("4", "Commit", "Commit freezes the reviewed result and always returns the named values, source scan, registered analysis page and audit metadata. If ODK launched Paper Bridge, you land back in that form.")
                     }
                 }
             }
@@ -1144,11 +1577,7 @@ private fun PaperBridgeDashboard(
                                     append(" · ")
                                     append(if (autoAcceptOcr) "Validated text auto" else "Review text")
                                     append(" · ")
-                                    val attachments = listOfNotNull(
-                                        "source".takeIf { returnSourceImage },
-                                        "rectified".takeIf { returnRectifiedImage }
-                                    )
-                                    append(if (attachments.isEmpty()) "no page images" else attachments.joinToString(" + ") + " image")
+                                    append("source + registered images")
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1166,24 +1595,18 @@ private fun PaperBridgeDashboard(
                             onCheckedChange = onAutoAcceptOmr
                         )
                         DashboardToggleRow(
-                            title = "Auto-accept validated text",
-                            subtitle = "Off by default. Text recognition normally remains visible for human confirmation.",
+                            title = "Auto-accept constrained numeric OCR",
+                            subtitle = "Off by default. Integer/decimal OCR may auto-accept only when constraints pass; free text always requires human confirmation.",
                             checked = autoAcceptOcr,
                             onCheckedChange = onAutoAcceptOcr
                         )
                         Spacer(Modifier.height(8.dp))
                         Text("RETURN WITH RESULT", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        DashboardToggleRow(
-                            title = "Original page photo",
-                            subtitle = "Return the captured page with the committed values.",
-                            checked = returnSourceImage,
-                            onCheckedChange = onReturnSourceImage
-                        )
-                        DashboardToggleRow(
-                            title = "Rectified page",
-                            subtitle = "Return the perspective-corrected page used for reading.",
-                            checked = returnRectifiedImage,
-                            onCheckedChange = onReturnRectifiedImage
+                        Text(
+                            "Every Commit includes both the original/source scan and the registered canonical page used for ROI reading. SHA-256 hashes, dimensions, acquisition mode and registration mode are returned as metadata.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 6.dp)
                         )
 
                         if (template != null) {
@@ -1232,6 +1655,52 @@ private fun PaperBridgeDashboard(
             OutlinedButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Close Paper Bridge") }
         }
     }
+
+
+    renameTarget?.let { target ->
+        AlertDialog(
+            onDismissRequest = { renameTarget = null },
+            title = { Text("Rename schema") },
+            text = {
+                OutlinedTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    label = { Text("Schema name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val name = renameText.trim()
+                        if (name.isNotBlank()) {
+                            onRenameTemplate(target, name)
+                            renameTarget = null
+                        }
+                    },
+                    enabled = renameText.isNotBlank()
+                ) { Text("Rename") }
+            },
+            dismissButton = { TextButton(onClick = { renameTarget = null }) { Text("Cancel") } }
+        )
+    }
+
+    deleteTarget?.let { target ->
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = { Text("Delete schema?") },
+            text = { Text("Delete ‘${target.title}’ from Paper Bridge Files? This does not delete any completed ODK records.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onRemoveTemplate(target)
+                    deleteTarget = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("Cancel") } }
+        )
+    }
+
 }
 
 @Composable
@@ -1252,6 +1721,7 @@ private fun SimpleHelpStep(number: String, title: String, text: String) {
             Text(text, modifier = Modifier.padding(top = 2.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+
 }
 
 @Composable
@@ -1307,10 +1777,13 @@ private fun PaperTemplateDashboardRow(
     bundled: Boolean,
     onSelect: () -> Unit,
     onEdit: () -> Unit,
+    onRename: () -> Unit,
+    onDuplicate: () -> Unit,
     onRemove: () -> Unit
 ) {
     val omr = template.fields.count { it.type == PaperFieldType.OMR_SINGLE || it.type == PaperFieldType.OMR_MULTIPLE }
     val ocr = template.fields.count { it.type == PaperFieldType.OCR_TEXT || it.type == PaperFieldType.OCR_INTEGER || it.type == PaperFieldType.OCR_DECIMAL }
+    val media = template.fields.count { it.type == PaperFieldType.BARCODE || it.type == PaperFieldType.IMAGE }
     Surface(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onSelect),
         shape = RoundedCornerShape(18.dp),
@@ -1339,26 +1812,51 @@ private fun PaperTemplateDashboardRow(
                     }
                 }
                 Text(
-                    "${template.templateId} · v${template.version} · ${template.fields.size} fields · $omr marks · $ocr text",
+                    if (bundled) {
+                        "Tutorial seed · needs setup · open and press AUTO DETECT"
+                    } else {
+                        "${template.templateId} · v${template.version} · ${template.fields.size} fields · $omr marks · $ocr text · $media media/code"
+                    },
                     modifier = Modifier.padding(top = 2.dp),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (bundled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (bundled) FontWeight.SemiBold else FontWeight.Normal
                 )
-                Text(
-                    if (bundled) "Open matched PDF + XLSForm" else "Edit in Designer",
-                    modifier = Modifier.clickable(onClick = onEdit).padding(top = 7.dp, bottom = 2.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            if (!bundled) {
-                Text(
-                    "Remove",
-                    modifier = Modifier.clickable(onClick = onRemove).padding(8.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.error
-                )
+                Row(Modifier.padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(
+                        if (bundled) "Open tutorial" else "Edit",
+                        modifier = Modifier.clickable(onClick = onEdit).padding(vertical = 2.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (!bundled) {
+                        Text(
+                            "Rename",
+                            modifier = Modifier.clickable(onClick = onRename).padding(vertical = 2.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    if (!bundled) {
+                        Text(
+                            "Duplicate",
+                            modifier = Modifier.clickable(onClick = onDuplicate).padding(vertical = 2.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    if (!bundled) {
+                        Text(
+                            "Delete",
+                            modifier = Modifier.clickable(onClick = onRemove).padding(vertical = 2.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             }
         }
     }
@@ -1434,6 +1932,68 @@ private fun ToggleSettingRow(label: String, checked: Boolean, onCheckedChange: (
 }
 
 @Composable
+private fun RegisteredPaperPreview(
+    bitmap: android.graphics.Bitmap,
+    template: PaperTemplate,
+    modifier: Modifier = Modifier
+) {
+    val line = MaterialTheme.colorScheme.primary
+    val labelBackground = MaterialTheme.colorScheme.inverseSurface
+    val labelForeground = MaterialTheme.colorScheme.inverseOnSurface
+    Canvas(modifier.background(MaterialTheme.colorScheme.surface)) {
+        val scale = min(
+            size.width / bitmap.width.toFloat().coerceAtLeast(1f),
+            size.height / bitmap.height.toFloat().coerceAtLeast(1f)
+        )
+        val drawWidth = bitmap.width * scale
+        val drawHeight = bitmap.height * scale
+        val origin = Offset((size.width - drawWidth) / 2f, (size.height - drawHeight) / 2f)
+        drawImage(
+            image = bitmap.asImageBitmap(),
+            dstOffset = IntOffset(origin.x.roundToInt(), origin.y.roundToInt()),
+            dstSize = IntSize(drawWidth.roundToInt(), drawHeight.roundToInt())
+        )
+
+        fun drawMappedRegion(roi: NormalisedRoi, label: String) {
+            val left = origin.x + roi.left * drawWidth
+            val top = origin.y + roi.top * drawHeight
+            val right = origin.x + roi.right * drawWidth
+            val bottom = origin.y + roi.bottom * drawHeight
+            drawRect(
+                color = line.copy(alpha = 0.78f),
+                topLeft = Offset(left, top),
+                size = Size(right - left, bottom - top),
+                style = Stroke(width = 2.5f)
+            )
+            val safe = label.take(42)
+            val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = labelForeground.toArgb()
+                textSize = 19f
+                typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
+            }
+            val bgPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = labelBackground.copy(alpha = 0.86f).toArgb()
+                style = android.graphics.Paint.Style.FILL
+            }
+            val textWidth = textPaint.measureText(safe)
+            val labelTop = (top - 24f).coerceAtLeast(origin.y)
+            drawIntoCanvas { canvas ->
+                canvas.nativeCanvas.drawRect(left, labelTop, left + textWidth + 10f, labelTop + 24f, bgPaint)
+                canvas.nativeCanvas.drawText(safe, left + 5f, labelTop + 18f, textPaint)
+            }
+        }
+
+        template.fields.forEach { field ->
+            if (field.type == PaperFieldType.OMR_SINGLE || field.type == PaperFieldType.OMR_MULTIPLE) {
+                field.options.forEach { option -> drawMappedRegion(option.roi, "${field.name}=${option.value}") }
+            } else {
+                field.roi?.let { drawMappedRegion(it, field.name) }
+            }
+        }
+    }
+}
+
+@Composable
 private fun SummaryPill(label: String, value: String, modifier: Modifier = Modifier) {
     Surface(modifier = modifier, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)) {
         Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -1446,9 +2006,13 @@ private fun SummaryPill(label: String, value: String, modifier: Modifier = Modif
 @Composable
 private fun PaperFieldCard(
     result: PaperFieldResult,
+    pageBitmap: android.graphics.Bitmap?,
     onManualValue: (String) -> Unit,
+    onNaOverride: () -> Unit,
     onCopy: (String) -> Unit
 ) {
+    var confirmNa by rememberSaveable(result.spec.name, result.candidate) { mutableStateOf(false) }
+    var forceEdit by rememberSaveable(result.spec.name, result.finalValue) { mutableStateOf(false) }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -1461,6 +2025,10 @@ private fun PaperFieldCard(
                     Text(result.spec.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Text(
                         when {
+                            result.naOverride -> "NA override"
+                            result.relevant == false && result.finalValue.isBlank() -> "Not relevant"
+                            result.logicViolation -> "Logic/constraint review"
+                            result.logicUnknown -> "Logic check incomplete"
                             result.autoAccepted -> "Accepted automatically"
                             result.reviewed -> "Confirmed"
                             else -> "Review required"
@@ -1470,20 +2038,84 @@ private fun PaperFieldCard(
                     )
                 }
                 result.finalValue.takeIf(String::isNotBlank)?.let { value ->
-                    Text(value, modifier = Modifier.clickable { onCopy(value) }.padding(6.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    if (result.naOverride) {
+                        Text("NA", modifier = Modifier.padding(6.dp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    } else if (result.spec.type == PaperFieldType.IMAGE) {
+                        Text("IMAGE", modifier = Modifier.padding(6.dp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    } else {
+                        Text(value, modifier = Modifier.clickable { onCopy(value) }.padding(6.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
             Spacer(Modifier.height(5.dp))
             Text(result.reason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (!result.resolved) {
+            if (result.logicMessage.isNotBlank() && result.logicMessage != result.reason) {
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    result.logicMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (result.logicViolation) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+                )
+            }
+            val editing = !result.resolved || forceEdit
+            if (editing) {
                 Spacer(Modifier.height(12.dp))
                 when (result.spec.type) {
                     PaperFieldType.OMR_SINGLE -> SingleMarkReview(result, onManualValue)
                     PaperFieldType.OMR_MULTIPLE -> MultipleMarkReview(result, onManualValue)
-                    PaperFieldType.OCR_TEXT, PaperFieldType.OCR_INTEGER, PaperFieldType.OCR_DECIMAL, PaperFieldType.BARCODE -> TextReview(result, onManualValue)
+                    PaperFieldType.OCR_TEXT, PaperFieldType.OCR_INTEGER, PaperFieldType.OCR_DECIMAL, PaperFieldType.BARCODE -> {
+                        val roi = result.spec.roi
+                        if (pageBitmap != null && roi != null) {
+                            PaperRoiReviewPreview(pageBitmap, roi)
+                            Spacer(Modifier.height(8.dp))
+                        }
+                        TextReview(result, onManualValue)
+                    }
+                    PaperFieldType.IMAGE -> {
+                        val roi = result.spec.roi
+                        if (pageBitmap != null && roi != null) {
+                            PaperRoiReviewPreview(pageBitmap, roi)
+                            Spacer(Modifier.height(8.dp))
+                        }
+                        Text("This region is returned as an image attachment; no OCR or barcode decoding is applied.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                if (!result.naOverride) {
+                    OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { confirmNa = true }) { Text("Set NA") }
+                }
+                if (forceEdit && result.resolved) {
+                    Spacer(Modifier.height(6.dp))
+                    TextButton(modifier = Modifier.fillMaxWidth(), onClick = { forceEdit = false }) { Text("Cancel edit") }
+                }
+            } else if (result.naOverride) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = result.candidate.isNotBlank(),
+                    onClick = { onManualValue(result.candidate) }
+                ) { Text("Restore detected value") }
+            } else if (result.relevant != false) {
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (result.spec.type != PaperFieldType.IMAGE) {
+                        OutlinedButton(modifier = Modifier.weight(1f), onClick = { forceEdit = true }) { Text("Edit") }
+                    }
+                    OutlinedButton(modifier = Modifier.weight(1f), onClick = { confirmNa = true }) { Text("Set NA") }
                 }
             }
         }
+    }
+    if (confirmNa) {
+        AlertDialog(
+            onDismissRequest = { confirmNa = false },
+            title = { Text("Set ${result.spec.label} to NA?") },
+            text = { Text("Use this only when the paper value cannot be reconciled. It will set the Paper Bridge value to 'na', bypass the normal required/constraint check for this field, and record a confirmed NA override in the audit trail.") },
+            confirmButton = {
+                TextButton(onClick = { confirmNa = false; onNaOverride() }) { Text("Set NA") }
+            },
+            dismissButton = { TextButton(onClick = { confirmNa = false }) { Text("Cancel") } }
+        )
     }
 }
 
@@ -1498,11 +2130,11 @@ private fun SingleMarkReview(result: PaperFieldResult, onManualValue: (String) -
                 label = { Text("${option.label}${result.scores[option.value]?.let { " · ${"%.3f".format(it)}" }.orEmpty()}") }
             )
         }
-        if (!result.spec.required) {
+        if (!result.effectiveRequired) {
             FilterChip(selected = selected.isBlank(), onClick = { selected = "" }, label = { Text("Blank") })
         }
         Spacer(Modifier.height(6.dp))
-        Button(modifier = Modifier.fillMaxWidth(), enabled = selected.isNotBlank() || !result.spec.required, onClick = { onManualValue(selected) }) { Text("Confirm") }
+        Button(modifier = Modifier.fillMaxWidth(), enabled = selected.isNotBlank() || !result.effectiveRequired, onClick = { onManualValue(selected) }) { Text("Confirm") }
     }
 }
 
@@ -1522,7 +2154,24 @@ private fun MultipleMarkReview(result: PaperFieldResult, onManualValue: (String)
             )
         }
         Spacer(Modifier.height(6.dp))
-        Button(modifier = Modifier.fillMaxWidth(), enabled = selected.isNotEmpty() || !result.spec.required, onClick = { onManualValue(selectedRaw) }) { Text("Confirm selection") }
+        Button(modifier = Modifier.fillMaxWidth(), enabled = selected.isNotEmpty() || !result.effectiveRequired, onClick = { onManualValue(selectedRaw) }) { Text("Confirm selection") }
+    }
+}
+
+@Composable
+private fun PaperRoiReviewPreview(bitmap: android.graphics.Bitmap, roi: NormalisedRoi) {
+    val crop = remember(bitmap, roi) { PaperImageEngine.cropExpanded(bitmap, roi) }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Image(
+            bitmap = crop.asImageBitmap(),
+            contentDescription = "Paper response region",
+            modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp, max = 180.dp).padding(6.dp),
+            contentScale = ContentScale.Fit
+        )
     }
 }
 
@@ -1538,7 +2187,33 @@ private fun TextReview(result: PaperFieldResult, onManualValue: (String) -> Unit
         singleLine = result.spec.type != PaperFieldType.OCR_TEXT
     )
     Spacer(Modifier.height(6.dp))
-    Button(modifier = Modifier.fillMaxWidth(), enabled = value.isNotBlank() || !result.spec.required, onClick = { onManualValue(value) }) { Text("Confirm") }
+    Button(modifier = Modifier.fillMaxWidth(), enabled = value.isNotBlank() || !result.effectiveRequired, onClick = { onManualValue(value) }) { Text("Confirm") }
+}
+
+
+@Composable
+private fun PaperCommittedAttachment(context: Context, label: String, uriText: String) {
+    val uri = remember(uriText) { Uri.parse(uriText) }
+    val mime = remember(uriText) { context.contentResolver.getType(uri).orEmpty().ifBlank { "image/*" } }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Image attachment", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
+            OutlinedButton(onClick = {
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, mime)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    })
+                }
+            }) { Text("Open") }
+        }
+    }
 }
 
 @Composable
@@ -1553,4 +2228,16 @@ private fun copyText(context: Context, label: String, value: String) {
     if (value.isBlank()) return
     context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText(label, value))
     Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
+}
+
+
+private fun Context.findPaperBridgeActivity(): Activity? {
+    var current: Context = this
+    while (current is ContextWrapper) {
+        if (current is Activity) return current
+        val base = current.baseContext
+        if (base === current) break
+        current = base
+    }
+    return current as? Activity
 }

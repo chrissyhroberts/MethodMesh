@@ -4,6 +4,13 @@ plugins {
 }
 
 android {
+    ndkVersion = "28.2.13676358"
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
     namespace = "com.example.methodmesh"
     compileSdk {
         version = release(36) {
@@ -15,8 +22,8 @@ android {
         applicationId = "com.example.methodmesh"
         minSdk = 27
         targetSdk = 36
-        versionCode = 7
-        versionName = "2.6.0"
+        versionCode = 8
+        versionName = "2.7.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -67,6 +74,7 @@ android.sourceSets["main"].res.srcDir(file("$buildDir/generated/res/methodmeshMo
 tasks.named("preBuild").configure { dependsOn(generateMethodMeshModuleIndex) }
 
 dependencies {
+    implementation("org.opencv:opencv:4.12.0") // PaperBridge AprilTag detection and registration
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     // Force a modern FragmentActivity implementation. Older transitive Fragment

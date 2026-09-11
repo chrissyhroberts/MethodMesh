@@ -1,6 +1,6 @@
 # MethodMesh Signals
 
-Version: **0.4.5**  
+Version: **0.5.3**  
 Module status: **Development**  
 Connectivity: **Offline**
 
@@ -15,7 +15,7 @@ The module is not a replacement for conventional networking, secure messaging or
 | Method ID | Native capability | Maturity | Connectivity | Primary channel |
 |---|---|---|---|---|
 | `signal.morse.transmit` | Morse transmitter | Development | Offline | front screen / rear torch / speaker |
-| `signal.morse.receive` | Morse receiver | Development | Offline | camera luminance / microphone; light sensor legacy-only |
+| `signal.morse.receive` | Morse receiver | Development | Offline | camera luminance / microphone / manual human observation; light sensor legacy-only |
 | `signal.qr.transmit` | QR burst transmitter | Development | Offline | screen -> camera |
 | `signal.qr.receive` | QR burst receiver | Development | Offline | camera |
 | `signal.audio_fsk.transmit` | Audio FSK transmitter | Development | Offline | speaker -> microphone/radio audio path |
@@ -24,6 +24,10 @@ The module is not a replacement for conventional networking, secure messaging or
 | `signal.ultrasonic.receive` | Near-ultrasonic receiver | Experimental | Offline | microphone |
 | `signal.surface.transmit` | Tabletop transmitter | Experimental | Offline | speaker -> shared rigid surface |
 | `signal.surface.receive` | Tabletop receiver | Experimental | Offline | accelerometer / shared rigid surface |
+| `signal.optical_screen.transmit` | Screen optical modem transmitter | Development | Offline | screen 4-PAM / AprilTag16h5 Burst |
+| `signal.optical_screen.receive` | Screen optical modem receiver | Development | Offline | camera luminance / AprilTag16h5 Burst |
+| `signal.optical_torch_ppm.transmit` | Torch PPM optical modem transmitter | Development | Offline | rear torch |
+| `signal.optical_torch_ppm.receive` | Torch PPM optical modem receiver | Development | Offline | camera luminance / point source |
 | `signal.sensor.scope` | Signal sensor scope | Development | Offline | phone sensors |
 
 Every method above is independently registered by `SignalsModule`; the dashboard is only a generic discovery/launch projection. No capability is dashboard-only.
@@ -33,11 +37,14 @@ Every method above is independently registered by `SignalsModule`; the dashboard
 
 The 0.4 physical-channel pass incorporates repeated real two-phone testing. It keeps the polished instrument family but makes the physical links observable and explicitly framed: Morse now uses cyclic acquisition/START/END framing and message-level consensus; live FSK is wired to clock recovery and exposes a microphone spectrum; QR supports segmented transfers up to 1 MiB with explicit end-to-end SHA-256; tabletop calibration is fail-safe; and long-range camera optics remain available. The live tool remains visually dominant and configuration remains below it.
 
-- **Morse** uses an amber telegraph/beacon language. Transmission is looping-only: every cycle sends three acquisition flashes, a distinctive 12-unit START mark, the message, a different 20-unit END mark, then quiet before repeating. The receiver quarantines any pre-START orphan, accepts consensus votes only from complete START→END cycles, and can use an END-anchored orphan later at reduced weight once a bounded copy establishes message geometry. Confidence combines cross-cycle agreement with finite-evidence shrinkage rather than reporting one clean copy as 100%. Camera reception supports real zoom, Full/Focus/Pinpoint ROIs, tap-to-position and temporal-modulation auto-lock. Screen mode uses deliberate underexposure, median ROI luminance and a two-frame stability gate to reject rolling-shutter swipes; torch/point mode underexposes further, prefers a pinpoint ROI and requires three stable frames to suppress flare-decay edges. Optical timing is capped at 10 WPM with 5 WPM recommended; sound-only transmission/reception is capped at 30 WPM. Mark speed and element/letter/word/cycle gaps are separate discrete axes so optical spacing can be relaxed without changing the mark rate.
+- **Morse** uses an amber telegraph/beacon language. Transmission is looping-only: every cycle sends three acquisition flashes, a distinctive 12-unit START mark, the message, a different 20-unit END mark, then quiet before repeating. In v0.5.3 screen Morse can add redundant colour evidence without changing canonical timing: acquisition/dots are WHITE and START/END/dashes are RED. The camera learns white from the known acquisition marks and red from START, then fuses chroma and duration probabilistically; if colour separation is weak it falls back to ordinary timing-only Morse. The receiver quarantines any pre-START orphan, accepts consensus votes only from complete START→END cycles, and can use an END-anchored orphan later at reduced weight once a bounded copy establishes message geometry. Confidence combines cross-cycle agreement with finite-evidence shrinkage rather than reporting one clean copy as 100%. Camera reception supports real zoom, Full/Focus/Pinpoint ROIs, tap-to-position and temporal-modulation auto-lock. Screen mode uses deliberate underexposure, median ROI luminance and a two-frame stability gate to reject rolling-shutter swipes; torch/point mode underexposes further, prefers a pinpoint ROI and requires three stable frames to suppress flare-decay edges. Manual receive is a third first-class source: the operator taps START SIGNAL, DOT and DASH while watching/listening to an external sender. START bounds repeated observations; raw tap timing is retained within the working decoder and the entire observation is re-segmented as cadence evidence improves, so an early wrong WPM prior cannot permanently merge letters. Optical timing is capped at 10 WPM with 5 WPM recommended; sound-only transmission/reception is capped at 30 WPM. Mark speed and element/letter/word/cycle gaps are separate discrete axes so optical spacing can be relaxed without changing the mark rate.
 - **QR burst** uses a cyan optical-modem language: current coded frame, frame/cycle/dwell telemetry, Reed-Solomon geometry and recovery progress. Text and files are wrapped with an object SHA-256; larger files are segmented across independent MMS/1 packets and a second transfer-envelope SHA-256 verifies reassembly. The 1 MiB ceiling is supported but can require thousands of QR frames, so text and smaller files are the practical sweet spot. Active transmission expands to a full-screen maximum-brightness optical surface. QR receive exposes actual hardware optical zoom (1x / 2x / 4x / device maximum).
 - **Audible FSK** uses a cyan radio-modem language with MARK/SPACE carrier rail, matched A/B/C/D profiles, live microphone spectrum, peak frequency, tone-confidence, clock/sync/frame diagnostics and receiver shard progress. The live receiver uses preamble-based clock acquisition. v0.4.2 adds in-frame percentage telemetry after SYNC, explicit first-frame/cycle time estimates, lower output amplitude to reduce handset/microphone saturation, and a compact binary physical representation of generated MMS/1 frames; the exact CRC-bearing ASCII MMS/1 frame is reconstructed before transport validation.
 - **Near-ultrasonic FSK** uses the same modem grammar, spectrum and A/B/C/D profiles with a violet experimental treatment. Handset testing showed unstable peaks around 14–15 kHz and little useful response above that, so profiles now start at 12/13 kHz and step upward to 15/16 kHz rather than assuming 18/19 kHz is usable.
 - **Tabletop transfer** remains an explicitly **Experimental** research channel. It uses low-frequency OOK transmission into a shared rigid surface, accelerometer rest calibration, live vibration trace and clock/sync/frame telemetry, but current phone-pair testing has not produced reliable reception. The capability is retained for experimentation rather than presented as a dependable transfer path.
+- **Screen optical modem** is the faster machine-oriented complement to Morse. Whole-screen **4-PAM** remains the maximum-area range mode. The legacy `grid` mode token now selects **AprilTag Burst**: every changing full-screen tag is independently localisable/oriented and Hamming-protected, so the receiver no longer depends on a fixed brightness lattice. Compact CRC text is carried as 3-bit symbols with explicit block markers, per-block XOR repair and repeated-loop recovery.
+- **Torch optical modem** now uses **single-flash 8-PPM** for compact short text. Seven cadence flashes acquire the clock; each following flash occupies one of eight positions and therefore carries three bits. Profile-defined XOR parity stripes repair one missing symbol per stripe, while repeated cycles contribute votes. The receiver uses leading edges rather than flash amplitude to reduce sensitivity to saturation, starburst and decay.
+- **Long / Balanced / Fast** are matched optical profiles. Long is the default when distance matters: 180 ms whole-screen PAM symbols, a 4×4 grid at 300 ms state dwell, 55 ms 8-PPM slots with 45 ms flashes and a 4× receiver zoom starting point. Balanced uses 40/32 ms PPM slot/flash timing; Fast uses 32/25 ms. Compact short-text links avoid MMS shard overhead; broader Screen fallback can still use MMS/1. These are engineering profiles, not distance guarantees; real range remains device/environment dependent until characterised.
 - **Sensor scope** uses a live oscilloscope trace, large current magnitude/value and axis telemetry rather than a table-only sensor readout.
 - **Committed results** use a separate green frozen-record treatment. This is deliberately different from live instrumentation so the Commit boundary is visually obvious.
 
@@ -71,7 +78,7 @@ Active camera, microphone, speaker, torch and accelerometer sessions temporarily
 
 # MMS/1: MethodMesh Signal Protocol v1
 
-QR, audible FSK, near-ultrasonic FSK and tabletop transfer carry the same transport-independent **MMS/1** frames.
+QR, audible FSK, near-ultrasonic FSK, tabletop transfer, Screen Optical Modem and Torch PPM carry the same transport-independent **MMS/1** frames.
 
 MMS/1 is designed for lossy physical links where a receiver may:
 
@@ -121,7 +128,7 @@ Morse currently remains the deliberately human-readable signalling route rather 
 
 Transmit ordinary text as International Morse timing using any supported combination of:
 
-- **front screen flash** — a full-screen black/white emitter surface with the live window brightness request raised to maximum and restored when transmission stops;
+- **front screen flash** — a full-screen emitter with the live window brightness request raised to maximum and restored when transmission stops; by default colour assist shows dots/acquisition as white and dashes/START/END as red while retaining ordinary Morse timing;
 - rear-camera torch;
 - audible tone.
 
@@ -133,10 +140,11 @@ Unsupported characters are skipped by the Morse encoder. The visible Morse notat
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `payload` | text | `SOS` | Text to encode. |
+| `payload` | text | `hello, world` | Text to encode. |
 | `route` | choice | `screen` | `screen`, `torch`, `sound`, `screen_sound`, `torch_sound`, `all`. |
 | `wpm` | choice | `5` | Discrete speed: optical 5/8/10 WPM; sound additionally 20/30 WPM. |
 | `tone_frequency_hz` | choice | `700` | Shared TX/RX audio carrier: 500/700/1200/2200 Hz. |
+| `colour_assist` | boolean | `true` | Screen only: white dots/acquisition and red dashes/START/END; timing remains canonical Morse. |
 | `element_gap_units` | choice | `1.25` | Independent gap between dot/dash elements. |
 | `letter_gap_units` | choice | `4` | Independent gap between letters. |
 | `word_gap_units` | choice | `9` | Independent gap between words. |
@@ -160,6 +168,7 @@ com.example.methodmesh.EXECUTE_METHOD(
   input_route=${morse_tx_route},
   input_wpm=${morse_tx_wpm},
   input_tone_frequency_hz=${morse_tx_tone_hz},
+  input_colour_assist=${morse_tx_colour_assist},
   input_element_gap_units=${morse_tx_element_gap},
   input_letter_gap_units=${morse_tx_letter_gap},
   input_word_gap_units=${morse_tx_word_gap},
@@ -177,7 +186,7 @@ Canonical returns are the declared fields above plus shared `methodmesh_status` 
 
 Decode an on/off Morse envelope from camera luminance or a configured microphone carrier. `light_sensor` remains accepted only for backwards compatibility with old presets and is hidden from ordinary native selection because real-device testing did not justify it as a useful Morse path.
 
-Camera luminance is a relative signal metric, not calibrated photometry. Microphone detection uses a module-local Goertzel carrier detector and prefers an unprocessed/MIC input path where Android exposes one. MethodMesh-generated Morse is a cyclic framed signal: three acquisition flashes → 12-unit START → message → 20-unit END → repeat. A receiver joining halfway through a cycle may decode an END-anchored orphan suffix, but that observation has zero voting weight until a later complete START→END cycle establishes alignment. With PARIS timing, `dot_ms = 1200 / WPM`, so 5 WPM corresponds to a 240 ms dot.
+Camera luminance is a relative signal metric, not calibrated photometry. In the screen profile, v0.5.3 also samples median YUV chroma from the same ROI. Colour assist treats chroma as soft evidence only: known white acquisition marks and the red START marker establish local camera references, payload mark duration and colour likelihoods are fused, and weak/indistinguishable colour contributes zero weight so conventional monochrome Morse still decodes by timing. Microphone detection uses a module-local Goertzel carrier detector and prefers an unprocessed/MIC input path where Android exposes one. MethodMesh-generated Morse is a cyclic framed signal: three acquisition flashes → 12-unit START → message → 20-unit END → repeat. A receiver joining halfway through a cycle may decode an END-anchored orphan suffix, but that observation has zero voting weight until a later complete START→END cycle establishes alignment. With PARIS timing, `dot_ms = 1200 / WPM`, so 5 WPM corresponds to a 240 ms dot.
 
 For camera reception, locked timing is the default because rolling shutter and torch flare can bias measured ON and OFF durations differently. Auto timing remains available and uses the acquisition/marker observations plus normalized dots/dashes; microphone reception defaults to auto timing.
 
@@ -185,10 +194,11 @@ For camera reception, locked timing is the default because rolling shutter and t
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `source` | choice | `camera` | `camera`, `microphone`; legacy `light_sensor` remains accepted for old presets. |
+| `source` | choice | `camera` | `camera`, `microphone`, `manual`; legacy `light_sensor` remains accepted for old presets. |
 | `dot_ms` | choice | `240` camera / `60` microphone | Discrete nominal speed: 240/150/120/60/40 ms = 5/8/10/20/30 WPM. |
 | `auto_timing` | boolean | `false` camera / `true` microphone | Experimental adaptation of the base Morse unit; locked timing is recommended optically. |
 | `optical_profile` | choice | `screen` | `screen` or `torch`; controls exposure reduction, ROI statistic and stable-frame edge gating. |
+| `colour_assist` | choice | `auto` | Screen camera only: `auto` calibrates/fuses white-dot/red-dash chroma; `off` uses timing only. |
 | `microphone_tone_hz` | choice | `700` | Same 500/700/1200/2200 Hz catalogue as TX. |
 | `microphone_tolerance_hz` | choice | `120` | 80/120/220/400 Hz tolerance. |
 | `microphone_min_dbfs` | choice | `-54` | −78/−66/−54/−42 dBFS. More negative accepts quieter signals. |
@@ -212,6 +222,7 @@ com.example.methodmesh.EXECUTE_METHOD(
   input_dot_ms=${morse_rx_dot_ms},
   input_auto_timing=${morse_rx_auto_timing},
   input_optical_profile=${morse_rx_optical_profile},
+  input_colour_assist=${morse_rx_colour_assist},
   input_microphone_tone_hz=${morse_rx_tone_hz},
   input_microphone_tolerance_hz=${morse_rx_tolerance_hz},
   input_microphone_min_dbfs=${morse_rx_min_dbfs},
@@ -439,6 +450,40 @@ The module owns `example_odk_showcase_signal_surface_transmit.xlsx` and `example
 
 ---
 
+
+# Optical modem — `signal.optical_screen.transmit` / `signal.optical_screen.receive`
+
+The screen optical modem is a machine-oriented link distinct from Morse. Whole-screen 4-PAM retains the existing MMS/1 path. In v0.5.2 the legacy `grid` setting is kept only as a compatibility token: at runtime it selects **AprilTag Burst**, replacing the unsuccessful luminance-grid PHY rather than attempting another registration tweak.
+
+Two matched physical modes are exposed:
+
+- **4-PAM** — the whole luminous field takes one of four calibrated brightness levels (`00`, `01`, `10`, `11`). This sacrifices throughput for optical area and is the preferred screen mode when maximum luminous area is the dominant objective. Receiver classification is differential/adaptive rather than tied to an absolute camera brightness.
+- **AprilTag Burst** (`mode=grid`) — one large full-screen `tag16h5` fiducial is one optical state. Tags 0–15 carry alternating-bank 3-bit symbols, tags 16–27 are explicit block anchors, tag 28 is END and tag 29 is START. Each 12-symbol block has one XOR repair symbol. Because each state contains its own localisation/orientation code, camera motion no longer has to preserve a sampling lattice. A dropped state becomes an erasure; one missing symbol in a block is parity-repairable and worse loss can be filled by a later loop.
+
+`range_profile` is shared by TX and RX: **long**, **balanced**, **fast**. AprilTag Burst uses 180 / 120 / 90 ms dwell respectively, giving a nominal 30 fps camera about 5.4 / 3.6 / 2.7 observations per displayed state before the two-observation stability gate. The ROI is only a **search area**: keep the complete tag roughly inside it. Scalar 4-PAM can still use temporal-modulation auto-targeting and Pinpoint ROI. Real CameraX zoom and negative exposure compensation remain explicit receiver controls.
+
+The compact AprilTag frame is CRC-32 protected. The committed record may include a locally computed SHA-256 fingerprint for convenience, but it is **not** reported as an end-to-end transmitted SHA verification; full 4-PAM/MMS remains the end-to-end SHA-256 path.
+
+## ODK Integration Cards
+
+The module owns `example_odk_showcase_signal_optical_screen_transmit.xlsx` and `example_odk_showcase_signal_optical_screen_receive.xlsx`. Both use the canonical method IDs and the same mode/profile vocabulary as native direct use. Interactive TX/RX is still required; ODK supplies settings and receives the committed canonical return.
+
+---
+
+# Torch PPM optical modem — `signal.optical_torch_ppm.transmit` / `signal.optical_torch_ppm.receive`
+
+Torch PPM is the point-source long-range optical mode. v0.5.1 replaces the v0.5.0 sync-per-symbol 4-PPM design with **single-flash 8-PPM** for compact short text. A seven-flash cadence preamble establishes the clock; each data window then contains exactly one equal-strength flash in one of eight positions. The receiver therefore decodes **when the leading edge occurs**, not how bright the flash is. Three bits are carried per data flash.
+
+Long / Balanced / Fast use respectively 55 / 40 / 32 ms timing slots and 45 / 32 / 25 ms flashes. Long / Balanced / Fast add 6 / 4 / 2 XOR parity stripes respectively; one missing data symbol in a stripe can be reconstructed when its parity symbol is present. Symbol votes persist across repeated cycles. The long profile defaults to strong underexposure, Pinpoint ROI and 4× zoom as an acquisition starting point.
+
+The compact frame uses a 5-bit lowercase field alphabet (`a-z`, space, `. , ? / -`), a short message identifier and CRC-32. This is an efficiency mode, not cryptographic authentication. The receiver computes the normal local SHA-256 fingerprint for the committed decoded text, while full MMS/1 remains the stronger general-purpose framing path on the other links. Rolling-shutter exploitation is deliberately **not** part of the canonical v0.5.2 contract.
+
+## ODK Integration Cards
+
+The module owns `example_odk_showcase_signal_optical_torch_ppm_transmit.xlsx` and `example_odk_showcase_signal_optical_torch_ppm_receive.xlsx`, with matched range profile, camera zoom/ROI/underexposure settings and flat canonical returns.
+
+---
+
 # Signal sensor scope — `signal.sensor.scope`
 
 A compact live scope over phone sensors already exposed by MethodMesh's shared `PhoneSensorRepository`:
@@ -489,6 +534,10 @@ The module owns one v1.08 canonical single-invocation showcase per independently
 - `example_odk_showcase_signal_ultrasonic_receive.xlsx`
 - `example_odk_showcase_signal_surface_transmit.xlsx`
 - `example_odk_showcase_signal_surface_receive.xlsx`
+- `example_odk_showcase_signal_optical_screen_transmit.xlsx`
+- `example_odk_showcase_signal_optical_screen_receive.xlsx`
+- `example_odk_showcase_signal_optical_torch_ppm_transmit.xlsx`
+- `example_odk_showcase_signal_optical_torch_ppm_receive.xlsx`
 - `example_odk_showcase_signal_sensor_scope.xlsx`
 
 Each workbook contains exactly one `com.example.methodmesh.EXECUTE_METHOD` intent call, uses the canonical method ID, requests `input_payload_mode='FULL'`, uses `return_mode='flat'`, captures shared `methodmesh_status` and `methodmesh_full_json`, uses canonical unprefixed return fields, and does not set a return namespace.
@@ -497,7 +546,7 @@ Each workbook contains exactly one `com.example.methodmesh.EXECUTE_METHOD` inten
 
 The current MethodMesh host already declares the permissions used by this first pass:
 
-- `CAMERA` — QR receive, camera-luminance Morse receive, rear torch;
+- `CAMERA` — QR receive, camera-luminance Morse/optical receive, rear torch and Torch PPM transmit;
 - `RECORD_AUDIO` — Morse microphone receive, audible FSK receive, near-ultrasonic receive.
 
 Tabletop receive uses the accelerometer and requires no runtime sensor permission.
@@ -528,7 +577,17 @@ Shared MethodMesh preset-log behaviour remains available when a preset explicitl
 
 Real-device testing drove this revision. Optical QR is currently the strongest machine link; camera Morse is genuinely useful and benefits from repeated-copy consensus. Audible and high-band FSK must first demonstrate energy at the intended frequencies in the spectrum, then clock/sync acquisition, before MMS/1 recovery can occur. Tabletop transfer remains Experimental and calibration failures are now surfaced as recoverable UI errors instead of escaping the sensor callback.
 
-A future Morse mode remains on the roadmap: capture a manually keyed torch sequence without assuming a dot duration, then infer dot/dash and gap clusters afterwards.
+Manual Morse capture is implemented in v0.5.1 as a human-observed START/DOT/DASH source. It re-decodes raw tap timing as cadence evidence improves and contributes only START-bounded observations to repeat consensus.
+
+## v0.5.0 range-first optical modem expansion
+
+- Adds four canonical capabilities: Screen Optical TX/RX and Torch PPM TX/RX, bringing the independently callable capability count to 15.
+- Reuses the compact physical MMS frame representation already proven by FSK rather than defining a second packet protocol.
+- Adds a generic byte-oriented transparent compression helper around the SHA-256 content envelope; MMS/1 remains the Reed-Solomon/CRC layer.
+- Screen 4-PAM is the maximum-area scalar source; AprilTag Burst is the self-registering screen mode; Torch 8-PPM is the point-source timing mode.
+- Long / Balanced / Fast are explicit matched profiles. Long prioritises acquisition margin and distance rather than bitrate.
+- No claimed metre range is attached to these new modes until two-device physical testing characterises them.
+- Rolling-shutter communications remain experimental future work and are not required for normal decoding.
 
 # Validation
 
@@ -563,3 +622,25 @@ See `VALIDATION.md` for codec smoke tests, v1.08 review passes, XLSForm checks, 
 - Tabletop RX requests 100 Hz accelerometer sampling (10,000 microseconds), intentionally below Android's high-rate-sensor permission threshold. No HIGH_SAMPLING_RATE_SENSORS permission is required.
 - Tabletop TX has a real cancellation flag, safer 90-300 Hz carrier bounds and 120/180/240 Hz presets; packet width is adaptive and new sessions default to FAST robustness.
 - Morse receiver header layout is stabilised: the instrument badge stays LIVE/IDLE and the kicker is one line, so ON/OFF detection no longer makes the screen jump vertically.
+
+
+### v0.4.7 control placement
+Primary live-session controls (Start/Stop/Listen/Transmit/Calibrate) sit above the instrument surface so they remain immediately reachable. Commit, Reset, export and navigation remain secondary controls below the live result. Full-screen QR transmission also keeps Stop above the QR field rather than at the bottom edge.
+
+
+## v0.5.2 manual Morse ergonomics + AprilTag Burst
+
+- Manual Morse keeps the v0.5.1 START/DOT/DASH decoder but changes the live ergonomics: decoded/best-guess text occupies the upper live panel, START is a full-width anchor control, and DOT/DASH are two very large side-by-side controls intended for eyes-on-signal operation.
+- The luminance-grid screen PHY is retired. The existing `grid` mode value now runs **AprilTag16h5 Burst**, one full-screen self-registering fiducial per state, with explicit block anchors, alternating data banks, one XOR repair state per 12 data symbols and loop recovery.
+- The test phrase `hello from methodmesh torch` is 26 compact bytes and **86 AprilTag states** (START + six 14-state blocks + END). Long / Balanced / Fast cycles are therefore approximately **15.48 / 10.32 / 7.74 s**.
+- Torch remains the v0.5.1 compact single-flash 8-PPM implementation: the same phrase is **83 flashes** in Long.
+- These are coded timing calculations and pure-code regressions, not real-device range claims. v0.5.2 specifically requires two-phone testing of the constrained AprilTag camera detector under hand motion, perspective, blur and distance.
+
+
+## v0.5.3 colour-assisted screen Morse
+
+- Screen Morse retains canonical dot/dash timing and black OFF intervals, but colour assist is ON by default: dots and the three acquisition marks are WHITE; dashes and the long START/END markers are RED. Torch/audio routes are unchanged.
+- Camera screen reception exposes `colour_assist=auto|off`. Auto samples median U/V chroma from the same ROI used for luminance timing. Acquisition dots calibrate the local white centroid and START calibrates red before payload marks are scored.
+- Mark classification is probabilistic rather than a hard colour switch. Duration supplies one likelihood and chroma supplies an independent soft likelihood; strong colour can recover a transition-smeared mark near the timing boundary, while low colour confidence contributes effectively no evidence.
+- A monochrome sender remains compatible. If START and acquisition chroma are not separable, colour calibration collapses and the receiver behaves as the existing timing-only decoder.
+- Pure regression includes a deliberately ambiguous 1.8-unit mark: calibrated red recovers it as a dash, while weak colour evidence leaves it as the timing-derived dot.
