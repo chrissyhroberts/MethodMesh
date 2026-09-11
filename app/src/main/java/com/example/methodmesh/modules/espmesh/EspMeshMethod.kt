@@ -29,8 +29,8 @@ object As100EspMeshMessageMethod : As100Method {
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Send a MethodMesh message through the ESP mesh")
     override val descriptor = MethodDescriptor(
         id = ArchitectureId(ID), methodType = MethodObjectType.Workflow,
-        name = "ESP mesh message", version = "0.1.0",
-        description = "Queue an opaque MethodMesh message for an ESP mesh gateway.",
+        name = "ESP mesh transport test", version = "0.4.0",
+        description = "Workbench test harness for the persistent encrypted ESP mesh transport.",
         outputs = EspMeshFields.outputs, graphOutputs = listOf("transport.message.queued"),
         parameters = mapOf("category" to "Field transport", "status" to "Preview")
     )

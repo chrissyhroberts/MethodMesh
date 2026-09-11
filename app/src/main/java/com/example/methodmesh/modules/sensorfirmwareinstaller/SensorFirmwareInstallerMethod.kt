@@ -36,7 +36,7 @@ data class SensorFirmwareInstallOutcome(
     val status: String,
     val board: String = "ESP32-C3",
     val firmwareName: String = "esp32c3_sensor_node/main.py",
-    val firmwareVersion: String = "methodmesh-sensor-0.1.6",
+    val firmwareVersion: String = "methodmesh-sensor-0.1.7",
     val firmwareBytes: String = "",
     val usbDevice: String = "",
     val error: String = ""
@@ -130,12 +130,6 @@ object As100Esp32RuntimeInstallMethod : As100Method by Esp32FirmwareBoundaryMeth
 
 object As100Esp32SensorProfileInstallMethod : As100Method by Esp32FirmwareBoundaryMethod(
     id = "esp32.sensor_profile_install",
-    methodName = "Install ESP32 sensor image",
-    methodDescription = "Erase and install a complete MethodMesh ESP32-C3 image for the selected sensor."
-)
-
-object As100Esp32MeshInstallMethod : As100Method by Esp32FirmwareBoundaryMethod(
-    id = "esp32.mesh_install",
-    methodName = "Install ESP mesh node",
-    methodDescription = "Install the MethodMesh ESP-NOW mesh-node runtime on an ESP32-C3."
+    methodName = "Install ESP32 image",
+    methodDescription = "Erase and install a complete MethodMesh ESP32-C3 image for a BLE sensor node or ESP-NOW mesh node."
 )

@@ -13,6 +13,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -191,6 +192,7 @@ private fun capabilityUiClass(method: As100Method, module: MethodMeshModule?): C
     val id = method.id
     val moduleId = module?.moduleId.orEmpty()
     return when {
+        module?.workbenchTool == true -> CapabilityUiClass.WorkbenchTool
         id in setOf(
             "android_app_inspector",
             "bluetooth_device_inspector",
@@ -355,6 +357,7 @@ fun HomeScreen() {
             }
         }
     ) {
+        Box(Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -440,6 +443,12 @@ fun HomeScreen() {
                     DashboardDestination.Services -> item { DeviceServicesCard(expandedByDefault = true) }
                 }
             }
+        }
+        Column(Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp)) {
+            MethodMeshModuleRegistry.overlays().forEach { overlay ->
+                androidx.compose.runtime.key(overlay.id) { overlay.Render(Modifier) }
+            }
+        }
         }
     }
 }

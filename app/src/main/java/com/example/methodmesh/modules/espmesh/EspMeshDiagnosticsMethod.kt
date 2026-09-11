@@ -18,7 +18,7 @@ object As100EspMeshDiagnosticsMethod : As100Method {
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Inspect ESP mesh transport diagnostics")
     override val descriptor = MethodDescriptor(
         id = ArchitectureId(ID), methodType = MethodObjectType.Workflow,
-        name = "ESP mesh diagnostics", version = "0.1.0",
+        name = "ESP mesh transport diagnostics", version = "0.4.0",
         description = "Inspect gateway and durable transport state without exposing secrets.",
         outputs = listOf("esp_mesh_diagnostics_status"), graphOutputs = listOf("transport.diagnostics"),
         parameters = mapOf("category" to "Field transport", "status" to "Preview")
