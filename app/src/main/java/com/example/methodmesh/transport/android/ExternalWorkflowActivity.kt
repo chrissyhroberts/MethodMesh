@@ -44,6 +44,7 @@ import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.calibration.CalibrationRepository
 import com.example.methodmesh.settings.DisplaySettingsRepository
 import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.ReturnNamespaceProjector
 import com.example.methodmesh.transport.workflow.ConfirmedWorkflowStep
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
@@ -134,6 +135,29 @@ class ExternalWorkflowActivity : FragmentActivity() {
             flatReturnFields["context_entity_id"] = request.invocationContext.canonicalEntityId
         }
         fields.forEach { (key, value) -> flatReturnFields[key] = value?.toString() }
+        // An external form always receives the complete provenance JSON and
+        // every binary result URI. Payload projection may reduce ordinary
+        // fields, but it must not silently separate the result's beef from
+        // its media or audit trail.
+        flatReturnFields["methodmesh_full_json"] = OutputFormatter.format(
+            result = combined,
+            returnMode = ReturnMode.Json,
+            includeProvenance = true,
+            graph = ResearchRuntime.session.graph(),
+            payloadMode = OutputFormatter.PayloadMode.FULL
+        )
+        OutputFormatter.fields(combined, includeProvenance = true).forEach { (key, value) ->
+            val text = value?.toString().orEmpty()
+            if (text.startsWith("content://") && (
+                    key.endsWith("_uri") ||
+                        key.endsWith("_uris") ||
+                        listOf("attachment", "audio", "document", "file", "image", "media", "pdf", "photo", "video")
+                            .any { hint -> hint in key.lowercase() }
+                    )
+            ) {
+                flatReturnFields[key] = text
+            }
+        }
         val data = Intent()
         ReturnIntentProjector.applyTo(
             intent = data,

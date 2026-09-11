@@ -3,6 +3,7 @@ package com.example.methodmesh.transport
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -474,25 +475,43 @@ object OutputExportRepository {
     }
 
     fun share(context: Context, exportPackage: ExportPackage) {
-        val uris = ArrayList(exportPackage.allFiles.mapNotNull { shareableUri(context, it.uri) })
-        if (uris.isEmpty()) throw IllegalStateException("No exported files are available to share.")
-        val intent = if (uris.size == 1) {
-            Intent(Intent.ACTION_SEND).apply {
-                type = exportPackage.allFiles.first().mimeType
-                putExtra(Intent.EXTRA_STREAM, uris.first())
-            }
-        } else {
-            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-                type = "*/*"
-                putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+        val attachments = exportPackage.attachments.mapNotNull { shareableUri(context, it.uri) }.distinctBy(Uri::toString)
+        val json = shareableUri(context, exportPackage.json.uri)
+            ?: throw IllegalStateException("The result JSON is no longer available to share.")
+        val uris = ArrayList<Uri>().apply {
+            addAll(attachments)
+            add(json)
+            exportPackage.manifest?.let { shareableUri(context, it.uri) }?.let { add(it) }
+        }.distinctBy(Uri::toString)
+        val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+            type = "*/*"
+            putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+            clipData = ClipData.newRawUri("MethodMesh export", uris.first()).apply {
+                uris.drop(1).forEach { addItem(ClipData.Item(it)) }
             }
         }.apply {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             putExtra(Intent.EXTRA_SUBJECT, "MethodMesh export")
-            putExtra(Intent.EXTRA_TEXT, "MethodMesh export: ${exportPackage.summary}")
+            putExtra(Intent.EXTRA_TEXT, exportPackageHumanText(context, exportPackage))
         }
         context.startActivity(Intent.createChooser(intent, "Share MethodMesh export").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
+
+    private fun exportPackageHumanText(context: Context, exportPackage: ExportPackage): String = runCatching {
+        context.contentResolver.openInputStream(Uri.parse(exportPackage.json.uri))?.bufferedReader()?.use { reader ->
+            val fields = JSONObject(reader.readText())
+                .optJSONArray("steps")
+                ?.optJSONObject(0)
+                ?.optJSONObject("fields")
+            if (fields == null) return@use "MethodMesh export\n${exportPackage.summary}"
+            buildString {
+                append("MethodMesh export\n")
+                for (key in fields.keys()) {
+                    if (!key.endsWith("_uri")) append(key).append(": ").append(fields.opt(key)).append('\n')
+                }
+            }.trim()
+        }
+    }.getOrNull().orEmpty().ifBlank { "MethodMesh export\n${exportPackage.summary}" }
 
     fun shareMedia(context: Context, exportPackage: ExportPackage) {
         val media = exportPackage.attachments.filterNot { it.mimeType == "application/json" || it.mimeType == "text/plain" }

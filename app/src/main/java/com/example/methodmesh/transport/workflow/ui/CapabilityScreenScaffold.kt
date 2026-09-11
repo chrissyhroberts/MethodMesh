@@ -776,25 +776,34 @@ private fun shareResultBundle(
     mediaUris: List<Uri>,
     jsonText: String
 ) {
-    val shareable = ArrayList(mediaUris.map { shareableUri(context, it) })
-    if (jsonText.isNotBlank()) shareable += temporaryJsonShareUri(context, jsonText)
-    if (shareable.isEmpty() && text.isBlank()) throw IllegalStateException("No shareable result.")
+    val media = mediaUris.map { shareableUri(context, it) }.distinctBy(Uri::toString)
+    val shareable = ArrayList<Uri>().apply {
+        addAll(media)
+        if (jsonText.isNotBlank()) add(temporaryJsonShareUri(context, jsonText))
+    }
     val intent = if (shareable.isEmpty()) {
+        if (text.isBlank()) throw IllegalStateException("No shareable result.")
         Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, text)
         }
-    } else if (shareable.size == 1) {
-        Intent(Intent.ACTION_SEND).apply {
-            type = mediaMimeType(shareable.first().toString())
-            putExtra(Intent.EXTRA_STREAM, shareable.first())
-            if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
-        }
     } else {
-        Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-            type = "*/*"
-            putParcelableArrayListExtra(Intent.EXTRA_STREAM, shareable)
-            if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
+        if (shareable.size == 1) {
+            Intent(Intent.ACTION_SEND).apply {
+                type = mediaMimeType(shareable.first().toString())
+                putExtra(Intent.EXTRA_STREAM, shareable.first())
+                if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
+                clipData = ClipData.newRawUri("MethodMesh result", shareable.first())
+            }
+        } else {
+            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "*/*"
+                putParcelableArrayListExtra(Intent.EXTRA_STREAM, shareable)
+                if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
+                clipData = ClipData.newRawUri("MethodMesh result", shareable.first()).apply {
+                    shareable.drop(1).forEach { addItem(ClipData.Item(it)) }
+                }
+            }
         }
     }.apply {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

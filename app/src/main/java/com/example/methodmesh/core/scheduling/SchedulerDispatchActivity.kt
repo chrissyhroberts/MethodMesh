@@ -711,10 +711,10 @@ class SchedulerDispatchActivity : ComponentActivity() {
 
     private fun shareRunResult(runName: String, steps: List<ProtocolStepSummary>, includeJson: Boolean) {
         val mediaUris = steps.flatMap { step -> step.media.values.map(Uri::parse) }
+            .map(::shareableUri)
+            .distinctBy(Uri::toString)
         val text = runShareText(runName, steps)
-        val shareable = ArrayList(mediaUris.map { shareableUri(it) })
-        if (includeJson) shareable += temporaryJsonShareUri(runMetadataJson(runName, steps))
-        if (shareable.isEmpty()) {
+        if (mediaUris.isEmpty() && !includeJson) {
             if (text.isBlank()) throw IllegalStateException("No shareable result.")
             startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
@@ -722,20 +722,28 @@ class SchedulerDispatchActivity : ComponentActivity() {
             }, "Share result").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             return
         }
+        val shareable = ArrayList<Uri>().apply {
+            addAll(mediaUris)
+            if (includeJson) add(temporaryJsonShareUri(runMetadataJson(runName, steps)))
+        }
         val intent = if (shareable.size == 1) {
             Intent(Intent.ACTION_SEND).apply {
                 type = mediaMimeType(shareable.first().toString())
                 putExtra(Intent.EXTRA_STREAM, shareable.first())
                 if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
+                clipData = ClipData.newRawUri("MethodMesh result", shareable.first())
             }
         } else {
             Intent(Intent.ACTION_SEND_MULTIPLE).apply {
                 type = "*/*"
                 putParcelableArrayListExtra(Intent.EXTRA_STREAM, shareable)
+                if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
+                clipData = ClipData.newRawUri("MethodMesh result", shareable.first()).apply {
+                    shareable.drop(1).forEach { addItem(ClipData.Item(it)) }
+                }
             }
         }.apply {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
         }
         startActivity(Intent.createChooser(intent, "Share result").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
