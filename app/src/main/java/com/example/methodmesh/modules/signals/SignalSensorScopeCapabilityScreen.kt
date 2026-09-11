@@ -171,9 +171,9 @@ object SignalSensorScopeCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share sensor snapshot", committedFields[SignalSensorScopeFields.RESULT].orEmpty()) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "signal_sensor_snapshot", committedFields[SignalSensorScopeFields.RESULT].orEmpty(), committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "signal_sensor_snapshot", committedFields[SignalSensorScopeFields.RESULT].orEmpty(), committedFullJson) } }
+                    onShare = { includeFullJson -> exportStatus = shareSignalText(androidContext, "Share sensor snapshot", committedFields[SignalSensorScopeFields.RESULT].orEmpty(), if (includeFullJson) committedFullJson else "") ?: "" },
+                    onSave = { includeFullJson -> exportStatus = saveSignalText(androidContext, "signal_sensor_snapshot", committedFields[SignalSensorScopeFields.RESULT].orEmpty(), if (includeFullJson) committedFullJson else "") },
+                    onDone = { includeFullJson -> finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "signal_sensor_snapshot", committedFields[SignalSensorScopeFields.RESULT].orEmpty(), if (includeFullJson) committedFullJson else "") } }
                 )
             }
 

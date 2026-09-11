@@ -288,9 +288,9 @@ object SignalQrTransmitCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share QR blast record", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "qr_blast_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "qr_blast_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) } }
+                    onShare = { includeFullJson -> exportStatus = shareSignalText(androidContext, "Share QR blast record", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") ?: "" },
+                    onSave = { includeFullJson -> exportStatus = saveSignalText(androidContext, "qr_blast_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") },
+                    onDone = { includeFullJson -> finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "qr_blast_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") } }
                 )
             }
 
@@ -586,15 +586,39 @@ object SignalQrReceiveCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = {
-                        exportStatus = if (committedIsFile) shareSignalMedia(androidContext, "Share verified received file", committedFileUri, committedMime) ?: "" else shareSignalText(androidContext, "Share verified message", committedFields[SignalQrReceiveFields.RESULT].orEmpty()) ?: ""
+                    onShare = { includeFullJson ->
+                        exportStatus = if (committedIsFile) {
+                            shareSignalMedia(
+                                androidContext,
+                                "Share verified received file",
+                                committedFileUri,
+                                committedMime,
+                                verificationText,
+                                if (includeFullJson) committedFullJson else ""
+                            ) ?: ""
+                        } else {
+                            shareSignalText(
+                                androidContext,
+                                "Share verified message",
+                                committedFields[SignalQrReceiveFields.RESULT].orEmpty(),
+                                if (includeFullJson) committedFullJson else ""
+                            ) ?: ""
+                        }
                     },
-                    onSave = {
-                        exportStatus = if (committedIsFile) saveSignalMedia(androidContext, "qr_verified_file", committedFileUri, verificationText, committedFullJson) else saveSignalText(androidContext, "qr_verified_text", verificationText + "\ntext=${committedFields[SignalQrReceiveFields.RESULT].orEmpty()}", committedFullJson)
+                    onSave = { includeFullJson ->
+                        exportStatus = if (committedIsFile) {
+                            saveSignalMedia(androidContext, "qr_verified_file", committedFileUri, verificationText, if (includeFullJson) committedFullJson else "")
+                        } else {
+                            saveSignalText(androidContext, "qr_verified_text", verificationText + "\ntext=${committedFields[SignalQrReceiveFields.RESULT].orEmpty()}", if (includeFullJson) committedFullJson else "")
+                        }
                     },
-                    onDone = {
+                    onDone = { includeFullJson ->
                         finishSignalResult(context, androidContext, committedResult, onConfirmed) {
-                            if (committedIsFile) saveSignalMedia(androidContext, "qr_verified_file", committedFileUri, verificationText, committedFullJson) else saveSignalText(androidContext, "qr_verified_text", verificationText, committedFullJson)
+                            if (committedIsFile) {
+                                saveSignalMedia(androidContext, "qr_verified_file", committedFileUri, verificationText, if (includeFullJson) committedFullJson else "")
+                            } else {
+                                saveSignalText(androidContext, "qr_verified_text", verificationText, if (includeFullJson) committedFullJson else "")
+                            }
                         }
                     },
                     onOpen = if (committedIsFile) ({ exportStatus = openSignalMedia(androidContext, committedFileUri, committedMime) ?: "" }) else null

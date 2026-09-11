@@ -49,6 +49,7 @@ import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.platform.BiometricAuthHelper
 import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
@@ -782,10 +783,12 @@ private fun copyText(context: Context, label: String, value: String) {
 
 private fun shareText(context: Context, text: String) {
     if (text.isBlank()) return
-    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_TEXT, text)
-    }, "Share emergency location"))
+    ResultShare.share(
+        context = context,
+        chooserTitle = "Share emergency location",
+        text = text,
+        attachments = emptyList()
+    )
 }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {

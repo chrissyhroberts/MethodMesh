@@ -221,6 +221,8 @@ private fun capabilityLifecycle(method: As100Method): CapabilityLifecycle {
         "gps_target_navigator",
         "plus_code.capture",
         "conversation.translate",
+        "conversation.translate.live.fixed",
+        "conversation.translate.live.auto",
         "bluetooth_print",
         "mlkit.translate",
         "mlkit.vision.analyze",

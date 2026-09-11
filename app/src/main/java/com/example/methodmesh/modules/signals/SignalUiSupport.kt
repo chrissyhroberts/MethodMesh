@@ -32,12 +32,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +59,7 @@ import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputExportRepository
 import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import org.json.JSONObject
@@ -157,15 +160,18 @@ internal fun copySignalValue(context: Context, label: String, value: String) {
     Toast.makeText(context, "Copied $label", Toast.LENGTH_SHORT).show()
 }
 
-internal fun shareSignalText(context: Context, title: String, text: String): String? = runCatching {
-    context.startActivity(
-        Intent.createChooser(
-            Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, text)
-            },
-            title
-        )
+internal fun shareSignalText(
+    context: Context,
+    title: String,
+    text: String,
+    jsonText: String = ""
+): String? = runCatching {
+    ResultShare.share(
+        context = context,
+        chooserTitle = title,
+        text = text,
+        attachments = emptyList(),
+        jsonText = jsonText
     )
     null
 }.getOrElse { it.message ?: "No sharing app is available." }
@@ -198,18 +204,21 @@ internal fun saveSignalMedia(
     "Saved ${result.summary}"
 }.getOrElse { "Save failed: ${it.message ?: "storage error"}" }
 
-internal fun shareSignalMedia(context: Context, title: String, mediaUri: String, mimeType: String): String? = runCatching {
+internal fun shareSignalMedia(
+    context: Context,
+    title: String,
+    mediaUri: String,
+    mimeType: String,
+    text: String = "",
+    jsonText: String = ""
+): String? = runCatching {
     val uri = Uri.parse(mediaUri)
-    context.startActivity(
-        Intent.createChooser(
-            Intent(Intent.ACTION_SEND).apply {
-                type = mimeType.ifBlank { "application/octet-stream" }
-                putExtra(Intent.EXTRA_STREAM, uri)
-                clipData = ClipData.newRawUri("MethodMesh received file", uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            },
-            title
-        )
+    ResultShare.share(
+        context = context,
+        chooserTitle = title,
+        text = text,
+        attachments = listOf(ResultShare.Attachment(uri.lastPathSegment.orEmpty().ifBlank { "received_file" }, uri)),
+        jsonText = jsonText
     )
     null
 }.getOrElse { it.message ?: "No sharing app is available." }
@@ -513,11 +522,12 @@ internal fun SignalCommittedCard(
     fields: List<Pair<String, String>>,
     status: String?,
     onCopy: (String, String) -> Unit,
-    onShare: () -> Unit,
-    onSave: () -> Unit,
-    onDone: () -> Unit,
+    onShare: (Boolean) -> Unit,
+    onSave: (Boolean) -> Unit,
+    onDone: (Boolean) -> Unit,
     onOpen: (() -> Unit)? = null
 ) {
+    var includeFullJson by rememberSaveable(title, primaryLabel) { mutableStateOf(false) }
     SignalInstrumentPanel(
         kicker = "FROZEN RESULT",
         title = title,
@@ -554,6 +564,21 @@ internal fun SignalCommittedCard(
                 if (rowFields.size == 1) Spacer(Modifier.weight(1f))
             }
         }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Include full JSON", color = SignalText, style = MaterialTheme.typography.labelMedium)
+                Text(
+                    if (includeFullJson) "Share appends debug JSON; Save adds metadata.json." else "Off by default for manual runs.",
+                    color = SignalMuted,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+            Switch(checked = includeFullJson, onCheckedChange = { includeFullJson = it })
+        }
         status?.takeIf(String::isNotBlank)?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = SignalMuted)
         }
@@ -564,9 +589,9 @@ internal fun SignalCommittedCard(
             OutlinedButton(onClick = onOpen, modifier = Modifier.fillMaxWidth(), colors = buttonColors, border = border) { Text("Open received file") }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onShare, modifier = Modifier.weight(1f), colors = buttonColors, border = border) { Text("Share") }
-            OutlinedButton(onClick = onSave, modifier = Modifier.weight(1f), colors = buttonColors, border = border) { Text("Save") }
-            OutlinedButton(onClick = onDone, modifier = Modifier.weight(1f), colors = buttonColors, border = border) { Text("Done") }
+            OutlinedButton(onClick = { onShare(includeFullJson) }, modifier = Modifier.weight(1f), colors = buttonColors, border = border) { Text("Share") }
+            OutlinedButton(onClick = { onSave(includeFullJson) }, modifier = Modifier.weight(1f), colors = buttonColors, border = border) { Text("Save") }
+            OutlinedButton(onClick = { onDone(includeFullJson) }, modifier = Modifier.weight(1f), colors = buttonColors, border = border) { Text("Done") }
         }
     }
 }

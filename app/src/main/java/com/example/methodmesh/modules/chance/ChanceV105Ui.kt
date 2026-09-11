@@ -3,7 +3,6 @@ package com.example.methodmesh.modules.chance
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +35,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.OutputExportRepository
+import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.ResultShare
+import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 
 /**
@@ -159,6 +162,15 @@ internal fun ChanceCopyableText(
     )
 }
 
+internal fun chanceFullJson(result: ExecutionResult?): String = result?.let {
+    OutputFormatter.format(
+        result = it,
+        returnMode = ReturnMode.Json,
+        includeProvenance = true,
+        payloadMode = OutputFormatter.PayloadMode.FULL
+    )
+}.orEmpty()
+
 internal fun copyChanceValue(context: Context, value: String) {
     if (value.isBlank()) return
     context.getSystemService(ClipboardManager::class.java)
@@ -188,12 +200,13 @@ internal fun ChancePostCommitActions(
             modifier = Modifier.weight(1f),
             onClick = {
                 runCatching {
-                    val text = chanceShareText(primaryText, auditJson, includeAudit)
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, text)
-                    }
-                    appContext.startActivity(Intent.createChooser(intent, "Share $title"))
+                    ResultShare.share(
+                        context = appContext,
+                        chooserTitle = "Share $title",
+                        text = primaryText,
+                        attachments = emptyList(),
+                        jsonText = if (includeAudit) auditJson else ""
+                    )
                 }.onFailure { status = "Share failed: ${it.message ?: "no sharing app"}" }
             }
         ) { Text("Share") }
@@ -262,7 +275,7 @@ internal fun ChancePostCommitActions(
 }
 
 private fun chanceShareText(primaryText: String, auditJson: String, includeAudit: Boolean): String =
-    if (!includeAudit || auditJson.isBlank()) primaryText else "$primaryText\n\n$auditJson"
+    ResultShare.buildShareText(primaryText, if (includeAudit) auditJson else "")
 
 internal fun CapabilityScreenContext.chanceCanAutoRunFixedPreset(settingIds: Collection<String>): Boolean =
     isNativePresetRun && settingIds.none { settingShouldBeShown(it) }

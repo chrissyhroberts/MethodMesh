@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.OutputExportRepository
+import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.ReturnMode
 
@@ -338,15 +339,13 @@ internal fun CommittedWebResult(
         Button(
             onClick = {
                 runCatching {
-                    val text = shareText + if (includeFullJson) "\n\nmetadata.json\n$fullJson" else ""
-                    context.startActivity(
-                        Intent.createChooser(
-                            Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, text)
-                            },
-                            "Share MethodMesh result"
-                        )
+                    ResultShare.share(
+                        context = context,
+                        chooserTitle = "Share MethodMesh result",
+                        text = shareText,
+                        attachments = emptyList(),
+                        jsonText = if (includeFullJson) fullJson else "",
+                        fileLabel = title
                     )
                 }.onFailure { actionStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
             },

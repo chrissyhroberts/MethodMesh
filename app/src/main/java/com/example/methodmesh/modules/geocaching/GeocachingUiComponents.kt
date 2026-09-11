@@ -32,6 +32,7 @@ import androidx.core.content.FileProvider
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
+import com.example.methodmesh.transport.workflow.ui.CanonicalCommittedResultActions
 import org.json.JSONArray
 import org.json.JSONObject
 import org.maplibre.android.camera.CameraPosition
@@ -87,8 +88,14 @@ internal fun MethodSurface(
     onCancel:()->Unit,
     committed:Boolean,
     onDone:(()->Unit)?=null,
+    committedKey: Any? = committed,
+    committedResultFactory: (() -> ExecutionResult)? = null,
+    onDoneResult: ((ExecutionResult) -> Unit)? = null,
     body:@Composable ColumnScope.()->Unit
 ){
+    val committedResult = remember(committedKey, context.submitsImmediately) {
+        if (committed && !context.submitsImmediately) committedResultFactory?.invoke() else null
+    }
     Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background){
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()){
             Row(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically){
@@ -98,8 +105,26 @@ internal fun MethodSurface(
             }
             HorizontalDivider()
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp),content=body)
-            if(committed && !context.submitsImmediately && onDone!=null){
-                Surface(tonalElevation=3.dp){Row(Modifier.fillMaxWidth().padding(12.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)){Text("Committed · result frozen",Modifier.weight(1f),fontWeight=FontWeight.SemiBold);Button(onClick=onDone){Text("Done")}}}
+            if (committed && !context.submitsImmediately && (committedResult != null || onDone != null)) {
+                Surface(tonalElevation = 3.dp) {
+                    if (committedResult != null) {
+                        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Committed · result frozen", fontWeight = FontWeight.SemiBold)
+                            CanonicalCommittedResultActions(
+                                result = committedResult,
+                                label = title,
+                                onDone = {
+                                    if (onDoneResult != null) onDoneResult(committedResult) else onDone?.invoke()
+                                }
+                            )
+                        }
+                    } else if (onDone != null) {
+                        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Committed · result frozen", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                            Button(onClick = onDone) { Text("Done") }
+                        }
+                    }
+                }
             }
         }
     }

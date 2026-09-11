@@ -110,8 +110,8 @@ Paper Bridge therefore remains **Development** until the unchecked host/device v
 ## Share payload regression
 
 - [ ] Share the built-in example with full JSON off to WhatsApp (or another receiver that previously duplicated captions): confirm beef appears once, the registered form appears once and the cropped image field appears once.
-- [ ] Repeat with **Include full JSON / audit** on: confirm the same beef/media payload plus exactly one `metadata.json` attachment.
-- [ ] Confirm Save to MethodMesh Files remains unchanged.
+- [ ] Repeat with **Include full JSON / audit** on: confirm the same beef/media attachment set, with canonical FULL JSON appended once to the textual share payload after the `metadata.json` marker.
+- [ ] Confirm Save to MethodMesh Files writes the same beef/media set and adds `metadata.json` only when **Include full JSON / audit** is on.
 
 
 ## v0.5.5 beef + pictures regression

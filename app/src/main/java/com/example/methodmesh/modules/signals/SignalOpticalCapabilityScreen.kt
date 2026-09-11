@@ -404,9 +404,9 @@ object SignalOpticalScreenTransmitCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share optical transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "screen_optical_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "screen_optical_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) } }
+                    onShare = { includeFullJson -> exportStatus = shareSignalText(androidContext, "Share optical transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") ?: "" },
+                    onSave = { includeFullJson -> exportStatus = saveSignalText(androidContext, "screen_optical_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") },
+                    onDone = { includeFullJson -> finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "screen_optical_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") } }
                 )
             }
 
@@ -743,9 +743,9 @@ private fun OpticalScreenReceiveUi(context: CapabilityScreenContext, onConfirmed
                 ),
                 status = exportStatus,
                 onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                onShare = { exportStatus = shareSignalText(androidContext, "Share optical reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }) ?: "" },
-                onSave = { exportStatus = saveSignalText(androidContext, "screen_optical_reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) },
-                onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "screen_optical_reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) } }
+                onShare = { includeFullJson -> exportStatus = shareSignalText(androidContext, "Share optical reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") ?: "" },
+                onSave = { includeFullJson -> exportStatus = saveSignalText(androidContext, "screen_optical_reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") },
+                onDone = { includeFullJson -> finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "screen_optical_reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") } }
             )
         }
 
@@ -977,9 +977,9 @@ object SignalOpticalTorchTransmitCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share torch optical transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "torch_optical_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "torch_optical_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) } }
+                    onShare = { includeFullJson -> exportStatus = shareSignalText(androidContext, "Share torch optical transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") ?: "" },
+                    onSave = { includeFullJson -> exportStatus = saveSignalText(androidContext, "torch_optical_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") },
+                    onDone = { includeFullJson -> finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "torch_optical_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") } }
                 )
             }
 
@@ -1215,9 +1215,9 @@ object SignalOpticalTorchReceiveCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share torch optical reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "torch_optical_reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "torch_optical_reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) } }
+                    onShare = { includeFullJson -> exportStatus = shareSignalText(androidContext, "Share torch optical reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") ?: "" },
+                    onSave = { includeFullJson -> exportStatus = saveSignalText(androidContext, "torch_optical_reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") },
+                    onDone = { includeFullJson -> finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "torch_optical_reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") } }
                 )
             }
 
