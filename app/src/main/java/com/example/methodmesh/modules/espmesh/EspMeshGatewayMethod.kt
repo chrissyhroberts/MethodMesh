@@ -18,7 +18,7 @@ object As100EspMeshGatewayMethod : As100Method {
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Provision an ESP mesh BLE gateway")
     override val descriptor = MethodDescriptor(
         id = ArchitectureId(ID), methodType = MethodObjectType.Workflow,
-        name = "ESP mesh gateway", version = "0.1.0",
+        name = "ESP mesh transport", version = "0.4.0",
         description = "Discover and provision a nearby MethodMesh ESP mesh gateway.",
         outputs = listOf("esp_mesh_gateway_status"), graphOutputs = listOf("transport.gateway.provisioned"),
         parameters = mapOf("category" to "Field transport", "status" to "Preview")

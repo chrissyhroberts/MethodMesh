@@ -52,6 +52,12 @@ interface MethodMeshModule {
     val iconKey: String
         get() = moduleId
 
+    /** Declare tool placement rather than adding module IDs to the shell. */
+    val workbenchTool: Boolean get() = false
+
+    /** Persistent in-app controls; no system overlay permission is involved. */
+    fun overlays(): List<ModuleOverlaySpec> = emptyList()
+
     fun as100Methods(): List<As100Method> = emptyList()
     fun rilBindings(): List<RilBinding> = emptyList()
     fun capabilityScreens(): List<CapabilityScreenSpec> = emptyList()
@@ -130,6 +136,8 @@ object MethodMeshModuleRegistry {
         require(screens.map { it.capabilityId }.distinct().size == screens.size) { "MethodMesh capability screen IDs must be unique." }
         val settingsSections = modules.flatMap { it.settingsSections() }
         require(settingsSections.map { it.id }.distinct().size == settingsSections.size) { "MethodMesh Settings section IDs must be unique." }
+        val overlays = modules.flatMap { it.overlays() }
+        require(overlays.all { it.id.isNotBlank() } && overlays.map { it.id }.distinct().size == overlays.size) { "Module overlay IDs must be nonblank and unique." }
         installed = modules.sortedBy { it.moduleId }
         As100MethodRegistry.install(methods)
         CapabilityConfigurationRegistry.install(modules.flatMap { it.capabilitySettings().entries }.associate { it.key to it.value })
@@ -144,6 +152,9 @@ object MethodMeshModuleRegistry {
     fun settingsSections(): List<SettingsSectionSpec> = all()
         .flatMap { it.settingsSections() }
         .sortedWith(compareBy<SettingsSectionSpec> { it.order }.thenBy { it.title.lowercase() })
+
+    fun overlays(): List<ModuleOverlaySpec> = all().flatMap { it.overlays() }
+        .sortedWith(compareBy<ModuleOverlaySpec> { it.order }.thenBy { it.id })
 
     private fun coreMethods() = listOf(As100SchedulerMethod, As100ScheduleRunMethod)
     private fun coreScreens() = listOf(CronScheduleCapabilityScreen, ScheduleTriggerCapabilityScreen)

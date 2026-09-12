@@ -13,8 +13,10 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Row
@@ -25,14 +27,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -49,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.methodmesh.MainActivity
@@ -146,7 +146,7 @@ internal fun barcodeFormats(raw: String?): Collection<String>? = raw
     ?.takeIf(List<String>::isNotEmpty)
 
 /**
- * v1.05 barcode instrument.
+ * Production barcode instrument aligned to the current native-run lifecycle.
  *
  * Capture produces a mutable working result. Commit freezes that result. Native
  * runs then expose beef-first share/save/copy actions on the same screen; ODK,
@@ -210,6 +210,7 @@ private class CodeScanCapabilityScreen(
 
         var includeFullJson by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var showTechnicalDetails by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var showFormatOptions by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
 
         val scannerContext = context.copy(
@@ -395,192 +396,136 @@ private class CodeScanCapabilityScreen(
             }
         }
 
-        Card(
+        val workingFields = workingResult?.observations?.firstOrNull()?.values.orEmpty()
+        val workingUrl = workingFields["barcode_payload_url"]?.takeIf(String::isNotBlank)
+
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(Modifier.padding(20.dp)) {
-                Text("Scan code", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text(
-                    "QR, Data Matrix, Aztec, PDF417 and common barcodes",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            ScannerHeader(
+                committed = committedResult != null && !automaticReturn
+            )
+
+            if (committedResult != null && !automaticReturn) {
+                CommittedBarcodeSurface(
+                    fields = committedFields,
+                    includeFullJson = includeFullJson,
+                    showTechnicalDetails = showTechnicalDetails,
+                    exportStatus = exportStatus,
+                    finishLabel = when {
+                        context.isNativePresetRun && presetResultAction == PresetResultAction.SAVE -> "Save and finish"
+                        finishToLauncher -> "Done"
+                        else -> "Home"
+                    },
+                    onIncludeFullJsonChanged = { includeFullJson = it },
+                    onToggleTechnicalDetails = { showTechnicalDetails = !showTechnicalDetails },
+                    onCopy = { value, label -> copyValue(appContext, value, label) },
+                    onOpenLink = { url -> openHttpLink(appContext, url) },
+                    onShare = {
+                        shareText(
+                            appContext,
+                            committedPayload.orEmpty(),
+                            if (includeFullJson) fullJsonText else ""
+                        )
+                    },
+                    onCopyResult = {
+                        val text = ResultShare.buildShareText(
+                            committedPayload.orEmpty(),
+                            if (includeFullJson) fullJsonText else ""
+                        )
+                        copyValue(appContext, text, "Barcode result")
+                    },
+                    onSave = { saveCommitted(includeFullJson) },
+                    onFinish = { finishManualRun() },
+                    onNewScan = {
+                        clearCommitForEdit()
+                        clearWorkingForNewScan()
+                        showFormatOptions = false
+                        status = "Scanning…"
+                    }
                 )
-                Spacer(Modifier.height(18.dp))
+            } else {
+                EmbeddedBarcodeScannerWindow(
+                    formatsRaw = barcodeFormatsValue,
+                    active = committedResult == null,
+                    payload = workingPayload,
+                    formatName = workingFormat,
+                    payloadUrl = workingUrl,
+                    status = status,
+                    onDecoded = ::acceptDecodedPayload,
+                    onCopyPayload = { payload -> copyValue(appContext, payload, "Barcode payload") },
+                    onOpenLink = { url -> openHttpLink(appContext, url) },
+                    onCommit = { commitWorkingResult() }
+                )
 
-                if (committedResult != null && !automaticReturn) {
-                    CommittedBarcodePanel(
-                        fields = committedFields,
-                        showTechnicalDetails = showTechnicalDetails,
-                        onToggleTechnicalDetails = { showTechnicalDetails = !showTechnicalDetails },
-                        onCopy = { value, label -> copyValue(appContext, value, label) }
-                    )
-                    committedFields["barcode_payload_url"]?.toString()?.takeIf(String::isNotBlank)?.let { url ->
-                        Spacer(Modifier.height(10.dp))
-                        OutlinedButton(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = { openHttpLink(appContext, url) }
-                        ) { Text("Open link") }
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Include full JSON", style = MaterialTheme.typography.titleSmall)
-                            Text(
-                                "Share/copy append debug JSON text; Save adds metadata.json.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(checked = includeFullJson, onCheckedChange = { includeFullJson = it })
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            shareText(
-                                appContext,
-                                committedPayload.orEmpty(),
-                                if (includeFullJson) fullJsonText else ""
-                            )
-                        }
-                    ) { Text("Share") }
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            val text = ResultShare.buildShareText(
-                                committedPayload.orEmpty(),
-                                if (includeFullJson) fullJsonText else ""
-                            )
-                            copyValue(appContext, text, "Barcode result")
-                        }
-                    ) { Text("Copy result") }
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { saveCommitted(includeFullJson) }
-                    ) { Text("Save to Downloads") }
-                    Spacer(Modifier.height(8.dp))
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { finishManualRun() }
-                    ) {
-                        Text(
-                            when {
-                                context.isNativePresetRun && presetResultAction == PresetResultAction.SAVE -> "Save and finish"
-                                finishToLauncher -> "Done"
-                                else -> "Home"
+                if (formatSettingVisible) {
+                    CompactFormatChooser(
+                        selectedValue = barcodeFormatsValue,
+                        expanded = showFormatOptions,
+                        onToggle = { showFormatOptions = !showFormatOptions },
+                        onSelected = { selected ->
+                            if (selected != barcodeFormatsValue) {
+                                barcodeFormatsValue = selected
+                                clearWorkingForNewScan()
+                                status = "Format filter changed. Scanning…"
                             }
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            clearCommitForEdit()
-                            clearWorkingForNewScan()
-                            status = "Scanning…"
+                            showFormatOptions = false
                         }
-                    ) { Text("Edit / new scan") }
-                    exportStatus?.let {
-                        Spacer(Modifier.height(8.dp))
-                        Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                    }
-                } else {
-                    // Working-screen hierarchy: scanner first, latest result second,
-                    // configuration third, and action buttons last.
-                    EmbeddedBarcodeScannerWindow(
-                        formatsRaw = barcodeFormatsValue,
-                        active = committedResult == null,
-                        onDecoded = ::acceptDecodedPayload
                     )
+                }
 
-                    Spacer(Modifier.height(12.dp))
-                    if (workingResult != null) {
-                        WorkingBarcodePanel(
-                            result = workingResult,
-                            onCopy = { value, label -> copyValue(appContext, value, label) }
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "The scanner stays live. A different code replaces the current working result until you Commit.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
-                        ) {
-                            Column(Modifier.padding(18.dp)) {
-                                Text("Current result", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                                Spacer(Modifier.height(8.dp))
-                                Text("No code detected yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    "Hold a code inside the scanner window. The latest payload will appear here automatically.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
+                if (workingResult != null) {
                     Text(
-                        status,
+                        "The scanner remains live until Commit. A different code replaces this working result.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
 
-                    if (formatSettingVisible) {
-                        Spacer(Modifier.height(16.dp))
-                        CodeFormatChooser(
-                            selectedValue = barcodeFormatsValue,
-                            onSelected = { selected ->
-                                if (selected != barcodeFormatsValue) {
-                                    barcodeFormatsValue = selected
-                                    clearWorkingForNewScan()
-                                    status = "Format filter changed. Scanning…"
-                                }
-                            }
-                        )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (context.stepNumber > 1) {
+                        OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Back") }
                     }
-
-                    Spacer(Modifier.height(16.dp))
-                    workingResult?.observations?.firstOrNull()?.values?.get("barcode_payload_url")
-                        ?.takeIf(String::isNotBlank)
-                        ?.let { url ->
-                            OutlinedButton(
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { openHttpLink(appContext, url) }
-                            ) { Text("Open link") }
-                            Spacer(Modifier.height(8.dp))
-                        }
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = workingResult != null,
-                        onClick = { commitWorkingResult() }
-                    ) { Text("Commit") }
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (context.stepNumber > 1) {
-                            OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Back") }
-                        }
-                        OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                    }
+                    OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ScannerHeader(
+    committed: Boolean
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Scan code", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(
+                "QR, Data Matrix, Aztec, PDF417 and common barcodes",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Surface(
+            shape = RoundedCornerShape(999.dp),
+            color = if (committed) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+        ) {
+            Text(
+                if (committed) "COMMITTED" else "LIVE",
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = if (committed) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
         }
     }
 }
@@ -589,7 +534,14 @@ private class CodeScanCapabilityScreen(
 private fun EmbeddedBarcodeScannerWindow(
     formatsRaw: String,
     active: Boolean,
-    onDecoded: (String, String) -> Unit
+    payload: String?,
+    formatName: String,
+    payloadUrl: String?,
+    status: String,
+    onDecoded: (String, String) -> Unit,
+    onCopyPayload: (String) -> Unit,
+    onOpenLink: (String) -> Unit,
+    onCommit: () -> Unit
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
@@ -611,73 +563,173 @@ private fun EmbeddedBarcodeScannerWindow(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 16f / 7f else 4f / 3f),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shadowElevation = 2.dp
     ) {
-        if (!cameraGranted) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(20.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("Camera access is needed to scan codes.", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(10.dp))
-                Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                    Text("Allow camera")
+        Box(Modifier.fillMaxSize()) {
+            if (!cameraGranted) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("Camera access is needed", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "MethodMesh scans locally on this device.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                        Text("Allow camera")
+                    }
                 }
-            }
-        } else {
-            val onDecodedState = rememberUpdatedState(onDecoded)
-            val callback = remember {
-                object : BarcodeCallback {
-                    override fun barcodeResult(result: BarcodeResult) {
-                        val payload = result.text.orEmpty()
-                        if (payload.isNotBlank()) {
-                            onDecodedState.value(payload, result.barcodeFormat?.name.orEmpty().ifBlank { "UNKNOWN" })
+            } else {
+                val onDecodedState = rememberUpdatedState(onDecoded)
+                val callback = remember {
+                    object : BarcodeCallback {
+                        override fun barcodeResult(result: BarcodeResult) {
+                            val decoded = result.text.orEmpty()
+                            if (decoded.isNotBlank()) {
+                                onDecodedState.value(decoded, result.barcodeFormat?.name.orEmpty().ifBlank { "UNKNOWN" })
+                            }
                         }
                     }
                 }
+                var scannerView by remember { mutableStateOf<DecoratedBarcodeView?>(null) }
+                val decoderFactory = remember(formatsRaw) { decoderFactoryFor(formatsRaw) }
+
+                AndroidView(
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(28.dp)),
+                    factory = { viewContext ->
+                        DecoratedBarcodeView(viewContext).apply {
+                            setStatusText("")
+                            statusView?.visibility = View.GONE
+                            setDecoderFactory(decoderFactory)
+                            decodeContinuous(callback)
+                            tag = formatsRaw
+                            scannerView = this
+                            if (active) resume()
+                        }
+                    },
+                    update = { view ->
+                        if (view.tag != formatsRaw) {
+                            view.pause()
+                            view.setDecoderFactory(decoderFactory)
+                            view.decodeContinuous(callback)
+                            view.tag = formatsRaw
+                        }
+                        if (active) view.resume() else view.pause()
+                    }
+                )
+
+                DisposableEffect(lifecycleOwner, scannerView, active) {
+                    val view = scannerView
+                    val observer = LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_RESUME -> if (active) view?.resume()
+                            Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> view?.pause()
+                            else -> Unit
+                        }
+                    }
+                    lifecycleOwner?.lifecycle?.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner?.lifecycle?.removeObserver(observer)
+                        view?.pause()
+                    }
+                }
             }
-            var scannerView by remember { mutableStateOf<DecoratedBarcodeView?>(null) }
-            val decoderFactory = remember(formatsRaw) { decoderFactoryFor(formatsRaw) }
 
-            AndroidView(
-                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(18.dp)),
-                factory = { viewContext ->
-                    DecoratedBarcodeView(viewContext).apply {
-                        setStatusText("")
-                        statusView?.visibility = View.GONE
-                        setDecoderFactory(decoderFactory)
-                        decodeContinuous(callback)
-                        tag = formatsRaw
-                        scannerView = this
-                        if (active) resume()
-                    }
-                },
-                update = { view ->
-                    if (view.tag != formatsRaw) {
-                        view.pause()
-                        view.setDecoderFactory(decoderFactory)
-                        view.decodeContinuous(callback)
-                        view.tag = formatsRaw
-                    }
-                    if (active) view.resume() else view.pause()
-                }
-            )
+            Surface(
+                modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f)
+            ) {
+                Text(
+                    if (active && cameraGranted) "SCANNING" else "CAMERA",
+                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-            DisposableEffect(lifecycleOwner, scannerView, active) {
-                val view = scannerView
-                val observer = LifecycleEventObserver { _, event ->
-                    when (event) {
-                        Lifecycle.Event.ON_RESUME -> if (active) view?.resume()
-                        Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> view?.pause()
-                        else -> Unit
+            Surface(
+                modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f)
+            ) {
+                Text(
+                    codeFormatLabel(formatsRaw),
+                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1
+                )
+            }
+
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(12.dp)
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(22.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                tonalElevation = 6.dp
+            ) {
+                if (payload.isNullOrBlank()) {
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text("Point the camera at a code", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            if (cameraGranted) status else "Grant camera access to begin.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                }
-                lifecycleOwner?.lifecycle?.addObserver(observer)
-                onDispose {
-                    lifecycleOwner?.lifecycle?.removeObserver(observer)
-                    view?.pause()
+                } else {
+                    Column(Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("CURRENT RESULT", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            Text(formatName.ifBlank { "UNKNOWN" }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Spacer(Modifier.height(5.dp))
+                        Text(
+                            payload,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onCopyPayload(payload) },
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            "Tap result to copy",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            payloadUrl?.let { url ->
+                                Button(
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onOpenLink(url) }
+                                ) { Text("Open link") }
+                            }
+                            OutlinedButton(
+                                modifier = Modifier.weight(1f),
+                                onClick = onCommit
+                            ) { Text("Commit") }
+                        }
+                    }
                 }
             }
         }
@@ -701,76 +753,111 @@ private fun Context.findLifecycleOwner(): LifecycleOwner? {
 }
 
 @Composable
-private fun WorkingBarcodePanel(
-    result: ExecutionResult,
-    onCopy: (String, String) -> Unit
-) {
-    val fields = result.observations.firstOrNull()?.values.orEmpty()
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.42f)
-    ) {
-        Column(Modifier.padding(18.dp)) {
-            Text("Current result", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(8.dp))
-            TappableResultValue("Payload", fields["barcode_payload"].orEmpty(), prominent = true, onCopy = onCopy)
-            Spacer(Modifier.height(10.dp))
-            TappableResultValue("Format", fields["barcode_format"].orEmpty(), onCopy = onCopy)
-            fields["barcode_payload_url"]?.takeIf(String::isNotBlank)?.let {
-                Spacer(Modifier.height(10.dp))
-                TappableResultValue("URL", it, onCopy = onCopy)
-            }
-        }
-    }
-}
-
-@Composable
-private fun CommittedBarcodePanel(
+private fun CommittedBarcodeSurface(
     fields: Map<String, Any?>,
+    includeFullJson: Boolean,
     showTechnicalDetails: Boolean,
+    exportStatus: String?,
+    finishLabel: String,
+    onIncludeFullJsonChanged: (Boolean) -> Unit,
     onToggleTechnicalDetails: () -> Unit,
-    onCopy: (String, String) -> Unit
+    onCopy: (String, String) -> Unit,
+    onOpenLink: (String) -> Unit,
+    onShare: () -> Unit,
+    onCopyResult: () -> Unit,
+    onSave: () -> Unit,
+    onFinish: () -> Unit,
+    onNewScan: () -> Unit
 ) {
+    val payload = fields["barcode_payload"]?.toString().orEmpty()
+    val format = fields["barcode_format"]?.toString().orEmpty().ifBlank { "UNKNOWN" }
+    val url = fields["barcode_payload_url"]?.toString()?.takeIf(String::isNotBlank)
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.42f)
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(Modifier.padding(18.dp)) {
-            Text("Committed result", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(8.dp))
-            TappableResultValue("Payload", fields["barcode_payload"]?.toString().orEmpty(), prominent = true, onCopy = onCopy)
-            Spacer(Modifier.height(10.dp))
-            TappableResultValue("Format", fields["barcode_format"]?.toString().orEmpty(), onCopy = onCopy)
-            fields["barcode_payload_url"]?.toString()?.takeIf(String::isNotBlank)?.let {
-                Spacer(Modifier.height(10.dp))
-                TappableResultValue("URL", it, onCopy = onCopy)
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Committed result", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Text("Frozen for this execution", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                    Text(
+                        format,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
             }
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider()
-            Spacer(Modifier.height(8.dp))
-            Text(
-                if (showTechnicalDetails) "Hide technical details" else "Technical details",
-                modifier = Modifier.clickable(onClick = onToggleTechnicalDetails),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            if (showTechnicalDetails) {
-                listOf(
-                    "Payload kind" to "barcode_payload_kind",
-                    "SHA-256" to "barcode_payload_sha256",
-                    "Evidence format" to BarcodeEvidenceFields.FORMAT_FIELD,
-                    "Evidence hash" to BarcodeEvidenceFields.HASH_FIELD,
-                    "Scan time" to "barcode_scan_time_iso",
-                    "Source" to "barcode_source"
-                ).forEach { (label, key) ->
-                    fields[key]?.toString()?.takeIf(String::isNotBlank)?.let { value ->
-                        Spacer(Modifier.height(10.dp))
-                        TappableResultValue(label, value, onCopy = onCopy)
+
+            TappableResultValue("Payload", payload, prominent = true, onCopy = onCopy)
+
+            url?.let {
+                Button(modifier = Modifier.fillMaxWidth(), onClick = { onOpenLink(it) }) {
+                    Text("Open link")
+                }
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(modifier = Modifier.weight(1f), onClick = onShare) { Text("Share") }
+                OutlinedButton(modifier = Modifier.weight(1f), onClick = onCopyResult) { Text("Copy") }
+            }
+            OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onSave) { Text("Save to Downloads") }
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Column(Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Include full JSON / audit", style = MaterialTheme.typography.titleSmall)
+                            Text("Off by default for ordinary sharing and saving.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(checked = includeFullJson, onCheckedChange = onIncludeFullJsonChanged)
+                    }
+                    TextButton(onClick = onToggleTechnicalDetails) {
+                        Text(if (showTechnicalDetails) "Hide technical details" else "Technical details")
+                    }
+                    if (showTechnicalDetails) {
+                        listOf(
+                            "Payload kind" to "barcode_payload_kind",
+                            "URL" to "barcode_payload_url",
+                            "SHA-256" to "barcode_payload_sha256",
+                            "Evidence format" to BarcodeEvidenceFields.FORMAT_FIELD,
+                            "Evidence hash" to BarcodeEvidenceFields.HASH_FIELD,
+                            "Scan time" to "barcode_scan_time_iso",
+                            "Source" to "barcode_source"
+                        ).forEach { (label, key) ->
+                            fields[key]?.toString()?.takeIf(String::isNotBlank)?.let { value ->
+                                Spacer(Modifier.height(8.dp))
+                                TappableResultValue(label, value, onCopy = onCopy)
+                            }
+                        }
                     }
                 }
             }
+
+            exportStatus?.let {
+                Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            }
+
+            Button(modifier = Modifier.fillMaxWidth(), onClick = onFinish) { Text(finishLabel) }
+            OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onNewScan) { Text("New scan") }
         }
     }
 }
@@ -782,22 +869,100 @@ private fun TappableResultValue(
     prominent: Boolean = false,
     onCopy: (String, String) -> Unit
 ) {
-    Column(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = value.isNotBlank()) { onCopy(value, label) }
+            .clickable(enabled = value.isNotBlank()) { onCopy(value, label) },
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
-            value.ifBlank { "—" },
-            style = if (prominent) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.bodyLarge,
-            fontWeight = if (prominent) FontWeight.SemiBold else FontWeight.Normal
-        )
-        if (value.isNotBlank()) {
-            Text("Tap to copy", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+        Column(Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (value.isNotBlank()) Text("TAP TO COPY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                value.ifBlank { "—" },
+                style = if (prominent) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyMedium,
+                fontWeight = if (prominent) FontWeight.SemiBold else FontWeight.Normal,
+                maxLines = if (prominent) 6 else 3,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
+
+@Composable
+private fun CompactFormatChooser(
+    selectedValue: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onSelected: (String) -> Unit
+) {
+    val selected = CodeFormatPreset.options.firstOrNull { it.value == selectedValue }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Code formats", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(selected?.label ?: "Custom selection", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        selected?.description ?: "Format set supplied by the caller.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                TextButton(onClick = onToggle) { Text(if (expanded) "Close" else "Change") }
+            }
+            if (expanded) {
+                Spacer(Modifier.height(8.dp))
+                CodeFormatPreset.options.forEach { preset ->
+                    val isSelected = preset.value == selectedValue
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 3.dp)
+                            .clickable { onSelected(preset.value) },
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(preset.label, style = MaterialTheme.typography.bodyMedium, fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal)
+                                Text(preset.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            if (isSelected) Text("SELECTED", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun codeFormatLabel(value: String): String =
+    CodeFormatPreset.options.firstOrNull { it.value == value }?.label ?: "Custom formats"
 
 private fun copyValue(context: Context, value: String, label: String) {
     if (value.isBlank()) return
@@ -920,39 +1085,6 @@ val BarcodeScanCapabilityScreen: CapabilityScreenSpec = CodeScanCapabilityScreen
     title = "Scan code",
     description = "Automatically detect QR, Data Matrix, Aztec, PDF417, and common 1D barcode formats."
 )
-
-@Composable
-private fun CodeFormatChooser(
-    selectedValue: String,
-    onSelected: (String) -> Unit
-) {
-    Column(Modifier.fillMaxWidth()) {
-        Text("Accepted code formats", style = MaterialTheme.typography.labelLarge)
-        Text(
-            CodeFormatPreset.options.firstOrNull { it.value == selectedValue }?.description
-                ?: "Custom format set supplied by the caller.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(8.dp))
-        CodeFormatPreset.options.forEach { preset ->
-            val selected = preset.value == selectedValue
-            if (selected) {
-                Button(
-                    onClick = { onSelected(preset.value) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors()
-                ) { Text("✓ ${preset.label}") }
-            } else {
-                OutlinedButton(
-                    onClick = { onSelected(preset.value) },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text(preset.label) }
-            }
-            Spacer(Modifier.height(6.dp))
-        }
-    }
-}
 
 private data class CodeFormatPreset(
     val label: String,

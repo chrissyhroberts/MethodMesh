@@ -109,7 +109,8 @@ enum class TransportInboxState { RECEIVED, DISPATCH_PENDING, DISPATCHED, CONSUME
 
 data class TransportSendResult(
     val state: TransportOutboxState,
-    val detail: String = ""
+    val detail: String = "",
+    val acceptance: TransportAcceptance? = null
 )
 
 data class TransportStatus(

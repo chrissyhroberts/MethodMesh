@@ -41,7 +41,7 @@ internal object BarcodePayloadSemantics {
 
 object As100BarcodeScanMethod : As100Method {
     const val ID = "barcode.scan"
-    internal const val VERSION = "1.1.1"
+    internal const val VERSION = "1.1.2"
 
     override val id: String = ID
     override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "Automatic code scanner")
@@ -51,6 +51,7 @@ object As100BarcodeScanMethod : As100Method {
         name = "Automatic code scanner",
         version = VERSION,
         description = "Automatically decode QR, Data Matrix, Aztec, PDF417, and common 1D barcode formats and convert the payload into canonical evidence.",
+        inputs = listOf("barcode_formats"),
         outputs = listOf(
             "barcode_payload",
             "barcode_payload_kind",
@@ -66,6 +67,11 @@ object As100BarcodeScanMethod : As100Method {
         parameters = mapOf(
             "category" to "Code scanning",
             "status" to "Production",
+            "maturity" to "Production",
+            "connectivity" to "Offline",
+            "interactive" to "true",
+            "core_return" to "barcode_payload",
+            "odk_metadata_return" to "methodmesh_full_json",
             "barcode_formats" to "optional ZXing format names separated by spaces, pipes, commas or semicolons; all supported formats by default"
         )
     )

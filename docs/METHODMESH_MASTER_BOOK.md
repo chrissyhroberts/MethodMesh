@@ -1,17 +1,19 @@
 ---
 title: "MethodMesh Master Book"
 subtitle: "Canonical architecture, capability runtime, integration, UX and review standard"
-date: "2026-09-11"
+date: "2026-09-12"
 ---
 
-Version: v1.12
+Version: v1.20
 Status: FINAL - canonical project-wide documentation
-Last updated: 2026-09-11
+Last updated: 2026-09-12
 Authority: sole normative project-wide MethodMesh documentation resource
 
 This edition consolidates the previously separate Master Book, architecture and conceptual specifications, capability-writing guidance, module-review manual, UI/UX standards, ODK/XLSForm integration guidance, provider notes, scheduling guidance, testing guidance and current project-wide implementation doctrine into one resource.
 
 Where older project-wide MethodMesh documents conflict with this book, this book takes precedence. Older documents may be retained in the repository archive for provenance and history, but they are not active authorities.
+
+This edition also establishes the **MethodMesh Field Transport** abstraction above the current ESP-NOW implementation. ESP-NOW remains the first concrete field-radio provider; the transport-neutral identity, traffic-class, routing, durability, crypto-agility and stream boundaries defined here are intended to prevent later LoRa, LAN, Internet, satellite or other field links from requiring another application-wide transport rewrite. A future-facing hook in this book is not a claim that the corresponding provider or feature is already implemented.
 
 # Contents
 
@@ -558,6 +560,327 @@ ESP32 firmware installation; BLE/Bluetooth inspection;
 
 Android app inspection; API definition editing and testing; hardware
 diagnostics; prototype/development capabilities.
+
+### ESP32 sensor framework consolidation
+
+The Workbench **ESP32 sensor framework** uses one installation capability for complete ESP32-C3 field images. Sensor roles and ESP-NOW mesh-node roles are image choices inside **Install ESP32 image**; a role MUST NOT create a second standalone firmware-installer capability merely because its runtime differs.
+
+The canonical image choices currently include AHT20, LD2410C and ESP-NOW mesh node. The ESP-NOW mesh-node image MUST be a complete bundled flash image and MUST be installable through the same bootloader/image-selection workflow as the sensor images.
+
+The ESP32 ROM flashing layer MUST be transport-aware. Espressif native USB/JTAG/serial devices may use the direct native USB bulk implementation. CP210x, CH340/CH9102 and FTDI bridge devices MUST be opened through the Android USB-serial driver appropriate to that bridge rather than treated as USB CDC. A raw bulk bridge path may exist only as a fallback. The installer MUST report the chosen transport in its live log so a field failure can distinguish USB transport, ROM synchronisation and image-write failures.
+
+The ESP32-C3 installer MUST use the ESP32-C3 ROM download contract rather than silently reusing ESP8266/legacy assumptions. C3 `FLASH_BEGIN` uses the extended parameter form; ROM response status/error bytes precede the two reserved trailing bytes and MUST be checked at their real position. Any non-zero ROM status MUST fail the operation and MUST NOT be converted into apparent success by reading reserved bytes.
+
+Firmware installation success is **verification-gated**. A completed sequence of ROM write acknowledgements is not enough. Before an install may return `installed` or display success, MethodMesh MUST independently verify the written flash region against the selected bundled image, using ROM flash MD5 or an equivalently strong read-back comparison. A blank/erased header such as `0xFFFFFFFF`, partial write, mismatched digest, malformed response or failed verification MUST produce a failed install. The installer MUST log the verification stage explicitly.
+
+**Provision BLE sensor node** remains the post-install configuration/registry path for BLE sensor images. ESP-NOW mesh nodes are provisioned after installation through the ESP mesh gateway/network capability because network ID, key and transport state are mesh-runtime concerns rather than sensor-profile settings. Firmware installation and running-network provisioning are separate responsibilities even when both use BLE/USB at different stages.
+
+### MethodMesh Field Transport architecture
+
+**MethodMesh Field Transport (MFT)** is the transport-neutral field communications layer above concrete radio/link providers. ESP-NOW is the first implemented field-radio provider, but application code MUST NOT treat ESP-NOW, BLE addresses, radio MAC addresses or a particular gateway board as the identity or semantics of a MethodMesh message.
+
+MFT exists so durable messages, live streams, alerts, telemetry and future bulk/object transfer can move across one or more heterogeneous links without changing the application-level meaning of the work. The field network is therefore not "offline mode" versus "Internet mode". Internet, Wi-Fi/LAN, ESP-NOW, LoRa, satellite or another bearer are links/routes that MAY be available to the same transport layer.
+
+#### Implementation-status rule
+
+This section mixes current invariants with deliberate extension seams. The distinction is normative:
+
+- **Implemented/current** means the existing ESP-NOW/Android path is expected to satisfy the rule now.
+- **Architectural hook** means schemas and interfaces MUST leave room for the concept now, but no UI/provider behaviour is implied until that feature is implemented and tested.
+- **Future provider/feature** means explicitly not part of the current release merely because this book reserves a place for it.
+
+Documentation, UI and diagnostics MUST NOT present a dormant hook as an implemented field capability.
+
+#### Logical identity and link-local addressing
+
+MethodMesh identities are stable logical identities. Link addresses are ephemeral/provider-local locators.
+
+The architecture MUST support distinct logical identities for at least:
+
+- a MethodMesh device/installation;
+- a field node/gateway;
+- a group of authorised recipients;
+- a logical live channel;
+- an application/service endpoint.
+
+A BLE MAC, ESP-NOW MAC, IP address, USB path, LoRa address or other bearer address MUST NOT become the canonical MethodMesh identity of a person, handset, node, group or service. A logical node MAY expose multiple simultaneous interfaces and MAY change its link-local address without changing its MethodMesh identity.
+
+Concrete providers own binding between logical identities and their link-local addresses. The application and canonical message envelope operate on logical identities.
+
+#### Transport-neutral envelope
+
+The canonical durable field envelope MUST remain transport-neutral. It MUST carry or be able to carry, directly or through a versioned header, the concepts of:
+
+- protocol/envelope version;
+- stable message ID;
+- logical source and destination;
+- destination/addressing type;
+- traffic class and priority;
+- creation metadata and optional expiry policy;
+- hop budget / hop count where routed forwarding applies;
+- content/payload type and bounded length/integrity metadata;
+- cryptographic suite and key identifier;
+- delivery requirement/state metadata;
+- correlation/trace identity where needed.
+
+ESP-NOW peer addresses, BLE gateway addresses, serial device names, IP addresses and provider-specific retry fields MUST remain outside the canonical application envelope except as bounded diagnostic/provenance metadata where explicitly justified.
+
+#### Traffic classes
+
+MFT MUST distinguish delivery semantics rather than treating every field packet as the same kind of message. The architecture reserves at least these classes:
+
+- **CONTROL** — HELLO, SYNC, routing/configuration, acknowledgements and protocol errors;
+- **LIVE** — ephemeral low-latency streams such as walkie-talkie audio; never made durable merely to simplify implementation;
+- **ALERT** — high-priority durable safety/operational signalling that should survive temporary disconnection;
+- **DURABLE** — ordinary store-and-forward MethodMesh messages/results;
+- **TELEMETRY** — bounded sensor/location/status observations whose persistence policy is declared by the producer;
+- **BULK** — large resumable objects/files which must yield to interactive/control traffic.
+
+The current implementation maps ESP-mesh walkie-talkie traffic to LIVE and encrypted store-and-forward messages to DURABLE. ALERT, general TELEMETRY and BULK are architectural hooks until separately implemented and tested.
+
+Schedulers MUST be able to prioritise traffic by semantics. A reference ordering is CONTROL/urgent ACK → LIVE → ALERT → ordinary acknowledgements → DURABLE → BULK, but provider-specific schedulers MAY refine that ordering provided they preserve the safety, latency and durability contracts of each class. Backlog drainage MUST NOT starve live/control traffic; live traffic MUST NOT silently delete durable work.
+
+#### Provider capability declaration
+
+Every MFT link/provider SHOULD expose a machine-readable capability description rather than forcing callers to know hardware-specific limits. Capability metadata SHOULD be able to describe:
+
+- maximum frame/object size and fragmentation support;
+- expected bandwidth and latency class;
+- support for live streams;
+- persistence/store-and-forward support;
+- multicast/broadcast/unicast support;
+- metered/cost-sensitive status;
+- energy/power cost or policy class;
+- current availability/health;
+- provider/version information.
+
+Routing/policy code asks whether a link can carry a traffic class or object; application features MUST NOT hard-code statements such as "voice uses ESP-NOW" or "files use Wi-Fi".
+
+#### Multiple interfaces and routing boundary
+
+A logical field node MAY expose more than one link interface at the same time. The data model MUST therefore support `node -> interfaces[]`, not a single permanent `node.transport` assumption.
+
+Route selection belongs above concrete link implementations. A future route MAY traverse heterogeneous links, for example BLE → ESP-NOW → powered field gateway → Wi-Fi/Internet, without re-encrypting or redefining the application payload at every hop. Intermediate nodes MAY inspect only the minimum authenticated routing metadata necessary to forward traffic.
+
+Stable message IDs and deduplication are mandatory because the same message MAY eventually arrive by more than one route. Multi-interface route selection itself is an architectural hook until implemented; the current ESP-NOW provider remains valid as a single-provider path.
+
+#### Generic durability and store-and-forward semantics
+
+Store-and-forward state MUST be defined independently of a storage engine. A provider MAY implement it using Android storage, LittleFS, SQLite or another suitable durable store, but equivalent logical states and invariants MUST be preserved.
+
+At minimum, durable transfer needs states equivalent to queued/accepted, forwarding, remote durable acceptance, destination delivery, expired and failed. At-least-once delivery with stable message-ID deduplication remains the default field-network reliability model; exactly-once delivery MUST NOT be promised.
+
+Durable stores MUST be bounded, corruption-visible and fail closed. No provider may silently discard an undelivered record to create space unless an explicit, user-visible policy permits that loss for that traffic class. Power loss, process death and temporary link absence MUST NOT turn an acknowledged durable record into silent loss.
+
+#### Large-object transfer hook
+
+Ordinary transport envelopes are not the long-term representation for large photographs, audio files, ODK attachments, PDFs, firmware images, maps or other large objects. MFT MUST reserve a resumable object-transfer layer based on a manifest plus independently verifiable chunks.
+
+A future object manifest SHOULD include at least object ID, media type, byte length, whole-object hash, chunk size/count and encryption/integrity metadata. Chunks MAY arrive opportunistically and out of order; an object MUST NOT be released to the application as complete until its integrity verifies. This is an architectural hook in v1.20, not a claim that bulk transfer is implemented.
+
+#### Crypto agility, membership and trust separation
+
+Transport membership, sender identity and content confidentiality are separate security concerns and MUST NOT be collapsed into one shared radio password.
+
+The field transport security API MUST leave room for:
+
+- group-encrypted traffic;
+- device-to-device/private traffic;
+- channel-specific traffic;
+- key rotation and revocation;
+- future asymmetric identity/session establishment.
+
+Durable records and canonical headers MUST identify cryptographic suite/version and key ID rather than assuming one permanent cipher/key arrangement. The current ESP-NOW implementation uses phone-to-phone symmetric authenticated encryption plus a separate radio-network credential; that is the implemented baseline, not the maximum future trust model.
+
+Intermediate ESP/radio nodes MUST NOT require application content keys merely to relay/store traffic. Compromise of a relay should not automatically expose plaintext content.
+
+#### Time, ordering and disconnected clocks
+
+Field-network correctness MUST NOT depend on a trustworthy wall clock. ESPs and intermittently powered nodes may boot without NTP/GNSS/network time.
+
+Message IDs, session IDs, sequence numbers, acknowledgements and deduplication drive protocol correctness. Timestamps are useful provenance when available but MUST NOT be treated as authoritative global ordering. Expiry policy MAY use trusted phone time or a declared relative lifetime, but an uninitialised relay clock MUST NOT invent expiry.
+
+#### Presence, topology and node roles
+
+Topology/presence discovery SHOULD be a bounded protocol concern rather than inferred from user-message traffic. A future presence record MAY advertise pseudonymous node identity, protocol version, interfaces, gateway capability, supported traffic classes, queue/storage pressure and coarse power capability, subject to privacy/security policy.
+
+Node policy MUST be able to distinguish roles such as leaf, relay, gateway, base station and sensor node without binding the role to a particular hardware model. Power policy is also a routing resource: a mains/solar relay may willingly forward bulk traffic while a critical-battery rucksack node may restrict relaying without disabling urgent/control traffic.
+
+Presence/topology visualisation, route computation and power-aware routing are architectural hooks until implemented.
+
+#### Streams versus messages
+
+MFT exposes different semantics for durable messages and ephemeral streams. Application architecture SHOULD converge on contracts equivalent to:
+
+- enqueue/send a durable message;
+- publish a live stream/frame sequence;
+- subscribe/unsubscribe from a logical live channel.
+
+Walkie-talkie voice is the first implemented live-stream use case. Future low-rate live telemetry, team-position streams or similar traffic SHOULD reuse this stream boundary rather than inventing a new radio subsystem.
+
+#### Internet and infrastructure gateways
+
+Internet connectivity MUST be modelled as an optional route/provider, not as a separate "online architecture" that changes MethodMesh message identity or semantics. A powered field gateway MAY later advertise Internet/LAN/satellite reachability and route eligible traffic accordingly. Offline-only operation remains complete and valid when no such route exists.
+
+#### Simulation and conformance
+
+Before heterogeneous routing becomes production functionality, MFT MUST have a transport simulator/test harness able to inject at least packet loss, duplication, reordering, partitions, node disappearance, power/restart events, queue-full conditions, reconnect/backlog drain, protocol-version mismatch and key/revocation failures.
+
+Provider conformance tests SHOULD run the same logical reliability/security cases against simulated and physical links. Hardware bench testing remains necessary for radio/latency/energy behaviour, but protocol correctness MUST NOT depend exclusively on manual two-device testing.
+
+#### Current implementation boundary
+
+For v1.20, the implemented field-radio provider remains **ESP-NOW through the persistent Android↔BLE↔ESP bridge** described below. The following are deliberate hooks, not current implementation claims: heterogeneous automatic routing, LoRa/satellite providers, Internet gateway routing, BULK object transfer, general topology maps, power-aware routing and asymmetric membership/revocation.
+
+#### Field Network plan absorbed into this authority
+
+The Field Network design is a local, offline-first infrastructure layer. It does
+not require the internet, a router, a server or a permanently assigned phone.
+Phones temporarily consume routes; nodes belong to the network. ESP-NOW is the
+initial backbone and BLE is the Android access link so handset Wi-Fi remains
+available for other work. A future link may be LoRa, wired serial, IP, satellite
+or another bearer without changing the application envelope.
+
+Field nodes have service roles rather than fixed hardware classes. A node may be
+an endpoint, relay, handset gateway, store node, beacon/anchor or external
+gateway, and may advertise several roles at once. A relay has no handset owner.
+A store node retains bounded encrypted records across partitions. An anchor may
+provide a known site position, time source or relay service. These roles are
+logical metadata and must not be inferred from a board model or radio address.
+
+Android access has three supported design modes: opportunistic access to any
+authorised nearby gateway, an optional personal gateway, and fixed
+infrastructure gateways. Discovery and gateway selection must consider gateway
+identity, active sessions, capacity, queue depth, power state, backbone quality,
+capabilities and priority; RSSI alone is insufficient. Burst sessions are the
+default (`discover -> authenticate -> upload -> download -> disconnect`). Live
+sessions are reserved for latency-sensitive streams such as voice. The first
+implementation target is approximately three reliable sustained BLE handset
+sessions per gateway, while burst traffic may serve more intermittent users.
+
+Network capabilities use stable machine-readable namespaces such as
+`temperature.read`, `message.text`, `voice.frame`, `display.update`,
+`actuator.switch`, `telemetry.report` and `time.sync`. Sensor observations carry
+sensor identity, capability, value, unit, observation time, time source, quality
+and power/calibration metadata where available. Actuator commands require
+separate command permission, acknowledgement, requested-versus-confirmed state,
+timeout/failsafe state and locally enforced safety rules. Forwarding a command
+never grants actuator authority.
+
+Persistent displays, especially e-ink nodes, are first-class endpoints. Display
+updates are versioned and acknowledged separately from delivery to the node.
+Presence, topology, last-seen and distributed-counter events use stable event
+IDs and provenance. RSSI positioning is explicitly coarse: strongest anchor,
+weighted centroid, site fingerprinting and tracking filters are staged features,
+and every estimate must expose uncertainty rather than imply GPS precision.
+
+Power is a routing resource. The authority recognises `INFRASTRUCTURE`,
+`DUTY_CYCLED`, `ENDPOINT_LOWPOWER` and `CRITICAL_BATTERY` policies. Routing may
+prefer infrastructure nodes for bulk work while preserving control and urgent
+traffic for constrained nodes. Emergency mode may provide authenticated SOS,
+medical assistance, evacuation, welfare, broadcast and acknowledgement flows;
+emergency priority does not bypass membership or actuator safety controls.
+
+The implementation sequence is: extract and stabilise reusable messaging
+primitives; establish the transport-neutral envelope, roles, routing, queues and
+diagnostics; add ephemeral BLE gateway access and handover; add generic sensor
+telemetry; add a low-risk actuator; add persistent display nodes; add anchors and
+uncertainty-aware positioning; add a battery tag/collar; then add external
+gateways and hardened partition behaviour. Before heterogeneous routing is
+enabled, conformance tests must inject loss, duplication, reordering, partitions,
+node disappearance, power/restart, queue-full, reconnect/backlog, version
+mismatch and key/revocation failures. The intended acceptance demonstrations
+include two-phone offline messaging, relay-only coverage, gateway handover,
+partition recovery, acknowledged actuator state, persistent display update,
+coarse anchor position, last-seen tag state and continued operation without
+internet. These are roadmap acceptance tests, not claims that every feature is
+currently implemented.
+
+The purpose of defining these seams now is to make those later features additive rather than requiring another rewrite of MethodMesh identities, queues, cryptographic metadata or application-facing APIs.
+
+### ESP-NOW provider: persistent transport contract
+
+The canonical field path is **Phone A → BLE → ESP node A → ESP-NOW → ESP node B → BLE → Phone B**, but ESP mesh is a **persistent transport subsystem**, not a capability-screen lifecycle. Once the operator enables mesh transport and selects a local gateway, transport operation MUST continue independently of whether the gateway, diagnostics or test screen is open. Closing a Workbench screen, navigating elsewhere in MethodMesh or locking the phone MUST NOT intentionally tear down the transport.
+
+USB attachment is never a required liveness signal. A gateway may be powered from the phone, a battery pack in a rucksack, mains power, solar power or another independent source. The Android transport MUST therefore treat the configured BLE gateway identity and BLE availability as the local transport relationship. USB attach MAY be used as an optional reconnect hint, but loss or absence of USB MUST NOT pause, clear or invalidate mesh state.
+
+The Android implementation SHOULD use a persistent foreground service with `connectedDevice` responsibility while mesh transport is enabled. The service MUST start/restart with the `connectedDevice` type only; while background speech is actually being received/played it MAY temporarily add the declared `mediaPlayback` foreground-service type and MUST drop that additional type again when playback ends. This avoids treating boot-time transport resurrection as media playback and follows Android's foreground-service type model. A standing background microphone role is NOT part of the mesh service: push-to-talk capture is initiated only from a visible, deliberate press-and-hold operator action. An Android companion-device presence mechanism MAY later provide equivalent or stronger wake/reconnect guarantees. Manual BLE scanning is for choosing or changing a gateway; the background transport MUST NOT depend on keeping a continuous scan screen open. A known gateway that leaves BLE range MUST leave queues intact and trigger bounded reconnect behaviour. On normal process/service restart, Bluetooth restoration and device boot where Android permits, the transport SHOULD resume automatically. A deliberate Android force-stop remains an operating-system override until the user launches MethodMesh again.
+
+### ESP-NOW provider: durable store-and-forward
+
+Mesh delivery is **at least once with stable message-ID deduplication**, not an exactly-once promise. The durable chain is:
+
+**encrypted phone outbox → local ESP persistent spool → remote ESP persistent spool → encrypted remote-phone inbox → authenticated end-to-end delivery ACK**.
+
+The sending phone remains the authoritative source of an outbound user message until it receives the authenticated E2E delivery ACK. Intermediate states have distinct meanings and MUST NOT be collapsed:
+
+- **phone queued** — the ciphertext is durably accepted by the sending phone;
+- **LOCAL_STORED** — the local ESP has durably accepted the ciphertext;
+- **REMOTE_STORED** — a remote ESP has durably accepted the ciphertext;
+- **PHONE_STORED** — the receiving phone has durably accepted the encrypted wire and the remote ESP may release that phone-bound spool copy;
+- **E2E delivered** — the receiving phone has authenticated/decrypted the message and an authenticated encrypted delivery ACK has returned through the mesh.
+
+ACKs MAY be retransmitted and duplicate ciphertext MAY arrive; deduplication MUST use stable message IDs. Losing an ACK MUST result in safe retransmission, not message loss. Decrypted application delivery is also at least once: if the destination consumer is not currently registered, the encrypted inbox record remains dispatch-pending and is retried rather than being marked consumed merely because the transport runtime is alive. A reconnect MUST run an explicit versioned HELLO/SYNC reconciliation in which the phone retries due encrypted-outbox records and the ESP re-offers durable phone-bound records. Backlog drainage MUST not require a manual Retry action.
+
+Both phone and ESP durable stores MUST be bounded and fail closed. They MUST NOT silently evict an undelivered record merely to make room, nor silently skip a malformed persisted record and rewrite a shorter queue. Queue corruption MUST preserve the affected file/backup and surface an operational error until explicitly recovered. Persistent replacement MUST be power/process-interruption tolerant: an accepted record must remain recoverable across ordinary process death, BLE loss and ESP power cycling. The ESP MAY lack a trustworthy wall clock; in that case expiry remains phone-authoritative rather than being guessed from an uninitialised RTC.
+
+An ESP continues radio store-and-forward operation while its phone is absent. Thus an independently powered remote ESP may receive and retain ciphertext while its phone is away and drain that backlog when the phone later returns to BLE range.
+
+### ESP-NOW provider: end-to-end security
+
+Plaintext user payload MUST be encrypted on the sending phone **before** it crosses the ESP-mesh provider durability boundary. Plaintext MUST NOT be persisted in the mesh phone outbox/inbox, sent over BLE to an ESP, stored in an ESP spool or sent over ESP-NOW. ESP gateways are opaque ciphertext stores/forwarders.
+
+The content-encryption credential and ESP radio-network credential are separate. The current reference trust model uses a random **256-bit E2E group key** shared only by authorised phones in the field group. Android wraps that group key at rest with a non-exportable Android Keystore key. The E2E group key MUST NOT appear in BLE `CONFIG`, ESP firmware configuration, ESP persistent spool or ESP-NOW packets. The separately provisioned ESP network key is used for radio admission/authentication and does not grant content decryption.
+
+Phone-to-phone content encryption uses an authenticated-encryption construction such as **AES-256-GCM**. The complete canonical `MethodMeshTransportEnvelope` is ciphertext. Only the minimum routing/store-and-forward header remains visible; message identity, key ID, originating phone transport identity, source/destination identity, creation/expiry metadata and transport hop budget MUST be authenticated as AEAD associated data so modification is detected. The originating phone identity is transport metadata used to route authenticated delivery ACKs back to the correct handset even when the encrypted application envelope uses a non-phone source endpoint. Nonce reuse under one E2E key is prohibited.
+
+The group-key model protects against radio/BLE interception and compromise of an ESP gateway, but every authorised phone holding that group key is an authorised group member. It does not provide pairwise confidentiality or protection from a malicious authorised group member; those require a separate future identity/pairwise-key trust model. Traffic metadata such as the existence, timing and approximate size of transmissions is not hidden by payload encryption and MUST NOT be described as traffic-analysis resistance.
+
+The mesh provider owns its encrypted durable queues. The generic MethodMesh transport journal MUST NOT create a second plaintext durable copy of mesh inbound or outbound envelopes. Decrypted envelopes may exist transiently in memory for MethodMesh consumer dispatch after authenticated receipt.
+
+### ESP-NOW provider: live walkie-talkie traffic
+
+ESP mesh supports a second, explicitly different traffic class for **ephemeral live voice**. Live voice MUST NOT be represented as durable `MethodMeshTransportEnvelope` traffic merely for implementation convenience. The transport therefore distinguishes at least:
+
+- **CONTROL** — HELLO/SYNC/configuration/ACK/error coordination;
+- **DURABLE_DATA** — encrypted store-and-forward MethodMesh envelopes with persistent queues and retries;
+- **LIVE_VOICE** — low-latency encrypted speech frames with no persistence and no stale-frame retransmission.
+
+A handset may independently control **mesh transport**, **voice listening**, and **push-to-talk**. Turning voice listening off MUST NOT stop ESP-NOW participation or durable store-and-forward. A battery-powered ESP whose phone is muted or absent continues receiving and relaying eligible live-radio packets and continues durable mesh operation. `VOICE_LISTEN` controls only whether that local gateway forwards live voice over BLE to its associated phone. A phone that was not listening when a broadcast occurred intentionally misses that speech; it MUST NOT be replayed from the durable inbox or ESP spool later.
+
+No live voice frame may be written to the Android durable mesh outbox/inbox, ESP LittleFS spool, logs, exports or ordinary result storage. Automatic recording of received or transmitted walkie-talkie audio is prohibited. A future explicit recording capability would require its own visible operator action, storage contract and governance surface.
+
+Push-to-talk is a global app-shell interaction rather than a capability that must remain open. The canonical interaction is **press and hold to transmit; release to stop**. Microphone capture MUST begin only after a deliberate visible press and MUST end promptly on release/cancellation. The transport MAY continue receiving and playing subscribed live voice in the background while the persistent service is active. Notification controls MAY expose Listen/Mute, but notification or lock-screen microphone capture MUST NOT be assumed without a separately reviewed Android lifecycle/security design.
+
+Phone-side speech is encoded into bounded low-latency frames before encryption. The reference implementation uses **8 kHz mono, 20 ms frames, G.711 mu-law (160 audio bytes per frame)**. Other codecs MAY replace it later only if they preserve the bounded-radio and latency contracts. Live voice frames use **AES-256-GCM** with a domain-separated voice key derived from the phone-only E2E field-group key. A fresh random talk-session identifier plus monotonic frame sequence supplies the 96-bit GCM nonce. Channel and source identifiers are keyed pseudonymous tags rather than plaintext phone/channel names. The immutable live-voice header is AEAD associated data. ESP nodes never possess the voice key and therefore never decrypt, encode or decode speech.
+
+The live ESP-NOW envelope is separately authenticated with the provisioned ESP network key. One encrypted live-voice packet MUST fit inside one current ESP-NOW frame rather than invoking durable-data fragmentation/reassembly. Live voice is best-effort: a lost old speech frame is skipped/concealed rather than retransmitted after newer speech. The receiving phone SHOULD use a small jitter buffer and SHOULD recover from an isolated missing frame without blocking the talk burst.
+
+Live voice has higher scheduling priority than durable backlog. Android BLE writing MUST permit live/control packets to pre-empt queued durable packets between GATT writes. The Android live-voice BLE queue MUST itself be short and bounded: when the local BLE link falls behind, old unsent speech is discarded rather than converted into delayed playback. The reference implementation requires a negotiated BLE MTU large enough for each live-voice bridge frame to fit in one ATT write; PTT MUST fail visibly rather than silently switch to high-latency fragmentation when that condition is not met. Firmware MUST defer or throttle durable radio retries while a live talk burst is active and resume them automatically afterwards. This priority rule MUST NOT delete or downgrade durable records.
+
+Live radio relay uses bounded TTL plus duplicate suppression. Relay TTL MUST be deliberately small to limit broadcast storms in dense deployments. A node that receives a valid live packet may relay it even when its associated phone is not listening. A node MUST NOT persist a live packet merely because no phone is present.
+
+Logical walkie-talkie channels are MethodMesh E2E subscriptions, not Wi-Fi/ESP-NOW RF channels. A handset transmits to one selected logical channel and plays only subscribed/selected channels. The reference implementation begins with one selected channel (default `field-group`) and a soft distributed floor: while a handset is receiving an active talk burst it treats that channel as busy and rejects a normal new PTT press until the burst ends or times out. Simultaneous transmitters remain a best-effort distributed-radio condition rather than a centrally arbitrated guarantee.
+
+### ESP-NOW provider: BLE/radio protocol
+
+Each phone owns only its local BLE gateway relationship; BLE and ESP-NOW addresses are transport-local and MUST NOT become MethodMesh identities. A stable logical phone/node identity is used above that layer. Nodes provisioned with the same radio network ID/key MAY use the ESP-NOW broadcast peer when no explicit peers are configured; user-entered radio MAC addresses are not required for the normal field workflow.
+
+The mesh BLE advertisement MUST keep the 128-bit service UUID in advertising data and the human-readable node name in scan-response data so the 31-byte legacy advertising limit is not exceeded. Android SHOULD request a large BLE MTU. The versioned `methodmesh.gateway` bridge MUST distinguish control frames from durable encrypted DATA/ACK/SYNC traffic and ephemeral voice frames rather than treating every BLE notification as a user envelope. The canonical live-control/data frame kinds include `VOICE_LISTEN`, `VOICE_LISTEN_ACK`, `LIVE_VOICE` and `LIVE_VOICE_RX`. Logical frames larger than the available ATT payload MUST use bounded BLE fragmentation/reassembly.
+
+The radio layer MUST fragment encrypted wires to respect the runtime ESP-NOW frame limit (250 bytes on the current MicroPython 1.28 image), authenticate radio fragments/control acknowledgements with the separate network key, and reject incomplete or integrity-failing reassembly rather than truncating it. Because the ESP32-C3/MicroPython heap is finite, the current implementation caps a complete encrypted mesh wire at **32 KiB** and MUST reject an oversized envelope before accepting it into the mesh durable queue. Radio authentication is defence-in-depth/network membership; it does not replace phone-to-phone AEAD.
+
+Gateway framing failures MUST be diagnosable from the normal Workbench surface. Android MUST retain a bounded rejected notification and expose at least characteristic UUID, byte length, UTF-8 interpretation, hexadecimal bytes and exact parser exception; the same evidence SHOULD be available in development logging. Diagnostics MUST NOT log E2E keys, network keys or decrypted payload plaintext.
+
+### ESP-NOW provider: Workbench surfaces
+
+**ESP mesh transport** is the control plane: persistent-service state, gateway selection/change, radio-network provisioning, E2E group-key enrolment, phone encrypted queue counts, ESP spool counts, last BLE/radio contact, pause/resume, live-voice Listen/Mute, selected logical voice channel, live packet statistics and framing diagnostics.
+
+**ESP mesh transport diagnostics** exposes operational state without secrets, plaintext or audio content. It MAY show live voice state, channel, pseudonymous active-speaker tag and packet counters.
+
+The legacy `espmesh.message.send` method MAY remain for compatibility but its normal UI is only a **Workbench transport test harness**. Transport availability, receipt, retry and backlog reconciliation MUST NOT depend on that screen being open, and ordinary MethodMesh producers SHOULD enqueue through the transport runtime rather than launch the test surface.
+
+Deprecated/split wipe, runtime-upload or role-specific installer surfaces MAY remain in source only for recovery/debug compatibility, but MUST NOT be exposed as parallel normal Workbench installation tools once a complete image path exists.
 
 ## Device registry
 
@@ -1343,9 +1666,11 @@ Every working artifact belongs to a caller-supplied session. The producer defaul
 
 MethodMesh messages exchanged with external devices use the generic core transport substrate. `MethodMeshTransportEnvelope` carries stable message identity, logical source and destination endpoints, message classification, optional module/capability routing, timestamps, correlation fields, an opaque versioned payload and bounded metadata. Transport-local addresses remain inside registered providers and bindings.
 
-The runtime persists inbound messages before dispatch, suppresses duplicate message IDs, and persists outbound messages before provider delivery. Inbox and outbox states distinguish queued, sent, delivered, retryable, permanent, expired, received, dispatched, consumed and failed outcomes. Journals are bounded and prunable. Provider failures are isolated, and an unavailable provider leaves outbound work queued or retryable.
+By default the runtime persists inbound messages before dispatch, suppresses duplicate message IDs, and persists outbound messages before provider delivery. Inbox and outbox states distinguish queued, sent, delivered, retryable, permanent, expired, received, dispatched, consumed and failed outcomes. Journals are bounded and prunable. Provider failures are isolated, and an unavailable provider leaves outbound work queued or retryable.
 
-Modules register transport providers and consumers through the generic contract. BLE, serial, LAN, ESP-NOW, provisioning, routing, authentication and firmware lifecycle belong to transport modules rather than core. Transport delivery does not bypass capability Commit semantics, create a parallel ODK message path or imply Files persistence for every payload.
+A provider MAY declare that it owns its own durability boundary when the generic journal would violate a stronger transport-specific invariant. In that case the provider MUST provide equivalent-or-stronger durable queueing, retry and deduplication itself, and core MUST NOT duplicate that provider's inbound or outbound plaintext into the generic journal. The ESP-NOW Field Transport provider uses this exception so only its E2E ciphertext is durable; decrypted envelopes are passed to consumers transiently in memory.
+
+Modules register transport providers and consumers through the generic contract. **MethodMesh Field Transport (MFT)** is the field-oriented orchestration layer above those provider contracts; it owns transport-neutral logical addressing, traffic-class semantics and future route selection while concrete modules own BLE, serial, LAN, ESP-NOW, future LoRa/Internet/satellite bearers, provisioning, authentication and firmware lifecycle. MFT MUST NOT leak provider-local addresses into application identity. Transport delivery does not bypass capability Commit semantics, create a parallel ODK message path or imply Files persistence for every payload.
 
 ### Build-time module XLSForm projection
 
@@ -7311,6 +7636,80 @@ Standalone source documents should only be archived after the repository reorgan
 
 # Appendix M. Version history
 
+## v1.20 - 2026-09-12
+
+- Established **MethodMesh Field Transport (MFT)** as the transport-neutral field communications layer above concrete providers; ESP-NOW remains the first implemented field-radio provider.
+- Separated stable MethodMesh device/node/group/channel/service identity from BLE, ESP-NOW, IP, USB and other link-local addressing.
+- Reserved transport-neutral envelope concepts for traffic class/priority, logical addressing, hop budget, crypto suite/key ID, integrity/size metadata and delivery requirements without embedding provider-specific locators.
+- Generalised traffic semantics to CONTROL, LIVE, ALERT, DURABLE, TELEMETRY and BULK, while explicitly marking non-implemented classes as architectural hooks rather than release claims.
+- Added provider capability descriptors and multi-interface node semantics so future routing can select links by size, latency, live-stream support, persistence, cost and power characteristics rather than hard-coded feature-to-radio assumptions.
+- Generalised store-and-forward semantics across storage engines and retained at-least-once delivery, stable message-ID deduplication, bounded fail-closed persistence and explicit durable states.
+- Reserved a resumable manifest/chunk object-transfer layer for large media, ODK attachments, maps and firmware instead of forcing large objects through ordinary message envelopes.
+- Added crypto-agility requirements separating transport membership, sender identity and content encryption, with room for key rotation/revocation and future asymmetric device/session identity.
+- Defined disconnected-clock doctrine, topology/presence hooks, node-role and power-policy hooks, stream-versus-message APIs, Internet-as-route semantics and a required future field-transport simulator/conformance harness.
+- Renamed the detailed current mesh sections as the **ESP-NOW provider** contract to make clear what is implemented now versus what belongs to the provider-neutral MFT architecture.
+
+## v1.19 - 2026-09-11
+
+- Added ephemeral E2E-encrypted ESP-mesh walkie-talkie traffic as a distinct high-priority transport class rather than durable message traffic.
+- Added a global press-and-hold PTT overlay across the MethodMesh app shell plus persistent Listen/Mute state and a selected logical voice channel.
+- Required live voice to be non-persistent: no Android durable queue, ESP LittleFS spool, automatic recording or delayed replay when a phone was not listening.
+- Added a phone-side 8 kHz/20 ms G.711 mu-law reference codec, domain-separated AES-256-GCM live-voice encryption, keyed pseudonymous source/channel tags and nonce construction from random talk-session ID plus sequence.
+- Added compact separately network-authenticated ESP-NOW live packets, bounded TTL relay and duplicate suppression so voice remains within one current 250-byte radio frame.
+- Added live/control priority over durable backlog: high-priority Android BLE writes and ESP firmware deferral/throttling of durable radio retries while speech is active.
+- Made Listen/Mute affect only BLE delivery to the associated phone; a battery-powered ESP continues radio relay and durable mesh participation while muted or phone-absent.
+- Added background audio-receive lifecycle support by starting the persistent service as `connectedDevice` and dynamically adding `mediaPlayback` only while speech is actually received/played; microphone capture remains tied to visible PTT interaction.
+- Required single-ATT-write BLE voice frames after MTU negotiation and bounded the live BLE queue so congestion drops stale speech instead of replaying it late.
+- Advanced ESP-NOW firmware to `methodmesh-espmesh-0.4.0`; the verified flash writer and AHT20/LD2410C images remain unchanged.
+
+## v1.18 - 2026-09-11
+
+- Recast ESP mesh as a persistent Workbench transport subsystem rather than a screen-scoped messaging capability.
+- Added the normative battery/USB-independent lifecycle: a configured BLE gateway is reconnected in the background with bounded backoff; USB is optional and never the transport lifeline.
+- Defined durable encrypted phone outbox/inbox queues, a bounded persistent ESP LittleFS store-and-forward spool, explicit LOCAL_STORED/REMOTE_STORED/PHONE_STORED states, authenticated E2E delivery ACKs and reconnect HELLO/SYNC reconciliation.
+- Required fail-closed bounded queues: undelivered records may not be silently evicted, malformed persisted records may not be silently skipped/re-written, and accepted records must remain recoverable across ordinary phone-process or ESP power interruption.
+- Added the phone-to-phone E2E security boundary: AES-256-GCM group encryption before BLE, Android-Keystore wrapping at rest, visible routing metadata (including originating transport phone identity for return ACK routing) authenticated as AAD, and strict separation between the phone-only E2E group key and the ESP radio-network key.
+- Required ESPs to store/forward ciphertext only; the E2E key never enters firmware, ESP spool or radio traffic.
+- Added the secure-provider durability exception to the generic transport runtime so core does not create a second plaintext journal for ESP mesh.
+- Versioned the Android↔gateway bridge as typed protocol v2 with bounded BLE fragmentation, while retaining authenticated ESP-NOW fragmentation/reassembly and v1.17 rejected-frame diagnostics.
+- Demoted `espmesh.message.send` to a Workbench transport test harness; transport operation and backlog receipt no longer depend on that screen being open.
+- Advanced the ESP-NOW firmware to `methodmesh-espmesh-0.3.1`; AHT20/LD2410C images and the verified ESP32-C3 flash writer remain outside this redesign.
+
+## v1.17 - 2026-09-11
+
+- Made ESP mesh BLE framing failures directly inspectable from the gateway UI.
+- Required rejected-frame diagnostics to retain characteristic UUID, byte length, UTF-8 text, raw hex and the exact parser exception.
+- Added the `MethodMeshEspMesh` logcat tag for the same bounded rejected-frame evidence.
+- Left firmware, radio forwarding and provisioning behaviour unchanged pending evidence from the rejected frame itself.
+
+## v1.16 — ESP-NOW two-phone bridge
+
+- Fixed ESP-NOW mesh-node BLE advertising by separating the 128-bit service UUID from the scan-response device name.
+- Defined and implemented the canonical Phone → BLE → ESP-NOW → BLE → Phone bridge.
+- Added automatic ESP-NOW broadcast fallback for same-network nodes when no explicit peer list is configured.
+- Added Android large-MTU negotiation, ESP-NOW fragmentation/reassembly for the 250-byte MicroPython radio limit, network configuration acknowledgement and a bounded recent-inbound message view.
+- Kept ESP-NOW radio addressing transport-local; normal provisioning requires only a shared network ID/key, not user-entered MAC addresses.
+
+## v1.15 - 2026-09-11
+
+- Corrected the ESP32-C3 ROM flash protocol used by the Android installer: C3 extended `FLASH_BEGIN`, canonical ROM block sizing, explicit SPI flash attachment/parameters and correct parsing of ROM status/error bytes rather than reserved trailing bytes.
+- Made firmware-install success fail-closed. Complete-image installs now perform ROM flash-MD5 verification against the bundled source image before success is returned.
+- Added block retry/error propagation so a ROM-reported write failure cannot be presented as a successful installation.
+- Kept the bundled AHT20, LD2410C and ESP-NOW image contents unchanged.
+
+## v1.14 - 2026-09-11
+
+- Fixed ESP32 image installation on fresh boards connected through USB-serial bridges by routing CP210x, CH340/CH9102 and FTDI bootloader traffic through the Android USB-serial driver instead of assuming USB CDC semantics.
+- Retained the established Espressif native-USB flash path and added explicit transport reporting to the install log.
+- Kept AHT20 and LD2410C bundled images byte-for-byte unchanged; the ESP-NOW mesh image remains a complete 4 MB image using the same base firmware/partition layout.
+
+## v1.13 - 2026-09-11
+
+- Consolidated ESP32-C3 firmware installation around one **Install ESP32 image** Workbench capability rather than separate role-specific installers.
+- Defined BLE sensor nodes and ESP-NOW mesh nodes as selectable complete image roles within the same installer.
+- Required the ESP-NOW mesh node to have a bundled complete flash image, with post-install network provisioning handled by the ESP mesh gateway rather than by the BLE sensor provisioner.
+- Clarified that recovery/debug wipe/runtime-upload code may remain internally but must not reappear as parallel normal Workbench installation surfaces.
+
 ## v1.11 - 2026-09-11
 
 - Made the existing tap-to-copy invariant explicit for the legacy generic result surface: every displayed result value must itself be tappable to copy while that surface remains in use.
@@ -7407,3 +7806,19 @@ Established the module-folder handoff contract, one canonical capability contrac
 ## v1.12 filename contract update — 2026-09-11
 
 Generic native Share/Save outputs now use a coherent `methodmesh_<capability-or-run>_<UTC timestamp>` filename family. Result text, optional metadata JSON and saved media remain recognisable when removed from their containing folder; meaningful domain-native artefact names remain permitted.
+
+## v1.20 implementation tidy-up — 2026-09-12
+
+The ESP-NOW work now has a transport-neutral implementation seam in the core:
+providers declare traffic classes, limits, fragmentation and durability; logical
+nodes can later expose multiple provider interfaces; and secure providers retain
+ownership of encrypted durability. The generic runtime distinguishes local
+durable acceptance from link and destination delivery, serializes provider
+lifecycle changes, and fails closed on missing consumers, corrupt journals and
+full queues. These changes prepare heterogeneous links and handover without
+making them current features.
+
+Module-owned in-app overlays are contributed through module metadata and ordered
+by the shared shell. The shell contains no ESP-specific overlay registration or
+module ID. Current ESP mesh remains the implemented provider; automatic route
+selection, topology maps and additional bearers remain architectural hooks.
