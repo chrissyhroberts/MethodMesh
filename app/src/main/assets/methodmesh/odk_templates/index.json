@@ -6698,9 +6698,9 @@
       "sourceFileName": "example_odk_barcode_scan.xlsx",
       "sourceRelativePath": "modules/qrcode/docs/example_odk_barcode_scan.xlsx",
       "centralFormId": "barcode_scan",
-      "formVersion": "2026090703",
+      "formVersion": "2026091201",
       "assetPath": "methodmesh/odk_templates/qrcode/example_odk_barcode_scan.xlsx",
-      "sha256": "3817b7400277a5c12891a7bb17f34b8b430c2c67369c8938703cf88d1af6ce7d",
+      "sha256": "e6f584176b6003e8230354388fa8e15c1273f052ce0a46656657762cd61ccb80",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6728,9 +6728,9 @@
       "sourceFileName": "example_odk_showcase_barcode_scan.xlsx",
       "sourceRelativePath": "modules/qrcode/docs/example_odk_showcase_barcode_scan.xlsx",
       "centralFormId": "qrcode_barcode_scan",
-      "formVersion": "2026090701",
+      "formVersion": "2026091201",
       "assetPath": "methodmesh/odk_templates/qrcode/example_odk_showcase_barcode_scan.xlsx",
-      "sha256": "4acf27f6c941adad11f5126f3a7d0d68e47e9f165bf36ba6b2db8c8a4102c816",
+      "sha256": "a032bc050675c966a783340cc33be6fcaec0d2e9920cd907c5c162a81e93c61a",
       "capabilityIds": [],
       "tags": [],
       "validation": {

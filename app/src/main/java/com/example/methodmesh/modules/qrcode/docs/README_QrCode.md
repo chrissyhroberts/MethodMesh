@@ -1,47 +1,48 @@
 # Automatic code scanner
 
-MethodMesh module for local camera capture of QR, Data Matrix, Aztec, PDF417 and common 1D barcode formats through ZXing/JourneyApps.
+MethodMesh camera scanner for QR, Data Matrix, Aztec, PDF417 and common 1D barcode formats using JourneyApps/ZXing.
 
-**Lane/status:** Production method metadata; migrated to MethodMesh Master Book v1.05 on 2026-09-06.
+**Canonical MethodMesh authority:** Master Book v1.20 (2026-09-12)  
+**Maturity:** Production  
+**Connectivity:** Offline
 
-The historical public method ID is intentionally preserved:
+The established public method ID is preserved:
 
 - `barcode.scan`
 
-Despite that identifier, the capability is not restricted to linear barcodes or QR codes.
+Despite the historical identifier, the capability is not limited to linear barcodes or QR codes.
 
-Current method implementation version: `1.1.1` (embedded rotation-aware scanner UI; canonical method/output contract unchanged).
+Current method implementation version: `1.1.2`.
 
 ## Canonical capability contract
 
-`barcode.scan` is the single implementation boundary. The dashboard, direct native launch, presets, protocols, schedules/widgets and ODK/XLSForm all invoke this same method and receive the same declared outputs. The dashboard is a projection/control surface, not a private scanner implementation.
+`barcode.scan` is the single implementation boundary. Direct native use, dashboard discovery, presets, protocols, schedules/widgets and ODK/XLSForm all invoke the same method and declared output contract. No dashboard-only or ODK-only scanner implementation is introduced by this module.
 
-The module does not require central capability-specific registration or shared-UI special cases. `QrCodeModule` exposes the method, native screen and typed `MethodSetting` metadata through the normal `MethodMeshModule` contract.
+`QrCodeModule` contributes the method, capability screen, typed `barcode_formats` setting, discovery/RIL bindings and module-owned documentation through the normal `MethodMeshModule` path.
 
-## v1.05 native lifecycle
+## Native scanner UX
 
-The production screen behaves like a scanner rather than a generated settings form:
+The production screen is scanner-first rather than a generated settings/result form.
 
-1. Choose accepted formats when that setting is not fixed by a preset.
-2. The camera opens inside a bounded scanner window on the capability screen.
-3. The scanner follows device rotation; the viewfinder/scan line remains horizontal relative to the held orientation rather than being portrait-locked.
-4. Continuous decoding keeps the latest detected payload immediately beneath the scanner window. A different code replaces the mutable working result until Commit.
-5. Tap the payload or other useful displayed values to copy the value itself.
-6. When the payload is a safe absolute HTTP/HTTPS URL, an **Open link** action appears. Links are never opened automatically.
-7. Press **Commit** to freeze the canonical result for this execution.
-8. Native/manual runs reveal Share, Copy, Save to Downloads, optional full JSON, Home/Done and Edit/new scan on the same screen.
+1. The live camera is the primary instrument at the top of the capability.
+2. Continuous decoding updates a mutable working result without leaving the screen.
+3. The current payload appears in a floating HUD over the camera and is tap-to-copy.
+4. If the payload is a safe absolute HTTP/HTTPS URL, **Open link** appears directly in that HUD beside **Commit**. Links are never opened automatically.
+5. **Commit** freezes the canonical result for the execution.
+6. Manual/native committed state remains on the same capability screen and exposes Share, Copy, Save to Downloads, optional full JSON/audit, Technical details, Home/Done and New scan.
+7. Changing format configuration or starting a new scan explicitly leaves the previous working/committed state; a committed result is never silently mutated.
 
-Editing/new scanning after Commit explicitly leaves the committed state; it does not silently mutate the frozen result.
+The code-format control is deliberately secondary. It is shown only when the setting is not fixed by the calling preset/context and expands on demand instead of occupying the scanner surface.
 
 ### Launch-origin closeout
 
-- Direct app/dashboard: Commit freezes the result; Home returns to MethodMesh.
-- Native app preset: fixed settings stay hidden; runtime format input is requested when configured as runtime; Home returns to MethodMesh.
-- Widget preset: Done returns through the existing launcher closeout path to the Android desktop.
-- Protocol/schedule: Commit returns the canonical result to the runner so it can continue.
-- ODK/external roundtrip: the scanner opens when interaction is required; Commit returns the canonical payload directly to the caller. Native Share/Save/Home controls are not shown in this route.
+- Direct app/dashboard: Commit freezes the result; Home returns through normal MethodMesh closeout.
+- Native preset: fixed settings remain hidden; runtime settings remain available when configured as runtime.
+- Widget preset: Done follows the existing launcher closeout path.
+- Protocol/schedule: Commit returns the canonical result to the runner.
+- ODK/external roundtrip: Commit returns the canonical payload to the caller; native post-commit export controls are not inserted into that automatic-return route.
 
-The module itself does not create archive/output copies on Commit. Storage occurs only through an explicit Save action or an explicitly configured preset save policy.
+The module does not persist scan history. Save occurs only through an explicit native Save action or an external/preset persistence policy.
 
 ## Settings and runtime inputs
 
@@ -51,110 +52,154 @@ The module itself does not create archive/output copies on Commit. Storage occur
 
 Declared choices are `QR_CODE`, `DATA_MATRIX`, `PDF_417`, `AZTEC`, `CODE_128`, `CODE_39`, `EAN_13`, `EAN_8`, `UPC_A`, and `UPC_E`.
 
-ODK/external callers use the normal `input_` projection, for example `input_barcode_formats='DATA_MATRIX|CODE_128'`.
+External callers use the normal `input_` projection, for example `input_barcode_formats='DATA_MATRIX|CODE_128'`.
 
-The execution context also accepts the established scan/result inputs used by the method boundary:
+The method boundary also accepts established scanner/result context used by reusable scanner invocation:
 
 | Input/context key | Purpose |
 |---|---|
-| `barcode_payload` | Decoded payload supplied by the scanner/dependency boundary. |
+| `barcode_payload` | Exact decoded payload supplied by the scanner/dependency boundary. |
 | `token` | Historical fallback alias for a supplied payload. |
 | `barcode_format` | Detected format; defaults to `UNKNOWN`. |
 | `barcode_source` | Capture source; native camera uses `camera_zxing`. |
 | `barcode_scan_time_iso` | Capture time. |
-| `operator_id` and invocation-context fields | Optional attribution/context supplied by MethodMesh/ODK. |
+| `operator_id` and invocation context | Optional attribution/context supplied by MethodMesh. |
 
-The normal native UI does not ask users to type scanner-produced fields.
+Scanner-produced fields are not exposed as editable native text inputs.
 
 ## Outputs
 
-All fields below are contractually available to protocols, pipes and ODK projection even when hidden from the everyday native view.
-
-| Output | Normal native presentation | Meaning |
+| Output | Native presentation | Meaning |
 |---|---|---|
-| `barcode_payload` | Primary result | Exact decoded text; beef-first share/copy value. |
-| `barcode_format` | Shown | Detected ZXing format. |
+| `barcode_payload` | Primary HUD/result | Exact decoded text; primary beef for copy/share/save. |
+| `barcode_format` | HUD/committed result | Detected ZXing format. |
 | `barcode_payload_kind` | Technical details | `text` or `url`. |
-| `barcode_payload_url` | Shown when present | Exact payload only when it is a safe absolute HTTP/HTTPS URL. |
-| `barcode_payload_sha256` | Technical details | SHA-256 of the exact decoded payload bytes used by the method. |
+| `barcode_payload_url` | HUD action + technical detail when present | Exact payload only when it is a safe absolute HTTP/HTTPS URL. |
+| `barcode_payload_sha256` | Technical details | SHA-256 of the exact decoded payload. |
 | `verification_evidence_format` | Technical details | `barcode_payload_utf8_sha256_v1`. |
 | `verification_evidence_hash` | Technical details | Evidence hash; currently the same payload SHA-256. |
 | `barcode_scan_time_iso` | Technical details | ISO-8601 capture time. |
 | `barcode_source` | Technical details | Scanner/source identifier. |
 
-### Full JSON and audit
-
-`methodmesh_full_json` is supplied by the generic MethodMesh FULL payload projection. It contains the complete result/audit representation, including execution/provenance material available from the canonical `ExecutionResult`.
-
-Native runs share/copy/save only the decoded payload by default. Enabling **Include full JSON** adds the audit JSON to that explicit export action.
-
-### Media
-
-This capability returns decoded text/evidence, not a barcode image. `setBarcodeImageEnabled(false)` is intentional, so there is no module-declared media URI and no module-specific ClipData handling. Generic MethodMesh transport remains responsible for ClipData/read grants for capabilities that do return binary artefacts.
+`methodmesh_full_json` is supplied by the shared MethodMesh FULL projection. It remains secondary/audit material in native UI and is always captured by the canonical handled ODK roundtrip example.
 
 ## State and persistence
 
-Working scan state and committed state use saveable Compose state. Payload, format, source, scan time and the execution/observation/transformation/relationship identifiers required to reconstruct the result are preserved across ordinary activity recreation/rotation. Reconstructed committed results retain the same architectural IDs and system timestamp rather than silently becoming a different execution.
+Working and committed fields use saveable Compose state. Payload, format, source, scan time, execution/observation/transformation/relationship identifiers and system timestamp are preserved so ordinary activity recreation does not silently create a different committed execution.
 
-The module deliberately has no long-term repository: a barcode scan is a short one-shot operation. Committed results are not automatically persisted to module storage.
+No long-term scan repository is owned by this module.
 
-## Dashboard, presets and protocols
+## ODK Integration Card
 
-- **Dashboard:** generic module/capability discovery can present `barcode.scan` from module metadata; the scanner remains independently invokable.
-- **Direct native:** purpose-built camera/scanner screen with working result and Commit.
-- **Presets:** `barcode.scan` remains individually selectable. `barcode_formats` may be fixed or runtime. Fixed values are hidden during the preset run.
-- **Protocols:** `barcode.scan` remains an independent protocol step and returns the same output contract.
-- **Schedules/widgets:** invoke the same method/preset contract; closeout is controlled by the existing launch-origin framework flags.
+### ODK INTEGRATION
 
-## ODK/XLSForm
+**Capability**  
+Automatic code scanner  
+`barcode.scan`
 
-ODK is a first-class interactive route because camera framing is required.
+**Tags**  
+Maturity: Production  
+Connectivity: Offline
 
-Typical grouped intent:
+### ODK INPUTS
+
+| Canonical input key | ODK type | Required | Meaning |
+|---|---|---:|---|
+| `barcode_formats` | text / select_multiple projection | No | ZXing format names separated by spaces, pipes, commas or semicolons. Empty = automatic/all supported. |
+
+**Interactive acquisition:** MethodMesh native camera scanner. The user frames a code and presses Commit to return the selected working result.
+
+### INTENT CALL
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='barcode.scan',input_barcode_formats=${barcode_formats_input},input_payload_mode='FULL',input_methodmesh_return_namespace='scan',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='barcode.scan',input_barcode_formats=${barcode_formats_input},input_payload_mode='FULL',return_mode='flat')
 ```
 
-The supplied workbook demonstrates:
+### MODIFIERS
 
-- grouped intent invocation;
-- `input_barcode_formats`;
-- FULL payload mode;
-- return namespace `scan`;
-- every declared scanner output;
-- `scan_methodmesh_full_json`.
+| Modifier | Type | Semantics | Meaning |
+|---|---|---|---|
+| `input_payload_mode` | text | Canonical example uses `FULL` | Requests shared complete metadata/audit projection in addition to flat canonical returns. |
+| `return_mode` | text | Canonical example uses `flat` | Projects canonical return fields into the calling group. |
 
-The example is not an allow-list: the generic ODK projector exposes all declared capability outputs. Namespace projection prefixes the returned keys without changing their canonical names or meanings.
+The canonical showcase intentionally does **not** use `methodmesh_return_namespace`. User-authored composite forms may use the shared namespace mechanism when collision avoidance is genuinely required.
 
-ODK owns form persistence/submission. The module does not save an extra MethodMesh output merely because ODK invoked it.
+### CANONICAL RETURNS
 
-## Permissions and dependencies
+| Canonical return key | ODK type | Availability | Meaning |
+|---|---|---|---|
+| `barcode_payload` | text | always on successful scan | Exact decoded payload. |
+| `barcode_format` | text | always on successful scan | Detected format. |
+| `barcode_payload_kind` | text | always on successful scan | `text` or `url`. |
+| `barcode_payload_url` | text | conditional | Present only for safe absolute HTTP/HTTPS payloads. |
+| `barcode_payload_sha256` | text | always on successful scan | Payload SHA-256. |
+| `verification_evidence_format` | text | always on successful scan | Evidence recipe identifier. |
+| `verification_evidence_hash` | text | always on successful scan | Evidence hash. |
+| `barcode_scan_time_iso` | text | always on successful scan | Capture timestamp. |
+| `barcode_source` | text | always on successful scan | Scanner/source identifier. |
+| `methodmesh_status` | text | shared handled-roundtrip return | MethodMesh transport/execution status. |
+| `methodmesh_full_json` | text / JSON | always on handled FULL roundtrip | Complete metadata/audit payload. |
 
-- Camera access is required. The production screen requests runtime camera permission for its embedded JourneyApps/ZXing scanner window.
-- No network permission is required by the module for decoding.
-- Core scanning works offline.
-- Host app dependencies provide JourneyApps/ZXing embedded scanning (`DecoratedBarcodeView`) plus the existing `ScanContract` / `ScanOptions` dependency-invocation path.
+### RETURN FIELD PLACEMENT
+
+Canonical showcase: `docs/example_odk_showcase_barcode_scan.xlsx`
+
+The workbook contains exactly one MethodMesh invocation and uses unprefixed canonical return leaves inside the invocation group:
+
+```text
+run_barcode_scan/barcode_payload
+run_barcode_scan/barcode_format
+run_barcode_scan/barcode_payload_kind
+run_barcode_scan/barcode_payload_url
+run_barcode_scan/barcode_payload_sha256
+run_barcode_scan/verification_evidence_format
+run_barcode_scan/verification_evidence_hash
+run_barcode_scan/barcode_scan_time_iso
+run_barcode_scan/barcode_source
+run_barcode_scan/methodmesh_status
+run_barcode_scan/methodmesh_full_json
+```
+
+The older `example_odk_barcode_scan.xlsx` filename is retained as a migration/compatibility example with its stable `form_id`; it now follows the same single-call, unprefixed return contract.
+
+### FILE RETURN SEMANTICS
+
+None. `barcode.scan` returns decoded text/evidence and no barcode-image/media attachment.
+
+### RUNTIME
+
+Inputs: optional `barcode_formats`; camera acquisition supplies payload/format/source/time.  
+Primary output: `barcode_payload`.  
+Working result: mutable until Commit.  
+Commit: freezes the canonical execution result.  
+Native export: payload first; full JSON/audit only when explicitly enabled.  
+ODK persistence: owned by ODK; MethodMesh does not create a second stored copy simply because ODK invoked the capability.
+
+## Permissions, dependencies and privacy
+
+- Camera permission is required for native interactive scanning.
+- Core decoding does not require network access and works offline.
+- JourneyApps/ZXing provides `DecoratedBarcodeView`, `ScanContract` and decoding.
+- Decoded content stays on-device in the scanning capability.
+- HTTP/HTTPS payload classification is local.
+- **Open link** is always an explicit user action using Android `ACTION_VIEW`; a scanned link is never auto-opened.
 
 See `ATTRIBUTION.md` and `THIRD_PARTY_NOTICES.md`.
 
-## Privacy and network behaviour
-
-Decoded code content stays on-device within this capability. A payload that is a safe absolute HTTP/HTTPS URL is classified locally. The module never opens it automatically; the user may explicitly press **Open link**, which hands the URL to Android via `ACTION_VIEW`. Decoding itself does not transmit the payload.
-
-## Compatibility decisions in this migration
+## Compatibility decisions
 
 Preserved deliberately:
 
-- method ID `barcode.scan`;
 - module ID `barcode`;
+- method ID `barcode.scan`;
 - setting key `barcode_formats`;
-- every existing output field name and semantic meaning;
-- `token` as a method-level fallback input alias;
-- SHA-256 evidence format `barcode_payload_utf8_sha256_v1`.
+- all established output names and meanings;
+- `token` fallback input alias;
+- evidence format `barcode_payload_utf8_sha256_v1`;
+- stable ODK `form_id` values in the supplied workbooks.
 
-`PDF_417` and `AZTEC` were added to the typed setting choices because the existing module documentation and ODK example already exposed those supported formats. This resolves a configuration-surface mismatch without changing the method contract.
+The refresh changes presentation and documentation, not the canonical scientific/transport contract.
 
-## Validation status
+## Validation
 
-Static migration review and workbook contract checks are documented in `VALIDATION.md`. A full Android Gradle build was not possible from the supplied standalone module archive alone; the receiving repository should run the standard MethodMesh test/build commands before release admission.
+See `VALIDATION.md` for the v1.20 review record and remaining repository/device checks.

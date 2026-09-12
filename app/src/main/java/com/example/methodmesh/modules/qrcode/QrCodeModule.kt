@@ -13,6 +13,13 @@ object QrCodeModule : MethodMeshModule {
     override val summary: String = "Scan QR, Data Matrix, Aztec, PDF417, and common 1D codes into canonical evidence."
     override val iconKey: String = "tool"
 
+    // Current Master Book status metadata. The host interface does not yet expose
+    // typed status properties, so these module-owned values follow the pattern
+    // used by reviewed modules while capability-level descriptor metadata remains
+    // authoritative for generic discovery.
+    val maturityTag: String = "Production"
+    val connectivityTag: String = "Offline"
+
     override fun as100Methods() = listOf(As100BarcodeScanMethod)
 
     override fun rilBindings() = listOf(
