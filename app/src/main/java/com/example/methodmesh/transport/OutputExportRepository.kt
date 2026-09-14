@@ -182,14 +182,18 @@ object OutputExportRepository {
             jsonFields.put(key, exportedValue ?: JSONObject.NULL)
         }
 
-        fields.filter { (key, value) -> value?.isNotBlank() == true && ResultShare.isShareableMediaField(key, value) }
-            .forEach { (field, source) ->
-                val name = jsonFields.optString(field).takeIf { it.isNotBlank() && it != "null" } ?: uniqueAttachmentName(field, source.orEmpty())
+        ResultShare.shareableMediaAttachmentValues(fields)
+            .forEach { attachment ->
+                val field = attachment.field
+                val source = attachment.uri
+                val name = jsonFields.optString(field)
+                    .takeIf { it.isNotBlank() && it != "null" && !it.trimStart().startsWith("[") }
+                    ?: uniqueAttachmentName(field, source)
                 val mime = mimeTypeFor(name)
                 val written = if (treeFolder != null) {
-                    copyToTreeFolder(context, treeFolder, source.orEmpty(), name, mime)
+                    copyToTreeFolder(context, treeFolder, source, name, mime)
                 } else {
-                    copyToDefault(context, folderName, source.orEmpty(), name, mime)
+                    copyToDefault(context, folderName, source, name, mime)
                 }
                 if (written != null) {
                     attachments.put(JSONObject().apply {
@@ -295,14 +299,18 @@ object OutputExportRepository {
             jsonFields.put(key, exportedValue ?: JSONObject.NULL)
         }
 
-        fields.filter { (key, value) -> value?.isNotBlank() == true && ResultShare.isShareableMediaField(key, value) }
-            .forEach { (field, source) ->
-                val name = jsonFields.optString(field).takeIf { it.isNotBlank() && it != "null" } ?: uniqueAttachmentName(field, source.orEmpty())
+        ResultShare.shareableMediaAttachmentValues(fields)
+            .forEach { attachment ->
+                val field = attachment.field
+                val source = attachment.uri
+                val name = jsonFields.optString(field)
+                    .takeIf { it.isNotBlank() && it != "null" && !it.trimStart().startsWith("[") }
+                    ?: uniqueAttachmentName(field, source)
                 val mime = mimeTypeFor(name)
                 val written = if (treeFolder != null) {
-                    copyToTreeFolder(context, treeFolder, source.orEmpty(), name, mime)
+                    copyToTreeFolder(context, treeFolder, source, name, mime)
                 } else {
-                    copyToDefault(context, folderName, source.orEmpty(), name, mime)
+                    copyToDefault(context, folderName, source, name, mime)
                 }
                 if (written != null) {
                     attachments.put(JSONObject().apply {
@@ -388,9 +396,7 @@ object OutputExportRepository {
         val method = safeSegment(result.request.method.id.value).ifBlank { "methodmesh_method" }
         val folderName = safeSegment("${timestamp}_${method}_${result.request.id.value}_$packageId")
         val attachments = JSONArray()
-        val attachmentFields = fields.filter { (key, value) ->
-            value?.toString()?.isNotBlank() == true && ResultShare.isShareableMediaField(key, value.toString())
-        }
+        val attachmentFields = ResultShare.shareableMediaAttachmentValues(fields)
         val tree = configuredFolder(context).takeIf { it.isNotBlank() }?.let(Uri::parse)
         val treeFolder = tree?.let { createTreeDirectory(context, it, folderName) }
         val folderUri = treeFolder?.toString() ?: defaultOutputFolderDocumentUri(folderName)
@@ -420,7 +426,9 @@ object OutputExportRepository {
 
         fun addAttachment(field: String, source: String) {
             val exportedName = jsonFields.optString(field)
-            val name = exportedName.takeIf { it.isNotBlank() && it != "null" } ?: uniqueAttachmentName(field, source)
+            val name = exportedName
+                .takeIf { it.isNotBlank() && it != "null" && !it.trimStart().startsWith("[") }
+                ?: uniqueAttachmentName(field, source)
             val mime = mimeTypeFor(name)
             val written = if (treeFolder != null) {
                 copyToTreeFolder(context, treeFolder, source, name, mime)
@@ -441,7 +449,7 @@ object OutputExportRepository {
                 exportedAttachments += ExportedFile(field, name, written, mime)
             }
         }
-        attachmentFields.forEach { (field, value) -> addAttachment(field, value.toString()) }
+        attachmentFields.forEach { attachment -> addAttachment(attachment.field, attachment.uri) }
         val exportedAt = Instant.now().toString()
         val json = JSONObject().apply {
             put("methodmesh_output_schema", "methodmesh.output.package")

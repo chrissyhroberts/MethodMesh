@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.artifacts.AndroidArtifacts
 import com.example.methodmesh.core.artifacts.ArtifactRef
 import com.example.methodmesh.core.methodmesh.ExecutionResult
@@ -97,12 +98,12 @@ data class CapabilityScreenContext(
             .filter { it.isNotBlank() }
             .toSet()
 
+    fun settingIsRuntimeInput(settingId: String): Boolean =
+        settingId in runtimeInputFields
+
     /** Native preset runs wait for their declared Ask when run values. */
     val awaitingRuntimeInputs: Boolean get() =
         isNativePresetRun && runtimeInputFields.isNotEmpty()
-
-    fun settingIsRuntimeInput(settingId: String): Boolean =
-        settingId in runtimeInputFields
 
     fun settingIsFixedInNativePreset(settingId: String): Boolean =
         isNativePresetRun && settingId !in runtimeInputFields
@@ -202,9 +203,7 @@ fun CapabilityScreenScaffold(
     }
     val showResultScreen = capturedResult != null && !automaticReturn && userResultPreview.isNotEmpty()
     val mediaResultUris = remember(capturedResult?.request?.id?.value, userResultPreview, resultDetailPreview) {
-        (userResultPreview + resultDetailPreview)
-            .filter { (key, value) -> looksLikeShareableMediaUri(key, value?.toString().orEmpty()) }
-            .mapNotNull { (_, value) -> value?.toString()?.let(Uri::parse) }
+        ResultShare.shareableMediaUris(userResultPreview + resultDetailPreview)
     }
     val fullJsonText = remember(capturedResult?.request?.id?.value) {
         capturedResult?.let {
@@ -287,45 +286,38 @@ fun CapabilityScreenScaffold(
         }
     }
     fun finishNativePreset() {
-        when (presetResultAction) {
-            PresetResultAction.SAVE -> {
-                runCatching {
-                    OutputExportRepository.saveToDownloads(
-                        context = appContext,
-                        label = title,
-                        text = humanShareText(userResultPreview),
-                        mediaUris = mediaResultUris.map(Uri::toString),
-                        jsonText = if (includeFullJson) fullJsonText else ""
-                    )
-                }
-                    .onSuccess { exportStatus = "Saved ${it.summary}" }
-                    .onFailure { exportStatus = "Downloads save failed: ${it.message ?: "storage error"}" }
+        if (presetResultAction == PresetResultAction.SAVE) {
+            runCatching {
+                OutputExportRepository.saveToDownloads(
+                    context = appContext,
+                    label = title,
+                    text = humanShareText(userResultPreview),
+                    mediaUris = mediaResultUris.map(Uri::toString),
+                    jsonText = if (includeFullJson) fullJsonText else ""
+                )
             }
-            PresetResultAction.SHARE -> {
-                runCatching {
-                    shareResultBundle(
-                        context = appContext,
-                        label = title,
-                        text = humanShareText(userResultPreview),
-                        mediaUris = mediaResultUris,
-                        jsonText = if (includeFullJson) fullJsonText else ""
-                    )
+                .onSuccess {
+                    exportStatus = "Saved ${it.summary}"
                 }
-                    .onSuccess { shareStatus = "Share sheet opened" }
-                    .onFailure { shareStatus = "Share failed: ${it.message ?: "share error"}" }
-            }
+                .onFailure { exportStatus = "Downloads save failed: ${it.message ?: "storage error"}" }
+            onConfirm()
+            return
         }
-
-        // HOME is the stored compatibility token for user-facing Return.
-        // Completion always unwinds through the workflow host so direct,
-        // scheduled and caller-originated runs return to their actual origin.
-        onConfirm()
+        if (finishToLauncher) {
+            onConfirm()
+            return
+        }
+        appContext.startActivity(
+            Intent(appContext, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        )
     }
     val finishButtonLabel = if (nativePresetRun && context.isLastStep) {
         when (presetResultAction) {
-            PresetResultAction.SAVE -> "Save and return"
-            PresetResultAction.SHARE -> "Share and return"
-            else -> "Return"
+            PresetResultAction.SAVE -> "Save and finish"
+            PresetResultAction.SHARE -> if (finishToLauncher) "Done" else "Home"
+            else -> if (finishToLauncher) "Done" else "Home"
         }
     } else if (context.isLastStep) {
         "Done"
@@ -425,7 +417,7 @@ fun CapabilityScreenScaffold(
                         )
                     }
                     Text(
-                        if (includeFullJson) "Share/copy append full JSON as debug text; Save adds metadata.json." else "Share/copy use the main result; Save writes result.txt plus relevant media.",
+                        if (includeFullJson) "Share sends result.txt, media and metadata.json; Copy keeps using text." else "Share sends result.txt plus relevant media; Copy keeps using text.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.artifacts.AndroidArtifacts
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.CapabilityPreset
@@ -614,9 +615,17 @@ internal fun WeatherCommittedActions(
             context.request.settings["input_methodmesh_finish_to_launcher"] == "true"
 
     fun finishNativePresetHome() {
-        // HOME is the compatibility token for Return: unwind through the host so
-        // direct, protocol and scheduled runs reveal their actual launch origin.
-        onDone()
+        if (finishToLauncher) {
+            onDone()
+            return
+        }
+        // Match CapabilityScreenScaffold native-preset HOME semantics. Returning only
+        // to the transient dispatcher can leave no visible MethodMesh activity/task.
+        appContext.startActivity(
+            Intent(appContext, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        )
     }
 
     fun copyResult() {

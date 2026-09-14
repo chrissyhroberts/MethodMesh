@@ -2803,7 +2803,7 @@ private fun FullScreenCapabilityDialog(
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Close")
+                            Text("Home")
                         }
                         Spacer(Modifier.height(12.dp))
                         content()
@@ -2907,10 +2907,7 @@ private fun SavePresetDialog(
         mutableStateMapOf<String, Boolean>().apply {
             if (usesTypedSchema) {
                 settingSchema.forEach { setting ->
-                    put(
-                        setting.id,
-                        setting.id !in existingRuntimeFields || !setting.runtimeInputAllowed
-                    )
+                    put(setting.id, setting.id !in existingRuntimeFields)
                 }
             } else {
                 fieldSpecs.forEach { spec ->
@@ -2933,9 +2930,7 @@ private fun SavePresetDialog(
         val selected = linkedMapOf<String, Any>()
         val runtimeFields = mutableListOf<String>()
         editableKeys.forEach { key ->
-            val setting = settingSchema.firstOrNull { it.id == key }
-            val runtimeAllowed = setting?.runtimeInputAllowed ?: true
-            if (fixedFlags[key] == true || !runtimeAllowed) {
+            if (fixedFlags[key] == true) {
                 val value = editableValues[key].orEmpty()
                 if (value.isNotBlank()) selected[key] = value
             } else {
@@ -3165,19 +3160,11 @@ private fun PresetMethodSettingRow(
     ) {
         Column(Modifier.padding(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (setting.runtimeInputAllowed) {
-                    Checkbox(checked = fixed, onCheckedChange = onFixedChanged)
-                } else {
-                    Spacer(Modifier.width(48.dp))
-                }
+                Checkbox(checked = fixed, onCheckedChange = onFixedChanged)
                 Column(Modifier.weight(1f)) {
                     Text(setting.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                     Text(
-                        when {
-                            !setting.runtimeInputAllowed -> "Fixed configuration"
-                            fixed -> "Fixed in preset"
-                            else -> "Ask when run"
-                        },
+                        if (fixed) "Fixed in preset" else "Ask at runtime / supplied by ODK",
                         style = MaterialTheme.typography.labelSmall
                     )
                     setting.description?.takeIf { it.isNotBlank() }?.let {

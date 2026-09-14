@@ -4,9 +4,9 @@ subtitle: "Canonical architecture, capability runtime, integration, UX and revie
 date: "2026-09-13"
 ---
 
-Version: v1.22
+Version: v1.21
 Status: FINAL - canonical project-wide documentation
-Last updated: 2026-09-14
+Last updated: 2026-09-13
 Authority: sole normative project-wide MethodMesh documentation resource
 
 This edition consolidates the previously separate Master Book, architecture and conceptual specifications, capability-writing guidance, module-review manual, UI/UX standards, ODK/XLSForm integration guidance, provider notes, scheduling guidance, testing guidance and current project-wide implementation doctrine into one resource.
@@ -443,8 +443,6 @@ The normal UI SHOULD use human language rather than these transport tokens:
 Run behaviour is first-class preset metadata and MUST NOT be hidden inside `settingsJson`.
 
 A preset should not store accidental user text or run-specific values unless that is genuinely the intended fixed value. Runtime fields remain runtime fields.
-
-Not every capability setting is eligible to become **Ask when run**. The owning capability declares whether a setting is a meaningful invocation-time input. Analysis thresholds, detector tuning, calibration, output formatting, source policy and similar configuration SHOULD remain fixed configuration unless the capability deliberately defines them as run-time questions. Shared preset authoring MUST honour that declaration and MUST NOT manufacture a run-time prompt merely because a setting exists in `capabilitySettings()`.
 
 ### Optional persistent logs
 
@@ -1315,8 +1313,6 @@ Output field names, types and semantics are canonical. ODK namespaces,
 media attachment handling, clipboard formatting and dashboard rendering
 are projections of those canonical fields, not new field definitions.
 
-**Result projection is semantic, not name-based.** A useful capability result MUST NOT disappear from the ordinary Result projection simply because its field name contains words such as `summary`, `duration`, `selection`, `interval`, `mode` or `model`, or because the useful value is structured JSON. Result excludes explicit transport/provenance/audit material; + Audit adds those fields; + Full JSON adds the complete canonical structured representation. Where a module's structured JSON is itself the useful answer, that JSON is Result data rather than audit data.
-
 ## Icon key
 
 Modules may expose an iconKey for generic surfaces such as widgets.
@@ -1468,7 +1464,7 @@ Save preset
 The authoring surface SHOULD group those concerns explicitly:
 
 - **Preset** — name and optional description;
-- **Configuration** — capability-owned fields with each value clearly marked Fixed or Ask when run; fields declared configuration-only by the capability are shown as Fixed configuration and cannot be promoted to run-time questions;
+- **Configuration** — capability-owned fields with each value clearly marked Fixed or Ask when run;
 - **Run behaviour** — Auto / Show UI / Background;
 - **After completion** — Return / Share / Save;
 - **Returned data** — Result / + Audit / + Full JSON;
@@ -1480,11 +1476,9 @@ The raw saved-settings JSON is an advanced inspection surface, not the primary a
 
 `CORE`, `AUDIT` and `FULL` remain valid compatibility/transport tokens, but they are not preferred user-facing labels. In the current output contract:
 
-- **Result** (`CORE`) is the practical, caller-facing beef, including useful structured values and files;
-- **+ Audit** (`AUDIT`) includes Result plus audit/provenance fields;
-- **+ Full JSON** (`FULL`) keeps Result and exposes the complete structured representation as `methodmesh_full_json`.
-
-The implementation MUST NOT infer “audit” from broad substrings in a field name. Field names containing `summary`, `duration`, `selection`, `interval`, `mode`, `model` or `_json` are not sufficient reason to remove a value from Result.
+- **Result** (`CORE`) is the practical, caller-facing beef;
+- **+ Audit** (`AUDIT`) includes result plus audit/provenance fields;
+- **+ Full JSON** (`FULL`) keeps the practical result and exposes the complete structured representation as `methodmesh_full_json`.
 
 Run behaviour and returned-data scope are independent. A background preset may return only Result, and an interactive preset may request Full JSON.
 
@@ -2974,7 +2968,6 @@ Verify that intentional fixed settings persist; fixed settings do not reappear a
 
 Verify all first-class preset policies independently:
 
-- capability-owned configuration-only settings cannot be accidentally emitted in `methodmesh_runtime_fields`;
 - run behaviour is Auto / Show UI / Background and is stored as preset metadata rather than hidden in settings JSON;
 - Auto remains the compatibility-safe default for presets created before launch-mode metadata existed;
 - Background is explicit and succeeds only for capabilities that can actually complete without operator interaction;
@@ -3500,8 +3493,6 @@ These IDs are stable anchors for module reviews, migration scorecards and tests.
 - **`MM-CAP-003`** - Dashboard aggregation never becomes the only invocation path for an individual capability.
 - **`MM-CAP-004`** - Capability-specific code, UI, settings, docs and examples remain module-owned.
 - **`MM-CAP-005`** - Every admitted module/capability declares exactly one maturity tag (Production/Development/Experimental) and exactly one connectivity tag (Online only/Offline/Online/Offline); status is not inferred from location or surface.
-- **`MM-CAP-006`** - Result projection is semantic: useful capability outputs remain in Result regardless of broad field-name substrings or useful structured-JSON representation; audit/provenance material is added by + Audit and the complete envelope by + Full JSON.
-- **`MM-CAP-007`** - A capability owns whether each setting may become an Ask when run field; shared preset authoring honours configuration-only settings and never promotes them to runtime solely because they are declared settings.
 
 ## Surfaces
 
@@ -3586,7 +3577,6 @@ These IDs are stable anchors for module reviews, migration scorecards and tests.
 - **`MM-PRESET-002`** - `AUTO` is the compatibility-safe launch default; Background is explicit; universal forced-headless preset execution is forbidden.
 - **`MM-PRESET-003`** - User-facing data choices are Result / + Audit / + Full JSON while `CORE` / `AUDIT` / `FULL` may remain compatibility/transport tokens.
 - **`MM-PRESET-004`** - Direct, protocol and scheduled preset launches preserve the canonical capability contract and origin-aware closeout; presentation overrides do not create private implementations.
-- **`MM-PRESET-005`** - `HOME` remains only a compatibility token for user-facing Return; completion unwinds through the workflow host and must not clear the Android task stack merely to force MethodMesh Home.
 
 ## Protocols
 
@@ -7814,16 +7804,6 @@ Generated website output, packaged XLSForm assets, mirrored module reference pag
 Standalone source documents should only be archived after the repository reorganisation dry-run confirms their final disposition.
 
 # Appendix M. Version history
-
-## v1.22 - 2026-09-14
-
-- Completed a repository-wide preset/return-contract review across the admitted module inventory, preserving existing method IDs and established capability behaviour.
-- Made capability-owned runtime-input eligibility explicit: configuration-only settings remain fixed in preset authoring and cannot leak into `methodmesh_runtime_fields` merely because they are declared settings.
-- Made Result projection semantic rather than broad field-name based; useful `summary`, `duration`, `selection`, `interval`, `mode`, `model` and structured JSON outputs remain ordinary Result data unless explicitly audit/provenance material.
-- Reaffirmed `HOME` as a storage compatibility token for **Return**. Shared and custom committed-result surfaces now unwind through the workflow host instead of clearing the task stack and forcing MethodMesh Home.
-- Standardised custom preset completion handling for QR/barcode, Compass, Paper Bridge, Signals and Weather, including Share/Save policy where those modules own custom committed-result UI.
-- Refreshed the generic preset editor's configuration-only presentation, AprilTag immersive preset authoring, Data Tools and Random Number native surfaces without changing their canonical method IDs.
-- Added conservative configuration/runtime annotations to API GET, AprilTag, Conversions, Data Tools, Network Tools, Sampling and Weather where the distinction is clear.
 
 ## v1.21 - 2026-09-13
 

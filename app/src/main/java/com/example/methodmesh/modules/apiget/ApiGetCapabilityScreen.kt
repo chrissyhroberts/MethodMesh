@@ -148,7 +148,7 @@ object ApiGetCapabilityScreen : CapabilityScreenSpec {
         }
 
         LaunchedEffect(context.presentationMode, context.action.settings, selectedDefinition?.id) {
-            if ((context.startsImmediately || (context.presentationMode == CapabilityPresentationMode.IntentLaunch && !context.awaitingRuntimeInputs)) && !launched && selectedDefinition != null) {
+            if ((context.startsImmediately || context.presentationMode == CapabilityPresentationMode.IntentLaunch) && !launched && selectedDefinition != null) {
                 launched = true
                 runApi()
             }

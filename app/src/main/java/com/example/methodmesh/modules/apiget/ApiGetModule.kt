@@ -23,7 +23,6 @@ object ApiGetModule : MethodMeshModule {
         As100ApiGetMethod.ID to listOf(
             MethodSetting.ChoiceSetting(
                 id = "definition_id",
-                runtimeInputAllowed = false,
                 label = "API link",
                 defaultValue = BundledApiDefinitions.openMeteoCurrentWeather.id,
                 choices = BundledApiDefinitions.all.map { it.id },
@@ -43,7 +42,6 @@ object ApiGetModule : MethodMeshModule {
             ),
             MethodSetting.MultiChoiceSetting(
                 id = "result_paths",
-                runtimeInputAllowed = false,
                 label = "Returned fields",
                 description = "Tree paths to return as useful values.",
                 defaultValue = "current.temperature_2m|current.relative_humidity_2m",
@@ -55,7 +53,6 @@ object ApiGetModule : MethodMeshModule {
             ),
             MethodSetting.TextSetting(
                 id = "fallback_value",
-                runtimeInputAllowed = false,
                 label = "Fallback value",
                 description = "Optional value to return if the selected path is blank or missing.",
                 defaultValue = "",

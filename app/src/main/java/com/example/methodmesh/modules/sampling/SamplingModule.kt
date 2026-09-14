@@ -24,13 +24,13 @@ object SamplingModule : MethodMeshModule {
 
     override fun capabilitySettings() = mapOf(
         As100SamplingMethod.ID to listOf(
-            MethodSetting.ChoiceSetting("source_type", "Population source", runtimeInputAllowed = false, defaultValue = "manual", choices = listOf("manual", "csv", "sequence", "random_words")),
+            MethodSetting.ChoiceSetting("source_type", "Population source", defaultValue = "manual", choices = listOf("manual", "csv", "sequence", "random_words")),
             MethodSetting.TextSetting("manual_items", "Population items", defaultValue = ""),
             // File/inline CSV are runtime population inputs. File selection is owned by the
             // capability screen; csv_text is primarily for intent/piped callers.
             MethodSetting.TextSetting("csv_uri", "CSV file URI", defaultValue = ""),
             MethodSetting.TextSetting("csv_text", "Inline CSV text", defaultValue = ""),
-            MethodSetting.ChoiceSetting("manual_separator", "Manual list separator", runtimeInputAllowed = false, defaultValue = "newline", choices = listOf("newline", "pipe", "comma", "semicolon")),
+            MethodSetting.ChoiceSetting("manual_separator", "Manual list separator", defaultValue = "newline", choices = listOf("newline", "pipe", "comma", "semicolon")),
             MethodSetting.FloatSetting("sequence_start", "Sequence start", defaultValue = 1f),
             MethodSetting.FloatSetting("sequence_end", "Sequence end", defaultValue = 100f),
             MethodSetting.FloatSetting("sequence_step", "Sequence step", defaultValue = 1f),
@@ -40,38 +40,38 @@ object SamplingModule : MethodMeshModule {
             MethodSetting.BooleanSetting("word_unique", "Unique random words", defaultValue = true),
 
             MethodSetting.ChoiceSetting(
-                "operation", "Operation", runtimeInputAllowed = false, defaultValue = "simple_sample",
+                "operation", "Operation", defaultValue = "simple_sample",
                 choices = listOf("simple_sample", "shuffle", "weighted_sample", "stratified_sample", "systematic_sample", "partition", "population_only")
             ),
-            MethodSetting.ChoiceSetting("sample_mode", "Sample size mode", runtimeInputAllowed = false, defaultValue = "n", choices = listOf("n", "fraction")),
+            MethodSetting.ChoiceSetting("sample_mode", "Sample size mode", defaultValue = "n", choices = listOf("n", "fraction")),
             MethodSetting.IntSetting("sample_size", "Sample size", defaultValue = 1, minimum = 0, maximum = 100000),
             MethodSetting.FloatSetting("sample_fraction", "Sample fraction", defaultValue = 0.1f, minimum = 0f, maximum = 1f),
-            MethodSetting.BooleanSetting("replacement", "Sampling with replacement", runtimeInputAllowed = false, defaultValue = false),
-            MethodSetting.ChoiceSetting("output_order", "Output order", runtimeInputAllowed = false, defaultValue = "draw", choices = listOf("draw", "input", "sorted")),
+            MethodSetting.BooleanSetting("replacement", "Sampling with replacement", defaultValue = false),
+            MethodSetting.ChoiceSetting("output_order", "Output order", defaultValue = "draw", choices = listOf("draw", "input", "sorted")),
             MethodSetting.TextSetting("sort_field", "Sort field", defaultValue = ""),
 
-            MethodSetting.TextSetting("id_field", "Identifier field", runtimeInputAllowed = false, defaultValue = "item_id"),
-            MethodSetting.TextSetting("label_field", "Label field", runtimeInputAllowed = false, defaultValue = "item_label"),
-            MethodSetting.TextSetting("weight_field", "Weight field", runtimeInputAllowed = false, defaultValue = "weight"),
-            MethodSetting.TextSetting("stratum_field", "Stratum field", runtimeInputAllowed = false, defaultValue = "stratum"),
-            MethodSetting.TextSetting("eligibility_field", "Eligibility field", runtimeInputAllowed = false, defaultValue = "eligible"),
+            MethodSetting.TextSetting("id_field", "Identifier field", defaultValue = "item_id"),
+            MethodSetting.TextSetting("label_field", "Label field", defaultValue = "item_label"),
+            MethodSetting.TextSetting("weight_field", "Weight field", defaultValue = "weight"),
+            MethodSetting.TextSetting("stratum_field", "Stratum field", defaultValue = "stratum"),
+            MethodSetting.TextSetting("eligibility_field", "Eligibility field", defaultValue = "eligible"),
 
             MethodSetting.ChoiceSetting(
-                "stratum_allocation", "Stratum allocation", runtimeInputAllowed = false, defaultValue = "proportional_total",
+                "stratum_allocation", "Stratum allocation", defaultValue = "proportional_total",
                 choices = listOf("proportional_total", "equal_n_per_stratum", "specified")
             ),
             MethodSetting.TextSetting("stratum_sizes", "Specified stratum sizes", defaultValue = ""),
             MethodSetting.IntSetting("partition_groups", "Number of groups", defaultValue = 2, minimum = 1, maximum = 10000),
             MethodSetting.FloatSetting("systematic_interval", "Systematic interval", defaultValue = 0f, minimum = 0f),
 
-            MethodSetting.ChoiceSetting("output_mode", "Output records", runtimeInputAllowed = false, defaultValue = "annotated", choices = listOf("annotated", "selected_only")),
-            MethodSetting.ChoiceSetting("output_format", "Output format", runtimeInputAllowed = false, defaultValue = "csv", choices = listOf("csv", "json")),
-            MethodSetting.TextSetting("selected_field", "Selected output field", runtimeInputAllowed = false, defaultValue = "sampling_selected"),
-            MethodSetting.TextSetting("count_field", "Selection count output field", runtimeInputAllowed = false, defaultValue = "sampling_count"),
-            MethodSetting.TextSetting("order_field", "Selection order output field", runtimeInputAllowed = false, defaultValue = "sampling_order"),
-            MethodSetting.TextSetting("group_field", "Group output field", runtimeInputAllowed = false, defaultValue = "sampling_group"),
+            MethodSetting.ChoiceSetting("output_mode", "Output records", defaultValue = "annotated", choices = listOf("annotated", "selected_only")),
+            MethodSetting.ChoiceSetting("output_format", "Output format", defaultValue = "csv", choices = listOf("csv", "json")),
+            MethodSetting.TextSetting("selected_field", "Selected output field", defaultValue = "sampling_selected"),
+            MethodSetting.TextSetting("count_field", "Selection count output field", defaultValue = "sampling_count"),
+            MethodSetting.TextSetting("order_field", "Selection order output field", defaultValue = "sampling_order"),
+            MethodSetting.TextSetting("group_field", "Group output field", defaultValue = "sampling_group"),
 
-            MethodSetting.ChoiceSetting("seed_mode", "Seed mode", runtimeInputAllowed = false, defaultValue = "auto", choices = listOf("auto", "fixed")),
+            MethodSetting.ChoiceSetting("seed_mode", "Seed mode", defaultValue = "auto", choices = listOf("auto", "fixed")),
             MethodSetting.TextSetting("seed", "Fixed seed", defaultValue = ""),
 
             // ODK/intent runtime input. JSON array of records; not normally shown in native use.

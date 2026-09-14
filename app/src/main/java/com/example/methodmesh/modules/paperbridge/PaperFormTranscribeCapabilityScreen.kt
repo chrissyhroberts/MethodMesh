@@ -68,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputFormatter
@@ -723,7 +724,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                     jsonText = if (includeFullJson) fullJson else "",
                     fileLabel = "Paper Bridge transcription"
                 )
-                exportStatus = "Sharing transcription text plus ${attachments.size} media attachment${if (attachments.size == 1) "" else "s"}${if (includeFullJson) " with debug JSON text" else ""}."
+                exportStatus = "Sharing transcription text file plus ${attachments.size} media attachment${if (attachments.size == 1) "" else "s"}${if (includeFullJson) " and metadata.json" else ""}."
             }.onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
         }
 
@@ -751,11 +752,13 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                 onConfirmed(resultValue)
                 return
             }
-            when (presetResultAction) {
-                PresetResultAction.SAVE -> saveCommitted()
-                PresetResultAction.SHARE -> shareCommitted()
+            when {
+                presetResultAction == PresetResultAction.SAVE -> { saveCommitted(); onConfirmed(resultValue) }
+                finishToLauncher -> onConfirmed(resultValue)
+                else -> appContext.startActivity(Intent(appContext, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
             }
-            onConfirmed(resultValue)
         }
 
         if (nativeDashboard && workspaceMode == "designer" && frozenResult == null) {
@@ -941,7 +944,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         Spacer(Modifier.size(8.dp))
                         Column {
                             Text("Include full JSON / audit", style = MaterialTheme.typography.labelLarge)
-                            Text("Share appends debug JSON as text; Save adds metadata.json.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Share sends transcription.txt, media and metadata.json; Save writes the same bundle.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     if (exportStatus.isNotBlank()) {

@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ArchitectureId
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.TemporalContext
@@ -381,17 +382,18 @@ private class CodeScanCapabilityScreen(
 
         fun finishManualRun() {
             val result = committedResult ?: return
-            if (context.isNativePresetRun) {
-                when (presetResultAction) {
-                    PresetResultAction.SAVE -> if (!saveCommitted(includeJson = false)) return
-                    PresetResultAction.SHARE -> shareText(
-                        appContext,
-                        committedPayload.orEmpty(),
-                        if (includeFullJson) fullJsonText else ""
-                    )
-                }
+            if (context.isNativePresetRun && presetResultAction == PresetResultAction.SAVE) {
+                if (!saveCommitted(includeJson = false)) return
             }
-            onConfirmed(result)
+            if (context.isNativePresetRun && !finishToLauncher) {
+                appContext.startActivity(
+                    Intent(appContext, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                )
+            } else {
+                onConfirmed(result)
+            }
         }
 
         val workingFields = workingResult?.observations?.firstOrNull()?.values.orEmpty()
@@ -412,9 +414,9 @@ private class CodeScanCapabilityScreen(
                     showTechnicalDetails = showTechnicalDetails,
                     exportStatus = exportStatus,
                     finishLabel = when {
-                        context.isNativePresetRun && presetResultAction == PresetResultAction.SAVE -> "Save and return"
-                        context.isNativePresetRun && presetResultAction == PresetResultAction.SHARE -> "Share and return"
-                        else -> "Return"
+                        context.isNativePresetRun && presetResultAction == PresetResultAction.SAVE -> "Save and finish"
+                        finishToLauncher -> "Done"
+                        else -> "Home"
                     },
                     onIncludeFullJsonChanged = { includeFullJson = it },
                     onToggleTechnicalDetails = { showTechnicalDetails = !showTechnicalDetails },

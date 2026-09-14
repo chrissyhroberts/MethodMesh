@@ -48,7 +48,7 @@ object WeatherModule : MethodMeshModule {
 
     override fun capabilitySettings(): Map<String, List<MethodSetting>> = mapOf(
         As100WeatherDashboardMethod.id to commonLocation() + listOf(
-            float("threshold_mm_per_hour", "Meaningful rain threshold", 0.2f, 0f, 50f, "mm/h", runtimeInputAllowed = false),
+            float("threshold_mm_per_hour", "Meaningful rain threshold", 0.2f, 0f, 50f, "mm/h"),
             offline()
         ),
         As100WeatherConditionsMethod.id to commonLocation() + listOf(
@@ -140,8 +140,8 @@ object WeatherModule : MethodMeshModule {
         MethodSetting.TextSetting(id=id,label=label,description=description,group=group,defaultValue="")
     private fun int(id:String,label:String,default:Int,min:Int,max:Int,unit:String?=null)=
         MethodSetting.IntSetting(id=id,label=label,defaultValue=default,minimum=min,maximum=max,unit=unit)
-    private fun float(id:String,label:String,default:Float,min:Float,max:Float,unit:String,runtimeInputAllowed:Boolean=true)=
-        MethodSetting.FloatSetting(id=id,label=label,runtimeInputAllowed=runtimeInputAllowed,defaultValue=default,minimum=min,maximum=max,step=0.1f,unit=unit,decimals=1)
+    private fun float(id:String,label:String,default:Float,min:Float,max:Float,unit:String)=
+        MethodSetting.FloatSetting(id=id,label=label,defaultValue=default,minimum=min,maximum=max,step=0.1f,unit=unit,decimals=1)
     private fun choice(id:String,label:String,default:String,choices:List<String>)=
         MethodSetting.ChoiceSetting(id=id,label=label,defaultValue=default,choices=choices)
     private fun offline()=MethodSetting.BooleanSetting(

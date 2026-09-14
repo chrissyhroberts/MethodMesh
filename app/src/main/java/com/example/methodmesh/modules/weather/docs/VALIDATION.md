@@ -178,7 +178,7 @@ Then exercise:
 The user-reported preset run ended without a Java/Kotlin exception in the supplied app-filtered log. Inspection against the current MethodMesh host identified two Weather-specific lifecycle mismatches:
 
 1. `ExternalWorkflowActivity` already wraps intent-launched capability content in a vertical scroll container. Weather v0.2.4 also applied a root `verticalScroll` inside both the dashboard and standalone tool surfaces. v0.2.5 keeps Weather-owned root scrolling only for `CapabilityPresentationMode.Dashboard` and relies on the host scroller for preset, ODK, protocol and other intent launches.
-2. Weather's custom committed-result `HOME` compatibility token now follows the shared v1.21 **Return** contract: completion unwinds through the workflow host and reveals the real launch origin. It no longer clears the task stack or forces MethodMesh Home.
+2. Weather's custom committed-result `HOME` action returned only through the transient preset dispatcher. v0.2.5 mirrors the shared `CapabilityScreenScaffold` closeout rule by explicitly reopening `MainActivity` with `FLAG_ACTIVITY_CLEAR_TASK | FLAG_ACTIVITY_NEW_TASK` unless `methodmesh_finish_to_launcher=true`.
 
 Static checks for this patch:
 

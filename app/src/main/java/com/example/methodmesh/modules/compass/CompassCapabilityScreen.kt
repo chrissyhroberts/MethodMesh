@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.core.protocols.PresetResultAction
@@ -325,11 +326,18 @@ object CompassCapabilityScreen : CapabilityScreenSpec {
             val finishToLauncher = request.settings["methodmesh_finish_to_launcher"] == "true" ||
                 request.settings["input_methodmesh_finish_to_launcher"] == "true"
 
-            when (presetResultAction) {
-                PresetResultAction.SAVE -> saveCommitted()
-                PresetResultAction.SHARE -> shareCommitted()
+            if (presetResultAction == PresetResultAction.SAVE) {
+                saveCommitted()
+                onConfirmed(execution)
+            } else if (finishToLauncher) {
+                onConfirmed(execution)
+            } else {
+                androidContext.startActivity(
+                    Intent(androidContext, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                )
             }
-            onConfirmed(execution)
         }
 
         LaunchedEffect(startInSight, initialSightHandled, frozenResult) {

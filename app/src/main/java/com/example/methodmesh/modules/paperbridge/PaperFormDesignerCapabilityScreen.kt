@@ -83,6 +83,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputFormatter
@@ -347,7 +348,7 @@ object PaperFormDesignCapabilityScreen : CapabilityScreenSpec {
                     jsonText = if (includeFullJson) fullJson else "",
                     fileLabel = "Paper Bridge design"
                 )
-                exportStatus = "Sharing design plus ${attachments.size} attachment${if (attachments.size == 1) "" else "s"}${if (includeFullJson) " with debug JSON text" else ""}."
+                exportStatus = "Sharing design summary file plus ${attachments.size} attachment${if (attachments.size == 1) "" else "s"}${if (includeFullJson) " and metadata.json" else ""}."
             }.onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
         }
 
@@ -369,11 +370,13 @@ object PaperFormDesignCapabilityScreen : CapabilityScreenSpec {
 
         fun finishCommitted(result: ExecutionResult) {
             if (!context.isNativePresetRun || !context.isLastStep) { onConfirmed(result); return }
-            when (presetResultAction) {
-                PresetResultAction.SAVE -> saveCommitted()
-                PresetResultAction.SHARE -> shareCommitted()
+            when {
+                presetResultAction == PresetResultAction.SAVE -> { saveCommitted(); onConfirmed(result) }
+                finishToLauncher -> onConfirmed(result)
+                else -> app.startActivity(Intent(app, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
             }
-            onConfirmed(result)
         }
 
         fun completeDesign(

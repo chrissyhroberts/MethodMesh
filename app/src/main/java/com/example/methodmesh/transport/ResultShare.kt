@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.core.content.FileProvider
+import org.json.JSONArray
 import java.io.File
 import java.time.Instant
 import java.time.ZoneOffset
@@ -14,13 +15,11 @@ import java.time.format.DateTimeFormatter
 /**
  * Canonical native Share transport.
  *
- * Share is communication-oriented, but its human-readable payload is represented
- * twice for receiver compatibility: in EXTRA_TEXT for messaging targets and as a
- * text/plain result sidecar for file-oriented targets. Real media/file artefacts
- * remain typed URI streams. Optional FULL JSON is debugging/audit text appended
- * to the human-readable payload; it is deliberately never introduced as a separate
- * application/json stream because mixed JSON/media envelopes are interpreted
- * inconsistently by Android receivers.
+ * Share is file-oriented: human-readable payloads are materialised as a text
+ * attachment, real media/file artefacts remain typed URI streams, and optional
+ * FULL JSON is materialised as a JSON attachment. The UI already supports
+ * tap-to-copy for text; native Share should therefore hand receivers the files
+ * that form the result bundle instead of sending clipboard-style message text.
  *
  * File-oriented persistence still belongs to OutputExportRepository.saveToDownloads(),
  * which materialises result.txt, media/files and optional metadata.json.
@@ -64,12 +63,7 @@ object ResultShare {
         textFileName: String = "",
         fileLabel: String = chooserTitle
     ) {
-        // jsonFileName remains in the signature for source compatibility only.
-        // Native Share never creates a JSON sidecar. The text sidecar deliberately
-        // contains the same final communication payload carried in EXTRA_TEXT.
-
-        val shareText = buildShareText(text, jsonText)
-        val textSidecar = shareText
+        val textSidecar = text
             .takeIf { it.isNotBlank() }
             ?.let { payload ->
                 val name = textFileName.ifBlank { "${coherentFileStem(fileLabel)}_result.txt" }
@@ -77,6 +71,16 @@ object ResultShare {
                     name = name,
                     uri = temporaryTextShareUri(context, name, payload),
                     mime = "text/plain"
+                )
+            }
+        val jsonSidecar = jsonText
+            .takeIf { it.isNotBlank() }
+            ?.let { payload ->
+                val name = jsonFileName.ifBlank { "metadata.json" }
+                ShareItem(
+                    name = name,
+                    uri = temporaryTextShareUri(context, name, payload),
+                    mime = "application/json"
                 )
             }
         val mediaItems = attachments
@@ -97,20 +101,15 @@ object ResultShare {
         val items = ArrayList<ShareItem>().apply {
             textSidecar?.let { add(it) }
             addAll(mediaItems)
+            jsonSidecar?.let { add(it) }
         }
         val shareable = ArrayList(items.map { it.uri })
         if (items.isEmpty()) throw IllegalStateException("No shareable result.")
 
         val intent = when (items.size) {
-            0 -> Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, shareText)
-            }
-
             1 -> Intent(Intent.ACTION_SEND).apply {
                 type = items.first().mime
                 putExtra(Intent.EXTRA_STREAM, shareable.first())
-                if (shareText.isNotBlank()) putExtra(Intent.EXTRA_TEXT, shareText)
             }
 
             else -> Intent(Intent.ACTION_SEND_MULTIPLE).apply {
@@ -118,7 +117,6 @@ object ResultShare {
                 putParcelableArrayListExtra(Intent.EXTRA_STREAM, shareable)
                 putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
                 putExtra(Intent.EXTRA_MIME_TYPES, items.map { it.mime }.distinct().toTypedArray())
-                if (shareText.isNotBlank()) putExtra(Intent.EXTRA_TEXT, shareText)
             }
         }.apply {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -185,22 +183,66 @@ object ResultShare {
             lowerKey.contains("pdf")
     }
 
-    fun attachmentName(key: String, value: String, fallbackExtension: String = "bin"): String {
+    fun attachmentName(key: String, value: String, fallbackExtension: String = "bin", index: Int? = null): String {
         val stem = key
             .substringBeforeLast("_uri")
+            .removeSuffix("_uris")
+            .removeSuffix("_json")
             .trim()
             .replace(Regex("[^A-Za-z0-9._-]+"), "_")
             .trim('_')
             .ifBlank { "attachment" }
-        val extension = Uri.parse(value).lastPathSegment
-            ?.substringAfterLast('.', "")
-            ?.takeIf { it.isNotBlank() && it.length <= 8 }
+        val extension = value
+            .substringBefore('?', value)
+            .substringBefore('#', value)
+            .substringAfterLast('/', value)
+            .substringAfterLast('.', "")
+            .takeIf { it.isNotBlank() && it.length <= 8 }
             ?: fallbackExtension
-        return "$stem.$extension"
+        val suffix = index?.let { "_$it" }.orEmpty()
+        return "$stem$suffix.$extension"
     }
 
+    internal data class MediaAttachmentValue(
+        val field: String,
+        val name: String,
+        val uri: String
+    )
+
+    internal fun shareableMediaAttachmentValues(fields: Map<String, Any?>): List<MediaAttachmentValue> {
+        val attachments = mutableListOf<MediaAttachmentValue>()
+        fields.forEach { (key, value) ->
+            val raw = value?.toString()?.trim().orEmpty()
+            if (raw.isBlank()) return@forEach
+            if (isShareableMediaField(key, raw)) {
+                attachments += MediaAttachmentValue(key, attachmentName(key, raw), raw)
+                return@forEach
+            }
+            if (!isLikelyMediaFieldName(key)) return@forEach
+            parseUriArray(raw).forEachIndexed { index, uri ->
+                if (isShareableMediaField(key, uri)) {
+                    attachments += MediaAttachmentValue(key, attachmentName(key, uri, index = index + 1), uri)
+                }
+            }
+        }
+        return attachments.distinctBy { it.uri }
+    }
+
+    fun shareableMediaAttachments(fields: Map<String, Any?>): List<Attachment> =
+        shareableMediaAttachmentValues(fields).map { Attachment(it.name, Uri.parse(it.uri)) }
+
+    fun shareableMediaUris(fields: Map<String, Any?>): List<Uri> =
+        shareableMediaAttachmentValues(fields).map { Uri.parse(it.uri) }
+
+    private fun parseUriArray(value: String): List<String> = runCatching {
+        val array = JSONArray(value)
+        (0 until array.length()).mapNotNull { index ->
+            array.optString(index).trim().takeIf { it.isNotBlank() }
+        }
+    }.getOrDefault(emptyList())
+
     private fun temporaryTextShareUri(context: Context, fileName: String, text: String): Uri {
-        val safeName = fileName.ifBlank { "${coherentFileStem("result")}_result.txt" }
+        val safeName = fileName
             .replace(Regex("[^A-Za-z0-9._-]+"), "_")
             .trim('_')
             .ifBlank { "${coherentFileStem("result")}_result.txt" }

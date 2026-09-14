@@ -14,7 +14,7 @@ object DataToolsModule : MethodMeshModule {
     override fun capabilityScreens() = listOf(DataToolsCapabilityScreen)
     override fun capabilitySettings() = mapOf(
         As100DataToolsMethod.ID to listOf(
-            MethodSetting.ChoiceSetting("operation", "Operation", runtimeInputAllowed = false, defaultValue = "json_pretty", choices = listOf("json_pretty", "json_minify", "json_validate", "base64_encode", "base64_decode", "url_encode", "url_decode", "hex_encode", "hex_decode", "unix_to_iso", "iso_to_unix", "csv_to_json", "json_to_csv")),
+            MethodSetting.ChoiceSetting("operation", "Operation", defaultValue = "json_pretty", choices = listOf("json_pretty", "json_minify", "json_validate", "base64_encode", "base64_decode", "url_encode", "url_decode", "hex_encode", "hex_decode", "unix_to_iso", "iso_to_unix", "csv_to_json", "json_to_csv")),
             MethodSetting.TextSetting("data", "Data", defaultValue = "")
         )
     )

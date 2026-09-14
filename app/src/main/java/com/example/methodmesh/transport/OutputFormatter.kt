@@ -96,38 +96,33 @@ object OutputFormatter {
         }
     }
 
-    /**
-     * Result projection is semantic, not a field-name popularity contest.
-     *
-     * Capability-owned outputs stay in Result unless they are explicitly
-     * transport/provenance/audit material. In particular, useful values do not
-     * disappear merely because their names contain words such as summary,
-     * duration, selection, interval, model, mode or because they are structured
-     * JSON. + Audit adds provenance; + Full JSON adds the complete envelope.
-     */
     private fun isCoreField(key: String): Boolean {
         if (key in headlineCoreFields) return true
         if (key.startsWith("methodmesh_")) return false
         if (key.startsWith("diagnostic_")) return false
         if (key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id")) return false
-
-        val lower = key.lowercase()
-        if (lower.endsWith("_audit_json")) return false
-        if (lower.endsWith("_provenance_json")) return false
-        if (lower.endsWith("_manifest_json")) return false
-        if (lower.endsWith("_trace_json")) return false
-        if (lower.contains("provenance")) return false
-        if (lower.contains("manifest")) return false
-        if (lower.contains("execution_trace")) return false
-
-        // Cryptographic integrity material is normally audit metadata. Specific
-        // capability outputs can still opt into Result through headlineCoreFields.
-        if (lower.endsWith("_sha256") || lower.endsWith("_hash")) return false
-
-        // Echoes of supplied input are useful for audit/reproducibility but are
-        // not the capability's practical answer.
-        if (lower.endsWith("_input_text") || lower.endsWith("_request_json")) return false
-
+        if (key in calibratedScaleAuditFields) return false
+        if (key in documentScanAuditFields) return false
+        if (key in plusCodeAuditFields) return false
+        if (key in conversationTranslateAuditFields) return false
+        if (key in imageRedactionAuditFields) return false
+        if (key.endsWith("_json") || key.endsWith("_payload")) return false
+        if (key.endsWith("_input_text") || key.endsWith("_source_language") || key.endsWith("_target_language")) return false
+        if (key.endsWith("_available_languages") || key.endsWith("_downloaded_models") || key.endsWith("_model_action")) return false
+        if (key.endsWith("_error")) return false
+        if (key.contains("manifest", ignoreCase = true)) return false
+        if (key.contains("trace", ignoreCase = true)) return false
+        if (key.contains("summary", ignoreCase = true)) return false
+        if (key.contains("sha", ignoreCase = true) || key.contains("hash", ignoreCase = true)) return false
+        if (key.contains("uuid", ignoreCase = true) || key.endsWith("_id")) return false
+        if (key.contains("device", ignoreCase = true) || key.contains("address", ignoreCase = true)) return false
+        if (key.contains("requested", ignoreCase = true) || key.contains("actual", ignoreCase = true)) return false
+        if (key.contains("selection", ignoreCase = true) || key.contains("substitution", ignoreCase = true)) return false
+        if (key.contains("duration", ignoreCase = true) || key.contains("interval", ignoreCase = true)) return false
+        if (key.contains("sample_count", ignoreCase = true) || key.contains("mode", ignoreCase = true)) return false
+        if (key.contains("status", ignoreCase = true)) return false
+        if (key.endsWith("_time_iso") || key.endsWith("_at_iso")) return false
+        if (key.startsWith("entity_") || key.startsWith("observation_") || key.startsWith("state_")) return false
         return true
     }
 

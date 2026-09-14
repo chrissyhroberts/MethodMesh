@@ -10,15 +10,16 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -26,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -34,14 +36,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.methodmesh.core.protocols.CapabilityPreset
-import com.example.methodmesh.core.protocols.PresetLaunchMode
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
 import com.example.methodmesh.core.protocols.ProtocolPayloadMode
 import com.example.methodmesh.settings.MethodSetting
 import org.json.JSONObject
 
-/** AprilTag owns its immersive preset affordance but uses the shared preset contract. */
+/**
+ * Preset UI deliberately owned by the AprilTag capability package.
+ *
+ * The capability owns the affordance and the operator workflow; the shared
+ * protocol library remains the generic storage/execution mechanism. No host
+ * or HomeScreen behaviour is required for immersive AprilTag screens.
+ */
 @Composable
 internal fun AprilTagSavePresetDialog(
     methodId: String,
@@ -54,15 +61,17 @@ internal fun AprilTagSavePresetDialog(
 ) {
     val appContext = LocalContext.current
     var name by rememberSaveable(methodId) { mutableStateOf("$methodTitle preset") }
-    var description by rememberSaveable("$methodId:description") { mutableStateOf(methodDescription) }
     var payloadMode by rememberSaveable(methodId) { mutableStateOf(ProtocolPayloadMode.CORE) }
     var resultAction by rememberSaveable(methodId) { mutableStateOf(PresetResultAction.HOME) }
-    var launchMode by rememberSaveable("$methodId:launchMode") { mutableStateOf(PresetLaunchMode.AUTO) }
-    var showJson by rememberSaveable("$methodId:json") { mutableStateOf(false) }
+    var confirmName by rememberSaveable(methodId) { mutableStateOf(false) }
 
     val runtimeFromInput = remember(methodId, currentSettings["methodmesh_runtime_fields"]) {
         currentSettings["methodmesh_runtime_fields"]
-            .orEmpty().split(',').map(String::trim).filter(String::isNotBlank).toSet()
+            .orEmpty()
+            .split(',')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toSet()
     }
     val fixedFlags = remember(methodId, runtimeFromInput, schema) {
         mutableStateMapOf<String, Boolean>().apply {
@@ -87,174 +96,158 @@ internal fun AprilTagSavePresetDialog(
         return selected
     }
 
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
-            modifier = Modifier.fillMaxWidth().padding(14.dp).heightIn(max = 780.dp),
-            shape = MaterialTheme.shapes.extraLarge,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+                .heightIn(max = 760.dp),
+            shape = MaterialTheme.shapes.large,
             tonalElevation = 8.dp
         ) {
             Column(
-                Modifier.padding(18.dp).verticalScroll(rememberScrollState()),
+                Modifier
+                    .padding(18.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Create preset", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-                Text(
-                    "Save the current AprilTag setup as a reusable capability action.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Text("Preset", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                OutlinedTextField(name, { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(
-                    description,
-                    { description = it },
-                    label = { Text("Description · optional") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
-                    maxLines = 3
-                )
+                Text("Save current setup as preset", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(methodId, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
-
-                HorizontalDivider(Modifier.padding(vertical = 6.dp))
-                Text("Configuration", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Only true invocation inputs can be asked when the preset runs. Detector policy and calibration stay fixed configuration.",
+                    "The values shown are the live AprilTag setup. Mark a field as runtime when the preset should ask for it later instead of fixing the current value.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                AprilTagPresetChoice(
+                    label = "Return payload",
+                    value = payloadMode,
+                    choices = listOf(ProtocolPayloadMode.CORE, ProtocolPayloadMode.AUDIT, ProtocolPayloadMode.FULL),
+                    onChange = { payloadMode = it }
+                )
+                AprilTagPresetChoice(
+                    label = "After run",
+                    value = resultAction,
+                    choices = listOf(PresetResultAction.HOME, PresetResultAction.SAVE, PresetResultAction.SHARE),
+                    onChange = { resultAction = it }
+                )
+
+                Text("Preset fields", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 schema.forEach { setting ->
-                    val fixed = fixedFlags[setting.id] == true
+                    val value = currentSettings[setting.id] ?: aprilTagDefaultString(setting)
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                         shape = MaterialTheme.shapes.medium
                     ) {
-                        Column(Modifier.padding(12.dp)) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(setting.label, fontWeight = FontWeight.SemiBold)
-                                    Text(
-                                        if (!setting.runtimeInputAllowed) "Fixed configuration"
-                                        else if (fixed) "Fixed in preset" else "Ask when run",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                if (setting.runtimeInputAllowed) {
-                                    OutlinedButton(onClick = { fixedFlags[setting.id] = !fixed }) {
-                                        Text(if (fixed) "Fixed" else "Ask when run")
-                                    }
-                                }
-                            }
-                            if (fixed) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Checkbox(
+                                checked = fixedFlags[setting.id] == true,
+                                onCheckedChange = { fixedFlags[setting.id] = it },
+                                enabled = setting.runtimeInputAllowed
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Text(setting.label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
                                 Text(
-                                    currentSettings[setting.id] ?: aprilTagDefaultString(setting),
-                                    modifier = Modifier.padding(top = 6.dp),
+                                    if (!setting.runtimeInputAllowed) {
+                                        "Fixed configuration · ${value.ifBlank { "(empty)" }}"
+                                    } else if (fixedFlags[setting.id] == true) {
+                                        "Fixed · ${value.ifBlank { "(empty)" }}"
+                                    } else {
+                                        "Ask at runtime"
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = FontFamily.Monospace
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     }
                 }
 
-                HorizontalDivider(Modifier.padding(vertical = 6.dp))
-                Text("Run behaviour", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                ChoiceChips(
-                    options = listOf(
-                        PresetLaunchMode.AUTO to "Auto",
-                        PresetLaunchMode.INTERACTIVE to "Show UI",
-                        PresetLaunchMode.BACKGROUND to "Background"
-                    ),
-                    selected = launchMode,
-                    onSelected = { launchMode = it }
-                )
-                Text(
-                    when (PresetLaunchMode.normalize(launchMode)) {
-                        PresetLaunchMode.INTERACTIVE -> "Always open the AprilTag interface."
-                        PresetLaunchMode.BACKGROUND -> "Run only when saved/runtime inputs are sufficient for unattended execution."
-                        else -> "Use AprilTag's normal presentation for this invocation."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Text("After completion", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                ChoiceChips(
-                    options = listOf(
-                        PresetResultAction.HOME to "Return",
-                        PresetResultAction.SAVE to "Save",
-                        PresetResultAction.SHARE to "Share"
-                    ),
-                    selected = resultAction,
-                    onSelected = { resultAction = it }
-                )
-
-                Text("Returned data", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                ChoiceChips(
-                    options = listOf(
-                        ProtocolPayloadMode.CORE to "Result",
-                        ProtocolPayloadMode.AUDIT to "+ Audit",
-                        ProtocolPayloadMode.FULL to "+ Full JSON"
-                    ),
-                    selected = payloadMode,
-                    onSelected = { payloadMode = it }
-                )
-
-                TextButton(onClick = { showJson = !showJson }) {
-                    Text(if (showJson) "Hide configuration JSON" else "Advanced · View configuration JSON")
+                val preview = remember(currentSettings.toMap(), fixedFlags.toMap()) {
+                    aprilTagSettingsJson(selectedSettings())
                 }
-                if (showJson) {
-                    Text(
-                        aprilTagSettingsJson(selectedSettings()),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace
-                    )
-                }
+                Text("Saved settings", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text(preview, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
 
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(2.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                    Button(
-                        enabled = name.isNotBlank(),
-                        onClick = {
-                            val saved = ProtocolLibraryRepository.savePreset(
-                                appContext,
-                                CapabilityPreset(
-                                    name = name.trim(),
-                                    methodId = methodId,
-                                    settingsJson = aprilTagSettingsJson(selectedSettings()),
-                                    payloadMode = ProtocolPayloadMode.normalize(payloadMode),
-                                    resultAction = PresetResultAction.normalize(resultAction),
-                                    launchMode = PresetLaunchMode.normalize(launchMode),
-                                    description = description.trim()
-                                )
-                            )
-                            onSaved(saved.name)
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Save preset") }
+                    Button(onClick = { confirmName = true }, modifier = Modifier.weight(1f)) { Text("Save…") }
                 }
             }
         }
     }
+
+    if (confirmName) {
+        AlertDialog(
+            onDismissRequest = { confirmName = false },
+            title = { Text("Name preset") },
+            text = {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Preset name") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(
+                    enabled = name.isNotBlank(),
+                    onClick = {
+                        val saved = ProtocolLibraryRepository.savePreset(
+                            appContext,
+                            CapabilityPreset(
+                                name = name.trim(),
+                                methodId = methodId,
+                                settingsJson = aprilTagSettingsJson(selectedSettings()),
+                                payloadMode = ProtocolPayloadMode.normalize(payloadMode),
+                                resultAction = PresetResultAction.normalize(resultAction),
+                                description = methodDescription
+                            )
+                        )
+                        confirmName = false
+                        onSaved(saved.name)
+                    }
+                ) { Text("Save preset") }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { confirmName = false }) { Text("Back") }
+            }
+        )
+    }
 }
 
 @Composable
-private fun ChoiceChips(
-    options: List<Pair<String, String>>,
-    selected: String,
-    onSelected: (String) -> Unit
+private fun AprilTagPresetChoice(
+    label: String,
+    value: String,
+    choices: List<String>,
+    onChange: (String) -> Unit
 ) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        options.forEach { (value, label) ->
-            FilterChip(
-                selected = selected == value,
-                onClick = { onSelected(value) },
-                label = { Text(label) },
-                modifier = Modifier.weight(1f)
-            )
+    var expanded by remember { mutableStateOf(false) }
+    androidx.compose.foundation.layout.Box {
+        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+            Text("$label · ${value.lowercase().replace('_', ' ')}")
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            choices.forEach { choice ->
+                DropdownMenuItem(
+                    text = { Text(choice.lowercase().replace('_', ' ')) },
+                    onClick = {
+                        onChange(choice)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }
