@@ -44,7 +44,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.artifacts.AndroidArtifacts
 import com.example.methodmesh.core.artifacts.ArtifactRef
 import com.example.methodmesh.core.methodmesh.ExecutionResult
@@ -83,8 +82,8 @@ data class CapabilityScreenContext(
         request.settings["methodmesh_native_preset_run"] == "true" ||
             request.settings["input_methodmesh_native_preset_run"] == "true"
     val startsImmediately: Boolean get() =
-        completionMode == CapabilityCompletionMode.AutomaticReturn ||
-            isNativePresetRun
+        (completionMode == CapabilityCompletionMode.AutomaticReturn || isNativePresetRun) &&
+            !awaitingRuntimeInputs
     val submitsImmediately: Boolean get() = completionMode == CapabilityCompletionMode.AutomaticReturn
 
     val runtimeInputFields: Set<String> get() =
@@ -97,6 +96,10 @@ data class CapabilityScreenContext(
             .map { it.trim() }
             .filter { it.isNotBlank() }
             .toSet()
+
+    /** Native preset runs wait for their declared Ask when run values. */
+    val awaitingRuntimeInputs: Boolean get() =
+        isNativePresetRun && runtimeInputFields.isNotEmpty()
 
     fun settingIsRuntimeInput(settingId: String): Boolean =
         settingId in runtimeInputFields
@@ -284,38 +287,45 @@ fun CapabilityScreenScaffold(
         }
     }
     fun finishNativePreset() {
-        if (presetResultAction == PresetResultAction.SAVE) {
-            runCatching {
-                OutputExportRepository.saveToDownloads(
-                    context = appContext,
-                    label = title,
-                    text = humanShareText(userResultPreview),
-                    mediaUris = mediaResultUris.map(Uri::toString),
-                    jsonText = if (includeFullJson) fullJsonText else ""
-                )
-            }
-                .onSuccess {
-                    exportStatus = "Saved ${it.summary}"
+        when (presetResultAction) {
+            PresetResultAction.SAVE -> {
+                runCatching {
+                    OutputExportRepository.saveToDownloads(
+                        context = appContext,
+                        label = title,
+                        text = humanShareText(userResultPreview),
+                        mediaUris = mediaResultUris.map(Uri::toString),
+                        jsonText = if (includeFullJson) fullJsonText else ""
+                    )
                 }
-                .onFailure { exportStatus = "Downloads save failed: ${it.message ?: "storage error"}" }
-            onConfirm()
-            return
-        }
-        if (finishToLauncher) {
-            onConfirm()
-            return
-        }
-        appContext.startActivity(
-            Intent(appContext, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    .onSuccess { exportStatus = "Saved ${it.summary}" }
+                    .onFailure { exportStatus = "Downloads save failed: ${it.message ?: "storage error"}" }
             }
-        )
+            PresetResultAction.SHARE -> {
+                runCatching {
+                    shareResultBundle(
+                        context = appContext,
+                        label = title,
+                        text = humanShareText(userResultPreview),
+                        mediaUris = mediaResultUris,
+                        jsonText = if (includeFullJson) fullJsonText else ""
+                    )
+                }
+                    .onSuccess { shareStatus = "Share sheet opened" }
+                    .onFailure { shareStatus = "Share failed: ${it.message ?: "share error"}" }
+            }
+        }
+
+        // HOME is the stored compatibility token for user-facing Return.
+        // Completion always unwinds through the workflow host so direct,
+        // scheduled and caller-originated runs return to their actual origin.
+        onConfirm()
     }
     val finishButtonLabel = if (nativePresetRun && context.isLastStep) {
         when (presetResultAction) {
-            PresetResultAction.SAVE -> "Save and finish"
-            PresetResultAction.SHARE -> if (finishToLauncher) "Done" else "Home"
-            else -> if (finishToLauncher) "Done" else "Home"
+            PresetResultAction.SAVE -> "Save and return"
+            PresetResultAction.SHARE -> "Share and return"
+            else -> "Return"
         }
     } else if (context.isLastStep) {
         "Done"

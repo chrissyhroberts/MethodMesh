@@ -12,13 +12,18 @@ Translation uses the camera frame: **+x right, +y down, +z forward**. `apriltag_
 
 ## Inputs/settings
 
-`tag_family`, `target_tag_id`, `tag_size_mm`, detector tuning, `intrinsics_mode` (`auto`/`manual`), and optional manual `fx_px`, `fy_px`, `cx_px`, `cy_px`, `intrinsics_width_px`, `intrinsics_height_px`.
+`tag_family`, `target_tag_id`, `tag_size_mm`, `distance_scale`, detector tuning, `intrinsics_mode` (`auto`/`manual`), and optional manual `fx_px`, `fy_px`, `cx_px`, `cy_px`, `intrinsics_width_px`, `intrinsics_height_px`.
 
 `tag_size_mm` is the detection-edge size, not sheet outer size.
 
 ## Canonical outputs
 
-`apriltag_status`, `apriltag_result`, `apriltag_tag_id`, `apriltag_family`, `apriltag_tag_size_mm`, `apriltag_distance_m`, `apriltag_x_right_m`, `apriltag_y_down_m`, `apriltag_z_forward_m`, `apriltag_yaw_deg`, `apriltag_pitch_deg`, `apriltag_roll_deg`, `apriltag_apparent_edge_px`, `apriltag_decision_margin`, `apriltag_hamming`, `apriltag_pose_error`, `apriltag_intrinsics_source`, `apriltag_fx_px`, `apriltag_fy_px`, `apriltag_cx_px`, `apriltag_cy_px`, `apriltag_image_width_px`, `apriltag_image_height_px`, `apriltag_geometry_valid`, `apriltag_backend`, `apriltag_captured_time_iso`, `apriltag_audit_json`, `apriltag_warning`, `apriltag_error`.
+`apriltag_status`, `apriltag_result`, `apriltag_tag_id`, `apriltag_family`, `apriltag_tag_size_mm`, `apriltag_distance_scale`, `apriltag_effective_tag_size_mm`, `apriltag_distance_m`, `apriltag_x_right_m`, `apriltag_y_down_m`, `apriltag_z_forward_m`, `apriltag_yaw_deg`, `apriltag_pitch_deg`, `apriltag_roll_deg`, `apriltag_apparent_edge_px`, `apriltag_decision_margin`, `apriltag_hamming`, `apriltag_pose_error`, `apriltag_intrinsics_source`, `apriltag_fx_px`, `apriltag_fy_px`, `apriltag_cx_px`, `apriltag_cy_px`, `apriltag_image_width_px`, `apriltag_image_height_px`, `apriltag_geometry_valid`, `apriltag_backend`, `apriltag_captured_time_iso`, `apriltag_audit_json`, `apriltag_warning`, `apriltag_error`.
+
+## Metric calibration
+
+Pose translations are multiplied by the active `distance_scale`. A value of `1.0000` is unadjusted. The calibration capability estimates and persists this factor from a known true camera-to-tag distance using `distance_scale = true / raw`. The same factor is applied uniformly to X/Y/Z and Euclidean range; the result also reports `apriltag_effective_tag_size_mm = tag_size_mm × distance_scale` for audit.
+
 
 ## ODK INTEGRATION
 
@@ -30,12 +35,13 @@ Translation uses the camera frame: **+x right, +y down, +z forward**. `apriltag_
 `target_tag_id` | int | optional  
 `tag_size_mm` | decimal | required  
 `intrinsics_mode` | text | optional  
+`distance_scale` | decimal | optional; blank uses saved device calibration  
 manual intrinsics fields | decimal/int | conditional when manual
 
 Interactive acquisition: live camera, operator Commit.
 
 **INTENT CALL**  
-`com.example.methodmesh.EXECUTE_METHOD(method_id='apriltag.range_pose',input_tag_family=${tag_family},input_target_tag_id=${target_tag_id},input_tag_size_mm=${tag_size_mm},input_intrinsics_mode=${intrinsics_mode},input_payload_mode='FULL',return_mode='flat')`
+`com.example.methodmesh.EXECUTE_METHOD(method_id='apriltag.range_pose',input_tag_family=${tag_family},input_target_tag_id=${target_tag_id},input_tag_size_mm=${tag_size_mm},input_intrinsics_mode=${intrinsics_mode},input_distance_scale=${distance_scale},input_payload_mode='FULL',return_mode='flat')`
 
 **MODIFIERS**  
 `detector_threads`, `quad_decimate`, `refine_edges`, plus manual `fx/fy/cx/cy` and calibration image dimensions when `intrinsics_mode=manual`.

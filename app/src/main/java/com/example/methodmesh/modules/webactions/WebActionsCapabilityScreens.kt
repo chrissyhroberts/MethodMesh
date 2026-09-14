@@ -51,6 +51,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
@@ -64,6 +65,90 @@ import android.webkit.GeolocationPermissions
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 
+object OdkWebFormsRoundtripCapabilityScreen : CapabilityScreenSpec {
+    override val capabilityId = As100OdkWebFormsRoundtripMethod.ID
+    override val title = "ODK Web Forms"
+    override val description = "Open ODK Central Web Forms in a disposable online session and return after confirmed submission."
+
+    @Composable
+    override fun Render(
+        context: CapabilityScreenContext,
+        onBack: () -> Unit,
+        onConfirmed: (ExecutionResult) -> Unit,
+        onCancel: () -> Unit
+    ) {
+        OdkCentralRoundtripScreen(
+            context = context,
+            onBack = onBack,
+            onConfirmed = onConfirmed,
+            onCancel = onCancel,
+            method = As100OdkWebFormsRoundtripMethod,
+            eyebrow = "ODK Web Forms",
+            linkLabel = "ODK Web Forms link",
+            linkPlaceholder = "https://central.example.org/f/…?st=…",
+            rendererMode = "odk_web_forms",
+            resultLabel = "ODK Web Forms submission complete",
+            intro = "Paste an ODK Central Web Forms link. This route is for Central's newer browser form surface."
+        )
+    }
+}
+
+object OdkEnketoRoundtripCapabilityScreen : CapabilityScreenSpec {
+    override val capabilityId = As100OdkEnketoRoundtripMethod.ID
+    override val title = "ODK Enketo form"
+    override val description = "Open an ODK Central form configured for Enketo in a disposable online session and return after confirmed submission."
+
+    @Composable
+    override fun Render(
+        context: CapabilityScreenContext,
+        onBack: () -> Unit,
+        onConfirmed: (ExecutionResult) -> Unit,
+        onCancel: () -> Unit
+    ) {
+        OdkCentralRoundtripScreen(
+            context = context,
+            onBack = onBack,
+            onConfirmed = onConfirmed,
+            onCancel = onCancel,
+            method = As100OdkEnketoRoundtripMethod,
+            eyebrow = "ODK Enketo",
+            linkLabel = "ODK Enketo link",
+            linkPlaceholder = "https://central.example.org/f/…?st=…",
+            rendererMode = "odk_enketo",
+            resultLabel = "ODK Enketo submission complete",
+            intro = "Paste an ODK Central Public Access link for a form configured to use Enketo. Legacy /-/ links are also supported."
+        )
+    }
+}
+
+object KoboEnketoRoundtripCapabilityScreen : CapabilityScreenSpec {
+    override val capabilityId = As100KoboEnketoRoundtripMethod.ID
+    override val title = "Kobo Enketo form"
+    override val description = "Open a KoboToolbox Enketo link in a disposable online session and return after confirmed submission."
+
+    @Composable
+    override fun Render(
+        context: CapabilityScreenContext,
+        onBack: () -> Unit,
+        onConfirmed: (ExecutionResult) -> Unit,
+        onCancel: () -> Unit
+    ) {
+        OdkCentralRoundtripScreen(
+            context = context,
+            onBack = onBack,
+            onConfirmed = onConfirmed,
+            onCancel = onCancel,
+            method = As100KoboEnketoRoundtripMethod,
+            eyebrow = "Kobo Enketo",
+            linkLabel = "Kobo Enketo link",
+            linkPlaceholder = "https://kc.kobotoolbox.org/x/…",
+            rendererMode = "kobo_enketo",
+            resultLabel = "Kobo Enketo submission complete",
+            intro = "Paste a KoboToolbox Enketo link. This route preserves Kobo-specific form behaviour separately from ODK."
+        )
+    }
+}
+
 object OdkCentralRoundtripCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100OdkCentralRoundtripMethod.ID
     override val title = "ODK Central form"
@@ -76,7 +161,19 @@ object OdkCentralRoundtripCapabilityScreen : CapabilityScreenSpec {
         onConfirmed: (ExecutionResult) -> Unit,
         onCancel: () -> Unit
     ) {
-        OdkCentralRoundtripScreen(context, onBack, onConfirmed, onCancel)
+        OdkCentralRoundtripScreen(
+            context = context,
+            onBack = onBack,
+            onConfirmed = onConfirmed,
+            onCancel = onCancel,
+            method = As100OdkCentralRoundtripMethod,
+            eyebrow = "ODK Central",
+            linkLabel = "Central web-form link",
+            linkPlaceholder = "https://central.example.org/f/…?st=…",
+            rendererMode = "central_selected",
+            resultLabel = "ODK Central form submitted",
+            intro = "Compatibility route for existing ODK Central web-form presets. Prefer ODK Web Forms, ODK Enketo, or Kobo Enketo for new presets."
+        )
     }
 }
 
@@ -133,9 +230,17 @@ private fun OdkCentralRoundtripScreen(
     context: CapabilityScreenContext,
     onBack: () -> Unit,
     onConfirmed: (ExecutionResult) -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    method: As100Method,
+    eyebrow: String,
+    linkLabel: String,
+    linkPlaceholder: String,
+    rendererMode: String,
+    resultLabel: String,
+    intro: String
 ) {
     val androidContext = LocalContext.current
+    val scope = rememberCoroutineScope()
     val settings = context.action.settings
 
     var url by rememberSaveable(context.action.canonicalId) { mutableStateOf(settings.setting("url").orEmpty()) }
@@ -143,8 +248,20 @@ private fun OdkCentralRoundtripScreen(
     var allowHttp by rememberSaveable(context.action.canonicalId) {
         mutableStateOf(settings.setting("allow_insecure_http")?.toBooleanStrictOrNull() ?: false)
     }
+    var disposableOnlineSession by rememberSaveable(context.action.canonicalId) {
+        mutableStateOf(settings.setting("disposable_online_session")?.toBooleanStrictOrNull() ?: true)
+    }
+    var cacheBuster by rememberSaveable(context.action.canonicalId) {
+        mutableStateOf(settings.setting("cache_buster")?.toBooleanStrictOrNull() ?: true)
+    }
+    var chromeUserAgent by rememberSaveable(context.action.canonicalId) {
+        mutableStateOf(
+            settings.setting("chrome_user_agent")?.toBooleanStrictOrNull()
+                ?: (method.id == As100OdkEnketoRoundtripMethod.ID)
+        )
+    }
     var transactionId by rememberSaveable(context.action.canonicalId) {
-        mutableStateOf(WebActionsRepository.newestPending(androidContext, As100OdkCentralRoundtripMethod.ID)?.id.orEmpty())
+        mutableStateOf(WebActionsRepository.newestPending(androidContext, method.id)?.id.orEmpty())
     }
     // Automatic launch is a one-shot affordance for preset/protocol/ODK entry.
     // Once a kiosk has been opened during this screen lifetime, closing it or
@@ -154,7 +271,11 @@ private fun OdkCentralRoundtripScreen(
         mutableStateOf(transactionId.isNotBlank())
     }
     var revision by rememberSaveable(context.action.canonicalId) { mutableIntStateOf(0) }
-    var screenStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("Paste a Central link to begin") }
+    // Modern /f Public Access links need one safe metadata request before an
+    // Enketo launch can bypass Central's SPA. Keep this transient rather than
+    // saveable so recreation cannot strand the screen in a false busy state.
+    var preparing by remember(context.action.canonicalId) { mutableStateOf(false) }
+    var screenStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("Paste a form link to begin") }
     var screenError by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
     var committedFieldsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
     var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
@@ -168,8 +289,9 @@ private fun OdkCentralRoundtripScreen(
     }
     val restoredResult = remember(committedFieldsJson) {
         committedFieldsJson?.let(::stringMapFromJson)?.let { values ->
-            As100OdkCentralRoundtripMethod.result(
-                request = As100OdkCentralRoundtripMethod.request(
+            hostedWebFormResult(
+                method = method,
+                request = method.request(
                     action = context.action.canonicalId,
                     context = context.request.invocationContext.asMap(context.action.canonicalId) + safeCentralRequestContext(
                         host = values[OdkCentralRoundtripFields.HOST].orEmpty(),
@@ -185,7 +307,7 @@ private fun OdkCentralRoundtripScreen(
     }
     val frozenResult = committedResult ?: restoredResult
 
-    LaunchedEffect(url, timeoutText, allowHttp) {
+    LaunchedEffect(url, timeoutText, allowHttp, disposableOnlineSession, cacheBuster, chromeUserAgent) {
         // Keep the operational URL available to presets/protocols when the user
         // explicitly chooses to save it. Canonical result construction below
         // never includes the source URL or its st token.
@@ -193,9 +315,23 @@ private fun OdkCentralRoundtripScreen(
             mapOf(
                 "url" to url,
                 "timeout_seconds" to timeoutText,
-                "allow_insecure_http" to allowHttp.toString()
+                "allow_insecure_http" to allowHttp.toString(),
+                "disposable_online_session" to disposableOnlineSession.toString(),
+                "cache_buster" to cacheBuster.toString(),
+                "chrome_user_agent" to chromeUserAgent.toString()
             )
         )
+    }
+
+    LaunchedEffect(transactionId, preparing) {
+        val interrupted = transactionId.takeIf { it.isNotBlank() }
+            ?.let { WebActionsRepository.get(androidContext, it) }
+        if (interrupted?.state == WebActionTransactionState.PREPARING && !preparing) {
+            WebActionsRepository.delete(androidContext, interrupted.id)
+            transactionId = ""
+            revision += 1
+            screenStatus = "Form preparation interrupted — ready to retry"
+        }
     }
 
     LaunchedEffect(transaction?.state, transaction?.startedTimeIso) {
@@ -231,10 +367,12 @@ private fun OdkCentralRoundtripScreen(
             WebActionsRepository.delete(androidContext, transactionId)
         }
         transactionId = ""
+        preparing = false
         revision += 1
     }
 
     fun startCentral() {
+        if (preparing || transaction?.state == WebActionTransactionState.WAITING) return
         // Starting a kiosk consumes the automatic-start opportunity. This is set
         // before validation/network work so a failed or explicitly exited run
         // cannot fall into an automatic relaunch loop.
@@ -255,17 +393,85 @@ private fun OdkCentralRoundtripScreen(
                 screenError = it.message.orEmpty()
                 return
             }
+        val routeError = hostedFormRouteError(method.id, info.kind)
+        if (routeError.isNotBlank()) {
+            screenError = routeError
+            screenStatus = "Wrong link type for $eyebrow"
+            return
+        }
         cleanupActive()
         val created = WebActionsRepository.create(
             context = androidContext,
-            methodId = As100OdkCentralRoundtripMethod.ID,
-            originalUrl = info.url,
+            methodId = method.id,
+            originalUrl = if (method.id == As100OdkEnketoRoundtripMethod.ID && chromeUserAgent) {
+                info.url + "#methodmesh_chrome_user_agent=true"
+            } else {
+                info.url
+            },
             launchHost = info.host,
             callbackParameter = "return_url",
             allowInsecureHttp = allowHttp
         )
+        transactionId = created.id
+        revision += 1
         val callback = WebActionsRepository.callbackUrl(created)
-        val launchUrl = runCatching { buildCentralLaunchUrl(info, callback, allowHttp) }
+
+        if (method.id == As100OdkEnketoRoundtripMethod.ID && info.kind == CentralLinkKind.PUBLIC_ACCESS) {
+            // /f links are renderer-neutral. Resolve Central's form metadata first
+            // and mirror its Enketo iframe target directly, avoiding the SPA path
+            // that blanks in Android WebView. Kobo and ODK Web Forms are left
+            // completely unchanged.
+            preparing = true
+            screenStatus = "Resolving Central Enketo form…"
+            scope.launch {
+                val resolved = runCatching {
+                    withContext(Dispatchers.IO) {
+                        resolveCentralPublicEnketoLaunch(
+                            link = info,
+                            callbackUrl = callback,
+                            allowInsecureHttp = allowHttp,
+                            cacheBuster = if (cacheBuster) created.id else ""
+                        )
+                    }
+                }
+                resolved.onSuccess { launch ->
+                    // A Cancel action may have deleted this encrypted transaction
+                    // while the metadata request was in flight. Never resurrect it.
+                    if (transactionId != created.id || WebActionsRepository.get(androidContext, created.id) == null) {
+                        preparing = false
+                        return@onSuccess
+                    }
+                    WebActionsRepository.setLaunch(androidContext, created.id, launch.launchUrl, info.host)
+                    screenStatus = "${info.host} · Enketo form ready"
+                    screenError = ""
+                    preparing = false
+                    revision += 1
+                }.onFailure { error ->
+                    if (transactionId == created.id) {
+                        val safeMessage = error.message
+                            ?: "Central public link loaded, but MethodMesh could not resolve the Enketo launch URL. Try ODK Web Forms or open in an external browser."
+                        WebActionsRepository.markFailed(androidContext, created.id, safeMessage)
+                        WebActionsRepository.delete(androidContext, created.id)
+                        transactionId = ""
+                        screenError = safeMessage
+                        screenStatus = "Could not open Enketo form"
+                        preparing = false
+                        revision += 1
+                    }
+                }
+            }
+            return
+        }
+
+        val launchUrl = runCatching {
+            buildCentralLaunchUrl(
+                link = info,
+                callbackUrl = callback,
+                allowInsecureHttp = allowHttp,
+                disposableOnlineSession = disposableOnlineSession,
+                cacheBuster = if (cacheBuster) created.id else ""
+            )
+        }
             .getOrElse {
                 val safeMessage = it.message ?: "Cannot prepare the Central return URL."
                 WebActionsRepository.markFailed(androidContext, created.id, safeMessage)
@@ -276,7 +482,6 @@ private fun OdkCentralRoundtripScreen(
                 return
             }
         WebActionsRepository.setLaunch(androidContext, created.id, launchUrl, info.host)
-        transactionId = created.id
         screenStatus = "${info.host} · ${info.kind.label} ready"
         revision += 1
     }
@@ -291,19 +496,23 @@ private fun OdkCentralRoundtripScreen(
                     hasPublicAccessToken = false
                 )
             }
-        val values = As100OdkCentralRoundtripMethod.success(
+        val values = hostedWebFormSuccess(
+            method = method,
             transactionId = current.id,
             sourceUrlHash = sha256(current.originalUrl),
             host = current.launchHost.ifBlank { info.host },
             linkKind = info.kind.wireValue,
+            rendererMode = rendererMode,
+            resultLabel = resultLabel,
             startedIso = current.startedTimeIso,
             completedIso = current.completedTimeIso,
             durationMs = current.durationMillis,
             publicAccessTokenPresent = info.hasPublicAccessToken,
             completionSignal = current.completionSignal.ifBlank { "central_return_url" }
         )
-        val execution = As100OdkCentralRoundtripMethod.result(
-            request = As100OdkCentralRoundtripMethod.request(
+        val execution = hostedWebFormResult(
+            method = method,
+            request = method.request(
                 action = context.action.canonicalId,
                 context = context.request.invocationContext.asMap(context.action.canonicalId) + safeCentralRequestContext(
                     host = current.launchHost.ifBlank { info.host },
@@ -329,8 +538,8 @@ private fun OdkCentralRoundtripScreen(
     if (frozenResult != null) {
         val fields = OutputFormatter.fields(frozenResult, includeProvenance = false)
         CommittedWebResult(
-            title = "Central form submitted",
-            summary = fields[OdkCentralRoundtripFields.RESULT]?.toString().orEmpty().ifBlank { "ODK Central form submitted" },
+            title = resultLabel,
+            summary = fields[OdkCentralRoundtripFields.RESULT]?.toString().orEmpty().ifBlank { resultLabel },
             result = frozenResult,
             displayValues = listOf(
                 "Host" to fields[OdkCentralRoundtripFields.HOST]?.toString().orEmpty(),
@@ -369,16 +578,17 @@ private fun OdkCentralRoundtripScreen(
     }
 
     WebActionHero(
-        eyebrow = "ODK Central",
+        eyebrow = eyebrow,
         title = when {
+            preparing -> "Preparing form"
             isWaiting -> "Form in progress"
             callbackReceived -> "Submission returned"
             else -> "Paste a link and go"
         },
-        subtitle = if (isWaiting) {
-            "Online-only kiosk. Complete and submit the form; MethodMesh returns automatically on the Central callback or the provider submission confirmation."
-        } else {
-            "Paste the public web-form link and go. No API token is required. The kiosk is intentionally online-only: no draft workflow, no reusable offline cache, and no next-record loop after submission."
+        subtitle = when {
+            preparing -> "Checking Central's configured renderer and preparing the direct Enketo session."
+            isWaiting -> "Online-only kiosk. Complete and submit the form; MethodMesh returns automatically on the provider callback or submission confirmation."
+            else -> intro
         },
         status = if (callbackReceived) "Submission received — preparing result" else screenStatus,
         host = transaction?.launchHost.orEmpty().ifBlank { linkInfo?.host.orEmpty() },
@@ -436,15 +646,15 @@ private fun OdkCentralRoundtripScreen(
     }
 
     SettingSection(
-        "Central web form",
-        "Paste the public form link from ODK Central or KoboToolbox. No API token is required. MethodMesh runs it as a disposable online-only kiosk session, removes local draft/cache state on exit, and returns automatically after a confirmed submission."
+        linkLabel,
+        intro
     ) {
         if (context.settingShouldBeShown("url")) {
             OutlinedTextField(
                 value = url,
                 onValueChange = { url = it },
-                label = { Text("ODK Central link") },
-                placeholder = { Text("https://central.example.org/f/…?st=…") },
+                label = { Text(linkLabel) },
+                placeholder = { Text(linkPlaceholder) },
                 minLines = 2,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -459,7 +669,7 @@ private fun OdkCentralRoundtripScreen(
                 Column(Modifier.padding(14.dp)) {
                     Text("✓ Link ready", fontWeight = FontWeight.Bold)
                     Text("${info.kind.label} · ${info.host}", style = MaterialTheme.typography.bodyMedium)
-                    Text("Renderer: Central decides (ODK Web Forms or Enketo)", style = MaterialTheme.typography.bodySmall)
+                    Text("Selected capability: $eyebrow", style = MaterialTheme.typography.bodySmall)
                     if (info.hasPublicAccessToken) {
                         Text(
                             "This Public Access Link contains an st access token. It is used for the run but excluded from canonical results and audit output.",
@@ -489,16 +699,52 @@ private fun OdkCentralRoundtripScreen(
         if (context.settingShouldBeShown("allow_insecure_http")) {
             SecurityToggleRow(allowHttp) { allowHttp = it }
         }
+        if (context.settingShouldBeShown("disposable_online_session")) {
+            Spacer(Modifier.height(10.dp))
+            BooleanChoiceRow(
+                label = "Disposable online session",
+                description = "Use the online route, hide/clear draft caches, and stop the next-record loop after submit.",
+                value = disposableOnlineSession,
+                onValue = { disposableOnlineSession = it }
+            )
+        }
+        if (context.settingShouldBeShown("cache_buster")) {
+            Spacer(Modifier.height(10.dp))
+            BooleanChoiceRow(
+                label = "Fresh browser URL",
+                description = "Add a per-run cache-busting value to the launch URL.",
+                value = cacheBuster,
+                onValue = { cacheBuster = it }
+            )
+        }
+        if (context.settingShouldBeShown("chrome_user_agent")) {
+            Spacer(Modifier.height(10.dp))
+            BooleanChoiceRow(
+                label = "Chrome browser identity",
+                description = "Troubleshooting for ODK Enketo pages that load in Chrome but blank in Android WebView.",
+                value = chromeUserAgent,
+                onValue = { chromeUserAgent = it }
+            )
+        }
     }
 
     if (screenError.isNotBlank()) ErrorPanel(screenError)
     Spacer(Modifier.height(12.dp))
-    Button(onClick = ::startCentral, enabled = url.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
-        Text("Open form")
+    Button(onClick = ::startCentral, enabled = url.isNotBlank() && !preparing, modifier = Modifier.fillMaxWidth()) {
+        Text(if (preparing) "Preparing form…" else "Open form")
     }
     if (context.stepNumber > 1) {
         Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
+        OutlinedButton(
+            onClick = {
+                // A public-Enketo metadata request owns a PREPARING transaction.
+                // Leaving this capability must cancel that transaction rather than
+                // leaving it to be recovered as a pending run on the next visit.
+                cleanupActive()
+                onBack()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Back") }
     }
     Spacer(Modifier.height(8.dp))
     OutlinedButton(onClick = { cleanupActive(); onCancel() }, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
@@ -510,6 +756,20 @@ private fun OdkCentralRoundtripScreen(
             startCentral()
         }
     }
+}
+
+
+private fun hostedFormRouteError(methodId: String, kind: CentralLinkKind): String = when (methodId) {
+    As100OdkEnketoRoundtripMethod.ID -> if (kind == CentralLinkKind.KOBO_ENKETO) {
+        "This is a Kobo Enketo link. Use Kobo Enketo for Kobo /x/ or /single/ links."
+    } else ""
+    As100KoboEnketoRoundtripMethod.ID -> if (kind == CentralLinkKind.KOBO_ENKETO) "" else {
+        "This is not a Kobo Enketo link. Use Kobo Enketo for /x/ or /single/ Kobo links only."
+    }
+    As100OdkWebFormsRoundtripMethod.ID -> if (kind == CentralLinkKind.KOBO_ENKETO) {
+        "This is a Kobo Enketo link. Use Kobo Enketo for Kobo /x/ or /single/ links."
+    } else ""
+    else -> ""
 }
 
 @Composable
@@ -539,6 +799,9 @@ private fun EnketoRoundtripScreen(
     var timeoutText by rememberSaveable(context.action.canonicalId) { mutableStateOf(settings.setting("timeout_seconds") ?: "0") }
     var allowHttp by rememberSaveable(context.action.canonicalId) {
         mutableStateOf(settings.setting("allow_insecure_http")?.toBooleanStrictOrNull() ?: false)
+    }
+    var cacheBuster by rememberSaveable(context.action.canonicalId) {
+        mutableStateOf(settings.setting("cache_buster")?.toBooleanStrictOrNull() ?: true)
     }
 
     var transactionId by rememberSaveable(context.action.canonicalId) {
@@ -602,7 +865,7 @@ private fun EnketoRoundtripScreen(
         }
     }
 
-    LaunchedEffect(apiBaseUrl, serverUrl, formId, singleMode, defaultsJson, prefillBindingsJson, theme, timeoutText, allowHttp) {
+    LaunchedEffect(apiBaseUrl, serverUrl, formId, singleMode, defaultsJson, prefillBindingsJson, theme, timeoutText, allowHttp, cacheBuster) {
         // Deliberately exclude api_token. Operational credentials must not leak
         // into dashboard/preset snapshots merely because the user tested a form.
         context.onSettingsChanged(
@@ -615,7 +878,8 @@ private fun EnketoRoundtripScreen(
                 "prefill_bindings_json" to prefillBindingsJson,
                 "theme" to theme,
                 "timeout_seconds" to timeoutText,
-                "allow_insecure_http" to allowHttp.toString()
+                "allow_insecure_http" to allowHttp.toString(),
+                "cache_buster" to cacheBuster.toString()
             )
         )
     }
@@ -711,8 +975,13 @@ private fun EnketoRoundtripScreen(
                 }
             }
             launch.onSuccess { createdLaunch ->
-                val host = hostOf(createdLaunch.url)
-                WebActionsRepository.setLaunch(androidContext, created.id, createdLaunch.url, host)
+                val launchUrl = if (cacheBuster) {
+                    appendWebActionCacheBuster(createdLaunch.url, created.id, allowHttp)
+                } else {
+                    createdLaunch.url
+                }
+                val host = hostOf(launchUrl)
+                WebActionsRepository.setLaunch(androidContext, created.id, launchUrl, host)
                 // The credential is no longer needed after Enketo has issued the
                 // single-submit URL. Minimise its in-memory lifetime.
                 apiToken = ""
@@ -912,7 +1181,9 @@ private fun EnketoRoundtripScreen(
         timeoutText = timeoutText,
         onTimeout = { timeoutText = it.filter(Char::isDigit).take(5) },
         allowHttp = allowHttp,
-        onAllowHttp = { allowHttp = it }
+        onAllowHttp = { allowHttp = it },
+        cacheBuster = cacheBuster,
+        onCacheBuster = { cacheBuster = it }
     )
 
     if (missingPrefillRuntimeKeys.isNotEmpty()) {
@@ -982,7 +1253,9 @@ private fun EnketoConfiguration(
     timeoutText: String,
     onTimeout: (String) -> Unit,
     allowHttp: Boolean,
-    onAllowHttp: (Boolean) -> Unit
+    onAllowHttp: (Boolean) -> Unit,
+    cacheBuster: Boolean,
+    onCacheBuster: (Boolean) -> Unit
 ) {
     var showLiteralDefaults by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
 
@@ -1102,6 +1375,15 @@ private fun EnketoConfiguration(
         }
         if (context.settingShouldBeShown("allow_insecure_http")) {
             SecurityToggleRow(allowHttp, onAllowHttp)
+        }
+        if (context.settingShouldBeShown("cache_buster")) {
+            Spacer(Modifier.height(10.dp))
+            BooleanChoiceRow(
+                label = "Fresh browser URL",
+                description = "Add a per-run cache-busting value to the issued Enketo URL before opening it.",
+                value = cacheBuster,
+                onValue = onCacheBuster
+            )
         }
     }
 }
@@ -1697,7 +1979,8 @@ private fun WebSessionSurface(
     status: String,
     onStatus: (String) -> Unit,
     onCallback: (WebActionTransaction) -> Unit,
-    onExit: () -> Unit
+    onExit: () -> Unit,
+    onRefresh: () -> Unit = { WebActionWebViewPool.refresh(transaction.id) }
 ) {
     val androidContext = LocalContext.current
     var pendingFileCallback by remember(transaction.id) { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
@@ -1755,8 +2038,11 @@ private fun WebSessionSurface(
     // a dedicated kiosk browser while preserving the transaction in this activity.
     // The dialog closes itself when the one-shot completion redirect is consumed.
     Dialog(
-        onDismissRequest = { /* kiosk surface: explicit Exit only */ },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        onDismissRequest = onExit,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true
+        )
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -1791,8 +2077,11 @@ private fun WebSessionSurface(
                                 maxLines = 1
                             )
                         }
+                        OutlinedButton(onClick = onRefresh) {
+                            Text("Refresh form")
+                        }
                         OutlinedButton(onClick = onExit) {
-                            Text("Exit form")
+                            Text("Kill + clear")
                         }
                     }
                 }
@@ -1852,6 +2141,21 @@ private fun ModeButton(label: String, selected: Boolean, modifier: Modifier, onC
         Button(onClick = onClick, modifier = modifier.padding(2.dp)) { Text("✓ $label") }
     } else {
         OutlinedButton(onClick = onClick, modifier = modifier.padding(2.dp)) { Text(label) }
+    }
+}
+
+@Composable
+private fun BooleanChoiceRow(
+    label: String,
+    description: String,
+    value: Boolean,
+    onValue: (Boolean) -> Unit
+) {
+    Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+    Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Row(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+        ModeButton("On", value, Modifier.weight(1f)) { onValue(true) }
+        ModeButton("Off", !value, Modifier.weight(1f)) { onValue(false) }
     }
 }
 

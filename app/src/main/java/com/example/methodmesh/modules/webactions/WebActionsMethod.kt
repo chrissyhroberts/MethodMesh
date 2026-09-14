@@ -142,6 +142,167 @@ object WebOpenFields {
     )
 }
 
+
+private class HostedFormRoundtripMethod(
+    private val methodId: String,
+    private val displayName: String,
+    private val descriptionText: String,
+    private val graphOutput: String,
+    private val rendererMode: String
+) : As100Method {
+    companion object {
+        const val VERSION = "0.7.0"
+    }
+
+    override val id = methodId
+    override val ref = ArchitectureRef(ArchitectureId(methodId), "Method", displayName)
+    override val descriptor = MethodDescriptor(
+        id = ArchitectureId(methodId),
+        methodType = MethodObjectType.Workflow,
+        name = displayName,
+        version = VERSION,
+        description = descriptionText,
+        inputs = listOf("url", "timeout_seconds", "allow_insecure_http", "disposable_online_session", "cache_buster", "chrome_user_agent"),
+        outputs = OdkCentralRoundtripFields.outputs,
+        graphOutputs = listOf(graphOutput),
+        parameters = mapOf(
+            "category" to "Interoperability",
+            "status" to "Development",
+            "online" to "required",
+            "interaction" to "interactive",
+            "renderer" to rendererMode
+        )
+    )
+    override val contract = MethodContract(
+        method = ref,
+        producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
+        producedFields = descriptor.outputs,
+        producedGraphOutputs = descriptor.graphOutputs
+    )
+
+    override fun request(
+        action: String,
+        context: Map<String, String>,
+        signals: List<Signal>,
+        inputs: List<ArchitectureRef>
+    ): ExecutionRequest = As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
+
+    override fun execute(
+        request: ExecutionRequest,
+        settingsState: SettingsState?,
+        transport: String?
+    ): ExecutionResult = As100ExecutionEngine.complete(
+        request,
+        TransformationStatus.Unsupported,
+        diagnostics = mapOf("reason" to "$displayName requires the interactive Android web surface.")
+    )
+}
+
+object As100OdkWebFormsRoundtripMethod : As100Method by HostedFormRoundtripMethod(
+    methodId = "web.odk_webforms_roundtrip",
+    displayName = "ODK Web Forms",
+    descriptionText = "Open an ODK Central Web Forms link in a disposable online kiosk and return after confirmed submission.",
+    graphOutput = "web.odk.webforms.roundtrip",
+    rendererMode = "odk_web_forms"
+) {
+    const val ID = "web.odk_webforms_roundtrip"
+}
+
+object As100OdkEnketoRoundtripMethod : As100Method by HostedFormRoundtripMethod(
+    methodId = "web.odk_enketo_roundtrip",
+    displayName = "ODK Enketo form",
+    descriptionText = "Open an ODK Central form configured for Enketo in a disposable online kiosk and return after confirmed submission.",
+    graphOutput = "web.odk.enketo.roundtrip",
+    rendererMode = "odk_enketo"
+) {
+    const val ID = "web.odk_enketo_roundtrip"
+}
+
+object As100KoboEnketoRoundtripMethod : As100Method by HostedFormRoundtripMethod(
+    methodId = "web.kobo_enketo_roundtrip",
+    displayName = "Kobo Enketo form",
+    descriptionText = "Open a KoboToolbox Enketo web form in a disposable online kiosk and return after confirmed submission.",
+    graphOutput = "web.kobo.enketo.roundtrip",
+    rendererMode = "kobo_enketo"
+) {
+    const val ID = "web.kobo_enketo_roundtrip"
+}
+
+internal fun isHostedWebFormRoundtripMethod(methodId: String): Boolean = methodId in setOf(
+    As100OdkCentralRoundtripMethod.ID,
+    As100OdkWebFormsRoundtripMethod.ID,
+    As100OdkEnketoRoundtripMethod.ID,
+    As100KoboEnketoRoundtripMethod.ID
+)
+
+internal fun hostedWebFormResult(
+    method: As100Method,
+    request: ExecutionRequest,
+    values: Map<String, String>,
+    invocation: InvocationContext?
+): ExecutionResult = completeWebResult(
+    methodId = method.id,
+    version = method.descriptor.version.orEmpty(),
+    ref = method.ref,
+    phenomenon = method.descriptor.graphOutputs.firstOrNull().orEmpty().ifBlank { method.id },
+    statusField = OdkCentralRoundtripFields.STATUS,
+    errorField = OdkCentralRoundtripFields.ERROR,
+    request = request,
+    values = values,
+    invocation = invocation
+)
+
+internal fun hostedWebFormSuccess(
+    method: As100Method,
+    transactionId: String,
+    sourceUrlHash: String,
+    host: String,
+    linkKind: String,
+    rendererMode: String,
+    resultLabel: String,
+    startedIso: String,
+    completedIso: String,
+    durationMs: Long,
+    publicAccessTokenPresent: Boolean,
+    completionSignal: String = "central_return_url"
+): Map<String, String> {
+    val audit = JSONObject().apply {
+        put("method_id", method.id)
+        put("method_version", method.descriptor.version.orEmpty())
+        put("transaction_id", transactionId)
+        put("source_url_sha256", sourceUrlHash)
+        put("host", host)
+        put("link_kind", linkKind)
+        put("renderer_mode", rendererMode)
+        put("public_access_token_present", publicAccessTokenPresent)
+        put("callback_received", completionSignal == "central_return_url")
+        put("completion_signal", completionSignal)
+        put("submission_receipt_verified", false)
+        put("started_time_iso", startedIso)
+        put("completed_time_iso", completedIso)
+        put("duration_ms", durationMs)
+        put("source_url_returned", false)
+        put("secret_fields_returned", false)
+    }.toString()
+
+    return linkedMapOf(
+        OdkCentralRoundtripFields.STATUS to "succeeded",
+        OdkCentralRoundtripFields.RESULT to resultLabel,
+        OdkCentralRoundtripFields.COMPLETED to "true",
+        OdkCentralRoundtripFields.TRANSACTION_ID to transactionId,
+        OdkCentralRoundtripFields.HOST to host,
+        OdkCentralRoundtripFields.LINK_KIND to linkKind,
+        OdkCentralRoundtripFields.RENDERER_MODE to rendererMode,
+        OdkCentralRoundtripFields.CALLBACK_RECEIVED to (completionSignal == "central_return_url").toString(),
+        OdkCentralRoundtripFields.COMPLETION_SIGNAL to completionSignal,
+        OdkCentralRoundtripFields.STARTED_TIME_ISO to startedIso,
+        OdkCentralRoundtripFields.COMPLETED_TIME_ISO to completedIso,
+        OdkCentralRoundtripFields.DURATION_MS to durationMs.coerceAtLeast(0L).toString(),
+        OdkCentralRoundtripFields.AUDIT_JSON to audit,
+        OdkCentralRoundtripFields.ERROR to ""
+    )
+}
+
 object As100OdkCentralRoundtripMethod : As100Method {
     const val ID = "web.odk_central_roundtrip"
     const val VERSION = "0.6.0"
@@ -154,7 +315,7 @@ object As100OdkCentralRoundtripMethod : As100Method {
         name = "ODK Central form",
         version = VERSION,
         description = "Paste a web-form link from ODK Central, complete the submission, and return only when Central reaches MethodMesh's one-shot return URL.",
-        inputs = listOf("url", "timeout_seconds", "allow_insecure_http"),
+        inputs = listOf("url", "timeout_seconds", "allow_insecure_http", "disposable_online_session", "cache_buster"),
         outputs = OdkCentralRoundtripFields.outputs,
         graphOutputs = listOf("web.odk.central.roundtrip"),
         parameters = mapOf(
@@ -291,7 +452,7 @@ object As100EnketoRoundtripMethod : As100Method {
         description = "Create a fresh Enketo single-submit session, optionally prefill it from runtime MethodMesh values, wait for its return redirect, then commit completion.",
         inputs = listOf(
             "api_base_url", "server_url", "form_id", "api_token", "single_mode",
-            "prefill_bindings_json", "defaults_json", "theme", "timeout_seconds", "allow_insecure_http"
+            "prefill_bindings_json", "defaults_json", "theme", "timeout_seconds", "allow_insecure_http", "cache_buster"
         ),
         outputs = EnketoRoundtripFields.outputs,
         graphOutputs = listOf("web.enketo.roundtrip"),

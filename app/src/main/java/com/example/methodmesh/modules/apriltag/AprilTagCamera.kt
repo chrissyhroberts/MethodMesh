@@ -64,6 +64,7 @@ import kotlin.math.min
 internal data class CameraSettings(
     val family: String,
     val tagSizeMm: Double,
+    val distanceScale: Double,
     val targetTagId: Int,
     val intrinsicsMode: String,
     val fx: Double,
@@ -119,59 +120,83 @@ internal fun AprilTagCameraSurface(
         }
     }
     val executor = remember(settings) { Executors.newSingleThreadExecutor() }
+    val detectorResult = remember(settings.family, settings.threads, settings.quadDecimate, settings.refineEdges, settings.tagSizeMm, settings.distanceScale) {
+        AprilTagNativeBridge.create(
+            AprilTagNativeBridge.DetectorConfig(
+                family = settings.family,
+                threads = settings.threads,
+                quadDecimate = settings.quadDecimate,
+                refineEdges = settings.refineEdges,
+                tagSizeMeters = settings.tagSizeMm / 1000.0,
+                distanceScale = settings.distanceScale
+            )
+        )
+    }
+    val detector = detectorResult.getOrNull()
     val latestFrame = remember { mutableStateOf<AprilTagFrame?>(null) }
     val latestOnFrame = rememberUpdatedState(onFrame)
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
     val lastProcessed = remember { AtomicLong(0L) }
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
-    DisposableEffect(controller, lifecycleOwner, executor, settings) {
-        controller.setImageAnalysisAnalyzer(executor) { image ->
-            val now = System.currentTimeMillis()
-            if (now - lastProcessed.get() < 70L) {
-                image.close()
-                return@setImageAnalysisAnalyzer
-            }
-            lastProcessed.set(now)
-            try {
-                val rotated = RotatedLuma.from(image)
-                val intrinsics = CameraIntrinsicsResolver.resolve(context, settings, rotated.width, rotated.height, image.imageInfo.rotationDegrees)
-                val result = AprilTagNativeBridge.detect(
-                    gray = rotated.bytes,
-                    width = rotated.width,
-                    height = rotated.height,
-                    config = AprilTagNativeBridge.DetectorConfig(
-                        family = settings.family,
-                        threads = settings.threads,
-                        quadDecimate = settings.quadDecimate,
-                        refineEdges = settings.refineEdges,
-                        tagSizeMeters = settings.tagSizeMm / 1000.0
-                    ),
-                    intrinsics = intrinsics
+    DisposableEffect(controller, lifecycleOwner, executor, detector, settings) {
+        if (detector == null) {
+            latestOnFrame.value(
+                AprilTagFrame(
+                    emptyList(), 0, 0, 0, null,
+                    backend = AprilTagNativeBridge.backendName,
+                    error = detectorResult.exceptionOrNull()?.message ?: "AprilTag detector is unavailable."
                 )
-                val frame = AprilTagFrame(
-                    detections = result.getOrDefault(emptyList()),
-                    width = rotated.width,
-                    height = rotated.height,
-                    rotationDegrees = image.imageInfo.rotationDegrees,
-                    intrinsics = intrinsics,
-                    error = result.exceptionOrNull()?.message.orEmpty()
-                )
-                mainHandler.post {
-                    latestFrame.value = frame
-                    latestOnFrame.value(frame)
+            )
+        } else {
+            controller.setImageAnalysisAnalyzer(executor) { image ->
+                val now = System.currentTimeMillis()
+                if (now - lastProcessed.get() < 70L) {
+                    image.close()
+                    return@setImageAnalysisAnalyzer
                 }
-            } finally {
-                image.close()
+                lastProcessed.set(now)
+                try {
+                    val rotated = RotatedLuma.from(image)
+                    val intrinsics = CameraIntrinsicsResolver.resolve(context, settings, rotated.width, rotated.height, image.imageInfo.rotationDegrees)
+                    val result = detector.detect(
+                        gray = rotated.bytes,
+                        width = rotated.width,
+                        height = rotated.height,
+                        intrinsics = intrinsics
+                    )
+                    val frame = AprilTagFrame(
+                        detections = result.getOrDefault(emptyList()),
+                        width = rotated.width,
+                        height = rotated.height,
+                        rotationDegrees = image.imageInfo.rotationDegrees,
+                        intrinsics = intrinsics,
+                        backend = AprilTagNativeBridge.backendName,
+                        error = result.exceptionOrNull()?.message.orEmpty()
+                    )
+                    mainHandler.post {
+                        latestFrame.value = frame
+                        latestOnFrame.value(frame)
+                    }
+                } finally {
+                    image.close()
+                }
             }
         }
         runCatching { controller.bindToLifecycle(lifecycleOwner) }
             .onFailure { error ->
-                latestOnFrame.value(AprilTagFrame(emptyList(), 0, 0, 0, null, error = error.message ?: "Camera unavailable."))
+                latestOnFrame.value(
+                    AprilTagFrame(
+                        emptyList(), 0, 0, 0, null,
+                        backend = AprilTagNativeBridge.backendName,
+                        error = error.message ?: "Camera unavailable."
+                    )
+                )
             }
         onDispose {
             controller.clearImageAnalysisAnalyzer()
             controller.unbind()
+            detector?.close()
             executor.shutdown()
         }
     }

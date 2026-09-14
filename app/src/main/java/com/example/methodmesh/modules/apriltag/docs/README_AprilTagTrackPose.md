@@ -8,18 +8,23 @@ Record a moving rigid AprilTag through time and derive path length, displacement
 
 ## Inputs/settings
 
-`moving_tag_id`, `reference_tag_id` (`-1` = camera frame), `tag_family`, `tag_size_mm`, camera model, `sample_interval_ms`, `max_samples`, detector tuning.
+`moving_tag_id`, `reference_tag_id` (`-1` = camera frame), `tag_family`, `tag_size_mm`, `distance_scale`, camera model, `sample_interval_ms`, `max_samples`, detector tuning.
 
 ## Canonical outputs
 
-`apriltag_status`, `apriltag_result`, `apriltag_moving_tag_id`, `apriltag_reference_tag_id`, `apriltag_family`, `apriltag_tag_size_mm`, `apriltag_reference_frame`, `apriltag_sample_count`, `apriltag_duration_s`, `apriltag_path_length_m`, `apriltag_displacement_m`, `apriltag_mean_speed_m_s`, `apriltag_max_speed_m_s`, start/end XYZ fields, `apriltag_samples_json`, `apriltag_intrinsics_source`, `apriltag_geometry_valid`, `apriltag_backend`, `apriltag_captured_time_iso`, `apriltag_audit_json`, `apriltag_warning`, `apriltag_error`.
+`apriltag_status`, `apriltag_result`, `apriltag_moving_tag_id`, `apriltag_reference_tag_id`, `apriltag_family`, `apriltag_tag_size_mm`, `apriltag_distance_scale`, `apriltag_effective_tag_size_mm`, `apriltag_reference_frame`, `apriltag_sample_count`, `apriltag_duration_s`, `apriltag_path_length_m`, `apriltag_displacement_m`, `apriltag_mean_speed_m_s`, `apriltag_max_speed_m_s`, start/end XYZ fields, `apriltag_samples_json`, `apriltag_intrinsics_source`, `apriltag_geometry_valid`, `apriltag_backend`, `apriltag_captured_time_iso`, `apriltag_audit_json`, `apriltag_warning`, `apriltag_error`.
+
+## Metric calibration
+
+Pose translations are multiplied by the active `distance_scale`. A value of `1.0000` is unadjusted. The calibration capability estimates and persists this factor from a known true camera-to-tag distance using `distance_scale = true / raw`. The same factor is applied uniformly to X/Y/Z and Euclidean range; the result also reports `apriltag_effective_tag_size_mm = tag_size_mm × distance_scale` for audit.
+
 
 ## ODK INTEGRATION
 
 **Capability:** Track tagged object — `apriltag.track_pose`  
 **Tags:** Experimental · Offline
 
-**ODK INPUTS:** `moving_tag_id`, `reference_tag_id`, `tag_family`, `tag_size_mm`, camera-model modifiers, `sample_interval_ms`, `max_samples`.  
+**ODK INPUTS:** `moving_tag_id`, `reference_tag_id`, `tag_family`, `tag_size_mm`, optional `distance_scale` (blank uses saved device calibration), camera-model modifiers, `sample_interval_ms`, `max_samples`.  
 Interactive acquisition: Start/Stop recording in the native camera surface, then Commit.
 
 **INTENT CALL**  

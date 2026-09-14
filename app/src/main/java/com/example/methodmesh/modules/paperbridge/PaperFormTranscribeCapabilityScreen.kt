@@ -68,7 +68,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputFormatter
@@ -752,13 +751,11 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                 onConfirmed(resultValue)
                 return
             }
-            when {
-                presetResultAction == PresetResultAction.SAVE -> { saveCommitted(); onConfirmed(resultValue) }
-                finishToLauncher -> onConfirmed(resultValue)
-                else -> appContext.startActivity(Intent(appContext, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-                })
+            when (presetResultAction) {
+                PresetResultAction.SAVE -> saveCommitted()
+                PresetResultAction.SHARE -> shareCommitted()
             }
+            onConfirmed(resultValue)
         }
 
         if (nativeDashboard && workspaceMode == "designer" && frozenResult == null) {

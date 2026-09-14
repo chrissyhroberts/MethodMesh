@@ -2,19 +2,36 @@
 
 **Module ID:** `apriltag`  
 **Display name:** AprilTag  
-**Version:** 0.2.0  
+**Version:** 0.4.0  
 **Maturity:** Experimental  
 **Connectivity:** Offline  
 **MethodMesh target:** Master Book v1.08
 
 This module turns printed AprilTags into physical experimental references. The public capabilities are **experimental operations**, not a generic AprilTag demo. Each operation is independently callable from direct native use, presets, protocols and ODK/XLSForm; the module dashboard is only an aggregate projection.
 
+## v0.4.0 metric distance calibration
+
+Pose-based real-world measurements now have a persistent dimensionless **distance adjustment**. `apriltag.calibrate_focal` samples the uncorrected live pose at a known true camera-to-tag distance and calculates `true / raw`. Range/pose, relative pose and tracking apply that factor uniformly to X/Y/Z and Euclidean range. The equivalent effective pose size (`tag_size_mm × adjustment`) is shown in the HUD and returned for audit. Planar measurement continues to use the physical tag size directly. The adjustment is device-persistent, editable, preset-aware and may be overridden by protocol/ODK settings.
+
+## v0.3.0 immersive optical-instrument UI
+
+All six canonical AprilTag capabilities now request the generic `CapabilityHostPresentation.Immersive` host. During live work the camera is the primary instrument surface: detections, tag roles, points/paths, current computed values, readiness and quality remain visible in a common HUD. Compact action rails sit over the lower camera surface; reusable configuration moves behind a Settings overlay. `Commit` remains the only transition from changing live values to the canonical MethodMesh `ExecutionResult`.
+
+- `apriltag.detect`: all-tags mode or tap-to-target single tag.
+- `apriltag.calibrate_focal`: live tag lock, sample progress, variation and working focal estimate.
+- `apriltag.range_pose`: live range, XYZ, Euler orientation, quality/error and marginal-pose guidance.
+- `apriltag.relative_pose`: explicit Reference/Target roles selected by tapping live tags; relative transform stays in the HUD.
+- `apriltag.planar_measure`: camera remains the tap surface; captured points, lines/polygons/trajectory and working metric result are overlaid live.
+- `apriltag.track_pose`: guided moving/reference/fixed-camera setup, recording state, live XYZ, sample/path/displacement/speed and a frozen post-stop summary before Commit.
+
+Settings changes continue to update only the working result. They do not silently overwrite a committed result.
+
 ## Canonical capabilities
 
 | Method ID | Purpose | Primary beef |
 |---|---|---|
 | `apriltag.detect` | Detect/identify tags and image-space geometry | ID, pixel geometry, detector evidence |
-| `apriltag.calibrate_focal` | Approximate pinhole focal calibration from a known-distance tag | `fx/fy/cx/cy` calibration profile |
+| `apriltag.calibrate_focal` | Real-world metric scale calibration from a known-distance tag | distance adjustment + audit focal/profile |
 | `apriltag.range_pose` | Known-size tag range + 6-DoF pose | distance, XYZ, yaw/pitch/roll |
 | `apriltag.relative_pose` | Target tag relative to fixed reference tag | relative XYZ/rotation |
 | `apriltag.planar_measure` | Point/distance/area/manual trajectory on a tagged plane | millimetre coordinates/derived measures |
@@ -48,7 +65,7 @@ The UI deliberately exposes geometry assumptions and quality evidence rather tha
 - `tag_size_mm` means the physical distance between the four AprilTag detection corners, **not** the outside edge of the printed paper.
 - Automatic camera intrinsics use Android factory metadata where available and are scaled to the CameraX analysis frame. The returned `apriltag_intrinsics_source` and warnings remain part of the result.
 - The fallback physical-sensor estimate is explicitly labelled approximate.
-- `apriltag.calibrate_focal` is a pragmatic field calibration, not a full lens-distortion calibration.
+- `apriltag.calibrate_focal` now calibrates the operational metric scale (`true distance / raw pose distance`) and also reports the earlier pragmatic focal estimate for audit. It is not a full lens-distortion calibration.
 - Planar measurements are valid only when the tapped object lies on the same physical plane as the reference tag/layout.
 - Camera-frame tracking requires the phone/camera to remain physically fixed. A simultaneously visible reference tag is preferable because it gives a stable external frame.
 - AprilTag's pose error, Hamming distance, decision margin and camera-model source are retained as audit/quality evidence.
@@ -71,9 +88,15 @@ Attach a tag to a rigid moving object. Prefer a second fixed reference tag in vi
 
 `apriltag.relative_pose` measures one tag relative to another when both are visible. Repeated pairwise observations are useful building blocks for room/bench/arena landmark networks. Global graph optimisation / bundle adjustment is intentionally **not** claimed in v0.2; see `ROADMAP_NOTE.md`.
 
-## Native detector dependency
+## AprilTag platform dependency
 
-MethodMesh currently provides CameraX but no AprilTag detector. `AprilTagNativeBridge.kt` therefore attempts to load `libmethodmesh_apriltag.so`; if absent, every camera screen fails closed. `native/apriltag_jni.cpp`, `native/CMakeLists.txt.example` and `native/README.md` define the integration boundary without modifying shared app files in this module handoff.
+This module consumes MethodMesh's generic `platform.fiducial` AprilTag facility. `AprilTagNativeBridge.kt` is now a module-side adapter only: it contains no JNI declarations and does not load a module-specific native symbol. The dependency direction is:
+
+```text
+modules.apriltag -> platform.fiducial -> libmethodmesh_apriltag
+```
+
+The shared platform remains capability-agnostic and knows nothing about `apriltag.*` method IDs. Detection can return one or many tags. Metric pose is requested generically by supplying a physical tag detection-edge size and camera intrinsics.
 
 Default family is `tagStandard41h12`; supported families are configurable.
 
@@ -93,6 +116,6 @@ Returned data remain transient unless the user explicitly saves/exports or the c
 - `AprilTagCapabilityScreens.kt` — task-specific live/Commit UI.
 - `AprilTagCamera.kt` — CameraX analysis surface and camera model resolution.
 - `AprilTagGeometry.kt` — pure geometry, transforms and measurement calculations.
-- `AprilTagNativeBridge.kt` — fail-closed JNI boundary.
-- `native/` — AprilTag JNI integration material.
+- `AprilTagNativeBridge.kt` — module-side adapter onto the generic MethodMesh AprilTag platform API and module-side metric pose scaling.
+- `AprilTagCalibrationStore.kt` — module-owned persistent distance-adjustment profile for the rear-camera instrument.
 - `docs/` — capability-addressable documentation and one-call XLSForm showcases.

@@ -8,7 +8,7 @@ The normal ODK workflow is intentionally simple:
 
 **paste a Central web-form link → open the form → submit → Central reaches MethodMesh's one-shot return URL → MethodMesh receives a live completion result → Commit / return to caller**
 
-The module is renderer-neutral for ODK Central. The same saved Central link can continue to work when Central renders the form with ODK Web Forms or Enketo.
+ODK hosted forms are exposed as distinct capabilities for **ODK Web Forms** and **ODK Enketo**, plus a compatibility `web.odk_central_roundtrip` route. Current Central Public Access links use the same `/f/<id>?st=<secret>` shell for either renderer, so the path alone does not identify the renderer.
 
 All capabilities are currently **Development** pending a full MethodMesh Gradle build and real-device integration tests.
 
@@ -34,6 +34,18 @@ MethodMesh preserves Central-owned query parameters and replaces/adds `return_ur
 A callback means the configured post-submission return URL was reached. It is **not** an independent server-to-server verification of a Central submission instance, so the result deliberately reports `submission_receipt_verified=false` in audit metadata.
 
 Canonical output never contains the pasted source URL. This matters for Public Access Links because `st` is an access token.
+
+### `web.odk_enketo_roundtrip` — ODK Enketo form
+
+For current Central Public Access `/f/<id>?st=<secret>` links, MethodMesh resolves the form metadata through Central's `/v1/form-links/<id>/form?st=...` endpoint before opening the WebView. If Central reports `webformsEnabled`, the run stops with a clear instruction to use the ODK Web Forms capability. If Enketo is configured, MethodMesh bypasses the Central SPA and launches Central's own `/enketo-passthrough/single/<id>` route with the one-shot MethodMesh `return_url`. This mirrors the current Central frontend's Enketo iframe path while avoiding the SPA/WebView blank-screen failure.
+
+The already-encoded `st` query value is copied byte-for-byte into the metadata and passthrough requests. It is never logged, returned canonically, or included in error text. Legacy `/-/` Enketo links remain supported by the existing compatibility path.
+
+#### Enketo SVG image maps
+
+MethodMesh does **not** rewrite provider-owned SVG geometry or responsive sizing. Enketo's `image-map` widget fetches the SVG, sanitizes it, constructs the inline widget, calculates a `viewBox` when one is absent, and applies its own responsive CSS. MethodMesh previously attempted a second generic SVG `viewBox`/width repair after page load; that could change image-map geometry after Enketo initialization and is deliberately removed.
+
+The WebView now treats Enketo SVGs as provider DOM and only emits read-only diagnostic metrics for the ODK Enketo and Kobo Enketo capabilities. Current Enketo interactivity targets selectable `path[id]`, `g[id]`, and `circle[id]` elements. If an SVG renders correctly but some regions remain non-selectable, normalize those selectable regions in the source SVG rather than patching them in MethodMesh.
 
 ### `web.precooked_enketo` — Precooked Enketo session
 
@@ -206,7 +218,7 @@ v0.05 renames the advanced programmatic capability from `web.enketo_roundtrip` t
 
 ## Central/Kobo route handling
 
-MethodMesh preserves the pasted Central/Kobo form route rather than inventing provider-specific path conversions. For modern Central Public Access/Data Collector routes it adds the documented `single=true`/`return_url` parameters where applicable. For Kobo/legacy Enketo multi-submit pages, the one-shot callback remains preferred but the online-only kiosk also has the provider-confirmation fallback described below.
+MethodMesh preserves provider-owned query parameters, but the Central capability now exposes two session controls for avoiding cached/reusable web forms. **Disposable online session** is on by default: it removes Central Data Collector `/offline` routes, adds `single=true`/`return_url` where Central documents those controls, asks Data Collector routes for `offline=false`, clears WebView storage on launch/exit, and hides draft/offline controls where the page permits it. Public Access `/f/...?...st=...` links remain unchanged for ODK Web Forms and the compatibility route. The dedicated ODK Enketo capability first resolves the renderer and then uses Central's `/enketo-passthrough/single/...` route with a MethodMesh `return_url`, avoiding the Central SPA while preserving the opaque `st` credential. **Fresh browser URL** is also on by default and appends a per-run `_methodmesh_run` value to routes that tolerate it so the WebView/provider does not reuse a cached page. For Kobo/legacy Enketo multi-submit pages, the one-shot callback remains preferred but the online-only kiosk also has the provider-confirmation fallback described below.
 
 ## v0.10 provider-confirmation fallback
 
@@ -217,7 +229,7 @@ This fallback does **not** treat browser Back, a page reload, a new blank record
 
 ## v0.10 Central kiosk behaviour
 
-`web.odk_central_roundtrip` is an intentionally **online-only, disposable kiosk**. It uses `LOAD_NO_CACHE`, clears WebView cache/form storage at launch and close, removes service-worker/cache registrations where the provider permits it, hides provider Save Draft controls, and latches a strong visible provider submission-success message immediately after the user presses Submit. The primary completion signal remains the one-shot `return_url`; the provider-success latch is a narrow fallback for legacy/Kobo multi-submit pages that acknowledge upload but do not navigate to `return_url`. After either signal the page is frozen immediately and MethodMesh returns to the result/Commit state.
+`web.odk_central_roundtrip` is an intentionally **online-only, disposable kiosk**. It uses `LOAD_NO_CACHE`, clears WebView cache/form storage at launch and close, removes service-worker/cache registrations where the provider permits it, hides provider Save Draft controls, and latches a strong visible provider submission-success message immediately after the user presses Submit. The primary completion signal remains the one-shot `return_url`; the provider-success latch is a narrow fallback for legacy/Kobo multi-submit pages that acknowledge upload but do not navigate to `return_url`. After either signal the page is frozen immediately and MethodMesh returns to the result/Commit state. Android Back and the visible **Kill + clear** action both perform the same hard teardown/purge path so a wedged provider session is always escapable.
 
 
 ## v0.10 completion behaviour

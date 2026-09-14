@@ -18,6 +18,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -39,11 +41,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.artifacts.AndroidArtifacts
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.CapabilityPreset
 import com.example.methodmesh.core.protocols.PresetResultAction
+import com.example.methodmesh.core.protocols.PresetLaunchMode
 import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
 import com.example.methodmesh.core.protocols.ProtocolPayloadMode
 import com.example.methodmesh.settings.MethodSetting
@@ -54,6 +56,47 @@ import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import java.io.ByteArrayInputStream
 import org.json.JSONObject
+
+
+/**
+ * Weather preset fields are not all meaningful run-time questions.
+ *
+ * Run-time inputs describe the context of this invocation (where/when).
+ * Analysis/display policy stays configuration: threshold, horizon, cache-only,
+ * radar zoom, source policy, etc.
+ */
+internal fun weatherRuntimeEligibleSettingIds(methodId: String): Set<String> = when (methodId) {
+    As100WeatherDashboardMethod.id ->
+        setOf("latitude", "longitude")
+
+    As100WeatherRadarMethod.id ->
+        setOf("latitude", "longitude", "frame_time_iso")
+
+    As100WeatherSnapshotMethod.id ->
+        setOf("latitude", "longitude", "target_time_iso")
+
+    else ->
+        setOf("latitude", "longitude", "target_time_iso")
+}
+
+internal fun weatherRuntimeFields(
+    context: CapabilityScreenContext,
+    methodId: String
+): Set<String> =
+    context.runtimeInputFields.intersect(weatherRuntimeEligibleSettingIds(methodId))
+
+internal fun weatherSettingShouldBeShown(
+    context: CapabilityScreenContext,
+    methodId: String,
+    settingId: String
+): Boolean {
+    if (context.isNativePresetRun &&
+        settingId !in weatherRuntimeEligibleSettingIds(methodId)
+    ) {
+        return false
+    }
+    return context.settingShouldBeShown(settingId)
+}
 
 /**
  * Preset authoring for Weather's immersive capability surfaces.
@@ -102,7 +145,7 @@ internal fun WeatherPresetAuthoring(
             initialSettings = currentSettings,
             existingRuntimeFields = context.runtimeInputFields,
             onDismiss = { open = false },
-            onSave = { name, payloadMode, resultAction, selected, saveToLog, logName ->
+            onSave = { name, description, payloadMode, resultAction, launchMode, selected, saveToLog, logName ->
                 runCatching {
                     val settings = selected.toMutableMap()
                     if (saveToLog) {
@@ -116,7 +159,8 @@ internal fun WeatherPresetAuthoring(
                             settingsJson = JSONObject(settings).toString(),
                             payloadMode = payloadMode,
                             resultAction = resultAction,
-                            description = "Weather preset for $methodName"
+                            launchMode = launchMode,
+                            description = description.ifBlank { "Weather preset for $methodName" }
                         )
                     )
                 }.onSuccess { saved ->
@@ -138,11 +182,13 @@ private fun WeatherPresetDialog(
     initialSettings: Map<String, String>,
     existingRuntimeFields: Set<String>,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, Map<String, String>, Boolean, String) -> Unit
+    onSave: (String, String, String, String, String, Map<String, String>, Boolean, String) -> Unit
 ) {
     var name by rememberSaveable(methodId) { mutableStateOf("$methodName preset") }
+    var description by rememberSaveable("$methodId:presetDescription") { mutableStateOf("") }
     var payloadMode by rememberSaveable(methodId) { mutableStateOf(ProtocolPayloadMode.CORE) }
     var resultAction by rememberSaveable(methodId) { mutableStateOf(PresetResultAction.HOME) }
+    var launchMode by rememberSaveable("$methodId:launchMode") { mutableStateOf(PresetLaunchMode.AUTO) }
     var saveToLog by rememberSaveable(methodId) { mutableStateOf(false) }
     var logName by rememberSaveable(methodId) { mutableStateOf("") }
 
@@ -153,9 +199,17 @@ private fun WeatherPresetDialog(
             }
         }
     }
-    val fixed = remember(methodId, initialSettings, existingRuntimeFields) {
+    val runtimeEligible = remember(methodId) {
+        weatherRuntimeEligibleSettingIds(methodId)
+    }
+    val fixed = remember(methodId, initialSettings, existingRuntimeFields, runtimeEligible) {
         mutableStateMapOf<String, Boolean>().apply {
-            settingSchema.forEach { setting -> put(setting.id, setting.id !in existingRuntimeFields) }
+            settingSchema.forEach { setting ->
+                put(
+                    setting.id,
+                    setting.id !in existingRuntimeFields || setting.id !in runtimeEligible
+                )
+            }
         }
     }
 
@@ -163,10 +217,8 @@ private fun WeatherPresetDialog(
         val selected = linkedMapOf<String, String>()
         val runtime = mutableListOf<String>()
         settingSchema.forEach { setting ->
-            if (fixed[setting.id] == true) {
+            if (fixed[setting.id] == true || setting.id !in runtimeEligible) {
                 val value = values[setting.id].orEmpty()
-                // Blank text fields are intentionally not persisted as fixed values.
-                // Boolean and numeric defaults are concrete strings and are preserved.
                 if (value.isNotBlank()) selected[setting.id] = value
             } else {
                 runtime += setting.id
@@ -191,58 +243,144 @@ private fun WeatherPresetDialog(
                     .verticalScroll(rememberScrollState())
                     .padding(20.dp)
             ) {
-                Text("Save capability preset", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                Text("Create preset", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Choose what stays fixed and what MethodMesh asks for each time this preset runs.",
+                    "Save this Weather setup as a reusable action.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(16.dp))
+
+                Text("Preset", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description · optional") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 3
+                )
+
+                HorizontalDivider(Modifier.padding(vertical = 16.dp))
+
+                Text("Configuration", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Location and time may be asked when the preset runs. Analysis and display settings stay fixed.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
 
                 settingSchema.forEach { setting ->
                     WeatherPresetSettingRow(
                         setting = setting,
                         value = values[setting.id].orEmpty(),
                         fixed = fixed[setting.id] == true,
+                        runtimeEligible = setting.id in runtimeEligible,
                         onValueChanged = { values[setting.id] = it },
                         onFixedChanged = { fixed[setting.id] = it }
                     )
                     Spacer(Modifier.height(10.dp))
                 }
 
-                Text("Returned payload", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                WeatherPresetChoiceRow(
-                    options = listOf(
-                        ProtocolPayloadMode.CORE to "Core",
-                        ProtocolPayloadMode.AUDIT to "Core + audit",
-                        ProtocolPayloadMode.FULL to "Everything"
-                    ),
-                    selected = payloadMode,
-                    onSelected = { payloadMode = it }
-                )
+                HorizontalDivider(Modifier.padding(vertical = 16.dp))
+
+                Text("Run behaviour", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    when (ProtocolPayloadMode.normalize(payloadMode)) {
-                        ProtocolPayloadMode.AUDIT -> "Core Weather values plus audit/provenance fields."
-                        ProtocolPayloadMode.FULL -> "Complete Weather output, including structured JSON fields."
-                        else -> "Practical Weather result values only."
-                    },
+                    "Auto is recommended. Background is useful for scheduled logging; Show UI keeps the Weather dashboard visible.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(14.dp))
-
-                Text("After result", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                WeatherPresetChoiceRow(
-                    options = listOf(
-                        PresetResultAction.HOME to "Home",
-                        PresetResultAction.SHARE to "Share",
-                        PresetResultAction.SAVE to "Save"
-                    ),
-                    selected = resultAction,
-                    onSelected = { resultAction = it }
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = PresetLaunchMode.normalize(launchMode) == PresetLaunchMode.AUTO,
+                        onClick = { launchMode = PresetLaunchMode.AUTO },
+                        label = { Text("Auto") }
+                    )
+                    FilterChip(
+                        selected = PresetLaunchMode.normalize(launchMode) == PresetLaunchMode.INTERACTIVE,
+                        onClick = { launchMode = PresetLaunchMode.INTERACTIVE },
+                        label = { Text("Show UI") }
+                    )
+                    FilterChip(
+                        selected = PresetLaunchMode.normalize(launchMode) == PresetLaunchMode.BACKGROUND,
+                        onClick = { launchMode = PresetLaunchMode.BACKGROUND },
+                        label = { Text("Background") }
+                    )
+                }
+                Text(
+                    when (PresetLaunchMode.normalize(launchMode)) {
+                        PresetLaunchMode.INTERACTIVE -> "Always open the Weather interface."
+                        PresetLaunchMode.BACKGROUND -> "Run from saved/runtime inputs without opening the Weather interface."
+                        else -> "Use Weather's normal presentation for the caller."
+                    },
+                    style = MaterialTheme.typography.bodySmall
                 )
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(16.dp))
 
+                Text("After completion", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = PresetResultAction.normalize(resultAction) == PresetResultAction.HOME,
+                        onClick = { resultAction = PresetResultAction.HOME },
+                        label = { Text("Return") }
+                    )
+                    FilterChip(
+                        selected = PresetResultAction.normalize(resultAction) == PresetResultAction.SHARE,
+                        onClick = { resultAction = PresetResultAction.SHARE },
+                        label = { Text("Share") }
+                    )
+                    FilterChip(
+                        selected = PresetResultAction.normalize(resultAction) == PresetResultAction.SAVE,
+                        onClick = { resultAction = PresetResultAction.SAVE },
+                        label = { Text("Save") }
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+
+                Text("Returned data", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "The useful Weather result is always primary. Add audit detail or the complete JSON only when needed.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = ProtocolPayloadMode.normalize(payloadMode) == ProtocolPayloadMode.CORE,
+                        onClick = { payloadMode = ProtocolPayloadMode.CORE },
+                        label = { Text("Result") }
+                    )
+                    FilterChip(
+                        selected = ProtocolPayloadMode.normalize(payloadMode) == ProtocolPayloadMode.AUDIT,
+                        onClick = { payloadMode = ProtocolPayloadMode.AUDIT },
+                        label = { Text("+ Audit") }
+                    )
+                    FilterChip(
+                        selected = ProtocolPayloadMode.normalize(payloadMode) == ProtocolPayloadMode.FULL,
+                        onClick = { payloadMode = ProtocolPayloadMode.FULL },
+                        label = { Text("+ Full JSON") }
+                    )
+                }
+                Text(
+                    when (ProtocolPayloadMode.normalize(payloadMode)) {
+                        ProtocolPayloadMode.AUDIT -> "Useful Weather values plus provenance/audit fields."
+                        ProtocolPayloadMode.FULL -> "Useful Weather values plus the canonical complete JSON representation."
+                        else -> "Practical Weather result values only."
+                    },
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Spacer(Modifier.height(16.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
@@ -252,8 +390,8 @@ private fun WeatherPresetDialog(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Switch(checked = saveToLog, onCheckedChange = { saveToLog = it })
                             Column(Modifier.padding(start = 10.dp)) {
-                                Text("Save to log", fontWeight = FontWeight.SemiBold)
-                                Text("Keep each preset run in a persistent Files log.", style = MaterialTheme.typography.bodySmall)
+                                Text("Save each run to a log", fontWeight = FontWeight.SemiBold)
+                                Text("Keep results from this preset in a persistent Files log.", style = MaterialTheme.typography.bodySmall)
                             }
                         }
                         if (saveToLog) {
@@ -270,23 +408,17 @@ private fun WeatherPresetDialog(
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
-                Text("Preset name", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(18.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
                     Button(
                         onClick = {
                             onSave(
                                 name.trim(),
+                                description.trim(),
                                 ProtocolPayloadMode.normalize(payloadMode),
                                 PresetResultAction.normalize(resultAction),
+                                PresetLaunchMode.normalize(launchMode),
                                 selectedSettings(),
                                 saveToLog,
                                 logName.trim()
@@ -306,6 +438,7 @@ private fun WeatherPresetSettingRow(
     setting: MethodSetting,
     value: String,
     fixed: Boolean,
+    runtimeEligible: Boolean,
     onValueChanged: (String) -> Unit,
     onFixedChanged: (Boolean) -> Unit
 ) {
@@ -326,8 +459,16 @@ private fun WeatherPresetSettingRow(
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                OutlinedButton(onClick = { onFixedChanged(!fixed) }) {
-                    Text(if (fixed) "Fixed" else "Ask when run")
+                if (runtimeEligible) {
+                    OutlinedButton(onClick = { onFixedChanged(!fixed) }) {
+                        Text(if (fixed) "Fixed" else "Ask when run")
+                    }
+                } else {
+                    Text(
+                        "Fixed configuration",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -473,17 +614,9 @@ internal fun WeatherCommittedActions(
             context.request.settings["input_methodmesh_finish_to_launcher"] == "true"
 
     fun finishNativePresetHome() {
-        if (finishToLauncher) {
-            onDone()
-            return
-        }
-        // Match CapabilityScreenScaffold native-preset HOME semantics. Returning only
-        // to the transient dispatcher can leave no visible MethodMesh activity/task.
-        appContext.startActivity(
-            Intent(appContext, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-        )
+        // HOME is the compatibility token for Return: unwind through the host so
+        // direct, protocol and scheduled runs reveal their actual launch origin.
+        onDone()
     }
 
     fun copyResult() {

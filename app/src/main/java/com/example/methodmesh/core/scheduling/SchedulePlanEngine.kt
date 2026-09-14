@@ -10,7 +10,13 @@ object SchedulePlanEngine {
         val anchor = anchoredAt.withZoneSameInstant(plan.timezone)
         val end = terminationEnd(plan.termination, anchor, spec.horizon)
         val instanceId = java.util.UUID.randomUUID().toString()
-        val occurrences = plan.rules.flatMap { rule -> generateRule(plan, rule, anchor, end, spec.horizon, instanceId) }
+        val perRuleLimit = when (plan.termination.mode) {
+            ScheduleEndMode.OCCURRENCE_COUNT -> plan.termination.occurrenceCount
+            ScheduleEndMode.FOREVER -> 2048
+            ScheduleEndMode.DURATION, ScheduleEndMode.ABSOLUTE -> 4096
+            else -> null
+        }
+        val occurrences = plan.rules.flatMap { rule -> generateRule(plan, rule, anchor, end, spec.horizon, instanceId, perRuleLimit) }
             .sortedBy { it.scheduledAt }
             .let { generated ->
                 val limit = plan.termination.occurrenceCount
@@ -25,15 +31,19 @@ object SchedulePlanEngine {
         ScheduleEndMode.FOREVER, ScheduleEndMode.PARENT_SEQUENCE, ScheduleEndMode.OCCURRENCE_COUNT -> anchor.plus(horizon)
     }
 
-    private fun generateRule(plan: SchedulePlan, rule: ScheduleRule, anchor: ZonedDateTime, end: ZonedDateTime, horizon: Duration, instanceId: String): List<ScheduleOccurrence> {
+    private fun generateRule(plan: SchedulePlan, rule: ScheduleRule, anchor: ZonedDateTime, end: ZonedDateTime, horizon: Duration, instanceId: String, limitHint: Int?): List<ScheduleOccurrence> {
         val lane = plan.lanes.first { it.id == rule.laneId }
         val actions = rule.actions ?: lane.defaultActions
         val times = when (val timing = rule.timing) {
+            is ScheduleTimingRule.Once -> once(anchor, timing, end)
+            is ScheduleTimingRule.ElapsedInterval -> elapsedInterval(anchor, timing, end, limitHint)
+            is ScheduleTimingRule.AnchoredCalendarDays -> anchoredCalendarDays(anchor, timing, end, limitHint)
             is ScheduleTimingRule.RelativeDays -> relativeDays(anchor, timing, end, lane.missedStartPolicy)
             is ScheduleTimingRule.Weekly -> weekly(anchor, timing, end, lane.missedStartPolicy)
+            is ScheduleTimingRule.MonthlyDayOfMonth -> monthlyDay(anchor, timing, end, lane.missedStartPolicy)
             is ScheduleTimingRule.MonthlyNthWeekday -> monthlyNth(anchor, timing, end, lane.missedStartPolicy)
-            is ScheduleTimingRule.IntradayInterval -> intraday(anchor, timing, end, lane.missedStartPolicy)
-            is ScheduleTimingRule.Cron -> cron(anchor, timing, end)
+            is ScheduleTimingRule.IntradayInterval -> intraday(anchor, timing, end, lane.missedStartPolicy, limitHint)
+            is ScheduleTimingRule.Cron -> cron(anchor, timing, end, limitHint)
         }
         return times.map { scheduled ->
             val before = rule.timing.windowBefore() ?: lane.defaultWindowBefore
@@ -48,6 +58,32 @@ object SchedulePlanEngine {
                 actions = actions
             )
         }
+    }
+
+
+    private fun once(anchor: ZonedDateTime, timing: ScheduleTimingRule.Once, end: ZonedDateTime): List<ZonedDateTime> {
+        val due = anchor.plus(timing.offset)
+        return if (due <= end) listOf(due) else emptyList()
+    }
+
+    private fun elapsedInterval(anchor: ZonedDateTime, timing: ScheduleTimingRule.ElapsedInterval, end: ZonedDateTime, limitHint: Int?): List<ZonedDateTime> {
+        val result = mutableListOf<ZonedDateTime>()
+        var candidate = if (timing.runImmediately) anchor else anchor.plus(timing.interval)
+        while (candidate <= end && (limitHint == null || result.size < limitHint)) {
+            result += candidate
+            candidate = candidate.plus(timing.interval)
+        }
+        return result
+    }
+
+    private fun anchoredCalendarDays(anchor: ZonedDateTime, timing: ScheduleTimingRule.AnchoredCalendarDays, end: ZonedDateTime, limitHint: Int?): List<ZonedDateTime> {
+        val result = mutableListOf<ZonedDateTime>()
+        var candidate = if (timing.runImmediately) anchor else anchor.plusDays(timing.everyDays.toLong())
+        while (candidate <= end && (limitHint == null || result.size < limitHint)) {
+            result += candidate
+            candidate = candidate.plusDays(timing.everyDays.toLong())
+        }
+        return result
     }
 
     private fun relativeDays(anchor: ZonedDateTime, timing: ScheduleTimingRule.RelativeDays, end: ZonedDateTime, policy: ScheduleMissedStartPolicy): List<ZonedDateTime> {
@@ -65,6 +101,18 @@ object SchedulePlanEngine {
         return result.filter { it <= end && (it >= anchor || policy == ScheduleMissedStartPolicy.RUN_MISSED && it.toLocalDate() == anchor.toLocalDate() && it.isBefore(anchor)) }
     }
 
+
+    private fun monthlyDay(anchor: ZonedDateTime, timing: ScheduleTimingRule.MonthlyDayOfMonth, end: ZonedDateTime, policy: ScheduleMissedStartPolicy): List<ZonedDateTime> {
+        val result = mutableListOf<ZonedDateTime>()
+        var month = anchor.toLocalDate().withDayOfMonth(1)
+        while (!month.atStartOfDay(anchor.zone).isAfter(end)) {
+            val day = timing.dayOfMonth.coerceAtMost(month.lengthOfMonth())
+            result += ZonedDateTime.of(month.withDayOfMonth(day), timing.time, anchor.zone)
+            month = month.plusMonths(1)
+        }
+        return result.filter { it <= end && (it >= anchor || policy == ScheduleMissedStartPolicy.RUN_MISSED && it.toLocalDate() == anchor.toLocalDate() && it.isBefore(anchor)) }
+    }
+
     private fun monthlyNth(anchor: ZonedDateTime, timing: ScheduleTimingRule.MonthlyNthWeekday, end: ZonedDateTime, policy: ScheduleMissedStartPolicy): List<ZonedDateTime> {
         val result = mutableListOf<ZonedDateTime>()
         var month = anchor.toLocalDate().withDayOfMonth(1)
@@ -76,7 +124,7 @@ object SchedulePlanEngine {
         return result.filter { it <= end && (it >= anchor || policy == ScheduleMissedStartPolicy.RUN_MISSED && it.toLocalDate() == anchor.toLocalDate() && it.isBefore(anchor)) }
     }
 
-    private fun intraday(anchor: ZonedDateTime, timing: ScheduleTimingRule.IntradayInterval, end: ZonedDateTime, policy: ScheduleMissedStartPolicy): List<ZonedDateTime> {
+    private fun intraday(anchor: ZonedDateTime, timing: ScheduleTimingRule.IntradayInterval, end: ZonedDateTime, policy: ScheduleMissedStartPolicy, limitHint: Int?): List<ZonedDateTime> {
         val result = mutableListOf<ZonedDateTime>()
         var date = anchor.toLocalDate()
         while (!date.atStartOfDay(anchor.zone).isAfter(end)) {
@@ -85,6 +133,7 @@ object SchedulePlanEngine {
                 while (!time.isAfter(timing.lastTime)) {
                     val candidate = ZonedDateTime.of(date, time, anchor.zone)
                     if (candidate <= end && (candidate >= anchor || policy == ScheduleMissedStartPolicy.RUN_MISSED && candidate.toLocalDate() == anchor.toLocalDate() && candidate.isBefore(anchor))) result += candidate
+                    if (limitHint != null && result.size >= limitHint) return result
                     time = time.plus(timing.interval)
                 }
             }
@@ -93,12 +142,12 @@ object SchedulePlanEngine {
         return result
     }
 
-    private fun cron(anchor: ZonedDateTime, timing: ScheduleTimingRule.Cron, end: ZonedDateTime): List<ZonedDateTime> {
+    private fun cron(anchor: ZonedDateTime, timing: ScheduleTimingRule.Cron, end: ZonedDateTime, limitHint: Int?): List<ZonedDateTime> {
         val start = anchor.plus(if (timing.timing == ScheduleTimingMode.RELATIVE) timing.offset else Duration.ZERO)
         val result = mutableListOf<ZonedDateTime>()
         var after = start.minusMinutes(1)
-        while (true) {
-            val next = CronSchedule.next(timing.expression, after)
+        while (limitHint == null || result.size < limitHint) {
+            val next = CronSchedule.nextOrNull(timing.expression, after) ?: break
             if (next.isAfter(end)) break
             result += next
             after = next
@@ -115,7 +164,6 @@ object SchedulePlanEngine {
     private fun ScheduleTimingRule.windowAfter(): Duration? = when (this) {
         is ScheduleTimingRule.RelativeDays -> windowAfter
         is ScheduleTimingRule.Weekly -> windowAfter
-        is ScheduleTimingRule.Cron -> null
         else -> null
     }
 }

@@ -11,6 +11,9 @@ object WebActionsModule : MethodMeshModule {
     override val iconKey = "web"
 
     override fun as100Methods() = listOf(
+        As100OdkWebFormsRoundtripMethod,
+        As100OdkEnketoRoundtripMethod,
+        As100KoboEnketoRoundtripMethod,
         As100OdkCentralRoundtripMethod,
         As100EnketoRoundtripMethod,
         As100WebRoundtripMethod,
@@ -19,9 +22,24 @@ object WebActionsModule : MethodMeshModule {
 
     override fun rilBindings() = listOf(
         RilBinding(
+            "complete ODK Web Forms form",
+            As100OdkWebFormsRoundtripMethod.ID,
+            "Paste an ODK Central Web Forms link, complete the submission, and return after confirmed submission"
+        ),
+        RilBinding(
+            "complete ODK Enketo form",
+            As100OdkEnketoRoundtripMethod.ID,
+            "Paste an ODK Central link for a form configured to use Enketo, complete the submission, and return after confirmed submission"
+        ),
+        RilBinding(
+            "complete Kobo Enketo form",
+            As100KoboEnketoRoundtripMethod.ID,
+            "Paste a KoboToolbox Enketo link, complete the submission, and return after confirmed submission"
+        ),
+        RilBinding(
             "complete ODK Central form",
             As100OdkCentralRoundtripMethod.ID,
-            "Paste a Central web-form link, complete the submission, and return after Central's explicit return URL"
+            "Compatibility route for older saved ODK Central web-form presets"
         ),
         RilBinding(
             "create precooked Enketo session",
@@ -42,6 +60,9 @@ object WebActionsModule : MethodMeshModule {
     )
 
     override fun capabilityScreens() = listOf(
+        OdkWebFormsRoundtripCapabilityScreen,
+        OdkEnketoRoundtripCapabilityScreen,
+        KoboEnketoRoundtripCapabilityScreen,
         OdkCentralRoundtripCapabilityScreen,
         EnketoRoundtripCapabilityScreen,
         WebRoundtripCapabilityScreen,
@@ -74,7 +95,36 @@ object WebActionsModule : MethodMeshModule {
                 description = "Off by default. Enable only for a trusted local/test Central deployment.",
                 defaultValue = false,
                 group = "Security"
+            ),
+            MethodSetting.BooleanSetting(
+                id = "disposable_online_session",
+                label = "Disposable online session",
+                description = "Removes Central offline/cached-form routes, adds single-submit return controls, and clears browser storage on exit.",
+                defaultValue = true,
+                group = "Session"
+            ),
+            MethodSetting.BooleanSetting(
+                id = "cache_buster",
+                label = "Fresh browser URL",
+                description = "Adds a per-run MethodMesh query value so the WebView/provider does not reuse a cached form page.",
+                defaultValue = true,
+                group = "Session"
             )
+        ),
+        As100OdkWebFormsRoundtripMethod.ID to hostedFormSettings(
+            label = "ODK Web Forms link",
+            description = "Paste an ODK Central Web Forms link. Public Access and Data Collector links are supported.",
+            group = "ODK Web Forms"
+        ),
+        As100OdkEnketoRoundtripMethod.ID to hostedFormSettings(
+            label = "ODK Enketo link",
+            description = "Paste an ODK Central Public Access link for a form configured to use Enketo. Legacy /-/ links are also supported.",
+            group = "ODK Enketo"
+        ),
+        As100KoboEnketoRoundtripMethod.ID to hostedFormSettings(
+            label = "Kobo Enketo link",
+            description = "Paste a KoboToolbox Enketo link, usually containing /x/ or /single/.",
+            group = "Kobo Enketo"
         ),
         As100EnketoRoundtripMethod.ID to listOf(
             MethodSetting.TextSetting(
@@ -141,6 +191,13 @@ object WebActionsModule : MethodMeshModule {
                 description = "Off by default. Enable only for a trusted local/test deployment.",
                 defaultValue = false,
                 group = "Security"
+            ),
+            MethodSetting.BooleanSetting(
+                id = "cache_buster",
+                label = "Fresh browser URL",
+                description = "Adds a per-run MethodMesh query value to the issued Enketo URL before opening it.",
+                defaultValue = true,
+                group = "Session"
             )
         ),
         As100WebRoundtripMethod.ID to listOf(
@@ -199,4 +256,55 @@ object WebActionsModule : MethodMeshModule {
             )
         )
     )
+
+
+    private fun hostedFormSettings(label: String, description: String, group: String) = listOf(
+        MethodSetting.TextSetting(
+            id = "url",
+            label = label,
+            description = description,
+            defaultValue = "",
+            group = group
+        ),
+        MethodSetting.IntSetting(
+            id = "timeout_seconds",
+            label = "Timeout",
+            description = "0 waits indefinitely.",
+            defaultValue = 0,
+            minimum = 0,
+            maximum = 86400,
+            step = 60,
+            unit = "s",
+            group = "Session"
+        ),
+        MethodSetting.BooleanSetting(
+            id = "allow_insecure_http",
+            label = "Allow HTTP",
+            description = "Off by default. Enable only for a trusted local/test deployment.",
+            defaultValue = false,
+            group = "Security"
+        ),
+        MethodSetting.BooleanSetting(
+            id = "disposable_online_session",
+            label = "Disposable online session",
+            description = "Clears draft/cache state on exit and keeps the hosted form as a one-run session.",
+            defaultValue = true,
+            group = "Session"
+        ),
+        MethodSetting.BooleanSetting(
+            id = "cache_buster",
+            label = "Fresh browser URL",
+            description = "Adds a per-run MethodMesh query value where the provider route can safely accept it.",
+            defaultValue = true,
+            group = "Session"
+        ),
+        MethodSetting.BooleanSetting(
+            id = "chrome_user_agent",
+            label = "Chrome browser identity",
+            description = "For ODK Enketo troubleshooting: present the WebView as Chrome rather than Android WebView.",
+            defaultValue = true,
+            group = "Session"
+        )
+    )
+
 }

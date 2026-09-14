@@ -17,6 +17,7 @@ data class CapabilityPreset(
     val settingsJson: String = "{}",
     val payloadMode: String = ProtocolPayloadMode.CORE,
     val resultAction: String = PresetResultAction.HOME,
+    val launchMode: String = PresetLaunchMode.AUTO,
     val description: String = "",
     val createdAtIso: String = Instant.now().toString(),
     val updatedAtIso: String = Instant.now().toString(),
@@ -55,6 +56,20 @@ object ProtocolPayloadMode {
     }
 }
 
+object PresetLaunchMode {
+    const val AUTO = "AUTO"
+    const val INTERACTIVE = "INTERACTIVE"
+    const val BACKGROUND = "BACKGROUND"
+
+    fun normalize(value: String): String = when (value.trim().uppercase(Locale.ROOT)) {
+        INTERACTIVE -> INTERACTIVE
+        BACKGROUND -> BACKGROUND
+        else -> AUTO
+    }
+
+    fun isBackground(value: String): Boolean = normalize(value) == BACKGROUND
+}
+
 object PresetResultAction {
     const val HOME = "HOME"
     const val SHARE = "SHARE"
@@ -83,7 +98,8 @@ object ProtocolLibraryRepository {
     private const val PRESETS = "capability_presets_json"
     private const val PROTOCOLS = "protocol_definitions_json"
     private const val ARCHIVED_PROTOCOLS = "archived_protocol_definitions_json"
-    const val BUNDLE_VERSION = "1"
+    const val BUNDLE_VERSION = "2"
+    private const val LEGACY_BUNDLE_VERSION = "1"
 
     data class Imported(val presetCount: Int, val protocolCount: Int, val hash: String)
 
@@ -178,11 +194,18 @@ object ProtocolLibraryRepository {
 
     fun import(context: Context, payload: String): Imported {
         val root = JSONObject(payload)
-        require(root.optString("methodmesh_protocol_library_version") == BUNDLE_VERSION) { "Unsupported protocol library version." }
+        val bundleVersion = root.optString("methodmesh_protocol_library_version")
+        require(bundleVersion == BUNDLE_VERSION || bundleVersion == LEGACY_BUNDLE_VERSION) {
+            "Unsupported protocol library version."
+        }
         val importedPresets = root.optJSONArray("presets").orEmptyObjects().map { decodePreset(it) }
         val importedProtocols = root.optJSONArray("protocols").orEmptyObjects().map { decodeProtocol(it) }
         val expected = root.optString("payload_sha256")
-        val canonical = canonical(importedPresets.sortedBy { it.id }, importedProtocols.sortedBy { it.id })
+        val canonical = if (bundleVersion == LEGACY_BUNDLE_VERSION) {
+            canonicalLegacyV1(importedPresets.sortedBy { it.id }, importedProtocols.sortedBy { it.id })
+        } else {
+            canonical(importedPresets.sortedBy { it.id }, importedProtocols.sortedBy { it.id })
+        }
         require(expected.equals(sha256(canonical), ignoreCase = true)) { "Protocol library bundle hash verification failed." }
 
         val mergedPresets = uniquePresetNames(
@@ -209,6 +232,12 @@ object ProtocolLibraryRepository {
             put("protocols", JSONArray().apply { protocols.sortedBy { it.id }.forEach { put(encodeProtocol(it)) } })
         }.toString()
 
+    private fun canonicalLegacyV1(presets: List<CapabilityPreset>, protocols: List<ProtocolDefinition>): String =
+        JSONObject().apply {
+            put("presets", JSONArray().apply { presets.sortedBy { it.id }.forEach { put(encodePreset(it, includeLaunchMode = false)) } })
+            put("protocols", JSONArray().apply { protocols.sortedBy { it.id }.forEach { put(encodeProtocol(it)) } })
+        }.toString()
+
     private fun readArray(context: Context, key: String): List<JSONObject> {
         val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(key, "[]").orEmpty()
         return JSONArray(raw).orEmptyObjects()
@@ -223,13 +252,14 @@ object ProtocolLibraryRepository {
         writeArray(context, ARCHIVED_PROTOCOLS, JSONArray().apply { archived.sortedBy { it.versionIso }.forEach { put(encodeProtocol(it)) } })
     }
 
-    private fun encodePreset(preset: CapabilityPreset) = JSONObject().apply {
+    private fun encodePreset(preset: CapabilityPreset, includeLaunchMode: Boolean = true) = JSONObject().apply {
         put("id", preset.id)
         put("name", preset.name)
         put("method_id", preset.methodId)
         put("settings_json", preset.settingsJson.ifBlank { "{}" })
         put("payload_mode", ProtocolPayloadMode.normalize(preset.payloadMode))
         put("result_action", PresetResultAction.normalize(preset.resultAction))
+        if (includeLaunchMode) put("launch_mode", PresetLaunchMode.normalize(preset.launchMode))
         put("description", preset.description)
         put("created_at_iso", preset.createdAtIso)
         put("updated_at_iso", preset.updatedAtIso)
@@ -244,6 +274,7 @@ object ProtocolLibraryRepository {
         settingsJson = o.optString("settings_json", "{}"),
         payloadMode = ProtocolPayloadMode.normalize(o.optString("payload_mode", ProtocolPayloadMode.CORE)),
         resultAction = PresetResultAction.normalize(o.optString("result_action", PresetResultAction.HOME)),
+        launchMode = PresetLaunchMode.normalize(o.optString("launch_mode", PresetLaunchMode.AUTO)),
         description = o.optString("description"),
         createdAtIso = o.optString("created_at_iso", Instant.now().toString()),
         updatedAtIso = o.optString("updated_at_iso", Instant.now().toString()),

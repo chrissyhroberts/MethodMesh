@@ -28,23 +28,25 @@ object ConversionsModule : MethodMeshModule {
             MethodSetting.ChoiceSetting(
                 "category",
                 "Calculation",
+                runtimeInputAllowed = false,
                 defaultValue = "length",
                 choices = listOf("length", "area", "volume", "mass", "temperature", "speed", "pressure", "energy", "power", "angle", "data_size", "percentage", "ratio", "date_difference", "date_arithmetic", "age", "geometry")
             ),
             MethodSetting.TextSetting("value", "Value / A", defaultValue = ""),
             MethodSetting.TextSetting("value2", "Second value / B", defaultValue = ""),
             MethodSetting.TextSetting("value3", "Third value / C", defaultValue = ""),
-            MethodSetting.ChoiceSetting("from_unit", "From unit", defaultValue = "m", choices = unitChoices),
-            MethodSetting.ChoiceSetting("to_unit", "To unit", defaultValue = "km", choices = unitChoices),
+            MethodSetting.ChoiceSetting("from_unit", "From unit", runtimeInputAllowed = false, defaultValue = "m", choices = unitChoices),
+            MethodSetting.ChoiceSetting("to_unit", "To unit", runtimeInputAllowed = false, defaultValue = "km", choices = unitChoices),
             MethodSetting.ChoiceSetting(
                 "operation",
                 "Operation",
+                runtimeInputAllowed = false,
                 defaultValue = "convert",
                 choices = listOf("convert", "percent_of", "what_percent", "percent_change", "increase_by_percent", "decrease_by_percent", "a_to_b", "solve_proportion", "add_days", "add_weeks", "add_months", "add_years", "subtract_days", "area", "perimeter", "circumference")
             ),
             MethodSetting.TextSetting("date1", "Date 1 / birth date (YYYY-MM-DD)", defaultValue = ""),
             MethodSetting.TextSetting("date2", "Date 2 / at date (YYYY-MM-DD)", defaultValue = ""),
-            MethodSetting.ChoiceSetting("shape", "Geometry shape", defaultValue = "rectangle", choices = listOf("rectangle", "triangle", "circle"))
+            MethodSetting.ChoiceSetting("shape", "Geometry shape", runtimeInputAllowed = false, defaultValue = "rectangle", choices = listOf("rectangle", "triangle", "circle"))
         )
     )
 }

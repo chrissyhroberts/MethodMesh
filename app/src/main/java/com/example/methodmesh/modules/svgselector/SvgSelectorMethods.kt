@@ -7,15 +7,15 @@ import com.example.methodmesh.settings.SettingsState
 
 object As100SvgSelectorMethod : As100Method {
     const val ID = "svg.select"
-    private const val VERSION = "0.1.0"
+    private const val VERSION = "0.3.4"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "SVG polygon selector")
     override val descriptor = MethodDescriptor(
         id = ArchitectureId(ID), methodType = MethodObjectType.SignalInterpreter,
         name = "SVG polygon selector", version = VERSION,
-        description = "Select one, multiple, or an ordered sequence of SVG polygons.",
-        outputs = listOf("svg_name", "selection_mode", "selected_polygons", "selection_events", "selection_audit_hash", "selection_started_at", "selection_completed_at"),
+        description = "Select one, multiple, an ordered sequence, or repeated-tap heat-map levels on SVG polygons.",
+        outputs = listOf("svg_name", "selection_mode", "selected_polygons", "selected_polygon_ids", "selected_count", "selection_summary", "polygon_levels", "heatmap_max_level", "selection_events", "selection_audit_hash", "selection_started_at", "selection_completed_at"),
         graphOutputs = listOf("svg.selection")
     )
     override val contract = MethodContract(method = ref, producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation), producedFields = descriptor.outputs, producedGraphOutputs = descriptor.graphOutputs)
@@ -33,6 +33,11 @@ object As100SvgSelectorMethod : As100Method {
             "svg_name" to c["svg_name"].orEmpty(),
             "selection_mode" to c["selection_mode"].orEmpty().ifBlank { "single" },
             "selected_polygons" to selected.ifBlank { "[]" },
+            "selected_polygon_ids" to SvgSelectorCodec.selectedPolygonIdsJson(selected.ifBlank { "[]" }),
+            "selected_count" to SvgSelectorCodec.selectedCount(selected.ifBlank { "[]" }).toString(),
+            "selection_summary" to SvgSelectorCodec.selectionSummary(selected.ifBlank { "[]" }, c["selection_mode"].orEmpty().ifBlank { "single" }),
+            "polygon_levels" to c["polygon_levels"].orEmpty().ifBlank { SvgSelectorCodec.polygonLevelsJson(selected.ifBlank { "[]" }) },
+            "heatmap_max_level" to c["heatmap_max_level"].orEmpty().ifBlank { "5" },
             "selection_events" to events.ifBlank { "[]" },
             "selection_audit_hash" to SvgSelectorCodec.auditHash(events.ifBlank { selected }),
             "selection_started_at" to c["selection_started_at"].orEmpty(),

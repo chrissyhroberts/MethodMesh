@@ -1,50 +1,47 @@
-# Calibrate AprilTag range — `apriltag.calibrate_focal`
+# Calibrate AprilTag measurements — `apriltag.calibrate_focal`
 
 **Tags:** Experimental · Offline
 
 ## Purpose
 
-Estimate a practical pinhole focal length in pixels from repeated observations of a known-size, front-facing tag at a measured camera-to-tag distance.
+Calibrate the real-world scale of AprilTag pose measurements from a known camera-to-tag distance. The capability samples the **raw uncorrected pose**, averages it, and calculates a dimensionless distance adjustment:
 
-This is intentionally a **field approximation**. It assumes a fronto-parallel tag, principal point near image centre and unmodelled lens distortion. For validation-grade 6-DoF work, prefer a proper camera calibration profile supplied through manual intrinsics.
+`distance_adjustment = true_distance / mean_raw_distance`
 
-## Surface parity
+All later pose-based measurements use:
 
-Direct native, presets, protocols and ODK all invoke the same capability. The native screen collects stable samples, shows variation, and Commit freezes one calibration profile.
+`corrected XYZ/range = raw pose × distance_adjustment`
+
+Because AprilTag translation is linear in the configured tag size, this is equivalent to an effective pose tag size of:
+
+`effective_pose_tag_size = physical_tag_size × distance_adjustment`
+
+The physical `tag_size_mm` is still retained unchanged for planar measurements.
+
+## Workflow
+
+1. Measure the AprilTag detection-edge size accurately.
+2. Put the tag approximately front-facing and centred in the camera.
+3. Measure the true distance from the camera optical centre to the tag centre.
+4. Enter that distance, select the tag, and collect stable samples.
+5. The HUD shows raw range, variability, the proposed adjustment, corrected distance and effective pose size.
+6. **Save calibration + Commit** persists the adjustment as this device's AprilTag default.
+7. Range/pose, relative pose and tracking automatically load the stored adjustment unless a preset/protocol/ODK call explicitly supplies another value.
+
+The adjustment remains directly editable in those capabilities and is included when saving a preset. Recalibrate if the camera/lens, zoom, camera model/intrinsics, or tag-size definition changes.
+
+## Camera model
+
+The capability still reports the older approximate pinhole focal estimate for audit/backward compatibility. That estimate assumes a fronto-parallel tag and does not model lens distortion. The **distance adjustment** is the operational calibration used for real-world XYZ/range scaling.
 
 ## Inputs/settings
 
-`tag_family`, `target_tag_id`, `tag_size_mm`, `known_distance_mm`, `calibration_samples`, plus detector tuning.
+`tag_family`, `target_tag_id`, `tag_size_mm`, `known_distance_mm`, `calibration_samples`, `distance_scale`, camera intrinsics and detector tuning.
 
-## Canonical outputs
+## Key outputs
 
-`apriltag_status`, `apriltag_result`, `apriltag_calibration_tag_id`, `apriltag_family`, `apriltag_tag_size_mm`, `apriltag_known_distance_mm`, `apriltag_calibration_sample_count`, `apriltag_mean_edge_px`, `apriltag_edge_cv`, `apriltag_fx_px`, `apriltag_fy_px`, `apriltag_cx_px`, `apriltag_cy_px`, `apriltag_intrinsics_width_px`, `apriltag_intrinsics_height_px`, `apriltag_intrinsics_source`, `apriltag_calibration_profile_json`, `apriltag_geometry_valid`, `apriltag_backend`, `apriltag_captured_time_iso`, `apriltag_audit_json`, `apriltag_warning`, `apriltag_error`.
+`apriltag_distance_scale`, `apriltag_raw_distance_m`, `apriltag_corrected_distance_m`, `apriltag_effective_tag_size_mm`, `apriltag_range_cv`, plus the existing focal/profile outputs and audit fields.
 
-## ODK INTEGRATION
+## ODK integration
 
-**Capability:** Calibrate AprilTag range — `apriltag.calibrate_focal`  
-**Tags:** Experimental · Offline
-
-**ODK INPUTS**  
-`tag_family` | text | optional  
-`target_tag_id` | int | optional  
-`tag_size_mm` | decimal | required for meaningful calibration  
-`known_distance_mm` | decimal | required  
-`calibration_samples` | int | optional
-
-Interactive acquisition: live camera sampling.
-
-**INTENT CALL**  
-`com.example.methodmesh.EXECUTE_METHOD(method_id='apriltag.calibrate_focal',input_tag_family=${tag_family},input_target_tag_id=${target_tag_id},input_tag_size_mm=${tag_size_mm},input_known_distance_mm=${known_distance_mm},input_calibration_samples=${calibration_samples},input_payload_mode='FULL',return_mode='flat')`
-
-**MODIFIERS**  
-`detector_threads`, `quad_decimate`, `refine_edges` are optional detector tuning; `calibration_samples` controls the repeated-observation target.
-
-**CANONICAL RETURNS**  
-All declared `apriltag_*` outputs above plus `methodmesh_full_json`.
-
-**RETURN FIELD PLACEMENT**  
-One `run_apriltag_calibrate_focal` group, canonical unprefixed keys, one invocation.
-
-**FILE RETURN SEMANTICS:** None.  
-**RUNTIME:** Beef is the scalar/profile camera model; JSON is secondary audit material.
+Direct native, preset, protocol and ODK launches use the same immersive calibration capability. A supplied `distance_scale` may override the device default; leaving it absent/blank allows the persisted device calibration to be used.

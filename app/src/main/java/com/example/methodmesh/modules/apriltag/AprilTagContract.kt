@@ -9,9 +9,10 @@ import kotlin.math.sqrt
 object AprilTagContractMetadata {
     const val MATURITY = "Experimental"
     const val CONNECTIVITY = "Offline"
-    const val VERSION = "0.2.0"
+    const val VERSION = "0.4.0"
     const val DEFAULT_FAMILY = "tagStandard41h12"
     const val DEFAULT_TAG_SIZE_MM = 100f
+    const val DEFAULT_DISTANCE_SCALE = 1f
 }
 
 object AprilTagInputs {
@@ -22,6 +23,7 @@ object AprilTagInputs {
     const val MOVING_TAG_ID = "moving_tag_id"
     const val KNOWN_DISTANCE_MM = "known_distance_mm"
     const val CALIBRATION_SAMPLES = "calibration_samples"
+    const val DISTANCE_SCALE = "distance_scale"
     const val INTRINSICS_MODE = "intrinsics_mode"
     const val FX_PX = "fx_px"
     const val FY_PX = "fy_px"
@@ -93,6 +95,11 @@ object CalibrationFields {
         "apriltag_intrinsics_height_px",
         "apriltag_intrinsics_source",
         "apriltag_calibration_profile_json",
+        "apriltag_distance_scale",
+        "apriltag_raw_distance_m",
+        "apriltag_corrected_distance_m",
+        "apriltag_effective_tag_size_mm",
+        "apriltag_range_cv",
         AprilTagCommonFields.GEOMETRY_VALID,
         AprilTagCommonFields.BACKEND,
         AprilTagCommonFields.CAPTURED_TIME_ISO,
@@ -109,6 +116,8 @@ object RangePoseFields {
         "apriltag_tag_id",
         AprilTagCommonFields.FAMILY,
         "apriltag_tag_size_mm",
+        "apriltag_distance_scale",
+        "apriltag_effective_tag_size_mm",
         "apriltag_distance_m",
         "apriltag_x_right_m",
         "apriltag_y_down_m",
@@ -144,6 +153,8 @@ object RelativePoseFields {
         "apriltag_target_tag_id",
         AprilTagCommonFields.FAMILY,
         "apriltag_tag_size_mm",
+        "apriltag_distance_scale",
+        "apriltag_effective_tag_size_mm",
         "apriltag_relative_x_m",
         "apriltag_relative_y_m",
         "apriltag_relative_z_m",
@@ -200,6 +211,8 @@ object TrackPoseFields {
         "apriltag_reference_tag_id",
         AprilTagCommonFields.FAMILY,
         "apriltag_tag_size_mm",
+        "apriltag_distance_scale",
+        "apriltag_effective_tag_size_mm",
         "apriltag_reference_frame",
         "apriltag_sample_count",
         "apriltag_duration_s",

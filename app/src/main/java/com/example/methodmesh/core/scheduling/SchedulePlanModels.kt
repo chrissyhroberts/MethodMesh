@@ -26,12 +26,15 @@ data class ScheduleTermination(
 
 enum class ScheduleActionType { NOTIFIER, PRESET }
 
+enum class SchedulePresetLaunchMode { FOLLOW_PRESET, INTERACTIVE, BACKGROUND }
+
 enum class ScheduleMissedStartPolicy { SKIP_MISSED, RUN_MISSED }
 
 data class ScheduleAction(
     val id: String = UUID.randomUUID().toString(),
     val type: ScheduleActionType,
     val presetId: String = "",
+    val presetLaunchMode: SchedulePresetLaunchMode = SchedulePresetLaunchMode.FOLLOW_PRESET,
     val title: String = "",
     val message: String = "",
     val requireCompletion: Boolean = type == ScheduleActionType.NOTIFIER,
@@ -48,6 +51,29 @@ data class ScheduleAction(
 }
 
 sealed interface ScheduleTimingRule {
+    /** Run once at the schedule anchor plus an optional delay. */
+    data class Once(
+        val offset: Duration = Duration.ZERO
+    ) : ScheduleTimingRule {
+        init { require(!offset.isNegative) }
+    }
+
+    /** Repeat by elapsed duration from the schedule anchor. */
+    data class ElapsedInterval(
+        val interval: Duration,
+        val runImmediately: Boolean = true
+    ) : ScheduleTimingRule {
+        init { require(!interval.isZero && !interval.isNegative) }
+    }
+
+    /** Repeat by local calendar days from the anchor, preserving wall-clock time. */
+    data class AnchoredCalendarDays(
+        val everyDays: Int = 1,
+        val runImmediately: Boolean = true
+    ) : ScheduleTimingRule {
+        init { require(everyDays > 0) }
+    }
+
     data class Cron(
         val expression: String,
         val timing: ScheduleTimingMode = ScheduleTimingMode.ABSOLUTE,
@@ -75,6 +101,13 @@ sealed interface ScheduleTimingRule {
         val windowAfter: Duration? = null
     ) : ScheduleTimingRule {
         init { require(weekdays.isNotEmpty() && weekdays.all { it in 1..7 }) }
+    }
+
+    data class MonthlyDayOfMonth(
+        val dayOfMonth: Int,
+        val time: LocalTime
+    ) : ScheduleTimingRule {
+        init { require(dayOfMonth in 1..31) }
     }
 
     data class MonthlyNthWeekday(

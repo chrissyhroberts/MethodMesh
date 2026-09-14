@@ -7,12 +7,16 @@ sealed class MethodSetting {
     abstract val description: String?
     abstract val group: String?
 
+    /** Whether preset authoring may expose this setting as Ask when run. */
+    abstract val runtimeInputAllowed: Boolean
+
     data class BooleanSetting(
         override val id: String,
         override val label: String,
         override val description: String? = null,
         override val group: String? = null,
-        val defaultValue: Boolean
+        val defaultValue: Boolean,
+        override val runtimeInputAllowed: Boolean = true
     ) : MethodSetting()
 
     data class IntSetting(
@@ -24,7 +28,8 @@ sealed class MethodSetting {
         val minimum: Int? = null,
         val maximum: Int? = null,
         val step: Int = 1,
-        val unit: String? = null
+        val unit: String? = null,
+        override val runtimeInputAllowed: Boolean = true
     ) : MethodSetting()
 
     data class FloatSetting(
@@ -37,7 +42,8 @@ sealed class MethodSetting {
         val maximum: Float? = null,
         val step: Float = 1f,
         val unit: String? = null,
-        val decimals: Int = 1
+        val decimals: Int = 1,
+        override val runtimeInputAllowed: Boolean = true
     ) : MethodSetting()
 
     data class TextSetting(
@@ -45,7 +51,8 @@ sealed class MethodSetting {
         override val label: String,
         override val description: String? = null,
         override val group: String? = null,
-        val defaultValue: String
+        val defaultValue: String,
+        override val runtimeInputAllowed: Boolean = true
     ) : MethodSetting()
 
     data class ChoiceSetting(
@@ -54,7 +61,8 @@ sealed class MethodSetting {
         override val description: String? = null,
         override val group: String? = null,
         val defaultValue: String,
-        val choices: List<String>
+        val choices: List<String>,
+        override val runtimeInputAllowed: Boolean = true
     ) : MethodSetting()
 
     data class MultiChoiceSetting(
@@ -65,6 +73,7 @@ sealed class MethodSetting {
         val defaultValue: String,
         val choices: List<String>,
         val delimiter: String = "|",
-        val emptyMeansAll: Boolean = false
+        val emptyMeansAll: Boolean = false,
+        override val runtimeInputAllowed: Boolean = true
     ) : MethodSetting()
 }

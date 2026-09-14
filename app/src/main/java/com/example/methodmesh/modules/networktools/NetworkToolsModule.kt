@@ -26,14 +26,15 @@ object NetworkToolsModule : MethodMeshModule {
             MethodSetting.ChoiceSetting(
                 "operation",
                 "Operation",
+                runtimeInputAllowed = false,
                 defaultValue = NetworkOperation.INTERFACE_INFO.id,
                 choices = NetworkOperation.entries.map { it.id }
             ),
             MethodSetting.TextSetting("host", "Host", defaultValue = ""),
             MethodSetting.IntSetting("port", "TCP port", defaultValue = 443, minimum = 1, maximum = 65535),
-            MethodSetting.IntSetting("timeout_ms", "Timeout (ms)", defaultValue = 3000, minimum = 100, maximum = 30000),
+            MethodSetting.IntSetting("timeout_ms", "Timeout (ms)", runtimeInputAllowed = false, defaultValue = 3000, minimum = 100, maximum = 30000),
             MethodSetting.TextSetting("cidr", "IPv4 CIDR", defaultValue = ""),
-            MethodSetting.IntSetting("traceroute_max_hops", "Traceroute max hops", defaultValue = 12, minimum = 1, maximum = 30)
+            MethodSetting.IntSetting("traceroute_max_hops", "Traceroute max hops", runtimeInputAllowed = false, defaultValue = 12, minimum = 1, maximum = 30)
         )
     )
 }

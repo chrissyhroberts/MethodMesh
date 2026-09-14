@@ -130,6 +130,14 @@ object CronScheduleCapabilityScreen : CapabilityScreenSpec {
                 if (target != CronTaskTarget.NOTIFICATION && task.targetId.isBlank()) error("Choose a preset or protocol for task ${index + 1}.")
                 CronTask(name = task.name.ifBlank { "Task ${index + 1}" }, recurrence = task.recurrence, timing = if (task.timing == CronBuilderTiming.RELATIVE || task.recurrence == CronTaskRecurrence.ONCE) ScheduleTimingMode.RELATIVE else ScheduleTimingMode.ABSOLUTE, cronExpression = task.cron, relativeOffset = offset, target = target, targetId = task.targetId, notificationTitle = name.trim(), notificationMessage = task.message.ifBlank { task.name.ifBlank { "Scheduled activity" } }, retries = task.retries.toIntOrNull()?.coerceAtLeast(0) ?: 0, retryInterval = Duration.ofMinutes((task.retryMinutes.toLongOrNull() ?: 60).coerceAtLeast(1)))
             }
+            built.forEachIndexed { index, task ->
+                if (task.recurrence == CronTaskRecurrence.CRON &&
+                    CronSchedule.nextOrNull(task.cronExpression, anchor.minusMinutes(1)) == null
+                ) {
+                    status = "Task ${index + 1} has an invalid cron expression or no occurrence within the supported scheduling window."
+                    return
+                }
+            }
             val id = existingBundle?.id ?: java.util.UUID.randomUUID().toString()
             val bundle = CronScheduleBundle(id = id, name = name.trim(), trigger = trigger, stopRule = stopRule, tasks = built)
             runCatching { CronScheduleBundleStore.save(app, bundle) }.onFailure { status = "Could not save schedule JSON: ${it.message ?: "storage error"}"; return }

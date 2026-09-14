@@ -8,13 +8,17 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
+import android.util.Log
 import android.view.ViewGroup
+import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
 import android.webkit.GeolocationPermissions
+import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.SslErrorHandler
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -35,6 +39,8 @@ import android.webkit.WebViewClient
  * handling remain explicit and lifecycle-aware.
  */
 internal object WebActionWebViewPool {
+    private const val LOG_TAG = "MethodMeshWebAction"
+
     private data class Entry(
         val wrapper: MutableContextWrapper,
         val webView: WebView,
@@ -85,8 +91,18 @@ internal object WebActionWebViewPool {
             onGeolocationRequest = onGeolocationRequest
         )
         entryRef[0] = entry
-        val onlineOnly = WebActionsRepository.get(appContext, transactionId)?.methodId == As100OdkCentralRoundtripMethod.ID
-        configure(webView, onlineOnly)
+        val transactionForLaunch = WebActionsRepository.get(appContext, transactionId)
+        val onlineOnly = transactionForLaunch?.methodId?.let(::isHostedWebFormRoundtripMethod) == true
+        val chromeUserAgent = transactionForLaunch?.methodId == As100OdkEnketoRoundtripMethod.ID &&
+            transactionForLaunch.originalUrl.contains("methodmesh_chrome_user_agent=true", ignoreCase = true)
+        logDiagnostic(transactionForLaunch, "create-webview launch=${safeLogUrl(launchUrl)} ${credentialShape(launchUrl)} onlineOnly=$onlineOnly chromeUserAgent=$chromeUserAgent")
+        configure(webView, onlineOnly, chromeUserAgent)
+        if (onlineOnly) {
+            webView.addJavascriptInterface(
+                ProviderSuccessBridge(entry, transactionId),
+                "MethodMeshWebAction"
+            )
+        }
         if (onlineOnly) prepareOnlineOnlySession(webView)
 
         webView.webViewClient = object : WebViewClient() {
@@ -95,6 +111,10 @@ internal object WebActionWebViewPool {
                 // Completion must be a top-level redirect. Subframes/resources must never
                 // be able to finish a MethodMesh protocol or ODK roundtrip.
                 if (!navigation.isForMainFrame) return false
+                logDiagnostic(
+                    WebActionsRepository.get(appContext, transactionId),
+                    "navigate ${safeLogUrl(navigation.url.toString())}"
+                )
                 return handleNavigation(
                     entryRef[0] ?: return false,
                     transactionId,
@@ -103,6 +123,7 @@ internal object WebActionWebViewPool {
             }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                logDiagnostic(WebActionsRepository.get(appContext, transactionId), "page-start ${safeLogUrl(url.orEmpty())}")
                 val host = hostOf(url.orEmpty())
                 entryRef[0]?.onStatus?.invoke(
                     if (host.isBlank()) "Loading web form…" else "Loading $host…"
@@ -112,8 +133,17 @@ internal object WebActionWebViewPool {
             override fun onPageFinished(view: WebView?, url: String?) {
                 val active = entryRef[0]
                 val transaction = active?.let { WebActionsRepository.get(it.applicationContext, transactionId) }
-                if (transaction?.methodId == As100OdkCentralRoundtripMethod.ID) {
-                    view?.evaluateJavascript(ONLINE_ONLY_BOOTSTRAP_SCRIPT, null)
+                logDiagnostic(transaction, "page-finished ${safeLogUrl(url.orEmpty())}")
+                if (transaction?.methodId?.let(::isHostedWebFormRoundtripMethod) == true) {
+                    val bootstrap = if (transaction.methodId == As100OdkEnketoRoundtripMethod.ID) {
+                        ODK_ENKETO_BOOTSTRAP_SCRIPT
+                    } else {
+                        ONLINE_ONLY_BOOTSTRAP_SCRIPT
+                    }
+                    view?.evaluateJavascript(bootstrap, null)
+                    emitOdkEnketoPageMetrics(view, transaction)
+                    applyZeroSizedEnketoImageMapFallback(view, transaction)
+                    emitEnketoImageMapMetrics(view, transaction)
                 }
                 val host = hostOf(url.orEmpty())
                 active?.onStatus?.invoke(
@@ -122,6 +152,10 @@ internal object WebActionWebViewPool {
             }
 
             override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
+                logDiagnostic(
+                    WebActionsRepository.get(appContext, transactionId),
+                    "ssl-error primary=${error?.primaryError} url=${safeLogUrl(error?.url.orEmpty())}"
+                )
                 handler?.cancel()
                 entryRef[0]?.onStatus?.invoke("Secure connection failed. The page was blocked.")
             }
@@ -137,14 +171,48 @@ internal object WebActionWebViewPool {
                     } else {
                         ""
                     }
+                    val code = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) error?.errorCode?.toString().orEmpty() else ""
+                    logDiagnostic(
+                        WebActionsRepository.get(appContext, transactionId),
+                        "main-frame-error code=$code description=${description.ifBlank { "unknown" }} url=${safeLogUrl(request.url?.toString().orEmpty())}"
+                    )
                     entryRef[0]?.onStatus?.invoke(
                         description.ifBlank { "The web page could not be loaded. Check connectivity and retry." }
+                    )
+                }
+            }
+
+            override fun onReceivedHttpError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                errorResponse: WebResourceResponse?
+            ) {
+                val transaction = WebActionsRepository.get(appContext, transactionId)
+                val status = errorResponse?.statusCode ?: 0
+                if (request?.isForMainFrame == true) {
+                    logDiagnostic(
+                        transaction,
+                        "main-frame-http status=$status reason=${errorResponse?.reasonPhrase.orEmpty()} url=${safeLogUrl(request.url?.toString().orEmpty())}"
+                    )
+                } else if (transaction?.methodId == As100OdkEnketoRoundtripMethod.ID && status >= 400) {
+                    logDiagnostic(
+                        transaction,
+                        "resource-http status=$status reason=${errorResponse?.reasonPhrase.orEmpty()} url=${safeLogUrl(request?.url?.toString().orEmpty())}"
                     )
                 }
             }
         }
 
         webView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                val message = consoleMessage ?: return false
+                logDiagnostic(
+                    WebActionsRepository.get(appContext, transactionId),
+                    "console level=${message.messageLevel()?.name.orEmpty()} line=${message.lineNumber()} source=${safeLogUrl(message.sourceId().orEmpty())}"
+                )
+                return false
+            }
+
             override fun onShowFileChooser(
                 webView: WebView?,
                 filePathCallback: ValueCallback<Array<Uri>>?,
@@ -182,8 +250,27 @@ internal object WebActionWebViewPool {
 
         entries[transactionId] = entry
         armProviderSuccessMonitor(entry, transactionId)
-        if (launchUrl.isNotBlank()) webView.loadUrl(launchUrl)
+        if (launchUrl.isNotBlank()) {
+            logDiagnostic(WebActionsRepository.get(appContext, transactionId), "load-url ${safeLogUrl(launchUrl)} ${credentialShape(launchUrl)}")
+            webView.loadUrl(launchUrl)
+        }
         return webView
+    }
+
+
+    @Synchronized
+    fun refresh(transactionId: String) {
+        val entry = entries[transactionId] ?: return
+        val transaction = WebActionsRepository.get(entry.applicationContext, transactionId) ?: return
+        entry.webView.stopLoading()
+        if (isHostedWebFormRoundtripMethod(transaction.methodId)) {
+            purgeOnlineOnlySession(entry.webView)
+            prepareOnlineOnlySession(entry.webView)
+        }
+        val url = transaction.launchUrl.ifBlank { transaction.originalUrl }
+        logDiagnostic(transaction, "refresh-load ${safeLogUrl(url)} ${credentialShape(url)}")
+        entry.webView.loadUrl(url)
+        entry.onStatus("Refreshing form…")
     }
 
     @Synchronized
@@ -197,7 +284,7 @@ internal object WebActionWebViewPool {
     @Synchronized
     fun destroy(transactionId: String) {
         entries.remove(transactionId)?.let { entry ->
-            val onlineOnly = WebActionsRepository.get(entry.applicationContext, transactionId)?.methodId == As100OdkCentralRoundtripMethod.ID
+            val onlineOnly = WebActionsRepository.get(entry.applicationContext, transactionId)?.methodId?.let(::isHostedWebFormRoundtripMethod) == true
             (entry.webView.parent as? ViewGroup)?.removeView(entry.webView)
             entry.webView.stopLoading()
             if (onlineOnly) purgeOnlineOnlySession(entry.webView)
@@ -226,7 +313,7 @@ internal object WebActionWebViewPool {
             override fun run() {
                 val transaction = WebActionsRepository.get(entry.applicationContext, transactionId) ?: return
                 if (transaction.state != WebActionTransactionState.WAITING) return
-                if (transaction.methodId != As100OdkCentralRoundtripMethod.ID) {
+                if (!isHostedWebFormRoundtripMethod(transaction.methodId)) {
                     webView.postDelayed(this, 500L)
                     return
                 }
@@ -252,6 +339,32 @@ internal object WebActionWebViewPool {
             }
         }
         webView.postDelayed(poll, 350L)
+    }
+
+    private class ProviderSuccessBridge(
+        private val entry: Entry,
+        private val transactionId: String
+    ) {
+        @JavascriptInterface
+        fun providerSubmitted() {
+            entry.webView.post {
+                completeProviderSubmission(entry, transactionId)
+            }
+        }
+    }
+
+    private fun completeProviderSubmission(entry: Entry, transactionId: String) {
+        val transaction = WebActionsRepository.get(entry.applicationContext, transactionId) ?: return
+        if (transaction.state != WebActionTransactionState.WAITING) return
+        if (!isHostedWebFormRoundtripMethod(transaction.methodId)) return
+        val completed = WebActionsRepository.markProviderCompletion(
+            entry.applicationContext,
+            transactionId,
+            "provider_submission_confirmation"
+        ) ?: return
+        freezeSubmittedPage(entry.webView)
+        entry.onStatus("Submission complete — returning to MethodMesh")
+        entry.onCallback(completed)
     }
 
     private fun freezeSubmittedPage(webView: WebView) {
@@ -345,6 +458,14 @@ internal object WebActionWebViewPool {
                   try { document.querySelectorAll(sel).forEach(function(el){ el.style.setProperty('display','none','important'); }); } catch(e) {}
                 });
               }
+              function notifyProviderSubmitted() {
+                try {
+                  if (window.MethodMeshWebAction && window.MethodMeshWebAction.providerSubmitted) {
+                    window.MethodMeshWebAction.providerSubmitted();
+                  }
+                } catch (e) {}
+              }
+
               function strongSuccessVisible() {
                 var nodes = Array.prototype.slice.call(document.querySelectorAll('body *'));
                 for (var i = 0; i < nodes.length; i++) {
@@ -370,16 +491,25 @@ internal object WebActionWebViewPool {
                 while (el && el !== document.body && !/^(BUTTON|INPUT|A)$/.test(el.tagName || '')) el = el.parentElement;
                 var t = textOf(el) + ' ' + ((el && el.getAttribute && (el.getAttribute('aria-label') || el.getAttribute('value') || el.getAttribute('title'))) || '');
                 if (/\\bsubmit\\b|\\bcomplete\\b|\\bfinali[sz]e\\b/i.test(t)) window.__methodmeshSubmitSeen = true;
+                if (window.__methodmeshSubmissionSuccess === true && /^\\s*(ok|okay|close|done|continue)\\s*$/i.test(t)) {
+                  try {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    notifyProviderSubmitted();
+                  } catch (e) {}
+                }
               }, true);
 
               var scan = function() {
                 hideOnlineOnlyControls();
-                if (strongSuccessVisible()) {
+                if (window.__methodmeshSubmitSeen === true && strongSuccessVisible()) {
                   window.__methodmeshSubmissionSuccess = true;
+                  notifyProviderSubmitted();
                 }
               };
               scan();
               new MutationObserver(scan).observe(document.documentElement || document.body, {subtree:true, childList:true, characterData:true, attributes:true});
+              [50,150,350,750,1500,3000].forEach(function(ms){ setTimeout(scan, ms); });
             }
 
             // Best-effort removal of offline browser machinery. The active form
@@ -389,6 +519,73 @@ internal object WebActionWebViewPool {
             }
             if (window.caches && caches.keys) {
               caches.keys().then(function(keys){ keys.forEach(function(k){ try { caches.delete(k); } catch(e) {} }); });
+            }
+            return true;
+          } catch (e) {
+            return false;
+          }
+        })();
+    """.trimIndent()
+
+
+    private val ODK_ENKETO_BOOTSTRAP_SCRIPT = """
+        (function() {
+          try {
+            if (!window.__methodmeshOdkEnketoInstalled) {
+              window.__methodmeshOdkEnketoInstalled = true;
+              window.__methodmeshSubmissionSuccess = false;
+              window.__methodmeshSubmitSeen = false;
+
+              function textOf(el) {
+                return ((el && (el.innerText || el.textContent)) || '').replace(/\s+/g, ' ').trim().toLowerCase();
+              }
+              function visible(el) {
+                if (!el) return false;
+                var s = window.getComputedStyle(el);
+                var r = el.getBoundingClientRect();
+                return s.display !== 'none' && s.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+              }
+              function notifyProviderSubmitted() {
+                try {
+                  if (window.MethodMeshWebAction && window.MethodMeshWebAction.providerSubmitted) {
+                    window.MethodMeshWebAction.providerSubmitted();
+                  }
+                } catch (e) {}
+              }
+              function strongSuccessVisible() {
+                var nodes = Array.prototype.slice.call(document.querySelectorAll('body *'));
+                for (var i = 0; i < nodes.length; i++) {
+                  var el = nodes[i];
+                  if (!visible(el)) continue;
+                  var t = textOf(el);
+                  if (!t || t.length > 500) continue;
+                  if (t.indexOf('unsaved record found') >= 0 || t.indexOf('submission failed') >= 0) continue;
+                  if (/thank\s+you\s+for\s+(?:completing|participating|submitting)/i.test(t) ||
+                      /your\s+data\s+was\s+submitted/i.test(t) ||
+                      /submission\s+successful/i.test(t) ||
+                      /successfully\s+submitted/i.test(t) ||
+                      /you\s+can\s+close\s+this\s+window\s+now/i.test(t)) return true;
+                }
+                return false;
+              }
+              document.addEventListener('click', function(ev) {
+                var el = ev.target;
+                while (el && el !== document.body && !/^(BUTTON|INPUT|A)$/.test(el.tagName || '')) el = el.parentElement;
+                var t = textOf(el) + ' ' + ((el && el.getAttribute && (el.getAttribute('aria-label') || el.getAttribute('value') || el.getAttribute('title'))) || '');
+                if (/\bsubmit\b|\bcomplete\b|\bfinali[sz]e\b/i.test(t)) window.__methodmeshSubmitSeen = true;
+                if (window.__methodmeshSubmissionSuccess === true && /^\s*(ok|okay|close|done|continue)\s*$/i.test(t)) {
+                  try { ev.preventDefault(); ev.stopPropagation(); notifyProviderSubmitted(); } catch (e) {}
+                }
+              }, true);
+              var scan = function() {
+                if (window.__methodmeshSubmitSeen === true && strongSuccessVisible()) {
+                  window.__methodmeshSubmissionSuccess = true;
+                  notifyProviderSubmitted();
+                }
+              };
+              scan();
+              new MutationObserver(scan).observe(document.documentElement || document.body, {subtree:true, childList:true, characterData:true, attributes:true});
+              [50,150,350,750,1500,3000].forEach(function(ms){ setTimeout(scan, ms); });
             }
             return true;
           } catch (e) {
@@ -416,16 +613,24 @@ internal object WebActionWebViewPool {
     }
 
     private fun handleNavigation(entry: Entry, transactionId: String, rawUrl: String): Boolean {
-        if (rawUrl.isBlank()) return false
+        val transaction = WebActionsRepository.get(entry.applicationContext, transactionId)
+        if (rawUrl.isBlank()) {
+            logDiagnostic(transaction, "blank-navigation")
+            return false
+        }
         val completed = WebActionsRepository.consumeCallback(entry.applicationContext, transactionId, rawUrl)
         if (completed != null) {
+            logDiagnostic(completed, "completion-callback ${safeLogUrl(rawUrl)}")
             freezeSubmittedPage(entry.webView)
             entry.onStatus("Completion received — returning to MethodMesh")
             entry.onCallback(completed)
             return true
         }
 
-        val uri = runCatching { Uri.parse(rawUrl) }.getOrNull() ?: return true
+        val uri = runCatching { Uri.parse(rawUrl) }.getOrNull() ?: run {
+            logDiagnostic(transaction, "blocked invalid-url ${safeLogUrl(rawUrl)}")
+            return true
+        }
         val scheme = uri.scheme?.lowercase().orEmpty()
         if (scheme == "https") return false
         if (scheme == "http") {
@@ -433,6 +638,7 @@ internal object WebActionWebViewPool {
             return if (transaction?.allowInsecureHttp == true) {
                 false
             } else {
+                logDiagnostic(transaction, "blocked-http ${safeLogUrl(rawUrl)}")
                 entry.onStatus("Blocked insecure HTTP navigation.")
                 true
             }
@@ -440,6 +646,7 @@ internal object WebActionWebViewPool {
 
         val externallyAllowed = scheme in setOf("mailto", "tel", "sms", "geo")
         if (!externallyAllowed) {
+            logDiagnostic(transaction, "blocked-external scheme=$scheme url=${safeLogUrl(rawUrl)}")
             entry.onStatus("Blocked unsupported external link.")
             return true
         }
@@ -455,8 +662,227 @@ internal object WebActionWebViewPool {
         }
     }
 
+
+    /**
+     * Android WebView fallback for a narrow Enketo/SVG layout failure.
+     *
+     * Some image-map SVGs legitimately arrive with width="100%" and height="100%" plus a
+     * valid viewBox. Chromium normally derives a box from Enketo's responsive CSS, but some
+     * Android WebView builds resolve that percentage-height chain to 0px after the SVG has been
+     * inlined. In that state Enketo has successfully created the widget and its hit regions, but
+     * there is literally no rendered surface to see or tap.
+     *
+     * This fallback is intentionally conditional and layout-only: it runs only for initialized
+     * Enketo image maps whose SVG has a valid viewBox but a zero rendered width/height. It never
+     * changes viewBox, path geometry, IDs, preserveAspectRatio, or selection state. Width is taken
+     * from the containing question (falling back to the viewport), and height is derived from the
+     * SVG's own viewBox aspect ratio. A ResizeObserver/window resize listener keeps the fallback
+     * responsive after rotation or container changes.
+     */
+    private fun applyZeroSizedEnketoImageMapFallback(webView: WebView?, transaction: WebActionTransaction?) {
+        if (webView == null || transaction == null) return
+        if (transaction.methodId != As100OdkEnketoRoundtripMethod.ID &&
+            transaction.methodId != As100KoboEnketoRoundtripMethod.ID
+        ) return
+
+        val script = """
+            (function(){
+              try {
+                if (window.__methodMeshEnketoImageMapSizingInstalled) {
+                  return JSON.stringify({installed:true, reused:true});
+                }
+                window.__methodMeshEnketoImageMapSizingInstalled = true;
+
+                function validViewBox(svg) {
+                  try {
+                    var vb = svg && svg.viewBox && svg.viewBox.baseVal;
+                    return vb && isFinite(vb.width) && isFinite(vb.height) && vb.width > 0 && vb.height > 0 ? vb : null;
+                  } catch (_) { return null; }
+                }
+
+                function availableWidth(svg) {
+                  var node = svg.parentElement;
+                  while (node && node !== document.body) {
+                    var r = node.getBoundingClientRect ? node.getBoundingClientRect() : null;
+                    if (r && r.width > 1) return r.width;
+                    node = node.parentElement;
+                  }
+                  return Math.max(1, document.documentElement.clientWidth || window.innerWidth || 320);
+                }
+
+                function sizeOne(svg) {
+                  if (!svg || !svg.closest || !svg.closest('.image-map')) return false;
+                  var before = svg.getBoundingClientRect();
+                  if (before.width > 1 && before.height > 1) return false;
+                  var vb = validViewBox(svg);
+                  if (!vb) return false;
+
+                  var width = availableWidth(svg);
+                  var height = width * vb.height / vb.width;
+                  if (!(width > 1 && height > 1)) return false;
+
+                  var widget = svg.closest('.image-map');
+                  if (widget) {
+                    widget.style.setProperty('width', '100%', 'important');
+                    widget.style.setProperty('max-width', '100%', 'important');
+                  }
+                  svg.style.setProperty('display', 'block', 'important');
+                  svg.style.setProperty('width', Math.round(width) + 'px', 'important');
+                  svg.style.setProperty('height', Math.round(height) + 'px', 'important');
+                  svg.style.setProperty('max-width', '100%', 'important');
+                  svg.style.setProperty('min-height', '1px', 'important');
+                  svg.setAttribute('data-methodmesh-zero-box-fallback', 'true');
+                  return true;
+                }
+
+                function repair() {
+                  var fixed = 0;
+                  document.querySelectorAll('.image-map svg').forEach(function(svg) {
+                    if (sizeOne(svg)) fixed += 1;
+                  });
+                  return fixed;
+                }
+
+                var totalFixed = repair();
+                var observer = null;
+                if (window.ResizeObserver) {
+                  observer = new ResizeObserver(function() { repair(); });
+                  document.querySelectorAll('.or-image-map-initialized, .image-map').forEach(function(el) {
+                    try { observer.observe(el); } catch (_) {}
+                  });
+                  window.__methodMeshEnketoImageMapResizeObserver = observer;
+                }
+                window.addEventListener('resize', repair, {passive:true});
+
+                // Enketo builds image maps asynchronously after the document load event.
+                [400, 1000, 2000, 3500, 5000].forEach(function(ms) {
+                  setTimeout(repair, ms);
+                });
+
+                return JSON.stringify({installed:true, initiallyFixed:totalFixed});
+              } catch (e) {
+                return JSON.stringify({installed:false, errorType:String(e && e.name || 'error')});
+              }
+            })();
+        """.trimIndent()
+
+        webView.evaluateJavascript(script) { raw ->
+            logDiagnostic(transaction, "enketo-image-map-zero-box-fallback $raw")
+        }
+    }
+
+    /**
+     * Read-only diagnostics for Enketo image-map widgets.
+     *
+     * Do not rewrite SVG viewBox, width, height, preserveAspectRatio, or child geometry here.
+     * Enketo's image-map widget owns those values and recalculates its own viewBox when needed.
+     * Mutating the provider DOM from MethodMesh can distort hit regions and responsive sizing.
+     */
+    private fun emitEnketoImageMapMetrics(webView: WebView?, transaction: WebActionTransaction?) {
+        if (webView == null || transaction == null) return
+        if (transaction.methodId != As100OdkEnketoRoundtripMethod.ID &&
+            transaction.methodId != As100KoboEnketoRoundtripMethod.ID
+        ) return
+
+        val script = """
+            (function(){
+              try {
+                var widget = document.querySelector('.image-map');
+                var svg = widget && widget.querySelector('svg');
+                var rect = svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+                var supported = svg ? svg.querySelectorAll('path[id], g[id], circle[id]').length : 0;
+                var unsupported = svg ? svg.querySelectorAll('rect[id], ellipse[id], polygon[id], polyline[id], line[id]').length : 0;
+                return JSON.stringify({
+                  initializedQuestions: document.querySelectorAll('.or-image-map-initialized').length,
+                  widgets: document.querySelectorAll('.image-map').length,
+                  errors: document.querySelectorAll('.image-map__error').length,
+                  pendingImages: document.querySelectorAll('.or-appearance-image-map img').length,
+                  svgPresent: !!svg,
+                  viewBox: svg ? (svg.getAttribute('viewBox') || '') : '',
+                  widthAttribute: svg ? (svg.getAttribute('width') || '') : '',
+                  heightAttribute: svg ? (svg.getAttribute('height') || '') : '',
+                  clientWidth: rect ? Math.round(rect.width) : 0,
+                  clientHeight: rect ? Math.round(rect.height) : 0,
+                  parentWidth: widget && widget.getBoundingClientRect ? Math.round(widget.getBoundingClientRect().width) : 0,
+                  computedWidth: svg ? window.getComputedStyle(svg).width : '',
+                  computedHeight: svg ? window.getComputedStyle(svg).height : '',
+                  fallbackApplied: svg ? svg.getAttribute('data-methodmesh-zero-box-fallback') === 'true' : false,
+                  fallbackCount: document.querySelectorAll('svg[data-methodmesh-zero-box-fallback="true"]').length,
+                  supportedSelectableIds: supported,
+                  unsupportedShapeIds: unsupported
+                });
+              } catch (e) {
+                return JSON.stringify({errorType: String(e && e.name || 'error')});
+              }
+            })();
+        """.trimIndent()
+
+        // Image-map initialization fetches and parses the SVG asynchronously. Sample after
+        // the page has had time to construct the widget, without changing provider state.
+        listOf(500L, 1500L, 3000L).forEach { delayMs ->
+            webView.postDelayed({
+                val current = WebActionsRepository.get(webView.context.applicationContext, transaction.id)
+                if (current?.state == WebActionTransactionState.PREPARING || current?.state == WebActionTransactionState.WAITING) {
+                    webView.evaluateJavascript(script) { raw ->
+                        logDiagnostic(current, "enketo-image-map-metrics delayMs=$delayMs $raw")
+                    }
+                }
+            }, delayMs)
+        }
+    }
+
+    private fun emitOdkEnketoPageMetrics(webView: WebView?, transaction: WebActionTransaction?) {
+        if (webView == null || transaction == null || transaction.methodId != As100OdkEnketoRoundtripMethod.ID) return
+        webView.evaluateJavascript(
+            """
+            (function(){
+              try {
+                var body = document.body;
+                var style = body ? window.getComputedStyle(body) : null;
+                return JSON.stringify({
+                  readyState: document.readyState,
+                  hrefHost: location.host || '',
+                  hrefPath: location.pathname || '',
+                  bodyLength: body ? (body.innerText || body.textContent || '').length : -1,
+                  bodyChildren: body ? body.children.length : -1,
+                  documentHeight: document.documentElement ? document.documentElement.scrollHeight : -1,
+                  bodyDisplay: style ? style.display : '',
+                  bodyVisibility: style ? style.visibility : '',
+                  scripts: document.scripts ? document.scripts.length : -1
+                });
+              } catch (e) {
+                return JSON.stringify({errorType: String(e && e.name || 'error')});
+              }
+            })();
+            """.trimIndent()
+        ) { raw ->
+            logDiagnostic(transaction, "odk-enketo-page-metrics $raw")
+        }
+    }
+
+    private fun logDiagnostic(transaction: WebActionTransaction?, message: String) {
+        val method = transaction?.methodId.orEmpty().ifBlank { "unknown" }
+        val id = transaction?.id?.take(8).orEmpty().ifBlank { "no-txn" }
+        Log.d(LOG_TAG, "method=$method txn=$id $message")
+    }
+
+    private fun safeLogUrl(raw: String): String = runCatching { redactedWebUrl(raw) }.getOrDefault(raw.take(300))
+
+
+    private fun credentialShape(raw: String): String {
+        val uri = runCatching { Uri.parse(raw) }.getOrNull() ?: return "credential=unparseable"
+        val names = uri.queryParameterNames.sorted()
+        val st = runCatching { uri.getQueryParameter("st") }.getOrNull().orEmpty()
+        val encodedQuery = uri.encodedQuery.orEmpty()
+        val hasRawDollar = raw.contains('$')
+        val hasEncodedDollar = encodedQuery.contains("%24", ignoreCase = true)
+        val hasBang = raw.contains('!') || encodedQuery.contains("%21", ignoreCase = true)
+        return "queryNames=${names.joinToString(",")} stLength=${st.length} rawDollar=$hasRawDollar encodedDollar=$hasEncodedDollar bang=$hasBang fragmentPresent=${!uri.fragment.isNullOrBlank()}"
+    }
+
+
     @SuppressLint("SetJavaScriptEnabled")
-    private fun configure(webView: WebView, onlineOnly: Boolean) {
+    private fun configure(webView: WebView, onlineOnly: Boolean, chromeUserAgent: Boolean = false) {
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
@@ -470,6 +896,14 @@ internal object WebActionWebViewPool {
             setSupportMultipleWindows(false)
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             cacheMode = if (onlineOnly) WebSettings.LOAD_NO_CACHE else WebSettings.LOAD_DEFAULT
+            setSupportZoom(true)
+            builtInZoomControls = true
+            displayZoomControls = false
+            if (chromeUserAgent) {
+                userAgentString = userAgentString
+                    .replace("; wv", "")
+                    .replace(Regex(" Version/\\d+(?:\\.\\d+)*"), "")
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 setSafeBrowsingEnabled(true)
             }
@@ -477,7 +911,7 @@ internal object WebActionWebViewPool {
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                setAcceptThirdPartyCookies(webView, false)
+                setAcceptThirdPartyCookies(webView, onlineOnly)
             }
         }
         webView.isHorizontalScrollBarEnabled = false

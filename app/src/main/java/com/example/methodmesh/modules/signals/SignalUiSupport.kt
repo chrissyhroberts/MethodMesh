@@ -53,7 +53,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.core.protocols.PresetResultAction
@@ -250,21 +249,25 @@ internal fun finishSignalResult(
             ?: context.request.settings["input_methodmesh_preset_result_action"]
             ?: PresetResultAction.HOME
     )
-    val finishToLauncher = context.request.settings["methodmesh_finish_to_launcher"] == "true" ||
-        context.request.settings["input_methodmesh_finish_to_launcher"] == "true"
-
-    when {
-        action == PresetResultAction.SAVE -> {
-            onSaveRequested?.invoke()
-            onConfirmed(result)
-        }
-        finishToLauncher -> onConfirmed(result)
-        else -> androidContext.startActivity(
-            Intent(androidContext, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+    when (action) {
+        PresetResultAction.SAVE -> onSaveRequested?.invoke()
+        PresetResultAction.SHARE -> {
+            val core = OutputFormatter.fields(result, includeProvenance = false, payloadMode = OutputFormatter.PayloadMode.CORE)
+            val text = core.entries
+                .filter { (key, value) -> !key.startsWith("methodmesh_") && value?.toString().orEmpty().isNotBlank() }
+                .joinToString("\n") { (key, value) -> "${key.replace('_', ' ')}: $value" }
+            runCatching {
+                ResultShare.share(
+                    context = androidContext,
+                    chooserTitle = "Share signal result",
+                    text = text,
+                    attachments = emptyList(),
+                    jsonText = ""
+                )
             }
-        )
+        }
     }
+    onConfirmed(result)
 }
 
 internal fun fullJson(result: ExecutionResult?): String = result?.let {

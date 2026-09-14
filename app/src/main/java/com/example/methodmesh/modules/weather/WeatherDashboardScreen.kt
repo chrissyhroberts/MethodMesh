@@ -69,7 +69,7 @@ internal fun WeatherDashboardScreen(
     var message by rememberSaveable { mutableStateOf("Locating…") }
     var attempted by rememberSaveable { mutableStateOf(false) }
     var showLocation by rememberSaveable {
-        mutableStateOf(context.isNativePresetRun && context.runtimeInputFields.isNotEmpty())
+        mutableStateOf(context.isNativePresetRun && weatherRuntimeFields(context, As100WeatherDashboardMethod.id).isNotEmpty())
     }
 
     val payload = remember(payloadJson) { runCatching { JSONObject(payloadJson) }.getOrNull() }
@@ -173,7 +173,7 @@ internal fun WeatherDashboardScreen(
     }
     fun locate(){if(hasDashboardLocationPermission(app))useGps() else permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION))}
 
-    val nativePresetNeedsRuntimeInput = context.isNativePresetRun && context.runtimeInputFields.isNotEmpty()
+    val nativePresetNeedsRuntimeInput = context.isNativePresetRun && weatherRuntimeFields(context, As100WeatherDashboardMethod.id).isNotEmpty()
     LaunchedEffect(context.action.canonicalId, nativePresetNeedsRuntimeInput) {
         if(!attempted){
             attempted=true
@@ -196,7 +196,7 @@ internal fun WeatherDashboardScreen(
     val committedExecution=remember(committedDashboardJson,committedSettingsJson){
         committedDashboard.takeIf{it.isNotEmpty()}?.let{values->buildDashboardExecution(values,committedSettings.ifEmpty{currentSettings()})}
     }
-    val hasEditableSettings=listOf("latitude","longitude","threshold_mm_per_hour","offline_only").any { context.settingShouldBeShown(it) }
+    val hasEditableSettings=listOf("latitude","longitude","threshold_mm_per_hour","offline_only").any { weatherSettingShouldBeShown(context, As100WeatherDashboardMethod.id, it) }
 
     val rootScrollState = rememberScrollState()
     val rootModifier = if (context.presentationMode == CapabilityPresentationMode.Dashboard) {
@@ -219,22 +219,22 @@ internal fun WeatherDashboardScreen(
             if (hasEditableSettings) {
                 OutlinedButton(onClick={showLocation=!showLocation},enabled=!running){Text(if(showLocation)"Hide settings" else "Settings")}
             }
-            if (context.settingShouldBeShown("latitude") || context.settingShouldBeShown("longitude")) {
+            if (weatherSettingShouldBeShown(context, As100WeatherDashboardMethod.id, "latitude") || weatherSettingShouldBeShown(context, As100WeatherDashboardMethod.id, "longitude")) {
                 OutlinedButton(onClick={locate()},enabled=!running){Text("GPS")}
             }
             Button(onClick={runDashboard()},enabled=!running && latitude.toDoubleOrNull()!=null && longitude.toDoubleOrNull()!=null){Text("Refresh")}
         }
-        if(showLocation && (context.settingShouldBeShown("latitude") || context.settingShouldBeShown("longitude"))) {
+        if(showLocation && (weatherSettingShouldBeShown(context, As100WeatherDashboardMethod.id, "latitude") || weatherSettingShouldBeShown(context, As100WeatherDashboardMethod.id, "longitude"))) {
             Spacer(Modifier.height(10.dp))
-            if(context.settingShouldBeShown("latitude")) OutlinedTextField(latitude,{latitude=it;payloadJson=""},label={Text("Latitude")},modifier=Modifier.fillMaxWidth(),singleLine=true)
+            if(weatherSettingShouldBeShown(context, As100WeatherDashboardMethod.id, "latitude")) OutlinedTextField(latitude,{latitude=it;payloadJson=""},label={Text("Latitude")},modifier=Modifier.fillMaxWidth(),singleLine=true)
             Spacer(Modifier.height(6.dp))
-            if(context.settingShouldBeShown("longitude")) OutlinedTextField(longitude,{longitude=it;payloadJson=""},label={Text("Longitude")},modifier=Modifier.fillMaxWidth(),singleLine=true)
+            if(weatherSettingShouldBeShown(context, As100WeatherDashboardMethod.id, "longitude")) OutlinedTextField(longitude,{longitude=it;payloadJson=""},label={Text("Longitude")},modifier=Modifier.fillMaxWidth(),singleLine=true)
         }
-        if(showLocation && context.settingShouldBeShown("threshold_mm_per_hour")) {
+        if(showLocation && weatherSettingShouldBeShown(context, As100WeatherDashboardMethod.id, "threshold_mm_per_hour")) {
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(rainThreshold,{rainThreshold=it.take(8);payloadJson=""},label={Text("Meaningful rain threshold (mm/h)")},modifier=Modifier.fillMaxWidth(),singleLine=true)
         }
-        if(showLocation && context.settingShouldBeShown("offline_only")) {
+        if(showLocation && weatherSettingShouldBeShown(context, As100WeatherDashboardMethod.id, "offline_only")) {
             Spacer(Modifier.height(6.dp))
             OutlinedButton(onClick={offlineOnly=!offlineOnly;payloadJson=""},modifier=Modifier.fillMaxWidth()) { Text(if(offlineOnly)"Cache only · on" else "Cache only · off") }
         }

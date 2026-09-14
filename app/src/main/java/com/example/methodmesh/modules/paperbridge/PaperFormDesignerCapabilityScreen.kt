@@ -83,7 +83,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputFormatter
@@ -370,13 +369,11 @@ object PaperFormDesignCapabilityScreen : CapabilityScreenSpec {
 
         fun finishCommitted(result: ExecutionResult) {
             if (!context.isNativePresetRun || !context.isLastStep) { onConfirmed(result); return }
-            when {
-                presetResultAction == PresetResultAction.SAVE -> { saveCommitted(); onConfirmed(result) }
-                finishToLauncher -> onConfirmed(result)
-                else -> app.startActivity(Intent(app, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-                })
+            when (presetResultAction) {
+                PresetResultAction.SAVE -> saveCommitted()
+                PresetResultAction.SHARE -> shareCommitted()
             }
+            onConfirmed(result)
         }
 
         fun completeDesign(

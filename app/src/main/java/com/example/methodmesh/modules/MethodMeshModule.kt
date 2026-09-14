@@ -157,7 +157,7 @@ object MethodMeshModuleRegistry {
         .sortedWith(compareBy<ModuleOverlaySpec> { it.order }.thenBy { it.id })
 
     private fun coreMethods() = listOf(As100SchedulerMethod, As100ScheduleRunMethod)
-    private fun coreScreens() = listOf(CronScheduleCapabilityScreen, ScheduleTriggerCapabilityScreen)
+    private fun coreScreens() = listOf(SchedulePlanCapabilityScreen, ScheduleTriggerCapabilityScreen)
     private fun coreBindings() = listOf(
         RilBinding("create schedule", As100SchedulerMethod.ID, "Create a local MethodMesh schedule"),
         RilBinding("run schedule", As100ScheduleRunMethod.ID, "Start a saved MethodMesh schedule"),

@@ -228,7 +228,7 @@
       "centralFormId": "methodmesh_apriltag_calibrate_focal_showcase",
       "formVersion": "2026091101",
       "assetPath": "methodmesh/odk_templates/apriltag/example_odk_showcase_apriltag_calibrate_focal.xlsx",
-      "sha256": "519a54457372bf1e90aa1d288875dbf8f6dbf035331033e51914677baea4e240",
+      "sha256": "d3bd6c0fbf305ccab202f089ffe404e4502760b41a68a327c962d3eea8e3841d",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -318,7 +318,7 @@
       "centralFormId": "methodmesh_apriltag_range_pose_showcase",
       "formVersion": "2026091101",
       "assetPath": "methodmesh/odk_templates/apriltag/example_odk_showcase_apriltag_range_pose.xlsx",
-      "sha256": "2cb2eae6ef4d5a906e01121e77d3b76ef33ac3f54bcb0e6d10fa7b4b0140ea3b",
+      "sha256": "647de5ddb4a6e2da5ae6ebe31b166d3ceb04a19f251a8cd1b86960e872ff8c2f",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -348,7 +348,7 @@
       "centralFormId": "methodmesh_apriltag_relative_pose_showcase",
       "formVersion": "2026091101",
       "assetPath": "methodmesh/odk_templates/apriltag/example_odk_showcase_apriltag_relative_pose.xlsx",
-      "sha256": "6ca1dd1215a4e2d6e974d09bfe5116d3972a75fb9edf0efe1957b94f4efa5f96",
+      "sha256": "f3b997a37cece5ee13c79bc651061ca1fb7011fafe9c03a5fb95ed90fbdfe86a",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -378,7 +378,7 @@
       "centralFormId": "methodmesh_apriltag_track_pose_showcase",
       "formVersion": "2026091101",
       "assetPath": "methodmesh/odk_templates/apriltag/example_odk_showcase_apriltag_track_pose.xlsx",
-      "sha256": "5be1e23a0c9349ebe0c8ed952e9ee8d8d7480b25b8a4dc622f86f905a6751361",
+      "sha256": "b60ed17ccbbf8bce837750a258b57fac4e116370473e5c6dbb951398838cca80",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -8552,9 +8552,9 @@
       "sourceFileName": "example_odk_showcase_svg_select.xlsx",
       "sourceRelativePath": "modules/svgselector/docs/example_odk_showcase_svg_select.xlsx",
       "centralFormId": "svgselector_svg_select",
-      "formVersion": "2026090701",
+      "formVersion": "2026091302",
       "assetPath": "methodmesh/odk_templates/svgselector/example_odk_showcase_svg_select.xlsx",
-      "sha256": "ecd0b5b49bcf1a52cb589fda859c110ed12d73dfcdc8f200940f1cc5a8a46781",
+      "sha256": "0b9f9cb00db94467da7007e86a6a80557d14e26481dc27f997385f6a1112c189",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -8572,9 +8572,9 @@
       "sourceFileName": "example_odk_svg_select.xlsx",
       "sourceRelativePath": "modules/svgselector/docs/example_odk_svg_select.xlsx",
       "centralFormId": "svg_select",
-      "formVersion": "2026090703",
+      "formVersion": "2026091302",
       "assetPath": "methodmesh/odk_templates/svgselector/example_odk_svg_select.xlsx",
-      "sha256": "e6977d66d4ef53c501774363748fdfc5a9859623bbe0b151be75421e9e9b49bc",
+      "sha256": "df25a674e14ce16d7d4b90e88400c6aadaae70498a106d8bfda676c036f20ee1",
       "capabilityIds": [],
       "tags": [],
       "validation": {

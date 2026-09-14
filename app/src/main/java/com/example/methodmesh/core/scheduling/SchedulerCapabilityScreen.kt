@@ -342,8 +342,8 @@ private object LegacySchedulerCapabilityScreen : CapabilityScreenSpec {
 /** Compatibility entry point for the historical scheduler capability id. */
 object SchedulerCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100SchedulerMethod.ID
-    override val title = CronScheduleCapabilityScreen.title
-    override val description = CronScheduleCapabilityScreen.description
+    override val title = SchedulePlanCapabilityScreen.title
+    override val description = SchedulePlanCapabilityScreen.description
 
     @Composable
     override fun Render(
@@ -352,7 +352,7 @@ object SchedulerCapabilityScreen : CapabilityScreenSpec {
         onConfirmed: (ExecutionResult) -> Unit,
         onCancel: () -> Unit
     ) {
-        CronScheduleCapabilityScreen.Render(context, onBack, onConfirmed, onCancel)
+        SchedulePlanCapabilityScreen.Render(context, onBack, onConfirmed, onCancel)
     }
 }
 

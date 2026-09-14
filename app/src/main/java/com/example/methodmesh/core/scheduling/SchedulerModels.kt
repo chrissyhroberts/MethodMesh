@@ -63,7 +63,10 @@ data class ResearchSchedule(
         }
         if (cronExpression.isNotBlank()) {
             val start = anchor.plusSeconds(offsetSeconds)
-            val next = CronSchedule.next(cronExpression, if (after.isBefore(start)) start.minusMinutes(1) else after)
+            val next = CronSchedule.nextOrNull(
+                cronExpression,
+                if (after.isBefore(start)) start.minusMinutes(1) else after
+            ) ?: return null
             return next.takeIf { effectiveStop == null || next.isBefore(effectiveStop) }
         }
         val zone = after.zone
@@ -93,9 +96,17 @@ data class ResearchSchedule(
 
 /** Small dependency-free cron evaluator: 5 fields plus MON#2-style nth weekdays. */
 object CronSchedule {
-    fun next(expression: String, after: ZonedDateTime): ZonedDateTime {
+    fun next(expression: String, after: ZonedDateTime): ZonedDateTime =
+        nextOrNull(expression, after)
+            ?: error("Cron expression has no occurrence within one year.")
+
+    /**
+     * Resolve the next occurrence without allowing a malformed or unreachable
+     * cron expression to crash scheduling callers.
+     */
+    fun nextOrNull(expression: String, after: ZonedDateTime): ZonedDateTime? {
         val fields = expression.trim().split(Regex("\\s+"))
-        require(fields.size == 5) { "Cron expression must have 5 fields." }
+        if (fields.size != 5) return null
         var candidate = after.withSecond(0).withNano(0).plusMinutes(1)
         repeat(366 * 24 * 60) {
             val dow = candidate.dayOfWeek.value % 7
@@ -104,13 +115,14 @@ object CronSchedule {
                 matchesDay(fields[4], dow, candidate.dayOfMonth)) return candidate
             candidate = candidate.plusMinutes(1)
         }
-        error("Cron expression has no occurrence within one year.")
+        return null
     }
 
     private fun matches(field: String, value: Int): Boolean = field == "*" || field.split(',').any { token ->
         when {
             token.contains('/') -> {
-                val (base, stepText) = token.split('/', limit = 2); val step = stepText.toIntOrNull() ?: return@any false
+                val (base, stepText) = token.split('/', limit = 2)
+                val step = stepText.toIntOrNull()?.takeIf { it > 0 } ?: return@any false
                 val start = if (base == "*") 0 else base.toIntOrNull() ?: return@any false
                 value >= start && (value - start) % step == 0
             }

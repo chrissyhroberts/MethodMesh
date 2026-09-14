@@ -87,6 +87,19 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                         Text(plan.name, style = MaterialTheme.typography.titleSmall)
                         if (plan.description.isNotBlank()) Text(plan.description, style = MaterialTheme.typography.bodySmall)
                         Text("${plan.activation.name.replace('_', ' ')} · ${plan.termination.mode.name.replace('_', ' ')} · ${plan.lanes.size} lane(s)", style = MaterialTheme.typography.bodySmall)
+                        val timingSummary = when (val timing = plan.rules.firstOrNull()?.timing) {
+                            is ScheduleTimingRule.Once -> "Once"
+                            is ScheduleTimingRule.ElapsedInterval -> "Every ${formatScheduleInterval(timing.interval)}${if (timing.runImmediately) " · starts immediately" else ""}"
+                            is ScheduleTimingRule.AnchoredCalendarDays -> "Every ${timing.everyDays} day${if (timing.everyDays == 1) "" else "s"} from start time${if (timing.runImmediately) " · starts immediately" else ""}"
+                            is ScheduleTimingRule.RelativeDays -> "Day sequence"
+                            is ScheduleTimingRule.Weekly -> if (timing.weekdays.size == 7) "Daily at ${timing.time}" else "Weekly at ${timing.time}"
+                            is ScheduleTimingRule.MonthlyDayOfMonth -> "Monthly · day ${timing.dayOfMonth} at ${timing.time}"
+                            is ScheduleTimingRule.MonthlyNthWeekday -> "Monthly · ordinal weekday at ${timing.time}"
+                            is ScheduleTimingRule.IntradayInterval -> "Intraday interval"
+                            is ScheduleTimingRule.Cron -> "Cron · ${timing.expression}"
+                            null -> "No timing rule"
+                        }
+                        Text(timingSummary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         plan.rules.forEach { rule ->
                             val daysForPreview = when (val timing = rule.timing) {
                                 is ScheduleTimingRule.RelativeDays -> timing.days
@@ -108,7 +121,10 @@ fun SchedulerCenterCard(onCreate: () -> Unit, onEditPlan: (SchedulePlan) -> Unit
                             Text("History · $completed completed · $failed missed/failed" + (lastActivity?.let { " · last ${it.laneName} ${it.state.name.lowercase()}" } ?: ""), style = MaterialTheme.typography.bodySmall)
                         }
                         if (running == null && (!plan.enabled || plan.activation == ScheduleActivation.MANUAL_DAY_ONE)) {
-                            Button(onClick = { val resumed = plan.copy(enabled = true, updatedAt = java.time.ZonedDateTime.now()); SchedulePlanStore.savePlan(context, resumed); SchedulePlanRuntime.start(context, resumed); plans = SchedulePlanStore.allPlans(context) }) { Text(if (plan.activation == ScheduleActivation.MANUAL_DAY_ONE) "Start Day 1" else "Start") }
+                            Button(onClick = { val resumed = plan.copy(enabled = true, updatedAt = java.time.ZonedDateTime.now()); SchedulePlanStore.savePlan(context, resumed); SchedulePlanRuntime.start(context, resumed); plans = SchedulePlanStore.allPlans(context) }) {
+                                val isDaySequence = plan.rules.any { it.timing is ScheduleTimingRule.RelativeDays }
+                                Text(if (isDaySequence) "Start Day 1" else "Start")
+                            }
                         } else if (running != null) {
                             Text("Running · ${running.occurrences.count { it.state == ScheduleOccurrenceState.COMPLETED }} completed", style = MaterialTheme.typography.bodySmall)
                             running.occurrences.firstOrNull { it.state == ScheduleOccurrenceState.UPCOMING || it.state == ScheduleOccurrenceState.WINDOW_OPEN || it.state == ScheduleOccurrenceState.DUE }?.let { next ->
@@ -218,6 +234,12 @@ private fun formatCountdown(duration: Duration): String {
     return "%02dh %02dm %02ds".format(hours, minutes, remainder)
 }
 
+private fun formatScheduleInterval(duration: java.time.Duration): String = when {
+    duration.toDays() > 0 && duration.seconds % java.time.Duration.ofDays(1).seconds == 0L -> "${duration.toDays()} day${if (duration.toDays() == 1L) "" else "s"}"
+    duration.toHours() > 0 && duration.seconds % java.time.Duration.ofHours(1).seconds == 0L -> "${duration.toHours()} hour${if (duration.toHours() == 1L) "" else "s"}"
+    else -> "${duration.toMinutes().coerceAtLeast(1)} min"
+}
+
 @Composable
 fun SchedulerEditorHost(schedule: ResearchSchedule?, plan: SchedulePlan? = null, onDone: () -> Unit, onCancel: () -> Unit) {
     val settings = buildMap {
@@ -237,7 +259,7 @@ fun SchedulerEditorHost(schedule: ResearchSchedule?, plan: SchedulePlan? = null,
     Dialog(onDismissRequest = onCancel, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(Modifier.fillMaxSize()) {
             androidx.compose.runtime.key(plan?.id ?: schedule?.id ?: "new") {
-                val screen = if (schedule != null || plan == null) CronScheduleCapabilityScreen else SchedulePlanCapabilityScreen
+                val screen = if (schedule != null) CronScheduleCapabilityScreen else SchedulePlanCapabilityScreen
                 screen.Render(CapabilityScreenContext(action, request, 1, 1), onBack = onCancel, onConfirmed = { onDone() }, onCancel = onCancel)
             }
         }

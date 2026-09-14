@@ -3,6 +3,7 @@ package com.example.methodmesh.core.scheduling
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.app.AlarmManager
 
 /** Re-arms persisted schedules after boot and system-clock changes. */
 class SchedulerBootReceiver : BroadcastReceiver() {
@@ -12,6 +13,7 @@ class SchedulerBootReceiver : BroadcastReceiver() {
             Intent.ACTION_LOCKED_BOOT_COMPLETED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
+            AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
             "android.intent.action.QUICKBOOT_POWERON" -> {
                 SchedulerRepository.rescheduleAll(context)
                 SchedulePlanRuntime.rescheduleAll(context)
