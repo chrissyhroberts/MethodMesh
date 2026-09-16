@@ -1,0 +1,26 @@
+<!--
+Browser call-outs use the existing methodmesh:// VIEW/BROWSABLE route.
+Keep the ODK EXECUTE_METHOD filter separate. An empty task affinity keeps this
+transient router out of the normal MethodMesh MainActivity task so finishing
+returns to Chrome/Enketo rather than the MethodMesh home screen.
+-->
+<activity
+    android:name=".transport.android.IntentRouterActivity"
+    android:exported="true"
+    android:excludeFromRecents="true"
+    android:taskAffinity=""
+    android:label="MethodMesh Intent Router"
+    android:theme="@style/Theme.MethodMesh">
+
+    <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="methodmesh" />
+    </intent-filter>
+
+    <intent-filter>
+        <action android:name="com.example.methodmesh.EXECUTE_METHOD" />
+        <category android:name="android.intent.category.DEFAULT" />
+    </intent-filter>
+</activity>

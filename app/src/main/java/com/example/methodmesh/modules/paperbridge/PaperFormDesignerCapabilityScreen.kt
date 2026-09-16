@@ -1041,7 +1041,8 @@ internal fun PaperFormDesignerSurface(
     }
     val errors = issues.filter { it.severity == PaperDesignSeverity.ERROR }
     val warnings = issues.filter { it.severity == PaperDesignSeverity.WARNING }
-    val canBuild = errors.isEmpty() && sourceBitmap != null && source != null
+    val inputsReady = sourceBitmap != null && source != null && odkSchema != null
+    val canBuild = errors.isEmpty() && inputsReady
     val currentDesignSignature = remember(templateId, version, title, sourceBitmap, fields) {
         val bitmap = sourceBitmap
         if (bitmap == null) null else runCatching {
@@ -1485,47 +1486,51 @@ internal fun PaperFormDesignerSurface(
                             color = if (anchorsOk) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                         )
                     }
-                    Text(
-                        if (showSetup) "MAP" else "SETUP",
-                        modifier = Modifier.clickable { showSetup = !showSetup }.padding(horizontal = 7.dp, vertical = 8.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelLarge
-                    )
+                    if (inputsReady) {
+                        Text(
+                            if (showSetup) "MAP" else "SETUP",
+                            modifier = Modifier.clickable { showSetup = !showSetup }.padding(horizontal = 7.dp, vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedButton(
-                        onClick = { saveCurrentDesign(false) },
-                        enabled = canBuild && !schemaSaved && !saving,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                    ) { Text(if (saving) "SAVING…" else if (schemaSaved) "✓ SAVED" else "SAVE SCHEMA", style = MaterialTheme.typography.labelSmall) }
-                    OutlinedButton(
-                        onClick = { startDesignerScanTest("blank") },
-                        enabled = schemaSaved,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                    ) { Text(if (blankTestPassedCurrent) "✓ EMPTY" else "TEST EMPTY", style = MaterialTheme.typography.labelSmall) }
-                    OutlinedButton(
-                        onClick = { startDesignerScanTest("data") },
-                        enabled = blankTestPassedCurrent,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                    ) { Text(if (dataTestCompletedCurrent) "✓ DATA" else "TEST DATA", style = MaterialTheme.typography.labelSmall) }
-                    Button(
-                        onClick = { saveCurrentDesign(true) },
-                        enabled = canCommit,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                    ) { Text("COMMIT", style = MaterialTheme.typography.labelSmall) }
+                if (inputsReady) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = { saveCurrentDesign(false) },
+                            enabled = canBuild && !schemaSaved && !saving,
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                        ) { Text(if (saving) "SAVING…" else if (schemaSaved) "✓ SAVED" else "SAVE SCHEMA", style = MaterialTheme.typography.labelSmall) }
+                        OutlinedButton(
+                            onClick = { startDesignerScanTest("blank") },
+                            enabled = schemaSaved,
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                        ) { Text(if (blankTestPassedCurrent) "✓ EMPTY" else "TEST EMPTY", style = MaterialTheme.typography.labelSmall) }
+                        OutlinedButton(
+                            onClick = { startDesignerScanTest("data") },
+                            enabled = blankTestPassedCurrent,
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                        ) { Text(if (dataTestCompletedCurrent) "✓ DATA" else "TEST DATA", style = MaterialTheme.typography.labelSmall) }
+                        Button(
+                            onClick = { saveCurrentDesign(true) },
+                            enabled = canCommit,
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                        ) { Text("COMMIT", style = MaterialTheme.typography.labelSmall) }
+                    }
                 }
 
-                if (testStatus.isNotBlank()) {
+                if (inputsReady && testStatus.isNotBlank()) {
                     val lowerStatus = testStatus.lowercase()
                     val testAlert = lowerStatus.contains("failed") ||
                         lowerStatus.contains("false positive") ||
@@ -1568,21 +1573,45 @@ internal fun PaperFormDesignerSurface(
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f))
                 ) {
                     val bitmap = sourceBitmap
-                    if (bitmap == null) {
+                    if (!inputsReady) {
                         Column(
                             modifier = Modifier.align(Alignment.Center).padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("Open the blank paper questionnaire", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text(sourceStatus, modifier = Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Button(
-                                onClick = { sourcePicker.launch(arrayOf("application/pdf", "image/*")) },
-                                modifier = Modifier.padding(top = 16.dp)
-                            ) { Text("Choose PDF or image") }
+                            Text("New Paper Bridge schema", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Load the XLSForm and the coloured template. Either can be loaded first; mapping opens only when both are ready.",
+                                modifier = Modifier.padding(top = 8.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { xlsPicker.launch(arrayOf("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(if (odkSchema == null) "Load XLSForm" else "XLSForm loaded ✓")
+                                }
+                                OutlinedButton(
+                                    onClick = { sourcePicker.launch(arrayOf("application/pdf", "image/*")) },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(if (bitmap == null) "Load template" else "Template loaded ✓")
+                                }
+                            }
+                            if (odkStatus.isNotBlank()) {
+                                Text(odkStatus, modifier = Modifier.padding(top = 10.dp), style = MaterialTheme.typography.labelSmall)
+                            }
+                            if (sourceStatus.isNotBlank()) {
+                                Text(sourceStatus, modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelSmall)
+                            }
                         }
                     } else {
                         DesignerPageCanvas(
-                            bitmap = bitmap,
+                            bitmap = requireNotNull(bitmap) { "Template bitmap missing despite ready inputs" },
                             regions = regionViews,
                             questionOverlays = colourQuestionOverlays,
                             selectedRegionId = selectedRegionId,
@@ -1603,11 +1632,12 @@ internal fun PaperFormDesignerSurface(
                     }
                 }
 
-                Surface(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    tonalElevation = 5.dp,
-                    color = MaterialTheme.colorScheme.surface
-                ) {
+                if (inputsReady) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        tonalElevation = 5.dp,
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
                     Column(
                         Modifier
                             .fillMaxSize()
@@ -1911,6 +1941,7 @@ internal fun PaperFormDesignerSurface(
                             }
                         }
                     }
+                }
                 }
             }
         }

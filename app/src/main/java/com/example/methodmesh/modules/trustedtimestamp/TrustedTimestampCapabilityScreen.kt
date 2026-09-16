@@ -2,18 +2,16 @@ package com.example.methodmesh.modules.trustedtimestamp
 
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +38,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.transport.OutputExportRepository
+import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.ResultShare
+import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
@@ -66,7 +69,8 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
         val resolver = androidContext.contentResolver
         val scope = rememberCoroutineScope()
         val externalRoundtrip =
-            context.presentationMode == CapabilityPresentationMode.IntentLaunch
+            context.presentationMode == CapabilityPresentationMode.IntentLaunch &&
+                context.submitsImmediately
 
         // Capture launch-supplied inputs once. Interactive edits are written back
         // through onSettingsChanged, so re-reading the mutable action settings
@@ -155,6 +159,9 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
             mutableStateOf("")
         }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        var committed by rememberSaveable(context.action.canonicalId) {
+            mutableStateOf(false)
+        }
         var launchedAutomatically by rememberSaveable(context.action.canonicalId) {
             mutableStateOf(false)
         }
@@ -190,6 +197,7 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
             proofCachePath = ""
             savedResultValuesJson = ""
             result = null
+            committed = false
             if (message != null) status = message
         }
 
@@ -226,8 +234,8 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
                 )
             }.getOrNull()
 
-        LaunchedEffect(savedResultValuesJson) {
-            if (result == null && savedResultValuesJson.isNotBlank()) {
+        LaunchedEffect(savedResultValuesJson, committed) {
+            if (committed && result == null && savedResultValuesJson.isNotBlank()) {
                 result = restoreResultFromJson(savedResultValuesJson)
             }
         }
@@ -276,70 +284,6 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
                 status = "Ready to timestamp $selectedName."
             }
 
-        val zipSaver =
-            rememberLauncherForActivityResult(
-                ActivityResultContracts.CreateDocument("application/zip")
-            ) { destination ->
-                if (destination != null && proofCachePath.isNotBlank()) {
-                    scope.launch {
-                        runCatching {
-                            withContext(Dispatchers.IO) {
-                                val cachedProof = File(proofCachePath)
-                                require(cachedProof.exists()) {
-                                    "The temporary proof file is no longer available."
-                                }
-                                resolver.openOutputStream(destination, "w").use { output ->
-                                    requireNotNull(output) {
-                                        "Unable to open the selected destination."
-                                    }
-                                    cachedProof.inputStream().use { input ->
-                                        input.copyTo(output)
-                                    }
-                                }
-                            }
-                        }.onSuccess {
-                            actionStatus = "Saved $proofFileName."
-                        }.onFailure { error ->
-                            actionStatus =
-                                "Save failed: ${error.message ?: error::class.java.simpleName}"
-                        }
-                    }
-                }
-            }
-
-        fun currentProofFile(): File {
-            require(proofCachePath.isNotBlank()) { "No proof ZIP has been created yet." }
-            val file = File(proofCachePath)
-            require(file.exists()) { "The temporary proof ZIP is no longer available." }
-            return file
-        }
-
-        fun shareProofZip() {
-            runCatching {
-                val file = currentProofFile()
-                val uri = FileProvider.getUriForFile(
-                    androidContext,
-                    "${androidContext.packageName}.fileprovider",
-                    file
-                )
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "application/zip"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    putExtra(Intent.EXTRA_TITLE, proofFileName)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    clipData = ClipData.newRawUri(proofFileName, uri)
-                }
-                androidContext.startActivity(
-                    Intent.createChooser(intent, "Share proof ZIP")
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                )
-            }.onSuccess {
-                actionStatus = "Sharing $proofFileName."
-            }.onFailure { error ->
-                actionStatus = "Share failed: ${error.message ?: "no sharing app available"}"
-            }
-        }
-
         fun shareSourceFile() {
             val uri = selectedUri ?: return
             runCatching {
@@ -375,52 +319,6 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
                 actionStatus = "Sharing timestamped text."
             }.onFailure { error ->
                 actionStatus = "Share failed: ${error.message ?: "no sharing app available"}"
-            }
-        }
-
-        fun exportProofZipToDownloads() {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-                actionStatus = "Choose where to save the proof ZIP."
-                zipSaver.launch(proofFileName)
-                return
-            }
-
-            scope.launch {
-                runCatching {
-                    withContext(Dispatchers.IO) {
-                        val source = currentProofFile()
-                        val values = ContentValues().apply {
-                            put(MediaStore.Downloads.DISPLAY_NAME, proofFileName)
-                            put(MediaStore.Downloads.MIME_TYPE, "application/zip")
-                            put(
-                                MediaStore.Downloads.RELATIVE_PATH,
-                                Environment.DIRECTORY_DOWNLOADS + "/MethodMesh"
-                            )
-                            put(MediaStore.Downloads.IS_PENDING, 1)
-                        }
-                        val destination = requireNotNull(
-                            resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                        ) { "Unable to create a Downloads entry." }
-                        try {
-                            resolver.openOutputStream(destination, "w").use { output ->
-                                requireNotNull(output) { "Unable to open Downloads output." }
-                                source.inputStream().use { input -> input.copyTo(output) }
-                            }
-                            val ready = ContentValues().apply {
-                                put(MediaStore.Downloads.IS_PENDING, 0)
-                            }
-                            resolver.update(destination, ready, null, null)
-                        } catch (error: Throwable) {
-                            resolver.delete(destination, null, null)
-                            throw error
-                        }
-                    }
-                }.onSuccess {
-                    actionStatus = "Exported $proofFileName to Downloads/MethodMesh."
-                }.onFailure { error ->
-                    actionStatus =
-                        "Export failed: ${error.message ?: error::class.java.simpleName}"
-                }
             }
         }
 
@@ -570,16 +468,18 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
                     )
 
                     savedResultValuesJson = JSONObject(values as Map<*, *>).toString()
-                    val executionResult = As100TrustedTimestampMethod.result(
-                        executionRequest(),
-                        values,
-                        context.request.invocationContext
-                    )
-                    result = executionResult
+                    result = null
+                    committed = false
                     status = "Proof created. Review the source and proof, then Commit."
                     busy = false
 
                     if (externalRoundtrip && context.startsImmediately && hasDirectSource) {
+                        val executionResult = As100TrustedTimestampMethod.result(
+                            executionRequest(),
+                            values,
+                            context.request.invocationContext
+                        )
+                        result = executionResult
                         onConfirmed(executionResult)
                     }
                 }.onFailure { error ->
@@ -592,14 +492,16 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
                         TrustedTimestampFields.ERROR to message
                     )
                     savedResultValuesJson = JSONObject(values as Map<*, *>).toString()
-                    val executionResult = As100TrustedTimestampMethod.result(
-                        executionRequest(),
-                        values,
-                        context.request.invocationContext
-                    )
-                    result = executionResult
+                    result = null
+                    committed = false
 
                     if (externalRoundtrip && context.startsImmediately && hasDirectSource) {
+                        val executionResult = As100TrustedTimestampMethod.result(
+                            executionRequest(),
+                            values,
+                            context.request.invocationContext
+                        )
+                        result = executionResult
                         onConfirmed(executionResult)
                     }
                 }
@@ -626,17 +528,30 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
             capabilityId = capabilityId,
             context = context,
             canGoBack = context.stepNumber > 1,
-            capturedResult = result,
-            resultPreview = emptyMap(),
+            capturedResult = null,
+            resultPreview = emptyMap<String, String>(),
             onBack = onBack,
             onRetry = {
+                committed = false
                 result = null
                 savedResultValuesJson = ""
                 createProof()
             },
-            onConfirm = { result?.let(onConfirmed) },
+            onConfirm = { if (committed) result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
+            if (committed && result != null) {
+                TrustedTimestampCommittedPanel(
+                    result = result!!,
+                    values = capturedValues,
+                    proofFileName = proofFileName,
+                    onDone = { result?.let(onConfirmed) },
+                    onEdit = {
+                        invalidateWorkingProof("Edit the source and create a new proof.")
+                        actionStatus = "Started a new working proof."
+                    }
+                )
+            } else {
             Text(
                 "${TrustedTimestampContractMetadata.MATURITY} · ${TrustedTimestampContractMetadata.CONNECTIVITY}",
                 style = MaterialTheme.typography.labelMedium,
@@ -713,7 +628,7 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
                     Text("Text supplied by caller/preset.", style = MaterialTheme.typography.bodySmall)
                 }
 
-                if (text.isNotEmpty() && result != null) {
+                if (text.isNotEmpty() && savedResultValuesJson.isNotBlank()) {
                     CopyableValue(
                         label = "Timestamped text",
                         value = text,
@@ -815,32 +730,39 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
                     }
                 )
 
-                if (!externalRoundtrip) {
-                    Button(
-                        onClick = { shareProofZip() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Share proof ZIP")
-                    }
-
-                    OutlinedButton(
-                        onClick = { zipSaver.launch(proofFileName) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Save proof ZIP…")
-                    }
-
-                    OutlinedButton(
-                        onClick = { exportProofZipToDownloads() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Export ZIP to Downloads")
-                    }
-                } else {
+                if (externalRoundtrip) {
                     Text(
-                        "Commit returns the proof ZIP to ODK as a real attachment. If MethodMesh acquired the source, that source is returned too.",
+                        "Commit returns the proof ZIP to the caller as a real attachment. If MethodMesh acquired the source, that source is returned too.",
                         style = MaterialTheme.typography.bodySmall
                     )
+                } else {
+                    Text(
+                        "Commit freezes this proof. Share, Save to Downloads and optional full JSON / audit are offered after Commit.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                Button(
+                    onClick = {
+                        val executionResult = restoreResultFromJson(savedResultValuesJson)
+                        if (executionResult != null) {
+                            result = executionResult
+                            if (externalRoundtrip) {
+                                onConfirmed(executionResult)
+                            } else {
+                                committed = true
+                                status = "Proof committed. Share or save the committed result, then choose Done/Home."
+                            }
+                        } else {
+                            actionStatus = "Commit failed: the proof result could not be reconstructed."
+                        }
+                    },
+                    enabled = capturedValues[TrustedTimestampFields.STATUS] == "succeeded",
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Commit")
                 }
 
                 Spacer(Modifier.height(8.dp))
@@ -943,8 +865,194 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
                     androidContext = androidContext
                 )
             }
+            }
         }
     }
+}
+
+@Composable
+private fun TrustedTimestampCommittedPanel(
+    result: ExecutionResult,
+    values: Map<String, String>,
+    proofFileName: String,
+    onDone: () -> Unit,
+    onEdit: () -> Unit
+) {
+    val appContext = LocalContext.current
+    var includeFullJson by rememberSaveable(result.request.id.value) { mutableStateOf(false) }
+    var actionStatus by rememberSaveable(result.request.id.value) { mutableStateOf("") }
+
+    val proofUri = values[TrustedTimestampFields.PROOF_URI].orEmpty()
+    val fullJson = remember(result.request.id.value) {
+        OutputFormatter.format(
+            result = result,
+            returnMode = ReturnMode.Json,
+            includeProvenance = true,
+            payloadMode = OutputFormatter.PayloadMode.FULL
+        )
+    }
+    val summaryText = remember(result.request.id.value, values) {
+        trustedTimestampShareSummary(values, proofFileName)
+    }
+    val clipboardText = ResultShare.buildShareText(
+        summaryText,
+        if (includeFullJson) fullJson else ""
+    )
+    val attachment = proofUri.takeIf { it.isNotBlank() }?.let { uri ->
+        ResultShare.Attachment(
+            proofFileName.ifBlank { "trusted_timestamp_proof.zip" },
+            Uri.parse(uri)
+        )
+    }
+
+    Text("Proof committed", style = MaterialTheme.typography.titleLarge)
+    Text(
+        "The proof is frozen for this execution. Share or save it before leaving if you want a persistent copy.",
+        style = MaterialTheme.typography.bodyMedium
+    )
+    Spacer(Modifier.height(12.dp))
+
+    CopyableValue(
+        label = "Proof ZIP",
+        value = proofFileName,
+        onCopy = {
+            copyText(appContext, "Proof ZIP", proofFileName)
+            actionStatus = "Proof filename copied."
+        }
+    )
+    values[TrustedTimestampFields.TIME_ISO]?.takeIf { it.isNotBlank() }?.let { trustedTime ->
+        CopyableValue(
+            label = "Trusted time",
+            value = trustedTime,
+            onCopy = {
+                copyText(appContext, "Trusted time", trustedTime)
+                actionStatus = "Trusted time copied."
+            }
+        )
+    }
+
+    Spacer(Modifier.height(6.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Include full JSON / audit", style = MaterialTheme.typography.titleSmall)
+            Text(
+                if (includeFullJson) {
+                    "Share appends canonical JSON to the message; Save adds a metadata JSON sidecar."
+                } else {
+                    "Off by default. The proof ZIP is always included."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(
+            checked = includeFullJson,
+            onCheckedChange = { includeFullJson = it },
+            enabled = fullJson.isNotBlank()
+        )
+    }
+
+    Spacer(Modifier.height(10.dp))
+    Button(
+        onClick = {
+            runCatching {
+                requireNotNull(attachment) { "The proof ZIP is no longer available." }
+                ResultShare.share(
+                    context = appContext,
+                    chooserTitle = "Share trusted timestamp proof",
+                    text = summaryText,
+                    attachments = listOf(attachment),
+                    jsonText = if (includeFullJson) fullJson else "",
+                    fileLabel = "trusted timestamp proof"
+                )
+            }.onSuccess {
+                actionStatus = "Sharing committed proof…"
+            }.onFailure { error ->
+                actionStatus = "Share failed: ${error.message ?: "no sharing app available"}"
+            }
+        },
+        enabled = attachment != null,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Share proof bundle")
+    }
+
+    OutlinedButton(
+        onClick = {
+            runCatching {
+                require(proofUri.isNotBlank()) { "The proof ZIP is no longer available." }
+                OutputExportRepository.saveToDownloads(
+                    context = appContext,
+                    label = "trusted timestamp proof",
+                    text = summaryText,
+                    mediaUris = listOf(proofUri),
+                    jsonText = if (includeFullJson) fullJson else ""
+                )
+            }.onSuccess { export ->
+                actionStatus = "Saved ${export.summary}"
+            }.onFailure { error ->
+                actionStatus = "Save failed: ${error.message ?: "storage error"}"
+            }
+        },
+        enabled = proofUri.isNotBlank(),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Save proof bundle to Downloads")
+    }
+
+    OutlinedButton(
+        onClick = {
+            runCatching {
+                require(clipboardText.isNotBlank()) { "No result text to copy." }
+                appContext.getSystemService(ClipboardManager::class.java)
+                    .setPrimaryClip(ClipData.newPlainText("Trusted timestamp proof", clipboardText))
+            }.onSuccess {
+                actionStatus = if (includeFullJson) "Copied proof summary + full JSON." else "Copied proof summary."
+            }.onFailure { error ->
+                actionStatus = "Copy failed: ${error.message ?: "clipboard unavailable"}"
+            }
+        },
+        enabled = clipboardText.isNotBlank(),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(if (includeFullJson) "Copy summary + JSON" else "Copy proof summary")
+    }
+
+    if (actionStatus.isNotBlank()) {
+        Text(
+            actionStatus,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+
+    Spacer(Modifier.height(10.dp))
+    Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
+        Text("Done")
+    }
+    OutlinedButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
+        Text("Edit / new proof")
+    }
+}
+
+private fun trustedTimestampShareSummary(
+    values: Map<String, String>,
+    proofFileName: String
+): String {
+    val rows = listOf(
+        "Proof" to proofFileName,
+        "Source" to values[TrustedTimestampFields.ORIGINAL_NAME].orEmpty(),
+        "Trusted time" to values[TrustedTimestampFields.TIME_ISO].orEmpty(),
+        "Timestamp authority" to values[TrustedTimestampFields.TSA].orEmpty(),
+        "Source SHA-256" to values[TrustedTimestampFields.SHA256].orEmpty(),
+        "Trust status" to values[TrustedTimestampFields.TRUST_STATUS].orEmpty()
+    )
+    return rows
+        .filter { (_, value) -> value.isNotBlank() }
+        .joinToString("\n") { (label, value) -> "$label: $value" }
 }
 
 @Composable

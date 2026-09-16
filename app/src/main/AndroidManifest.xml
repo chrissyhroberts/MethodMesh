@@ -65,6 +65,8 @@
         <activity
             android:name=".transport.android.IntentRouterActivity"
             android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
             android:label="MethodMesh Intent Router"
             android:theme="@style/Theme.MethodMesh">
             <intent-filter>

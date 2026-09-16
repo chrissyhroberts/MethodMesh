@@ -1,0 +1,58 @@
+ M app/src/main/assets/methodmesh/odk_templates/index.json
+ M app/src/main/java/com/example/methodmesh/modules/adminfingerprint/AdminFingerprintModule.kt
+ M app/src/main/java/com/example/methodmesh/modules/adminfingerprint/docs/README_AdminFingerprint.md
+ M app/src/main/java/com/example/methodmesh/modules/magnifier/docs/README_Magnifier.md
+ M app/src/main/java/com/example/methodmesh/modules/paperbridge/PaperFormDesignerCapabilityScreen.kt
+ M app/src/main/java/com/example/methodmesh/modules/trustedtimestamp/TrustedTimestampCapabilityScreen.kt
+ M app/src/main/java/com/example/methodmesh/modules/trustedtimestamp/docs/MODULE_REVIEW_ALIGNMENT.md
+ M app/src/main/java/com/example/methodmesh/modules/trustedtimestamp/docs/README_TrustedTimestamp.md
+ M app/src/main/java/com/example/methodmesh/modules/trustedtimestamp/docs/VALIDATION.md
+ D app/src/main/java/com/example/methodmesh/modules/weather.zip
+ M app/src/main/java/com/example/methodmesh/transport/android/ExternalWorkflowActivity.kt
+ M app/src/main/java/com/example/methodmesh/transport/android/IntentRouterActivity.kt
+?? app/src/main.zip
+?? app/src/main/assets/methodmesh/odk_templates/adminfingerprint/example_enketo_browser_biometric_callout.xlsx
+?? app/src/main/assets/methodmesh/odk_templates/magnifier/example_enketo_magnifier_media_bridge.xlsx
+?? app/src/main/java/com/example/methodmesh/modules/adminfingerprint/BrowserBiometricCalloutCapabilityScreen.kt
+?? app/src/main/java/com/example/methodmesh/modules/adminfingerprint/BrowserBiometricCalloutMethod.kt
+?? app/src/main/java/com/example/methodmesh/modules/adminfingerprint/BrowserBiometricVerificationToken.kt
+?? app/src/main/java/com/example/methodmesh/modules/adminfingerprint/docs/CHANGES_Enketo_Browser_Callout.md
+?? app/src/main/java/com/example/methodmesh/modules/adminfingerprint/docs/README_Enketo_Browser_Biometric_Test.md
+?? app/src/main/java/com/example/methodmesh/modules/adminfingerprint/docs/enketo_browser_callout_manifest_snippet.xml
+?? app/src/main/java/com/example/methodmesh/modules/adminfingerprint/docs/example_enketo_browser_biometric_callout.xlsx
+?? app/src/main/java/com/example/methodmesh/modules/magnifier.zip
+?? app/src/main/java/com/example/methodmesh/modules/magnifier/docs/README_Enketo_Media_Bridge.md
+?? app/src/main/java/com/example/methodmesh/modules/magnifier/docs/example_enketo_magnifier_media_bridge.xlsx
+?? app/src/main/java/com/example/methodmesh/modules/paperbridge.zip
+?? app/src/main/java/com/example/methodmesh/transport/android/BrowserReturnBridge.kt
+?? backups_for_rollbacks/
+?? docs/assets/screenshots/Screenshot_20260914_203151.png
+?? incoming_capability_prototypes/FRDM_PaperBridge_PDF_Examples.zip
+?? incoming_capability_prototypes/FRDM_PaperBridge_PDF_Examples/
+?? incoming_capability_prototypes/PaperBridge_Exemplar_OnePage_Survey.pdf
+?? incoming_capability_prototypes/PaperBridge_Exemplar_OnePage_Survey_XLSForm.xlsx
+?? incoming_capability_prototypes/PaperBridge_Template_Primitives.pptx
+?? incoming_capability_prototypes/adminfingerprint_with_enketo_browser_callout.zip
+?? incoming_capability_prototypes/adminfingerprint_with_enketo_browser_callout_v2.zip
+?? incoming_capability_prototypes/adminfingerprint_with_enketo_browser_callout_v3.zip
+?? incoming_capability_prototypes/adminfingerprint_with_enketo_browser_callout_v4.zip
+?? incoming_capability_prototypes/browser_media_patch_v6/
+?? incoming_capability_prototypes/enketo_browser_media_bridge_patch_v6.zip
+?? incoming_capability_prototypes/enketo_browser_media_bridge_v7_replacement_only.zip
+?? incoming_capability_prototypes/enketo_browser_media_bridge_v7_replacement_only/
+?? incoming_capability_prototypes/enketo_browser_return_fix_v8_replacement_only.zip
+?? incoming_capability_prototypes/enketo_browser_return_fix_v8_replacement_only/
+?? incoming_capability_prototypes/enketo_browser_return_router_patch_v4.zip
+?? incoming_capability_prototypes/enketo_browser_router_flag_fix_v5.zip
+?? incoming_capability_prototypes/enketo_browser_router_flag_fix_v5/
+?? incoming_capability_prototypes/example_enketo_browser_biometric_callout.xlsx
+?? incoming_capability_prototypes/example_enketo_browser_biometric_callout_v2.xlsx
+?? incoming_capability_prototypes/example_enketo_browser_biometric_callout_v3.xlsx
+?? incoming_capability_prototypes/example_enketo_browser_biometric_callout_v4.xlsx
+?? incoming_capability_prototypes/example_enketo_magnifier_media_bridge_alpha.xlsx
+?? incoming_capability_prototypes/magnifier_with_enketo_media_example_v6.zip
+?? incoming_capability_prototypes/paperbridge_large_select_guard.zip
+?? incoming_capability_prototypes/paperbridge_regression_fix_v3.zip
+?? incoming_capability_prototypes/paperbridge_two_button_setup.zip
+?? incoming_capability_prototypes/paperbridge_two_button_setup_compile_fix.zip
+?? incoming_capability_prototypes/trustedtimestamp_refreshed_20260915.zip

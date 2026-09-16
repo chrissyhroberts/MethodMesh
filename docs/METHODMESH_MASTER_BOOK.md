@@ -1,12 +1,12 @@
 ---
 title: "MethodMesh Master Book"
 subtitle: "Canonical architecture, capability runtime, integration, UX and review standard"
-date: "2026-09-13"
+date: "2026-09-15"
 ---
 
-Version: v1.21
+Version: v1.22
 Status: FINAL - canonical project-wide documentation
-Last updated: 2026-09-13
+Last updated: 2026-09-15
 Authority: sole normative project-wide MethodMesh documentation resource
 
 This edition consolidates the previously separate Master Book, architecture and conceptual specifications, capability-writing guidance, module-review manual, UI/UX standards, ODK/XLSForm integration guidance, provider notes, scheduling guidance, testing guidance and current project-wide implementation doctrine into one resource.
@@ -81,6 +81,7 @@ This edition also makes preset execution behaviour and the composable scheduler 
   - [Flat + full JSON](#flat-full-json)
   - [Binary artefacts and ODK attachments](#binary-artefacts-and-odk-attachments)
   - [No MethodMesh storage on ODK return](#no-methodmesh-storage-on-odk-return)
+  - [Browser/Enketo external call-out bridge](#browserenketo-external-call-out-bridge)
   - [ODK Forms library ownership and discovery](#odk-forms-library-ownership-and-discovery)
   - [ODK Central rapid-test deployment](#odk-central-rapid-test-deployment)
   - [Kobo rapid-test deployment](#kobo-rapid-test-deployment)
@@ -2011,6 +2012,120 @@ Temporary/cache files needed to expose an artefact through FileProvider
 are acceptable as artefact source files. Extra “just in case” MethodMesh
 archive copies are not.
 
+
+## Browser/Enketo external call-out bridge
+
+A stock browser-hosted Enketo form may invoke MethodMesh without modifying the
+Enketo deployment. This is a **browser adapter over the same canonical capability
+contract**, not a second capability API. A browser call selects the normal
+`method_id` and supplies normal `input_*` values; `LaunchConfigParser` and the RIL
+transport adapter resolve them through the same external workflow used by Android
+callers.
+
+The browser entry route is a user-initiated `methodmesh://` VIEW/BROWSABLE deep
+link, commonly wrapped by Chrome's `intent://...#Intent;scheme=methodmesh;end`
+syntax. The public intent router is transient and MUST NOT turn a browser call into
+an ordinary MethodMesh navigation session. After the requested capability commits
+or cancels, MethodMesh returns the user to the **existing browser task and live
+form/tab**. It MUST NOT navigate to MethodMesh Home and MUST NOT relaunch the
+browser in a way that creates a new tab or reloads the form.
+
+Browser task-navigation flags such as `FLAG_ACTIVITY_NEW_TASK` are transport
+metadata, not capability inputs. They MUST NOT be propagated across the internal
+`startActivityForResult` boundary to the external workflow, because that can
+separate the child workflow into another Android task and cause an immediate false
+completion. URI grant flags may be preserved. **Non-browser Android/ODK callers
+retain their existing Intent action/data/categories/extras/ClipData/flags and
+Activity-result contract.** The browser bridge must not weaken or silently alter
+the ODK path.
+
+### Browser return modes
+
+A stock web page cannot receive an Android `Activity` result from an arbitrary
+native application and cannot allow that application to programmatically write
+into a live HTML control. MethodMesh therefore uses an explicit browser return
+adapter after capability completion:
+
+- omitted `input_browser_return`, or `input_browser_return=clipboard`: copy the
+  projected MethodMesh result to the Android clipboard as a versioned JSON
+  envelope;
+- `input_browser_return=clipboard_media`: do the clipboard return and also
+  publish returned `content://` media through Android MediaStore so the user can
+  choose it in the form's ordinary image/file picker;
+- `input_browser_return=none`: perform the round trip but create no browser
+  clipboard/media return.
+
+Media publication is **opt-in**. The bridge MUST NOT create a public MediaStore
+copy merely because a capability happened to return a content URI. This is the
+browser exception to the normal transient-artifact rule and therefore requires an
+explicit `clipboard_media` request.
+
+The clipboard envelope is currently version 1 and contains at least:
+
+```json
+{
+  "methodmesh_browser_return_v": 1,
+  "status": "completed",
+  "created_at": "...",
+  "methods": ["<canonical method id>"],
+  "request_ref": "<optional caller reference>",
+  "fields": { "...": "..." },
+  "media": [],
+  "warnings": []
+}
+```
+
+`status` follows external closeout (`completed` or `cancelled`). The `fields`
+projection MUST respect the existing external return/payload contract; the browser
+adapter MUST NOT widen a caller's selected scalar return scope merely because the
+browser cannot receive an Android result directly. Existing external binary-return
+semantics remain available to the adapter so requested media can be exported.
+Cancellation SHOULD replace the clipboard with a cancellation envelope rather
+than leave a stale successful payload from an earlier run.
+
+The Android clipboard is a user-mediated interoperability channel, not a private
+storage service. Browser forms handling sensitive results should request and paste
+only the data they actually need, and callers should not treat clipboard presence
+alone as authentication or provenance.
+
+### Browser media hand-off
+
+Web security prevents MethodMesh from silently filling an Enketo/HTML
+`<input type="file">`. For `clipboard_media`, the bridge copies returned media
+byte-for-byte into the appropriate public MediaStore collection and records the
+published filename, MIME type, relative path and SHA-256 in the clipboard
+envelope. Reference locations are:
+
+- images -> `Pictures/MethodMesh`;
+- video -> `Movies/MethodMesh`;
+- audio -> `Music/MethodMesh`;
+- other files -> `Downloads/MethodMesh`.
+
+The user then selects the newly published object through the ordinary Android
+picker used by the Enketo attachment question. The MediaStore SHA-256 can be
+compared with a capability-declared hash where one exists. Stock Enketo cannot be
+made to attach the file automatically without controlling or extending the web
+application.
+
+This browser media path is distinct from ODK Collect. ODK continues to receive the
+original attachment through Activity-result extras/`ClipData`/URI read grants and
+MUST NOT gain an extra MediaStore save because the browser bridge exists. Current
+browser MediaStore publication requires Android 10/API 29 or later; failure to
+publish media must be surfaced in the clipboard `warnings` rather than reported as
+successful attachment.
+
+### Capability neutrality
+
+The browser bridge is generic. A browser form should normally call the same
+canonical capability used by Dashboard, presets, protocols and ODK rather than
+requiring a browser-specific reimplementation. Capability-specific browser helper
+methods are permissible only where they provide a genuine additional canonical
+operation or proof object; clipboard handling, browser-task return and MediaStore
+publication belong to the shared transport layer.
+
+The alpha integration has been exercised with local biometric confirmation and
+with `visual.magnifier.capture`, demonstrating both scalar/structured return and a
+media-producing capability without modifying the Enketo installation.
 
 ## ODK Forms library ownership and discovery
 
@@ -7804,6 +7919,15 @@ Generated website output, packaged XLSForm assets, mirrored module reference pag
 Standalone source documents should only be archived after the repository reorganisation dry-run confirms their final disposition.
 
 # Appendix M. Version history
+
+## v1.22 - 2026-09-15
+
+- Added the generic stock-browser/Enketo call-out bridge over the existing canonical capability contract; browser forms use the normal `method_id` and `input_*` semantics rather than a parallel API.
+- Defined transient BROWSABLE deep-link task behaviour: browser task flags are stripped only at the internal browser workflow boundary, the exact live browser task/tab is revealed after completion, and non-browser Android/ODK Intent/result contracts are preserved unchanged.
+- Added versioned clipboard JSON return for browser calls, including explicit cancellation payloads so stale successful clipboard data is not mistaken for the current run.
+- Added opt-in `input_browser_return=clipboard_media`, publishing returned `content://` media through MediaStore for user-mediated selection by stock HTML/Enketo file inputs; ordinary browser return remains clipboard-only and ODK retains its direct attachment/URI-grant contract with no extra save.
+- Required browser return projection to respect the existing external return/payload scope rather than widening to every capability field.
+- Recorded the validated alpha round trips for local biometric confirmation and `visual.magnifier.capture` as evidence of scalar and media interoperability, while retaining the browser security boundary that prevents automatic native-to-form field/file injection.
 
 ## v1.21 - 2026-09-13
 

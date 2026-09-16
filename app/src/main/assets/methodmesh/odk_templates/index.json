@@ -1,15 +1,15 @@
 {
   "schema": "methodmesh.odk_template_index.v3",
   "generatedFrom": "/Users/icrucrob/AndroidStudioProjects/MethodMesh/app/src/main/java/com/example/methodmesh",
-  "templateCount": 411,
+  "templateCount": 413,
   "moduleCount": 75,
   "validationSummary": {
-    "formsNeedingRevision": 114,
+    "formsNeedingRevision": 116,
     "cleanForms": 297,
     "severityCounts": {
       "error": 4,
       "warning": 36,
-      "style": 96,
+      "style": 100,
       "info": 0
     },
     "authoritativeValidatedForms": 0,
@@ -95,6 +95,45 @@
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": []
+      }
+    },
+    {
+      "id": "adminfingerprint.example_enketo_browser_biometric_callout",
+      "moduleId": "adminfingerprint",
+      "moduleName": "Adminfingerprint",
+      "displayName": "MethodMesh biometric browser bridge alpha",
+      "description": "",
+      "sourceFileName": "example_enketo_browser_biometric_callout.xlsx",
+      "sourceRelativePath": "modules/adminfingerprint/docs/example_enketo_browser_biometric_callout.xlsx",
+      "centralFormId": "methodmesh_enketo_biometric_callout_test",
+      "formVersion": "2026091505",
+      "assetPath": "methodmesh/odk_templates/adminfingerprint/example_enketo_browser_biometric_callout.xlsx",
+      "sha256": "327c724f979dd9f05586e8b749aa3e00bf7405a3b05740656d92a5f8d4292c6c",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_enketo_browser_biometric_callout.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/adminfingerprint/docs/example_enketo_browser_biometric_callout.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_example_enketo_browser_biometric_callout.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_enketo_biometric_callout_test' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'adminfingerprint_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
@@ -5274,6 +5313,45 @@
             "message": "form_id 'example_odk_live_stream_translate_fixed' does not identify its owning module.",
             "location": "settings.form_id",
             "suggestion": "For new forms prefer IDs beginning 'livestreamtranslate_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "magnifier.example_enketo_magnifier_media_bridge",
+      "moduleId": "magnifier",
+      "moduleName": "Magnifier",
+      "displayName": "MethodMesh Enketo magnifier media bridge alpha",
+      "description": "",
+      "sourceFileName": "example_enketo_magnifier_media_bridge.xlsx",
+      "sourceRelativePath": "modules/magnifier/docs/example_enketo_magnifier_media_bridge.xlsx",
+      "centralFormId": "methodmesh_enketo_magnifier_media_bridge_alpha",
+      "formVersion": "2026091501",
+      "assetPath": "methodmesh/odk_templates/magnifier/example_enketo_magnifier_media_bridge.xlsx",
+      "sha256": "b14401de4680fa9070a3c23ae3f1d6ddf924e0592b9c28cffd5a27bb22bca93b",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_enketo_magnifier_media_bridge.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/magnifier/docs/example_enketo_magnifier_media_bridge.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_example_enketo_magnifier_media_bridge.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_enketo_magnifier_media_bridge_alpha' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'magnifier_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
           }

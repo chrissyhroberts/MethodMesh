@@ -146,12 +146,28 @@ class ExternalWorkflowActivity : FragmentActivity() {
             graph = ResearchRuntime.session.graph(),
             payloadMode = OutputFormatter.PayloadMode.FULL
         )
-        OutputFormatter.fields(combined, includeProvenance = true).forEach { (key, value) ->
+        val completeFields = OutputFormatter.fields(combined, includeProvenance = true)
+        completeFields.forEach { (key, value) ->
             val text = value?.toString().orEmpty()
             if (text.startsWith("content://")) {
                 flatReturnFields[key] = text
             }
         }
+
+        // Stock Enketo/browser callers cannot receive Android Activity results.
+        // Browser deep links therefore receive the same projected external
+        // return scope through the browser bridge. This deliberately uses the
+        // already-built flatReturnFields rather than completeFields so browser
+        // transport cannot widen a caller's selected/payload return contract.
+        // Binary URI fields remain included because the existing external
+        // contract already preserves them independently of scalar projection.
+        BrowserReturnBridge.handleIfRequested(
+            context = this,
+            request = request,
+            fields = flatReturnFields,
+            browserDeepLink = isBrowserDeepLink()
+        )
+
         val data = Intent()
         ReturnIntentProjector.applyTo(
             intent = data,
@@ -189,23 +205,31 @@ class ExternalWorkflowActivity : FragmentActivity() {
             ReturnNamespaceProjector.validate(returnNamespace)
             returnNamespace
         }.getOrDefault("")
+        val cancelFields = linkedMapOf<String, String?>(
+            "methodmesh_closeout_status" to "cancelled",
+            "methodmesh_closeout_step_count" to "0",
+            "methodmesh_closeout_has_payload" to "false",
+            "error" to message
+        )
+        BrowserReturnBridge.handleIfRequested(
+            context = this,
+            request = request,
+            fields = cancelFields,
+            browserDeepLink = isBrowserDeepLink()
+        )
         val data = Intent()
         ReturnIntentProjector.applyTo(
             intent = data,
             contentResolver = contentResolver,
-            projected = ReturnIntentProjector.projectFlatReturn(
-                linkedMapOf(
-                    "methodmesh_closeout_status" to "cancelled",
-                    "methodmesh_closeout_step_count" to "0",
-                    "methodmesh_closeout_has_payload" to "false",
-                    "error" to message
-                ),
-                safeNamespace
-            )
+            projected = ReturnIntentProjector.projectFlatReturn(cancelFields, safeNamespace)
         )
         setResult(RESULT_CANCELED, data)
         finish()
     }
+
+    private fun isBrowserDeepLink(): Boolean =
+        intent.action == Intent.ACTION_VIEW &&
+            intent.data?.scheme.equals("methodmesh", ignoreCase = true)
 }
 
 private fun hasMeaningfulPayload(fields: Map<String, Any?>): Boolean =
