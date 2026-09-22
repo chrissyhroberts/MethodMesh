@@ -1,13 +1,19 @@
 package com.example.methodmesh.modules.apriltag
 
-import org.json.JSONObject
+import com.example.methodmesh.platform.fiducial.AprilTagDetector as PlatformAprilTagDetector
+import com.example.methodmesh.platform.fiducial.AprilTagFamily as PlatformAprilTagFamily
+import com.example.methodmesh.platform.fiducial.AprilTagPoseRequest
+import java.nio.ByteBuffer
 
 /**
- * Narrow module-owned JNI boundary around AprilRobotics/AprilTag 3.
+ * Module-side adapter onto MethodMesh's generic AprilTag platform facility.
  *
- * The Kotlin module compiles without the native library. At runtime the UI fails
- * closed with a clear backend-unavailable state until `libmethodmesh_apriltag.so`
- * is integrated. See native/README.md. No detector result is fabricated.
+ * This object contains no JNI declarations and does not load a module-specific
+ * native symbol. The dependency direction is deliberately one-way:
+ *
+ *     modules.apriltag -> platform.fiducial -> libmethodmesh_apriltag
+ *
+ * The shared platform knows nothing about this module or its capability IDs.
  */
 object AprilTagNativeBridge {
     private val supportedFamilies = setOf(
@@ -20,66 +26,96 @@ object AprilTagNativeBridge {
         "tagStandard52h13"
     )
 
-    val isAvailable: Boolean by lazy {
-        runCatching { System.loadLibrary("methodmesh_apriltag") }.isSuccess
-    }
+    val isAvailable: Boolean
+        get() = PlatformAprilTagDetector.isAvailable
+
+    val backendName: String = "MethodMesh platform AprilTag 3"
 
     data class DetectorConfig(
         val family: String = AprilTagContractMetadata.DEFAULT_FAMILY,
         val threads: Int = 2,
         val quadDecimate: Double = 1.0,
         val refineEdges: Boolean = true,
-        val tagSizeMeters: Double = 0.0
+        val tagSizeMeters: Double = 0.0,
+        val distanceScale: Double = 1.0
     )
 
-    fun detect(
-        gray: ByteArray,
-        width: Int,
-        height: Int,
-        config: DetectorConfig,
-        intrinsics: CameraIntrinsics?
-    ): Result<List<AprilTagDetection>> {
-        if (config.family !in supportedFamilies) return Result.failure(
-            IllegalArgumentException("Unsupported AprilTag family: ${config.family}")
-        )
-        if (!isAvailable) return Result.failure(
-            IllegalStateException("AprilTag native detector is not installed. See apriltag/native/README.md.")
-        )
-        return runCatching {
-            val usable = intrinsics?.takeIf { it.usableForPose && config.tagSizeMeters > 0.0 }
-            val text = nativeDetect(
-                gray = gray,
-                width = width,
-                height = height,
-                family = config.family,
-                threads = config.threads.coerceIn(1, 8),
-                quadDecimate = config.quadDecimate.coerceIn(1.0, 4.0),
-                refineEdges = config.refineEdges,
-                tagSizeMeters = if (usable == null) 0.0 else config.tagSizeMeters,
-                fx = usable?.fx ?: 0.0,
-                fy = usable?.fy ?: 0.0,
-                cx = usable?.cx ?: 0.0,
-                cy = usable?.cy ?: 0.0
-            )
-            val json = JSONObject(text)
-            val arr = json.getJSONArray("detections")
-            (0 until arr.length()).map { index -> AprilTagDetection.fromJson(arr.getJSONObject(index)) }
+    fun create(config: DetectorConfig): Result<DetectorSession> {
+        if (config.family !in supportedFamilies) {
+            return Result.failure(IllegalArgumentException("Unsupported AprilTag family: ${config.family}"))
         }
+        val family = runCatching { PlatformAprilTagFamily.valueOf(config.family) }
+            .getOrElse { return Result.failure(IllegalArgumentException("Unsupported AprilTag family: ${config.family}")) }
+        return PlatformAprilTagDetector.create(
+            family = family,
+            decimate = config.quadDecimate.coerceIn(1.0, 4.0),
+            threads = config.threads.coerceIn(1, 8),
+            refineEdges = config.refineEdges
+        ).map { DetectorSession(it, config) }
     }
 
-    @JvmStatic
-    private external fun nativeDetect(
-        gray: ByteArray,
-        width: Int,
-        height: Int,
-        family: String,
-        threads: Int,
-        quadDecimate: Double,
-        refineEdges: Boolean,
-        tagSizeMeters: Double,
-        fx: Double,
-        fy: Double,
-        cx: Double,
-        cy: Double
-    ): String
+    class DetectorSession internal constructor(
+        private val detector: PlatformAprilTagDetector,
+        private val config: DetectorConfig
+    ) : AutoCloseable {
+        private var directBuffer: ByteBuffer = ByteBuffer.allocateDirect(0)
+
+        fun detect(
+            gray: ByteArray,
+            width: Int,
+            height: Int,
+            intrinsics: CameraIntrinsics?
+        ): Result<List<AprilTagDetection>> = runCatching {
+            require(width > 0 && height > 0 && gray.size >= width * height) { "Invalid grayscale frame" }
+            if (directBuffer.capacity() < gray.size) directBuffer = ByteBuffer.allocateDirect(gray.size)
+            directBuffer.clear()
+            directBuffer.put(gray)
+            directBuffer.flip()
+
+            val poseRequest = intrinsics
+                ?.takeIf { it.usableForPose && config.tagSizeMeters > 0.0 }
+                ?.let {
+                    AprilTagPoseRequest(
+                        tagSizeMeters = config.tagSizeMeters,
+                        fx = it.fx,
+                        fy = it.fy,
+                        cx = it.cx,
+                        cy = it.cy
+                    )
+                }
+
+            detector.detect(
+                y = directBuffer,
+                width = width,
+                height = height,
+                rowStride = width,
+                pixelStride = 1,
+                rotationDegrees = 0,
+                poseRequest = poseRequest
+            ).getOrThrow().detections.map { detection ->
+                AprilTagDetection(
+                    id = detection.id,
+                    family = detection.family.name,
+                    hamming = detection.hamming,
+                    decisionMargin = detection.decisionMargin,
+                    center = PixelPoint(detection.centre.x, detection.centre.y),
+                    corners = detection.corners.map { PixelPoint(it.x, it.y) },
+                    pose = detection.pose?.let { pose ->
+                        val scale = config.distanceScale.takeIf { it.isFinite() && it > 0.0 } ?: 1.0
+                        Pose3(
+                            translation = Vec3(
+                                pose.translation.x * scale,
+                                pose.translation.y * scale,
+                                pose.translation.z * scale
+                            ),
+                            rotation = pose.rotation.copyOf(),
+                            error = pose.error
+                        )
+                    }
+                )
+            }
+        }
+
+        override fun close() = detector.close()
+    }
 }

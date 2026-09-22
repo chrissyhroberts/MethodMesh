@@ -1,5 +1,12 @@
 package com.example.methodmesh.modules.trustedtimestamp
 
+import com.example.methodmesh.platform.timestamp.ProofText
+import com.example.methodmesh.platform.timestamp.TimestampSource
+import com.example.methodmesh.platform.timestamp.TrustedTimestampEngine
+import com.example.methodmesh.platform.timestamp.proofZipName
+import com.example.methodmesh.platform.timestamp.sha256Hex
+import com.example.methodmesh.platform.timestamp.toHex
+
 import com.example.methodmesh.core.methodmesh.ArchitectureId
 import com.example.methodmesh.core.methodmesh.ArchitectureRef
 import com.example.methodmesh.core.methodmesh.Entity

@@ -1,10 +1,21 @@
-# Integration required before live use
+# AprilTag platform integration status
 
-The MethodMesh repository currently has CameraX but no native AprilTag build. Consequently:
+The AprilTag module does **not** own or register a native library. It consumes the generic MethodMesh `platform.fiducial` API.
 
-- the Kotlin module can be reviewed/integrated without adding a compile-time Java dependency;
-- live camera screens check `AprilTagNativeBridge.isAvailable`;
-- if `libmethodmesh_apriltag.so` is absent, the screen displays an explicit error and no canonical measurement can be committed;
-- the app-level native build change must be reviewed separately because the Master Book requires module handoffs not to smuggle project-level configuration into the returned module folder.
+Required dependency direction:
 
-See `../native/README.md` for the JNI contract and integration steps.
+```text
+modules.apriltag -> platform.fiducial -> libmethodmesh_apriltag
+```
+
+The main app/platform must never import the AprilTag module, name its method IDs, or expose module-specific JNI symbols.
+
+The shared detector provides:
+
+- family selection;
+- detector decimation, threads and edge-refinement configuration;
+- one-or-many raw tag detections;
+- image-space centre/corners, Hamming distance and decision margin;
+- optional generic metric pose when tag size and camera intrinsics are supplied.
+
+`AprilTagNativeBridge.kt` adapts those generic platform objects into the module's canonical types. If the shared library cannot load or create a detector, the UI fails closed and no canonical measurement is committed.

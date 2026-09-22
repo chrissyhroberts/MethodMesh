@@ -9,9 +9,12 @@ MODULE_ROOT = Path("app/src/main/java/com/example/methodmesh/modules")
 ARCHIVE_ROOT = Path("docs/archive")
 DOC_EXTS = {".md",".qmd",".rst",".adoc",".txt",".pdf",".docx",".html",".htm"}
 FORBIDDEN_ACTIVE_DIRS = set()
-ALLOWED_ROOT_DOCS = {Path("README.md")}
+ALLOWED_ROOT_DOCS = {Path("README.md"), Path("000_notes_bugs_ideas.txt")}
 IGNORED_PREFIXES = (
     Path(".git"), Path(".gradle"), Path(".idea"), Path(".vscode"),
+    # Historical handoffs and local rollback snapshots are not active doctrine.
+    Path("incoming_capability_prototypes"), Path("backups_for_rollbacks"),
+    Path("docs/handoffs"), Path("docs/integrations"),
     Path("build"), Path("app/build"), Path("dist"), Path("out"),
     Path("target"), Path(".methodmesh-doc-review"),
     Path("app/src/main/assets/methodmesh/odk_templates"),
@@ -105,7 +108,7 @@ def collect(repo: Path, strict: bool):
     if docs.exists():
         for p in docs.iterdir():
             rp = p.relative_to(repo)
-            if rp in {CANONICAL, ARCHIVE_ROOT} or p.name.startswith(".") or ignored(rp):
+            if rp in {CANONICAL, ARCHIVE_ROOT} or p.name.startswith((".", "RELEASE_NOTES_")) or ignored(rp):
                 continue
             if p.is_file() and p.suffix.lower() in DOC_EXTS:
                 f.append(Finding("ERROR","MM-DOC-005",rp,"Standalone project-wide documentation beside the Master Book is not allowed."))

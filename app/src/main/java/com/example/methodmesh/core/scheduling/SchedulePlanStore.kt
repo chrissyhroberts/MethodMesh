@@ -104,12 +104,14 @@ object SchedulePlanStore {
     ) }.getOrNull()
 
     private fun encodeAction(action: ScheduleAction) = JSONObject().apply {
-        put("id", action.id); put("type", action.type.name); put("preset_id", action.presetId); put("title", action.title); put("message", action.message)
+        put("id", action.id); put("type", action.type.name); put("preset_id", action.presetId); put("preset_launch_mode", action.presetLaunchMode.name); put("title", action.title); put("message", action.message)
         put("require_completion", action.requireCompletion); put("automatic", action.automatic); put("required", action.required); put("snooze_minutes", action.snoozeMinutes); put("follow_up_count", action.followUpCount); put("follow_up_interval_minutes", action.followUpIntervalMinutes)
     }
 
     private fun decodeAction(o: JSONObject) = runCatching { ScheduleAction(
-        id = o.getString("id"), type = ScheduleActionType.valueOf(o.getString("type")), presetId = o.optString("preset_id"), title = o.optString("title"), message = o.optString("message"),
+        id = o.getString("id"), type = ScheduleActionType.valueOf(o.getString("type")), presetId = o.optString("preset_id"),
+        presetLaunchMode = runCatching { SchedulePresetLaunchMode.valueOf(o.optString("preset_launch_mode", SchedulePresetLaunchMode.FOLLOW_PRESET.name)) }.getOrDefault(SchedulePresetLaunchMode.FOLLOW_PRESET),
+        title = o.optString("title"), message = o.optString("message"),
         requireCompletion = o.optBoolean("require_completion", true), automatic = o.optBoolean("automatic"), required = o.optBoolean("required", true), snoozeMinutes = o.optInt("snooze_minutes"), followUpCount = o.optInt("follow_up_count"), followUpIntervalMinutes = o.optInt("follow_up_interval_minutes")
     ) }.getOrNull()
 
@@ -118,8 +120,12 @@ object SchedulePlanStore {
 
     private fun encodeTiming(timing: ScheduleTimingRule) = JSONObject().apply {
         when (timing) {
+            is ScheduleTimingRule.Once -> { put("type", "once"); put("offset_seconds", timing.offset.seconds) }
+            is ScheduleTimingRule.ElapsedInterval -> { put("type", "elapsed_interval"); put("interval_seconds", timing.interval.seconds); put("run_immediately", timing.runImmediately) }
+            is ScheduleTimingRule.AnchoredCalendarDays -> { put("type", "anchored_calendar_days"); put("every_days", timing.everyDays); put("run_immediately", timing.runImmediately) }
             is ScheduleTimingRule.RelativeDays -> { put("type", "relative_days"); put("days", JSONArray(timing.days.toList())); put("time", timing.time.toString()); put("before", timing.windowBefore?.seconds); put("after", timing.windowAfter?.seconds) }
             is ScheduleTimingRule.Weekly -> { put("type", "weekly"); put("weekdays", JSONArray(timing.weekdays.toList())); put("time", timing.time.toString()); put("before", timing.windowBefore?.seconds); put("after", timing.windowAfter?.seconds) }
+            is ScheduleTimingRule.MonthlyDayOfMonth -> { put("type", "monthly_day"); put("day_of_month", timing.dayOfMonth); put("time", timing.time.toString()) }
             is ScheduleTimingRule.MonthlyNthWeekday -> { put("type", "monthly_nth"); put("weekday", timing.weekday); put("ordinal", timing.ordinal); put("time", timing.time.toString()) }
             is ScheduleTimingRule.IntradayInterval -> { put("type", "intraday"); put("weekdays", JSONArray(timing.weekdays.toList())); put("first_time", timing.firstTime.toString()); put("last_time", timing.lastTime.toString()); put("interval_seconds", timing.interval.seconds) }
             is ScheduleTimingRule.Cron -> { put("type", "cron"); put("expression", timing.expression); put("timing", timing.timing.name); put("offset_seconds", timing.offset.seconds) }
@@ -127,8 +133,12 @@ object SchedulePlanStore {
     }
 
     private fun decodeTiming(o: JSONObject): ScheduleTimingRule = when (o.getString("type")) {
+        "once" -> ScheduleTimingRule.Once(Duration.ofSeconds(o.optLong("offset_seconds", 0)))
+        "elapsed_interval" -> ScheduleTimingRule.ElapsedInterval(Duration.ofSeconds(o.getLong("interval_seconds")), o.optBoolean("run_immediately", true))
+        "anchored_calendar_days" -> ScheduleTimingRule.AnchoredCalendarDays(o.optInt("every_days", 1).coerceAtLeast(1), o.optBoolean("run_immediately", true))
         "relative_days" -> ScheduleTimingRule.RelativeDays(ints(o.getJSONArray("days")), LocalTime.parse(o.getString("time")), seconds(o, "before"), seconds(o, "after"))
         "weekly" -> ScheduleTimingRule.Weekly(ints(o.getJSONArray("weekdays")), LocalTime.parse(o.getString("time")), seconds(o, "before"), seconds(o, "after"))
+        "monthly_day" -> ScheduleTimingRule.MonthlyDayOfMonth(o.getInt("day_of_month"), LocalTime.parse(o.getString("time")))
         "monthly_nth" -> ScheduleTimingRule.MonthlyNthWeekday(o.getInt("weekday"), o.getInt("ordinal"), LocalTime.parse(o.getString("time")))
         "intraday" -> ScheduleTimingRule.IntradayInterval(ints(o.getJSONArray("weekdays")), LocalTime.parse(o.getString("first_time")), LocalTime.parse(o.getString("last_time")), Duration.ofSeconds(o.getLong("interval_seconds")))
         "cron" -> ScheduleTimingRule.Cron(o.getString("expression"), ScheduleTimingMode.valueOf(o.optString("timing", ScheduleTimingMode.ABSOLUTE.name)), Duration.ofSeconds(o.optLong("offset_seconds", 0)))

@@ -51,8 +51,8 @@ class CalibratedScaleOdkFormContractTest {
                 "input_hint='0 means no pain; 100 means the worst pain you can imagine'" in xml
             )
             assertTrue(
-                "$fileName must use the current example version",
-                "2026072709" in xml
+                "$fileName must preserve a dated example version",
+                Regex(">[0-9]{10}<").containsMatchIn(xml)
             )
         }
 

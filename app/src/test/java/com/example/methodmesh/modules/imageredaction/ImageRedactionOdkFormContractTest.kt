@@ -12,9 +12,9 @@ class ImageRedactionOdkFormContractTest {
             File("src/main/java/com/example/methodmesh/modules/imageredaction/docs"),
             File("app/src/main/java/com/example/methodmesh/modules/imageredaction/docs")
         ).firstOrNull(File::isDirectory) ?: error("Cannot locate image-redaction docs")
-        val workbook = File(docs, "example_odk_image.redact.xlsx")
+        val workbook = File(docs, "example_odk_image_redact.xlsx")
 
-        assertTrue("Expected example_odk_image.redact.xlsx", workbook.isFile)
+        assertTrue("Expected example_odk_image_redact.xlsx", workbook.isFile)
 
         val xml = ZipFile(workbook).use { zip ->
             zip.entries().asSequence()
@@ -28,6 +28,6 @@ class ImageRedactionOdkFormContractTest {
         assertTrue("Workbook must request full payload metadata", "input_payload_mode='FULL'" in xml)
         assertTrue("Workbook must return the redacted image URI", ">redacted_image_uri<" in xml)
         assertTrue("Workbook must return the background audit JSON", ">methodmesh_full_json<" in xml)
-        assertTrue("Workbook must save the canonical form title", ">image.redact<" in xml)
+        assertTrue("Workbook must save the human-readable form title", ">Image redaction<" in xml)
     }
 }

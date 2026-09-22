@@ -42,3 +42,28 @@ External calls open the requested Android prompt immediately and return automati
 ## ODK example
 
 [`example_odk_admin_fingerprint_confirmation.xlsx`](example_odk_admin_fingerprint_confirmation.xlsx) demonstrates biometric-only, device-credential-only, and either-method access calls.
+
+## `admin_browser_biometric_callout`
+
+Experimental biometric-only capability intended for browser/Enketo verification
+workflows. It remains a normal canonical MethodMesh capability; the shared browser
+transport handles deep-link routing, clipboard return and task closeout.
+
+Inputs:
+
+- `caller` — defaults to `browser`; use `enketo` for the example form;
+- `request_ref` — optional caller-generated correlation reference;
+- `confirmation_reason` — defaults to `browser_biometric_callout`.
+
+The authentication method is fixed to biometric-only. Device PIN/pattern/password
+fallback is intentionally excluded from this capability. On success it returns a
+device-signed `MMBV1` verification token plus the key ID/public key needed for
+later backend verification. It does not claim person identity.
+
+A stock Enketo form launches the normal `methodmesh://` browser route and requests
+`input_browser_return=clipboard`. The shared browser bridge then copies the
+projected JSON result and returns to the exact live browser tab. The capability
+itself does not write to the clipboard.
+
+See `ENKETO_BROWSER_BIOMETRIC.md` and
+`example_enketo_browser_biometric_callout.xlsx`.

@@ -1,5 +1,9 @@
 package com.example.methodmesh.modules.pluscodecapture
 
+import com.example.methodmesh.platform.location.PlusCodeArea
+
+import com.example.methodmesh.platform.location.OpenLocationCode
+
 import com.example.methodmesh.core.methodmesh.ArchitectureId
 import com.example.methodmesh.core.methodmesh.ArchitectureRef
 import com.example.methodmesh.core.methodmesh.Entity

@@ -14,6 +14,8 @@ SHA-256 is computed locally. The source content itself is not sent to the TSA. T
 
 The proof establishes existence of the exact bytes **no later than** the trusted timestamp. It does not establish authorship, original creation time, truth, photographic authenticity or legal validity.
 
+When the configured authority passes MethodMesh's full trust-registry validation, a successful timestamp acquisition also refreshes the shared Clock Assurance anchor. This is infrastructure state, not an extra capability return: it does not Commit or save the proof. Custom/unconfigured TSAs never become trusted clock sources merely because their token is internally self-consistent.
+
 ## Canonical contract
 
 ### ODK inputs
@@ -61,14 +63,15 @@ All canonical supporting outputs remain addressable through the MethodMesh capab
 
 ### Runtime outputs
 
-The runtime screen is one coherent toolkit dashboard, not a second generic result page:
+The runtime screen is one coherent toolkit dashboard with an explicit working-result → Commit boundary:
 
 1. **Source** — selected file or exact text;
-2. **Trusted timestamp proof** — proof ZIP;
+2. **Trusted timestamp proof** — transient proof ZIP working result;
 3. **Technical details** — timestamp/hash/TSA/trust data, available without displacing the two primary artefacts;
-4. **metadata JSON** — optional runtime salad when requested.
+4. **Commit** — freezes the proof result for this execution;
+5. **Post-Commit actions** — Share, Save to Downloads, Copy where meaningful, optional full JSON / audit, and Done/Home according to launch origin.
 
-Every displayed scalar/text result is tap-to-copy. File results expose meaningful Share/Save/Export actions rather than raw URI text.
+Every displayed scalar/text result is tap-to-copy. The proof ZIP remains a real typed attachment. Native manual Share/Save actions are deliberately post-Commit rather than pre-Commit, and no automatic internal archive is created merely because the result was committed.
 
 ## ODK Integration Card
 
@@ -188,19 +191,20 @@ verify.ps1
 
 The source is not duplicated inside the proof ZIP, whether it was file or text. The source remains Part 1 of the result; the proof/TSA ZIP is Part 2.
 
-The ZIP is kept in app cache only as a transient working copy. Native Save/Share/Export acts on the ZIP bytes themselves. ODK external-roundtrip mode suppresses native persistence actions and returns the attachment to ODK on Commit.
+The ZIP is kept in app cache only as a transient working copy. After native Commit, the shared MethodMesh result transport exposes the ZIP bytes themselves for Share and Save to Downloads. **Include full JSON / audit** is off by default: Share keeps the ZIP attachment and appends canonical FULL JSON to the accompanying text; Save adds the run-specific `*_metadata.json` sidecar alongside the proof artefact. ODK/external roundtrip does not inherit that native toggle and returns the declared attachment plus canonical `methodmesh_full_json` on Commit.
 
 ## Native workflow
 
 1. Choose **file** or **text**.
 2. Optionally adjust TSA URL and timeout.
-3. Create the proof.
-4. Review **1 · Source** and **2 · Trusted timestamp proof** on the same capability dashboard.
+3. **Create proof of existence** to produce the mutable working result.
+4. Review **1 · Source**, **2 · Trusted timestamp proof**, and technical details on the same capability dashboard.
 5. Tap any scalar/text detail to copy it.
-6. Use Share/Save/Export for file artefacts.
-7. Commit the captured result.
+6. **Commit** the proof. This freezes the execution result; it does not silently save anything.
+7. In the committed state, use **Share** or **Save to Downloads**. Enable **Include full JSON / audit** only when the metadata is wanted.
+8. Use **Done/Home**; closeout follows launch origin rather than always finishing to the Android desktop.
 
-Changing source/TSA/timeout after a proof is created invalidates the working proof so the next Commit cannot silently describe stale inputs.
+Changing source/TSA/timeout after a proof is created invalidates the working proof so the next Commit cannot silently describe stale inputs. Native preset/direct presentation is not treated as an ODK/external roundtrip merely because it uses an intent-hosted screen.
 
 ## Presets and protocols
 
@@ -220,7 +224,7 @@ ODK always captures the shared `methodmesh_full_json` envelope in the reviewed X
 
 Network access is required to obtain a new timestamp and configured certificate material.
 
-File selection and explicit durable saving use Android Storage Access Framework. The generated proof ZIP uses the app's existing `FileProvider` only as inter-app transport. No broad storage permission is required.
+File selection uses Android Storage Access Framework. Post-Commit durable saving uses the shared MethodMesh Downloads transport; the generated proof ZIP uses the app's existing `FileProvider` only as transient inter-app transport. No broad storage permission is required.
 
 Default TSA: FreeTSA (`https://freetsa.org/tsr`).
 
@@ -236,4 +240,5 @@ There is no fabricated offline timestamp fallback.
 - A dedicated in-app proof-verification method is not yet exposed.
 - Custom TSA endpoints can be cryptographically consistent without being independently trusted.
 - TSA certificate rotation requires registry maintenance.
+- Clock anchoring requires the token signer to match the pinned configured signer, a valid configured chain at generation time, and a critical timestamp-only EKU; a proof that does not meet that stronger trust contract remains proof evidence but does not refresh Clock Assurance.
 - The proof concerns exact bytes and certified time, not broader truth or legal meaning.

@@ -13,6 +13,7 @@ object NfcModule : MethodMeshModule {
         As100NfcReadMethod,
         As100NfcWriteMethod,
         As100NfcWipeMethod,
+        As100NfcIssuerIdentityMethod,
         As100NfcCredentialProvisioningMethod,
         As100NfcCredentialVerificationMethod,
         As100ProtocolNfcCheckMethod,
@@ -32,6 +33,8 @@ object NfcModule : MethodMeshModule {
         RilBinding("write tag", As100NfcWriteMethod.ID, "Write an NFC tag"),
         RilBinding("wipe nfc", As100NfcWipeMethod.ID, "Remove NDEF user content from an NFC tag"),
         RilBinding("wipe tag", As100NfcWipeMethod.ID, "Remove NDEF user content from an NFC tag"),
+        RilBinding("show nfc issuer identity", As100NfcIssuerIdentityMethod.ID, "Export the local NFC credential issuer public identity"),
+        RilBinding("export nfc issuer identity", As100NfcIssuerIdentityMethod.ID, "Export the local NFC credential issuer public identity"),
         RilBinding(
             "provision nfc credential",
             As100NfcCredentialProvisioningMethod.ID,
@@ -53,6 +56,7 @@ object NfcModule : MethodMeshModule {
         NfcReadCapabilityScreen,
         NfcWriteCapabilityScreen,
         NfcWipeCapabilityScreen,
+        NfcIssuerIdentityCapabilityScreen,
         NfcCredentialProvisioningCapabilityScreen,
         NfcCredentialVerificationCapabilityScreen,
         ProtocolNfcCheckCapabilityScreen,
@@ -79,7 +83,20 @@ object NfcModule : MethodMeshModule {
             MethodSetting.ChoiceSetting("overwrite_policy", "Overwrite policy", defaultValue = "empty_only", choices = listOf("empty_only", "replace"))
         ),
         As100NfcCredentialVerificationMethod.ID to listOf(
-            MethodSetting.TextSetting("trusted_issuer_key_ids", "Trusted issuer key IDs", "Comma-separated; leave blank to report issuer trust as not checked.", defaultValue = "")
+            MethodSetting.TextSetting(
+                "trusted_issuer_fingerprints_sha256",
+                "Trusted issuer SHA-256 fingerprints",
+                "Comma-separated full 64-hex public-key fingerprints supplied by the study form. This is the preferred offline trust anchor.",
+                defaultValue = ""
+            ),
+            MethodSetting.TextSetting("issuer_trust_set_id", "Issuer trust set ID", defaultValue = ""),
+            MethodSetting.TextSetting("issuer_trust_set_version", "Issuer trust set version", defaultValue = ""),
+            MethodSetting.TextSetting(
+                "trusted_issuer_key_ids",
+                "Legacy trusted issuer short IDs",
+                "Backward compatibility only. Prefer full SHA-256 fingerprints.",
+                defaultValue = ""
+            )
         ),
         As100ProtocolNfcCheckMethod.id to protocolSettings(),
         As100ProtocolNfcCompleteMethod.id to protocolSettings(),

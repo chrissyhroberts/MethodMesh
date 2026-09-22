@@ -1,5 +1,9 @@
 package com.example.methodmesh.modules.trustedtimestamp
 
+import com.example.methodmesh.platform.timestamp.TrustedTimestampAuthorities
+
+import android.content.Context
+import com.example.methodmesh.core.timeassurance.TrustedTimeRefreshRegistry
 import com.example.methodmesh.modules.MethodMeshModule
 import com.example.methodmesh.modules.RilBinding
 import com.example.methodmesh.settings.MethodSetting
@@ -11,6 +15,10 @@ object TrustedTimestampModule : MethodMeshModule {
 
     val maturityTag = TrustedTimestampContractMetadata.MATURITY
     val connectivityTag = TrustedTimestampContractMetadata.CONNECTIVITY
+
+    override fun initialise(context: Context) {
+        TrustedTimeRefreshRegistry.register(TrustedTimestampTimeSyncProvider())
+    }
 
     override fun as100Methods() = listOf(As100TrustedTimestampMethod)
 

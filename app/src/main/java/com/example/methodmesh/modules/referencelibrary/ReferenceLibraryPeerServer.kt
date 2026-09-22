@@ -1,5 +1,11 @@
 package com.example.methodmesh.modules.referencelibrary
 
+import com.example.methodmesh.platform.library.REFERENCE_LIBRARY_BUILT_IN_SHELF_IDS
+
+import com.example.methodmesh.platform.library.REFERENCE_LIBRARY_BUILT_IN_SHELVES
+
+import com.example.methodmesh.platform.library.ReferenceLibraryRepository
+
 import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject

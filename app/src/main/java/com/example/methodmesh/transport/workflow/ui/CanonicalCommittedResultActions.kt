@@ -59,7 +59,7 @@ internal fun CanonicalCommittedResultActions(
                 Text("Include full JSON / audit", style = MaterialTheme.typography.titleSmall)
                 Text(
                     if (includeFullJson) {
-                        "Share/copy append debug JSON text; Save adds metadata.json."
+                        "Share sends result.txt, media and metadata.json; Copy keeps using text."
                     } else {
                         "Off by default for manual runs."
                     },
@@ -148,11 +148,9 @@ internal data class NativeCommittedResultProjection(
                 OutputFormatter.PayloadMode.CORE,
                 result.status
             )
-            val attachments = coreFields.entries.mapNotNull { (key, value) ->
-                val raw = value?.toString().orEmpty()
-                if (!ResultShare.isShareableMediaField(key, raw)) return@mapNotNull null
-                ResultShare.attachmentName(key, raw) to Uri.parse(raw)
-            }.distinctBy { it.second.toString() }
+            val allFields = OutputFormatter.fields(result, includeProvenance = false)
+            val attachments = ResultShare.shareableMediaAttachments(allFields)
+                .map { it.name to it.uri }
             val text = humanText(coreFields)
             val fullJson = OutputFormatter.format(
                 result = result,

@@ -90,6 +90,7 @@ object NfcProvisionFields {
     const val CREDENTIAL_ENVELOPE_HASH = "credential_envelope_hash"
     const val CREDENTIAL_SECRET_HASH = "credential_secret_hash"
     const val ISSUER_KEY_ID = "issuer_key_id"
+    const val ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256 = "issuer_public_key_fingerprint_sha256"
     const val ISSUER_PUBLIC_KEY_BASE64 = "issuer_public_key_base64"
     const val ISSUER_SIGNATURE_ALGORITHM = "issuer_signature_algorithm"
     const val PROVISION_SUCCESS = "provision_success"
@@ -106,6 +107,7 @@ object NfcProvisionFields {
         CREDENTIAL_ENVELOPE_HASH,
         CREDENTIAL_SECRET_HASH,
         ISSUER_KEY_ID,
+        ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256,
         ISSUER_PUBLIC_KEY_BASE64,
         ISSUER_SIGNATURE_ALGORITHM,
         PROVISION_SUCCESS,
@@ -129,6 +131,9 @@ object NfcCredentialVerificationFields {
     const val PIN_VERIFIED = "pin_verified"
     const val ISSUER_SIGNATURE_VALID = "issuer_signature_valid"
     const val ISSUER_TRUST_STATUS = "issuer_trust_status"
+    const val ISSUER_TRUST_BASIS = "issuer_trust_basis"
+    const val ISSUER_TRUST_SET_ID = "issuer_trust_set_id"
+    const val ISSUER_TRUST_SET_VERSION = "issuer_trust_set_version"
 
     val outputFields: List<String> = listOf(
         CREDENTIAL_VERIFIED,
@@ -142,13 +147,34 @@ object NfcCredentialVerificationFields {
         NfcProvisionFields.CREDENTIAL_ENVELOPE_HASH,
         NfcProvisionFields.CREDENTIAL_SECRET_HASH,
         NfcProvisionFields.ISSUER_KEY_ID,
+        NfcProvisionFields.ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256,
         NfcProvisionFields.ISSUER_PUBLIC_KEY_BASE64,
         NfcProvisionFields.ISSUER_SIGNATURE_ALGORITHM,
         PIN_VERIFIED,
         ISSUER_SIGNATURE_VALID,
         ISSUER_TRUST_STATUS,
+        ISSUER_TRUST_BASIS,
+        ISSUER_TRUST_SET_ID,
+        ISSUER_TRUST_SET_VERSION,
         VERIFIED_TIME_ISO,
         NfcEvidenceFields.TAG_UID_HEX,
         NfcCredentialEvidence.HASH_FIELD
+    )
+}
+
+
+object NfcIssuerIdentityFields {
+    const val SCHEMA_VERSION = "issuer_identity_schema_version"
+    const val EXPORTED_TIME_ISO = "issuer_identity_exported_time_iso"
+    const val IDENTITY_JSON = "issuer_identity_json"
+
+    val outputFields: List<String> = listOf(
+        SCHEMA_VERSION,
+        NfcProvisionFields.ISSUER_KEY_ID,
+        NfcProvisionFields.ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256,
+        NfcProvisionFields.ISSUER_PUBLIC_KEY_BASE64,
+        NfcProvisionFields.ISSUER_SIGNATURE_ALGORITHM,
+        EXPORTED_TIME_ISO,
+        IDENTITY_JSON
     )
 }

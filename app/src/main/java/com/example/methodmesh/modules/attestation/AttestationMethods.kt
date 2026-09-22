@@ -20,7 +20,7 @@ import com.example.methodmesh.settings.SettingsState
 
 object As100CreateAttestationMethod : As100Method {
     const val ID = "attestation.create"
-    private const val VERSION = "1.0.0"
+    private const val VERSION = "1.1.0"
 
     override val id: String = ID
     override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "Create signed attestation")
@@ -49,9 +49,7 @@ object As100CreateAttestationMethod : As100Method {
         requiredContext = listOf(
             "event_payload_hash",
             "commitment_recipe",
-            "verification_method",
-            "verification_evidence_format",
-            "verification_evidence_hash"
+            "verification_method"
         ),
         producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
         producedFields = descriptor.outputs,
@@ -79,11 +77,17 @@ object As100CreateAttestationMethod : As100Method {
                 diagnostics = mapOf("reason" to (error.message ?: "Invalid trusted timestamp policy"))
             )
         }
-        val verificationEvidence = try {
-            AttestationEvidence(
-                format = c["verification_evidence_format"].orEmpty(),
-                hash = c["verification_evidence_hash"].orEmpty().lowercase()
-            )
+        val resolvedVerification = try {
+            if (method == AttestationVerificationMethod.NfcCredential) {
+                AttestationEvidenceFactory.nfcCredentialExecution(c)
+            } else {
+                ResolvedAttestationVerification(
+                    evidence = AttestationEvidence(
+                        format = c["verification_evidence_format"].orEmpty(),
+                        hash = c["verification_evidence_hash"].orEmpty().lowercase()
+                    )
+                )
+            }
         } catch (error: IllegalArgumentException) {
             return As100ExecutionEngine.complete(
                 request = request,
@@ -91,6 +95,19 @@ object As100CreateAttestationMethod : As100Method {
                 diagnostics = mapOf("reason" to (error.message ?: "Invalid verification evidence"))
             )
         }
+        val requestedOperatorId = c["operator_id"].orEmpty().trim()
+        val operatorId = resolvedVerification.authenticatedOperatorId?.let { authenticatedOperatorId ->
+            if (requestedOperatorId.isNotBlank() && requestedOperatorId != authenticatedOperatorId) {
+                return As100ExecutionEngine.complete(
+                    request = request,
+                    status = TransformationStatus.Failed,
+                    diagnostics = mapOf(
+                        "reason" to "operator_id does not match the authenticated NFC credential subject"
+                    )
+                )
+            }
+            authenticatedOperatorId
+        } ?: requestedOperatorId
         val trustedTimestampAuthority = c["trusted_timestamp_authority"]
             ?.trim()
             ?.takeIf { it.isNotBlank() }
@@ -103,13 +120,13 @@ object As100CreateAttestationMethod : As100Method {
         val record = try {
             AttestationRepository.createRecord(
                 studyId = c["study_id"].orEmpty(),
-                operatorId = c["operator_id"].orEmpty(),
+                operatorId = operatorId,
                 subjectRef = c["subject_ref"].orEmpty().ifBlank { InvocationContext.from(c)?.subjectRef()?.id?.value.orEmpty() },
                 eventType = c["event_type"].orEmpty(),
                 eventPayloadHash = c["event_payload_hash"],
                 commitmentRecipe = c["commitment_recipe"],
                 verificationMethod = method,
-                verificationEvidence = verificationEvidence,
+                verificationEvidence = resolvedVerification.evidence,
                 trustedTimestampPolicy = timestampPolicy,
                 trustedTimestampAuthorityUrl = trustedTimestampAuthority,
                 trustedTimestampTimeoutMs = trustedTimestampTimeoutMs

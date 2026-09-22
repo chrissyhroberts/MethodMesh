@@ -1,5 +1,7 @@
 package com.example.methodmesh.modules.mlkittranslate
 
+import com.example.methodmesh.platform.translation.commonMlKitLanguageCodes
+
 import com.example.methodmesh.modules.MethodMeshModule
 import com.example.methodmesh.modules.RilBinding
 import com.example.methodmesh.settings.MethodSetting
@@ -27,6 +29,3 @@ object MlKitTranslateModule : MethodMeshModule {
         )
     )
 }
-
-val commonMlKitLanguageCodes: List<String>
-    get() = MlKitLanguageCatalog.canonicalCodes()

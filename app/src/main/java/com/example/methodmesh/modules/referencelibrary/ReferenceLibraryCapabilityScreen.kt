@@ -1,5 +1,13 @@
 package com.example.methodmesh.modules.referencelibrary
 
+import com.example.methodmesh.platform.library.REFERENCE_LIBRARY_BUILT_IN_SHELVES
+
+import com.example.methodmesh.platform.library.ReferenceLibraryRepository
+
+import com.example.methodmesh.platform.library.LibraryDocument
+
+import com.example.methodmesh.platform.library.LibraryShelf
+
 import android.content.ClipData
 import android.content.Intent
 import android.net.Uri

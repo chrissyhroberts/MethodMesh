@@ -35,6 +35,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
@@ -49,6 +50,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -88,6 +90,7 @@ import com.example.methodmesh.core.protocols.ProtocolOutputMode
 import com.example.methodmesh.core.protocols.ProtocolPayloadMode
 import com.example.methodmesh.core.protocols.ProtocolStep
 import com.example.methodmesh.core.protocols.PresetResultAction
+import com.example.methodmesh.core.protocols.PresetLaunchMode
 import com.example.methodmesh.core.ResearchRuntime
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.InvocationContext
@@ -112,8 +115,9 @@ import com.example.methodmesh.core.onlinedata.OnlineExecutionStatus
 import com.example.methodmesh.core.onlinedata.ResultTree
 import com.example.methodmesh.modules.MethodMeshModule
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
-import com.example.methodmesh.modules.mlkittranslate.MlKitLanguageCatalog
-import com.example.methodmesh.modules.odkformlauncher.As100OdkFormLauncherMethod
+import com.example.methodmesh.modules.MethodMeshMetadataResolver
+import com.example.methodmesh.modules.MaturityStatus
+import com.example.methodmesh.platform.translation.MlKitLanguageCatalog
 import com.example.methodmesh.platform.externalforms.ExternalFormCatalog
 import com.example.methodmesh.platform.externalforms.ExternalProjectRegistry
 import com.example.methodmesh.settings.DisplaySettingsScreen
@@ -121,7 +125,6 @@ import com.example.methodmesh.settings.MethodSetting
 import com.example.methodmesh.settings.SettingsState
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.OutputExportRepository
-import com.example.methodmesh.modules.sensorread.As100SensorReadMethod
 import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.android.IntentRouterActivity
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
@@ -136,6 +139,9 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.ui.components.SettingsRenderer
 import com.example.methodmesh.ui.components.MethodMeshMark
 import com.example.methodmesh.ui.components.MethodMeshDestructiveConfirmation
+import com.example.methodmesh.ui.components.VersionAndMaturityBadges
+import com.example.methodmesh.ui.timeassurance.HomeTimeRecencyChip
+import com.example.methodmesh.ui.timeassurance.TimeAssuranceWorkbenchPanel
 import com.example.methodmesh.ui.sensors.SensorDashboard
 import com.example.methodmesh.ui.odk.OdkTemplateCatalog
 import com.example.methodmesh.ui.odk.OdkTemplateDescriptor
@@ -165,11 +171,6 @@ private data class ProtocolStepDraft(
 private enum class CapabilityUiClass {
     ProtocolPrimitive,
     WorkbenchTool
-}
-
-private enum class CapabilityLifecycle(val label: String) {
-    Production("Production"),
-    Development("Development")
 }
 
 private enum class DashboardDestination(val label: String) {
@@ -211,28 +212,6 @@ private fun capabilityUiClass(method: As100Method, module: MethodMeshModule?): C
     }
 }
 
-private fun capabilityLifecycle(method: As100Method): CapabilityLifecycle {
-    // Promotion is deliberately explicit. New or unreviewed capabilities stay
-    // in Development until their behaviour, ODK contract, docs and examples
-    // have been reviewed together.
-    val productionCapabilityIds = setOf(
-        "admin_fingerprint_confirmation",
-        "barcode.scan",
-        "calibrated_scale",
-        "document.scan",
-        "gps_target_navigator",
-        "plus_code.capture",
-        "conversation.translate",
-        "conversation.translate.live.fixed",
-        "conversation.translate.live.auto",
-        "bluetooth_print",
-        "mlkit.translate",
-        "mlkit.vision.analyze",
-        "odk_form_launcher",
-        "random.number.generate"
-    )
-    return if (method.id in productionCapabilityIds) CapabilityLifecycle.Production else CapabilityLifecycle.Development
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -377,6 +356,14 @@ fun HomeScreen() {
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             MethodMeshMark(size = 34.dp)
+                        }
+                    },
+                    actions = {
+                        if (selectedDestination == DashboardDestination.Dashboard) {
+                            HomeTimeRecencyChip(
+                                onClick = { selectedDestination = DashboardDestination.Workbench },
+                                modifier = Modifier.padding(end = 12.dp)
+                            )
                         }
                     }
                 )
@@ -819,6 +806,7 @@ private fun PageSection(
     subtitle: String? = null,
     expanded: Boolean,
     onToggle: () -> Unit,
+    module: MethodMeshModule? = null,
     content: @Composable () -> Unit
 ) {
     Column(Modifier.fillMaxWidth()) {
@@ -839,7 +827,15 @@ private fun PageSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                module?.let { metadataModule ->
+                    Spacer(Modifier.height(6.dp))
+                    VersionAndMaturityBadges(
+                        version = metadataModule.version,
+                        maturity = metadataModule.maturity
+                    )
+                }
             }
+            Spacer(Modifier.width(10.dp))
             Text(
                 if (expanded) "−" else "+",
                 style = MaterialTheme.typography.titleMedium,
@@ -1057,7 +1053,7 @@ private fun FindCapabilityCard(
                 val uiClass = capabilityUiClass(method, moduleByMethod[method.id])
                 uiClass == CapabilityUiClass.ProtocolPrimitive || uiClass == CapabilityUiClass.WorkbenchTool
             }
-            .sortedWith(compareBy<As100Method> { capabilityLifecycle(it) != CapabilityLifecycle.Production }.thenBy { it.descriptor.name })
+            .sortedWith(compareBy<As100Method> { MethodMeshMetadataResolver.capabilityMaturity(it, moduleByMethod[it.id]) != MaturityStatus.Production }.thenBy { it.descriptor.name })
     }
     val trimmedQuery = query.trim()
     val matches = remember(searchableMethods, trimmedQuery) {
@@ -1109,7 +1105,7 @@ private fun FindCapabilityCard(
                                     Text(
                                         when (uiClass) {
                                             CapabilityUiClass.WorkbenchTool -> "Workbench"
-                                            CapabilityUiClass.ProtocolPrimitive -> capabilityLifecycle(method).label
+                                            CapabilityUiClass.ProtocolPrimitive -> MethodMeshMetadataResolver.capabilityMaturity(method, module).label
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary
@@ -1216,14 +1212,18 @@ private fun PresetShortcutsCard(revision: Int) {
                 Text("No presets yet. Create one from Capabilities.", style = MaterialTheme.typography.bodySmall)
             } else {
                 presets.take(6).forEach { preset ->
-                    OutlinedButton(shape = MaterialTheme.shapes.small, 
+                    OutlinedButton(shape = MaterialTheme.shapes.small,
                         modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                         onClick = { runPresetFromDashboard(context, preset) }
                     ) {
                         Column(Modifier.fillMaxWidth()) {
                             Text(preset.name)
                             Text(preset.methodId, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
-                            Text(presetResultActionLabel(preset.resultAction), style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                "${presetLaunchModeLabel(preset.launchMode)} · ${presetResultActionLabel(preset.resultAction)} · ${payloadModeLabel(preset.payloadMode)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -1368,6 +1368,11 @@ private fun ProtocolLibraryCard(
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
+                                                    Text(
+                                                        "${presetLaunchModeLabel(preset.launchMode)} · ${payloadModeLabel(preset.payloadMode)}",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
                                                 }
                                                 Text(
                                                     "Run",
@@ -1440,7 +1445,7 @@ private fun ProtocolLibraryCard(
                     }
                 }
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                    Button(shape = MaterialTheme.shapes.small, 
+                    Button(shape = MaterialTheme.shapes.small,
                         onClick = {
                             val selected = protocolStepDrafts.mapNotNull { draft -> presets.firstOrNull { it.id == draft.presetId }?.let { draft to it } }
                             if (protocolName.isBlank() || selected.isEmpty()) {
@@ -1473,7 +1478,7 @@ private fun ProtocolLibraryCard(
                         enabled = protocolName.isNotBlank() && protocolStepDrafts.isNotEmpty()
                     ) { Text("Save protocol") }
                     Spacer(Modifier.width(8.dp))
-                    OutlinedButton(shape = MaterialTheme.shapes.small, 
+                    OutlinedButton(shape = MaterialTheme.shapes.small,
                         onClick = {
                             protocolName = ""
                             protocolStepDrafts = emptyList()
@@ -1499,7 +1504,7 @@ private fun ProtocolLibraryCard(
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 presets.forEach { preset ->
-                                    OutlinedButton(shape = MaterialTheme.shapes.small, 
+                                    OutlinedButton(shape = MaterialTheme.shapes.small,
                                         onClick = {
                                             protocolStepDrafts = protocolStepDrafts + ProtocolStepDraft(preset.id, selectedOutputMode)
                                             addPresetDialogOpen = false
@@ -1614,7 +1619,7 @@ private fun ProtocolLibraryCard(
                                 Column(Modifier.padding(10.dp)) {
                                     Text(protocol.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                     Text("${ProtocolLibraryRepository.versionLabel(protocol.versionIso)} · archived version", style = MaterialTheme.typography.labelSmall)
-                                    OutlinedButton(shape = MaterialTheme.shapes.small, 
+                                    OutlinedButton(shape = MaterialTheme.shapes.small,
                                         onClick = {
                                             ProtocolLibraryRepository.unarchiveProtocol(context, protocol.id)
                                             refresh()
@@ -1649,7 +1654,7 @@ private fun ProtocolLibraryCard(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
-                Button(shape = MaterialTheme.shapes.small, 
+                Button(shape = MaterialTheme.shapes.small,
                     onClick = {
                         runCatching { ProtocolLibraryRepository.import(context, importPayload.trim()) }
                             .onSuccess {
@@ -1737,29 +1742,90 @@ private fun PayloadModeSelector(
     onSelected: (String) -> Unit
 ) {
     Column(Modifier.fillMaxWidth()) {
-        Text("Returned payload", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-        listOf(
-            ProtocolPayloadMode.CORE to "Core result",
-            ProtocolPayloadMode.AUDIT to "Core + audit",
-            ProtocolPayloadMode.FULL to "Everything"
-        ).forEach { (mode, label) ->
-            val active = ProtocolPayloadMode.normalize(selected) == mode
-            OptionRow(label, active) { onSelected(mode) }
+        Text("Returned data", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(
+            "The useful result is always primary. Add audit detail or the complete JSON envelope only when you need it.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = ProtocolPayloadMode.normalize(selected) == ProtocolPayloadMode.CORE,
+                onClick = { onSelected(ProtocolPayloadMode.CORE) },
+                label = { Text("Result") }
+            )
+            FilterChip(
+                selected = ProtocolPayloadMode.normalize(selected) == ProtocolPayloadMode.AUDIT,
+                onClick = { onSelected(ProtocolPayloadMode.AUDIT) },
+                label = { Text("+ Audit") }
+            )
+            FilterChip(
+                selected = ProtocolPayloadMode.normalize(selected) == ProtocolPayloadMode.FULL,
+                onClick = { onSelected(ProtocolPayloadMode.FULL) },
+                label = { Text("+ Full JSON") }
+            )
         }
-        Text(payloadModeDescription(selected), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+        Text(payloadModeDescription(selected), style = MaterialTheme.typography.bodySmall)
     }
 }
 
 private fun payloadModeLabel(mode: String): String = when (ProtocolPayloadMode.normalize(mode)) {
-    ProtocolPayloadMode.AUDIT -> "Returns: core + audit fields"
-    ProtocolPayloadMode.FULL -> "Returns: everything"
-    else -> "Returns: core result only"
+    ProtocolPayloadMode.AUDIT -> "Data: result + audit"
+    ProtocolPayloadMode.FULL -> "Data: result + full JSON"
+    else -> "Data: result"
 }
 
 private fun payloadModeDescription(mode: String): String = when (ProtocolPayloadMode.normalize(mode)) {
-    ProtocolPayloadMode.AUDIT -> "Return core values plus ALCOA-style IDs, times, device details, hashes and warnings."
-    ProtocolPayloadMode.FULL -> "Return the full capability output, including raw JSON, manifests, traces and success metadata."
-    else -> "Return only the practical answer values, such as readings, answers, selected labels and file names."
+    ProtocolPayloadMode.AUDIT -> "Return the useful result plus provenance, identifiers, times, device details, hashes and warnings."
+    ProtocolPayloadMode.FULL -> "Return the useful result and add the canonical complete JSON representation."
+    else -> "Return the practical result only: readings, answers, selected labels and useful files."
+}
+
+@Composable
+private fun PresetLaunchModeSelector(
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Text("Run behaviour", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(
+            "Choose whether the preset uses the capability normally, always shows its UI, or runs without opening a screen.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = PresetLaunchMode.normalize(selected) == PresetLaunchMode.AUTO,
+                onClick = { onSelected(PresetLaunchMode.AUTO) },
+                label = { Text("Auto") }
+            )
+            FilterChip(
+                selected = PresetLaunchMode.normalize(selected) == PresetLaunchMode.INTERACTIVE,
+                onClick = { onSelected(PresetLaunchMode.INTERACTIVE) },
+                label = { Text("Show UI") }
+            )
+            FilterChip(
+                selected = PresetLaunchMode.normalize(selected) == PresetLaunchMode.BACKGROUND,
+                onClick = { onSelected(PresetLaunchMode.BACKGROUND) },
+                label = { Text("Background") }
+            )
+        }
+        Text(presetLaunchModeDescription(selected), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+private fun presetLaunchModeLabel(mode: String): String = when (PresetLaunchMode.normalize(mode)) {
+    PresetLaunchMode.INTERACTIVE -> "Run: show UI"
+    PresetLaunchMode.BACKGROUND -> "Run: background"
+    else -> "Run: auto"
+}
+
+private fun presetLaunchModeDescription(mode: String): String = when (PresetLaunchMode.normalize(mode)) {
+    PresetLaunchMode.INTERACTIVE -> "Always open the capability UI. Use this for dashboards, cameras and operator-led tools."
+    PresetLaunchMode.BACKGROUND -> "Run without opening the capability UI. Use only when saved/runtime inputs are sufficient to complete the capability."
+    else -> "Use the capability's normal behaviour. This is the recommended default."
 }
 
 @Composable
@@ -1768,24 +1834,39 @@ private fun PresetResultActionSelector(
     onSelected: (String) -> Unit
 ) {
     Column(Modifier.fillMaxWidth()) {
-        Text("After result", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-        OptionRow("Home", PresetResultAction.normalize(selected) == PresetResultAction.HOME) { onSelected(PresetResultAction.HOME) }
-        OptionRow("Share", PresetResultAction.normalize(selected) == PresetResultAction.SHARE) { onSelected(PresetResultAction.SHARE) }
-        OptionRow("Save", PresetResultAction.normalize(selected) == PresetResultAction.SAVE) { onSelected(PresetResultAction.SAVE) }
-        Text(presetResultActionDescription(selected), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+        Text("After completion", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = PresetResultAction.normalize(selected) == PresetResultAction.HOME,
+                onClick = { onSelected(PresetResultAction.HOME) },
+                label = { Text("Return") }
+            )
+            FilterChip(
+                selected = PresetResultAction.normalize(selected) == PresetResultAction.SHARE,
+                onClick = { onSelected(PresetResultAction.SHARE) },
+                label = { Text("Share") }
+            )
+            FilterChip(
+                selected = PresetResultAction.normalize(selected) == PresetResultAction.SAVE,
+                onClick = { onSelected(PresetResultAction.SAVE) },
+                label = { Text("Save") }
+            )
+        }
+        Text(presetResultActionDescription(selected), style = MaterialTheme.typography.bodySmall)
     }
 }
 
 private fun presetResultActionLabel(action: String): String = when (PresetResultAction.normalize(action)) {
-    PresetResultAction.SHARE -> "After result: share"
-    PresetResultAction.SAVE -> "After result: save"
-    else -> "After result: home"
+    PresetResultAction.SHARE -> "After: share"
+    PresetResultAction.SAVE -> "After: save"
+    else -> "After: return"
 }
 
 private fun presetResultActionDescription(action: String): String = when (PresetResultAction.normalize(action)) {
-    PresetResultAction.SHARE -> "Open Android share for the core result when the preset finishes."
-    PresetResultAction.SAVE -> "Save a MethodMesh output package when the preset finishes."
-    else -> "Return to MethodMesh without saving when the preset finishes."
+    PresetResultAction.SHARE -> "Open Android Share when the preset completes."
+    PresetResultAction.SAVE -> "Save the completed result to MethodMesh outputs."
+    else -> "Return to the caller or the screen that launched the preset."
 }
 
 @Composable
@@ -1806,7 +1887,7 @@ private fun OdkProtocolStepDialog(
     fun presetFor(formSelector: String, displayName: String = formSelector): CapabilityPreset =
         CapabilityPreset(
             name = "odk_form_${displayName.ifBlank { formSelector }}",
-            methodId = As100OdkFormLauncherMethod.ID,
+            methodId = "odk_form_launcher",
             settingsJson = JSONObject().apply {
                 put("project_id", selectedProjectId)
                 put("package_name", selectedPackage)
@@ -1844,7 +1925,7 @@ private fun OdkProtocolStepDialog(
                     Text("No saved projects yet. Use the ODK form launcher once to discover/save a project, or enter the form ID manually.", style = MaterialTheme.typography.bodySmall)
                 } else {
                     projects.filter { it.packageName.isBlank() || it.packageName == selectedPackage }.forEach { project ->
-                        OutlinedButton(shape = MaterialTheme.shapes.small, 
+                        OutlinedButton(shape = MaterialTheme.shapes.small,
                             onClick = { selectedProjectId = project.id; selectedPackage = project.packageName.ifBlank { selectedPackage } },
                             modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                         ) { Text(if (selectedProjectId == project.id) "✓ ${project.name}" else project.name) }
@@ -1854,7 +1935,7 @@ private fun OdkProtocolStepDialog(
                     Spacer(Modifier.height(8.dp))
                     Text("Forms in selected project", style = MaterialTheme.typography.labelLarge)
                     forms.forEach { form ->
-                        OutlinedButton(shape = MaterialTheme.shapes.small, 
+                        OutlinedButton(shape = MaterialTheme.shapes.small,
                             onClick = { onStepCreated(presetFor(form.id, form.name), selectedOutputMode) },
                             modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                         ) { Text("${form.name} (${form.id})") }
@@ -1868,7 +1949,7 @@ private fun OdkProtocolStepDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                Button(shape = MaterialTheme.shapes.small, 
+                Button(shape = MaterialTheme.shapes.small,
                     onClick = { onStepCreated(presetFor(manualFormId.trim()), selectedOutputMode) },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     enabled = manualFormId.isNotBlank()
@@ -1942,15 +2023,18 @@ private fun WorkbenchCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
+        TimeAssuranceWorkbenchPanel(Modifier.padding(top = 8.dp, bottom = 12.dp))
         WorkbenchApiLinksPanel()
 
         grouped.forEach { (moduleName, moduleMethods) ->
             var moduleExpanded by rememberSaveable("Workbench:$moduleName") { mutableStateOf(false) }
+            val module = moduleMethods.firstNotNullOfOrNull { moduleByMethod[it.id] }
             PageSection(
                 title = moduleName,
                 subtitle = "${moduleMethods.size} tool${if (moduleMethods.size == 1) "" else "s"}",
                 expanded = moduleExpanded,
-                onToggle = { moduleExpanded = !moduleExpanded }
+                onToggle = { moduleExpanded = !moduleExpanded },
+                module = module
             ) {
                 moduleMethods.sortedBy { it.descriptor.name.lowercase() }.forEach { method ->
                     CapabilityCard(
@@ -2065,7 +2149,7 @@ private fun WorkbenchApiLinksPanel() {
                     )
                 }
 
-                OutlinedButton(shape = MaterialTheme.shapes.small, 
+                OutlinedButton(shape = MaterialTheme.shapes.small,
                     onClick = { previewText = apiDefinitionPreview(definition, inputValues.toMap()) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -2073,7 +2157,7 @@ private fun WorkbenchApiLinksPanel() {
                 }
 
                 if (definition.origin == ApiDefinitionOrigin.BUNDLED) {
-                    Button(shape = MaterialTheme.shapes.small, 
+                    Button(shape = MaterialTheme.shapes.small,
                         onClick = {
                             previewText = apiDefinitionPreview(definition, inputValues.toMap())
                             confirmDefinition = definition
@@ -2129,7 +2213,7 @@ private fun WorkbenchApiLinksPanel() {
                 }
             },
             confirmButton = {
-                Button(shape = MaterialTheme.shapes.small, 
+                Button(shape = MaterialTheme.shapes.small,
                     onClick = {
                         val snapshot = definition
                         val inputs = inputValues.toMap()
@@ -2350,31 +2434,52 @@ private fun CapabilityModuleSection(
 ) {
     var expanded by rememberSaveable("capability-module:$moduleName") { mutableStateOf(false) }
     val showMethods = expanded || forceExpanded
+    val module = methods.firstNotNullOfOrNull { moduleByMethod[it.id] }
     Column(Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = !expanded }
-                .padding(vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(vertical = 10.dp),
+            verticalAlignment = Alignment.Top
         ) {
             Column(Modifier.weight(1f)) {
-                Text(moduleName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(
+                    moduleName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Text(
                     buildString {
                         append(methods.size)
                         append(" tool")
                         if (methods.size != 1) append("s")
                     },
+                    modifier = Modifier.padding(top = 2.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                if (forceExpanded) methods.size.toString() else if (showMethods) "−" else "+",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
+            module?.let { metadataModule ->
+                Spacer(Modifier.width(8.dp))
+                VersionAndMaturityBadges(
+                    version = metadataModule.version,
+                    maturity = metadataModule.maturity,
+                    maturityWidth = 108.dp
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Box(
+                modifier = Modifier.width(24.dp),
+                contentAlignment = Alignment.TopEnd
+            ) {
+                Text(
+                    if (forceExpanded) methods.size.toString() else if (showMethods) "−" else "+",
+                    modifier = Modifier.padding(top = 1.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
         if (showMethods) {
@@ -2458,15 +2563,13 @@ private fun CapabilityCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-            if (capabilityLifecycle(method) == CapabilityLifecycle.Development) {
-                Text(
-                    "Development",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
+                Spacer(Modifier.height(6.dp))
+                VersionAndMaturityBadges(
+                    version = method.descriptor.version.orEmpty(),
+                    maturity = MethodMeshMetadataResolver.capabilityMaturity(method, module)
                 )
-                Spacer(Modifier.width(12.dp))
             }
+            Spacer(Modifier.width(8.dp))
             Text(
                 if (isFavourite) "★" else "☆",
                 modifier = Modifier.clickable {
@@ -2640,7 +2743,7 @@ private fun CapabilityCard(
             initialSettings = presetSettings,
             defaultPayloadMode = returnPayloadMode,
             onDismiss = { presetDialogOpen = false },
-            onSave = { name, payloadMode, resultAction, savedSettings ->
+            onSave = { name, description, payloadMode, resultAction, launchMode, savedSettings ->
                 returnPayloadMode = payloadMode
                 val logSettings = savedSettings.toMutableMap()
                 if (logSettings["methodmesh_save_to_log"]?.toString() == "true") {
@@ -2670,7 +2773,8 @@ private fun CapabilityCard(
                         settingsJson = settingsJsonFromMap(logSettings),
                         payloadMode = payloadMode,
                         resultAction = resultAction,
-                        description = method.descriptor.description.orEmpty()
+                        launchMode = launchMode,
+                        description = description.ifBlank { method.descriptor.description.orEmpty() }
                     )
                 )
                 presetDialogOpen = false
@@ -2710,7 +2814,7 @@ private fun FullScreenCapabilityDialog(
                             .verticalScroll(rememberScrollState())
                             .padding(18.dp)
                     ) {
-                        OutlinedButton(shape = MaterialTheme.shapes.small, 
+                        OutlinedButton(shape = MaterialTheme.shapes.small,
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -2778,14 +2882,16 @@ private fun SavePresetDialog(
     initialSettings: Map<String, Any>,
     defaultPayloadMode: String,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, Map<String, Any>) -> Unit
+    onSave: (String, String, String, String, String, Map<String, Any>) -> Unit
 ) {
     var name by rememberSaveable(methodId) { mutableStateOf(defaultName) }
+    var description by rememberSaveable("$methodId:presetDescription") { mutableStateOf("") }
     var payloadMode by rememberSaveable(methodId) { mutableStateOf(ProtocolPayloadMode.normalize(defaultPayloadMode)) }
     var resultAction by rememberSaveable(methodId) { mutableStateOf(PresetResultAction.HOME) }
+    var launchMode by rememberSaveable("$methodId:launchMode") { mutableStateOf(PresetLaunchMode.AUTO) }
     var saveToLog by rememberSaveable(methodId) { mutableStateOf(false) }
     var logName by rememberSaveable(methodId) { mutableStateOf("") }
-    var nameDialogOpen by rememberSaveable(methodId) { mutableStateOf(false) }
+    var showJson by rememberSaveable("$methodId:showPresetJson") { mutableStateOf(false) }
     val usesTypedSchema = settingSchema.isNotEmpty()
     val fieldSpecs = remember(methodId, initialSettings, settingSchema) {
         if (usesTypedSchema) emptyList() else presetFieldSpecs(initialSettings)
@@ -2847,7 +2953,9 @@ private fun SavePresetDialog(
             }
         }
         initialSettings.forEach { (key, value) ->
-            if (key !in editableKeys && key != "methodmesh_runtime_fields" && value.toString().isNotBlank()) selected[key] = value
+            if (key !in editableKeys && key != "methodmesh_runtime_fields" && value.toString().isNotBlank()) {
+                selected[key] = value
+            }
         }
         if (runtimeFields.isNotEmpty()) selected["methodmesh_runtime_fields"] = runtimeFields.joinToString(",")
         if (saveToLog) {
@@ -2862,8 +2970,9 @@ private fun SavePresetDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(14.dp)
-                .heightIn(max = 720.dp),
-            shape = MaterialTheme.shapes.large,
+                .heightIn(max = 760.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
         ) {
             Column(
@@ -2871,50 +2980,57 @@ private fun SavePresetDialog(
                     .padding(18.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                Text("Save capability preset", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(methodId, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
-                Spacer(Modifier.height(8.dp))
-                PayloadModeSelector(
-                    selected = payloadMode,
-                    onSelected = { payloadMode = it }
+                Text(
+                    "Create preset",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold
                 )
-                Spacer(Modifier.height(8.dp))
-                PresetResultActionSelector(
-                    selected = resultAction,
-                    onSelected = { resultAction = it }
+                Text(
+                    "Save a reusable setup for this capability.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(8.dp))
-                Surface(
+                Spacer(Modifier.height(16.dp))
+
+                Text("Preset", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
                     modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Column(Modifier.padding(10.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Switch(checked = saveToLog, onCheckedChange = { saveToLog = it })
-                            Spacer(Modifier.width(8.dp))
-                            Column {
-                                Text("Save to log", fontWeight = FontWeight.SemiBold)
-                                Text("Keep each run in a persistent Files log.", style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                        if (saveToLog) {
-                            Spacer(Modifier.height(6.dp))
-                            OutlinedTextField(
-                                value = logName,
-                                onValueChange = { logName = it },
-                                label = { Text("Log name") },
-                                placeholder = { Text("e.g. Jeff's running log") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                        }
-                    }
-                }
+                    singleLine = true
+                )
                 Spacer(Modifier.height(8.dp))
-                Text("Preset fields", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description · optional") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 3
+                )
+                Text(
+                    methodId,
+                    modifier = Modifier.padding(top = 6.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                HorizontalDivider(Modifier.padding(vertical = 16.dp))
+
+                Text("Configuration", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Choose what stays fixed in the preset and what MethodMesh asks for when it runs.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(6.dp))
                 if (editableKeys.isEmpty()) {
-                    Text("No editable preset fields for this capability.", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "This capability has no configurable preset fields.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 } else if (usesTypedSchema) {
                     settingSchema.forEach { setting ->
                         PresetMethodSettingRow(
@@ -2936,52 +3052,108 @@ private fun SavePresetDialog(
                         )
                     }
                 }
-                Spacer(Modifier.height(8.dp))
-                Text("Saved settings preview", style = MaterialTheme.typography.labelLarge)
-                SelectionContainer {
-                    Text(settingsJsonFromMap(selectedSettings()), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                }
-                Spacer(Modifier.height(12.dp))
-                Row(Modifier.fillMaxWidth()) {
-                    OutlinedButton(shape = MaterialTheme.shapes.small, onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                    Spacer(Modifier.width(8.dp))
-                    Button(shape = MaterialTheme.shapes.small, 
-                        onClick = { nameDialogOpen = true },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Save…") }
-                }
-                if (nameDialogOpen) {
-                    AlertDialog(
-                        onDismissRequest = { nameDialogOpen = false },
-                        title = { Text("Name preset") },
-                        text = {
+
+                HorizontalDivider(Modifier.padding(vertical = 16.dp))
+
+                PresetLaunchModeSelector(
+                    selected = launchMode,
+                    onSelected = { launchMode = it }
+                )
+                Spacer(Modifier.height(16.dp))
+
+                PresetResultActionSelector(
+                    selected = resultAction,
+                    onSelected = { resultAction = it }
+                )
+                Spacer(Modifier.height(16.dp))
+
+                PayloadModeSelector(
+                    selected = payloadMode,
+                    onSelected = { payloadMode = it }
+                )
+
+                HorizontalDivider(Modifier.padding(vertical = 16.dp))
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
+                    shape = MaterialTheme.shapes.large
+                ) {
+                    Column(Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Switch(checked = saveToLog, onCheckedChange = { saveToLog = it })
+                            Spacer(Modifier.width(10.dp))
+                            Column {
+                                Text("Save each run to a log", fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "Keep results from this preset in a persistent Files log.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        if (saveToLog) {
+                            Spacer(Modifier.height(8.dp))
                             OutlinedTextField(
-                                name,
-                                { name = it },
-                                label = { Text("Preset name") },
+                                value = logName,
+                                onValueChange = { logName = it },
+                                label = { Text("Log name") },
+                                placeholder = { Text("$name log") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
-                        },
-                        confirmButton = {
-                            Button(shape = MaterialTheme.shapes.small, 
-                                onClick = {
-                                    if (name.isNotBlank()) {
-                                        onSave(
-                                            name.trim(),
-                                            ProtocolPayloadMode.normalize(payloadMode),
-                                            PresetResultAction.normalize(resultAction),
-                                            selectedSettings()
-                                        )
-                                    }
-                                },
-                                enabled = name.isNotBlank()
-                            ) { Text("Save preset") }
-                        },
-                        dismissButton = {
-                            OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { nameDialogOpen = false }) { Text("Back") }
                         }
-                    )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+                TextButton(onClick = { showJson = !showJson }) {
+                    Text(if (showJson) "Hide configuration JSON" else "Advanced · View configuration JSON")
+                }
+                if (showJson) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        SelectionContainer {
+                            Text(
+                                settingsJsonFromMap(selectedSettings()),
+                                modifier = Modifier.padding(10.dp),
+                                fontFamily = FontFamily.Monospace,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(18.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            onSave(
+                                name.trim(),
+                                description.trim(),
+                                ProtocolPayloadMode.normalize(payloadMode),
+                                PresetResultAction.normalize(resultAction),
+                                PresetLaunchMode.normalize(launchMode),
+                                selectedSettings()
+                            )
+                        },
+                        enabled = name.isNotBlank(),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Save preset")
+                    }
                 }
             }
         }
@@ -3989,8 +4161,8 @@ private fun DeviceRegistryCard(expandedByDefault: Boolean = false) {
     }
 
     liveReadDevice?.let { device ->
-        val method = As100MethodRegistry.all().firstOrNull { it.id == As100SensorReadMethod.ID }
-        val screen = MethodMeshModuleRegistry.screenFor(As100SensorReadMethod.ID)
+        val method = As100MethodRegistry.all().firstOrNull { it.id == "sensor.read" }
+        val screen = MethodMeshModuleRegistry.screenFor("sensor.read")
         if (method != null && screen != null) {
             FullScreenCapabilityDialog(onDismiss = { liveReadDevice = null }) {
                 Text("Live reading", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)

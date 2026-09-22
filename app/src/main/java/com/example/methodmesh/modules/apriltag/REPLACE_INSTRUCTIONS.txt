@@ -1,0 +1,23 @@
+MethodMesh AprilTag v0.4.0 — metric distance calibration
+
+Replace the existing modules/apriltag folder completely with this folder.
+Do not merge old AprilTag files over it.
+
+This is a module-only update.
+Do NOT change HomeScreen, workflow-host UI, platform/fiducial, or native C++.
+
+New calibration model:
+- apriltag.calibrate_focal remains the established canonical method ID but now calibrates the operational metric pose scale as well as reporting the legacy approximate focal estimate.
+- Calibration observes RAW pose with distance_scale forced to 1.0.
+- distance_scale = known true camera-to-tag distance / mean raw pose range.
+- Corrected X/Y/Z/range = raw pose × distance_scale.
+- Equivalent effective pose size = physical tag size × distance_scale.
+- The factor is persisted by the module as the rear-camera device default when calibration is committed.
+- The factor is directly editable and can also be saved manually as the device default.
+- Range/pose, relative pose and tracking automatically use the persisted factor unless a preset/protocol/ODK invocation explicitly supplies another factor.
+- Saved presets capture the active factor.
+- Planar measurements deliberately continue to use the physical tag size and are not scaled.
+
+Recommended after replacement:
+  ./gradlew clean
+  ./gradlew :app:compileDebugKotlin

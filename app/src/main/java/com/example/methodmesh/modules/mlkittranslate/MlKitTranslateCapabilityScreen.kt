@@ -1,5 +1,7 @@
 package com.example.methodmesh.modules.mlkittranslate
 
+import com.example.methodmesh.platform.translation.MlKitLanguageCatalog
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer

@@ -36,7 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.methodmesh.modules.mlkittranslate.MlKitLanguageCatalog
+import com.example.methodmesh.platform.translation.MlKitLanguageCatalog
 import java.util.Locale
 
 internal const val ARABIC_VARIANT_LEVANTINE = "levantine"

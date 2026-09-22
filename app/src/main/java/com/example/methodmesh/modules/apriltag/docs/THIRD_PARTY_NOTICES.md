@@ -2,12 +2,12 @@
 
 ## AprilTag 3
 
-This module is designed to use the AprilTag 3 C library from the April Robotics Laboratory / University of Michigan project (`AprilRobotics/apriltag`). The upstream project is distributed under a BSD-style two-clause licence/copyright notice.
+The AprilTag module consumes the shared MethodMesh AprilTag platform facility, which vendors the reviewed AprilTag 3 C library from the April Robotics Laboratory / University of Michigan project (`AprilRobotics/apriltag`). The upstream project is distributed under a BSD-style two-clause licence/copyright notice.
 
-The upstream AprilTag source is **not redistributed in this handoff**. `native/apriltag_jni.cpp` is MethodMesh integration code that expects a separately obtained, reviewed and pinned upstream source tree. When integrating/bundling AprilTag, retain the upstream copyright and licence notices in source and binary distributions as required by that licence.
+The upstream source and licence are owned at the shared platform/native layer, not duplicated inside this module. Binary/source distributions must retain the upstream notices required by that licence.
 
 Default/recommended family in this module: `tagStandard41h12`.
 
 ## Android / CameraX
 
-The module uses Android platform Camera2 metadata and MethodMesh's existing AndroidX CameraX dependencies. No additional online service is used.
+The module uses Android Camera2 metadata, CameraX and the generic MethodMesh `platform.fiducial` API. No online service is required.

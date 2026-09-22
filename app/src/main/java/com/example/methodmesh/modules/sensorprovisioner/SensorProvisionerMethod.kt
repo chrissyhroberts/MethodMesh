@@ -1,5 +1,7 @@
 package com.example.methodmesh.modules.sensorprovisioner
 
+import com.example.methodmesh.platform.sensors.extractJsonObject
+
 import com.example.methodmesh.core.methodmesh.ArchitectureId
 import com.example.methodmesh.core.methodmesh.ArchitectureRef
 import com.example.methodmesh.core.methodmesh.ExecutionRequest

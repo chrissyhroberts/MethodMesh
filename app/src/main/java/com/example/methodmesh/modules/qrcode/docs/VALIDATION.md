@@ -1,99 +1,139 @@
-# qrcode v1.20 refresh validation
+# barcode module validation
 
-Review date: 2026-09-12
+Review date: 2026-09-22<br>
+Authority: MethodMesh Master Book v1.22 (2026-09-15).
 
-Authority: MethodMesh Master Book v1.20 (2026-09-12).
+## Pass A — contract correctness
 
-## Contract preservation
+- [x] Historical module ID remains `barcode`.
+- [x] Established `barcode.scan` method remains present at version `1.1.2` with its existing inputs/outputs/evidence recipe.
+- [x] Existing `BarcodeScanCapabilityScreen` is included in the handoff; the earlier missing-source packaging defect is removed.
+- [x] `barcode.generate` is independently registered with its own method, screen, settings, RIL bindings and ODK showcase.
+- [x] `barcode.clone` is independently registered with its own method, screen, settings, RIL bindings and ODK showcase.
+- [x] Direct/dashboard discovery, presets/protocol discovery and ODK all derive from the same registered method/screen metadata rather than dashboard-only implementations.
+- [x] Exactly one module maturity tag (`Development`) and one connectivity tag (`Offline`) are declared. The established scanner method remains Production; new Generate/Clone methods remain Development until receiving-repository build and device gates pass.
 
-- [x] Module ID remains `barcode`.
-- [x] Canonical method ID remains `barcode.scan`.
-- [x] Canonical setting key remains `barcode_formats`.
-- [x] All nine established capability output fields remain declared with unchanged names and meanings.
-- [x] Historical `token` payload alias is retained.
-- [x] Evidence recipe remains `barcode_payload_utf8_sha256_v1`.
-- [x] Method implementation version advanced from `1.1.1` to `1.1.2`; this is an implementation/provenance increment, not a contract rename.
+## Pass B — interaction quality
 
-## Current status metadata
+- [x] Scan remains scanner-first with live result -> Commit.
+- [x] Generate is renderer-first with immediate code updates and no redundant Generate button.
+- [x] Clone opens in the standard host with a windowed embedded ZXing scanner, then shows the renderer below it with swipe/rail/cycle format selection.
+- [x] Generate and Clone never silently truncate, pad, normalise or rewrite the payload for a symbology.
+- [x] Fixed format settings remain fixed; incompatible fixed formats fail visibly and disable Share/Copy/Save/Return rather than silently substituting another format.
+- [x] Fixed auto-cycle settings are not exposed as runtime toggle questions.
+- [x] Useful displayed payload text is tap-to-copy/copyable.
+- [x] Clone has no visible Commit gate: Share/Copy/Save/Return atomically snapshot the current payload/format choice and reuse that snapshot until live state changes.
+- [x] Generate preserves committed identity; Clone preserves its invisible action-snapshot execution, observation, transformation, relationship and system-time identity across ordinary recreation.
+- [x] Generator QR branding is automatic MethodMesh presentation; arbitrary custom-logo controls are absent.
+- [x] Clone renderings stay unbranded for fidelity.
 
-- [x] Maturity: `Production`.
-- [x] Connectivity: `Offline` for the core scan/decode operation.
-- [x] Capability descriptor exposes `maturity`, `connectivity`, `interactive`, `core_return` and `odk_metadata_return` metadata.
-- [x] Module-owned `maturityTag` / `connectivityTag` values follow the currently reviewed-module pattern while the host `MethodMeshModule` interface still lacks typed status properties.
+## Pass C — field robustness
 
-## Native UX review
+- [x] Core scanning/generation/cloning is offline.
+- [x] Camera permission remains confined to scan/clone acquisition.
+- [x] No private barcode history/wallet store was introduced.
+- [x] Full-screen presentation restores prior brightness/keep-awake state on exit.
+- [x] Android Share includes a PNG rendering for Generate/Clone; Clone also declares its PNG as the canonical primary/core return.
+- [x] A standalone Kotlin parser pass reports no syntax/parser/redeclaration diagnostics across the five module source files.
+- [ ] Receiving-repository Android build and physical-device scan tests are still required; this standalone module folder is not a complete Gradle project and therefore cannot resolve Android/Compose/ZXing host dependencies for a truthful app compile here.
 
-- [x] Camera scanner is the dominant capability instrument.
-- [x] Continuous scanning produces an in-place working result.
-- [x] Current payload is displayed as a floating HUD over the camera.
-- [x] Current payload is directly tap-to-copy.
-- [x] Safe HTTP/HTTPS payloads show **Open link** directly in the live HUD beside **Commit**.
-- [x] Scanned links are never auto-opened.
-- [x] Commit freezes the canonical result rather than navigating to a generic result page.
-- [x] Manual committed state remains on the same capability surface.
-- [x] Post-Commit Share, Copy, Save to Downloads, optional full JSON/audit, Technical details, Home/Done and New scan are available.
-- [x] Format selection is compact/progressive rather than a full stack of large configuration buttons.
-- [x] Fixed preset settings remain suppressible through `settingShouldBeShown`.
-- [x] Working and committed execution identity/state remain saveable across ordinary activity recreation.
-- [x] Automatic-return origins return only on Commit.
+## ODK/XLSForm inventory
 
-## Canonical surface parity
+- [x] `example_odk_barcode_scan.xlsx` retained with stable `form_id=barcode_scan`.
+- [x] `example_odk_showcase_barcode_scan.xlsx` retained with stable `form_id=qrcode_barcode_scan`.
+- [x] `example_odk_showcase_barcode_generate.xlsx` added with `form_id=barcode_generate`.
+- [x] `example_odk_showcase_barcode_clone.xlsx` added with `form_id=barcode_clone`.
+- [x] Each workbook contains exactly one MethodMesh invocation.
+- [x] Canonical examples use unprefixed canonical return field names and no `methodmesh_return_namespace`.
+- [x] All canonical examples request `input_payload_mode='FULL'`, use `return_mode='flat'`, and capture `methodmesh_status` plus `methodmesh_full_json`.
+- [x] Generator/clone forms capture only outputs actually declared by their runtime contracts; no speculative image/print return field is invented.
+- [x] Workbook node names are unique within each canonical workbook.
 
-- [x] `QrCodeModule.as100Methods()` exposes the canonical method.
-- [x] `capabilityScreens()` exposes the direct native surface.
-- [x] `capabilitySettings()` exposes the same setting contract to presets/protocol configuration.
-- [x] RIL/discovery bindings still resolve to `barcode.scan`.
-- [x] No dashboard-only, preset-only or ODK-only scanner implementation was introduced.
-- [x] Schedule/widget use remains through the same method/preset/closeout framework.
+The workbooks were generated and re-inspected through the required spreadsheet artifact workflow. Provider-side ODK Central/Kobo upload and pyxform validation were not available in this standalone module workspace and are therefore not claimed.
 
-## ODK/XLSForm review
+## Receiving-repository gates
 
-- [x] Canonical `example_odk_showcase_barcode_scan.xlsx` contains exactly one `barcode.scan` invocation.
-- [x] Canonical showcase uses unprefixed canonical return keys and no return namespace.
-- [x] Canonical showcase requests `input_payload_mode='FULL'` and `return_mode='flat'`.
-- [x] Canonical showcase captures `methodmesh_status` and `methodmesh_full_json`.
-- [x] Canonical showcase captures every declared barcode capability output, with URL conditionality represented in the form.
-- [x] Legacy `example_odk_barcode_scan.xlsx` preserves its stable `form_id` and has been reconciled to the same single-call/unprefixed contract.
-- [x] ODK Integration Card in `README_QrCode.md` matches the method/XLSForms.
-- [x] No binary/file return exists for this capability, so attachment transport is not applicable.
-
-## Spreadsheet verification performed
-
-The two supplied XLSForms were imported, rewritten and re-inspected using the MethodMesh artifact workflow. Key survey/settings ranges were checked after modification. Their stable `form_id` values were preserved:
-
-- showcase: `qrcode_barcode_scan`;
-- legacy: `barcode_scan`.
-
-Provider-side ODK Central/Kobo upload validation was not available in this standalone module workspace.
-
-## Generated XML projections
-
-The previously supplied `.xml` XForm projections were generated copies of older XLSForm state and were stale relative to the refreshed workbook contract. They are removed from this handoff rather than retained as competing documentation/projections. The `.xlsx` files are the module-owned source examples.
-
-## Build/test status
-
-The supplied task archive contains only the module folder, not a complete Gradle project, so a truthful `:app:assembleDebug` / unit-test build cannot be executed from this workspace.
-
-The current host repository contracts were checked against the module shape before editing. No shared-framework patch is required by this refresh.
-
-Required receiving-repository checks:
+Run:
 
 ```text
 ./gradlew :app:testDebugUnitTest
 ./gradlew :app:assembleDebug
 ```
 
-Then exercise on device:
+Then exercise:
 
-1. direct native scan -> live HUD -> tap payload to copy -> Commit;
-2. HTTP/HTTPS scan -> **Open link** is visible inside the live HUD; non-URL -> action absent;
-3. scan code A then code B before Commit -> B replaces the working result;
-4. rotate portrait/landscape before and after Commit;
-5. camera permission deny/retry path;
-6. preset with fixed `barcode_formats` and preset with runtime `barcode_formats`;
-7. protocol and schedule automatic-return closeout;
-8. widget preset closeout where applicable;
-9. canonical ODK workbook roundtrip, including every declared output, `methodmesh_status` and `methodmesh_full_json`;
-10. upload/validate canonical XLSForm unchanged in ODK Central and Kobo.
+1. scan: live code A -> code B -> Commit; tap/copy/share/save; rotate before and after Commit;
+2. generate: free text, URL, numeric retail code, incompatible fixed format, swipe/Cycle, QR MethodMesh mark, full-screen, Share PNG;
+3. clone: open with standard host/preset access, embedded scanner in portrait and landscape, horizontal screen-relative aim line, QR and linear sources, SOURCE mode, cross-format swipe, incompatible fixed target, full-screen presentation, Share/Copy/Save without a Commit step, Return clone;
+4. verify every generated/cloned symbol with at least two independent scanners where practical;
+5. verify generator branding does not materially reduce QR reliability at representative payload lengths;
+6. exercise direct, preset, protocol/schedule/widget origins as applicable;
+7. roundtrip all three canonical showcase XLSForms through ODK; confirm every declared output, `methodmesh_status`, `methodmesh_full_json`, Clone **Return clone**/Cancel behaviour and Scan/Generate Commit/Cancel behaviour;
+8. upload the canonical workbooks unchanged to ODK Central and Kobo where supported.
 
-No production build/device validation claim is made by this standalone handoff until those receiving-repository checks pass.
+## Handoff check
+
+This handoff is one `qrcode/` module root. It contains only module code and module-owned `docs/`; no `app/` wrapper, whole repository tree, build outputs or unrelated modules.
+
+
+## v1.7 native artefact / preset contract
+
+- [x] `barcode.clone` now owns a complete post-Commit native lifecycle: Share image, Copy image, Save image, optional JSON sidecar, Technical details, origin-aware Home/Done and Clone another.
+- [x] `barcode.generate` uses the same image-first Share/Copy/Save rule.
+- [x] Share/Copy/Save never create a payload `.txt` file for Generate/Clone. The payload remains available in the canonical result and as a secondary tap-to-copy scalar.
+- [x] Native Share uses PNG as the first/primary attachment; optional metadata is a real `.json` sidecar attachment rather than JSON appended to a text share payload.
+- [x] Native Save writes PNG plus optional `metadata.json`; no result text file is emitted.
+- [x] Native Copy places the PNG URI on the Android clipboard.
+- [x] Native presets honour `HOME`, `SHARE`, and `SAVE` result actions.
+- [x] Native preset `CORE` uses image only; `AUDIT` / `FULL` request the corresponding JSON metadata sidecar for Share/Save.
+- [x] ODK/external Commit remains transport-first and bypasses native Share/Save; canonical scalar fields plus `methodmesh_full_json` remain the ODK contract.
+- [x] Clone/Generate method descriptor metadata now advertises the image-first native artefact contract and preset result/payload policies.
+- [x] Existing scanner source, scanner contracts, legacy scanner XLSForm and canonical scanner showcase remain present.
+- [x] Existing Generate/Clone XLSForms remain single-call, FULL + flat, unprefixed, and capture `methodmesh_status` / `methodmesh_full_json`; no speculative image return field is introduced.
+
+Receiving-repository gates remain mandatory:
+
+```text
+./gradlew :app:compileDebugKotlin
+./gradlew :app:testDebugUnitTest
+./gradlew :app:assembleDebug
+```
+
+
+## Clone binary return v1.0.2
+
+- [x] `barcode_clone_image_uri` is a declared canonical output and the clone core return.
+- [x] The first Share/Copy/Save/Return action materialises one stable caller-readable PNG URI and reuses that action snapshot while live state is unchanged.
+- [x] ODK canonical showcase uses an `image` return field for `barcode_clone_image_uri`.
+- [x] `barcode_return_text_payload` independently controls the scalar text return; it does not change barcode rendering.
+- [x] Canonical ODK showcase defaults the text return to `true`, demonstrating PNG + exact payload + FULL JSON.
+- [x] Native Share/Copy are image-first and default to no payload text; payload text can be included without creating a `.txt` sidecar.
+- [x] Native Save writes the PNG and optional JSON sidecar only.
+
+
+## Clone interaction v1.0.3
+
+- [x] Clone no longer requests `CapabilityHostPresentation.Immersive`; standard MethodMesh preamble/preset authoring remains reachable.
+- [x] Clone no longer auto-launches the external ZXing capture activity on entry.
+- [x] Camera capture is embedded in a window at the top of the capability.
+- [x] Scanner window follows device orientation; the screen-relative aim/horizon line remains horizontal in portrait and landscape.
+- [x] First decode pauses the embedded camera; **Scan another** resumes it.
+- [x] No visible Commit button is used for Clone. Share/Copy/Save/Return are explicit finalization actions and atomically snapshot the current live clone.
+- [x] Automatic-return callers use **Return clone** as the finalization/return action; native Share/Save UI remains suppressed there.
+
+## v2.0 capability-owned preset authoring
+
+- Scan, Generate and Clone each expose **Save current setup as preset** from their own native capability screen.
+- Preset authoring uses the canonical `CapabilityPreset` / `ProtocolLibraryRepository` store; there is no barcode-private preset format.
+- Every typed capability setting can be marked **Fixed** or **Ask when run**. Runtime fields are stored through `methodmesh_runtime_fields`.
+- Generate defaults `barcode_payload` to runtime so a one-off token is not silently persisted; the operator can deliberately make it fixed for a reusable card/token preset.
+- Authoring exposes returned-data scope (**Result / + Audit / + Full JSON**) and completion (**Return / Share / Save**) independently.
+- Barcode presets are operator-facing and reopen the same scanner/generator/clone instrument; a preset run never substitutes a generic settings-only implementation.
+
+
+## v2.0.1 preset discoverability correction
+
+- [x] Generator preset authoring is in the top preamble rather than below the payload/format controls.
+- [x] Scan and Clone preset authoring is likewise placed before the scanner instrument for consistent discoverability.
+- [x] `barcode.generate` version bumped to 1.0.3; scanner and clone contracts/versions are unchanged.
+- [x] XLSForms are unchanged by this UI-only preset-authoring correction.

@@ -1,7 +1,6 @@
 package com.example.methodmesh.modules.gamedeck
 
-import com.example.methodmesh.modules.chance.As100DiceSimulationMethod
-import com.example.methodmesh.modules.chance.DiceSimulationFields
+import com.example.methodmesh.core.methodmesh.runtime.As100ExecutionEngine
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.ArrayDeque
@@ -414,7 +413,7 @@ object GameDeckEngine {
     }
 
     private fun rollDice(expression: String, rngMode: String, seed: String): Int =
-        As100DiceSimulationMethod.generate(
+        As100ExecutionEngine.observationValues("dice.simulate",
             mapOf(
                 "expression" to expression,
                 "roll_count" to "1",
@@ -424,10 +423,10 @@ object GameDeckEngine {
                 "seed" to seed,
                 "animation_mode" to "off"
             )
-        )[DiceSimulationFields.TOTAL]?.toIntOrNull() ?: 1
+        )["dice_total"]?.toIntOrNull() ?: 1
 
     private fun rollDiceValues(expression: String, rngMode: String, seed: String): List<Int> {
-        val out = As100DiceSimulationMethod.generate(
+        val out = As100ExecutionEngine.observationValues("dice.simulate",
             mapOf(
                 "expression" to expression,
                 "roll_count" to "1",
@@ -438,7 +437,7 @@ object GameDeckEngine {
                 "animation_mode" to "off"
             )
         )
-        return out[DiceSimulationFields.LAST_VALUES_CSV].orEmpty()
+        return out["dice_last_values_csv"].orEmpty()
             .split(',').mapNotNull { it.trim().toIntOrNull() }
     }
 

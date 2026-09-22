@@ -1,0 +1,38 @@
+form,xlsform_name,label,xlsform_type,paperbridge_class,notes
+01_personal_details,first.name,Name,text,scalar OCR,large handwriting box
+01_personal_details,last.name,Surname,text,scalar OCR,large handwriting box
+01_personal_details,department,Department,select_one dept,select one OMR,7 square options
+01_personal_details,degree,Degree,select_one degrees,select one OMR,4 square options
+01_personal_details,programme,Programme,select_one programme,select one OMR,7 square options
+01_personal_details,mode,Mode of study,select_one mode,select one OMR,2 square options
+01_personal_details,stage,Stage,select_one stage,select one OMR / Likert-like,squares on a horizontal scale
+01_personal_details,student.current.status,Current Status,select_one status,select one OMR / Likert-like,7 square options
+01_personal_details,lsa,Learning Support Arrangements,select_one lsa,select one OMR,2 square options
+01_personal_details,staff,Staff / Non-Staff,select_one staff,select one OMR,2 square options
+01_personal_details,funding.source,Funding source,text,scalar OCR,handwriting box
+01_personal_details,working.thesis.title,Research Area / Thesis,text,scalar OCR,lined natural-language box
+01_personal_details,base.instutution,Based at,text,scalar OCR,handwriting box
+02_supervision_registration,sup01,Supervisor 1,text,scalar OCR,handwriting box
+02_supervision_registration,sup02,Supervisor 2,text,scalar OCR,handwriting box
+02_supervision_registration,sup03,Supervisor 3,text,scalar OCR,handwriting box
+02_supervision_registration,sup04,Supervisor 4,text,scalar OCR,handwriting box
+02_supervision_registration,sup_notes,Supervisory Team Notes,text,scalar OCR,lined natural-language box
+02_supervision_registration,registration.date,Registration date,date,scalar OCR,ISO-8601 guide
+02_supervision_registration,end.of.maximum.registration,End of maximum registration,date,scalar OCR,ISO-8601 guide
+02_supervision_registration,projected.end.date,Student's Target End Date,date,scalar OCR,ISO-8601 guide
+02_supervision_registration,registration.notes,Notes on Registration,text,scalar OCR,lined natural-language box
+03_upgrade_review,upg.target.date,Upgrade target date,date,scalar OCR,ISO-8601 guide
+03_upgrade_review,upg.rev.chair,Upgrade/Review Chair,text,scalar OCR,handwriting box
+03_upgrade_review,upg.rev.examiner.internal,Upgrade/Review Examiner Internal,text,scalar OCR,handwriting box
+03_upgrade_review,upg.rev.examiner.external,Upgrade/Review Examiner External,text,scalar OCR,handwriting box
+03_upgrade_review,upg.actual.date,Upgrade date,date,scalar OCR,ISO-8601 guide
+03_upgrade_review,upg.result,Upgrade result,select_one upg1,select one OMR,4 square options
+03_upgrade_review,upg.resit.date,Upgrade Resit Date,date,scalar OCR,conditional paper block
+03_upgrade_review,upg.resit.result,Upgrade result resit,select_one upg2,select one OMR,conditional paper block
+03_upgrade_review,upg.notes,Notes on Upgrade,text,scalar OCR,lined natural-language box
+04_progress_meetings,pm.1.meeting.complete,PM 01 Meeting Complete,select_one yesno,field-table OMR,Yes/No squares
+04_progress_meetings,pm.1.meeting.date,PM 01 Meeting Date,date,scalar OCR,same field-table row
+04_progress_meetings,pm.2.meeting.complete,PM 02 Meeting Complete,select_one yesno,field-table OMR,Yes/No squares
+04_progress_meetings,pm.2.meeting.date,PM 02 Meeting Date,date,scalar OCR,same field-table row
+04_progress_meetings,pm.3.meeting.complete,PM 03 Meeting Complete,select_one yesno,field-table OMR,Yes/No squares
+04_progress_meetings,pm.3.meeting.date,PM 03 Meeting Date,date,scalar OCR,same field-table row

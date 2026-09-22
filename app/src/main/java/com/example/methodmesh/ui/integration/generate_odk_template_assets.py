@@ -538,7 +538,7 @@ def generate(source_root: Path, assets_root: Path, include_all_xlsx: bool, autho
     }
     index = {
         "schema": "methodmesh.odk_template_index.v3",
-        "generatedFrom": source_root.as_posix(),
+        "generatedFrom": "app/src/main/java/com/example/methodmesh",
         "templateCount": len(entries),
         "moduleCount": len(per_module),
         "validationSummary": summary,

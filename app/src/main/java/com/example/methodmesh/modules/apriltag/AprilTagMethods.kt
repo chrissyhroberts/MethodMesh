@@ -175,8 +175,8 @@ object As100AprilTagDetectMethod : AprilTagAs100Method(
 
 object As100AprilTagCalibrateFocalMethod : AprilTagAs100Method(
     id = "apriltag.calibrate_focal",
-    displayName = "Calibrate AprilTag range",
-    description = "Estimate pinhole focal length from repeated observations of a known-size tag at a known distance.",
+    displayName = "Calibrate AprilTag measurements",
+    description = "Calibrate real-world pose scale from repeated observations of a known-size tag at a known camera-to-tag distance; also reports an approximate focal estimate.",
     outputs = CalibrationFields.outputs,
     graphOutput = "apriltag.camera_calibration"
 ) {
@@ -186,60 +186,92 @@ object As100AprilTagCalibrateFocalMethod : AprilTagAs100Method(
         tagSizeMm: Double,
         knownDistanceMm: Double,
         edgeSamplesPx: List<Double>,
+        rawRangeSamplesM: List<Double>,
         imageWidth: Int,
         imageHeight: Int,
-        requiredSamples: Int
+        requiredSamples: Int,
+        intrinsicsSource: String
     ): Map<String, String> {
-        val mean = edgeSamplesPx.takeIf { it.isNotEmpty() }?.average() ?: Double.NaN
-        val cv = AprilTagGeometry.coefficientOfVariation(edgeSamplesPx)
-        val focal = if (mean.isFinite() && knownDistanceMm > 0 && tagSizeMm > 0) {
-            AprilTagGeometry.calibrateFocalPx(mean, knownDistanceMm, tagSizeMm)
+        val meanEdge = edgeSamplesPx.takeIf { it.isNotEmpty() }?.average() ?: Double.NaN
+        val edgeCv = AprilTagGeometry.coefficientOfVariation(edgeSamplesPx)
+        val focal = if (meanEdge.isFinite() && knownDistanceMm > 0 && tagSizeMm > 0) {
+            AprilTagGeometry.calibrateFocalPx(meanEdge, knownDistanceMm, tagSizeMm)
         } else Double.NaN
-        val geometryValid = edgeSamplesPx.size >= requiredSamples.coerceAtLeast(3) && focal.isFinite() && cv.isFinite() && cv <= 0.05
+
+        val meanRawRangeM = rawRangeSamplesM.takeIf { it.isNotEmpty() }?.average() ?: Double.NaN
+        val rangeCv = AprilTagGeometry.coefficientOfVariation(rawRangeSamplesM)
+        val trueDistanceM = knownDistanceMm / 1000.0
+        val distanceScale = if (meanRawRangeM.isFinite() && meanRawRangeM > 0.0 && trueDistanceM > 0.0) {
+            trueDistanceM / meanRawRangeM
+        } else Double.NaN
+        val correctedDistanceM = if (distanceScale.isFinite()) meanRawRangeM * distanceScale else Double.NaN
+        val effectiveTagSizeMm = if (distanceScale.isFinite()) tagSizeMm * distanceScale else Double.NaN
+        val enoughSamples = rawRangeSamplesM.size >= requiredSamples.coerceAtLeast(3)
+        val geometryValid = enoughSamples && distanceScale.isFinite() && distanceScale > 0.0 &&
+            rangeCv.isFinite() && rangeCv <= 0.03
+
         val warning = buildList {
-            add("Approximate pinhole calibration assumes a fronto-parallel tag and does not estimate lens distortion.")
-            if (cv.isFinite() && cv > 0.05) add("Edge-size variation exceeds 5%; repeat with a steadier, front-facing tag.")
+            add("Distance adjustment corrects metric scale only; recalibrate if camera/lens, camera model, zoom, or tag-size definition changes.")
+            if (rangeCv.isFinite() && rangeCv > 0.03) add("Range variation exceeds 3%; repeat with a steadier, front-facing tag.")
+            if (edgeCv.isFinite() && edgeCv > 0.05) add("Edge-size variation exceeds 5%; focal estimate may be unstable.")
+            add("Approximate focal estimate assumes a fronto-parallel tag and does not model lens distortion.")
         }.joinToString(" ")
+
         val profile = JSONObject()
+            .put("distance_scale", distanceScale)
+            .put("raw_distance_m", meanRawRangeM)
+            .put("true_distance_m", trueDistanceM)
+            .put("corrected_distance_m", correctedDistanceM)
+            .put("tag_size_mm", tagSizeMm)
+            .put("effective_pose_tag_size_mm", effectiveTagSizeMm)
+            .put("range_cv", rangeCv)
             .put("fx_px", focal)
             .put("fy_px", focal)
             .put("cx_px", (imageWidth - 1) / 2.0)
             .put("cy_px", (imageHeight - 1) / 2.0)
             .put("width_px", imageWidth)
             .put("height_px", imageHeight)
-            .put("source", "known_distance_single_tag")
+            .put("intrinsics_source", intrinsicsSource)
+            .put("source", "known_distance_metric_scale")
             .put("tag_family", family)
-            .put("tag_size_mm", tagSizeMm)
             .put("known_distance_mm", knownDistanceMm)
-            .put("sample_count", edgeSamplesPx.size)
-            .put("edge_cv", cv)
+            .put("sample_count", rawRangeSamplesM.size)
+            .put("edge_cv", edgeCv)
+
         val audit = JSONObject(profile.toString())
             .put("method_id", id)
             .put("method_version", AprilTagContractMetadata.VERSION)
             .put("geometry_valid", geometryValid)
-            .put("assumptions", JSONArray(listOf("fronto_parallel_tag", "pinhole_camera", "principal_point_image_centre", "distortion_unmodelled")))
+            .put("formula", "corrected_pose = raw_pose * distance_scale; distance_scale = true_distance / mean_raw_distance")
+            .put("assumptions", JSONArray(listOf("known_true_camera_to_tag_distance", "unchanged_camera_and_lens", "correct_tag_detection_edge_size")))
+
         return statusValues(
-            ok = focal.isFinite() && edgeSamplesPx.isNotEmpty(),
-            result = if (focal.isFinite()) "f ≈ ${fmt(focal, 1)} px · ${edgeSamplesPx.size} samples" else "",
+            ok = distanceScale.isFinite() && rawRangeSamplesM.isNotEmpty(),
+            result = if (distanceScale.isFinite()) "distance ×${fmt(distanceScale, 4)} · ${fmt(meanRawRangeM, 3)} m → ${fmt(correctedDistanceM, 3)} m" else "",
             family = family,
             warning = warning,
-            error = if (!focal.isFinite()) "Calibration could not be calculated." else "",
+            error = if (!distanceScale.isFinite()) "Metric distance calibration could not be calculated from the captured pose samples." else "",
             audit = audit,
             extra = mapOf(
                 "apriltag_calibration_tag_id" to tagId.toString(),
                 "apriltag_tag_size_mm" to fmt(tagSizeMm, 2),
                 "apriltag_known_distance_mm" to fmt(knownDistanceMm, 2),
-                "apriltag_calibration_sample_count" to edgeSamplesPx.size.toString(),
-                "apriltag_mean_edge_px" to fmt(mean, 3),
-                "apriltag_edge_cv" to fmt(cv, 5),
+                "apriltag_calibration_sample_count" to rawRangeSamplesM.size.toString(),
+                "apriltag_mean_edge_px" to fmt(meanEdge, 3),
+                "apriltag_edge_cv" to fmt(edgeCv, 5),
                 "apriltag_fx_px" to fmt(focal, 4),
                 "apriltag_fy_px" to fmt(focal, 4),
                 "apriltag_cx_px" to fmt((imageWidth - 1) / 2.0, 4),
                 "apriltag_cy_px" to fmt((imageHeight - 1) / 2.0, 4),
                 "apriltag_intrinsics_width_px" to imageWidth.toString(),
                 "apriltag_intrinsics_height_px" to imageHeight.toString(),
-                "apriltag_intrinsics_source" to "known_distance_single_tag",
+                "apriltag_intrinsics_source" to intrinsicsSource,
                 "apriltag_calibration_profile_json" to profile.toString(),
+                "apriltag_distance_scale" to fmt(distanceScale, 6),
+                "apriltag_raw_distance_m" to fmt(meanRawRangeM, 6),
+                "apriltag_corrected_distance_m" to fmt(correctedDistanceM, 6),
+                "apriltag_effective_tag_size_mm" to fmt(effectiveTagSizeMm, 4),
+                "apriltag_range_cv" to fmt(rangeCv, 6),
                 AprilTagCommonFields.GEOMETRY_VALID to geometryValid.toString()
             )
         )
@@ -253,7 +285,7 @@ object As100AprilTagRangePoseMethod : AprilTagAs100Method(
     outputs = RangePoseFields.outputs,
     graphOutput = "apriltag.metric_pose"
 ) {
-    fun capture(frame: AprilTagFrame, targetTagId: Int, tagSizeMm: Double, family: String): Map<String, String> {
+    fun capture(frame: AprilTagFrame, targetTagId: Int, tagSizeMm: Double, family: String, distanceScale: Double): Map<String, String> {
         val det = frame.selected(targetTagId)
         val pose = det?.pose
         val euler = pose?.let { AprilTagGeometry.eulerDegrees(it.rotation) }
@@ -267,6 +299,8 @@ object As100AprilTagRangePoseMethod : AprilTagAs100Method(
             .put("method_version", AprilTagContractMetadata.VERSION)
             .put("tag_id", det?.id ?: JSONObject.NULL)
             .put("tag_size_mm", tagSizeMm)
+            .put("distance_scale", distanceScale)
+            .put("effective_pose_tag_size_mm", tagSizeMm * distanceScale)
             .put("intrinsics", frame.intrinsics?.toJson() ?: JSONObject.NULL)
             .put("pose_error", pose?.error ?: JSONObject.NULL)
             .put("geometry_valid", valid)
@@ -289,6 +323,8 @@ object As100AprilTagRangePoseMethod : AprilTagAs100Method(
             extra = mapOf(
                 "apriltag_tag_id" to det?.id?.toString().orEmpty(),
                 "apriltag_tag_size_mm" to fmt(tagSizeMm, 2),
+                "apriltag_distance_scale" to fmt(distanceScale, 6),
+                "apriltag_effective_tag_size_mm" to fmt(tagSizeMm * distanceScale, 4),
                 "apriltag_distance_m" to pose?.let { fmt(AprilTagGeometry.distanceFromCamera(it), 4) }.orEmpty(),
                 "apriltag_x_right_m" to pose?.translation?.x?.let { fmt(it, 5) }.orEmpty(),
                 "apriltag_y_down_m" to pose?.translation?.y?.let { fmt(it, 5) }.orEmpty(),
@@ -320,7 +356,7 @@ object As100AprilTagRelativePoseMethod : AprilTagAs100Method(
     outputs = RelativePoseFields.outputs,
     graphOutput = "apriltag.relative_pose"
 ) {
-    fun capture(frame: AprilTagFrame, referenceTagId: Int, targetTagId: Int, tagSizeMm: Double, family: String): Map<String, String> {
+    fun capture(frame: AprilTagFrame, referenceTagId: Int, targetTagId: Int, tagSizeMm: Double, family: String, distanceScale: Double): Map<String, String> {
         val ref = frame.detections.firstOrNull { it.id == referenceTagId }
         val target = frame.detections.firstOrNull { it.id == targetTagId }
         val relative = if (ref?.pose != null && target?.pose != null) AprilTagGeometry.relativePose(ref.pose, target.pose) else null
@@ -332,6 +368,8 @@ object As100AprilTagRelativePoseMethod : AprilTagAs100Method(
             .put("reference_tag_id", referenceTagId)
             .put("target_tag_id", targetTagId)
             .put("tag_size_mm", tagSizeMm)
+            .put("distance_scale", distanceScale)
+            .put("effective_pose_tag_size_mm", tagSizeMm * distanceScale)
             .put("intrinsics", frame.intrinsics?.toJson() ?: JSONObject.NULL)
             .put("geometry_valid", valid)
             .put("coordinate_frame", "reference tag frame")
@@ -355,6 +393,8 @@ object As100AprilTagRelativePoseMethod : AprilTagAs100Method(
                 "apriltag_reference_tag_id" to referenceTagId.toString(),
                 "apriltag_target_tag_id" to targetTagId.toString(),
                 "apriltag_tag_size_mm" to fmt(tagSizeMm, 2),
+                "apriltag_distance_scale" to fmt(distanceScale, 6),
+                "apriltag_effective_tag_size_mm" to fmt(tagSizeMm * distanceScale, 4),
                 "apriltag_relative_x_m" to relative?.translation?.x?.let { fmt(it, 5) }.orEmpty(),
                 "apriltag_relative_y_m" to relative?.translation?.y?.let { fmt(it, 5) }.orEmpty(),
                 "apriltag_relative_z_m" to relative?.translation?.z?.let { fmt(it, 5) }.orEmpty(),
@@ -460,6 +500,7 @@ object As100AprilTagTrackPoseMethod : AprilTagAs100Method(
         referenceTagId: Int,
         family: String,
         tagSizeMm: Double,
+        distanceScale: Double,
         referenceFrame: String,
         intrinsicsSource: String,
         samples: List<PoseSample>,
@@ -478,6 +519,8 @@ object As100AprilTagTrackPoseMethod : AprilTagAs100Method(
             .put("moving_tag_id", movingTagId)
             .put("reference_tag_id", if (referenceTagId >= 0) referenceTagId else JSONObject.NULL)
             .put("reference_frame", referenceFrame)
+            .put("distance_scale", distanceScale)
+            .put("effective_pose_tag_size_mm", tagSizeMm * distanceScale)
             .put("sample_count", samples.size)
             .put("intrinsics_source", intrinsicsSource)
             .put("geometry_valid", valid)
@@ -494,6 +537,8 @@ object As100AprilTagTrackPoseMethod : AprilTagAs100Method(
                 "apriltag_moving_tag_id" to movingTagId.toString(),
                 "apriltag_reference_tag_id" to if (referenceTagId >= 0) referenceTagId.toString() else "",
                 "apriltag_tag_size_mm" to fmt(tagSizeMm, 2),
+                "apriltag_distance_scale" to fmt(distanceScale, 6),
+                "apriltag_effective_tag_size_mm" to fmt(tagSizeMm * distanceScale, 4),
                 "apriltag_reference_frame" to referenceFrame,
                 "apriltag_sample_count" to samples.size.toString(),
                 "apriltag_duration_s" to fmt(duration, 4),

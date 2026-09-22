@@ -68,7 +68,7 @@ object NetworkToolsFields {
 
 object As100NetworkToolsMethod : As100Method {
     const val ID = "network.tools"
-    private const val VERSION = "0.1.0"
+    private const val VERSION = "0.3.0"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Network tools")
@@ -77,13 +77,17 @@ object As100NetworkToolsMethod : As100Method {
         methodType = MethodObjectType.DeviceService,
         name = "Network tools",
         version = VERSION,
-        description = "Run bounded one-host network diagnostics or local IPv4 CIDR calculation.",
+        description = "Live network dashboard with bounded one-host diagnostics and local IPv4 CIDR calculation.",
         inputs = listOf("operation", "host", "port", "timeout_ms", "cidr", "traceroute_max_hops"),
         outputs = NetworkToolsFields.outputs,
         graphOutputs = listOf(ID),
         parameters = mapOf(
             "category" to "Network",
             "status" to "Development",
+            "maturity" to "Development",
+            "connectivity" to "ONLINE_OFFLINE",
+            "interaction_lifecycle" to "live_working_result_commit",
+            "icon_key" to "tool",
             "scope" to "single-host-bounded"
         )
     )

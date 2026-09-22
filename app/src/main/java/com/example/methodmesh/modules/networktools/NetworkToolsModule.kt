@@ -7,13 +7,15 @@ import com.example.methodmesh.settings.MethodSetting
 object NetworkToolsModule : MethodMeshModule {
     override val moduleId = "networktools"
     override val displayName = "Network tools"
-    override val summary = "Bounded one-host network diagnostics, interface information, Wi-Fi status and IPv4 CIDR calculation."
+    override val summary = "Live network dashboard with connection status, nearby Wi-Fi, bounded one-host diagnostics and IPv4 CIDR tools."
     override val iconKey = "tool"
 
     override fun as100Methods() = listOf(As100NetworkToolsMethod)
 
     override fun rilBindings() = listOf(
         RilBinding("network tools", As100NetworkToolsMethod.ID, "Run a bounded network diagnostic"),
+        RilBinding("network status", As100NetworkToolsMethod.ID, "Capture current active-network status"),
+        RilBinding("nearby wifi", As100NetworkToolsMethod.ID, "Capture the latest nearby Wi-Fi scan environment"),
         RilBinding("dns lookup", As100NetworkToolsMethod.ID, "Resolve one host name or address"),
         RilBinding("test tcp endpoint", As100NetworkToolsMethod.ID, "Test one TCP host and port"),
         RilBinding("calculate cidr", As100NetworkToolsMethod.ID, "Calculate an IPv4 CIDR range")

@@ -12,9 +12,9 @@ class DocumentScannerOdkFormContractTest {
             File("src/main/java/com/example/methodmesh/modules/documentscanner/docs"),
             File("app/src/main/java/com/example/methodmesh/modules/documentscanner/docs")
         ).firstOrNull(File::isDirectory) ?: error("Cannot locate document-scanner docs")
-        val workbook = File(docs, "example_odk_document.scan.xlsx")
+        val workbook = File(docs, "example_odk_document_scan.xlsx")
 
-        assertTrue("Expected example_odk_document.scan.xlsx", workbook.isFile)
+        assertTrue("Expected example_odk_document_scan.xlsx", workbook.isFile)
 
         val xml = ZipFile(workbook).use { zip ->
             zip.entries().asSequence()
@@ -29,6 +29,6 @@ class DocumentScannerOdkFormContractTest {
         assertTrue("Workbook must return the searchable PDF URI", ">document_scan_searchable_pdf_uri<" in xml)
         assertTrue("Workbook must return OCR text", ">document_scan_ocr_text<" in xml)
         assertTrue("Workbook must return the background audit JSON", ">methodmesh_full_json<" in xml)
-        assertTrue("Workbook must save the canonical form title", ">document.scan<" in xml)
+        assertTrue("Workbook must save the canonical form title", ">Document scanner<" in xml)
     }
 }

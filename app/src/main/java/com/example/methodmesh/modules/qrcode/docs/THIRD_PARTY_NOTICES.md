@@ -2,19 +2,16 @@
 
 ## ZXing Android Embedded / JourneyApps
 
-This module calls the JourneyApps ZXing Android Embedded scanner API for camera-based barcode capture.
+Used for on-device camera barcode capture.
 
-Project: ZXing Android Embedded (JourneyApps), currently resolved by MethodMesh as 4.3.0
+Project: ZXing Android Embedded (JourneyApps), currently resolved by MethodMesh as 4.3.0<br>
 Licence: Apache License 2.0
-Purpose in this module: launch the on-device scanner and receive decoded code text/format.
 
 ## ZXing
 
-ZXing ("Zebra Crossing") supplies barcode decoding used by the embedded scanner ecosystem.
+ZXing ("Zebra Crossing") supplies barcode decoding and encoding used by this module.
 
-Licence: Apache License 2.0
-Purpose in this module: local decoding of supported 1D and 2D barcode formats.
+Licence: Apache License 2.0<br>
+Purpose: local decoding and rendering of supported 1D and 2D barcode formats.
 
-No remote barcode-decoding service is used by this module, and decoded payloads are not transmitted off-device by the scanner capability itself.
-
-This notice is informational and does not replace the full licence texts supplied/resolved with the host application's dependencies.
+No remote barcode-decoding or barcode-generation service is used. This notice is informational and does not replace licence texts supplied/resolved with the host application's dependencies.

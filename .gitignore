@@ -84,3 +84,14 @@ website/assets/screenshots/signed_attestation_video.mp4
 # MethodMesh documentation tooling
 documentation_reorg_dryrun*.txt
 __pycache__/
+
+# Local patch staging and rollback snapshots (retain on disk, not in releases).
+/backups_for_rollbacks/
+/.idea/deploymentTargetSelector.xml
+/app/src/*.zip
+/app/src/main/java/com/example/methodmesh/modules/*.zip
+/docs/flash_head.bin
+/docs/flash_first64k.bin
+
+# Obsolete patch copies; canonical source remains tracked.
+*.before_*

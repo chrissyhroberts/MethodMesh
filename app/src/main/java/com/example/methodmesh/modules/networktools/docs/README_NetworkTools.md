@@ -1,156 +1,105 @@
 # Network tools
 
-Status: **Development**  
-Method ID: `network.tools`  
-Module ID: `networktools`  
+Method ID: `network.tools`<br>
+Module ID: `networktools`<br>
+Version: **0.3.0**<br>
+Maturity: **Development**<br>
+Connectivity: **Online/Offline**<br>
 Icon key: `tool`
 
 ## Purpose
 
-`network.tools` provides small, bounded network diagnostics that are useful on a phone in the field without turning MethodMesh into a network scanner.
+Network Tools is a bounded field network-diagnostics capability with a live native dashboard and one stable external contract. It answers practical questions such as:
 
-Supported operations:
+- what network is this device using now?;
+- does Android consider the network validated, metered or captive?;
+- what local addresses, gateway and DNS servers are in use?;
+- what Wi-Fi networks are visible nearby?;
+- does one named host resolve or appear reachable?;
+- can one explicitly selected TCP endpoint be reached?;
+- what does a bounded traceroute show?;
+- what range does an IPv4 CIDR describe?
 
-- `interface_info` — inspect local network interfaces and addresses;
-- `dns_lookup` — resolve one named host or IP;
-- `ping` — bounded Java/Android reachability probe;
-- `tcp_test` — test one explicitly supplied TCP host and port;
-- `traceroute` — best-effort bounded traceroute when the Android build exposes a traceroute/toybox applet;
-- `cidr` — calculate an IPv4 CIDR range locally;
-- `wifi_info` — inspect the active Wi-Fi connection where Android exposes the information.
+It deliberately does **not** implement LAN sweeps, automatic host inventories, port-range scanning, service fingerprinting, vulnerability probing or packet capture.
 
-The module deliberately does **not** provide:
+## Canonical capability contract
 
-- LAN/subnet discovery;
-- broad host enumeration;
-- port-range scanning;
-- service fingerprinting;
-- packet capture;
-- passive traffic inspection.
+`network.tools` remains the single stable capability/method ID. The `operation` input selects one of nine declared modes:
 
-That boundary is intentional.
-
-## Development-lane handoff
-
-This package is a source handoff. It should first be reviewed under:
-
-```text
-incoming_capability_prototypes/networktools/
-```
-
-before admission to:
-
-```text
-app/src/main/java/com/example/methodmesh/modules/networktools/
-```
-
-The capability remains `Development` until the Android build, native UX, preset behaviour, ODK example, orientation behaviour and result actions have been exercised in the real repository.
-
-## Native UX
-
-The native screen is one compact diagnostic surface:
-
-1. choose the operation;
-2. enter only the fields relevant to that operation;
-3. press **Run diagnostic**;
-4. receive one primary `network_value` result;
-5. copy/share/save the primary result through the shared MethodMesh result scaffold;
-6. use full JSON only when explicitly requested.
-
-Operation-specific controls are hidden when irrelevant. Fixed preset values are hidden during native preset runs via `CapabilityScreenContext.settingShouldBeShown(...)`.
-
-The screen does not automatically run a normal dashboard diagnostic. External intent calls and fully fixed native presets can start immediately. Native presets with runtime fields wait for those runtime values.
-
-### Beef-first result
-
-The original concept exposed `network_summary` as a core value. The current shared `OutputFormatter` intentionally filters fields containing `summary` from CORE presentation. To preserve the MethodMesh “beef first” rule without adding a capability-specific shared-UI exception, this module adds:
-
-- `network_value` — the single primary native result.
-
-Examples:
-
-- DNS: first resolved IP;
-- reachability: `reachable` / `unreachable`;
-- TCP endpoint: `open` / `closed`;
-- CIDR: normalized network/range;
-- interface info: primary local IP where available;
-- Wi-Fi info: SSID, otherwise local IP, otherwise connection state;
-- traceroute: hop count.
-
-`network_summary` and the structured result remain available for ODK/audit use.
-
-## Preset behaviour
-
-Declared settings:
-
-| Setting | Type | Purpose |
+| Operation | Meaning | Connectivity |
 |---|---|---|
-| `operation` | choice | one of the seven bounded operations |
-| `host` | text | one host name, IPv4 or IPv6 literal |
-| `port` | integer | one TCP port, 1–65535 |
-| `timeout_ms` | integer | bounded 100–30,000 ms |
-| `cidr` | text | IPv4 CIDR calculation input |
-| `traceroute_max_hops` | integer | bounded 1–30 hops |
+| `connection_status` | Capture current Android active-network state | Offline/local |
+| `interface_info` | Enumerate local network interfaces/addresses | Offline/local |
+| `dns_lookup` | Resolve one host | Network path required |
+| `ping` | Bounded Java/Android reachability probe | Network path required |
+| `tcp_test` | Test one explicit TCP host/port | Network path required |
+| `traceroute` | Best-effort bounded traceroute | Network path required |
+| `cidr` | Calculate one IPv4 CIDR locally | Offline |
+| `wifi_info` | Capture active Wi-Fi/link information | Offline/local |
+| `wifi_scan` | Capture latest nearby Wi-Fi environment | Offline/local radio + Android permission/state |
 
-Preset authors may mark values fixed or runtime in the normal MethodMesh preset flow. The module does not invent its own preset storage.
+These are modes of the same canonical capability, not dashboard-only private actions. Every mode can be selected in a preset/protocol and supplied through ODK using `input_operation`.
 
-## Android intent / ODK
+## Native dashboard
 
-Intent action:
+Direct native use opens a live dashboard rather than an operation-form/result-page sequence.
 
-```text
-com.example.methodmesh.EXECUTE_METHOD
-```
+The dashboard contains:
 
-DNS example:
+1. **Current connection** — transport, Android validation/captive-portal state, metering, interface, local addresses, gateway, DNS and Wi-Fi metrics where available.
+2. **Nearby Wi-Fi** — visible network names, signal, band/channel, security and AP count, with explicit refresh because Android throttles scans.
+3. **Host diagnostics** — DNS, reachability, one TCP endpoint and traceroute against one explicitly entered host.
+4. **IPv4 CIDR calculator** — local calculation.
 
-```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='network.tools',input_operation='dns_lookup',input_host='example.org',input_timeout_ms='3000',input_payload_mode='FULL',return_mode='flat')
-```
+Live connection/Wi-Fi context is presentation state. Pressing **Capture connection status** or **Capture nearby Wi-Fi list** invokes the same canonical `network.tools` operations exposed to presets/protocols/ODK.
 
-TCP example:
+All meaningful displayed scalar/text results are tap-to-copy.
 
-```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='network.tools',input_operation='tcp_test',input_host='example.org',input_port='443',input_timeout_ms='3000',input_payload_mode='FULL',return_mode='flat')
-```
+### Working result → Commit
 
-CIDR example:
-
-```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='network.tools',input_operation='cidr',input_cidr='192.168.10.0/24',input_payload_mode='FULL',return_mode='flat')
-```
-
-ODK calls should place the intent on a **group**, with group children used as return fields. Input question names in the supplied workbook are deliberately different from output field names so blank return placeholders cannot overwrite request parameters.
-
-The supplied form:
+Native execution follows the MethodMesh lifecycle:
 
 ```text
-docs/example_odk_network.tools.xlsx
+configure/interact -> live working result -> Commit -> copy/share/save/Done
 ```
 
-lets an operator select an operation, supplies only the relevant input values, and receives the normal core/audit outputs plus `methodmesh_full_json`.
+Running a diagnostic updates the **working result** in place. It does not navigate to a generic result page.
 
-## Inputs
+**Commit** freezes both:
 
-The runner accepts either canonical keys or Android-intent-style `input_*` keys.
+- the exact result payload; and
+- the settings that produced it.
 
-- `operation` / `input_operation`
-- `host` / `input_host`
-- `port` / `input_port`
-- `timeout_ms` / `input_timeout_ms`
-- `cidr` / `input_cidr`
-- `traceroute_max_hops` / `input_traceroute_max_hops`
+Changing the host, port, CIDR or operation afterwards does not mutate the committed result. Copy/share/save/Done act on the committed payload only.
 
-Host input is treated as a host name or IP literal, **not** as a URL or shell command. Whitespace, URL paths and URL punctuation are rejected. Traceroute uses `ProcessBuilder` argument arrays rather than a shell command string.
+## Presets, protocols and schedules
 
-## Outputs
+Settings are declared through `MethodSetting`:
 
-### Primary/core result
+| Setting | Type | Range/meaning |
+|---|---|---|
+| `operation` | choice | one of the nine operations above |
+| `host` | text | one host name or IP; no URL/shell syntax |
+| `port` | integer | 1–65535 |
+| `timeout_ms` | integer | 100–30000 ms |
+| `cidr` | text | IPv4 CIDR |
+| `traceroute_max_hops` | integer | 1–30 |
 
-- `network_value` — the principal useful result for native copy/share.
+Fixed preset values are hidden during a native preset run. Declared runtime fields remain visible. A fully fixed preset may start automatically. Protocol/preset closeout uses the normal MethodMesh result envelope.
 
-### Structured/core fields
+Android-context operations (`connection_status`, `wifi_info`, `wifi_scan`) require an Android capability context. A headless execution path that lacks one returns a clean `unavailable` diagnostic rather than inventing data or crashing.
 
+## Result contract
+
+### Beef
+
+`network_value` is the primary native result.
+
+Examples include a resolved IP, `reachable`, `open`, a normalized CIDR/range, current connection label, current SSID/IP, or nearby network count.
+
+### Declared outputs
+
+- `network_value`
 - `network_summary`
 - `network_result_json`
 - `network_latency_ms`
@@ -162,119 +111,135 @@ Host input is treated as a host name or IP literal, **not** as a URL or shell co
 - `network_interface`
 - `network_cidr`
 - `network_detail`
+- `network_status`
+- `network_operation`
+- `network_captured_time_iso`
+- `network_error`
 
-`network_result_json` describes only the selected diagnostic. It is not a LAN inventory.
+The shared transport additionally projects `methodmesh_status` and, for full payload requests, `methodmesh_full_json`.
 
-### Audit/error fields
+`network_result_json` is operation-specific structured detail. It is not a LAN inventory.
 
-- `network_status` — `succeeded`, `failed` or `unavailable`;
-- `network_operation`;
-- `network_captured_time_iso`;
-- `network_error`.
+## Operation notes
 
-When `input_payload_mode='FULL'`, the shared transport also returns `methodmesh_full_json`.
+### DNS
 
-## Operation semantics
+Uses `InetAddress.getAllByName` in a bounded executor. Platform DNS itself is not guaranteed to honour interruption, so the MethodMesh caller is timed out and released even if an underlying resolver thread is slow.
 
-### `interface_info`
+### Reachability (`ping`)
 
-Uses `java.net.NetworkInterface` and returns local interface/address information. The primary value is the first active non-loopback address found.
+Uses `InetAddress.isReachable`. The UI deliberately calls this **reachability** because Android/Java does not guarantee ICMP echo semantics.
 
-No network request is made.
+### TCP endpoint
 
-### `dns_lookup`
+Attempts exactly one host/port connection. Port-range syntax is not accepted.
 
-Resolves exactly one host with `InetAddress.getAllByName`. The caller is bounded by `timeout_ms`; the resolver work runs on a daemon executor so the MethodMesh flow is not left waiting indefinitely if the platform resolver ignores interruption.
+### Traceroute
 
-An unresolved or timed-out host is a valid diagnostic outcome rather than an application crash.
+Best effort only. The runner tries Android/toybox traceroute executables with `ProcessBuilder` argument arrays, never a shell command string. Execution is bounded by `timeout_ms` and `traceroute_max_hops`. Output is drained concurrently to avoid process-pipe deadlock and retained text is capped.
 
-### `ping`
+If no traceroute applet is available, the operation returns `unavailable`.
 
-Uses `InetAddress.isReachable(timeout)`. Android implementations vary and this is **not described as guaranteed ICMP echo**. The module calls it a reachability probe in the UI and metadata.
+### CIDR
 
-### `tcp_test`
+Pure local IPv4 calculation. `/31` is treated as two point-to-point addresses and `/32` as one host address. IPv6 CIDR is not implemented in v0.3.0.
 
-Resolves one host and attempts one TCP connection to one supplied port. No port ranges are accepted. Connection refused, timeout and similar endpoint outcomes return `network_tcp_open=false` with a detail string; malformed capability input returns failure.
+### Wi-Fi
 
-### `traceroute`
+Android can redact or withhold Wi-Fi identifiers and scan results depending on permission, location state, OS version, device policy and scan throttling. The repository boundary is deliberately **no-throw**: these states become explicit `unavailable`/informational results rather than capability crashes.
 
-Best-effort only. The runner tries Android/toybox traceroute executables without invoking a shell. It is bounded by:
+## Android permissions
 
-- `timeout_ms` wall-clock limit;
-- `traceroute_max_hops`, 1–30;
-- a capped captured-text length.
+MethodMesh already declares `INTERNET`, `ACCESS_NETWORK_STATE` and location permissions. Nearby Wi-Fi scanning additionally requires app-manifest integration for:
 
-If the device has no traceroute applet, the operation returns `unavailable` explicitly.
+```xml
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+<uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+```
 
-### `cidr`
+See `MANIFEST_INTEGRATION.md`.
 
-Pure local IPv4 calculation. Returns:
+The dashboard requests `ACCESS_FINE_LOCATION` at runtime when needed for Wi-Fi scan results. Android may still return cached results or decline a fresh scan because of throttling or system/location state.
 
-- normalized CIDR;
-- netmask;
-- wildcard mask;
-- network address;
-- broadcast address;
-- first/last usable address;
-- total addresses;
-- usable host count.
+## ODK Integration Card
 
-`/31` is treated as two usable point-to-point addresses; `/32` as one usable host address.
+```text
+ODK INTEGRATION
 
-IPv6 CIDR calculation is not included in v0.1.0.
+Capability
+Network tools
+network.tools
 
-### `wifi_info`
+Tags
+Maturity: Development
+Connectivity: Online/Offline
 
-Uses Android `ConnectivityManager`, `NetworkCapabilities`, `LinkProperties` and `WifiInfo` where available. The operation can return:
+ODK INPUTS
+operation | select_one/text | optional (default interface_info) | connection_status, interface_info, dns_lookup, ping, tcp_test, traceroute, cidr, wifi_info, wifi_scan
+host | text | required for DNS/reachability/TCP/traceroute | one host name or IP only
+port | integer | required for tcp_test | one TCP port, 1-65535
+timeout_ms | integer | optional, default 3000 | bounded 100-30000 ms
+cidr | text | required for cidr | IPv4 address/prefix
+traceroute_max_hops | integer | optional, default 12 | bounded 1-30 hops
+Interactive acquisition:
+Native dashboard may acquire current connection/nearby Wi-Fi. ODK invokes the same operations directly; unavailable Android permission/state returns a diagnostic.
 
-- SSID/BSSID where Android exposes them;
-- local IP;
-- gateway;
-- DNS servers;
-- RSSI;
-- link speed;
-- frequency;
-- metered state;
-- internet/validated capability state.
+INTENT CALL
+com.example.methodmesh.EXECUTE_METHOD(method_id='network.tools',input_operation='dns_lookup',input_host='example.org',input_timeout_ms='3000',input_payload_mode='FULL',return_mode='flat')
 
-Android may redact SSID/BSSID under its privacy and permission rules. The module reports this as unavailable/redacted information rather than failing the app.
+MODIFIERS
+input_payload_mode | text | FULL in showcase | shared transport full/audit projection
+return_mode | text | flat in showcase | canonical flat return projection
 
-The current application manifest already provides `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION`. It does **not** currently declare `ACCESS_WIFI_STATE`. This module therefore does not promise SSID/BSSID on all Android builds. If MethodMesh later decides those values must be guaranteed where the OS permits, `ACCESS_WIFI_STATE` should be reviewed as a generic app-platform permission rather than hidden inside capability-specific UI code.
+CANONICAL RETURNS
+methodmesh_status | text | always | shared MethodMesh execution status
+network_value | text | always on handled result | primary useful result
+network_summary | text | always on handled result | concise human summary
+network_result_json | text/JSON | always on handled result | operation-specific structured result
+network_latency_ms | integer/text | conditional | diagnostic elapsed time
+network_host | text | conditional | tested host
+network_ip | text | conditional | primary/resolved IP
+network_port | integer/text | conditional | tested TCP port
+network_reachable | boolean/text | conditional | reachability outcome
+network_tcp_open | boolean/text | conditional | TCP endpoint outcome
+network_interface | text | conditional | active/primary interface
+network_cidr | text | conditional | normalized IPv4 CIDR
+network_detail | text | conditional | useful secondary detail
+network_status | text | always | succeeded / failed / unavailable
+network_operation | text | always | executed operation
+network_captured_time_iso | text | always | capture timestamp
+network_error | text | conditional | capability error
+methodmesh_full_json | text/JSON | always | metadata/audit payload
 
-## Offline / online behaviour
+RETURN FIELD PLACEMENT
+Each canonical key -> identically named child leaf in the MethodMesh intent group
+Canonical example: unprefixed return keys, one MethodMesh call, no return namespace
 
-- `cidr` — fully offline.
-- `interface_info` — local only.
-- `wifi_info` — local Android state only.
-- `dns_lookup`, `ping`, `tcp_test`, `traceroute` — require a functioning network path and may contact the supplied endpoint or infrastructure needed to resolve/reach it.
+FILE RETURN SEMANTICS
+None. No file/media attachment is produced.
 
-The capability does not contact a MethodMesh-owned remote service and does not disclose GPS/location coordinates.
+RUNTIME
+Inputs: operation plus operation-relevant inputs
+Beef: network_value plus relevant scalar outputs
+Metadata: methodmesh_full_json available secondarily; canonical ODK showcase always captures it
+```
 
-## Storage
+The same card is available from the native capability UI under **ODK integration**.
 
-The module has no repository or persistent store. It does not auto-save diagnostic results. Native save/share is handled only when the user invokes the shared MethodMesh result actions. ODK owns ODK submission persistence.
+## Canonical XLSForm
 
-## Permissions and privacy
+`docs/example_odk_showcase_network_tools.xlsx`
 
-Network diagnostic targets can themselves be sensitive operational information. They are returned to the caller but are not stored by the module.
+The workbook contains exactly one MethodMesh invocation, uses unprefixed canonical return keys, includes `methodmesh_full_json`, and demonstrates all nine operation choices through the same `network.tools` call.
 
-No credentials are accepted. No API keys are embedded. No packet contents are captured.
+## Privacy and external data
 
-## Dependencies / attribution
+The module sends only the explicitly supplied host to DNS/network routing infrastructure required by the selected host diagnostic. It does not upload nearby Wi-Fi lists, local interface data or CIDR calculations to a MethodMesh server.
 
-No third-party network library or external data provider is introduced. The implementation uses Android platform APIs, Java/Kotlin networking classes and `org.json`, already available in the app/runtime.
+Nearby SSID/BSSID display is local Android device information. No credentials or secrets are embedded in results.
 
-There is therefore no new third-party attribution requirement for v0.1.0.
+## Validation
 
-## Known limitations
+See `VALIDATION.md` and `REVIEW_REPORT_v0.3.0.md`.
 
-- Android/Java reachability behaviour varies by device/network.
-- DNS timeout bounds the MethodMesh caller but cannot guarantee cancellation of every platform resolver implementation.
-- Traceroute is unavailable on Android builds without a usable traceroute/toybox applet.
-- Wi-Fi identity fields may be OS-redacted; current manifest lacks `ACCESS_WIFI_STATE`.
-- Headless `As100Method.execute(...)` has no Android `Context`; `wifi_info` therefore returns unavailable when executed through a runtime path that does not provide the capability screen/context boundary. Other operations remain headless-capable.
-- IPv6 address resolution and TCP/reachability targets are accepted, but CIDR calculation is IPv4-only in v0.1.0.
-
-## Promotion criteria
-
-Do not mark this capability Production until the checks in `VALIDATION.md` pass on the real MethodMesh project and at least one physical Android device.
+The module remains **Development** until the current MethodMesh checkout passes Gradle build/tests plus physical-device and ODK Collect checks.

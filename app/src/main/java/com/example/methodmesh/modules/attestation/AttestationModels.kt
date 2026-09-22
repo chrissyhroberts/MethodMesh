@@ -1,15 +1,10 @@
 package com.example.methodmesh.modules.attestation
 
 import android.util.Base64
+import com.example.methodmesh.platform.timestamp.TrustedTimestampEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import org.bouncycastle.asn1.nist.NISTObjectIdentifiers
-import org.bouncycastle.tsp.TimeStampRequestGenerator
 import org.bouncycastle.tsp.TimeStampResponse
-import java.net.HttpURLConnection
-import java.net.URL
-import java.security.MessageDigest
-import java.security.SecureRandom
 import java.time.Instant
 import java.util.UUID
 
@@ -29,68 +24,46 @@ private fun requestTrustedTimestampIfAvailable(
     authorityUrl: String = DEFAULT_TRUSTED_TIMESTAMP_AUTHORITY_URL,
     timeoutMs: Int = 3500
 ): TrustedTimestampEvidence? = runBlocking(Dispatchers.IO) {
-    runCatching { requestTrustedTimestamp(attestationHashHex, authorityUrl, timeoutMs) }.getOrNull()
-}
+    runCatching {
+        val digest = attestationHashHex.hexToBytes()
+        require(digest.size == 32) { "Attestation hash must be SHA-256" }
 
-private fun requestTrustedTimestamp(
-    attestationHashHex: String,
-    authorityUrl: String,
-    timeoutMs: Int
-): TrustedTimestampEvidence {
-    val digest = attestationHashHex.hexToBytes()
-    require(digest.size == 32) { "Attestation hash must be SHA-256" }
-
-    val nonce = SecureRandom().nextLong().let { if (it == Long.MIN_VALUE) 0L else kotlin.math.abs(it) }
-    val timestampRequest = TimeStampRequestGenerator().apply { setCertReq(true) }
-        .generate(NISTObjectIdentifiers.id_sha256, digest, java.math.BigInteger.valueOf(nonce))
-        .encoded
-
-    val connection = (URL(authorityUrl).openConnection() as HttpURLConnection).apply {
-        requestMethod = "POST"
-        connectTimeout = timeoutMs
-        readTimeout = timeoutMs
-        doOutput = true
-        useCaches = false
-        setRequestProperty("Content-Type", "application/timestamp-query")
-        setRequestProperty("Accept", "application/timestamp-reply")
-        setFixedLengthStreamingMode(timestampRequest.size)
-    }
-    try {
-        connection.outputStream.use { it.write(timestampRequest) }
-        if (connection.responseCode !in 200..299) {
-            error("Timestamp authority returned HTTP ${connection.responseCode}")
-        }
-        val responseBytes = connection.inputStream.use { it.readBytes() }
-        val response = TimeStampResponse(responseBytes)
-        response.validate(
-            TimeStampRequestGenerator().apply { setCertReq(true) }
-                .generate(NISTObjectIdentifiers.id_sha256, digest, java.math.BigInteger.valueOf(nonce))
-        )
-        val token = response.timeStampToken ?: error("Timestamp response contained no token")
-        val info = token.timeStampInfo
-        require(info.messageImprintDigest.contentEquals(digest)) { "Timestamp token does not bind the attestation hash" }
-        val encoded = token.encoded
-        return TrustedTimestampEvidence(
+        val (request, responseDer) = TrustedTimestampEngine.requestTimestamp(
+            digest = digest,
             authorityUrl = authorityUrl,
-            generationTimeIso = Instant.ofEpochMilli(info.genTime.time).toString(),
-            serialNumber = info.serialNumber.toString(16),
-            tokenBase64 = Base64.encodeToString(encoded, Base64.NO_WRAP),
-            tokenSha256 = encoded.sha256Hex(),
+            timeoutMs = timeoutMs
+        )
+        val validated = TrustedTimestampEngine.parseAndValidate(
+            request = request,
+            responseDer = responseDer,
+            digest = digest,
+            authorityUrl = authorityUrl,
+            timeoutMs = timeoutMs
+        )
+        require(
+            validated.trustStatus == "trusted_registry_match" ||
+                validated.trustStatus == "cryptographically_valid_unconfigured_trust"
+        ) {
+            "Timestamp evidence failed the shared trust contract: ${validated.trustStatus}"
+        }
+
+        val token = TimeStampResponse(responseDer).timeStampToken
+            ?: error("Timestamp response contained no token")
+        TrustedTimestampEvidence(
+            authorityUrl = validated.authorityUrl,
+            generationTimeIso = validated.generationTimeIso,
+            serialNumber = validated.serialNumber,
+            tokenBase64 = Base64.encodeToString(token.encoded, Base64.NO_WRAP),
+            tokenSha256 = validated.tokenSha256,
             attestedHash = attestationHashHex
         )
-    } finally {
-        connection.disconnect()
-    }
+    }.getOrNull()
 }
 
 private fun String.hexToBytes(): ByteArray {
     require(length % 2 == 0)
     return chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 }
-
-private fun ByteArray.sha256Hex(): String = MessageDigest.getInstance("SHA-256")
-    .digest(this)
-    .joinToString("") { "%02x".format(it) }
 
 enum class TrustedTimestampPolicy(val wireValue: String) {
     Disabled("disabled"),
@@ -118,6 +91,7 @@ enum class AttestationVerificationMethod(val label: String) {
     Pin("phone PIN / pattern / password"),
     Qr("QR token"),
     Nfc("NFC tag"),
+    NfcCredential("previous NFC credential + PIN verification"),
     Password("study password token")
 }
 

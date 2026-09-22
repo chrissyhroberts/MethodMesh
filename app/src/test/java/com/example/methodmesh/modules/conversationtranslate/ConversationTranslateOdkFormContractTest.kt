@@ -13,9 +13,9 @@ class ConversationTranslateOdkFormContractTest {
             File("app/src/main/java/com/example/methodmesh/modules/conversationtranslate/docs"),
             File("src/main/java/com/example/methodmesh/modules/conversationtranslate/docs")
         ).firstOrNull(File::isDirectory) ?: error("Cannot locate conversation translator docs")
-        val workbook = File(docs, "example_odk_conversation.translate.xlsx")
+        val workbook = File(docs, "example_odk_conversation_translate.xlsx")
 
-        assertTrue("Expected example_odk_conversation.translate.xlsx", workbook.isFile)
+        assertTrue("Expected example_odk_conversation_translate.xlsx", workbook.isFile)
 
         val xml = ZipFile(workbook).use { zip ->
             zip.entries().asSequence()

@@ -724,7 +724,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                     jsonText = if (includeFullJson) fullJson else "",
                     fileLabel = "Paper Bridge transcription"
                 )
-                exportStatus = "Sharing transcription text plus ${attachments.size} media attachment${if (attachments.size == 1) "" else "s"}${if (includeFullJson) " with debug JSON text" else ""}."
+                exportStatus = "Sharing transcription text file plus ${attachments.size} media attachment${if (attachments.size == 1) "" else "s"}${if (includeFullJson) " and metadata.json" else ""}."
             }.onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
         }
 
@@ -944,7 +944,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         Spacer(Modifier.size(8.dp))
                         Column {
                             Text("Include full JSON / audit", style = MaterialTheme.typography.labelLarge)
-                            Text("Share appends debug JSON as text; Save adds metadata.json.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Share sends transcription.txt, media and metadata.json; Save writes the same bundle.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     if (exportStatus.isNotBlank()) {

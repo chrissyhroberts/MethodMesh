@@ -3,6 +3,9 @@ package com.example.methodmesh.modules
 import android.content.Context
 import com.example.methodmesh.core.transport.MethodMeshTransportProvider
 import com.example.methodmesh.core.methodmesh.runtime.As100Method
+import com.example.methodmesh.core.methodmesh.ExecutionCapabilityIdentity
+import com.example.methodmesh.core.methodmesh.ExecutionModuleIdentity
+import com.example.methodmesh.core.methodmesh.ExecutionSoftwareMetadataRegistry
 import com.example.methodmesh.core.methodmesh.runtime.As100MethodRegistry
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.core.scheduling.As100SchedulerMethod
@@ -35,6 +38,19 @@ interface MethodMeshModule {
     val displayName: String
 
     /**
+     * Canonical module version shown by shared UI. Existing modules that do not
+     * yet own an explicit release version derive it deterministically from their
+     * contained capability versions; modules may override this when they begin
+     * independent module-level semantic versioning.
+     */
+    val version: String
+        get() = MethodMeshMetadataResolver.moduleVersion(this)
+
+    /** Canonical module maturity. Capability maturity remains independently resolvable. */
+    val maturity: MaturityStatus
+        get() = MethodMeshMetadataResolver.moduleMaturity(this)
+
+    /**
      * One-line human readable description used by the debug module browser.
      * Module authors can override this inside modules/<module>/ without touching
      * dashboard or registry code.
@@ -54,6 +70,9 @@ interface MethodMeshModule {
 
     /** Declare tool placement rather than adding module IDs to the shell. */
     val workbenchTool: Boolean get() = false
+
+    /** Optional process-start hook for registering shared service providers. */
+    fun initialise(context: Context) = Unit
 
     /** Persistent in-app controls; no system overlay permission is involved. */
     fun overlays(): List<ModuleOverlaySpec> = emptyList()
@@ -130,8 +149,32 @@ object MethodMeshModuleRegistry {
     fun install(modules: List<MethodMeshModule>) {
         require(modules.isNotEmpty()) { "MethodMesh discovered no capability modules." }
         require(modules.map { it.moduleId }.distinct().size == modules.size) { "MethodMesh module IDs must be unique." }
+        val moduleByMethodId = modules
+            .flatMap { module -> module.as100Methods().map { method -> method.id to module } }
+            .toMap()
         val methods = modules.flatMap { it.as100Methods() } + coreMethods()
         require(methods.map { it.id }.distinct().size == methods.size) { "MethodMesh method IDs must be unique." }
+        require(modules.all { it.version.isNotBlank() }) { "Every MethodMesh module must expose a nonblank version." }
+        require(methods.all { !it.descriptor.version.isNullOrBlank() }) { "Every MethodMesh capability must expose a nonblank version." }
+        val invalidMaturityMetadata = methods.flatMap { method ->
+            listOf("maturity", "status")
+                .mapNotNull { key ->
+                    method.descriptor.parameters[key]?.let { value ->
+                        if (MaturityStatus.parse(value) == null) {
+                            "${method.id}: $key='$value'"
+                        } else {
+                            null
+                        }
+                    }
+                }
+        }
+        if (invalidMaturityMetadata.isNotEmpty()) {
+            android.util.Log.w(
+                "MethodMeshModuleRegistry",
+                "Invalid capability maturity metadata; falling back through the canonical resolver: " +
+                    invalidMaturityMetadata.joinToString()
+            )
+        }
         val screens = modules.flatMap { it.capabilityScreens() } + coreScreens()
         require(screens.map { it.capabilityId }.distinct().size == screens.size) { "MethodMesh capability screen IDs must be unique." }
         val settingsSections = modules.flatMap { it.settingsSections() }
@@ -140,6 +183,26 @@ object MethodMeshModuleRegistry {
         require(overlays.all { it.id.isNotBlank() } && overlays.map { it.id }.distinct().size == overlays.size) { "Module overlay IDs must be nonblank and unique." }
         installed = modules.sortedBy { it.moduleId }
         As100MethodRegistry.install(methods)
+        ExecutionSoftwareMetadataRegistry.install(
+            methods.map { method ->
+                val metadata = MethodMeshMetadataResolver.capabilityMetadata(
+                    method = method,
+                    module = moduleByMethodId[method.id]
+                )
+                ExecutionCapabilityIdentity(
+                    id = metadata.id,
+                    name = metadata.name,
+                    version = metadata.version,
+                    maturity = metadata.maturity.wireValue,
+                    module = ExecutionModuleIdentity(
+                        id = metadata.module.id,
+                        name = metadata.module.name,
+                        version = metadata.module.version,
+                        maturity = metadata.module.maturity.wireValue
+                    )
+                )
+            }
+        )
         CapabilityConfigurationRegistry.install(modules.flatMap { it.capabilitySettings().entries }.associate { it.key to it.value })
     }
 
@@ -157,7 +220,7 @@ object MethodMeshModuleRegistry {
         .sortedWith(compareBy<ModuleOverlaySpec> { it.order }.thenBy { it.id })
 
     private fun coreMethods() = listOf(As100SchedulerMethod, As100ScheduleRunMethod)
-    private fun coreScreens() = listOf(CronScheduleCapabilityScreen, ScheduleTriggerCapabilityScreen)
+    private fun coreScreens() = listOf(SchedulePlanCapabilityScreen, ScheduleTriggerCapabilityScreen)
     private fun coreBindings() = listOf(
         RilBinding("create schedule", As100SchedulerMethod.ID, "Create a local MethodMesh schedule"),
         RilBinding("run schedule", As100ScheduleRunMethod.ID, "Start a saved MethodMesh schedule"),
@@ -170,6 +233,16 @@ object MethodMeshModuleRegistry {
         return rilBindings().firstOrNull { it.phrase.lowercase() == lower }?.actionId
             ?: rilBindings().firstOrNull { it.actionId.lowercase() == lower }?.actionId
             ?: as100Methods().firstOrNull { it.id.lowercase() == lower }?.id
+    }
+
+
+    fun moduleForMethod(methodId: String): MethodMeshModule? =
+        all().firstOrNull { module -> module.as100Methods().any { it.id == methodId } }
+
+    fun capabilityMetadata(methodId: String): CapabilityRuntimeMetadata {
+        val method = as100Methods().firstOrNull { it.id == methodId }
+            ?: error("Unknown MethodMesh capability: $methodId")
+        return MethodMeshMetadataResolver.capabilityMetadata(method, moduleForMethod(methodId))
     }
 
     fun screenFor(actionId: String): CapabilityScreenSpec? =

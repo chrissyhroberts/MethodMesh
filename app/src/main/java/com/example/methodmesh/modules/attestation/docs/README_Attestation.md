@@ -6,7 +6,7 @@ Cryptographically signs a caller-supplied event hash with the Android Keystore k
 
 ### `attestation.create`
 
-Creates one signed event attestation. QR and NFC verification are invoked through the generic capability-dependency boundary; this module contains no scanner or NFC-reader implementation.
+Capability version **1.1.0** creates one signed event attestation. QR and ordinary NFC verification are invoked through the generic capability-dependency boundary; this module contains no scanner or NFC-reader implementation. It can also reuse a prior successful `nfc_credential_verification` execution from the same caller/form instance without asking for a second NFC tap or PIN.
 
 ### `attestation.anchor_bundle`
 
@@ -29,13 +29,19 @@ input_verification_method='Fingerprint'
 input_verification_method='Pin'
 input_verification_method='Qr'
 input_verification_method='Nfc'
+input_verification_method='NfcCredential',input_verification_execution_id=${credential_methodmesh_execution_id}
 input_verification_method='Password',input_verification_evidence=${study_evidence_token}
 ```
 
 `Pin` delegates to Android device credential, which may be a PIN, pattern, or
 password. `Qr` and `Nfc` invoke the installed scanner/reader capabilities through
-the generic dependency boundary. `Password` hashes the supplied study token
-transiently; the token itself is not placed in the execution result or graph.
+the generic dependency boundary. `NfcCredential` is different: the caller supplies
+only the opaque `methodmesh_execution_id` returned by an earlier successful
+`nfc_credential_verification` call. MethodMesh resolves that execution internally,
+checks the credential/PIN/signature outcome, and requires the same non-blank
+`caller`, `form_id`, and `visit_id` on both calls. The reference ODK workflow uses
+`visit_id` for the unique ODK instance ID. `Password` hashes the supplied study
+token transiently; the token itself is not placed in the execution result or graph.
 
 Timestamp policy accepts:
 
@@ -58,7 +64,9 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='attestation.anchor_bundle',inpu
 | `verification_method` | Yes | Verification dependency or Android authenticator. |
 | `trusted_timestamp` | No | `disabled`, `preferred`, or `required`. |
 | `verification_evidence` | Password only | Evidence token used by the Password method. |
-| `study_id`, `operator_id`, `subject_ref`, `event_type` | No | Optional signed metadata. Values protected inside the form hash need not be duplicated. |
+| `verification_execution_id` | `NfcCredential` only | Opaque execution ID returned by the earlier successful `nfc_credential_verification` call. MethodMesh resolves the evidence internally. |
+| `caller`, `form_id`, `visit_id` | `NfcCredential` only | Replay-binding context. All three must be non-blank and identical on the credential-verification and attestation calls. |
+| `study_id`, `operator_id`, `subject_ref`, `event_type` | No | Optional signed metadata. For `NfcCredential`, a supplied `operator_id` must match the authenticated credential subject; otherwise attestation fails. |
 
 The manual/debug screen supplies a clearly labelled deterministic placeholder hash and matching demo recipe. External calls never receive that placeholder.
 
@@ -112,6 +120,7 @@ record or caller-facing return.
 |---|---|---|
 | QR | `qr_payload_utf8_sha256_v1` | SHA-256 of the decoded QR payload as UTF-8 bytes. |
 | NFC | `nfc_uid_ndef_payload_sha256_v1` | Normalize UID to uppercase hexadecimal; SHA-256 the first raw NDEF payload bytes (or use `NONE`); then SHA-256 `uid_hex=<UID>\nndef_payload_sha256=<digest-or-NONE>`. |
+| NFC credential + PIN | `methodmesh_nfc_credential_execution_sha256_v1` | MethodMesh reconstructs canonical evidence from its prior execution: source execution/method IDs, frozen source capability/module versions, credential ID/subject/envelope hash, issuer key ID/trust status, successful credential/PIN/signature flags, and bound caller/form/visit/subject context; then SHA-256 hashes that canonical UTF-8 text. |
 | Fingerprint | `android_biometric_result_sha256_v1` | SHA-256 of the successful Android biometric result label. |
 | PIN/pattern/password | `android_device_credential_result_sha256_v1` | SHA-256 of the successful Android device-credential result label. |
 | Study token | `study_token_utf8_sha256_v1` | SHA-256 of the supplied token as UTF-8 bytes. |
@@ -165,3 +174,27 @@ signed result returns the non-duplicative evidence fields needed to verify it:
 `verification_evidence_format`, `verification_evidence_hash`, `attestation_hash`,
 `previous_attestation_hash`, public-key/signature fields, and optional RFC 3161
 evidence. Failed executions populate `diagnostic_reason`.
+
+
+### NFC credential composition contract
+
+This is a multi-capability ODK composition pattern, not a canonical single-capability showcase XLSForm. For the two-call workflow, pass the same explicit invocation context to both calls:
+
+```text
+caller='odk'
+form_id='attestation_create_nfc_credential'
+visit_id=${instance_id}
+```
+
+The first call is `nfc_credential_verification` and returns its `methodmesh_execution_id`.
+The final call is `attestation.create` with `input_verification_method='NfcCredential'`
+and `input_verification_execution_id` set to that returned ID. MethodMesh does not
+accept caller-supplied `credential_verified`, `pin_verified`, issuer-signature flags, or
+verification hashes as proof. If the prior execution is no longer present in the current
+MethodMesh process/session, the call fails closed and the NFC credential must be
+verified again.
+
+`attestation.create` uses the shared Trusted Timestamp engine for RFC 3161 acquisition
+and validation. A configured authority must satisfy its pinned trust contract; a custom
+unconfigured authority may yield portable cryptographically verified proof but does not
+become a Clock Assurance trust source.

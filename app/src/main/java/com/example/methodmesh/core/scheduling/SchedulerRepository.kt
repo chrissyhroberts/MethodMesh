@@ -29,8 +29,18 @@ object SchedulerRepository {
         // Re-arm only chain owners, and cancel stale alarms left by earlier
         // scheduler versions that registered every chain member separately.
         all(context).forEach { schedule ->
-            if (schedule.enabled && isAlarmOwner(schedule) && schedule.anchorAt != null) SchedulerAlarm.schedule(context, schedule)
-            else cancel(context, schedule.id)
+            runCatching {
+                if (schedule.enabled && isAlarmOwner(schedule) && schedule.anchorAt != null) {
+                    SchedulerAlarm.schedule(context, schedule)
+                } else {
+                    cancel(context, schedule.id)
+                }
+            }.onFailure {
+                // A single malformed or stale persisted schedule must never
+                // prevent MethodMesh from starting.
+                cancel(context, schedule.id)
+                recordEvent(context, schedule.id, "reschedule_failed")
+            }
         }
     }
 
@@ -144,7 +154,7 @@ object SchedulerRepository {
 
 object SchedulerAlarm {
     fun schedule(context: Context, schedule: ResearchSchedule) {
-        val next = schedule.nextOccurrence()
+        val next = runCatching { schedule.nextOccurrence() }.getOrNull()
         if (next == null) {
             SchedulerRepository.cancel(context, schedule.id)
             return

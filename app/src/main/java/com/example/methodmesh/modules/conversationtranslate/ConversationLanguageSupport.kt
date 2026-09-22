@@ -1,6 +1,6 @@
 package com.example.methodmesh.modules.conversationtranslate
 
-import com.example.methodmesh.modules.mlkittranslate.MlKitLanguageCatalog
+import com.example.methodmesh.platform.translation.MlKitLanguageCatalog
 import java.util.Locale
 
 /**

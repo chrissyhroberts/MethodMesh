@@ -38,6 +38,7 @@ import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
 import com.example.methodmesh.core.protocols.ProtocolOutputMode
 import com.example.methodmesh.core.protocols.ProtocolPayloadMode
 import com.example.methodmesh.core.protocols.PresetResultAction
+import com.example.methodmesh.core.protocols.PresetLaunchMode
 import com.example.methodmesh.platform.externalforms.ExternalFormCatalog
 import com.example.methodmesh.transport.OutputExportRepository
 import com.example.methodmesh.transport.OutputFormatter
@@ -459,7 +460,7 @@ class SchedulerDispatchActivity : ComponentActivity() {
 
     private fun launchPreset(preset: CapabilityPreset, pipeSettings: Map<String, String> = emptyMap()) {
         SchedulerRepository.recordEvent(this, intent.getStringExtra("schedule_id").orEmpty(), "preset_started:${preset.name}")
-        launchCapability(preset.methodId, preset.settingsJson, preset.payloadMode, preset.resultAction, pipeSettings)
+        launchCapability(preset.methodId, preset.settingsJson, preset.payloadMode, preset.resultAction, preset.launchMode, pipeSettings)
     }
 
     private fun launchCapability(
@@ -467,6 +468,7 @@ class SchedulerDispatchActivity : ComponentActivity() {
         settingsJson: String,
         payloadMode: String = ProtocolPayloadMode.CORE,
         presetResultAction: String = PresetResultAction.HOME,
+        presetLaunchMode: String = PresetLaunchMode.AUTO,
         pipeSettings: Map<String, String> = currentPipeSettings(activeSchedule)
     ) {
         startActivityForResult(Intent(this, IntentRouterActivity::class.java).apply {
@@ -476,7 +478,9 @@ class SchedulerDispatchActivity : ComponentActivity() {
             putExtra("input_methodmesh_native_preset_run", "true")
             putExtra("input_methodmesh_preset_result_action", PresetResultAction.normalize(presetResultAction))
             if (finishToLauncher) putExtra("input_methodmesh_finish_to_launcher", "true")
-            if (activeSchedule?.headless == true) putExtra("input_methodmesh_headless", "true")
+            if (activeSchedule?.headless == true || PresetLaunchMode.isBackground(presetLaunchMode)) {
+                putExtra("input_methodmesh_headless", "true")
+            }
             if (protocolId.isNotBlank()) {
                 putExtra("input_methodmesh_protocol_step_run", "true")
                 putExtra("input_methodmesh_sequence_step_run", "true")

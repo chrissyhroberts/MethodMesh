@@ -224,13 +224,14 @@ internal fun WeatherToolScreen(
     LaunchedEffect(latitude, longitude, targetTime, frameTime, horizonHours, threshold, sourcePolicy, zoom, offlineOnly) {
         context.onSettingsChanged(currentSettings())
     }
-    val nativePresetNeedsRuntimeInput = context.isNativePresetRun && context.runtimeInputFields.isNotEmpty()
+    val relevantRuntimeFields = weatherRuntimeFields(context, method.id)
+    val nativePresetNeedsRuntimeInput = context.isNativePresetRun && relevantRuntimeFields.isNotEmpty()
     LaunchedEffect(context.startsImmediately, context.action.canonicalId, nativePresetNeedsRuntimeInput) {
         if (!attempted) {
             attempted = true
             if (nativePresetNeedsRuntimeInput) {
                 status = "Complete the runtime settings, then refresh."
-                showLocation = context.runtimeInputFields.any { it == "latitude" || it == "longitude" }
+                showLocation = relevantRuntimeFields.any { it == "latitude" || it == "longitude" }
             } else if (latitude.toDoubleOrNull() != null && longitude.toDoubleOrNull() != null) {
                 runNow()
             } else {
@@ -259,7 +260,7 @@ internal fun WeatherToolScreen(
         }
         Spacer(Modifier.height(18.dp))
 
-        val locationEditable = context.settingShouldBeShown("latitude") || context.settingShouldBeShown("longitude")
+        val locationEditable = weatherSettingShouldBeShown(context, method.id, "latitude") || weatherSettingShouldBeShown(context, method.id, "longitude")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (locationEditable) {
                 OutlinedButton(onClick = { showLocation = !showLocation }) { Text(if (showLocation) "Hide location" else "Location") }
@@ -276,7 +277,7 @@ internal fun WeatherToolScreen(
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(longitude, { longitude = it; resultJson = "" }, label = { Text("Longitude") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
         }
-        if (context.settingShouldBeShown("target_time_iso") && method.id in setOf(
+        if (weatherSettingShouldBeShown(context, method.id, "target_time_iso") && method.id in setOf(
                 As100WeatherConditionsMethod.id, As100WeatherForecastMethod.id,
                 As100WeatherMeteogramMethod.id, As100WeatherWindMethod.id,
                 As100WeatherAtmosphereMethod.id, As100WeatherSunMethod.id,
@@ -292,7 +293,7 @@ internal fun WeatherToolScreen(
                 singleLine = true
             )
         }
-        if (context.settingShouldBeShown("horizon_hours") && method.id in setOf(As100WeatherForecastMethod.id, As100WeatherPrecipitationMethod.id, As100WeatherMeteogramMethod.id)) {
+        if (weatherSettingShouldBeShown(context, method.id, "horizon_hours") && method.id in setOf(As100WeatherForecastMethod.id, As100WeatherPrecipitationMethod.id, As100WeatherMeteogramMethod.id)) {
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 horizonHours,
@@ -302,7 +303,7 @@ internal fun WeatherToolScreen(
                 singleLine = true
             )
         }
-        if (context.settingShouldBeShown("threshold_mm_per_hour") && method.id == As100WeatherPrecipitationMethod.id) {
+        if (weatherSettingShouldBeShown(context, method.id, "threshold_mm_per_hour") && method.id == As100WeatherPrecipitationMethod.id) {
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 threshold,
@@ -313,8 +314,8 @@ internal fun WeatherToolScreen(
             )
         }
         if (method.id == As100WeatherRadarMethod.id &&
-            (context.settingShouldBeShown("frame_time_iso") || context.settingShouldBeShown("zoom"))) {
-            if (context.settingShouldBeShown("frame_time_iso")) {
+            (weatherSettingShouldBeShown(context, method.id, "frame_time_iso") || weatherSettingShouldBeShown(context, method.id, "zoom"))) {
+            if (weatherSettingShouldBeShown(context, method.id, "frame_time_iso")) {
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     frameTime,
@@ -324,7 +325,7 @@ internal fun WeatherToolScreen(
                     singleLine = true
                 )
             }
-            if (context.settingShouldBeShown("zoom")) {
+            if (weatherSettingShouldBeShown(context, method.id, "zoom")) {
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     zoom,
@@ -336,8 +337,8 @@ internal fun WeatherToolScreen(
             }
         }
         if (method.id == As100WeatherSnapshotMethod.id &&
-            (context.settingShouldBeShown("target_time_iso") || context.settingShouldBeShown("source_policy"))) {
-            if (context.settingShouldBeShown("target_time_iso")) {
+            (weatherSettingShouldBeShown(context, method.id, "target_time_iso") || weatherSettingShouldBeShown(context, method.id, "source_policy"))) {
+            if (weatherSettingShouldBeShown(context, method.id, "target_time_iso")) {
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     targetTime,
@@ -363,7 +364,7 @@ internal fun WeatherToolScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (context.settingShouldBeShown("source_policy")) {
+            if (weatherSettingShouldBeShown(context, method.id, "source_policy")) {
                 Spacer(Modifier.height(8.dp))
                 Text("Source policy", style = MaterialTheme.typography.labelLarge)
                 listOf("best_available", "historical_forecast", "reanalysis", "forecast").forEach { policy ->
@@ -376,7 +377,7 @@ internal fun WeatherToolScreen(
                 }
             }
         }
-        if (method.descriptor.parameters["connectivity"] == "ONLINE_OFFLINE" && context.settingShouldBeShown("offline_only")) {
+        if (method.descriptor.parameters["connectivity"] == "ONLINE_OFFLINE" && weatherSettingShouldBeShown(context, method.id, "offline_only")) {
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
                 onClick = { offlineOnly = !offlineOnly; resultJson = "" },

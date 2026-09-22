@@ -1,0 +1,122 @@
+Things to work on
+
+
+NFC needs a dashboard
+
+Network tools needs a complete revision
+
+ODK form launcher could do with a complete round trip with hardening so it can't look over collect's shoulder 
+
+Online API get needs a dashboard and better view for custom endpoint
+
+What is "other" module - linked to one shot runs? Vestigial? 
+
+Sampling needs a dashboard that includes output viewer
+
+Scoring needs a dashboard
+
+SMS needs access to contacts. Optional favourites and history, send receipts. Read receipts? 
+
+Live sensor scope should have real time x axis and should export trace as well as snapshot
+
+Web round-trip probably now very enketo specific. There's also an odk form specific one so maybe move the round trip into that name space and start fresh with a generic that when closed confirms round trip. Investigate Google forms and Microsoft forms as those are primary use cases
+
+Lower priority 
+
+Acoustics need dashboard for all functions and capabilities need to stop skipping to completion card
+
+Amateur radio needs more minimalist and pretty dashboard.b individual capabilities need single card UI not completion screen
+
+Cryptography is obscure needs dashboard
+
+New capabilities. 
+
+Text reader - bbedit 
+
+Markdown reader with source/render view and function to convert to pdf.
+
+Terminal emulator and python script connection? This is A++
+Quarto render? 
+
+Compatibility with home assistant - bridge? 
+
+Scheduler struggled with launching non notification presets so needs hardening. 
+
+New types of widgets. Persistent dashboard
+
+Audio notifications and unlocked notifications as currently only on lock screen
+
+Torch functions - dim, flasher, morse
+
+Network tools - uptime, connections, data flow, notify when network goes down for n seconds 
+
+Quality assurance testing. Routes and security rounds. Freezer monitoring, attribution. 
+
+Scientific calculator
+
+Currency exchange with toggle to show on both sides like conversation mode
+
+Consider moving files to a permanent external folder for easy access. At present not very useful to have internal store 
+
+File system module, open a specific folder on device etc
+
+Espionage tools? 
+
+Comic books reader and library
+Ebook reader and library
+Secure TOTP/HOTP etc
+
+Audio output options - equaliser etc
+Translation use right earphones channel as voice input and left as translation output
+
+Connect one phone to two Bluetooth headsets and channel all audio to both
+
+Move darts scorer into the app
+
+Pedometer and tracking walking etc in background services
+
+Offline maps like maps. Me. Simple not a replacement for existing but a nice widget would be good with refresh to location and search
+
+Pulse measured with flashlight etc. Breathing with camera etc. other medical stuff. Both cameras
+
+THERMAL imaging via esp
+
+RFID read write via esp
+
+Better GPS functions like satellite detection, stuff that GPS essentials does 
+
+Checklists
+
+Plain notes 
+
+Audio notes
+
+Post it notes 
+
+Sketch notes 
+
+Fingerprint scanners
+
+Train and bus timetable API? Anything global?
+
+Train and bus timetable API? Anything global?
+
+Net analyser basically clone net analyser app
+
+Plant identification
+
+Ai model bridge - see the research os vision runner prototype
+
+Task reminders with alarm
+
+Trello style light kanban
+FM/am/SW Radio?
+Medication tracker
+Contraceptive tracker
+HRT tracker
+Dream journal on sleep screen. Always in dark mode.
+Dashboard generation. Pulls data from odk, runs python returns dashboard to another odk form
+Ping network
+Get network time 
+Asjust clock to trusted time
+Harden qr scanner to various formats and non canonical links

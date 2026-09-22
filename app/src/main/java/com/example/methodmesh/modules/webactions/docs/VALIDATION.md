@@ -8,7 +8,10 @@ This module has been reviewed against the MethodMesh v1.05 module-refresh requir
 
 | Capability | Native | Preset | Protocol/schedule | RIL | ODK | Canonical completion |
 |---|---|---|---|---|---|---|
-| `web.odk_central_roundtrip` | yes | yes | yes | yes | yes | one-shot Central `return_url` |
+| `web.odk_webforms_roundtrip` | yes | yes | yes | yes | yes | provider callback/confirmation |
+| `web.odk_enketo_roundtrip` | yes | yes | yes | yes | yes | direct Enketo passthrough `return_url` |
+| `web.kobo_enketo_roundtrip` | yes | yes | yes | yes | yes | provider callback/confirmation |
+| `web.odk_central_roundtrip` | yes | yes | yes | yes | yes | compatibility Central callback |
 | `web.precooked_enketo` | yes | yes | yes | yes | yes | one-shot Enketo `return_url` |
 | `web.roundtrip` | yes | yes | yes | yes | yes | one-shot callback parameter/placeholder |
 | `web.open` | yes | yes | yes | yes | yes | successful browser dispatch only |
@@ -39,7 +42,10 @@ Validated in source against the documented Central v2025.2.3+ link behavior:
 - `single=true` added for Data Collector links when absent
 - existing Central query parameters are preserved
 - legacy `/-/...` links are tolerated; authenticated legacy Data Collector links are converted to the documented `/-/single/...` redirect form
-- no renderer assumption: Central can select ODK Web Forms or Enketo
+- `/f/<id>?st=...` is renderer-neutral; the same shell can represent ODK Web Forms or Enketo
+- dedicated ODK Enketo runs resolve `/v1/form-links/<id>/form?st=...` outside WebView and require `webformsEnabled=false`
+- resolved ODK Enketo Public Access runs launch `/enketo-passthrough/single/<id>` directly with MethodMesh `return_url`, matching Central frontend's current Enketo iframe route while bypassing the SPA
+- the encoded `st` credential is preserved byte-for-byte and is not logged or copied into errors
 - raw Central URL / `st` are not outputs
 
 Reference: https://docs.getodk.org/central-submissions/
@@ -132,6 +138,16 @@ Final delivery must contain exactly one top-level `webactions/` folder and no Me
 - `Unsaved Record Found`, browser Back, page reload, and a fresh blank form are explicitly not completion signals.
 - Canonical output records whether completion came from `central_return_url` or `provider_submission_confirmation`; callback_received is false for the fallback path.
 
+
+## v0.11 ODK Enketo Public Access resolver
+
+- Removed the experimental `/v1/sessions/restore` WebView interception; it did not address the blank-screen failure.
+- ODK Enketo `/f/...?...st=...` launches now perform one metadata request on `Dispatchers.IO` before opening the WebView.
+- Central metadata is used only to confirm the server-selected renderer and the matching Enketo identifier; the response body is never logged.
+- `webformsEnabled=true` fails closed with a user-facing instruction to use ODK Web Forms.
+- Enketo launches use `/enketo-passthrough/single/<id>` and a MethodMesh `return_url`; original query parameters are preserved except shell-only/roundtrip controls (`return_url`, `returnUrl`, `single`, `parentWindowOrigin`, `_methodmesh_run`).
+- Cancel during resolution cannot resurrect a deleted transaction.
+
 ## v0.10 online-only kiosk checks
 
 - Central launch refuses to start without a validated Internet connection.
@@ -157,3 +173,12 @@ Final delivery must contain exactly one top-level `webactions/` folder and no Me
 - The terminal result is frozen immediately and rendered on the normal MethodMesh Done / Share / Copy / Save landing surface.
 - Automatic-return invocations (`context.submitsImmediately`, including ODK/protocol/external intent flows) call `onConfirmed` immediately and do not pause on the landing page.
 - The transient callback-received frame contains no Commit action and only exists while the canonical result is being finalised.
+
+## 2026-09-13 Enketo SVG image-map correction
+
+- Removed MethodMesh-side SVG `viewBox` / width / height rewriting from both hosted Enketo bootstrap paths.
+- ODK Enketo and Kobo Enketo now leave `.image-map svg` geometry entirely under Enketo control.
+- Added read-only delayed image-map metrics (`initializedQuestions`, widget/error counts, SVG dimensions/viewBox, supported selectable IDs, unsupported shape IDs) without logging media URLs or form values.
+- ODK Web Forms rendering path was not changed.
+- Static source checks confirm no `repairEnketoImageMaps` mutation remains and the ODK Enketo passthrough logic is preserved.
+- Standalone `kotlinc` parsing reports only expected unresolved Android/project symbols because the supplied module archive is not a complete Android Gradle project; no Kotlin parser/syntax errors were detected.

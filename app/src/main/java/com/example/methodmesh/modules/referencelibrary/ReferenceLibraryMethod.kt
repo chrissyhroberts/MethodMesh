@@ -1,5 +1,7 @@
 package com.example.methodmesh.modules.referencelibrary
 
+import com.example.methodmesh.platform.library.LibraryDocument
+
 import com.example.methodmesh.core.methodmesh.ArchitectureId
 import com.example.methodmesh.core.methodmesh.ArchitectureRef
 import com.example.methodmesh.core.methodmesh.Entity
@@ -49,7 +51,7 @@ object As100ReferenceLibraryMethod : As100Method {
         description = "Select a locally available reference document.",
         outputs = ReferenceLibraryFields.outputs,
         graphOutputs = listOf(ID),
-        parameters = mapOf("category" to "Reference", "status" to "Development", "maturity" to "DEVELOPMENT", "connectivity" to "OFFLINE")
+        parameters = mapOf("category" to "Reference", "status" to "Development", "maturity" to "Development", "connectivity" to "OFFLINE")
     )
     override val contract = MethodContract(
         method = ref,

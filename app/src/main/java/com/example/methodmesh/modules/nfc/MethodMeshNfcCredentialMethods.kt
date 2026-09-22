@@ -28,7 +28,7 @@ import java.time.Instant
 
 object As100NfcCredentialProvisioningMethod : As100Method {
     const val ID = "nfc_credential_provisioning"
-    const val VERSION = "1.0.0"
+    const val VERSION = "1.1.0"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "NFC credential provisioning")
@@ -96,6 +96,7 @@ object As100NfcCredentialProvisioningMethod : As100Method {
             NfcProvisionFields.CREDENTIAL_ENVELOPE_HASH to credential.envelopeHash,
             NfcProvisionFields.CREDENTIAL_SECRET_HASH to credential.credentialSecretHash,
             NfcProvisionFields.ISSUER_KEY_ID to credential.issuerKeyId,
+            NfcProvisionFields.ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256 to credential.issuerPublicKeyFingerprintSha256,
             NfcProvisionFields.ISSUER_PUBLIC_KEY_BASE64 to credential.issuerPublicKeyBase64,
             NfcProvisionFields.ISSUER_SIGNATURE_ALGORITHM to NfcCredentialSigner.SIGNATURE_ALGORITHM,
             NfcProvisionFields.PROVISION_SUCCESS to success.toString(),
@@ -157,6 +158,7 @@ object As100NfcCredentialProvisioningMethod : As100Method {
             NfcProvisionFields.CREDENTIAL_ENVELOPE_HASH to credential.envelopeHash,
             NfcProvisionFields.CREDENTIAL_SECRET_HASH to credential.credentialSecretHash,
             NfcProvisionFields.ISSUER_KEY_ID to credential.issuerKeyId,
+            NfcProvisionFields.ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256 to credential.issuerPublicKeyFingerprintSha256,
             NfcProvisionFields.ISSUER_PUBLIC_KEY_BASE64 to credential.issuerPublicKeyBase64,
             NfcProvisionFields.ISSUER_SIGNATURE_ALGORITHM to NfcCredentialSigner.SIGNATURE_ALGORITHM,
             NfcProvisionFields.PROVISION_SUCCESS to verified.toString(),
@@ -186,7 +188,7 @@ object As100NfcCredentialProvisioningMethod : As100Method {
 
 object As100NfcCredentialVerificationMethod : As100Method {
     const val ID = "nfc_credential_verification"
-    const val VERSION = "1.0.0"
+    const val VERSION = "1.1.0"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "NFC credential verification")
@@ -235,20 +237,21 @@ object As100NfcCredentialVerificationMethod : As100Method {
         diagnostics = mapOf("reason" to "NFC credential verification requires live NFC interaction.")
     )
 
-    internal fun verified(
+    internal fun result(
         tagSignal: NfcTagSignal,
         capturedTagValues: Map<String, String>,
         credential: NfcPortableCredentialFormat.VerifiedCredential,
+        issuerTrustSetId: String = "",
+        issuerTrustSetVersion: String = "",
         invocationContext: InvocationContext? = null
     ): ExecutionResult {
-        require(credential.verified) { "Only a verified credential can produce a successful verification result." }
         val trustStatus = when (credential.issuerTrusted) {
             true -> "trusted"
             false -> "untrusted"
             null -> "not_checked"
         }
         val values = linkedMapOf(
-            NfcCredentialVerificationFields.CREDENTIAL_VERIFIED to "true",
+            NfcCredentialVerificationFields.CREDENTIAL_VERIFIED to credential.verified.toString(),
             NfcCredentialVerificationFields.VERIFICATION_MESSAGE to credential.message,
             NfcProvisionFields.CREDENTIAL_ID to credential.credentialId,
             NfcProvisionFields.CREDENTIAL_SUBJECT_ID to credential.credentialSubjectId,
@@ -259,11 +262,15 @@ object As100NfcCredentialVerificationMethod : As100Method {
             NfcProvisionFields.CREDENTIAL_ENVELOPE_HASH to credential.envelopeHash,
             NfcProvisionFields.CREDENTIAL_SECRET_HASH to credential.credentialSecretHash,
             NfcProvisionFields.ISSUER_KEY_ID to credential.issuerKeyId,
+            NfcProvisionFields.ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256 to credential.issuerPublicKeyFingerprintSha256,
             NfcProvisionFields.ISSUER_PUBLIC_KEY_BASE64 to credential.issuerPublicKeyBase64,
             NfcProvisionFields.ISSUER_SIGNATURE_ALGORITHM to NfcCredentialSigner.SIGNATURE_ALGORITHM,
-            NfcCredentialVerificationFields.PIN_VERIFIED to "true",
+            NfcCredentialVerificationFields.PIN_VERIFIED to credential.pinVerified.toString(),
             NfcCredentialVerificationFields.ISSUER_SIGNATURE_VALID to credential.issuerSignatureValid.toString(),
             NfcCredentialVerificationFields.ISSUER_TRUST_STATUS to trustStatus,
+            NfcCredentialVerificationFields.ISSUER_TRUST_BASIS to credential.issuerTrustBasis,
+            NfcCredentialVerificationFields.ISSUER_TRUST_SET_ID to issuerTrustSetId,
+            NfcCredentialVerificationFields.ISSUER_TRUST_SET_VERSION to issuerTrustSetVersion,
             NfcCredentialVerificationFields.VERIFIED_TIME_ISO to Instant.now().toString(),
             NfcEvidenceFields.TAG_UID_HEX to capturedTagValues[NfcEvidenceFields.TAG_UID_HEX].orEmpty(),
             NfcCredentialEvidence.HASH_FIELD to credential.envelopeHash
@@ -274,11 +281,12 @@ object As100NfcCredentialVerificationMethod : As100Method {
             phenomenon = "nfc.credential.verified",
             tagSignal = tagSignal,
             values = values,
-            success = true,
+            success = credential.verified,
             message = credential.message,
             invocationContext = invocationContext
         )
     }
+
 }
 
 private fun credentialExecutionResult(

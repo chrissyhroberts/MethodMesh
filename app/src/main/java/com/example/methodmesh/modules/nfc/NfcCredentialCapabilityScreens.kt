@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -21,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
@@ -71,10 +74,17 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
         var pinLength by remember {
             mutableIntStateOf(supplied[NfcProvisionFields.PIN_LENGTH]?.toIntOrNull()?.takeIf { it == 4 || it == 6 } ?: 6)
         }
-        val overwritePolicy = remember(supplied) {
-            NfcOverwritePolicy.parse(supplied[NfcWriteFields.OVERWRITE_POLICY])
-                ?: NfcOverwritePolicy.EmptyOnly
+        val requestedOverwritePolicy = supplied[NfcWriteFields.OVERWRITE_POLICY]
+        val invalidRequestedOverwritePolicy =
+            !requestedOverwritePolicy.isNullOrBlank() &&
+                NfcOverwritePolicy.parse(requestedOverwritePolicy) == null
+        var overwritePolicy by remember {
+            mutableStateOf(
+                NfcOverwritePolicy.parse(requestedOverwritePolicy)
+                    ?: NfcOverwritePolicy.EmptyOnly
+            )
         }
+        var overwritePolicyExpanded by remember { mutableStateOf(false) }
         var firstTag by remember { mutableStateOf<NfcTagSignal?>(null) }
         var firstTagUid by remember { mutableStateOf("") }
         var pin by remember { mutableStateOf("") }
@@ -99,6 +109,11 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun startFirstScan() {
+            if (invalidRequestedOverwritePolicy) {
+                status =
+                    "Unknown overwrite_policy '$requestedOverwritePolicy'. Use empty_only or replace."
+                return
+            }
             if (subjectId.isBlank()) {
                 status = "credential_subject_id is required."
                 return
@@ -201,7 +216,7 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                         val hasContent =
                             tagValues[NfcEvidenceFields.NDEF_HAS_MEANINGFUL_CONTENT] == "true"
                         if (overwritePolicy == NfcOverwritePolicy.EmptyOnly && hasContent) {
-                            status = "This card already contains NDEF data. Choose a replacement policy explicitly to overwrite it."
+                            status = "This card already contains NDEF data. Select Replace existing content, then scan it again."
                         } else {
                             firstTag = tagSignal
                             firstTagUid = uid
@@ -303,6 +318,69 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                     }
                 }
             }
+            Spacer(Modifier.height(12.dp))
+            Text("Existing card content", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(4.dp))
+            if (context.startsImmediately) {
+                Text(
+                    overwritePolicy.label,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            } else {
+                OutlinedButton(
+                    onClick = { overwritePolicyExpanded = true },
+                    enabled = firstTag == null && !active && !writing && !awaitingReadBack,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        overwritePolicy.label,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Start
+                    )
+                    Text("▼")
+                }
+                DropdownMenu(
+                    expanded = overwritePolicyExpanded,
+                    onDismissRequest = { overwritePolicyExpanded = false },
+                    modifier = Modifier.fillMaxWidth(0.9f)
+                ) {
+                    listOf(
+                        NfcOverwritePolicy.EmptyOnly,
+                        NfcOverwritePolicy.Replace
+                    ).forEach { policy ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(policy.label)
+                                    Text(
+                                        policy.wireValue,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                            },
+                            onClick = {
+                                overwritePolicy = policy
+                                overwritePolicyExpanded = false
+                                if (policy == NfcOverwritePolicy.Replace) {
+                                    status =
+                                        "Replacement enabled. Existing NDEF content will be overwritten after you scan the card again."
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+            Text(
+                when (overwritePolicy) {
+                    NfcOverwritePolicy.EmptyOnly ->
+                        "Safe default: provisioning stops if the card already contains NDEF data."
+                    NfcOverwritePolicy.Replace ->
+                        "Existing NDEF content will be replaced. The previous message hash is retained in the result."
+                    NfcOverwritePolicy.CompareAndReplace ->
+                        "Compare-and-replace is not exposed by credential provisioning."
+                },
+                style = MaterialTheme.typography.labelSmall
+            )
             if (firstTag != null && result == null && !awaitingReadBack) {
                 Spacer(Modifier.height(12.dp))
                 PinField(pin, { pin = digitsOnly(it, pinLength) }, "PIN")
@@ -325,9 +403,14 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                 capabilityId = capabilityId,
                 examples = listOf(
                     IntentExample(
-                        label = "Provision a credential",
-                        description = "The PIN is entered only inside MethodMesh and is never returned to ODK.",
+                        label = "Provision a new credential",
+                        description = "Safe default for an empty card. The PIN is entered only inside MethodMesh and is never returned to ODK.",
                         intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',input_credential_subject_id='operator_001',input_pin_length='6',input_overwrite_policy='empty_only')"
+                    ),
+                    IntentExample(
+                        label = "Replace an existing credential",
+                        description = "Explicitly replace existing writable NDEF content and retain the previous message hash in the result.",
+                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',input_credential_subject_id='operator_001',input_pin_length='6',input_overwrite_policy='replace')"
                     )
                 )
             )
@@ -351,14 +434,29 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
         val supplied = remember(context.action.settings, context.request.settings) {
             context.action.settings + context.request.settings.filterValues(String::isNotBlank)
         }
-        val trustedIssuers = remember(supplied) {
-            sequenceOf(supplied["trusted_issuer_key_id"], supplied["trusted_issuer_key_ids"])
-                .filterNotNull()
-                .flatMap { it.split(',').asSequence() }
-                .map(String::trim)
-                .filter(String::isNotBlank)
+        val trustedIssuerFingerprintsRaw = remember(supplied) {
+            sequenceOf(
+                supplied["trusted_issuer_fingerprint_sha256"],
+                supplied["trusted_issuer_fingerprints_sha256"]
+            ).filterNotNull().filter(String::isNotBlank).joinToString(",")
+        }
+        val trustedIssuerFingerprints = remember(trustedIssuerFingerprintsRaw) {
+            splitIssuerTrustValues(trustedIssuerFingerprintsRaw)
+                .map { it.lowercase() }
                 .toSet()
         }
+        val invalidTrustedIssuerFingerprints = remember(trustedIssuerFingerprints) {
+            trustedIssuerFingerprints.filterNot(::isSha256Hex)
+        }
+        val trustedIssuerKeyIds = remember(supplied) {
+            sequenceOf(supplied["trusted_issuer_key_id"], supplied["trusted_issuer_key_ids"])
+                .filterNotNull()
+                .flatMap { splitIssuerTrustValues(it).asSequence() }
+                .map { it.lowercase() }
+                .toSet()
+        }
+        val issuerTrustSetId = supplied["issuer_trust_set_id"].orEmpty()
+        val issuerTrustSetVersion = supplied["issuer_trust_set_version"].orEmpty()
         var tagSignal by remember { mutableStateOf<NfcTagSignal?>(null) }
         var capturedTagValues by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
         var envelope by remember { mutableStateOf("") }
@@ -371,6 +469,10 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
         fun startScan() {
+            if (invalidTrustedIssuerFingerprints.isNotEmpty()) {
+                status = "Invalid trusted issuer fingerprint. Use full 64-character SHA-256 hexadecimal fingerprints."
+                return
+            }
             tagSignal = null
             capturedTagValues = emptyMap()
             envelope = ""
@@ -396,9 +498,14 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
                 val enteredPin = pin.toCharArray()
                 pin = ""
                 val verified = withContext(Dispatchers.Default) {
-                    NfcPortableCredentialFormat.verify(envelope, enteredPin, trustedIssuers)
+                    NfcPortableCredentialFormat.verify(
+                        envelope = envelope,
+                        pin = enteredPin,
+                        trustedIssuerFingerprintsSha256 = trustedIssuerFingerprints,
+                        trustedIssuerKeyIds = trustedIssuerKeyIds
+                    )
                 }
-                if (!verified.verified) {
+                if (!verified.verified && verified.pinRejected) {
                     attempts += 1
                     if (attempts >= 5) {
                         status = "Verification failed five times. Scan the card again to restart."
@@ -408,10 +515,12 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
                     }
                     return@launch
                 }
-                val execution = As100NfcCredentialVerificationMethod.verified(
+                val execution = As100NfcCredentialVerificationMethod.result(
                     tagSignal = signal,
                     capturedTagValues = capturedTagValues,
                     credential = verified,
+                    issuerTrustSetId = issuerTrustSetId,
+                    issuerTrustSetVersion = issuerTrustSetVersion,
                     invocationContext = context.request.invocationContext
                 )
                 result = execution
@@ -467,6 +576,23 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
+            Text(
+                when {
+                    trustedIssuerFingerprints.isNotEmpty() -> {
+                        val label = listOfNotNull(
+                            issuerTrustSetId.takeIf(String::isNotBlank),
+                            issuerTrustSetVersion.takeIf(String::isNotBlank)?.let { "v$it" }
+                        ).joinToString(" · ").ifBlank { "configured study trust set" }
+                        "Issuer trust: $label · ${trustedIssuerFingerprints.size} full SHA-256 fingerprint(s)"
+                    }
+                    trustedIssuerKeyIds.isNotEmpty() ->
+                        "Issuer trust: legacy short-key-ID allow-list (${trustedIssuerKeyIds.size})"
+                    else ->
+                        "Issuer trust: not configured. Signature and PIN can be checked, but issuer trust will be reported as not_checked."
+                },
+                style = MaterialTheme.typography.labelSmall
+            )
+            Spacer(Modifier.height(8.dp))
             if (tagSignal == null && !active && result == null) {
                 Button(onClick = { startScan() }, modifier = Modifier.fillMaxWidth()) {
                     Text("Scan credential")
@@ -491,8 +617,8 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
                 examples = listOf(
                     IntentExample(
                         label = "Verify a credential",
-                        description = "Scan the card, then enter its PIN inside MethodMesh.",
-                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',return_mode='flat')"
+                        description = "Scan the card, enter its PIN inside MethodMesh, and optionally supply an offline study trust set of full SHA-256 issuer fingerprints.",
+                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',input_payload_mode='FULL',return_mode='flat')"
                     )
                 )
             )
@@ -515,3 +641,12 @@ private fun PinField(value: String, onValueChange: (String) -> Unit, label: Stri
 
 private fun digitsOnly(value: String, maxLength: Int): String =
     value.filter(Char::isDigit).take(maxLength)
+
+
+private fun splitIssuerTrustValues(value: String): List<String> =
+    value.split(',', ';', '\n', '\r', ' ')
+        .map(String::trim)
+        .filter(String::isNotBlank)
+
+private fun isSha256Hex(value: String): Boolean =
+    value.length == 64 && value.all { it in '0'..'9' || it.lowercaseChar() in 'a'..'f' }

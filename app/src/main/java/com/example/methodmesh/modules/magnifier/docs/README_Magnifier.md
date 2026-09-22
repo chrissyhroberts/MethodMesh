@@ -216,3 +216,13 @@ The Back light control is shown whenever the rear camera is active and `allow_to
 ## Back light reliability
 
 Back light uses the active rear-camera flash LED. When `allow_torch=true`, the live rear-camera UI exposes Back light even if an early CameraX flash-capability probe has not yet settled; MethodMesh attempts the active camera torch directly. Front light and Back light are mutually exclusive.
+
+## Stock Enketo browser call-out alpha
+
+MethodMesh's generic browser bridge can now call this unchanged capability from
+an externally hosted Enketo form. A browser request with
+`input_browser_return=clipboard_media` publishes the final JPEG to
+`Pictures/MethodMesh`, copies the structured result payload to the clipboard,
+and returns to the browser. The user then attaches the image through Enketo's
+normal image/file picker. See `README_Enketo_Media_Bridge.md` and
+`example_enketo_magnifier_media_bridge.xlsx`.

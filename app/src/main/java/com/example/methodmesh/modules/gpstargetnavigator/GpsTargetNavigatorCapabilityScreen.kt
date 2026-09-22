@@ -45,7 +45,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.withInvocationContext
-import com.example.methodmesh.modules.pluscodecapture.OpenLocationCode
+import com.example.methodmesh.platform.location.OpenLocationCode
 import com.example.methodmesh.settings.MethodSetting
 import com.example.methodmesh.settings.SettingsState
 import com.example.methodmesh.transport.OutputFormatter

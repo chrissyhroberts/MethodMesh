@@ -108,7 +108,8 @@ internal object EnketoClient {
 }
 
 internal fun requireWebUrl(raw: String, allowInsecureHttp: Boolean, label: String = "URL"): String {
-    val uri = runCatching { android.net.Uri.parse(raw.trim()) }.getOrNull()
+    val normalized = normalizePastedWebUrl(raw)
+    val uri = runCatching { android.net.Uri.parse(normalized) }.getOrNull()
         ?: throw IllegalArgumentException("$label is invalid.")
     val scheme = uri.scheme?.lowercase().orEmpty()
     require(scheme == "https" || (allowInsecureHttp && scheme == "http")) {
@@ -118,8 +119,31 @@ internal fun requireWebUrl(raw: String, allowInsecureHttp: Boolean, label: Strin
     require(!uri.encodedAuthority.orEmpty().contains("@")) {
         "$label must not embed a username or password in the URL."
     }
-    return raw.trim()
+    return normalized
 }
+
+private fun normalizePastedWebUrl(raw: String): String {
+    val trimmed = raw.trim()
+    if (trimmed.isBlank()) return trimmed
+
+    // Users often copy links from Markdown/rendered chat contexts as
+    // [https://...](https://...). Prefer the actual link target and discard
+    // wrappers/trailing prose so opaque credentials such as Central st tokens
+    // are not accidentally extended with duplicated text.
+    Regex("""\[[^\]]*]\((https?://[^\s)]+)\)""", RegexOption.IGNORE_CASE)
+        .find(trimmed)
+        ?.let { return it.groupValues[1].trimUrlDelimiters() }
+
+    Regex("""https?://\S+""", RegexOption.IGNORE_CASE)
+        .find(trimmed)
+        ?.let { return it.value.trimUrlDelimiters() }
+
+    return trimmed.trimUrlDelimiters()
+}
+
+private fun String.trimUrlDelimiters(): String = trim()
+    .trimStart('<', '[', '(')
+    .trimEnd('>', ']', ')', '.', ',', ';')
 
 internal fun hostOf(raw: String): String = runCatching { android.net.Uri.parse(raw).host.orEmpty() }.getOrDefault("")
 
