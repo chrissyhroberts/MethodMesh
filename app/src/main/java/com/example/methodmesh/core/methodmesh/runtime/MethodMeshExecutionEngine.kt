@@ -1,12 +1,15 @@
 package com.example.methodmesh.core.methodmesh.runtime
 
+import com.example.methodmesh.BuildConfig
 import com.example.methodmesh.core.methodmesh.ArchitectureId
 import com.example.methodmesh.core.methodmesh.ArchitectureRef
 import com.example.methodmesh.core.methodmesh.Attribute
 import com.example.methodmesh.core.methodmesh.Classification
 import com.example.methodmesh.core.methodmesh.Entity
+import com.example.methodmesh.core.methodmesh.ExecutionApplicationIdentity
 import com.example.methodmesh.core.methodmesh.ExecutionRequest
 import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.core.methodmesh.ExecutionTimingBoundary
 import com.example.methodmesh.core.methodmesh.ExecutionSoftwareMetadataRegistry
 import com.example.methodmesh.core.methodmesh.Observation
 import com.example.methodmesh.core.methodmesh.Relationship
@@ -18,6 +21,7 @@ import com.example.methodmesh.core.methodmesh.TransformationStatus
 import com.example.methodmesh.core.methodmesh.ValidationFinding
 import com.example.methodmesh.core.methodmesh.QualityAssessment
 import com.example.methodmesh.settings.SettingsState
+import java.time.Instant
 import com.example.methodmesh.core.timeassurance.ClockAssuranceRuntime
 
 /**
@@ -44,7 +48,15 @@ object As100ExecutionEngine {
         context = context,
         signals = signals,
         inputs = inputs,
-        temporalContext = temporalContext
+        temporalContext = temporalContext,
+        startTiming = runCatching {
+            val monotonic = ClockAssuranceRuntime.monotonicSnapshot()
+            ExecutionTimingBoundary(
+                observedWallTimeIso = Instant.now().toString(),
+                elapsedRealtimeMillis = monotonic.elapsedRealtimeMillis,
+                bootSessionId = monotonic.bootSessionId
+            )
+        }.getOrNull()
     )
 
     fun complete(
@@ -74,6 +86,11 @@ object As100ExecutionEngine {
         quality = quality,
         diagnostics = diagnostics,
         timeAssurance = runCatching { ClockAssuranceRuntime.snapshot() }.getOrNull(),
+        applicationProvenance = ExecutionApplicationIdentity(
+            applicationId = BuildConfig.APPLICATION_ID,
+            versionName = BuildConfig.VERSION_NAME,
+            versionCode = BuildConfig.VERSION_CODE.toLong()
+        ),
         softwareProvenance = ExecutionSoftwareMetadataRegistry.snapshot(
             buildList {
                 add(request.method.id.value)

@@ -14,7 +14,15 @@ data class InvocationContext(
     val entityId: String = "",
     val visitId: String = "",
     val formId: String = "",
-    val operatorId: String = ""
+    val formVersion: String = "",
+    val formInstanceId: String = "",
+    val submissionId: String = "",
+    val studyId: String = "",
+    val siteId: String = "",
+    val eventId: String = "",
+    val operatorId: String = "",
+    val dataOriginatorType: String = "",
+    val dataOriginatorId: String = ""
 ) {
     val canonicalEntityId: String
         get() = entityId.trim().let { id ->
@@ -38,9 +46,17 @@ data class InvocationContext(
             put("context_entity_id", canonicalEntityId)
             put("subject_id", canonicalEntityId)
         }
+        if (studyId.isNotBlank()) put("study_id", studyId)
+        if (siteId.isNotBlank()) put("site_id", siteId)
         if (visitId.isNotBlank()) put("visit_id", visitId)
+        if (eventId.isNotBlank()) put("event_id", eventId)
         if (formId.isNotBlank()) put("form_id", formId)
+        if (formVersion.isNotBlank()) put("form_version", formVersion)
+        if (formInstanceId.isNotBlank()) put("form_instance_id", formInstanceId)
+        if (submissionId.isNotBlank()) put("submission_id", submissionId)
         if (operatorId.isNotBlank()) put("operator_id", operatorId)
+        if (dataOriginatorType.isNotBlank()) put("data_originator_type", dataOriginatorType)
+        if (dataOriginatorId.isNotBlank()) put("data_originator_id", dataOriginatorId)
         if (!requestedCapability.isNullOrBlank()) put("requested_capability", requestedCapability)
     }
 
@@ -51,9 +67,17 @@ data class InvocationContext(
             put("external_id", canonicalEntityId.substringAfter('/'))
             put("source", caller)
             put("caller", caller)
+            if (studyId.isNotBlank()) put("study_id", studyId)
+            if (siteId.isNotBlank()) put("site_id", siteId)
             if (visitId.isNotBlank()) put("visit_id", visitId)
+            if (eventId.isNotBlank()) put("event_id", eventId)
             if (formId.isNotBlank()) put("form_id", formId)
+            if (formVersion.isNotBlank()) put("form_version", formVersion)
+            if (formInstanceId.isNotBlank()) put("form_instance_id", formInstanceId)
+            if (submissionId.isNotBlank()) put("submission_id", submissionId)
             if (operatorId.isNotBlank()) put("operator_id", operatorId)
+            if (dataOriginatorType.isNotBlank()) put("data_originator_type", dataOriginatorType)
+            if (dataOriginatorId.isNotBlank()) put("data_originator_id", dataOriginatorId)
         },
         temporalContext = temporalContext
     )
@@ -67,7 +91,15 @@ data class InvocationContext(
                 entityId = id,
                 visitId = context["visit_id"].orEmpty(),
                 formId = context["form_id"].orEmpty(),
-                operatorId = context["operator_id"].orEmpty()
+                formVersion = context["form_version"].orEmpty(),
+                formInstanceId = context["form_instance_id"].orEmpty(),
+                submissionId = context["submission_id"].orEmpty(),
+                studyId = context["study_id"].orEmpty(),
+                siteId = context["site_id"].orEmpty(),
+                eventId = context["event_id"].orEmpty(),
+                operatorId = context["operator_id"].orEmpty(),
+                dataOriginatorType = context["data_originator_type"].orEmpty(),
+                dataOriginatorId = context["data_originator_id"].orEmpty()
             )
         }
     }

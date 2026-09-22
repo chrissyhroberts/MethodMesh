@@ -29,7 +29,10 @@ data class AttestationEvidence(
 
 data class ResolvedAttestationVerification(
     val evidence: AttestationEvidence,
-    val authenticatedOperatorId: String? = null
+    val authenticatedOperatorId: String? = null,
+    /** Stronger-than-request actor evidence resolved inside MethodMesh. */
+    val operatorAssertionBasis: String? = null,
+    val operatorAssertionEvidence: Map<String, String> = emptyMap()
 )
 
 object AttestationEvidenceFactory {
@@ -133,16 +136,52 @@ object AttestationEvidenceFactory {
             "The referenced NFC credential verification belongs to a different caller context"
         }
 
+        val sourceStudyId = prior.request.context["study_id"]?.trim().orEmpty()
+        val currentStudyId = context["study_id"]?.trim().orEmpty()
+        require(sourceStudyId.isNotBlank() && currentStudyId.isNotBlank() && sourceStudyId == currentStudyId) {
+            "NfcCredential verification reuse requires the same non-blank study_id on both MethodMesh calls"
+        }
+
         val sourceFormId = prior.request.context["form_id"]?.trim().orEmpty()
         val currentFormId = context["form_id"]?.trim().orEmpty()
         require(sourceFormId.isNotBlank() && currentFormId.isNotBlank() && sourceFormId == currentFormId) {
             "NfcCredential verification reuse requires the same non-blank form_id on both MethodMesh calls"
         }
 
+        val sourceFormVersion = prior.request.context["form_version"]?.trim().orEmpty()
+        val currentFormVersion = context["form_version"]?.trim().orEmpty()
+        require(
+            sourceFormVersion.isNotBlank() &&
+                currentFormVersion.isNotBlank() &&
+                sourceFormVersion == currentFormVersion
+        ) {
+            "NfcCredential verification reuse requires the same non-blank form_version on both MethodMesh calls"
+        }
+
+        val sourceFormInstanceId = prior.request.context["form_instance_id"]?.trim().orEmpty()
+        val currentFormInstanceId = context["form_instance_id"]?.trim().orEmpty()
+        require(
+            sourceFormInstanceId.isNotBlank() &&
+                currentFormInstanceId.isNotBlank() &&
+                sourceFormInstanceId == currentFormInstanceId
+        ) {
+            "NfcCredential verification reuse requires the same non-blank form_instance_id on both MethodMesh calls"
+        }
+
         val sourceVisitId = prior.request.context["visit_id"]?.trim().orEmpty()
         val currentVisitId = context["visit_id"]?.trim().orEmpty()
-        require(sourceVisitId.isNotBlank() && currentVisitId.isNotBlank() && sourceVisitId == currentVisitId) {
-            "NfcCredential verification reuse requires the same non-blank visit_id on both MethodMesh calls"
+        if (sourceVisitId.isNotBlank() && currentVisitId.isNotBlank()) {
+            require(sourceVisitId == currentVisitId) {
+                "The referenced NFC credential verification belongs to a different visit context"
+            }
+        }
+
+        val sourceEventId = prior.request.context["event_id"]?.trim().orEmpty()
+        val currentEventId = context["event_id"]?.trim().orEmpty()
+        if (sourceEventId.isNotBlank() && currentEventId.isNotBlank()) {
+            require(sourceEventId == currentEventId) {
+                "The referenced NFC credential verification belongs to a different event context"
+            }
         }
 
         val sourceSubject = prior.request.context["context_entity_id"]
@@ -198,12 +237,28 @@ object AttestationEvidenceFactory {
             "subject_id=$currentSubject"
         ).joinToString("\n")
 
+        val evidenceHash = Digests.sha256Hex(canonical)
+        val assertionBasis = if (issuerTrustStatus.equals("trusted", ignoreCase = true)) {
+            "trusted_nfc_credential"
+        } else {
+            "nfc_credential_pin_signature_verified"
+        }
+
         return ResolvedAttestationVerification(
             evidence = AttestationEvidence(
                 format = NFC_CREDENTIAL_EXECUTION_FORMAT,
-                hash = Digests.sha256Hex(canonical)
+                hash = evidenceHash
             ),
-            authenticatedOperatorId = credentialSubjectId
+            authenticatedOperatorId = credentialSubjectId,
+            operatorAssertionBasis = assertionBasis,
+            operatorAssertionEvidence = linkedMapOf(
+                "source_execution_id" to executionId,
+                "source_method_id" to NFC_CREDENTIAL_VERIFICATION_METHOD_ID,
+                "evidence_format" to NFC_CREDENTIAL_EXECUTION_FORMAT,
+                "evidence_hash" to evidenceHash,
+                "issuer_key_id" to issuerKeyId,
+                "issuer_trust_status" to issuerTrustStatus
+            ).filterValues { it.isNotBlank() }
         )
     }
 

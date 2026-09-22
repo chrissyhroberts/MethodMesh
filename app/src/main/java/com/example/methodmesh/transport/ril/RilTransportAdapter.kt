@@ -55,7 +55,9 @@ object RilTransportAdapter {
         values["participant_id"]?.takeIf { it.isNotBlank() }?.let { return "participant/$it" }
         values["specimen_id"]?.takeIf { it.isNotBlank() }?.let { return "specimen/$it" }
 
-        val type = values["entity_type"]
+        values["context_entity_id"]?.takeIf { it.isNotBlank() }?.let { return it }
+        values["subject_id"]?.takeIf { it.isNotBlank() }?.let { return it }
+        val type = values["context_entity_type"] ?: values["entity_type"]
         val id = values["entity_id"]
         return if (!type.isNullOrBlank() && !id.isNullOrBlank()) "$type/$id" else null
     }
@@ -116,8 +118,10 @@ object RilTransportAdapter {
     }
 
     private val contextKeys = setOf(
-        "caller", "entity_type", "entity_id", "participant_id", "specimen_id",
-        "visit_id", "form_id", "operator_id"
+        "caller", "entity_type", "entity_id", "subject_id", "participant_id", "specimen_id",
+        "study_id", "site_id", "visit_id", "event_id", "form_id", "form_version", "form_instance_id",
+        "submission_id", "operator_id", "data_originator_type", "data_originator_id",
+        "context_entity_type", "context_entity_id"
     )
 
     private const val INPUT_PREFIX = "input_"

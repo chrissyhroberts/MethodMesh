@@ -4,7 +4,7 @@ subtitle: "Canonical architecture, capability runtime, integration, UX and revie
 date: "2026-09-22"
 ---
 
-Version: v1.25
+Version: v1.26
 Status: FINAL - canonical project-wide documentation
 Last updated: 2026-09-22
 Authority: sole normative project-wide MethodMesh documentation resource
@@ -20,6 +20,9 @@ This edition also makes preset execution behaviour and the composable scheduler 
 This edition also establishes **Clock Assurance** as a shared core service for security-, validity- and audit-sensitive uses of time. Android wall time is treated as an observation rather than inherently trusted time. Externally validated time evidence may establish a bounded trusted anchor which advances only through same-boot monotonic elapsed time; uncertainty, reboot boundaries, wall-clock divergence and rollback are explicit rather than silently collapsed into a single timestamp.
 
 This edition further makes **temporal provenance a universal property of the canonical FULL execution envelope**. Every generated `methodmesh_full_json` records the policy-neutral Clock Assurance evidence available at that execution. Capabilities whose result materially depends on time record any explicit temporal policy and decision separately; ordinary capabilities do not acquire a hidden freshness/acceptance policy merely because their audit sidecar contains clock evidence.
+
+
+This edition also strengthens **global execution provenance for ALCOA+ interpretation**. The canonical FULL envelope now separates caller-declared record/actor context from independently authenticated evidence, preserves subject, operator and data-originator roles without conflating them, and records a request-to-completion monotonic execution interval. The envelope provides evidence that may support ALCOA+ assessment; it does not itself assert regulatory compliance. System-level properties such as completeness, consistency, endurance/retention and availability remain responsibilities of the wider data platform and archive.
 
 This edition also makes **software identity visible and auditable**. Every module and independently callable capability exposes a version and canonical maturity state; shared UI renders the same metadata used by execution infrastructure. The canonical FULL envelope freezes the module/capability identity, version and maturity that actually produced the execution, so a later app upgrade cannot rewrite historical software provenance. Workbench now owns the inspection/control surface for shared Clock Assurance, while Home may expose a discreet policy-neutral recency indicator that links to that inspector.
 
@@ -99,7 +102,7 @@ This edition also makes **software identity visible and auditable**. Every modul
 - [11. Output contract](#11-output-contract)
   - [Cross-surface output invariant](#cross-surface-output-invariant)
   - [Core result](#core-result)
-  - [Audit/ALCOA fields](#auditalcoa-fields)
+  - [Audit/ALCOA+ evidence](#auditalcoa-evidence)
   - [Full JSON](#full-json)
   - [Software execution provenance](#software-execution-provenance)
   - [Universal temporal provenance](#universal-temporal-provenance)
@@ -2434,17 +2437,28 @@ barcode_payload ; plus_code ; mlkit_translate_text ; redacted_image_uri
 document_scan_ocr_text ; lower_value , upper_value ;
 conversation_transcript .
 
-## Audit/ALCOA fields
+## Audit/ALCOA+ evidence
 
-Audit fields support:
+Audit fields provide evidence that can support ALCOA+ assessment. They MUST NOT be interpreted or labelled as a standalone claim that an execution, form or system is “ALCOA+ compliant”.
 
-attributable; legible; contemporaneous; original; accurate.
+For a single MethodMesh execution, the strongest directly supportable dimensions are typically:
+
+- **Attributable** — execution identity; caller context; distinct subject, operator and data-originator roles; and, where present, independently verified credential/biometric/signature evidence. Caller-supplied identifiers remain claims until bound to stronger evidence.
+- **Contemporaneous** — observed wall time, trusted-time bounds where available, boot/session continuity and monotonic request/completion evidence. Wall time alone is never treated as authoritative.
+- **Original** — hashes, byte commitments, source-signal references, device/source provenance and commitment recipes can identify the exact object or source observation that was acted upon. Whether a record is the regulatory “original” remains a workflow/source-system determination.
+- **Accurate** — validation findings, quality metrics, direct acquisition metadata, calibration/configuration values and cryptographic integrity evidence can support later assessment of accuracy; MethodMesh does not infer accuracy merely because an execution succeeded.
+- **Legible** — structured, versioned, machine-readable evidence plus human-interpretable metadata supports reconstruction and inspection.
+
+The “plus” properties are predominantly system-level:
+
+- **Complete** and **Consistent** require reconciliation across records, versions, queries, omissions and lifecycle events.
+- **Enduring** and **Available** require controlled persistence, backup/archive, retention and retrieval outside the transient execution itself.
+
+ODK, Sentinel, repository/archive and governance controls therefore remain part of the ALCOA+ assurance story. MethodMesh contributes bounded execution evidence rather than attempting to duplicate those responsibilities.
 
 Common audit fields include:
 
-time; method ID; execution ID; device/source information; configuration
-values; selected cell/region definitions; hashes; manifests; status;
-diagnostics.
+time; method ID; execution ID; caller/record context; subject/operator/data-originator roles; device/source information; configuration values; selected cell/region definitions; hashes; manifests; status; diagnostics.
 
 ## Full JSON
 
@@ -2460,17 +2474,65 @@ Every generated FULL JSON payload MUST contain the universal versioned
 `time_assurance` object described below. This is shared execution-envelope
 infrastructure, not a capability-specific output and not an XLSForm convention.
 
-Every generated FULL JSON payload MUST also identify the module and capability implementation that produced the execution. This software provenance is captured at execution completion, not looked up at later export time.
+Every generated FULL JSON payload MUST also identify the MethodMesh application build and the module/capability implementation that produced the execution. Application package ID, version name and version code, plus module/capability identity, are captured at execution completion and MUST NOT be looked up from the current installation at later export time.
+
+Every generated FULL JSON payload MUST also contain a versioned `execution_provenance` object and a versioned `execution_timing` object. `execution_provenance` structures the execution identifier, caller, record context and distinct subject/operator/data-originator roles. These values retain their evidentiary basis: caller-supplied context MUST NOT be silently upgraded to authenticated identity. `execution_timing` captures request and completion boundaries and derives duration only from same-boot monotonic elapsed time.
 
 It should not be the primary native result screen.
 
+## Structured execution provenance
+
+The canonical FULL envelope includes a top-level versioned `execution_provenance` object. This object exists to make audit interpretation deterministic and to avoid relying on a loose collection of flat return fields.
+
+At minimum it carries:
+
+- execution ID, requested method ID and completion status;
+- caller identity/transport context where supplied;
+- record context such as study, site, visit/event, form ID, form version, form instance ID and submission ID where known;
+- distinct **subject**, **operator** and **data originator** roles.
+
+These roles MUST remain semantically distinct. The subject is the entity the record concerns. The operator is the person operating the data-collection workflow. The data originator is the person, device, sensor or other source from which the datum originated. One actor may legitimately occupy more than one role, but the envelope MUST NOT assume that they are the same.
+
+Context arriving from ODK, RIL, an Android intent or another caller is caller-declared evidence. The structured envelope therefore records its assertion basis as request context. A capability such as NFC credential verification, attestation or direct sensor acquisition may separately provide stronger evidence that authenticates or binds an actor/source. The global envelope MUST preserve that distinction rather than promoting a supplied identifier into an authenticated claim.
+
+The standard context vocabulary includes `study_id`, `site_id`, `visit_id`, `event_id`, `form_id`, `form_version`, `form_instance_id`, `submission_id`, `subject_id`/`context_entity_id`, `operator_id`, `data_originator_type` and `data_originator_id`. Callers SHOULD populate only values they actually know. Missing context is preferable to invented provenance.
+
 ## Software execution provenance
 
-The canonical FULL envelope schema includes the producing module and capability identity:
+The canonical FULL envelope schema includes the frozen application build plus the producing module and capability identity:
 
 ```json
 {
-  "methodmesh_envelope_schema_version": "2",
+  "methodmesh_envelope_schema_version": "3",
+  "application": {
+    "application_id": "com.example.methodmesh",
+    "version_name": "1.25.0",
+    "version_code": 12500
+  },
+  "execution_provenance": {
+    "schema_version": "1",
+    "execution_id": "...",
+    "method_id": "attestation.create",
+    "caller": "odk",
+    "record_context": {
+      "study_id": "TRIAL-01",
+      "form_id": "ordinary_trial_form",
+      "form_version": "20260922T181500+0100",
+      "form_instance_id": "uuid:..."
+    },
+    "actors": {
+      "subject": {"id": "participant/P0042", "type": "participant", "assertion_basis": "request_context"},
+      "operator": {"id": "staff/ABC123", "type": "operator", "assertion_basis": "request_context"},
+      "data_originator": {"id": "staff/ABC123", "type": "operator", "assertion_basis": "request_context"}
+    }
+  },
+  "execution_timing": {
+    "schema_version": "1",
+    "started": {"observed_wall_time_iso": "...", "elapsed_realtime_ms": 58238001, "boot_session_id": "android_boot_count:42"},
+    "completed": {"observed_wall_time_iso": "...", "elapsed_realtime_ms": 58239112, "boot_session_id": "android_boot_count:42"},
+    "continuity": "same_boot",
+    "monotonic_duration_ms": 1111
+  },
   "module": {
     "id": "nfc",
     "name": "NFC",
@@ -2488,7 +2550,7 @@ The canonical FULL envelope schema includes the producing module and capability 
 
 For a multi-capability combined workflow the envelope MAY additionally contain a `capabilities` array containing each distinct frozen capability identity together with its module identity. The primary `module`/`capability` pair identifies the primary/requested execution method.
 
-Capability version is mandatory historical provenance. Module/capability maturity is also snapshotted so later promotion from Experimental to Development/Production does not rewrite the state under which an old execution occurred.
+Application build identity and capability version are mandatory historical provenance. Module/capability maturity is also snapshotted so later promotion from Experimental to Development/Production does not rewrite the state under which an old execution occurred.
 
 The execution engine captures this software identity when the result completes. Output/share/export code serializes the frozen identity and MUST NOT silently replace it with current registry metadata after an upgrade. Legacy/manually constructed results that genuinely lack captured software identity MUST report that absence explicitly rather than guessing a historical version from the current registry.
 
@@ -2507,6 +2569,8 @@ implicit capability policy merely to label an ordinary execution as acceptable
 or unacceptable, fresh or stale. In particular, the caller-specific
 `ClockAssurancePolicy` used for an expiry, eligibility, scheduling or governance
 decision is distinct from the evidence snapshot carried by every sidecar.
+
+In addition, every canonical execution created through the shared execution engine SHOULD capture a lightweight request boundary containing observed wall time plus the current monotonic elapsed-time/boot-session reading, followed by the full Clock Assurance snapshot when the execution completes. The FULL envelope serializes these boundaries in `execution_timing`. `monotonic_duration_ms` MUST be emitted only when both boundaries have usable monotonic readings from the same boot session and the completion reading is not earlier than the start reading. Reboot, unavailable boot identity or monotonic regression MUST be explicit rather than replaced by a wall-clock-derived duration. The request boundary is intentionally lightweight: it does not re-read or re-validate the trusted-time anchor merely to measure an execution interval.
 
 A representative serialization is:
 
