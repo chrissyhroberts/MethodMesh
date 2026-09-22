@@ -1,4 +1,4 @@
-## Field Statistics — Development v0.1.0
+## Field Statistics — Development v0.2.0
 
 Added a local-first `fieldstats` capability family for pocket statistical methods:
 

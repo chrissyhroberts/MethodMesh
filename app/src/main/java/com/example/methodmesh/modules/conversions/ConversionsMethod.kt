@@ -8,6 +8,7 @@ import com.example.methodmesh.settings.SettingsState
 import org.json.JSONObject
 import java.time.*
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.roundToLong
@@ -51,6 +52,7 @@ object As100ConversionsMethod : As100Method {
         val date1 = settings.value("date1").orEmpty()
         val date2 = settings.value("date2").orEmpty()
         val shape = settings.value("shape") ?: "rectangle"
+        val decimalPlaces = settings.value("decimal_places")?.toIntOrNull()?.coerceIn(0, 10) ?: 4
         if (category == "date_arithmetic") {
             val base = LocalDate.parse(date1)
             val amount = value.toLong()
@@ -62,7 +64,8 @@ object As100ConversionsMethod : As100Method {
                 "subtract_days" -> base.minusDays(amount)
                 else -> error("Unsupported date arithmetic operation: $operation")
             }
-            return@runCatching success(calculated.toString(), "date", "$date1 $operation $amount = $calculated", category, operation, "", "")
+            val working = dateArithmeticWorking(date1, amount, operation, calculated)
+            return@runCatching success(calculated.toString(), "date", working, category, operation, "", "", decimalPlaces)
         }
         val outcome = when (category) {
             "temperature" -> Pair(convertTemperature(value, from, to), to)
@@ -73,15 +76,125 @@ object As100ConversionsMethod : As100Method {
             "geometry" -> geometry(shape, operation, value, value2)
             else -> Pair(convertLinear(category, value, from, to), to)
         }
-        val rendered = format(outcome.first)
-        val summary = when (category) {
-            "date_difference" -> "$date1 to $date2 = $rendered days"
-            "age" -> "Age at ${date2.ifBlank { LocalDate.now().toString() }} = $rendered years"
-            "percentage", "ratio", "geometry" -> "$operation = $rendered${if (outcome.second.isBlank()) "" else " ${outcome.second}"}"
-            else -> "${format(value)} $from = $rendered ${outcome.second}"
-        }
-        success(rendered, outcome.second, summary, category, operation, from, to)
+        val rendered = format(outcome.first, decimalPlaces)
+        val summary = workingSummary(
+            category = category,
+            operation = operation,
+            shape = shape,
+            value = value,
+            value2 = value2,
+            value3 = value3,
+            from = from,
+            to = to,
+            date1 = date1,
+            date2 = date2,
+            result = rendered,
+            resultUnit = outcome.second,
+            decimalPlaces = decimalPlaces
+        )
+        success(rendered, outcome.second, summary, category, operation, from, to, decimalPlaces)
     }.getOrElse { failure(it.message ?: "Calculation failed.") }
+
+
+    private fun workingSummary(
+        category: String,
+        operation: String,
+        shape: String,
+        value: Double,
+        value2: Double,
+        value3: Double,
+        from: String,
+        to: String,
+        date1: String,
+        date2: String,
+        result: String,
+        resultUnit: String,
+        decimalPlaces: Int
+    ): String = when (category) {
+        "temperature" -> temperatureWorking(value, from, to, result, decimalPlaces)
+        "percentage" -> percentageWorking(operation, value, value2, result, resultUnit, decimalPlaces)
+        "ratio" -> ratioWorking(operation, value, value2, value3, result, decimalPlaces)
+        "date_difference" -> "$date1 → $date2 = $result days"
+        "age" -> "$date1 → ${date2.ifBlank { LocalDate.now().toString() }} = $result completed years"
+        "geometry" -> geometryWorking(shape, operation, value, value2, result, resultUnit, decimalPlaces)
+        else -> linearWorking(category, value, from, to, result, decimalPlaces)
+    }
+
+    private fun linearWorking(category: String, value: Double, from: String, to: String, result: String, decimalPlaces: Int): String {
+        val units = unitsByCategory[category] ?: return "${format(value, decimalPlaces)} $from = $result $to"
+        val fromFactor = units[from] ?: return "${format(value, decimalPlaces)} $from = $result $to"
+        val toFactor = units[to] ?: return "${format(value, decimalPlaces)} $from = $result $to"
+        val directFactor = fromFactor / toFactor
+        return if (from == to) {
+            "${format(value, decimalPlaces)} $from = $result $to"
+        } else {
+            "1 $from = ${format(directFactor, decimalPlaces)} $to; ${format(value, decimalPlaces)} × ${format(directFactor, decimalPlaces)} = $result $to"
+        }
+    }
+
+    private fun temperatureWorking(value: Double, from: String, to: String, result: String, decimalPlaces: Int): String {
+        val v = format(value, decimalPlaces)
+        val fromLabel = temperatureUnitLabel(from)
+        val toLabel = temperatureUnitLabel(to)
+        return when (from to to) {
+            "C" to "F" -> "($v × 9 ÷ 5) + 32 = $result $toLabel"
+            "F" to "C" -> "($v − 32) × 5 ÷ 9 = $result $toLabel"
+            "C" to "K" -> "$v + 273.15 = $result $toLabel"
+            "K" to "C" -> "$v − 273.15 = $result $toLabel"
+            "F" to "K" -> "(($v − 32) × 5 ÷ 9) + 273.15 = $result $toLabel"
+            "K" to "F" -> "(($v − 273.15) × 9 ÷ 5) + 32 = $result $toLabel"
+            else -> "$v $fromLabel = $result $toLabel"
+        }
+    }
+
+    private fun percentageWorking(operation: String, a: Double, b: Double, result: String, resultUnit: String, decimalPlaces: Int): String {
+        val av = format(a, decimalPlaces)
+        val bv = format(b, decimalPlaces)
+        val answer = if (resultUnit.isBlank()) result else "$result $resultUnit"
+        return when (operation) {
+            "percent_of" -> "$av% of $bv = ($av ÷ 100) × $bv = $answer"
+            "what_percent" -> "$av ÷ $bv × 100 = $answer"
+            "percent_change" -> "($bv − $av) ÷ |$av| × 100 = $answer"
+            "increase_by_percent" -> "$av × (1 + $bv ÷ 100) = $answer"
+            "decrease_by_percent" -> "$av × (1 − $bv ÷ 100) = $answer"
+            else -> "$av, $bv = $answer"
+        }
+    }
+
+    private fun ratioWorking(operation: String, a: Double, b: Double, c: Double, result: String, decimalPlaces: Int): String = when (operation) {
+        "a_to_b" -> "${format(a, decimalPlaces)} ÷ ${format(b, decimalPlaces)} = $result"
+        "solve_proportion" -> "${format(a, decimalPlaces)}:${format(b, decimalPlaces)} = ${format(c, decimalPlaces)}:X; X = (${format(b, decimalPlaces)} × ${format(c, decimalPlaces)}) ÷ ${format(a, decimalPlaces)} = $result"
+        else -> "${format(a, decimalPlaces)} ÷ ${format(b, decimalPlaces)} = $result"
+    }
+
+    private fun geometryWorking(shape: String, operation: String, a: Double, b: Double, result: String, unit: String, decimalPlaces: Int): String {
+        val av = format(a, decimalPlaces)
+        val bv = format(b, decimalPlaces)
+        val answer = if (unit.isBlank()) result else "$result $unit"
+        return when (shape to operation) {
+            "rectangle" to "area" -> "$av × $bv = $answer"
+            "rectangle" to "perimeter" -> "2 × ($av + $bv) = $answer"
+            "triangle" to "area" -> "($av × $bv) ÷ 2 = $answer"
+            "circle" to "area" -> "π × $av² = $answer"
+            "circle" to "circumference" -> "2 × π × $av = $answer"
+            else -> "$operation = $answer"
+        }
+    }
+
+    private fun dateArithmeticWorking(date: String, amount: Long, operation: String, result: LocalDate): String = when (operation) {
+        "add_days" -> "$date + $amount days = $result"
+        "add_weeks" -> "$date + $amount weeks = $result"
+        "add_months" -> "$date + $amount months = $result"
+        "add_years" -> "$date + $amount years = $result"
+        "subtract_days" -> "$date − $amount days = $result"
+        else -> "$date $operation $amount = $result"
+    }
+
+    private fun temperatureUnitLabel(unit: String): String = when (unit) {
+        "C" -> "°C"
+        "F" -> "°F"
+        else -> unit
+    }
 
     private fun convertLinear(category: String, value: Double, from: String, to: String): Double {
         val units = unitsByCategory[category] ?: error("Unsupported conversion category: $category")
@@ -129,8 +242,8 @@ object As100ConversionsMethod : As100Method {
         else -> error("Unsupported geometry shape: $shape")
     }
 
-    private fun success(value: String, unit: String, summary: String, category: String, operation: String, from: String, to: String): Map<String, String> {
-        val metadata = JSONObject().apply { put("category", category); put("operation", operation); put("from_unit", from); put("to_unit", to); put("offline", true) }
+    private fun success(value: String, unit: String, summary: String, category: String, operation: String, from: String, to: String, decimalPlaces: Int): Map<String, String> {
+        val metadata = JSONObject().apply { put("category", category); put("operation", operation); put("from_unit", from); put("to_unit", to); put("decimal_places", decimalPlaces); put("offline", true) }
         return linkedMapOf(ConversionFields.STATUS to "succeeded", ConversionFields.VALUE to value, ConversionFields.UNIT to unit, ConversionFields.SUMMARY to summary, ConversionFields.METADATA_JSON to metadata.toString(), ConversionFields.ERROR to "")
     }
     private fun failure(error: String) = linkedMapOf(ConversionFields.STATUS to "failed", ConversionFields.VALUE to "", ConversionFields.UNIT to "", ConversionFields.SUMMARY to "", ConversionFields.METADATA_JSON to "{}", ConversionFields.ERROR to error)
@@ -146,7 +259,12 @@ object As100ConversionsMethod : As100Method {
     private fun defaultFrom(category: String) = when (category) { "temperature" -> "C"; else -> unitsByCategory[category]?.keys?.firstOrNull() ?: "" }
     private fun defaultTo(category: String) = when (category) { "temperature" -> "F"; else -> unitsByCategory[category]?.keys?.drop(1)?.firstOrNull() ?: defaultFrom(category) }
     private fun defaultOperation(category: String) = when (category) { "percentage" -> "percent_of"; "ratio" -> "a_to_b"; "geometry" -> "area"; "date_arithmetic" -> "add_days"; else -> "convert" }
-    private fun format(v: Double): String = if (abs(v - v.roundToLong()) < 1e-10) v.roundToLong().toString() else "%.10f".format(v).trimEnd('0').trimEnd('.')
+    private fun format(v: Double, decimalPlaces: Int): String {
+        val places = decimalPlaces.coerceIn(0, 10)
+        return String.format(Locale.ROOT, "%.${places}f", v).let { rendered ->
+            if (places == 0) rendered else rendered.trimEnd('0').trimEnd('.')
+        }
+    }
 
     val unitsByCategory = linkedMapOf(
         "length" to linkedMapOf("m" to 1.0, "km" to 1000.0, "cm" to 0.01, "mm" to 0.001, "in" to 0.0254, "ft" to 0.3048, "yd" to 0.9144, "mi" to 1609.344),

@@ -115,8 +115,9 @@ import com.example.methodmesh.core.onlinedata.OnlineExecutionStatus
 import com.example.methodmesh.core.onlinedata.ResultTree
 import com.example.methodmesh.modules.MethodMeshModule
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
-import com.example.methodmesh.modules.mlkittranslate.MlKitLanguageCatalog
-import com.example.methodmesh.modules.odkformlauncher.As100OdkFormLauncherMethod
+import com.example.methodmesh.modules.MethodMeshMetadataResolver
+import com.example.methodmesh.modules.MaturityStatus
+import com.example.methodmesh.platform.translation.MlKitLanguageCatalog
 import com.example.methodmesh.platform.externalforms.ExternalFormCatalog
 import com.example.methodmesh.platform.externalforms.ExternalProjectRegistry
 import com.example.methodmesh.settings.DisplaySettingsScreen
@@ -124,7 +125,6 @@ import com.example.methodmesh.settings.MethodSetting
 import com.example.methodmesh.settings.SettingsState
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.OutputExportRepository
-import com.example.methodmesh.modules.sensorread.As100SensorReadMethod
 import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.android.IntentRouterActivity
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
@@ -139,6 +139,9 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.ui.components.SettingsRenderer
 import com.example.methodmesh.ui.components.MethodMeshMark
 import com.example.methodmesh.ui.components.MethodMeshDestructiveConfirmation
+import com.example.methodmesh.ui.components.VersionAndMaturityBadges
+import com.example.methodmesh.ui.timeassurance.HomeTimeRecencyChip
+import com.example.methodmesh.ui.timeassurance.TimeAssuranceWorkbenchPanel
 import com.example.methodmesh.ui.sensors.SensorDashboard
 import com.example.methodmesh.ui.odk.OdkTemplateCatalog
 import com.example.methodmesh.ui.odk.OdkTemplateDescriptor
@@ -168,11 +171,6 @@ private data class ProtocolStepDraft(
 private enum class CapabilityUiClass {
     ProtocolPrimitive,
     WorkbenchTool
-}
-
-private enum class CapabilityLifecycle(val label: String) {
-    Production("Production"),
-    Development("Development")
 }
 
 private enum class DashboardDestination(val label: String) {
@@ -214,28 +212,6 @@ private fun capabilityUiClass(method: As100Method, module: MethodMeshModule?): C
     }
 }
 
-private fun capabilityLifecycle(method: As100Method): CapabilityLifecycle {
-    // Promotion is deliberately explicit. New or unreviewed capabilities stay
-    // in Development until their behaviour, ODK contract, docs and examples
-    // have been reviewed together.
-    val productionCapabilityIds = setOf(
-        "admin_fingerprint_confirmation",
-        "barcode.scan",
-        "calibrated_scale",
-        "document.scan",
-        "gps_target_navigator",
-        "plus_code.capture",
-        "conversation.translate",
-        "conversation.translate.live.fixed",
-        "conversation.translate.live.auto",
-        "bluetooth_print",
-        "mlkit.translate",
-        "mlkit.vision.analyze",
-        "odk_form_launcher",
-        "random.number.generate"
-    )
-    return if (method.id in productionCapabilityIds) CapabilityLifecycle.Production else CapabilityLifecycle.Development
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -380,6 +356,14 @@ fun HomeScreen() {
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             MethodMeshMark(size = 34.dp)
+                        }
+                    },
+                    actions = {
+                        if (selectedDestination == DashboardDestination.Dashboard) {
+                            HomeTimeRecencyChip(
+                                onClick = { selectedDestination = DashboardDestination.Workbench },
+                                modifier = Modifier.padding(end = 12.dp)
+                            )
                         }
                     }
                 )
@@ -822,6 +806,7 @@ private fun PageSection(
     subtitle: String? = null,
     expanded: Boolean,
     onToggle: () -> Unit,
+    module: MethodMeshModule? = null,
     content: @Composable () -> Unit
 ) {
     Column(Modifier.fillMaxWidth()) {
@@ -842,7 +827,15 @@ private fun PageSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                module?.let { metadataModule ->
+                    Spacer(Modifier.height(6.dp))
+                    VersionAndMaturityBadges(
+                        version = metadataModule.version,
+                        maturity = metadataModule.maturity
+                    )
+                }
             }
+            Spacer(Modifier.width(10.dp))
             Text(
                 if (expanded) "−" else "+",
                 style = MaterialTheme.typography.titleMedium,
@@ -1060,7 +1053,7 @@ private fun FindCapabilityCard(
                 val uiClass = capabilityUiClass(method, moduleByMethod[method.id])
                 uiClass == CapabilityUiClass.ProtocolPrimitive || uiClass == CapabilityUiClass.WorkbenchTool
             }
-            .sortedWith(compareBy<As100Method> { capabilityLifecycle(it) != CapabilityLifecycle.Production }.thenBy { it.descriptor.name })
+            .sortedWith(compareBy<As100Method> { MethodMeshMetadataResolver.capabilityMaturity(it, moduleByMethod[it.id]) != MaturityStatus.Production }.thenBy { it.descriptor.name })
     }
     val trimmedQuery = query.trim()
     val matches = remember(searchableMethods, trimmedQuery) {
@@ -1112,7 +1105,7 @@ private fun FindCapabilityCard(
                                     Text(
                                         when (uiClass) {
                                             CapabilityUiClass.WorkbenchTool -> "Workbench"
-                                            CapabilityUiClass.ProtocolPrimitive -> capabilityLifecycle(method).label
+                                            CapabilityUiClass.ProtocolPrimitive -> MethodMeshMetadataResolver.capabilityMaturity(method, module).label
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary
@@ -1219,7 +1212,7 @@ private fun PresetShortcutsCard(revision: Int) {
                 Text("No presets yet. Create one from Capabilities.", style = MaterialTheme.typography.bodySmall)
             } else {
                 presets.take(6).forEach { preset ->
-                    OutlinedButton(shape = MaterialTheme.shapes.small, 
+                    OutlinedButton(shape = MaterialTheme.shapes.small,
                         modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                         onClick = { runPresetFromDashboard(context, preset) }
                     ) {
@@ -1452,7 +1445,7 @@ private fun ProtocolLibraryCard(
                     }
                 }
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                    Button(shape = MaterialTheme.shapes.small, 
+                    Button(shape = MaterialTheme.shapes.small,
                         onClick = {
                             val selected = protocolStepDrafts.mapNotNull { draft -> presets.firstOrNull { it.id == draft.presetId }?.let { draft to it } }
                             if (protocolName.isBlank() || selected.isEmpty()) {
@@ -1485,7 +1478,7 @@ private fun ProtocolLibraryCard(
                         enabled = protocolName.isNotBlank() && protocolStepDrafts.isNotEmpty()
                     ) { Text("Save protocol") }
                     Spacer(Modifier.width(8.dp))
-                    OutlinedButton(shape = MaterialTheme.shapes.small, 
+                    OutlinedButton(shape = MaterialTheme.shapes.small,
                         onClick = {
                             protocolName = ""
                             protocolStepDrafts = emptyList()
@@ -1511,7 +1504,7 @@ private fun ProtocolLibraryCard(
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 presets.forEach { preset ->
-                                    OutlinedButton(shape = MaterialTheme.shapes.small, 
+                                    OutlinedButton(shape = MaterialTheme.shapes.small,
                                         onClick = {
                                             protocolStepDrafts = protocolStepDrafts + ProtocolStepDraft(preset.id, selectedOutputMode)
                                             addPresetDialogOpen = false
@@ -1626,7 +1619,7 @@ private fun ProtocolLibraryCard(
                                 Column(Modifier.padding(10.dp)) {
                                     Text(protocol.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                     Text("${ProtocolLibraryRepository.versionLabel(protocol.versionIso)} · archived version", style = MaterialTheme.typography.labelSmall)
-                                    OutlinedButton(shape = MaterialTheme.shapes.small, 
+                                    OutlinedButton(shape = MaterialTheme.shapes.small,
                                         onClick = {
                                             ProtocolLibraryRepository.unarchiveProtocol(context, protocol.id)
                                             refresh()
@@ -1661,7 +1654,7 @@ private fun ProtocolLibraryCard(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
-                Button(shape = MaterialTheme.shapes.small, 
+                Button(shape = MaterialTheme.shapes.small,
                     onClick = {
                         runCatching { ProtocolLibraryRepository.import(context, importPayload.trim()) }
                             .onSuccess {
@@ -1894,7 +1887,7 @@ private fun OdkProtocolStepDialog(
     fun presetFor(formSelector: String, displayName: String = formSelector): CapabilityPreset =
         CapabilityPreset(
             name = "odk_form_${displayName.ifBlank { formSelector }}",
-            methodId = As100OdkFormLauncherMethod.ID,
+            methodId = "odk_form_launcher",
             settingsJson = JSONObject().apply {
                 put("project_id", selectedProjectId)
                 put("package_name", selectedPackage)
@@ -1932,7 +1925,7 @@ private fun OdkProtocolStepDialog(
                     Text("No saved projects yet. Use the ODK form launcher once to discover/save a project, or enter the form ID manually.", style = MaterialTheme.typography.bodySmall)
                 } else {
                     projects.filter { it.packageName.isBlank() || it.packageName == selectedPackage }.forEach { project ->
-                        OutlinedButton(shape = MaterialTheme.shapes.small, 
+                        OutlinedButton(shape = MaterialTheme.shapes.small,
                             onClick = { selectedProjectId = project.id; selectedPackage = project.packageName.ifBlank { selectedPackage } },
                             modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                         ) { Text(if (selectedProjectId == project.id) "✓ ${project.name}" else project.name) }
@@ -1942,7 +1935,7 @@ private fun OdkProtocolStepDialog(
                     Spacer(Modifier.height(8.dp))
                     Text("Forms in selected project", style = MaterialTheme.typography.labelLarge)
                     forms.forEach { form ->
-                        OutlinedButton(shape = MaterialTheme.shapes.small, 
+                        OutlinedButton(shape = MaterialTheme.shapes.small,
                             onClick = { onStepCreated(presetFor(form.id, form.name), selectedOutputMode) },
                             modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                         ) { Text("${form.name} (${form.id})") }
@@ -1956,7 +1949,7 @@ private fun OdkProtocolStepDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                Button(shape = MaterialTheme.shapes.small, 
+                Button(shape = MaterialTheme.shapes.small,
                     onClick = { onStepCreated(presetFor(manualFormId.trim()), selectedOutputMode) },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     enabled = manualFormId.isNotBlank()
@@ -2030,15 +2023,18 @@ private fun WorkbenchCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
+        TimeAssuranceWorkbenchPanel(Modifier.padding(top = 8.dp, bottom = 12.dp))
         WorkbenchApiLinksPanel()
 
         grouped.forEach { (moduleName, moduleMethods) ->
             var moduleExpanded by rememberSaveable("Workbench:$moduleName") { mutableStateOf(false) }
+            val module = moduleMethods.firstNotNullOfOrNull { moduleByMethod[it.id] }
             PageSection(
                 title = moduleName,
                 subtitle = "${moduleMethods.size} tool${if (moduleMethods.size == 1) "" else "s"}",
                 expanded = moduleExpanded,
-                onToggle = { moduleExpanded = !moduleExpanded }
+                onToggle = { moduleExpanded = !moduleExpanded },
+                module = module
             ) {
                 moduleMethods.sortedBy { it.descriptor.name.lowercase() }.forEach { method ->
                     CapabilityCard(
@@ -2153,7 +2149,7 @@ private fun WorkbenchApiLinksPanel() {
                     )
                 }
 
-                OutlinedButton(shape = MaterialTheme.shapes.small, 
+                OutlinedButton(shape = MaterialTheme.shapes.small,
                     onClick = { previewText = apiDefinitionPreview(definition, inputValues.toMap()) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -2161,7 +2157,7 @@ private fun WorkbenchApiLinksPanel() {
                 }
 
                 if (definition.origin == ApiDefinitionOrigin.BUNDLED) {
-                    Button(shape = MaterialTheme.shapes.small, 
+                    Button(shape = MaterialTheme.shapes.small,
                         onClick = {
                             previewText = apiDefinitionPreview(definition, inputValues.toMap())
                             confirmDefinition = definition
@@ -2217,7 +2213,7 @@ private fun WorkbenchApiLinksPanel() {
                 }
             },
             confirmButton = {
-                Button(shape = MaterialTheme.shapes.small, 
+                Button(shape = MaterialTheme.shapes.small,
                     onClick = {
                         val snapshot = definition
                         val inputs = inputValues.toMap()
@@ -2438,31 +2434,52 @@ private fun CapabilityModuleSection(
 ) {
     var expanded by rememberSaveable("capability-module:$moduleName") { mutableStateOf(false) }
     val showMethods = expanded || forceExpanded
+    val module = methods.firstNotNullOfOrNull { moduleByMethod[it.id] }
     Column(Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = !expanded }
-                .padding(vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(vertical = 10.dp),
+            verticalAlignment = Alignment.Top
         ) {
             Column(Modifier.weight(1f)) {
-                Text(moduleName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(
+                    moduleName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Text(
                     buildString {
                         append(methods.size)
                         append(" tool")
                         if (methods.size != 1) append("s")
                     },
+                    modifier = Modifier.padding(top = 2.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                if (forceExpanded) methods.size.toString() else if (showMethods) "−" else "+",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
+            module?.let { metadataModule ->
+                Spacer(Modifier.width(8.dp))
+                VersionAndMaturityBadges(
+                    version = metadataModule.version,
+                    maturity = metadataModule.maturity,
+                    maturityWidth = 108.dp
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Box(
+                modifier = Modifier.width(24.dp),
+                contentAlignment = Alignment.TopEnd
+            ) {
+                Text(
+                    if (forceExpanded) methods.size.toString() else if (showMethods) "−" else "+",
+                    modifier = Modifier.padding(top = 1.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
         if (showMethods) {
@@ -2546,15 +2563,13 @@ private fun CapabilityCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-            if (capabilityLifecycle(method) == CapabilityLifecycle.Development) {
-                Text(
-                    "Development",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
+                Spacer(Modifier.height(6.dp))
+                VersionAndMaturityBadges(
+                    version = method.descriptor.version.orEmpty(),
+                    maturity = MethodMeshMetadataResolver.capabilityMaturity(method, module)
                 )
-                Spacer(Modifier.width(12.dp))
             }
+            Spacer(Modifier.width(8.dp))
             Text(
                 if (isFavourite) "★" else "☆",
                 modifier = Modifier.clickable {
@@ -2799,7 +2814,7 @@ private fun FullScreenCapabilityDialog(
                             .verticalScroll(rememberScrollState())
                             .padding(18.dp)
                     ) {
-                        OutlinedButton(shape = MaterialTheme.shapes.small, 
+                        OutlinedButton(shape = MaterialTheme.shapes.small,
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -4146,8 +4161,8 @@ private fun DeviceRegistryCard(expandedByDefault: Boolean = false) {
     }
 
     liveReadDevice?.let { device ->
-        val method = As100MethodRegistry.all().firstOrNull { it.id == As100SensorReadMethod.ID }
-        val screen = MethodMeshModuleRegistry.screenFor(As100SensorReadMethod.ID)
+        val method = As100MethodRegistry.all().firstOrNull { it.id == "sensor.read" }
+        val screen = MethodMeshModuleRegistry.screenFor("sensor.read")
         if (method != null && screen != null) {
             FullScreenCapabilityDialog(onDismiss = { liveReadDevice = null }) {
                 Text("Live reading", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)

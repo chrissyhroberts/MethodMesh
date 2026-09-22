@@ -91,6 +91,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             mutableStateOf(supplied["commitment_recipe"].orEmpty().ifBlank { if (external) "" else DEFAULT_ATTESTATION_COMMITMENT_RECIPE })
         }
         var evidence by remember { mutableStateOf(supplied["verification_evidence"].orEmpty()) }
+        var verificationExecutionId by remember { mutableStateOf(supplied["verification_execution_id"].orEmpty()) }
         var trustedTimestampPolicy by remember { mutableStateOf(supplied["trusted_timestamp"].orEmpty().ifBlank { "preferred" }) }
         var trustedTimestampAuthority by remember { mutableStateOf(supplied["trusted_timestamp_authority"].orEmpty().ifBlank { DEFAULT_TRUSTED_TIMESTAMP_AUTHORITY_URL }) }
         var trustedTimestampTimeoutMs by remember { mutableStateOf(supplied["trusted_timestamp_timeout_ms"].orEmpty().ifBlank { "3500" }) }
@@ -115,6 +116,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             eventPayloadHash,
             commitmentRecipe,
             evidence,
+            verificationExecutionId,
             trustedTimestampPolicy,
             trustedTimestampAuthority,
             trustedTimestampTimeoutMs,
@@ -129,6 +131,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                     "event_payload_hash" to eventPayloadHash,
                     "commitment_recipe" to commitmentRecipe,
                     "verification_evidence" to evidence,
+                    "verification_execution_id" to verificationExecutionId,
                     "verification_method" to method.name,
                     "trusted_timestamp" to trustedTimestampPolicy,
                     "trusted_timestamp_authority" to trustedTimestampAuthority,
@@ -137,8 +140,15 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
             )
         }
 
-        fun contextMapFor(selectedMethod: AttestationVerificationMethod, selectedEvidence: AttestationEvidence): Map<String, String> =
-            supplied.filterKeys { it != "verification_evidence" } + buildMap {
+        fun contextMapFor(selectedMethod: AttestationVerificationMethod, selectedEvidence: AttestationEvidence?): Map<String, String> =
+            supplied.filterKeys { key ->
+                key !in setOf(
+                    "verification_evidence",
+                    "verification_evidence_format",
+                    "verification_evidence_hash",
+                    "verification_execution_id"
+                )
+            } + buildMap {
                 put("study_id", studyId)
                 put("operator_id", operatorId)
                 put("subject_ref", subjectRef)
@@ -149,11 +159,16 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                 put("trusted_timestamp", trustedTimestampPolicy)
                 put("trusted_timestamp_authority", trustedTimestampAuthority)
                 put("trusted_timestamp_timeout_ms", trustedTimestampTimeoutMs)
-                put("verification_evidence_format", selectedEvidence.format)
-                put("verification_evidence_hash", selectedEvidence.hash)
+                if (verificationExecutionId.isNotBlank()) {
+                    put("verification_execution_id", verificationExecutionId)
+                }
+                selectedEvidence?.let { evidenceValue ->
+                    put("verification_evidence_format", evidenceValue.format)
+                    put("verification_evidence_hash", evidenceValue.hash)
+                }
             }
 
-        fun signAttestation(selectedMethod: AttestationVerificationMethod, selectedEvidence: AttestationEvidence) {
+        fun signAttestation(selectedMethod: AttestationVerificationMethod, selectedEvidence: AttestationEvidence?) {
             val execution = As100CreateAttestationMethod.execute(
                 request = As100CreateAttestationMethod.request(
                     action = context.action.canonicalId,
@@ -222,6 +237,15 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                     activeDependency = "nfc_tag_read"
                     result = null
                     status = "Waiting for NFC tag via the existing NFC capability…"
+                }
+
+                AttestationVerificationMethod.NfcCredential -> {
+                    if (verificationExecutionId.isBlank()) {
+                        status = "Enter the execution ID returned by the earlier NFC credential + PIN verification."
+                        result = null
+                    } else {
+                        signAttestation(method, null)
+                    }
                 }
 
                 AttestationVerificationMethod.Password -> {
@@ -323,6 +347,7 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                                 activeDependency = null
                                 status = when (option) {
                                     AttestationVerificationMethod.Nfc -> "NFC evidence will be captured through the NFC capability dependency."
+                                    AttestationVerificationMethod.NfcCredential -> "Reuse a successful NFC credential + PIN verification from this same caller/form instance."
                                     AttestationVerificationMethod.Qr -> "QR evidence will be captured through the QR capability dependency."
                                     AttestationVerificationMethod.Pin -> "Phone PIN, pattern or password will be requested through Android device credential."
                                     AttestationVerificationMethod.Fingerprint -> "Fingerprint/biometric will be requested through Android biometric prompt."
@@ -340,6 +365,15 @@ object AttestationCreateCapabilityScreen : CapabilityScreenSpec {
                     evidence,
                     { evidence = it },
                     label = { Text("Study password token") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            if (method == AttestationVerificationMethod.NfcCredential) {
+                OutlinedTextField(
+                    verificationExecutionId,
+                    { verificationExecutionId = it.trim() },
+                    label = { Text("Prior NFC credential verification execution ID") },
+                    supportingText = { Text("Must come from nfc_credential_verification in the same caller, form_id and visit_id context.") },
                     modifier = Modifier.fillMaxWidth()
                 )
             }

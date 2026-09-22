@@ -7,6 +7,7 @@ import com.example.methodmesh.core.methodmesh.Classification
 import com.example.methodmesh.core.methodmesh.Entity
 import com.example.methodmesh.core.methodmesh.ExecutionRequest
 import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.core.methodmesh.ExecutionSoftwareMetadataRegistry
 import com.example.methodmesh.core.methodmesh.Observation
 import com.example.methodmesh.core.methodmesh.Relationship
 import com.example.methodmesh.core.methodmesh.Signal
@@ -17,6 +18,7 @@ import com.example.methodmesh.core.methodmesh.TransformationStatus
 import com.example.methodmesh.core.methodmesh.ValidationFinding
 import com.example.methodmesh.core.methodmesh.QualityAssessment
 import com.example.methodmesh.settings.SettingsState
+import com.example.methodmesh.core.timeassurance.ClockAssuranceRuntime
 
 /**
  * Canonical AS1.00 execution entry point.
@@ -70,7 +72,14 @@ object As100ExecutionEngine {
         states = states,
         validation = validation,
         quality = quality,
-        diagnostics = diagnostics
+        diagnostics = diagnostics,
+        timeAssurance = runCatching { ClockAssuranceRuntime.snapshot() }.getOrNull(),
+        softwareProvenance = ExecutionSoftwareMetadataRegistry.snapshot(
+            buildList {
+                add(request.method.id.value)
+                transformations.mapTo(this) { it.method.id.value }
+            }
+        )
     )
 
     fun methodFor(methodId: String): As100Method =
@@ -86,5 +95,12 @@ object As100ExecutionEngine {
         settingsState = settingsState,
         transport = transport
     )
+
+    /** Invoke a registered capability and expose its observation values to composition callers. */
+    fun observationValues(methodId: String, inputs: Map<String, String>): Map<String, String> {
+        val method = methodFor(methodId)
+        val result = executeMethod(method, method.request(context = inputs))
+        return result.observations.flatMap { it.values.entries }.associate { it.key to it.value }
+    }
 
 }

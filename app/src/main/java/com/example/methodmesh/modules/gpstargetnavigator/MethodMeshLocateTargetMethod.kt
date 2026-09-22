@@ -20,7 +20,7 @@ import com.example.methodmesh.core.methodmesh.Transformation
 import com.example.methodmesh.core.methodmesh.TransformationStatus
 import com.example.methodmesh.core.methodmesh.runtime.As100ExecutionEngine
 import com.example.methodmesh.core.methodmesh.runtime.As100Method
-import com.example.methodmesh.modules.pluscodecapture.OpenLocationCode
+import com.example.methodmesh.platform.location.OpenLocationCode
 import com.example.methodmesh.platform.location.AndroidLocationDeviceService
 import com.example.methodmesh.settings.SettingsState
 

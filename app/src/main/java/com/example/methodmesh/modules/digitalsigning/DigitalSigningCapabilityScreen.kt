@@ -72,7 +72,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import com.example.methodmesh.core.methodmesh.ExecutionResult
-import com.example.methodmesh.modules.referencelibrary.ReferenceLibraryRepository
+import com.example.methodmesh.platform.library.ReferenceLibraryRepository
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec

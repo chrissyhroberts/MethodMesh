@@ -1,7 +1,6 @@
 package com.example.methodmesh.modules.gamedeck
 
-import com.example.methodmesh.modules.chance.As100DiceSimulationMethod
-import com.example.methodmesh.modules.chance.DiceSimulationFields
+import com.example.methodmesh.core.methodmesh.runtime.As100ExecutionEngine
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.abs
@@ -560,7 +559,7 @@ internal object GameDeckPuzzleEngine {
         } else {
             "secure_random"
         }
-        val out = As100DiceSimulationMethod.generate(
+        val out = As100ExecutionEngine.observationValues("dice.simulate",
             mapOf(
                 "expression" to "d$bound",
                 "roll_count" to "1",
@@ -571,7 +570,7 @@ internal object GameDeckPuzzleEngine {
                 "animation_mode" to "off"
             )
         )
-        return ((out[DiceSimulationFields.TOTAL]?.toIntOrNull() ?: 1) - 1)
+        return ((out["dice_total"]?.toIntOrNull() ?: 1) - 1)
             .coerceIn(0, bound - 1)
     }
 }

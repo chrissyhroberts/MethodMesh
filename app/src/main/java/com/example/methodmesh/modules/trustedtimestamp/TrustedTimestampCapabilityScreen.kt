@@ -1,5 +1,14 @@
 package com.example.methodmesh.modules.trustedtimestamp
 
+import com.example.methodmesh.platform.timestamp.TrustedTimestampAuthorities
+import com.example.methodmesh.platform.timestamp.TrustedTimestampEvidence
+
+import com.example.methodmesh.platform.timestamp.ProofText
+import com.example.methodmesh.platform.timestamp.TimestampSource
+import com.example.methodmesh.platform.timestamp.TrustedTimestampEngine
+import com.example.methodmesh.platform.timestamp.proofZipName
+import com.example.methodmesh.platform.timestamp.toHex
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -390,6 +399,8 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
                             TrustedTimestampAuthorities.FREETSA.endpoint
                         }
 
+                        val anchorWindowStart =
+                            com.example.methodmesh.core.timeassurance.ClockAssuranceRuntime.monotonicSnapshot()
                         val (request, responseDer) = TrustedTimestampEngine.requestTimestamp(
                             digest = sourceBundle.digest,
                             authorityUrl = endpoint,
@@ -402,6 +413,13 @@ object TrustedTimestampCapabilityScreen : CapabilityScreenSpec {
                             digest = sourceBundle.digest,
                             authorityUrl = endpoint,
                             timeoutMs = timeout
+                        )
+                        val anchorWindowEnd =
+                            com.example.methodmesh.core.timeassurance.ClockAssuranceRuntime.monotonicSnapshot()
+                        TrustedTimestampClockAnchor.publishIfTrusted(
+                            evidence = evidence,
+                            acquisitionStarted = anchorWindowStart,
+                            acquisitionCompleted = anchorWindowEnd
                         )
 
                         val proofBytes = TrustedTimestampEngine.createProofZip(

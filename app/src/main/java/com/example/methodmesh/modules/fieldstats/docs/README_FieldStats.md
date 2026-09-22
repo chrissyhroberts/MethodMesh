@@ -2,10 +2,11 @@
 
 Pocket statistical calculators for MethodMesh: quick methods that are useful in a clinic, laboratory, survey, outbreak investigation, field office, or other setting where opening a full statistical package would be disproportionate.
 
-**Status:** Development  
-**Module:** `fieldstats`  
-**Version:** `0.1.0`  
-**Network required:** No  
+**Status:** Development<br>
+**Module:** `fieldstats`<br>
+**Package version:** `0.2.0`<br>
+**Statistics engine:** `0.1.0`<br>
+**Network required:** No<br>
 **Android permissions:** None
 
 The module is deliberately **not** an embedded R-like analysis environment. Each public method performs one recognisable calculation, returns a compact main result, and also exposes explicit numeric fields plus `fieldstats_audit_json`.
@@ -231,3 +232,8 @@ If a calculation requires modelling assumptions beyond a small, explicit field m
 ## Development status
 
 The pure Kotlin engine and capability sources have focused compiler/smoke validation, documented in `VALIDATION.md`. The module remains **Development** until it is copied into a complete MethodMesh checkout and the full Android/ODK integration checklist is completed, including `./gradlew :app:assembleDebug`, native/preset execution, orientation-change validation and ODK Collect round trips.
+
+
+## v0.2 native UX refresh
+
+The v0.2 package preserves all public method IDs, settings and output contracts while replacing the first-pass calculator UI with a task-oriented native interface. Common calculations now expose only the inputs normally needed for the question; confidence levels, design effects, finite-population corrections, attrition/non-response and prevalence projection controls are progressively disclosed under **Advanced settings**. Diagnostic data are entered as a visual 2×2 table, binary comparisons as Group A/Group B cards, and native results remain on the capability screen as concise scientific result cards. After an initial calculation, edits update the result live. ROC remains a persistent explorer with threshold slider, AUC/performance cards, confusion-matrix detail and explicit snapshot commit. No piping model is assumed.

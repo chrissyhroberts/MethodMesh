@@ -446,6 +446,13 @@ private class CodeScanCapabilityScreen(
                     }
                 )
             } else {
+                BarcodePresetAuthoring(
+                    context = context,
+                    methodId = As100BarcodeScanMethod.ID,
+                    methodName = "Barcode scanner",
+                    currentSettings = mapOf("barcode_formats" to barcodeFormatsValue)
+                )
+
                 EmbeddedBarcodeScannerWindow(
                     formatsRaw = barcodeFormatsValue,
                     active = committedResult == null,
@@ -717,8 +724,7 @@ private fun EmbeddedBarcodeScannerWindow(
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            payloadUrl?.let { url ->
+                        ) {                            payloadUrl?.let { url ->
                                 Button(
                                     modifier = Modifier.weight(1f),
                                     onClick = { onOpenLink(url) }
@@ -957,8 +963,7 @@ private fun CompactFormatChooser(
                     }
                 }
             }
-        }
-    }
+        }    }
 }
 
 private fun codeFormatLabel(value: String): String =

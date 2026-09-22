@@ -15,11 +15,11 @@ class ChoiceOdkFormContractTest {
         ).firstOrNull(File::isDirectory) ?: error("Cannot locate choice-experiment docs")
 
         val methodByWorkbook = mapOf(
-            "example_odk_dce.pairwise.xlsx" to "dce.pairwise",
-            "example_odk_dce.maxdiff.xlsx" to "dce.maxdiff",
-            "example_odk_dce.ranking.xlsx" to "dce.ranking",
-            "example_odk_dce.points.xlsx" to "dce.points",
-            "example_odk_dce.conjoint.xlsx" to "dce.conjoint"
+            "example_odk_dce_pairwise.xlsx" to "dce.pairwise",
+            "example_odk_dce_maxdiff.xlsx" to "dce.maxdiff",
+            "example_odk_dce_ranking.xlsx" to "dce.ranking",
+            "example_odk_dce_points.xlsx" to "dce.points",
+            "example_odk_dce_conjoint.xlsx" to "dce.conjoint"
         )
         val workbooks = methodByWorkbook.map { (name, methodId) ->
             val workbook = File(docs, name)

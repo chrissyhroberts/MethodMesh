@@ -1,0 +1,132 @@
+<?xml version='1.0' encoding='utf-8'?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:jr="http://openrosa.org/javarosa" xmlns:odk="http://www.opendatakit.org/xforms">
+  <h:head>
+    <h:title>MethodMesh NFC — nfc_issuer_identity</h:title>
+    <model odk:xforms-version="1.0.0">
+      <instance>
+        <data id="nfc_showcase_issuer_identity" version="2026092201">
+          <start />
+          <end />
+          <introduction />
+          <commissioning_context>
+            <study_id />
+            <site_code />
+            <device_label />
+            <authorised_by />
+            <commissioning_notes />
+          </commissioning_context>
+          <run_nfc_issuer_identity>
+            <methodmesh_execution_id />
+            <methodmesh_status />
+            <issuer_identity_schema_version />
+            <issuer_key_id />
+            <issuer_public_key_fingerprint_sha256 />
+            <issuer_public_key_base64 />
+            <issuer_signature_algorithm />
+            <issuer_identity_exported_time_iso />
+            <issuer_identity_json />
+            <methodmesh_full_json />
+          </run_nfc_issuer_identity>
+          <identity_summary />
+          <meta>
+            <instanceID />
+          </meta>
+        </data>
+      </instance>
+      <bind nodeset="/data/start" type="dateTime" jr:preload="timestamp" jr:preloadParams="start" />
+      <bind nodeset="/data/end" type="dateTime" jr:preload="timestamp" jr:preloadParams="end" />
+      <bind nodeset="/data/introduction" type="string" readonly="true()" />
+      <bind nodeset="/data/commissioning_context/study_id" type="string" required="true()" />
+      <bind nodeset="/data/commissioning_context/site_code" type="string" required="true()" />
+      <bind nodeset="/data/commissioning_context/device_label" type="string" required="true()" />
+      <bind nodeset="/data/commissioning_context/authorised_by" type="string" required="true()" />
+      <bind nodeset="/data/commissioning_context/commissioning_notes" type="string" />
+      <bind nodeset="/data/run_nfc_issuer_identity/methodmesh_execution_id" type="string" readonly="true()" />
+      <bind nodeset="/data/run_nfc_issuer_identity/methodmesh_status" type="string" readonly="true()" />
+      <bind nodeset="/data/run_nfc_issuer_identity/issuer_identity_schema_version" type="string" readonly="true()" />
+      <bind nodeset="/data/run_nfc_issuer_identity/issuer_key_id" type="string" readonly="true()" />
+      <bind nodeset="/data/run_nfc_issuer_identity/issuer_public_key_fingerprint_sha256" type="string" readonly="true()" />
+      <bind nodeset="/data/run_nfc_issuer_identity/issuer_public_key_base64" type="string" readonly="true()" />
+      <bind nodeset="/data/run_nfc_issuer_identity/issuer_signature_algorithm" type="string" readonly="true()" />
+      <bind nodeset="/data/run_nfc_issuer_identity/issuer_identity_exported_time_iso" type="string" readonly="true()" />
+      <bind nodeset="/data/run_nfc_issuer_identity/issuer_identity_json" type="string" readonly="true()" />
+      <bind nodeset="/data/run_nfc_issuer_identity/methodmesh_full_json" type="string" readonly="true()" />
+      <bind nodeset="/data/identity_summary" type="string" readonly="true()" relevant="/data/run_nfc_issuer_identity/methodmesh_status != ''" />
+      <bind nodeset="/data/meta/instanceID" type="string" readonly="true()" jr:preload="uid" />
+    </model>
+  </h:head>
+  <h:body>
+    <input ref="/data/introduction">
+      <label>Export this MethodMesh device's NFC issuer identity</label>
+      <hint>Use this form when commissioning a provisioning device. The private signing key remains in Android Keystore; only public identity is returned.</hint>
+    </input>
+    <group ref="/data/commissioning_context" appearance="field-list">
+      <label>Commissioning context</label>
+      <input ref="/data/commissioning_context/study_id">
+        <label>Study / protocol ID</label>
+      </input>
+      <input ref="/data/commissioning_context/site_code">
+        <label>Site / location code</label>
+      </input>
+      <input ref="/data/commissioning_context/device_label">
+        <label>Provisioning device label</label>
+        <hint>Human-readable study label for this device.</hint>
+      </input>
+      <input ref="/data/commissioning_context/authorised_by">
+        <label>Authorised by</label>
+      </input>
+      <input ref="/data/commissioning_context/commissioning_notes" appearance="multiline">
+        <label>Commissioning notes</label>
+        <hint>Optional.</hint>
+      </input>
+    </group>
+    <group ref="/data/run_nfc_issuer_identity" appearance="field-list" intent="com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_issuer_identity',input_payload_mode='FULL',return_mode='flat')">
+      <label>Read issuer public identity</label>
+      <hint>MethodMesh will return the public-key fingerprint and export JSON. No NFC card is required.</hint>
+      <input ref="/data/run_nfc_issuer_identity/methodmesh_execution_id" appearance="hidden-answer">
+        <label>MethodMesh execution ID</label>
+        <hint>Returned by MethodMesh.</hint>
+      </input>
+      <input ref="/data/run_nfc_issuer_identity/methodmesh_status" appearance="hidden-answer">
+        <label>MethodMesh status</label>
+        <hint>Returned by MethodMesh.</hint>
+      </input>
+      <input ref="/data/run_nfc_issuer_identity/issuer_identity_schema_version" appearance="hidden-answer">
+        <label>Issuer identity schema version</label>
+        <hint>Returned by MethodMesh.</hint>
+      </input>
+      <input ref="/data/run_nfc_issuer_identity/issuer_key_id" appearance="hidden-answer">
+        <label>Issuer short key ID</label>
+        <hint>Returned by MethodMesh.</hint>
+      </input>
+      <input ref="/data/run_nfc_issuer_identity/issuer_public_key_fingerprint_sha256" appearance="hidden-answer">
+        <label>Issuer public-key SHA-256 fingerprint</label>
+        <hint>Returned by MethodMesh.</hint>
+      </input>
+      <input ref="/data/run_nfc_issuer_identity/issuer_public_key_base64" appearance="hidden-answer">
+        <label>Issuer public key</label>
+        <hint>Returned by MethodMesh.</hint>
+      </input>
+      <input ref="/data/run_nfc_issuer_identity/issuer_signature_algorithm" appearance="hidden-answer">
+        <label>Signature algorithm</label>
+        <hint>Returned by MethodMesh.</hint>
+      </input>
+      <input ref="/data/run_nfc_issuer_identity/issuer_identity_exported_time_iso" appearance="hidden-answer">
+        <label>Identity exported time</label>
+        <hint>Returned by MethodMesh.</hint>
+      </input>
+      <input ref="/data/run_nfc_issuer_identity/issuer_identity_json" appearance="hidden-answer">
+        <label>Issuer identity JSON</label>
+        <hint>Returned by MethodMesh.</hint>
+      </input>
+      <input ref="/data/run_nfc_issuer_identity/methodmesh_full_json" appearance="hidden-answer">
+        <label>MethodMesh FULL JSON</label>
+        <hint>Returned by MethodMesh.</hint>
+      </input>
+    </group>
+    <input ref="/data/identity_summary">
+      <label>Issuer identity exported</label>
+      <hint>Issuer <output value="/data/run_nfc_issuer_identity/issuer_key_id" />; full fingerprint <output value="/data/run_nfc_issuer_identity/issuer_public_key_fingerprint_sha256" />. Register the full fingerprint in the study's offline issuer trust set.</hint>
+    </input>
+  </h:body>
+</h:html>

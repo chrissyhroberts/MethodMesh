@@ -46,8 +46,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
-import com.example.methodmesh.modules.sensorprovisioner.SensorProvisioningProfiles
-import com.example.methodmesh.modules.sensorprovisioner.extractJsonObject
+import com.example.methodmesh.platform.sensors.SensorProvisioningProfiles
+import com.example.methodmesh.platform.sensors.extractJsonObject
 import com.example.methodmesh.platform.devices.DeviceRegistry
 import com.example.methodmesh.platform.devices.DeviceTransport
 import com.example.methodmesh.platform.devices.RegisteredDevice

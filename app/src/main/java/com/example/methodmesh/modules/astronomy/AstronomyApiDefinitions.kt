@@ -13,8 +13,7 @@ import com.example.methodmesh.core.onlinedata.ApiResponseType
 import com.example.methodmesh.core.onlinedata.CacheMode
 import com.example.methodmesh.core.onlinedata.CachePolicy
 import com.example.methodmesh.core.onlinedata.LocationDisclosureMode
-import com.example.methodmesh.modules.apiget.ApiGetFields
-import com.example.methodmesh.modules.apiget.As100ApiGetMethod
+import com.example.methodmesh.core.methodmesh.runtime.As100ExecutionEngine
 
 /** Astronomy-owned Open-Meteo declarations, executed through the shared api.get capability. */
 object AstronomyApiDefinitions {
@@ -104,42 +103,42 @@ object AstronomyLiveData {
     fun current(context: Context, latitude: Double, longitude: Double): AstronomyLivePayload {
         AstronomyApiDefinitions.ensureInstalled(context)
         val common = mapOf("latitude" to latitude.toString(), "longitude" to longitude.toString())
-        val weather = As100ApiGetMethod.runApi(common + ("definition_id" to AstronomyApiDefinitions.current.id))
-        val aq = As100ApiGetMethod.runApi(common + ("definition_id" to AstronomyApiDefinitions.airQuality.id))
-        check(weather[ApiGetFields.STATUS] == "succeeded") { weather[ApiGetFields.ERROR].orEmpty().ifBlank { "Weather API request failed." } }
-        return AstronomyLivePayload(weather[ApiGetFields.RESPONSE_JSON].orEmpty(), if (aq[ApiGetFields.STATUS] == "succeeded") aq[ApiGetFields.RESPONSE_JSON].orEmpty() else "")
+        val weather = As100ExecutionEngine.observationValues("api.get", common + ("definition_id" to AstronomyApiDefinitions.current.id))
+        val aq = As100ExecutionEngine.observationValues("api.get", common + ("definition_id" to AstronomyApiDefinitions.airQuality.id))
+        check(weather["api_status"] == "succeeded") { weather["api_error"].orEmpty().ifBlank { "Weather API request failed." } }
+        return AstronomyLivePayload(weather["api_response_json"].orEmpty(), if (aq["api_status"] == "succeeded") aq["api_response_json"].orEmpty() else "")
     }
 
     fun hourly(context: Context, latitude: Double, longitude: Double): String {
         AstronomyApiDefinitions.ensureInstalled(context)
-        val values = As100ApiGetMethod.runApi(mapOf(
+        val values = As100ExecutionEngine.observationValues("api.get", mapOf(
             "definition_id" to AstronomyApiDefinitions.hourly.id,
             "latitude" to latitude.toString(), "longitude" to longitude.toString()
         ))
-        check(values[ApiGetFields.STATUS] == "succeeded") { values[ApiGetFields.ERROR].orEmpty().ifBlank { "Hourly weather API request failed." } }
-        return values[ApiGetFields.RESPONSE_JSON].orEmpty()
+        check(values["api_status"] == "succeeded") { values["api_error"].orEmpty().ifBlank { "Hourly weather API request failed." } }
+        return values["api_response_json"].orEmpty()
     }
 
     fun dashboard(context: Context, latitude: Double, longitude: Double): AstronomyDashboardLivePayload {
         AstronomyApiDefinitions.ensureInstalled(context)
         val common = mapOf("latitude" to latitude.toString(), "longitude" to longitude.toString())
-        fun call(definitionId: String): Map<String,String> = As100ApiGetMethod.runApi(common + ("definition_id" to definitionId))
+        fun call(definitionId: String): Map<String,String> = As100ExecutionEngine.observationValues("api.get", common + ("definition_id" to definitionId))
         val weather = call(AstronomyApiDefinitions.current.id)
         val aq = call(AstronomyApiDefinitions.airQuality.id)
         val hourly = call(AstronomyApiDefinitions.hourly.id)
         val jet = call(AstronomyApiDefinitions.jetStream.id)
-        check(weather[ApiGetFields.STATUS] == "succeeded") { weather[ApiGetFields.ERROR].orEmpty().ifBlank { "Weather API request failed." } }
-        check(hourly[ApiGetFields.STATUS] == "succeeded") { hourly[ApiGetFields.ERROR].orEmpty().ifBlank { "Hourly weather API request failed." } }
-        val successful = listOf(weather, aq, hourly, jet).filter { it[ApiGetFields.STATUS] == "succeeded" }
-        val retrieved = successful.mapNotNull { it[ApiGetFields.RETRIEVED_TIME_ISO]?.takeIf(String::isNotBlank) }.minOrNull().orEmpty()
-        val age = successful.mapNotNull { it[ApiGetFields.DATA_AGE_HOURS]?.toDoubleOrNull() }.maxOrNull()
+        check(weather["api_status"] == "succeeded") { weather["api_error"].orEmpty().ifBlank { "Weather API request failed." } }
+        check(hourly["api_status"] == "succeeded") { hourly["api_error"].orEmpty().ifBlank { "Hourly weather API request failed." } }
+        val successful = listOf(weather, aq, hourly, jet).filter { it["api_status"] == "succeeded" }
+        val retrieved = successful.mapNotNull { it["api_retrieved_time_iso"]?.takeIf(String::isNotBlank) }.minOrNull().orEmpty()
+        val age = successful.mapNotNull { it["api_data_age_hours"]?.toDoubleOrNull() }.maxOrNull()
         return AstronomyDashboardLivePayload(
-            weatherJson = weather[ApiGetFields.RESPONSE_JSON].orEmpty(),
-            airQualityJson = if (aq[ApiGetFields.STATUS] == "succeeded") aq[ApiGetFields.RESPONSE_JSON].orEmpty() else "",
-            hourlyJson = hourly[ApiGetFields.RESPONSE_JSON].orEmpty(),
-            jetJson = if (jet[ApiGetFields.STATUS] == "succeeded") jet[ApiGetFields.RESPONSE_JSON].orEmpty() else "",
+            weatherJson = weather["api_response_json"].orEmpty(),
+            airQualityJson = if (aq["api_status"] == "succeeded") aq["api_response_json"].orEmpty() else "",
+            hourlyJson = hourly["api_response_json"].orEmpty(),
+            jetJson = if (jet["api_status"] == "succeeded") jet["api_response_json"].orEmpty() else "",
             retrievedTimeIso = retrieved,
-            fromCache = successful.any { it[ApiGetFields.FROM_CACHE] == "true" },
+            fromCache = successful.any { it["api_from_cache"] == "true" },
             dataAgeHours = age
         )
     }

@@ -27,8 +27,8 @@ class GpsTargetNavigatorOdkFormContractTest {
         assertTrue("Workbook must support Plus Code destinations", "input_target_plus_code=\${target_plus_code_input}" in xml)
         assertTrue("Workbook must support coordinate destinations", "input_target_latitude=\${target_latitude_input}" in xml && "input_target_longitude=\${target_longitude_input}" in xml)
         assertTrue("Workbook must request main results plus background metadata JSON", "input_payload_mode='FULL'" in xml)
-        assertTrue("Workbook must return the background audit JSON", ">methodmesh_full_json<" in xml)
-        assertTrue("Workbook must return distance", ">distance_m<" in xml)
-        assertTrue("Workbook must return arrival state", ">arrived<" in xml)
+        assertTrue("Workbook must return the background audit JSON", ">nav_methodmesh_full_json<" in xml)
+        assertTrue("Workbook must return distance", ">nav_distance_m<" in xml)
+        assertTrue("Workbook must return arrival state", ">nav_arrived<" in xml)
     }
 }

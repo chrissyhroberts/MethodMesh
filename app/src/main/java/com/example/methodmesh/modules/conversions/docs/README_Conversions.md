@@ -2,13 +2,34 @@
 
 Status: **Development**
 
-A dependency-light, completely offline calculation module.
+A dependency-light, completely offline conversion and calculation module. The native surface is a consolidated calculator dashboard: conversion families and calculator modes are visible as first-class mode buttons, the selected mode stays prominent, inputs are tailored to the task, and deterministic results update in place without a separate Calculate/results step.
 
-## Capabilities
+## Capability
 
 - `conversion.calculate` — unit conversion, percentages, ratios/proportions, date difference/arithmetic, age calculation and simple geometry.
 
-Unit families: length, area, volume, mass, temperature, speed, pressure, energy, power, angle and data size.
+The capability contract is intentionally unchanged by the dashboard refresh. Direct native use, presets, protocols and ODK/XLSForm all invoke the same canonical method.
+
+### Unit-conversion modes
+
+Length, area, volume, mass, temperature, speed, pressure, energy, power, angle and data size.
+
+### Calculator modes
+
+Percentage, ratio/proportion, date difference, date arithmetic, age and simple geometry.
+
+## Native dashboard behaviour
+
+- A dense mode matrix keeps every calculation family visible at once; there is no horizontal family carousel or mode navigation.
+- The current mode is strongly indicated and the mode can be changed without leaving the working screen when `category` is a runtime setting.
+- Unit conversions place **From** and **To** as two adjacent compact rows above the value field; both unit sets remain visible simultaneously and the To row includes a direct swap action.
+- Numeric modes expose **Decimals − n +** immediately beside the result. Precision can be stepped from 0–10 places while looking at the answer; changes update the answer and working immediately and remain available as the canonical `decimal_places` setting for presets/protocols/ODK.
+- Percentage, ratio, date and geometry modes use human-readable, task-specific labels rather than exposing raw operation identifiers.
+- Results are calculated live on the same screen as soon as the required inputs are valid and occupy the final/bottom section of the calculator surface.
+- The displayed primary answer is tap-to-copy and copies the complete usable answer (value plus unit where the unit is part of the answer), not its UI label.
+- A separate visible **Working** line shows the formula/working together with the final answer; tapping it copies that full working string. The canonical `conversion_summary` output carries the same working+answer projection, while `conversion_value` and `conversion_unit` remain the structured answer fields.
+- Working input state uses saveable Compose state, so ordinary activity recreation restores the working configuration and the result is regenerated from it.
+- The shared MethodMesh shell still owns Commit/Cancel and launch-origin closeout; the module does not introduce a private result screen.
 
 ## Android intent
 
@@ -34,29 +55,32 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='conversion.calculate',input_cat
 - `input_operation` — operation within percentage/ratio/date/geometry modes.
 - `input_date1`, `input_date2` — ISO local dates (`YYYY-MM-DD`).
 - `input_shape` — `rectangle`, `triangle`, `circle`.
+- `input_decimal_places` — numeric display/output precision from `0` to `10`; defaults to `4` when omitted.
 
-Important operation names include `percent_of`, `what_percent`, `percent_change`, `increase_by_percent`, `decrease_by_percent`, `a_to_b`, `solve_proportion`, `add_days`, `add_weeks`, `add_months`, `add_years`, `subtract_days`, `area`, `perimeter`, `circumference`.
+Important operation names remain `percent_of`, `what_percent`, `percent_change`, `increase_by_percent`, `decrease_by_percent`, `a_to_b`, `solve_proportion`, `add_days`, `add_weeks`, `add_months`, `add_years`, `subtract_days`, `area`, `perimeter`, `circumference`.
 
 ## Outputs
 
-Core outputs:
+Normally useful/native result:
 
 - `conversion_value`
 - `conversion_unit`
-- `conversion_summary`
+- `conversion_summary` — human-readable working/formula including the final answer
 
-Audit-priority outputs:
+Contractually available status/audit outputs:
 
 - `conversion_status`
 - `conversion_error`
-
-Full metadata:
-
 - `conversion_metadata_json`
 
-## ODK example
+The shared MethodMesh transport additionally provides `methodmesh_full_json` on handled ODK roundtrips according to the project-wide contract.
 
-`example_odk_conversion.calculate.xlsx` demonstrates a length conversion with runtime input fields and flat return fields.
+## ODK examples
+
+- `example_odk_showcase_conversion_calculate.xlsx` is the canonical single-invocation showcase.
+- `example_odk_conversion.calculate.xlsx` is retained as a legacy/migration example.
+
+The UI refresh does not alter existing canonical input or output field names, so existing ODK calls remain compatible. `input_decimal_places` is additive and optional; ODK forms may expose it when controlled precision is required.
 
 ## Permissions and offline behaviour
 
@@ -66,3 +90,4 @@ No permissions and no network access. Constants are embedded in the module. Data
 
 - Geometry is intentionally simple: rectangle area/perimeter, triangle area from base/height, circle area/circumference from radius.
 - Date arithmetic uses ISO local dates and calendar arithmetic; it does not represent time zones or times of day.
+- The module handoff does not contain the full Android app/Gradle project, so app-context compilation must be run after reintegration.

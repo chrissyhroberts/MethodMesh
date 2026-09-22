@@ -1,7 +1,6 @@
 package com.example.methodmesh.modules.arcade
 
-import com.example.methodmesh.modules.chance.As100DiceSimulationMethod
-import com.example.methodmesh.modules.chance.DiceSimulationFields
+import com.example.methodmesh.core.methodmesh.runtime.As100ExecutionEngine
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.PI
@@ -236,7 +235,7 @@ object ArcadeEngine {
             "secure_random"
         }
 
-        val out = As100DiceSimulationMethod.generate(
+        val out = As100ExecutionEngine.observationValues("dice.simulate",
             mapOf(
                 "expression" to "d${free.size}",
                 "roll_count" to "1",
@@ -247,7 +246,7 @@ object ArcadeEngine {
                 "animation_mode" to "off"
             )
         )
-        val index = ((out[DiceSimulationFields.TOTAL]?.toIntOrNull() ?: 1) - 1)
+        val index = ((out["dice_total"]?.toIntOrNull() ?: 1) - 1)
             .coerceIn(0, free.lastIndex)
         return free[index]
     }
@@ -903,7 +902,7 @@ object ArcadeEngine {
         } else {
             "secure_random"
         }
-        val out = As100DiceSimulationMethod.generate(
+        val out = As100ExecutionEngine.observationValues("dice.simulate",
             mapOf(
                 "expression" to "d$bound",
                 "roll_count" to "1",
@@ -914,7 +913,7 @@ object ArcadeEngine {
                 "animation_mode" to "off"
             )
         )
-        return ((out[DiceSimulationFields.TOTAL]?.toIntOrNull() ?: 1) - 1)
+        return ((out["dice_total"]?.toIntOrNull() ?: 1) - 1)
             .coerceIn(0, bound - 1)
     }
 

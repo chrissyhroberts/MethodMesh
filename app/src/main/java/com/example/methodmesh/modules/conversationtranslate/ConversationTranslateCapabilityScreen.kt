@@ -60,7 +60,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
-import com.example.methodmesh.modules.mlkittranslate.MlKitLanguageCatalog
+import com.example.methodmesh.platform.translation.MlKitLanguageCatalog
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold

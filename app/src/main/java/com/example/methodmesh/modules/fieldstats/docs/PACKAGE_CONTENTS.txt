@@ -1,4 +1,4 @@
-Field Statistics v0.1.0 canonical capability package
+Field Statistics v0.2.0 canonical capability package
 
 fieldstats/
   FieldStatsEngine.kt

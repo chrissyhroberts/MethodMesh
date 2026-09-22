@@ -1,41 +1,55 @@
-# Network tools validation
+# Network tools validation — v0.3.0
 
-Status: **required before promotion from Development**
+Maturity: **Development**
 
-## Source/build checks
+## 1. Integration build
 
-After placing the folder under the real module path:
+Place/replace the folder at:
 
 ```text
 app/src/main/java/com/example/methodmesh/modules/networktools/
 ```
 
-run:
+Apply `MANIFEST_INTEGRATION.md`, then run:
 
 ```bash
 ./gradlew :app:testDebugUnitTest
 ./gradlew :app:assembleDebug
 ```
 
-This handoff was produced outside the Android build environment, so a successful build is not claimed here.
+Do not promote to Production unless both complete successfully.
 
-## Architecture checks
+## 2. Regression: capability-open crash
 
-- [ ] `NetworkToolsModule` is auto-discovered without central registration.
-- [ ] No `HomeScreen` or other shared UI contains `network.tools` special casing.
-- [ ] Module status remains `Development` until promotion is explicit.
-- [ ] `iconKey="tool"` renders acceptably on generic launch surfaces.
-- [ ] All settings are declared through `MethodSetting`.
-- [ ] Fixed preset settings are hidden at runtime.
-- [ ] Runtime preset fields remain visible and are requested before execution.
-- [ ] External intents execute without a redundant native setup dialog.
-- [ ] Protocol/schedule closeout uses the shared completion contract.
+- [ ] Open Network Tools directly from Capabilities.
+- [ ] Dashboard renders without an immediate crash.
+- [ ] Scroll the complete dashboard using the MethodMesh host.
+- [ ] Rotate portrait/landscape and scroll again.
+- [ ] There is no `Vertically scrollable component was measured with an infinity maximum height` / nested-scroll crash.
+- [ ] No Android network/Wi-Fi system call executes synchronously from the initial Compose state constructor.
 
-## Pure/function checks
+## 3. Architecture / Master Book
+
+- [ ] `NetworkToolsModule` is auto-discovered; no central registration exists.
+- [ ] No `HomeScreen` or shared UI contains Network Tools special casing.
+- [ ] Descriptor projects Maturity = Development and Connectivity = Online/Offline.
+- [ ] All settings use `MethodSetting`.
+- [ ] Direct dashboard, focused preset/intent surface and ODK invoke the same `network.tools` method/operation semantics.
+- [ ] `connection_status` and `wifi_scan` are not dashboard-only logic.
+- [ ] Fixed preset settings are hidden through `settingShouldBeShown`.
+- [ ] Runtime preset inputs remain visible.
+- [ ] Fully fixed native preset may auto-run.
+- [ ] Dashboard/focused runs display a working result in place.
+- [ ] Commit freezes both result and producing settings.
+- [ ] Editing inputs after Commit does not mutate the committed payload.
+- [ ] Copy/share/save/Done operate on committed result only.
+- [ ] Meaningful displayed scalar/text result values are tap-to-copy.
+- [ ] App/native Done returns through the normal MethodMesh dashboard closeout.
+- [ ] No automatic internal archive/save occurs.
+
+## 4. Pure/function checks
 
 ### CIDR
-
-Verify at minimum:
 
 | Input | Expected network | Expected broadcast | Usable |
 |---|---|---|---:|
@@ -44,102 +58,120 @@ Verify at minimum:
 | `10.0.0.6/31` | `10.0.0.6` | `10.0.0.7` | 2 |
 | `0.0.0.0/0` | `0.0.0.0` | `255.255.255.255` | 4294967294 |
 
-Reject malformed CIDRs and IPv6 CIDR input cleanly.
+- [ ] malformed CIDR fails cleanly;
+- [ ] IPv6 CIDR returns a clear unsupported/invalid result rather than crashing.
 
 ### Host validation
 
-- [ ] `example.org` accepted.
-- [ ] IPv4 literal accepted.
-- [ ] IPv6 literal accepted for host operations.
-- [ ] `https://example.org/path` rejected as a host input.
-- [ ] whitespace/shell-like URL input rejected.
-- [ ] traceroute does not use `sh -c` or another shell interpolation path.
+- [ ] `example.org` accepted;
+- [ ] IPv4 literal accepted;
+- [ ] IPv6 literal accepted for host operations;
+- [ ] `https://example.org/path` rejected;
+- [ ] whitespace/shell-like URL input rejected;
+- [ ] traceroute uses `ProcessBuilder` argument arrays only;
+- [ ] no `sh -c`, shell interpolation, LAN sweep or port-range path exists.
 
 ### Bounds
 
-- [ ] timeout accepts 100–30,000 ms and rejects values outside that range.
-- [ ] TCP port clamps/validates to 1–65,535.
-- [ ] traceroute hops clamp to 1–30.
-- [ ] traceroute process is forcibly destroyed on wall-clock timeout.
-- [ ] captured traceroute text is capped.
+- [ ] timeout accepts 100–30000 ms only;
+- [ ] TCP port accepts 1–65535 only;
+- [ ] traceroute max hops accepts 1–30 only;
+- [ ] traceroute child is forcibly terminated on timeout;
+- [ ] traceroute stdout is drained concurrently and retained output remains capped.
 
-## Device checks
+## 5. Active network / Wi-Fi device checks
 
-Exercise on at least one physical Android device and, if practical, a second manufacturer/Android version.
+Test at least one physical device; two Android/OEM combinations are preferable.
 
-### Interface info
+### Current connection
 
-- [ ] returns without network permission crash;
-- [ ] reports at least expected loopback/active interfaces;
-- [ ] primary IP selection is sensible.
+- [ ] Wi-Fi connected: correct transport/state and plausible local IP/gateway/DNS/interface;
+- [ ] cellular active: clean cellular state;
+- [ ] VPN active: clean VPN state;
+- [ ] no active network: `No active network`, and **Metered is not incorrectly Yes**;
+- [ ] captive portal state displays without crash where reproducible;
+- [ ] denied/redacted Wi-Fi information produces an explanatory state, not an exception.
 
-### DNS lookup
+### Nearby Wi-Fi
+
+- [ ] missing `ACCESS_WIFI_STATE`/`CHANGE_WIFI_STATE` is explained without crash;
+- [ ] runtime location permission request works after manifest integration;
+- [ ] permission denial leaves capability usable;
+- [ ] location/Wi-Fi service disabled leaves capability usable;
+- [ ] scan throttling/fresh-scan refusal falls back to latest cached results;
+- [ ] visible network rows show SSID, RSSI, band/channel/security/AP count where available;
+- [ ] Wi-Fi 4/5/6/7 mapping does not crash across supported Android API levels;
+- [ ] **Capture nearby Wi-Fi list** returns canonical `wifi_scan` output.
+
+## 6. Diagnostics
+
+### DNS
 
 - [ ] known host resolves;
-- [ ] nonexistent host returns a clean unresolved result;
-- [ ] result includes structured JSON;
-- [ ] native primary copy/share is the beef value, not the JSON blob.
+- [ ] nonexistent host returns `unresolved` cleanly;
+- [ ] timeout releases the MethodMesh flow.
 
 ### Reachability
 
-- [ ] known reachable target gives plausible result where platform permits;
+- [ ] reachable target produces plausible result where platform permits;
 - [ ] unreachable target does not crash;
-- [ ] UI says reachability probe, not guaranteed ICMP ping.
+- [ ] UI calls it reachability and does not promise ICMP ping.
 
-### TCP endpoint
+### TCP
 
 - [ ] known open endpoint returns `network_tcp_open=true`;
-- [ ] known closed/refused port returns `false` with detail;
-- [ ] no port-range syntax is accepted.
+- [ ] refused/closed endpoint returns false + detail;
+- [ ] only one supplied port is tested.
 
 ### Traceroute
 
 - [ ] supported device returns bounded output;
-- [ ] unsupported device returns `unavailable` clearly;
-- [ ] timeout does not leave the UI stuck.
+- [ ] unsupported applet returns `unavailable`;
+- [ ] verbose output cannot deadlock the capability;
+- [ ] wall-clock timeout does not leave a child process/UI stuck.
 
-### Wi-Fi info
+## 7. Working-result / Commit state
 
-- [ ] connected Wi-Fi state returns without crash;
-- [ ] non-Wi-Fi active network returns a clean non-Wi-Fi result;
-- [ ] SSID/BSSID redaction is handled cleanly;
-- [ ] behaviour without `ACCESS_WIFI_STATE` is documented and acceptable;
-- [ ] if `ACCESS_WIFI_STATE` is later added centrally, re-test Android permission/privacy behaviour.
+For DNS and CIDR at minimum:
 
-## Native UX checks
+1. run A;
+2. Commit A;
+3. change inputs;
+4. run B;
+5. verify committed card still contains A and reports working state changed;
+6. Commit B;
+7. verify export/copy now use B.
 
-- [ ] normal dashboard run waits for **Run diagnostic**;
-- [ ] only relevant controls are shown;
-- [ ] fixed native preset with no runtime inputs starts automatically;
-- [ ] native preset with runtime input waits for that input;
-- [ ] result survives portrait/landscape rotation sufficiently to reconstruct the result display;
-- [ ] retry is available;
-- [ ] Done/Home routing follows shared MethodMesh rules;
-- [ ] copy/share defaults to `network_value` only;
-- [ ] full JSON is opt-in;
-- [ ] no automatic internal save occurs.
+Repeat across rotation before and after Commit.
 
-## ODK/XLSForm checks
+## 8. ODK/XLSForm
 
-Using `example_odk_network.tools.xlsx`:
+Canonical workbook:
 
-- [ ] intent is attached to a group;
-- [ ] input names do not collide with return field names;
-- [ ] DNS operation returns `network_value`, host/IP/latency fields as available;
-- [ ] CIDR operation returns the normalized range;
-- [ ] `methodmesh_full_json` is populated with `input_payload_mode='FULL'`;
-- [ ] blank return fields do not overwrite request inputs;
-- [ ] ODK owns persistence/submission;
-- [ ] no MethodMesh archive copy is created.
+```text
+docs/example_odk_showcase_network_tools.xlsx
+```
 
-## Suggested focused tests after admission
+- [ ] workbook contains exactly one MethodMesh invocation;
+- [ ] intent is on the group;
+- [ ] no `methodmesh_return_namespace` is set;
+- [ ] return leaves use unprefixed canonical names;
+- [ ] `methodmesh_status` and `methodmesh_full_json` are present;
+- [ ] all nine operation choices are selectable;
+- [ ] operation-specific inputs use relevance rules;
+- [ ] DNS call returns canonical beef/scalars/full JSON;
+- [ ] CIDR call returns normalized CIDR/full JSON;
+- [ ] `connection_status`, `wifi_info`, `wifi_scan` return clean unavailable diagnostics if Android permission/context is insufficient;
+- [ ] ODK owns submission/persistence; MethodMesh creates no archive copy.
 
-Add repository tests at the normal `app/src/test/...` location for:
+## 9. Suggested repository tests
 
-1. CIDR `/0`, `/24`, `/31`, `/32` calculations;
-2. invalid host/CIDR rejection;
-3. operation output-field contract;
-4. `network_value` always present on successful operations;
-5. `network_result_json` valid JSON;
-6. timeout/port/max-hop bounds;
-7. ODK workbook existence and group-intent contract.
+Add focused tests under the normal app test tree for:
+
+1. CIDR `/0`, `/24`, `/31`, `/32`;
+2. invalid CIDR/host/port/timeout/hops;
+3. output-key contract for every operation;
+4. `network_value` non-empty for handled successful diagnostic outcomes;
+5. `network_result_json` validity;
+6. traceroute process helper timeout/output-bound logic where testable;
+7. canonical XLSForm filename, single invocation, unprefixed leaves and `methodmesh_full_json`.

@@ -14,6 +14,8 @@ SHA-256 is computed locally. The source content itself is not sent to the TSA. T
 
 The proof establishes existence of the exact bytes **no later than** the trusted timestamp. It does not establish authorship, original creation time, truth, photographic authenticity or legal validity.
 
+When the configured authority passes MethodMesh's full trust-registry validation, a successful timestamp acquisition also refreshes the shared Clock Assurance anchor. This is infrastructure state, not an extra capability return: it does not Commit or save the proof. Custom/unconfigured TSAs never become trusted clock sources merely because their token is internally self-consistent.
+
 ## Canonical contract
 
 ### ODK inputs
@@ -238,4 +240,5 @@ There is no fabricated offline timestamp fallback.
 - A dedicated in-app proof-verification method is not yet exposed.
 - Custom TSA endpoints can be cryptographically consistent without being independently trusted.
 - TSA certificate rotation requires registry maintenance.
+- Clock anchoring requires the token signer to match the pinned configured signer, a valid configured chain at generation time, and a critical timestamp-only EKU; a proof that does not meet that stronger trust contract remains proof evidence but does not refresh Clock Assurance.
 - The proof concerns exact bytes and certified time, not broader truth or legal meaning.

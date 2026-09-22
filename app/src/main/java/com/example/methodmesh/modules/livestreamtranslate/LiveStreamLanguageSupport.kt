@@ -1,6 +1,6 @@
 package com.example.methodmesh.modules.livestreamtranslate
 
-import com.example.methodmesh.modules.mlkittranslate.MlKitLanguageCatalog
+import com.example.methodmesh.platform.translation.MlKitLanguageCatalog
 
 /**
  * Translation-code -> concrete speech-locale bridge, derived from the audited

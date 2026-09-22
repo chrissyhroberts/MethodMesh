@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.methodmesh.modules.sensorprovisioner.extractJsonObject
+import com.example.methodmesh.platform.sensors.extractJsonObject
 import org.json.JSONArray
 import org.json.JSONObject
 

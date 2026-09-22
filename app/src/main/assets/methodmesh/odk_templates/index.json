@@ -1,15 +1,15 @@
 {
   "schema": "methodmesh.odk_template_index.v3",
-  "generatedFrom": "/Users/icrucrob/AndroidStudioProjects/MethodMesh/app/src/main/java/com/example/methodmesh",
-  "templateCount": 413,
-  "moduleCount": 75,
+  "generatedFrom": "app/src/main/java/com/example/methodmesh",
+  "templateCount": 411,
+  "moduleCount": 79,
   "validationSummary": {
-    "formsNeedingRevision": 116,
-    "cleanForms": 297,
+    "formsNeedingRevision": 133,
+    "cleanForms": 278,
     "severityCounts": {
-      "error": 4,
-      "warning": 36,
-      "style": 100,
+      "error": 0,
+      "warning": 34,
+      "style": 153,
       "info": 0
     },
     "authoritativeValidatedForms": 0,
@@ -2282,7 +2282,7 @@
       "centralFormId": "conversion_calculate",
       "formVersion": "2026090703",
       "assetPath": "methodmesh/odk_templates/conversions/example_odk_conversion_calculate.xlsx",
-      "sha256": "e7ece6d811166115afe99a4383b700deba61998e68761c7d7ec783af8f48d0c1",
+      "sha256": "c28ea82bacf01e0296d7376c6c100336c0cee340e5077d06453d6144679a17d3",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -2312,7 +2312,7 @@
       "centralFormId": "conversions_conversion_calculate",
       "formVersion": "2026090701",
       "assetPath": "methodmesh/odk_templates/conversions/example_odk_showcase_conversion_calculate.xlsx",
-      "sha256": "3b1cf0c9bf30abcb30a7b93a29015edd40ab69793e3288cf74eadd6501232e0e",
+      "sha256": "10e4eb364662c47224fc75805c990fff1a5a00cf53a6e13d19d0b38e21a22b90",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -3661,6 +3661,66 @@
       }
     },
     {
+      "id": "espmesh.example_odk_showcase_espmesh_diagnostics",
+      "moduleId": "espmesh",
+      "moduleName": "Espmesh",
+      "displayName": "MethodMesh Inspect field transport",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_espmesh_diagnostics.xlsx",
+      "sourceRelativePath": "modules/espmesh/docs/example_odk_showcase_espmesh_diagnostics.xlsx",
+      "centralFormId": "espmesh_diagnostics",
+      "formVersion": "2026092201",
+      "assetPath": "methodmesh/odk_templates/espmesh/example_odk_showcase_espmesh_diagnostics.xlsx",
+      "sha256": "11d4fc291a83313df8d801250c33d22f7f10e830f27d43de3ea61e4434a8b880",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "espmesh.example_odk_showcase_espmesh_gateway_provision",
+      "moduleId": "espmesh",
+      "moduleName": "Espmesh",
+      "displayName": "MethodMesh Configure field gateway",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_espmesh_gateway_provision.xlsx",
+      "sourceRelativePath": "modules/espmesh/docs/example_odk_showcase_espmesh_gateway_provision.xlsx",
+      "centralFormId": "espmesh_gateway_provision",
+      "formVersion": "2026092201",
+      "assetPath": "methodmesh/odk_templates/espmesh/example_odk_showcase_espmesh_gateway_provision.xlsx",
+      "sha256": "3362f8e73a329082709c0b4411e6fa8b88f81570ba086234b058d32206acb600",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "espmesh.example_odk_showcase_espmesh_message_send",
+      "moduleId": "espmesh",
+      "moduleName": "Espmesh",
+      "displayName": "MethodMesh Send field message",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_espmesh_message_send.xlsx",
+      "sourceRelativePath": "modules/espmesh/docs/example_odk_showcase_espmesh_message_send.xlsx",
+      "centralFormId": "espmesh_message_send",
+      "formVersion": "2026092201",
+      "assetPath": "methodmesh/odk_templates/espmesh/example_odk_showcase_espmesh_message_send.xlsx",
+      "sha256": "819c6b7789024493fffe1ed9ec1463214d3e9ea0b2991230dc2d00a4ad563aa5",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
       "id": "expenses.example_odk_showcase_expenses_manage",
       "moduleId": "expenses",
       "moduleName": "Expenses",
@@ -3681,203 +3741,453 @@
       }
     },
     {
-      "id": "fieldstats.example_odk_showcase_fieldstats_compare_binary",
+      "id": "fieldstats.example_odk_FieldStats_CompareBinary",
       "moduleId": "fieldstats",
       "moduleName": "Fieldstats",
-      "displayName": "MethodMesh Field Statistics — fieldstats.compare_binary",
+      "displayName": "MethodMesh FieldStats: Compare binary groups",
       "description": "",
-      "sourceFileName": "example_odk_showcase_fieldstats_compare_binary.xlsx",
-      "sourceRelativePath": "modules/fieldstats/docs/example_odk_showcase_fieldstats_compare_binary.xlsx",
-      "centralFormId": "fieldstats_fieldstats_compare_binary",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_showcase_fieldstats_compare_binary.xlsx",
-      "sha256": "c7f1e6d7fcead4fe2ece341de8e8cc54981f6ea7628469e29bc5b11b0f39240a",
+      "sourceFileName": "example_odk_FieldStats_CompareBinary.xlsx",
+      "sourceRelativePath": "modules/fieldstats/docs/example_odk_FieldStats_CompareBinary.xlsx",
+      "centralFormId": "methodmesh_fieldstats_compare_binary",
+      "formVersion": "2026090401",
+      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_FieldStats_CompareBinary.xlsx",
+      "sha256": "e55e43a9dfc3c1b904863742d02b49256c95d90d1eb57d29206ff8e93b6c48bf",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_FieldStats_CompareBinary.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/fieldstats/docs/example_odk_FieldStats_CompareBinary.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_fieldstats_comparebinary.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_fieldstats_compare_binary' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'fieldstats_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
-      "id": "fieldstats.example_odk_showcase_fieldstats_detection_limit",
+      "id": "fieldstats.example_odk_FieldStats_DetectionLimit",
       "moduleId": "fieldstats",
       "moduleName": "Fieldstats",
-      "displayName": "MethodMesh Field Statistics — fieldstats.detection_limit",
+      "displayName": "MethodMesh FieldStats: Detection / zero events",
       "description": "",
-      "sourceFileName": "example_odk_showcase_fieldstats_detection_limit.xlsx",
-      "sourceRelativePath": "modules/fieldstats/docs/example_odk_showcase_fieldstats_detection_limit.xlsx",
-      "centralFormId": "fieldstats_fieldstats_detection_limit",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_showcase_fieldstats_detection_limit.xlsx",
-      "sha256": "92fda7194896ac1558b2ccb96764173930ddb947142d15c066777210fc305fb0",
+      "sourceFileName": "example_odk_FieldStats_DetectionLimit.xlsx",
+      "sourceRelativePath": "modules/fieldstats/docs/example_odk_FieldStats_DetectionLimit.xlsx",
+      "centralFormId": "methodmesh_fieldstats_detection",
+      "formVersion": "2026090401",
+      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_FieldStats_DetectionLimit.xlsx",
+      "sha256": "a9c8c6d6fd7f0b2d732d13b032db26369a0a54f951c49c421501d11e1eccbe8b",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_FieldStats_DetectionLimit.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/fieldstats/docs/example_odk_FieldStats_DetectionLimit.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_fieldstats_detectionlimit.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_fieldstats_detection' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'fieldstats_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
-      "id": "fieldstats.example_odk_showcase_fieldstats_diagnostic_2x2",
+      "id": "fieldstats.example_odk_FieldStats_Diagnostic2x2",
       "moduleId": "fieldstats",
       "moduleName": "Fieldstats",
-      "displayName": "MethodMesh Field Statistics — fieldstats.diagnostic_2x2",
+      "displayName": "MethodMesh FieldStats: Diagnostic 2x2",
       "description": "",
-      "sourceFileName": "example_odk_showcase_fieldstats_diagnostic_2x2.xlsx",
-      "sourceRelativePath": "modules/fieldstats/docs/example_odk_showcase_fieldstats_diagnostic_2x2.xlsx",
-      "centralFormId": "fieldstats_fieldstats_diagnostic_2x2",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_showcase_fieldstats_diagnostic_2x2.xlsx",
-      "sha256": "5a8e5c54b143e702332ea439040b81c64c03cf8c91aa5f3d0938bf40d877a5c1",
+      "sourceFileName": "example_odk_FieldStats_Diagnostic2x2.xlsx",
+      "sourceRelativePath": "modules/fieldstats/docs/example_odk_FieldStats_Diagnostic2x2.xlsx",
+      "centralFormId": "methodmesh_fieldstats_diagnostic_2x2",
+      "formVersion": "2026090401",
+      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_FieldStats_Diagnostic2x2.xlsx",
+      "sha256": "38da1e892e4f2ffb41485c4960adfd1876768543e3caf742deb94a578acacf07",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_FieldStats_Diagnostic2x2.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/fieldstats/docs/example_odk_FieldStats_Diagnostic2x2.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_fieldstats_diagnostic2x2.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_fieldstats_diagnostic_2x2' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'fieldstats_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
-      "id": "fieldstats.example_odk_showcase_fieldstats_probability",
+      "id": "fieldstats.example_odk_FieldStats_Probability",
       "moduleId": "fieldstats",
       "moduleName": "Fieldstats",
-      "displayName": "MethodMesh Field Statistics — fieldstats.probability",
+      "displayName": "MethodMesh FieldStats: Probability",
       "description": "",
-      "sourceFileName": "example_odk_showcase_fieldstats_probability.xlsx",
-      "sourceRelativePath": "modules/fieldstats/docs/example_odk_showcase_fieldstats_probability.xlsx",
-      "centralFormId": "fieldstats_fieldstats_probability",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_showcase_fieldstats_probability.xlsx",
-      "sha256": "b4ad082d6e8ce2bf98140b02874d5b98c08b4c2a17737f25dfeef5132cce2701",
+      "sourceFileName": "example_odk_FieldStats_Probability.xlsx",
+      "sourceRelativePath": "modules/fieldstats/docs/example_odk_FieldStats_Probability.xlsx",
+      "centralFormId": "methodmesh_fieldstats_probability",
+      "formVersion": "2026090401",
+      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_FieldStats_Probability.xlsx",
+      "sha256": "a6c32cb436e188ed90bf0b775d8a4d440ec66258759abbf9b46d0e04ac8bef85",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_FieldStats_Probability.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/fieldstats/docs/example_odk_FieldStats_Probability.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_fieldstats_probability.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_fieldstats_probability' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'fieldstats_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
-      "id": "fieldstats.example_odk_showcase_fieldstats_proportion",
+      "id": "fieldstats.example_odk_FieldStats_Proportion",
       "moduleId": "fieldstats",
       "moduleName": "Fieldstats",
-      "displayName": "MethodMesh Field Statistics — fieldstats.proportion",
+      "displayName": "MethodMesh FieldStats: Proportion",
       "description": "",
-      "sourceFileName": "example_odk_showcase_fieldstats_proportion.xlsx",
-      "sourceRelativePath": "modules/fieldstats/docs/example_odk_showcase_fieldstats_proportion.xlsx",
-      "centralFormId": "fieldstats_fieldstats_proportion",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_showcase_fieldstats_proportion.xlsx",
-      "sha256": "1d49ae5385cd1d52c8f2f6831169c512368e19bb0353dcdcded1c974d734883c",
+      "sourceFileName": "example_odk_FieldStats_Proportion.xlsx",
+      "sourceRelativePath": "modules/fieldstats/docs/example_odk_FieldStats_Proportion.xlsx",
+      "centralFormId": "methodmesh_fieldstats_proportion",
+      "formVersion": "2026090401",
+      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_FieldStats_Proportion.xlsx",
+      "sha256": "009f5a077304319b124674037de85d588c7003fe070d57cfa88b0c5ae6defb66",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_FieldStats_Proportion.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/fieldstats/docs/example_odk_FieldStats_Proportion.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_fieldstats_proportion.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_fieldstats_proportion' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'fieldstats_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
-      "id": "fieldstats.example_odk_showcase_fieldstats_roc",
+      "id": "fieldstats.example_odk_FieldStats_ROC",
       "moduleId": "fieldstats",
       "moduleName": "Fieldstats",
-      "displayName": "MethodMesh Field Statistics — fieldstats.roc",
+      "displayName": "MethodMesh FieldStats: ROC threshold",
       "description": "",
-      "sourceFileName": "example_odk_showcase_fieldstats_roc.xlsx",
-      "sourceRelativePath": "modules/fieldstats/docs/example_odk_showcase_fieldstats_roc.xlsx",
-      "centralFormId": "fieldstats_fieldstats_roc",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_showcase_fieldstats_roc.xlsx",
-      "sha256": "611d8f674a0d5bd693aa7267cedd81c66f864cbcbc0f15a7d2fe76403403f7f5",
+      "sourceFileName": "example_odk_FieldStats_ROC.xlsx",
+      "sourceRelativePath": "modules/fieldstats/docs/example_odk_FieldStats_ROC.xlsx",
+      "centralFormId": "methodmesh_fieldstats_roc",
+      "formVersion": "2026090401",
+      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_FieldStats_ROC.xlsx",
+      "sha256": "d3985831c43b76ba04bb30acf6312c29bbb8a70e4c3645220839ca7dc766fc14",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_FieldStats_ROC.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/fieldstats/docs/example_odk_FieldStats_ROC.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_fieldstats_roc.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_fieldstats_roc' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'fieldstats_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
-      "id": "fieldstats.example_odk_showcase_fieldstats_sample_size_diagnostic",
+      "id": "fieldstats.example_odk_FieldStats_SampleSizeDiagnostic",
       "moduleId": "fieldstats",
       "moduleName": "Fieldstats",
-      "displayName": "MethodMesh Field Statistics — fieldstats.sample_size_diagnostic",
+      "displayName": "MethodMesh FieldStats: Diagnostic sample size",
       "description": "",
-      "sourceFileName": "example_odk_showcase_fieldstats_sample_size_diagnostic.xlsx",
-      "sourceRelativePath": "modules/fieldstats/docs/example_odk_showcase_fieldstats_sample_size_diagnostic.xlsx",
-      "centralFormId": "fieldstats_fieldstats_sample_size_diagnostic",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_showcase_fieldstats_sample_size_diagnostic.xlsx",
-      "sha256": "5337e6ceebfb4f61f3fc40e0fe3d6c1a973355d05aeacd45abd2c8399e266705",
+      "sourceFileName": "example_odk_FieldStats_SampleSizeDiagnostic.xlsx",
+      "sourceRelativePath": "modules/fieldstats/docs/example_odk_FieldStats_SampleSizeDiagnostic.xlsx",
+      "centralFormId": "methodmesh_fieldstats_sample_size_diagnostic",
+      "formVersion": "2026090401",
+      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_FieldStats_SampleSizeDiagnostic.xlsx",
+      "sha256": "572bcc1df699eababa2fea0226bc055c57dcc5597d477da67d03609d5b94e7b3",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_FieldStats_SampleSizeDiagnostic.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/fieldstats/docs/example_odk_FieldStats_SampleSizeDiagnostic.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_fieldstats_samplesizediagnostic.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_fieldstats_sample_size_diagnostic' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'fieldstats_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
-      "id": "fieldstats.example_odk_showcase_fieldstats_sample_size_proportion",
+      "id": "fieldstats.example_odk_FieldStats_SampleSizeProportion",
       "moduleId": "fieldstats",
       "moduleName": "Fieldstats",
-      "displayName": "MethodMesh Field Statistics — fieldstats.sample_size_proportion",
+      "displayName": "MethodMesh FieldStats: Sample size proportion",
       "description": "",
-      "sourceFileName": "example_odk_showcase_fieldstats_sample_size_proportion.xlsx",
-      "sourceRelativePath": "modules/fieldstats/docs/example_odk_showcase_fieldstats_sample_size_proportion.xlsx",
-      "centralFormId": "fieldstats_fieldstats_sample_size_proportion",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_showcase_fieldstats_sample_size_proportion.xlsx",
-      "sha256": "23dab1eac9acd556dddf86bc868e17f7bcd03319a152e0477e60677cbca63329",
+      "sourceFileName": "example_odk_FieldStats_SampleSizeProportion.xlsx",
+      "sourceRelativePath": "modules/fieldstats/docs/example_odk_FieldStats_SampleSizeProportion.xlsx",
+      "centralFormId": "methodmesh_fieldstats_sample_size_proportion",
+      "formVersion": "2026090401",
+      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_FieldStats_SampleSizeProportion.xlsx",
+      "sha256": "2401c116d0518e63b78f3f14df8dfb037d80aa12eb6816740771f5d7e02df873",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_FieldStats_SampleSizeProportion.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/fieldstats/docs/example_odk_FieldStats_SampleSizeProportion.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_fieldstats_samplesizeproportion.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_fieldstats_sample_size_proportion' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'fieldstats_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
-      "id": "fieldstats.example_odk_showcase_fieldstats_sample_size_two_proportions",
+      "id": "fieldstats.example_odk_FieldStats_SampleSizeTwoProportions",
       "moduleId": "fieldstats",
       "moduleName": "Fieldstats",
-      "displayName": "MethodMesh Field Statistics — fieldstats.sample_size_two_proportions",
+      "displayName": "MethodMesh FieldStats: Sample size two proportions",
       "description": "",
-      "sourceFileName": "example_odk_showcase_fieldstats_sample_size_two_proportions.xlsx",
-      "sourceRelativePath": "modules/fieldstats/docs/example_odk_showcase_fieldstats_sample_size_two_proportions.xlsx",
-      "centralFormId": "fieldstats_fieldstats_sample_size_two_proportions",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_showcase_fieldstats_sample_size_two_proportions.xlsx",
-      "sha256": "894095d873e0dfe6023f69be69b422dbfb2782791eb55a5aade5bfdf01822372",
+      "sourceFileName": "example_odk_FieldStats_SampleSizeTwoProportions.xlsx",
+      "sourceRelativePath": "modules/fieldstats/docs/example_odk_FieldStats_SampleSizeTwoProportions.xlsx",
+      "centralFormId": "methodmesh_fieldstats_sample_size_two_prop",
+      "formVersion": "2026090401",
+      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_FieldStats_SampleSizeTwoProportions.xlsx",
+      "sha256": "8b7432194727394df16e60d487d13a99be695066d9404ac67caea6f54913cae4",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_FieldStats_SampleSizeTwoProportions.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/fieldstats/docs/example_odk_FieldStats_SampleSizeTwoProportions.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_fieldstats_samplesizetwoproportions.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_fieldstats_sample_size_two_prop' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'fieldstats_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
-      "id": "fieldstats.example_odk_showcase_fieldstats_summary",
+      "id": "fieldstats.example_odk_FieldStats_Summary",
       "moduleId": "fieldstats",
       "moduleName": "Fieldstats",
-      "displayName": "MethodMesh Field Statistics — fieldstats.summary",
+      "displayName": "MethodMesh FieldStats: Descriptive summary",
       "description": "",
-      "sourceFileName": "example_odk_showcase_fieldstats_summary.xlsx",
-      "sourceRelativePath": "modules/fieldstats/docs/example_odk_showcase_fieldstats_summary.xlsx",
-      "centralFormId": "fieldstats_fieldstats_summary",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_showcase_fieldstats_summary.xlsx",
-      "sha256": "9f74ee911092a6a0662a9637899d3de440b604a76d73dbe497081ee62fc3bbab",
+      "sourceFileName": "example_odk_FieldStats_Summary.xlsx",
+      "sourceRelativePath": "modules/fieldstats/docs/example_odk_FieldStats_Summary.xlsx",
+      "centralFormId": "methodmesh_fieldstats_summary",
+      "formVersion": "2026090401",
+      "assetPath": "methodmesh/odk_templates/fieldstats/example_odk_FieldStats_Summary.xlsx",
+      "sha256": "623369518a5e2f2f53de0dc7108c9232c7175d82db3e084f0668f9fc6ea6e772",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_FieldStats_Summary.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/fieldstats/docs/example_odk_FieldStats_Summary.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_fieldstats_summary.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_fieldstats_summary' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'fieldstats_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "filelab.example_odk_showcase_file_convert",
+      "moduleId": "filelab",
+      "moduleName": "Filelab",
+      "displayName": "File Lab — Convert file",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_file_convert.xlsx",
+      "sourceRelativePath": "modules/filelab/docs/example_odk_showcase_file_convert.xlsx",
+      "centralFormId": "methodmesh_filelab_file_convert",
+      "formVersion": "2026092202",
+      "assetPath": "methodmesh/odk_templates/filelab/example_odk_showcase_file_convert.xlsx",
+      "sha256": "4e15017ec036ca726ae3f44ebb6035870d991b5d221377c63a2609f940ffce2e",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_filelab_file_convert' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'filelab_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "filelab.example_odk_showcase_file_inspect",
+      "moduleId": "filelab",
+      "moduleName": "Filelab",
+      "displayName": "File Lab — Inspect file",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_file_inspect.xlsx",
+      "sourceRelativePath": "modules/filelab/docs/example_odk_showcase_file_inspect.xlsx",
+      "centralFormId": "methodmesh_filelab_file_inspect",
+      "formVersion": "2026092203",
+      "assetPath": "methodmesh/odk_templates/filelab/example_odk_showcase_file_inspect.xlsx",
+      "sha256": "4fca1c55683459bdf6f31a188d457036070f42b7b311c23dd2b6d92392fd4aed",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_filelab_file_inspect' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'filelab_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
@@ -4610,23 +4920,32 @@
       }
     },
     {
-      "id": "labbench.example_odk_labbench_aliquot",
+      "id": "labbench.example_odk_labbench.aliquot",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Aliquot",
+      "displayName": "labbench.aliquot",
       "description": "",
-      "sourceFileName": "example_odk_labbench_aliquot.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_aliquot.xlsx",
+      "sourceFileName": "example_odk_labbench.aliquot.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.aliquot.xlsx",
       "centralFormId": "labbench.aliquot",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_aliquot.xlsx",
-      "sha256": "6a8882522289b3be7ba30aa082dbc64bb41487253d4f4a9ddbf986b9a70639b0",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.aliquot.xlsx",
+      "sha256": "59dc33e9450469b7624210e9ee194fc0bbf6013ee43262584e3d13ece216103a",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.aliquot.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.aliquot.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_aliquot.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4635,28 +4954,46 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
       }
     },
     {
-      "id": "labbench.example_odk_labbench_cell_dilution",
+      "id": "labbench.example_odk_labbench.cell_dilution",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Cell Dilution",
+      "displayName": "labbench.cell_dilution",
       "description": "",
-      "sourceFileName": "example_odk_labbench_cell_dilution.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_cell_dilution.xlsx",
+      "sourceFileName": "example_odk_labbench.cell_dilution.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.cell_dilution.xlsx",
       "centralFormId": "labbench.cell_dilution",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_cell_dilution.xlsx",
-      "sha256": "12316d611772b37319c6259b5cbd9ff59cbf8bc9fd2c9c08cc672244f5cfacd1",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.cell_dilution.xlsx",
+      "sha256": "3340659642fd1f0bc9479afccdb1ca2b5ee7a0ae7389e7956c1ba7afb815df0a",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.cell_dilution.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.cell_dilution.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_cell_dilution.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4665,28 +5002,46 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
       }
     },
     {
-      "id": "labbench.example_odk_labbench_centrifuge",
+      "id": "labbench.example_odk_labbench.centrifuge",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Centrifuge",
+      "displayName": "labbench.centrifuge",
       "description": "",
-      "sourceFileName": "example_odk_labbench_centrifuge.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_centrifuge.xlsx",
+      "sourceFileName": "example_odk_labbench.centrifuge.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.centrifuge.xlsx",
       "centralFormId": "labbench.centrifuge",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_centrifuge.xlsx",
-      "sha256": "053cd3bcd0b6a0efdd1bae7e146d50ae754ca1ee1b5e6c55131a800de355561c",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.centrifuge.xlsx",
+      "sha256": "69e709cf5d328bc0c5a0de6938dccec020602acc63e374cf592453726c5e4e23",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.centrifuge.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.centrifuge.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_centrifuge.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4695,28 +5050,46 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
       }
     },
     {
-      "id": "labbench.example_odk_labbench_concentration",
+      "id": "labbench.example_odk_labbench.concentration",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Concentration",
+      "displayName": "labbench.concentration",
       "description": "",
-      "sourceFileName": "example_odk_labbench_concentration.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_concentration.xlsx",
+      "sourceFileName": "example_odk_labbench.concentration.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.concentration.xlsx",
       "centralFormId": "labbench.concentration",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_concentration.xlsx",
-      "sha256": "8e36ec6f88b5d34902bce3a8e99bb255145c85245f648c07f4ea2956e6005683",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.concentration.xlsx",
+      "sha256": "66eaebe28dcce7cb290192e1112668add8306bb2e6b7e662f668755e9fc817d1",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.concentration.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.concentration.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_concentration.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4725,28 +5098,46 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
       }
     },
     {
-      "id": "labbench.example_odk_labbench_dashboard",
+      "id": "labbench.example_odk_labbench.dashboard",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Dashboard",
+      "displayName": "labbench.dashboard",
       "description": "",
-      "sourceFileName": "example_odk_labbench_dashboard.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_dashboard.xlsx",
+      "sourceFileName": "example_odk_labbench.dashboard.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.dashboard.xlsx",
       "centralFormId": "labbench.dashboard",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_dashboard.xlsx",
-      "sha256": "98278d7d7a3e524f556348155f56d36fae5fe0baa6fe1538283e73d1c1961bd8",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.dashboard.xlsx",
+      "sha256": "8e6e9e6d53ec3769a9503f7b89183825cdc54465b152136095bdf7342461f5c4",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.dashboard.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.dashboard.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_dashboard.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4755,28 +5146,46 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
       }
     },
     {
-      "id": "labbench.example_odk_labbench_dilution",
+      "id": "labbench.example_odk_labbench.dilution",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Dilution",
+      "displayName": "labbench.dilution",
       "description": "",
-      "sourceFileName": "example_odk_labbench_dilution.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_dilution.xlsx",
+      "sourceFileName": "example_odk_labbench.dilution.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.dilution.xlsx",
       "centralFormId": "labbench.dilution",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_dilution.xlsx",
-      "sha256": "e6983c8f78a6eaa8bb5196eb89c9809426b57a22f9243d66056c1f884ded21ca",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.dilution.xlsx",
+      "sha256": "4c9351919432f563773dc5cccb4a48ddd6e12aa3ae7cac8c74a993b8cfe3511c",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.dilution.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.dilution.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_dilution.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4785,28 +5194,46 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
       }
     },
     {
-      "id": "labbench.example_odk_labbench_hemocytometer",
+      "id": "labbench.example_odk_labbench.hemocytometer",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Hemocytometer",
+      "displayName": "labbench.hemocytometer",
       "description": "",
-      "sourceFileName": "example_odk_labbench_hemocytometer.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_hemocytometer.xlsx",
+      "sourceFileName": "example_odk_labbench.hemocytometer.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.hemocytometer.xlsx",
       "centralFormId": "labbench.hemocytometer",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_hemocytometer.xlsx",
-      "sha256": "1709cde3a96f0a2b6d199a8f701078fc984112f858224da81a4747eca012426e",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.hemocytometer.xlsx",
+      "sha256": "7245927679d33b23c244eaba648234ed3a1678e41d35956b166ded918d861ec9",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.hemocytometer.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.hemocytometer.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_hemocytometer.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4815,28 +5242,46 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
       }
     },
     {
-      "id": "labbench.example_odk_labbench_master_mix",
+      "id": "labbench.example_odk_labbench.master_mix",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Master Mix",
+      "displayName": "labbench.master_mix",
       "description": "",
-      "sourceFileName": "example_odk_labbench_master_mix.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_master_mix.xlsx",
+      "sourceFileName": "example_odk_labbench.master_mix.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.master_mix.xlsx",
       "centralFormId": "labbench.master_mix",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_master_mix.xlsx",
-      "sha256": "47d54c0ac686a5442f2aad01312d4e98d252e9ce2b96d7f303adf9a36e887e74",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.master_mix.xlsx",
+      "sha256": "87fd9ae0d222ffa6ad69d13297b9f8857eb943aa2f7bf31890bde12234b9124f",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.master_mix.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.master_mix.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_master_mix.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4845,28 +5290,46 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
       }
     },
     {
-      "id": "labbench.example_odk_labbench_molar_solution",
+      "id": "labbench.example_odk_labbench.molar_solution",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Molar Solution",
+      "displayName": "labbench.molar_solution",
       "description": "",
-      "sourceFileName": "example_odk_labbench_molar_solution.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_molar_solution.xlsx",
+      "sourceFileName": "example_odk_labbench.molar_solution.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.molar_solution.xlsx",
       "centralFormId": "labbench.molar_solution",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_molar_solution.xlsx",
-      "sha256": "ea28e4b3c28f497aae96380a23fe959c2ee23f0c9c291ecf7676823c9a43c42e",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.molar_solution.xlsx",
+      "sha256": "da22f4196beefad98f67051b0df91a9391354664de4ca1d9d365c5142c6a45d4",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.molar_solution.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.molar_solution.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_molar_solution.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4875,28 +5338,46 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
       }
     },
     {
-      "id": "labbench.example_odk_labbench_nucleic_acid",
+      "id": "labbench.example_odk_labbench.nucleic_acid",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Nucleic Acid",
+      "displayName": "labbench.nucleic_acid",
       "description": "",
-      "sourceFileName": "example_odk_labbench_nucleic_acid.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_nucleic_acid.xlsx",
+      "sourceFileName": "example_odk_labbench.nucleic_acid.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.nucleic_acid.xlsx",
       "centralFormId": "labbench.nucleic_acid",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_nucleic_acid.xlsx",
-      "sha256": "85415e2a4eadc03e8cfb2872295d26e9cce0f9a39b8e4f16480865b08cd9a3ea",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.nucleic_acid.xlsx",
+      "sha256": "53eb715ff223aefcf15c21a8096bc2ee5e0d0dd4cc425dbd55559e12911fefc4",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.nucleic_acid.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.nucleic_acid.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_nucleic_acid.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4905,28 +5386,46 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
       }
     },
     {
-      "id": "labbench.example_odk_labbench_percent_solution",
+      "id": "labbench.example_odk_labbench.percent_solution",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Percent Solution",
+      "displayName": "labbench.percent_solution",
       "description": "",
-      "sourceFileName": "example_odk_labbench_percent_solution.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_percent_solution.xlsx",
+      "sourceFileName": "example_odk_labbench.percent_solution.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.percent_solution.xlsx",
       "centralFormId": "labbench.percent_solution",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_percent_solution.xlsx",
-      "sha256": "b41b818fef4d1f311b0461953f07b8bf798fcc55c97537e09f50e075a6c4c97f",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.percent_solution.xlsx",
+      "sha256": "b5a35d9c187d32d8124196eaa6996182c75800704aab1b16d0877fe61f3db0bb",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.percent_solution.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.percent_solution.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_percent_solution.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4935,28 +5434,46 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
       }
     },
     {
-      "id": "labbench.example_odk_labbench_reconstitute",
+      "id": "labbench.example_odk_labbench.reconstitute",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Reconstitute",
+      "displayName": "labbench.reconstitute",
       "description": "",
-      "sourceFileName": "example_odk_labbench_reconstitute.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_reconstitute.xlsx",
+      "sourceFileName": "example_odk_labbench.reconstitute.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.reconstitute.xlsx",
       "centralFormId": "labbench.reconstitute",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_reconstitute.xlsx",
-      "sha256": "d74bc34be8191810ba11f0b7100e1d1f07f7661f0987021a560f55678c145164",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.reconstitute.xlsx",
+      "sha256": "575b53d4fd6c8e266b69b4c7277da52f859b6e0b6e02476257f934985d596464",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.reconstitute.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.reconstitute.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_reconstitute.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4965,28 +5482,46 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
       }
     },
     {
-      "id": "labbench.example_odk_labbench_serial_dilution",
+      "id": "labbench.example_odk_labbench.serial_dilution",
       "moduleId": "labbench",
       "moduleName": "Labbench",
-      "displayName": "Lab Bench Serial Dilution",
+      "displayName": "labbench.serial_dilution",
       "description": "",
-      "sourceFileName": "example_odk_labbench_serial_dilution.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench_serial_dilution.xlsx",
+      "sourceFileName": "example_odk_labbench.serial_dilution.xlsx",
+      "sourceRelativePath": "modules/labbench/docs/example_odk_labbench.serial_dilution.xlsx",
       "centralFormId": "labbench.serial_dilution",
-      "formVersion": "2026090703",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench_serial_dilution.xlsx",
-      "sha256": "481cf43cc83674df7ef6ad1c0a40ef50b20a7a4c62d798188a7567ac4c9d9b28",
+      "formVersion": "20260904",
+      "assetPath": "methodmesh/odk_templates/labbench/example_odk_labbench.serial_dilution.xlsx",
+      "sha256": "63a1ac04285415773fef18d383b5a73224c162fb2a88b39c22a304725933b02a",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_labbench.serial_dilution.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/labbench/docs/example_odk_labbench.serial_dilution.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_labbench_serial_dilution.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
           {
             "severity": "warning",
             "code": "FORM_ID_NONSTANDARD",
@@ -4995,268 +5530,17 @@
             "suggestion": "Do not automatically rename a deployed form_id. For new forms use lower_snake_case.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260904' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
           }
         ]
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_aliquot",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.aliquot",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_aliquot.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_aliquot.xlsx",
-      "centralFormId": "labbench_labbench_aliquot",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_aliquot.xlsx",
-      "sha256": "b2ad01d989f274eb855940fc642859a1a52590cafe764a6aedfe828917a5adeb",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_cell_dilution",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.cell_dilution",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_cell_dilution.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_cell_dilution.xlsx",
-      "centralFormId": "labbench_labbench_cell_dilution",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_cell_dilution.xlsx",
-      "sha256": "ab266944e7314e5b2342c7bd32b51bd207ffbcf3224a0494f917426d9e1c9ba3",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_centrifuge",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.centrifuge",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_centrifuge.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_centrifuge.xlsx",
-      "centralFormId": "labbench_labbench_centrifuge",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_centrifuge.xlsx",
-      "sha256": "ec0f420b88e2151d7e50357e3a4e24cfc1180a8e797e21dd4bb772bd68fe1a93",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_concentration",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.concentration",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_concentration.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_concentration.xlsx",
-      "centralFormId": "labbench_labbench_concentration",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_concentration.xlsx",
-      "sha256": "0f8e12ac648992946e413b8cfa3553a85c7c3ed27a5f03555c68a381da8d60cc",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_dashboard",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.dashboard",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_dashboard.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_dashboard.xlsx",
-      "centralFormId": "labbench_labbench_dashboard",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_dashboard.xlsx",
-      "sha256": "75c449e66dbf5d3dc0142896e7de0330440f73cbee824bdb0fe7f5cb36515a1a",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_dilution",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.dilution",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_dilution.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_dilution.xlsx",
-      "centralFormId": "labbench_labbench_dilution",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_dilution.xlsx",
-      "sha256": "dfa00404d72606feb7e69da4e8b7626aaebb1bbbdf418af276859169651df96d",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_hemocytometer",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.hemocytometer",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_hemocytometer.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_hemocytometer.xlsx",
-      "centralFormId": "labbench_labbench_hemocytometer",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_hemocytometer.xlsx",
-      "sha256": "b7ad507af5d800f246f1dbf59a3fce0e24e214c48272ba0e41a92c599f583191",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_master_mix",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.master_mix",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_master_mix.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_master_mix.xlsx",
-      "centralFormId": "labbench_labbench_master_mix",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_master_mix.xlsx",
-      "sha256": "6993bd2e146501fbc943fe8441c0cd3aca57026de146d9a4c08dc3b421f41331",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_molar_solution",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.molar_solution",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_molar_solution.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_molar_solution.xlsx",
-      "centralFormId": "labbench_labbench_molar_solution",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_molar_solution.xlsx",
-      "sha256": "ff67cb9086e4a9ee37751fe24a2c3145196445baa3a4e531296e2787c2239ea5",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_nucleic_acid",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.nucleic_acid",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_nucleic_acid.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_nucleic_acid.xlsx",
-      "centralFormId": "labbench_labbench_nucleic_acid",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_nucleic_acid.xlsx",
-      "sha256": "4d6874fb755db3cd7838378b3af73a18a95baa0e0e9e8955c53120728598e0e9",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_percent_solution",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.percent_solution",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_percent_solution.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_percent_solution.xlsx",
-      "centralFormId": "labbench_labbench_percent_solution",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_percent_solution.xlsx",
-      "sha256": "93f356f9eeef32686b701dd54d8863e5d4dc1b262ec641aff12959279d7df292",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_reconstitute",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.reconstitute",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_reconstitute.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_reconstitute.xlsx",
-      "centralFormId": "labbench_labbench_reconstitute",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_reconstitute.xlsx",
-      "sha256": "9af7f8862f5212a056b864e94a92e1b7c66ffae4c1d6444a2064113890f2cf7a",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "labbench.example_odk_showcase_labbench_serial_dilution",
-      "moduleId": "labbench",
-      "moduleName": "Labbench",
-      "displayName": "MethodMesh Lab Bench — labbench.serial_dilution",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_labbench_serial_dilution.xlsx",
-      "sourceRelativePath": "modules/labbench/docs/example_odk_showcase_labbench_serial_dilution.xlsx",
-      "centralFormId": "labbench_labbench_serial_dilution",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/labbench/example_odk_showcase_labbench_serial_dilution.xlsx",
-      "sha256": "a317be409cc906f98d29e5ddeea751d0c712a228b45cbd9ff5ab9f0d848b0d56",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
       }
     },
     {
@@ -6148,17 +6432,17 @@
       }
     },
     {
-      "id": "networktools.example_odk_network_tools",
+      "id": "networktools.example_odk_showcase_network_tools",
       "moduleId": "networktools",
       "moduleName": "Networktools",
       "displayName": "MethodMesh Network Tools",
       "description": "",
-      "sourceFileName": "example_odk_network_tools.xlsx",
-      "sourceRelativePath": "modules/networktools/docs/example_odk_network_tools.xlsx",
+      "sourceFileName": "example_odk_showcase_network_tools.xlsx",
+      "sourceRelativePath": "modules/networktools/docs/example_odk_showcase_network_tools.xlsx",
       "centralFormId": "methodmesh_network_tools",
-      "formVersion": "2026090601",
-      "assetPath": "methodmesh/odk_templates/networktools/example_odk_network_tools.xlsx",
-      "sha256": "604d10f21f8b2ad0d2f8e6e465cc74defe6c8f8a901fc620c452709f4535f972",
+      "formVersion": "2026092201",
+      "assetPath": "methodmesh/odk_templates/networktools/example_odk_showcase_network_tools.xlsx",
+      "sha256": "7f06b4cc74880abe58a6a3909ebf6eede7496c9807b16e21a749b2e0a44f009d",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6178,37 +6462,17 @@
       }
     },
     {
-      "id": "networktools.example_odk_showcase_network_tools",
-      "moduleId": "networktools",
-      "moduleName": "Networktools",
-      "displayName": "MethodMesh Network tools — network.tools",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_network_tools.xlsx",
-      "sourceRelativePath": "modules/networktools/docs/example_odk_showcase_network_tools.xlsx",
-      "centralFormId": "networktools_network_tools",
-      "formVersion": "2026090701",
-      "assetPath": "methodmesh/odk_templates/networktools/example_odk_showcase_network_tools.xlsx",
-      "sha256": "2d6f6a872eb9158ea53f6c4f2ec34fe3959cdc08cacbaa0af2468ad6dd9f7975",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
       "id": "nfc.example_odk_nfc_credential_provisioning",
       "moduleId": "nfc",
       "moduleName": "Nfc",
-      "displayName": "NFC Credential Provisioning",
+      "displayName": "nfc_credential_provisioning",
       "description": "",
       "sourceFileName": "example_odk_nfc_credential_provisioning.xlsx",
       "sourceRelativePath": "modules/nfc/docs/example_odk_nfc_credential_provisioning.xlsx",
       "centralFormId": "nfc_credential_provisioning",
-      "formVersion": "2026090703",
+      "formVersion": "2026092202",
       "assetPath": "methodmesh/odk_templates/nfc/example_odk_nfc_credential_provisioning.xlsx",
-      "sha256": "cfba9bec7c8fa79af68c96041ecee10be5afe8a4251fda28222dd41f421f4927",
+      "sha256": "c43d9dc38bdcd03c663947ddc735d812d1af9c27ab6b91848892edd6f9e00b7b",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6221,14 +6485,34 @@
       "id": "nfc.example_odk_nfc_credential_verification",
       "moduleId": "nfc",
       "moduleName": "Nfc",
-      "displayName": "NFC Credential Verification",
+      "displayName": "nfc_credential_verification",
       "description": "",
       "sourceFileName": "example_odk_nfc_credential_verification.xlsx",
       "sourceRelativePath": "modules/nfc/docs/example_odk_nfc_credential_verification.xlsx",
       "centralFormId": "nfc_credential_verification",
-      "formVersion": "2026090703",
+      "formVersion": "2026092202",
       "assetPath": "methodmesh/odk_templates/nfc/example_odk_nfc_credential_verification.xlsx",
-      "sha256": "55d95e2b9128c0022b7dc27fbd43d711ba7885514ee6dd7aae8c1f235772a69b",
+      "sha256": "f12802263c154a37b3cd6f9034363a7c1183c64586007f0e2a403a56f6e4c6f1",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "nfc.example_odk_nfc_issuer_identity",
+      "moduleId": "nfc",
+      "moduleName": "Nfc",
+      "displayName": "nfc_issuer_identity",
+      "description": "",
+      "sourceFileName": "example_odk_nfc_issuer_identity.xlsx",
+      "sourceRelativePath": "modules/nfc/docs/example_odk_nfc_issuer_identity.xlsx",
+      "centralFormId": "nfc_issuer_identity",
+      "formVersion": "2026092201",
+      "assetPath": "methodmesh/odk_templates/nfc/example_odk_nfc_issuer_identity.xlsx",
+      "sha256": "83c385e1c48b5a0ce10c3f960878c39e380f935d3da7133da58f1e986449f118",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6365,10 +6649,10 @@
       "description": "",
       "sourceFileName": "example_odk_showcase_nfc_credential_provisioning.xlsx",
       "sourceRelativePath": "modules/nfc/docs/example_odk_showcase_nfc_credential_provisioning.xlsx",
-      "centralFormId": "nfc_nfc_credential_provisioning",
-      "formVersion": "2026090701",
+      "centralFormId": "nfc_showcase_credential_provisioning",
+      "formVersion": "2026092202",
       "assetPath": "methodmesh/odk_templates/nfc/example_odk_showcase_nfc_credential_provisioning.xlsx",
-      "sha256": "0384bda896b6304d64ea5ba18b60b68e6bd346756cefcb0d67754079eea96f72",
+      "sha256": "f1b2f5a1acf59ee4d9d73346e8b45daa03917067f6e46371d238fb92dc5a6377",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6385,10 +6669,30 @@
       "description": "",
       "sourceFileName": "example_odk_showcase_nfc_credential_verification.xlsx",
       "sourceRelativePath": "modules/nfc/docs/example_odk_showcase_nfc_credential_verification.xlsx",
-      "centralFormId": "nfc_nfc_credential_verification",
-      "formVersion": "2026090701",
+      "centralFormId": "nfc_showcase_credential_verification",
+      "formVersion": "2026092202",
       "assetPath": "methodmesh/odk_templates/nfc/example_odk_showcase_nfc_credential_verification.xlsx",
-      "sha256": "65b27a231c3d5ba1eceffb7df0f2c5eaf6c9c7d7e78fd77ae808f687a262e900",
+      "sha256": "a9d58ed9433f19e7d8b95b39c8153efca4f96e66ab29a30e5dec2bb6ca549ba8",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "nfc.example_odk_showcase_nfc_issuer_identity",
+      "moduleId": "nfc",
+      "moduleName": "Nfc",
+      "displayName": "MethodMesh NFC — nfc_issuer_identity",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_nfc_issuer_identity.xlsx",
+      "sourceRelativePath": "modules/nfc/docs/example_odk_showcase_nfc_issuer_identity.xlsx",
+      "centralFormId": "nfc_showcase_issuer_identity",
+      "formVersion": "2026092201",
+      "assetPath": "methodmesh/odk_templates/nfc/example_odk_showcase_nfc_issuer_identity.xlsx",
+      "sha256": "184ede1b29be891787ab4968f7c1a95495852c7362c3a99b33716ab5e56fa79a",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6771,14 +7075,14 @@
       "id": "qrcode.example_odk_barcode_scan",
       "moduleId": "qrcode",
       "moduleName": "Qrcode",
-      "displayName": "Barcode / QR scan",
+      "displayName": "MethodMesh barcode scan",
       "description": "",
       "sourceFileName": "example_odk_barcode_scan.xlsx",
       "sourceRelativePath": "modules/qrcode/docs/example_odk_barcode_scan.xlsx",
       "centralFormId": "barcode_scan",
-      "formVersion": "2026091201",
+      "formVersion": "2026092201",
       "assetPath": "methodmesh/odk_templates/qrcode/example_odk_barcode_scan.xlsx",
-      "sha256": "e6f584176b6003e8230354388fa8e15c1273f052ce0a46656657762cd61ccb80",
+      "sha256": "d70db51d5175c38017f3b9762c754a8c0dfb7fa51c0d46a38157fcb38c30795e",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6798,17 +7102,77 @@
       }
     },
     {
+      "id": "qrcode.example_odk_showcase_barcode_clone",
+      "moduleId": "qrcode",
+      "moduleName": "Qrcode",
+      "displayName": "MethodMesh barcode clone showcase",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_barcode_clone.xlsx",
+      "sourceRelativePath": "modules/qrcode/docs/example_odk_showcase_barcode_clone.xlsx",
+      "centralFormId": "barcode_clone",
+      "formVersion": "2026092202",
+      "assetPath": "methodmesh/odk_templates/qrcode/example_odk_showcase_barcode_clone.xlsx",
+      "sha256": "b0c7a4154c911b5b04f41be310aa847369b27beaed277199d8c72c14454dc763",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'barcode_clone' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'qrcode_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "qrcode.example_odk_showcase_barcode_generate",
+      "moduleId": "qrcode",
+      "moduleName": "Qrcode",
+      "displayName": "MethodMesh barcode generator showcase",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_barcode_generate.xlsx",
+      "sourceRelativePath": "modules/qrcode/docs/example_odk_showcase_barcode_generate.xlsx",
+      "centralFormId": "barcode_generate",
+      "formVersion": "2026092201",
+      "assetPath": "methodmesh/odk_templates/qrcode/example_odk_showcase_barcode_generate.xlsx",
+      "sha256": "a2dd44a96bf434e8693dc4eab7aff3f36cfd7f1488656d4284ea12c8404ece82",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'barcode_generate' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'qrcode_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
       "id": "qrcode.example_odk_showcase_barcode_scan",
       "moduleId": "qrcode",
       "moduleName": "Qrcode",
-      "displayName": "MethodMesh Automatic code scanner — barcode.scan",
+      "displayName": "MethodMesh barcode scan showcase",
       "description": "",
       "sourceFileName": "example_odk_showcase_barcode_scan.xlsx",
       "sourceRelativePath": "modules/qrcode/docs/example_odk_showcase_barcode_scan.xlsx",
       "centralFormId": "qrcode_barcode_scan",
-      "formVersion": "2026091201",
+      "formVersion": "2026092201",
       "assetPath": "methodmesh/odk_templates/qrcode/example_odk_showcase_barcode_scan.xlsx",
-      "sha256": "a032bc050675c966a783340cc33be6fcaec0d2e9920cd907c5c162a81e93c61a",
+      "sha256": "bb4093cb82f4c32bcbcabb02d7a2ff824af9c0366e4196fcbcdae3358fd24ec8",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -7117,14 +7481,14 @@
       "id": "scheduling.example_odk_scheduler",
       "moduleId": "scheduling",
       "moduleName": "Scheduling",
-      "displayName": "form_id",
+      "displayName": "MethodMesh Scheduler",
       "description": "",
       "sourceFileName": "example_odk_scheduler.xlsx",
       "sourceRelativePath": "core/scheduling/docs/example_odk_scheduler.xlsx",
-      "centralFormId": "scheduling.example_odk_scheduler",
-      "formVersion": "",
+      "centralFormId": "methodmesh_scheduler",
+      "formVersion": "2026092201",
       "assetPath": "methodmesh/odk_templates/scheduling/example_odk_scheduler.xlsx",
-      "sha256": "493aa9c3d2bad2413c3ef2e2c1c3766736f2be79bbb76c83709105722e013d29",
+      "sha256": "77fd88123f2372b7eb4d1c158a4b508e6fcf51ec60fb35cbbf000c88d08080dc",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -7132,29 +7496,11 @@
         "engine": "disabled",
         "issues": [
           {
-            "severity": "error",
-            "code": "FORM_ID_MISSING",
-            "message": "settings.form_id is blank.",
-            "location": "settings.form_id",
-            "suggestion": "Use a stable lower-snake-case ID, preferably beginning 'scheduling_'.",
-            "source": "MethodMesh XLSForm lint",
-            "details": ""
-          },
-          {
-            "severity": "warning",
-            "code": "FORM_VERSION_MISSING",
-            "message": "settings.version is blank.",
-            "location": "settings.version",
-            "suggestion": "Use an incrementing version. MethodMesh recommends YYYYMMDDrr for new forms.",
-            "source": "MethodMesh XLSForm lint",
-            "details": ""
-          },
-          {
             "severity": "style",
-            "code": "FORM_TITLE_DUPLICATE",
-            "message": "Form title 'form_id' is used by more than one template.",
-            "location": "settings.form_title",
-            "suggestion": "Use distinct human-readable titles so testers can identify the intended form.",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_scheduler' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'scheduling_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
           }
@@ -8272,6 +8618,66 @@
       }
     },
     {
+      "id": "star_spectrum.example_odk_showcase_astronomy_spectrum_analyse",
+      "moduleId": "star_spectrum",
+      "moduleName": "Star Spectrum",
+      "displayName": "MethodMesh showcase — Star spectrum analyser",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_astronomy_spectrum_analyse.xlsx",
+      "sourceRelativePath": "modules/star_spectrum/docs/example_odk_showcase_astronomy_spectrum_analyse.xlsx",
+      "centralFormId": "methodmesh_showcase_astronomy_spectrum_analyse",
+      "formVersion": "2026091901",
+      "assetPath": "methodmesh/odk_templates/star_spectrum/example_odk_showcase_astronomy_spectrum_analyse.xlsx",
+      "sha256": "76b6f62b58b8e9313fd99241962503dab5470322ce4af9819a1a03cbab1a3a11",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_showcase_astronomy_spectrum_analyse' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'star_spectrum_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "star_spectrum.example_odk_showcase_astronomy_spectrum_reference_create",
+      "moduleId": "star_spectrum",
+      "moduleName": "Star Spectrum",
+      "displayName": "MethodMesh showcase — Create spectrum reference",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_astronomy_spectrum_reference_create.xlsx",
+      "sourceRelativePath": "modules/star_spectrum/docs/example_odk_showcase_astronomy_spectrum_reference_create.xlsx",
+      "centralFormId": "methodmesh_showcase_astronomy_spectrum_reference_create",
+      "formVersion": "2026091902",
+      "assetPath": "methodmesh/odk_templates/star_spectrum/example_odk_showcase_astronomy_spectrum_reference_create.xlsx",
+      "sha256": "ad75879ea41e59e9592f96c7d42302ccce37cb1928cfdc235869ab0049cf262d",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_showcase_astronomy_spectrum_reference_create' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'star_spectrum_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
       "id": "surveying.example_odk_showcase_survey_area",
       "moduleId": "surveying",
       "moduleName": "Surveying",
@@ -8695,14 +9101,14 @@
       "id": "tamagotchi.example_odk_tamagotchi_teaching",
       "moduleId": "tamagotchi",
       "moduleName": "Tamagotchi",
-      "displayName": "form_id",
+      "displayName": "MethodMesh Tamagotchi Teaching Journey",
       "description": "",
       "sourceFileName": "example_odk_tamagotchi_teaching.xlsx",
       "sourceRelativePath": "modules/tamagotchi/docs/example_odk_tamagotchi_teaching.xlsx",
-      "centralFormId": "tamagotchi.example_odk_tamagotchi_teaching",
-      "formVersion": "",
+      "centralFormId": "methodmesh_tamagotchi_teaching_v01",
+      "formVersion": "2026092201",
       "assetPath": "methodmesh/odk_templates/tamagotchi/example_odk_tamagotchi_teaching.xlsx",
-      "sha256": "fd387b3d6ddc365260b0b073cdea653b46ca9053da8dfac11fff171335253ab4",
+      "sha256": "8ba737bc6bc3cb8d86bb61dfe35d08c2ac05e723538e3bf8d88a6adfff201be2",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -8710,29 +9116,41 @@
         "engine": "disabled",
         "issues": [
           {
-            "severity": "error",
-            "code": "FORM_ID_MISSING",
-            "message": "settings.form_id is blank.",
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_tamagotchi_teaching_v01' does not identify its owning module.",
             "location": "settings.form_id",
-            "suggestion": "Use a stable lower-snake-case ID, preferably beginning 'tamagotchi_'.",
+            "suggestion": "For new forms prefer IDs beginning 'tamagotchi_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
-          },
-          {
-            "severity": "warning",
-            "code": "FORM_VERSION_MISSING",
-            "message": "settings.version is blank.",
-            "location": "settings.version",
-            "suggestion": "Use an incrementing version. MethodMesh recommends YYYYMMDDrr for new forms.",
-            "source": "MethodMesh XLSForm lint",
-            "details": ""
-          },
+          }
+        ]
+      }
+    },
+    {
+      "id": "textdocuments.example_odk_showcase_document_text_open",
+      "moduleId": "textdocuments",
+      "moduleName": "Textdocuments",
+      "displayName": "MethodMesh Text Documents",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_document_text_open.xlsx",
+      "sourceRelativePath": "modules/textdocuments/docs/example_odk_showcase_document_text_open.xlsx",
+      "centralFormId": "methodmesh_textdocuments_document_text_open",
+      "formVersion": "2026092005",
+      "assetPath": "methodmesh/odk_templates/textdocuments/example_odk_showcase_document_text_open.xlsx",
+      "sha256": "4adafec85e3f0686bce25fb311be023a89cb82fd7bdda993fd0b8eb116a14387",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
           {
             "severity": "style",
-            "code": "FORM_TITLE_DUPLICATE",
-            "message": "Form title 'form_id' is used by more than one template.",
-            "location": "settings.form_title",
-            "suggestion": "Use distinct human-readable titles so testers can identify the intended form.",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_textdocuments_document_text_open' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'textdocuments_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
           }
@@ -8978,9 +9396,9 @@
       "sourceFileName": "example_odk_time_tools.xlsx",
       "sourceRelativePath": "modules/time_tools/docs/example_odk_time_tools.xlsx",
       "centralFormId": "methodmesh_time_tools_examples",
-      "formVersion": "2026090901",
+      "formVersion": "2026092201",
       "assetPath": "methodmesh/odk_templates/time_tools/example_odk_time_tools.xlsx",
-      "sha256": "ce4d98a33e2ba0cd1df9c23eb22462948257d6c65df06dbb4741d42a2a42b86b",
+      "sha256": "9cc947c6898d700f81fb9640bd2fd9f474fc821836736977e380df7cfe4d606f",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -8995,24 +9413,6 @@
             "suggestion": "For new forms prefer IDs beginning 'time_tools_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
             "source": "MethodMesh XLSForm lint",
             "details": ""
-          },
-          {
-            "severity": "error",
-            "code": "SURVEY_NAME_DUPLICATE",
-            "message": "Field/group name 'input_a_ms' appears more than once in the same group scope.",
-            "location": "survey.name row 150",
-            "suggestion": "Names only need to be unique among siblings in the same group/repeat. Reuse in separate groups is valid.",
-            "source": "MethodMesh XLSForm lint",
-            "details": "Scope: /run_duration; first occurrence: survey row 143; duplicate: survey row 150"
-          },
-          {
-            "severity": "error",
-            "code": "SURVEY_NAME_DUPLICATE",
-            "message": "Field/group name 'input_b_ms' appears more than once in the same group scope.",
-            "location": "survey.name row 151",
-            "suggestion": "Names only need to be unique among siblings in the same group/repeat. Reuse in separate groups is valid.",
-            "source": "MethodMesh XLSForm lint",
-            "details": "Scope: /run_duration; first occurrence: survey row 144; duplicate: survey row 151"
           }
         ]
       }

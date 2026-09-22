@@ -6,8 +6,9 @@ offline protocol-card workflow:
 - `nfc_tag_read` — read any supported NFC/NDEF payload;
 - `nfc_tag_write` — write any supported NFC/NDEF payload;
 - `nfc_tag_wipe` — replace NDEF user content with a verified empty record;
+- `nfc_issuer_identity` — export this device's public credential-issuer identity;
 - `nfc_credential_provisioning` — create a portable, PIN-protected credential;
-- `nfc_credential_verification` — verify that credential and its PIN;
+- `nfc_credential_verification` — verify the credential, offline issuer trust, and PIN;
 - `protocol_nfc_provision` — establish the initial protocol receipt during recruitment;
 - `protocol_nfc_check` — decide whether a form step is currently eligible;
 - `protocol_nfc_complete` — mark a completed step and verify the write;
@@ -36,16 +37,35 @@ card. MethodMesh derives an AES-256 key from the PIN with Argon2id and a random
 salt. The encrypted credential is authenticated with AES-GCM and signed by the
 provisioning device's issuer key.
 
+### `nfc_issuer_identity`
+
+Issuer identity is a local commissioning capability. It exports the provisioning
+device's public signing identity: the short issuer ID, the full SHA-256 public-key
+fingerprint, the public key, and a compact JSON identity document. The private
+key remains in Android Keystore and is never exported.
+
+The full 64-hex SHA-256 fingerprint is the study trust anchor. The historical
+16-hex `issuer_key_id` remains useful as a human-readable short label but is not
+the preferred production trust decision.
+
 ### `nfc_credential_verification`
 
-Verification works on another compatible phone without copying the PIN or a
-credential registry to that phone:
+Verification is entirely offline. MethodMesh never contacts Sentinel or another
+server. The calling ODK/XLSForm supplies the study's approved issuer fingerprints
+as static form configuration:
 
 1. tap the credential;
-2. MethodMesh verifies the embedded issuer signature;
-3. enter the cardholder's PIN inside MethodMesh;
-4. successful AES-GCM decryption proves knowledge of the PIN and returns the
+2. MethodMesh reconstructs the embedded public key and verifies the credential signature;
+3. MethodMesh hashes that public key and compares the full SHA-256 fingerprint
+   with the caller-supplied study trust set;
+4. if the issuer is acceptable (or no trust set was supplied), enter the
+   cardholder's PIN inside MethodMesh;
+5. successful AES-GCM decryption proves knowledge of the PIN and returns the
    credential subject.
+
+For regulated/offline study use, supply a trust-set ID and version as well as
+the fingerprints. Those values are frozen into the verification result so later
+changes to the study allow-list do not reinterpret the historical execution.
 
 ### `nfc_tag_read`, `nfc_tag_write`, and `nfc_tag_wipe`
 
@@ -64,7 +84,7 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_provisioning',in
 Verification:
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_verification',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_verification',input_trusted_issuer_fingerprints_sha256='<comma-separated 64-hex fingerprints>',input_issuer_trust_set_id='STUDY01_NFC_ISSUERS',input_issuer_trust_set_version='1',input_payload_mode='FULL',return_mode='flat')
 ```
 
 Generic read and write:
@@ -231,6 +251,7 @@ credential_issued_time_iso
 credential_envelope_hash
 credential_secret_hash
 issuer_key_id
+issuer_public_key_fingerprint_sha256
 issuer_public_key_base64
 issuer_signature_algorithm
 provision_success
@@ -243,11 +264,14 @@ verification_evidence_hash
 The encrypted credential envelope and PIN are deliberately omitted from the
 default return.
 
-An optional issuer allow-list can be supplied:
+The preferred offline issuer allow-list uses full SHA-256 public-key fingerprints:
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_verification',input_trusted_issuer_key_ids='8303b9580fc54502,another_key_id',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_verification',input_trusted_issuer_fingerprints_sha256='<fingerprint1>,<fingerprint2>',input_issuer_trust_set_id='STUDY01_NFC_ISSUERS',input_issuer_trust_set_version='3',input_payload_mode='FULL',return_mode='flat')
 ```
+
+Legacy 16-hex `trusted_issuer_key_ids` input remains accepted for backwards
+compatibility, but new study forms should use full fingerprints.
 
 Verification outputs include:
 
@@ -259,6 +283,10 @@ credential_subject_id
 pin_verified
 issuer_signature_valid
 issuer_trust_status
+issuer_trust_basis
+issuer_trust_set_id
+issuer_trust_set_version
+issuer_public_key_fingerprint_sha256
 credential_envelope_hash
 credential_secret_hash
 issuer_key_id
@@ -268,10 +296,12 @@ verification_evidence_hash
 ```
 
 `issuer_signature_valid=true` proves that the credential has not been altered
-since it was signed. `issuer_trust_status=trusted` additionally proves that the
-issuer key ID matched the caller's allow-list. When no allow-list is supplied,
-the status is `not_checked`; the signature is still cryptographically checked,
-but study governance has not independently vouched for that issuer key.
+since it was signed. `issuer_trust_status=trusted` additionally means that the
+recomputed full public-key fingerprint matched the offline trust set supplied by
+the caller. `issuer_trust_basis=public_key_sha256` identifies that decision path.
+When no allow-list is supplied, the status is `not_checked`; the signature is
+still cryptographically checked, but study governance has not independently
+vouched for that issuer.
 
 Verification allows five PIN attempts per scan session. It never returns the
 PIN, random credential secret, decryption key, or encrypted envelope.
@@ -321,7 +351,73 @@ Wipe returns `wipe_success`, `wipe_message`, `wiped_time_iso`,
 - [`example_odk_nfc_tag_read.xlsx`](example_odk_nfc_tag_read.xlsx)
 - [`example_odk_nfc_tag_write.xlsx`](example_odk_nfc_tag_write.xlsx)
 - [`example_odk_nfc_tag_wipe.xlsx`](example_odk_nfc_tag_wipe.xlsx)
+- [`example_odk_nfc_issuer_identity.xlsx`](example_odk_nfc_issuer_identity.xlsx)
 - [`example_odk_nfc_credential_provisioning.xlsx`](example_odk_nfc_credential_provisioning.xlsx)
 - [`example_odk_nfc_credential_verification.xlsx`](example_odk_nfc_credential_verification.xlsx)
 
 Each example's filename and `form_title` use the underlying capability name.
+
+
+## Study credential registry examples (2026-09-22)
+
+The canonical credential examples now ship as matched XLSForm/XForm pairs:
+
+- `example_odk_nfc_issuer_identity.xlsx`
+- `example_odk_nfc_issuer_identity.xml`
+- `example_odk_nfc_credential_provisioning.xlsx`
+- `example_odk_nfc_credential_provisioning.xml`
+- `example_odk_nfc_credential_verification.xlsx`
+- `example_odk_nfc_credential_verification.xml`
+
+The provisioning form captures realistic study-registry context including holder
+display name, pseudonymous registry/subject ID, holder type, role, site,
+organisation/team, administrative validity start/end dates, authorisation and
+issuance reason. Under the current ROSC1 contract, these study identity and
+governance fields remain in ODK and are linked to the returned `credential_id`;
+they are not silently written into the NFC credential. MethodMesh has no runtime
+communication with Sentinel.
+
+The issuer-identity form supports commissioning a provisioning device and
+recording its full SHA-256 public-key fingerprint. The verification form carries
+the study's approved fingerprints plus a trust-set ID/version into MethodMesh
+as offline form configuration, captures explicit mismatch checks, and returns
+the trust decision together with `methodmesh_full_json`.
+
+
+## Credential overwrite fix (2026-09-22b)
+
+Credential provisioning now exposes its overwrite policy on the capability
+screen rather than telling the operator to choose a replacement policy without
+providing a control. `empty_only` remains the safe default. `replace` must be
+selected explicitly and permits replacement of existing writable NDEF content;
+the previous message hash remains part of the canonical result.
+
+External callers such as ODK may continue to pass
+`input_overwrite_policy='empty_only'` or `input_overwrite_policy='replace'`.
+An unknown non-blank policy is now rejected explicitly rather than silently
+falling back to `empty_only`.
+
+The overwrite behaviour was introduced in provisioning `1.0.1`; provisioning is now `1.1.0` because issuer-fingerprint provenance was added subsequently.
+
+
+## Offline issuer trust (2026-09-22c)
+
+Credential provisioning and verification are now version `1.1.0`. The ROSC1
+on-card format is unchanged, so existing credentials remain readable.
+
+Trust is based on the SHA-256 fingerprint of the reconstructed issuer public key.
+The credential's short `issuer_key_id` must still match the first 16 hexadecimal
+characters of that fingerprint and the ECDSA signature must validate. A study
+form can then supply one or more approved full fingerprints using
+`trusted_issuer_fingerprints_sha256`.
+
+The trust-set metadata (`issuer_trust_set_id`, `issuer_trust_set_version`) is
+policy metadata supplied by ODK, not fetched by MethodMesh. It is copied into the
+canonical result and JSON sidecar exactly as used for that execution.
+
+`nfc_issuer_identity` is a local commissioning capability. It exposes only public
+key material and the full fingerprint; the private issuer key never leaves
+Android Keystore.
+
+There is no MethodMesh↔Sentinel runtime dependency. Any later ingestion into
+Sentinel or another data system is downstream of the ODK/MethodMesh execution.

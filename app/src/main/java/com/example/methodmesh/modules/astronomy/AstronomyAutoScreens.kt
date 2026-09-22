@@ -28,7 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
-import com.example.methodmesh.modules.pluscodecapture.OpenLocationCode
+import com.example.methodmesh.platform.location.OpenLocationCode
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold

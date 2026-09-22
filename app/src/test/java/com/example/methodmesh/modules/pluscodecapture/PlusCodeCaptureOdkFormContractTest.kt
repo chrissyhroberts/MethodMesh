@@ -13,7 +13,7 @@ class PlusCodeCaptureOdkFormContractTest {
             File("src/main/java/com/example/methodmesh/modules/pluscodecapture/docs"),
             File("app/src/main/java/com/example/methodmesh/modules/pluscodecapture/docs")
         ).firstOrNull(File::isDirectory) ?: error("Cannot locate Plus Code docs")
-        val workbook = File(docs, "example_odk_plus_code.capture.xlsx")
+        val workbook = File(docs, "example_odk_plus_code_capture.xlsx")
         assertTrue("Expected Plus Code XLSForm", workbook.isFile)
 
         val xml = ZipFile(workbook).use { zip ->

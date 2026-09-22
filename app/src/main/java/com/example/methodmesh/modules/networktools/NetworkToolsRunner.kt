@@ -1,11 +1,6 @@
 package com.example.methodmesh.modules.networktools
 
 import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.net.wifi.WifiInfo
-import android.net.wifi.WifiManager
-import android.os.Build
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -26,13 +21,15 @@ import java.util.concurrent.TimeoutException
 import kotlin.math.roundToLong
 
 internal enum class NetworkOperation(val id: String, val label: String) {
+    CONNECTION_STATUS("connection_status", "Connection status"),
     INTERFACE_INFO("interface_info", "Interface info"),
     DNS_LOOKUP("dns_lookup", "DNS lookup"),
     REACHABILITY("ping", "Reachability"),
     TCP_TEST("tcp_test", "TCP endpoint"),
     TRACEROUTE("traceroute", "Traceroute"),
     CIDR("cidr", "IPv4 CIDR"),
-    WIFI_INFO("wifi_info", "Wi-Fi info");
+    WIFI_INFO("wifi_info", "Wi-Fi info"),
+    WIFI_SCAN("wifi_scan", "Nearby Wi-Fi");
 
     companion object {
         fun from(raw: String?): NetworkOperation? = entries.firstOrNull { it.id == raw?.trim()?.lowercase() }
@@ -51,6 +48,7 @@ internal object NetworkToolsRunner {
         return try {
             val timeoutMs = boundedInt(settings.value("timeout_ms"), "timeout_ms", DEFAULT_TIMEOUT_MS, 100, 30000)
             when (operation) {
+                NetworkOperation.CONNECTION_STATUS -> connectionStatus(androidContext)
                 NetworkOperation.INTERFACE_INFO -> interfaceInfo()
                 NetworkOperation.DNS_LOOKUP -> dnsLookup(requireHost(settings), timeoutMs)
                 NetworkOperation.REACHABILITY -> reachability(requireHost(settings), timeoutMs)
@@ -66,6 +64,7 @@ internal object NetworkToolsRunner {
                 )
                 NetworkOperation.CIDR -> cidr(settings.value("cidr").orEmpty())
                 NetworkOperation.WIFI_INFO -> wifiInfo(androidContext)
+                NetworkOperation.WIFI_SCAN -> wifiScan(androidContext)
             }
         } catch (e: NetworkToolsInputException) {
             failure(operation.id, e.message ?: "Invalid input.")
@@ -327,9 +326,32 @@ internal object NetworkToolsRunner {
                 return@forEach
             }
 
+            // Drain stdout concurrently. Waiting for process exit before reading can deadlock if
+            // the child fills its pipe buffer. We retain only a bounded prefix but keep draining.
+            val outputExecutor = Executors.newSingleThreadExecutor { runnable ->
+                Thread(runnable, "methodmesh-traceroute-output").apply { isDaemon = true }
+            }
+            val outputFuture = outputExecutor.submit<String> {
+                process.inputStream.bufferedReader().use { reader ->
+                    val retained = StringBuilder()
+                    val buffer = CharArray(2048)
+                    while (true) {
+                        val count = reader.read(buffer)
+                        if (count < 0) break
+                        if (retained.length < MAX_TRACEROUTE_TEXT) {
+                            val allowed = minOf(count, MAX_TRACEROUTE_TEXT - retained.length)
+                            retained.append(buffer, 0, allowed)
+                        }
+                    }
+                    retained.toString()
+                }
+            }
             val finished = process.waitFor(timeoutMs.toLong(), TimeUnit.MILLISECONDS)
             if (!finished) {
                 process.destroyForcibly()
+                runCatching { process.waitFor(250, TimeUnit.MILLISECONDS) }
+                outputFuture.cancel(true)
+                outputExecutor.shutdownNow()
                 val latency = elapsedMs(started)
                 val json = JSONObject().apply {
                     put("operation", NetworkOperation.TRACEROUTE.id)
@@ -349,7 +371,10 @@ internal object NetworkToolsRunner {
                 )
             }
 
-            val output = process.inputStream.bufferedReader().use { it.readText().take(MAX_TRACEROUTE_TEXT) }.trim()
+            val output = runCatching { outputFuture.get(500, TimeUnit.MILLISECONDS) }
+                .getOrDefault("")
+                .trim()
+            outputExecutor.shutdownNow()
             val lower = output.lowercase()
             val commandUnavailable = process.exitValue() != 0 && (
                 "unknown command" in lower ||
@@ -393,6 +418,130 @@ internal object NetworkToolsRunner {
             operation = NetworkOperation.TRACEROUTE,
             message = lastUnavailableReason,
             host = host
+        )
+    }
+
+    private fun connectionStatus(context: Context?): Map<String, String> {
+        if (context == null) {
+            return unavailable(
+                operation = NetworkOperation.CONNECTION_STATUS,
+                message = "Connection status requires an Android capability context."
+            )
+        }
+        val snapshot = NetworkSnapshotRepository.current(context)
+        if (snapshot.stateLabel == "Network state unavailable") {
+            return unavailable(
+                operation = NetworkOperation.CONNECTION_STATUS,
+                message = snapshot.wifiPermissionNote ?: "Android network state is unavailable."
+            )
+        }
+        val firstIp = snapshot.localAddresses.firstOrNull().orEmpty()
+        val json = JSONObject().apply {
+            put("operation", NetworkOperation.CONNECTION_STATUS.id)
+            put("state", snapshot.stateLabel)
+            put("transport", snapshot.transportLabel)
+            put("internet_capable", snapshot.internetCapable)
+            put("validated", snapshot.validated)
+            put("captive_portal", snapshot.captivePortal)
+            put("metered", snapshot.metered)
+            put("interface", snapshot.interfaceName)
+            put("local_addresses", JSONArray(snapshot.localAddresses))
+            put("gateway", snapshot.gateway)
+            put("dns_servers", JSONArray(snapshot.dnsServers))
+            put("ssid", snapshot.ssid)
+            put("bssid", snapshot.bssid)
+            put("rssi_dbm", snapshot.rssi ?: JSONObject.NULL)
+            put("frequency_mhz", snapshot.frequencyMhz ?: JSONObject.NULL)
+            put("link_speed_mbps", snapshot.linkSpeedMbps ?: JSONObject.NULL)
+            put("wifi_standard", snapshot.wifiStandard)
+            snapshot.wifiPermissionNote?.let { put("permission_note", it) }
+        }
+        val value = buildString {
+            append(snapshot.stateLabel)
+            if (snapshot.transportLabel.isNotBlank() && snapshot.transportLabel != "None") append(" · ${snapshot.transportLabel}")
+            if (snapshot.ssid.isNotBlank()) append(" · ${snapshot.ssid}")
+        }
+        val detail = buildList {
+            if (firstIp.isNotBlank()) add("IP $firstIp")
+            if (snapshot.gateway.isNotBlank()) add("gateway ${snapshot.gateway}")
+            snapshot.rssi?.let { add("$it dBm") }
+            snapshot.wifiPermissionNote?.takeIf { it.isNotBlank() }?.let(::add)
+        }.joinToString(" · ")
+        return success(
+            operation = NetworkOperation.CONNECTION_STATUS,
+            value = value.ifBlank { "No active network" },
+            summary = value.ifBlank { "No active network" },
+            resultJson = json,
+            ip = firstIp,
+            interfaceName = snapshot.interfaceName,
+            detail = detail
+        )
+    }
+
+    private fun wifiScan(context: Context?): Map<String, String> {
+        if (context == null) {
+            return unavailable(
+                operation = NetworkOperation.WIFI_SCAN,
+                message = "Nearby Wi-Fi scanning requires an Android capability context."
+            )
+        }
+        val first = NetworkSnapshotRepository.wifiEnvironment(context, requestFreshScan = true)
+        val environment = if (first.scanStarted) {
+            // startScan() is asynchronous. Give the platform a short bounded opportunity to
+            // refresh, then read its latest result set. Android may still return cached data.
+            runCatching { Thread.sleep(1600L) }
+            NetworkSnapshotRepository.wifiEnvironment(context, requestFreshScan = false)
+        } else first
+
+        if (environment.missingManifestPermissions.isNotEmpty() || environment.needsLocationPermission) {
+            return unavailable(
+                operation = NetworkOperation.WIFI_SCAN,
+                message = environment.message ?: "Nearby Wi-Fi scan permission is unavailable."
+            )
+        }
+
+        val networksJson = JSONArray().apply {
+            environment.networks.forEach { network ->
+                put(JSONObject().apply {
+                    put("ssid", network.ssid)
+                    put("bssid", network.bssid)
+                    put("rssi_dbm", network.rssi)
+                    put("frequency_mhz", network.frequencyMhz)
+                    put("channel", network.channel ?: JSONObject.NULL)
+                    put("band", network.band)
+                    put("security", network.security)
+                    put("access_point_count", network.accessPointCount)
+                    put("connected", network.connected)
+                })
+            }
+        }
+        val json = JSONObject().apply {
+            put("operation", NetworkOperation.WIFI_SCAN.id)
+            put("network_count", environment.networks.size)
+            put("scan_started", first.scanStarted)
+            put("captured_at_ms", environment.capturedAtMs)
+            put("networks", networksJson)
+            environment.message?.let { put("note", it) }
+        }
+        val strongest = environment.networks.firstOrNull()
+        val summary = if (environment.networks.isEmpty()) {
+            environment.message ?: "No nearby Wi-Fi networks visible"
+        } else {
+            val names = environment.networks.take(4).joinToString(", ") { it.ssid }
+            "${environment.networks.size} nearby network(s) · $names"
+        }
+        return success(
+            operation = NetworkOperation.WIFI_SCAN,
+            value = "${environment.networks.size} nearby network${if (environment.networks.size == 1) "" else "s"}",
+            summary = summary,
+            resultJson = json,
+            detail = buildString {
+                strongest?.let { append("Strongest: ${it.ssid} ${it.rssi} dBm") }
+                environment.message?.takeIf { it.isNotBlank() }?.let { note ->
+                    if (isNotBlank()) append(" · ")
+                    append(note)
+                }
+            }
         )
     }
 
@@ -448,7 +597,6 @@ internal object NetworkToolsRunner {
         )
     }
 
-    @Suppress("DEPRECATION")
     private fun wifiInfo(context: Context?): Map<String, String> {
         if (context == null) {
             return unavailable(
@@ -456,87 +604,60 @@ internal object NetworkToolsRunner {
                 message = "Wi-Fi connection details require an Android capability context."
             )
         }
-        val connectivity = context.getSystemService(ConnectivityManager::class.java)
-            ?: return unavailable(NetworkOperation.WIFI_INFO, "Android ConnectivityManager is unavailable.")
-        val network = connectivity.activeNetwork
-            ?: return success(
+        val snapshot = NetworkSnapshotRepository.current(context)
+        if (snapshot.stateLabel == "Network state unavailable") {
+            return unavailable(
                 operation = NetworkOperation.WIFI_INFO,
-                value = "disconnected",
-                summary = "No active network",
-                resultJson = JSONObject().put("operation", NetworkOperation.WIFI_INFO.id).put("connected", false),
-                detail = "No active Android network"
+                message = snapshot.wifiPermissionNote ?: "Android network state is unavailable."
             )
-        val capabilities = connectivity.getNetworkCapabilities(network)
-            ?: return unavailable(NetworkOperation.WIFI_INFO, "Active network capabilities are unavailable.")
-        if (!capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+        }
+        if (snapshot.transportLabel != "Wi-Fi" && snapshot.ssid.isBlank()) {
             return success(
                 operation = NetworkOperation.WIFI_INFO,
                 value = "not Wi-Fi",
                 summary = "Active network is not Wi-Fi",
                 resultJson = JSONObject()
                     .put("operation", NetworkOperation.WIFI_INFO.id)
-                    .put("connected", true)
-                    .put("wifi", false),
-                detail = "The active network uses another transport"
+                    .put("connected", snapshot.transportLabel != "None")
+                    .put("wifi", false)
+                    .put("transport", snapshot.transportLabel),
+                detail = "The active network uses ${snapshot.transportLabel.lowercase()} transport."
             )
         }
 
-        val wifiInfo: WifiInfo? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            capabilities.transportInfo as? WifiInfo
-        } else {
-            (context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager)?.connectionInfo
-        }
-        val linkProperties = connectivity.getLinkProperties(network)
-        val ip = linkProperties?.linkAddresses
-            ?.mapNotNull { it.address?.hostAddress?.substringBefore('%') }
-            ?.firstOrNull { it != "::1" && !it.startsWith("127.") }
-            .orEmpty()
-        val ssid = cleanSsid(wifiInfo?.ssid)
-        val bssid = wifiInfo?.bssid
-            ?.takeUnless { it.equals("02:00:00:00:00:00", ignoreCase = true) }
-            .orEmpty()
-        val gateway = linkProperties?.routes
-            ?.firstOrNull { it.isDefaultRoute }
-            ?.gateway
-            ?.hostAddress
-            ?.substringBefore('%')
-            .orEmpty()
-        val dns = linkProperties?.dnsServers
-            ?.mapNotNull { it.hostAddress?.substringBefore('%') }
-            .orEmpty()
-
+        val ip = snapshot.localAddresses.firstOrNull().orEmpty()
         val json = JSONObject().apply {
             put("operation", NetworkOperation.WIFI_INFO.id)
             put("connected", true)
             put("wifi", true)
-            put("ssid", if (ssid.isBlank()) JSONObject.NULL else ssid)
-            put("bssid", if (bssid.isBlank()) JSONObject.NULL else bssid)
-            put("ip", if (ip.isBlank()) JSONObject.NULL else ip)
-            put("gateway", if (gateway.isBlank()) JSONObject.NULL else gateway)
-            put("dns_servers", JSONArray(dns))
-            put("rssi_dbm", wifiInfo?.rssi ?: JSONObject.NULL)
-            put("link_speed_mbps", wifiInfo?.linkSpeed ?: JSONObject.NULL)
-            put("frequency_mhz", wifiInfo?.frequency ?: JSONObject.NULL)
-            put("metered", connectivity.isActiveNetworkMetered)
-            put("internet_capability", capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
-            put("validated", capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED))
+            if (snapshot.ssid.isBlank()) put("ssid", JSONObject.NULL) else put("ssid", snapshot.ssid)
+            if (snapshot.bssid.isBlank()) put("bssid", JSONObject.NULL) else put("bssid", snapshot.bssid)
+            if (ip.isBlank()) put("ip", JSONObject.NULL) else put("ip", ip)
+            if (snapshot.gateway.isBlank()) put("gateway", JSONObject.NULL) else put("gateway", snapshot.gateway)
+            put("dns_servers", JSONArray(snapshot.dnsServers))
+            put("rssi_dbm", snapshot.rssi ?: JSONObject.NULL)
+            put("link_speed_mbps", snapshot.linkSpeedMbps ?: JSONObject.NULL)
+            put("frequency_mhz", snapshot.frequencyMhz ?: JSONObject.NULL)
+            put("wifi_standard", snapshot.wifiStandard)
+            put("metered", snapshot.metered)
+            put("internet_capability", snapshot.internetCapable)
+            put("validated", snapshot.validated)
+            snapshot.wifiPermissionNote?.let { put("permission_note", it) }
         }
-        val value = ssid.ifBlank { ip.ifBlank { "Wi-Fi connected" } }
+        val value = snapshot.ssid.ifBlank { ip.ifBlank { "Wi-Fi connected" } }
         val summary = buildString {
-            append(if (ssid.isNotBlank()) ssid else "Wi-Fi")
+            append(snapshot.ssid.ifBlank { "Wi-Fi" })
             if (ip.isNotBlank()) append(" • $ip")
-            wifiInfo?.rssi?.let { append(" • $it dBm") }
+            snapshot.rssi?.let { append(" • $it dBm") }
         }
-        val detail = if (ssid.isBlank() || bssid.isBlank()) {
-            "SSID/BSSID may be redacted by Android permission/privacy policy."
-        } else ""
         return success(
             operation = NetworkOperation.WIFI_INFO,
             value = value,
             summary = summary,
             resultJson = json,
             ip = ip,
-            detail = detail
+            interfaceName = snapshot.interfaceName,
+            detail = snapshot.wifiPermissionNote.orEmpty()
         )
     }
 
@@ -619,7 +740,7 @@ internal object NetworkToolsRunner {
         base(
             status = "unavailable",
             operation = operation.id,
-            value = "",
+            value = message,
             summary = message,
             resultJson = JSONObject()
                 .put("operation", operation.id)
@@ -634,7 +755,7 @@ internal object NetworkToolsRunner {
     private fun failure(operation: String, error: String): Map<String, String> = base(
         status = "failed",
         operation = operation,
-        value = "",
+        value = error,
         summary = error,
         resultJson = JSONObject()
             .put("operation", operation)
@@ -712,10 +833,6 @@ internal object NetworkToolsRunner {
     private fun ipv4(value: Long): String = listOf(24, 16, 8, 0)
         .joinToString(".") { shift -> ((value shr shift) and 0xffL).toString() }
 
-    private fun cleanSsid(value: String?): String = value
-        ?.removeSurrounding("\"")
-        ?.takeUnless { it == WifiManager.UNKNOWN_SSID || it.equals("<unknown ssid>", ignoreCase = true) }
-        .orEmpty()
 }
 
 private class NetworkToolsInputException(message: String) : IllegalArgumentException(message)

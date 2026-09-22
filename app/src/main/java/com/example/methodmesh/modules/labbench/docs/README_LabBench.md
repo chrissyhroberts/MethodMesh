@@ -1,8 +1,8 @@
 # Lab Bench
 
-**Module:** `labbench`  
-**Status:** Development  
-**Version:** `0.1.0`  
+**Module:** `labbench`<br>
+**Status:** Development<br>
+**Version:** `0.1.0`<br>
 **Canonical folder:** `app/src/main/java/com/example/methodmesh/modules/labbench/`
 
 Lab Bench is an offline family of deterministic laboratory calculations for common bench work. It exposes twelve atomic methods plus a persistent native dashboard. The atomic methods and dashboard use the same pure calculation engine; the dashboard does not invoke or simulate the atomic capability screens.
@@ -33,7 +33,9 @@ All methods are intentionally **Development** until native, preset, ODK, protoco
 
 Atomic calculators open a focused input screen. Enter or adjust values, select **Calculate**, inspect the useful result, and confirm through the normal MethodMesh result flow. Input and calculation state are stored with `rememberSaveable` so values/results can be reconstructed after configuration changes.
 
-`labbench.dashboard` is different. It keeps all twelve calculators in one bench-oriented screen and preserves each calculator's current inputs while switching tools during the session. A successful calculation is retained as a real `ExecutionResult`, but while the capability is being used as a normal native dashboard or native preset it is withheld from `CapabilityScreenScaffold` so the scaffold cannot replace the live dashboard with the generic result page. **Use this calculation** or **Finish** explicitly commits the current snapshot.
+`labbench.dashboard` is different. It uses a bench-instrument dashboard rather than a settings catalogue. Tools are grouped into **Prepare**, **Measure & convert**, and **Cells & samples** shelves; the selected calculator opens as one focused instrument workspace with paired value/unit controls and a visually dominant result dock. The result dock surfaces the key quantities first and the bench instruction immediately below them. Native dashboard results update in place as valid inputs change. Switching calculators preserves each tool's current session inputs.
+
+A successful calculation is retained as a real `ExecutionResult`, but while the capability is being used as a normal native dashboard or native preset it is withheld from `CapabilityScreenScaffold` so the scaffold cannot replace the live dashboard with the generic result page. **Use this calculation** or **Finish** explicitly commits the current snapshot. No calculation refresh commits graph history by itself.
 
 For a true external/ODK invocation, the dashboard runs the selected calculator once and returns normally. An internal `intent_test` launch remains interactive rather than being mistaken for a machine caller.
 

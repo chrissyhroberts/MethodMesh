@@ -44,7 +44,8 @@ object ConversionsModule : MethodMeshModule {
             ),
             MethodSetting.TextSetting("date1", "Date 1 / birth date (YYYY-MM-DD)", defaultValue = ""),
             MethodSetting.TextSetting("date2", "Date 2 / at date (YYYY-MM-DD)", defaultValue = ""),
-            MethodSetting.ChoiceSetting("shape", "Geometry shape", defaultValue = "rectangle", choices = listOf("rectangle", "triangle", "circle"))
+            MethodSetting.ChoiceSetting("shape", "Geometry shape", defaultValue = "rectangle", choices = listOf("rectangle", "triangle", "circle")),
+            MethodSetting.ChoiceSetting("decimal_places", "Decimal places", defaultValue = "4", choices = (0..10).map(Int::toString))
         )
     )
 }

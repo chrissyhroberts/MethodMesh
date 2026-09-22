@@ -34,7 +34,8 @@ object AttestationModule : MethodMeshModule {
         As100CreateAttestationMethod.ID to listOf(
             MethodSetting.TextSetting("event_payload_hash", "Event payload hash", defaultValue = ""),
             MethodSetting.TextSetting("commitment_recipe", "Commitment recipe", defaultValue = DEFAULT_ATTESTATION_COMMITMENT_RECIPE),
-            MethodSetting.ChoiceSetting("verification_method", "Verification method", defaultValue = "Fingerprint", choices = listOf("Fingerprint", "Pin", "Qr", "Nfc", "Password")),
+            MethodSetting.ChoiceSetting("verification_method", "Verification method", defaultValue = "Fingerprint", choices = listOf("Fingerprint", "Pin", "Qr", "Nfc", "NfcCredential", "Password")),
+            MethodSetting.TextSetting("verification_execution_id", "Prior verification execution ID", defaultValue = ""),
             MethodSetting.ChoiceSetting("trusted_timestamp", "Trusted timestamp", defaultValue = "preferred", choices = listOf("disabled", "preferred", "required")),
             MethodSetting.TextSetting("trusted_timestamp_authority", "Trusted timestamp authority URL", defaultValue = DEFAULT_TRUSTED_TIMESTAMP_AUTHORITY_URL),
             MethodSetting.IntSetting("trusted_timestamp_timeout_ms", "Timestamp timeout (ms)", defaultValue = 3500, minimum = 1000, maximum = 30000),
@@ -48,14 +49,14 @@ object AttestationModule : MethodMeshModule {
     )
 
     override fun dependencies() = listOf(
-        ModuleDependency("nfc", "NFC tag evidence is captured by the existing NFC capability and consumed by attestation."),
+        ModuleDependency("nfc", "NFC tag evidence is captured by the existing NFC capability; successful NFC credential + PIN executions can also be reused by execution ID within the same caller/form instance."),
         ModuleDependency("barcode", "QR token evidence is captured by barcode.scan with QR-only format restriction and consumed by attestation."),
         ModuleDependency("android_device_credential", "PIN, pattern and phone password authorisation use Android device credential prompts rather than MethodMesh storing secrets.")
     )
 
     override fun examples() = listOf(
         ModuleExample(
-            title = "Attest a field event using PIN/biometric/QR/NFC/password",
+            title = "Attest a field event using PIN/biometric/QR/NFC/NFC credential/password",
             ril = "WHAT; create attestation; WHERE; participant/P001; RESULT; return attestation_hash, public_key_id, signature; format json",
             notes = "The event payload is hashed, chained to the previous attestation and signed by the phone key."
         ),

@@ -22,8 +22,8 @@ android {
         applicationId = "com.example.methodmesh"
         minSdk = 27
         targetSdk = 36
-        versionCode = 9
-        versionName = "2.8.0"
+        versionCode = 10
+        versionName = "2.9.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -74,6 +74,11 @@ android.sourceSets["main"].res.srcDir(file("$buildDir/generated/res/methodmeshMo
 tasks.named("preBuild").configure { dependsOn(generateMethodMeshModuleIndex) }
 
 dependencies {
+    // Text & Markdown / shared DocumentSurface renderer
+    implementation("io.noties.markwon:core:4.6.2")
+    implementation("io.noties.markwon:ext-strikethrough:4.6.2")
+    implementation("io.noties.markwon:ext-tables:4.6.2")
+    implementation("io.noties.markwon:ext-tasklist:4.6.2")
     implementation("org.opencv:opencv:4.12.0") // PaperBridge AprilTag detection and registration
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

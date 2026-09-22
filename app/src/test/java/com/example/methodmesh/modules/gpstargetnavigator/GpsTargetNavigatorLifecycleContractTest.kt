@@ -73,7 +73,7 @@ class GpsTargetNavigatorLifecycleContractTest {
         assertEquals("Turn left 32°", arTurnInstruction(-32f, arrived = false))
         assertEquals("Turn right 47°", arTurnInstruction(47f, arrived = false))
         assertEquals(
-            "Target is within the arrival range",
+            "Target is within the arrival radius",
             arTurnInstruction(90f, arrived = true)
         )
     }
