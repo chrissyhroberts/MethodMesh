@@ -7,7 +7,7 @@ import com.example.methodmesh.settings.MethodSetting
 object TextDocumentsModule : MethodMeshModule {
     override val moduleId = "textdocuments"
     override val displayName = "Text documents"
-    override val summary = "Create, open, edit, save, copy and share plain text, Markdown, JSON and JSON Lines documents."
+    override val summary = "Create, open, edit, save, copy and share text, data, configuration, markup and source-code files."
     override val iconKey = "document"
 
     override fun as100Methods() = listOf(As100TextDocumentsMethod)
@@ -15,7 +15,7 @@ object TextDocumentsModule : MethodMeshModule {
     override fun rilBindings() = listOf(
         RilBinding("open text documents", As100TextDocumentsMethod.ID, "Open the Text documents workspace"),
         RilBinding("edit text document", As100TextDocumentsMethod.ID, "Edit supplied or locally selected text"),
-        RilBinding("create text document", As100TextDocumentsMethod.ID, "Create a text, Markdown, JSON or JSON Lines document")
+        RilBinding("create text document", As100TextDocumentsMethod.ID, "Create a text, data, configuration or source-code document")
     )
 
     override fun capabilityScreens() = listOf(TextDocumentsCapabilityScreen)
@@ -45,7 +45,7 @@ object TextDocumentsModule : MethodMeshModule {
                 "document_format",
                 "Document format",
                 defaultValue = "text",
-                choices = listOf("text", "markdown", "json", "jsonl")
+                choices = DocumentFormat.values().map { it.contractValue }
             )
         )
     )

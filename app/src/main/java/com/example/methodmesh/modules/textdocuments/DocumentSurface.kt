@@ -223,6 +223,14 @@ fun DocumentSurface(
                     onClick = { if (writable) onSave(text) else onSaveAs(text) },
                     modifier = Modifier.weight(1f)
                 ) { Text(if (writable) "Save" else "Save as") }
+                if (format == DocumentFormat.MARKDOWN) {
+                    TextButton(
+                        onClick = {
+                            mode = if (mode == DocumentMode.RENDERED) DocumentMode.SOURCE else DocumentMode.RENDERED
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) { Text(if (mode == DocumentMode.RENDERED) "Edit" else "Preview") }
+                }
                 TextButton(
                     onClick = { copyText(androidContext, title, text) },
                     modifier = Modifier.weight(1f)

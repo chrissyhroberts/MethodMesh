@@ -6,28 +6,103 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
+import java.nio.charset.CodingErrorAction
 
-enum class DocumentFormat(val contractValue: String, val label: String, val extension: String, val mimeType: String) {
-    TEXT("text", "Plain text", "txt", "text/plain"),
-    MARKDOWN("markdown", "Markdown", "md", "text/markdown"),
-    JSON("json", "JSON", "json", "application/json"),
-    JSONL("jsonl", "JSON Lines", "jsonl", "application/x-ndjson");
+enum class DocumentFormat(
+    val contractValue: String,
+    val label: String,
+    val extension: String,
+    val mimeType: String,
+    val group: String
+) {
+    TEXT("text", "Plain text", "txt", "text/plain", "Text & data"),
+    MARKDOWN("markdown", "Markdown", "md", "text/markdown", "Text & data"),
+    JSON("json", "JSON", "json", "application/json", "Text & data"),
+    JSONL("jsonl", "JSON Lines", "jsonl", "application/x-ndjson", "Text & data"),
+    YAML("yaml", "YAML", "yaml", "application/yaml", "Data & config"),
+    TOML("toml", "TOML", "toml", "application/toml", "Data & config"),
+    XML("xml", "XML", "xml", "application/xml", "Web & markup"),
+    HTML("html", "HTML", "html", "text/html", "Web & markup"),
+    CSS("css", "CSS", "css", "text/css", "Web & markup"),
+    JAVASCRIPT("javascript", "JavaScript", "js", "text/javascript", "Source code"),
+    TYPESCRIPT("typescript", "TypeScript", "ts", "text/plain", "Source code"),
+    PYTHON("python", "Python", "py", "text/x-python", "Source code"),
+    KOTLIN("kotlin", "Kotlin", "kt", "text/plain", "Source code"),
+    JAVA("java", "Java", "java", "text/plain", "Source code"),
+    SHELL("shell", "Shell script", "sh", "application/x-sh", "Source code"),
+    SQL("sql", "SQL", "sql", "application/sql", "Source code"),
+    CSV("csv", "CSV", "csv", "text/csv", "Text & data"),
+    PROPERTIES("properties", "Properties / INI", "properties", "text/plain", "Data & config"),
+    CODE("code", "Source code", "txt", "text/plain", "Source code");
 
     companion object {
         fun fromContract(value: String?): DocumentFormat = when (value?.trim()?.lowercase()) {
             "markdown", "md" -> MARKDOWN
             "json" -> JSON
             "jsonl", "ndjson" -> JSONL
+            "yaml", "yml" -> YAML
+            "toml" -> TOML
+            "xml" -> XML
+            "html", "htm" -> HTML
+            "css" -> CSS
+            "javascript", "js" -> JAVASCRIPT
+            "typescript", "ts" -> TYPESCRIPT
+            "python", "py" -> PYTHON
+            "kotlin", "kt" -> KOTLIN
+            "java" -> JAVA
+            "shell", "sh", "bash" -> SHELL
+            "sql" -> SQL
+            "csv", "tsv" -> CSV
+            "properties", "ini", "cfg", "conf" -> PROPERTIES
+            "code", "source" -> CODE
             else -> TEXT
         }
 
-        fun detect(name: String, mime: String?): DocumentFormat = when {
-            mime.equals("text/markdown", true) || name.endsWith(".md", true) || name.endsWith(".markdown", true) -> MARKDOWN
-            mime.equals("application/json", true) || mime.equals("text/json", true) || name.endsWith(".json", true) -> JSON
-            mime.equals("application/x-ndjson", true) || mime.equals("application/ndjson", true) ||
-                mime.equals("application/jsonl", true) || name.endsWith(".jsonl", true) || name.endsWith(".ndjson", true) -> JSONL
-            else -> TEXT
+        fun detect(name: String, mime: String?): DocumentFormat {
+            val extension = name.substringAfterLast('.', "").lowercase()
+            return when (extension) {
+                "md", "markdown" -> MARKDOWN
+                "json" -> JSON
+                "jsonl", "ndjson" -> JSONL
+                "yaml", "yml" -> YAML
+                "toml" -> TOML
+                "xml" -> XML
+                "html", "htm" -> HTML
+                "css", "scss", "sass", "less" -> CSS
+                "js", "mjs", "cjs" -> JAVASCRIPT
+                "ts", "tsx" -> TYPESCRIPT
+                "py", "pyw" -> PYTHON
+                "kt", "kts" -> KOTLIN
+                "java" -> JAVA
+                "sh", "bash", "zsh", "fish", "command", "bat", "cmd", "ps1" -> SHELL
+                "sql" -> SQL
+                "csv", "tsv" -> CSV
+                "ini", "cfg", "conf", "properties", "env" -> PROPERTIES
+                "c", "h", "cc", "cpp", "cxx", "hh", "hpp", "cs", "go", "rs", "swift",
+                "rb", "php", "lua", "r", "pl", "pm", "dart", "groovy", "gradle", "vue", "svelte" -> CODE
+                "txt", "log" -> TEXT
+                else -> when {
+                    mime.equals("text/markdown", true) -> MARKDOWN
+                    mime.equals("application/json", true) || mime.equals("text/json", true) -> JSON
+                    mime.equals("application/x-ndjson", true) || mime.equals("application/ndjson", true) ||
+                        mime.equals("application/jsonl", true) -> JSONL
+                    mime.equals("application/yaml", true) || mime.equals("text/yaml", true) -> YAML
+                    mime.equals("application/xml", true) || mime.equals("text/xml", true) -> XML
+                    mime.equals("text/html", true) -> HTML
+                    mime.equals("text/css", true) -> CSS
+                    mime.equals("text/javascript", true) || mime.equals("application/javascript", true) -> JAVASCRIPT
+                    mime.equals("application/sql", true) -> SQL
+                    mime.equals("text/csv", true) -> CSV
+                    mime?.startsWith("text/", true) == true -> TEXT
+                    else -> TEXT
+                }
+            }
         }
+
+        val pickerMimeTypes = arrayOf(
+            "*/*"
+        )
     }
 }
 
@@ -43,8 +118,16 @@ object DocumentIo {
     suspend fun read(context: Context, uri: Uri, mime: String? = null): Result<DocumentBuffer> = withContext(Dispatchers.IO) {
         runCatching {
             val title = displayName(context, uri) ?: uri.lastPathSegment?.substringAfterLast('/') ?: "Document"
-            val text = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                 ?: error("The document provider did not supply a readable stream.")
+            if (bytes.any { it == 0.toByte() }) {
+                error("This appears to be a binary file. Text documents opens UTF-8 text files only.")
+            }
+            val text = Charsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)
+                .decode(ByteBuffer.wrap(bytes))
+                .toString()
             val writable = runCatching {
                 context.contentResolver.openAssetFileDescriptor(uri, "rw")?.use { true } ?: false
             }.getOrDefault(false)
@@ -126,9 +209,8 @@ object DocumentIo {
 
     fun ensureExtension(title: String, format: DocumentFormat): String {
         val clean = title.trim().ifBlank { "document.${format.extension}" }
-        return if (clean.substringAfterLast('.', "").equals(format.extension, true) ||
-            (format == DocumentFormat.MARKDOWN && clean.endsWith(".markdown", true)) ||
-            (format == DocumentFormat.JSONL && clean.endsWith(".ndjson", true))) clean
+        val existingExtension = clean.substringAfterLast('.', "")
+        return if (existingExtension.isNotBlank() && !clean.endsWith('.')) clean
         else "$clean.${format.extension}"
     }
 }
