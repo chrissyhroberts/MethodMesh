@@ -119,6 +119,32 @@ class EspMeshCryptoManager(private val context: Context) {
     /** Explicitly user-facing export used to enroll another phone. */
     fun exportGroupKey(): String = encode(groupKey())
 
+    fun storeNetworkKey(value: String): String {
+        val raw = value.trim().toByteArray(Charsets.UTF_8)
+        require(raw.isNotEmpty() && raw.size <= 128) { "ESP network key must be 1 to 128 UTF-8 bytes" }
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, wrappingKey())
+        val wrapped = cipher.doFinal(raw)
+        val id = keyIdFor(raw)
+        prefs.edit()
+            .putString(KEY_NETWORK_WRAPPED, encode(wrapped))
+            .putString(KEY_NETWORK_IV, encode(cipher.iv))
+            .putString(KEY_NETWORK_ID, id)
+            .apply()
+        raw.fill(0)
+        return id
+    }
+
+    fun exportNetworkKey(): String {
+        val wrapped = prefs.getString(KEY_NETWORK_WRAPPED, null) ?: error("No ESP network key is saved on this phone")
+        val iv = prefs.getString(KEY_NETWORK_IV, null) ?: error("ESP network key wrapper metadata is missing")
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, wrappingKey(), GCMParameterSpec(128, decode(iv)))
+        return cipher.doFinal(decode(wrapped)).toString(Charsets.UTF_8)
+    }
+
+    fun networkKeyId(): String = prefs.getString(KEY_NETWORK_ID, "").orEmpty()
+
     fun clear() {
         prefs.edit().remove(KEY_WRAPPED).remove(KEY_IV).remove(KEY_ID).apply()
         invalidateVoiceKeyCache()
@@ -326,6 +352,9 @@ class EspMeshCryptoManager(private val context: Context) {
         private const val KEY_WRAPPED = "group_key_wrapped"
         private const val KEY_IV = "group_key_wrap_iv"
         private const val KEY_ID = "group_key_id"
+        private const val KEY_NETWORK_WRAPPED = "network_key_wrapped"
+        private const val KEY_NETWORK_IV = "network_key_wrap_iv"
+        private const val KEY_NETWORK_ID = "network_key_id"
         private const val WRAP_ALIAS = "methodmesh_espmesh_group_wrap_v1"
 
         fun keyIdFor(raw: ByteArray): String = MessageDigest.getInstance("SHA-256")

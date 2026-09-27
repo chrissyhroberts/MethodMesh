@@ -1,3 +1,3 @@
-// Add to the host app/module dependencies block for Live Stream Translation v0.2.0.
-// ML Kit GenAI Speech Recognition is currently an alpha API.
+// Host dependency required by Live Stream Translation v0.3.3.
+// ML Kit Speech Recognition remains an alpha API.
 implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha1")

@@ -1,10 +1,10 @@
 # Barcode scan
 
-**Canonical MethodMesh authority:** Master Book v1.25 (2026-09-22)<br>
-**Module ID:** `barcode`<br>
-**Method ID:** `barcode.scan`<br>
-**Method version:** `1.1.2`<br>
-**Maturity:** Production<br>
+**Canonical MethodMesh authority:** Master Book v1.22 (2026-09-15)  
+**Module ID:** `barcode`  
+**Method ID:** `barcode.scan`  
+**Method version:** `1.1.2`  
+**Maturity:** Production  
 **Connectivity:** Offline
 
 `barcode.scan` is the established scanner capability. It remains unchanged in purpose and contract while the module also exposes the sibling capabilities `barcode.generate` and `barcode.clone`.

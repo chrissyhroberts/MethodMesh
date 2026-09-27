@@ -1,0 +1,2 @@
+[console_scripts]
+mmxls = methodmesh_xlsform.cli:main

@@ -160,6 +160,10 @@ internal class LiveMeetingSpeechRecognizer(
             onStatus("${engine.displayName} uses a fixed recognition locale and cannot provide automatic language switching. Use Automatic or Android in detect-language mode.")
             return LiveEngineSwitchResult.UNSUPPORTED
         }
+        if (current.mode == LiveStreamMode.STREAMING && engine == LiveSpeechEngine.ANDROID) {
+            onStatus("Streaming translation requires ML Kit Speech Recognition partial-result streaming. Choose Automatic, ML Kit Basic, or ML Kit GenAI.")
+            return LiveEngineSwitchResult.UNSUPPORTED
+        }
 
         val updated = current.copy(enginePreference = engine)
         config = updated
@@ -257,6 +261,13 @@ internal class LiveMeetingSpeechRecognizer(
 
     private fun candidatesFor(requested: LiveSpeechEngine, activeConfig: LiveRecognitionConfig): List<LiveSpeechEngine> {
         if (activeConfig.mode == LiveStreamMode.AUTO) return listOf(LiveSpeechEngine.ANDROID)
+        if (activeConfig.mode == LiveStreamMode.STREAMING) {
+            return when (requested) {
+                LiveSpeechEngine.AUTO -> listOf(LiveSpeechEngine.MLKIT_GENAI, LiveSpeechEngine.MLKIT_BASIC)
+                LiveSpeechEngine.MLKIT_BASIC, LiveSpeechEngine.MLKIT_GENAI -> listOf(requested)
+                LiveSpeechEngine.ANDROID -> emptyList()
+            }
+        }
         return when (requested) {
             LiveSpeechEngine.AUTO -> listOf(
                 LiveSpeechEngine.MLKIT_GENAI,
@@ -276,6 +287,6 @@ internal class LiveMeetingSpeechRecognizer(
         LiveSpeechEngine.ANDROID -> AndroidSpeechRecognitionProvider.isAvailable(appContext) &&
             (activeConfig.mode != LiveStreamMode.AUTO || Build.VERSION.SDK_INT >= 34)
         LiveSpeechEngine.MLKIT_BASIC,
-        LiveSpeechEngine.MLKIT_GENAI -> activeConfig.mode == LiveStreamMode.FIXED && Build.VERSION.SDK_INT >= 31
+        LiveSpeechEngine.MLKIT_GENAI -> activeConfig.mode in setOf(LiveStreamMode.FIXED, LiveStreamMode.STREAMING) && Build.VERSION.SDK_INT >= 31
     }
 }

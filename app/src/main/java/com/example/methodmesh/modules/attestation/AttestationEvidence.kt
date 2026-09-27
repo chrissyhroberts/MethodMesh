@@ -45,13 +45,18 @@ object AttestationEvidenceFactory {
     private const val CREDENTIAL_SUBJECT_ID_FIELD = "credential_subject_id"
     private const val CREDENTIAL_ENVELOPE_HASH_FIELD = "credential_envelope_hash"
     private const val ISSUER_KEY_ID_FIELD = "issuer_key_id"
+    private const val ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256_FIELD = "issuer_public_key_fingerprint_sha256"
+    private const val SOURCE_VERIFICATION_EVIDENCE_FORMAT_FIELD = "verification_evidence_format"
+    private const val SOURCE_VERIFICATION_EVIDENCE_HASH_FIELD = "verification_evidence_hash"
+    private const val TAG_UID_HEX_FIELD = "tag_uid_hex"
     private const val PIN_VERIFIED_FIELD = "pin_verified"
     private const val ISSUER_SIGNATURE_VALID_FIELD = "issuer_signature_valid"
     private const val ISSUER_TRUST_STATUS_FIELD = "issuer_trust_status"
     const val BIOMETRIC_FORMAT = "android_biometric_result_sha256_v1"
     const val DEVICE_CREDENTIAL_FORMAT = "android_device_credential_result_sha256_v1"
     const val STUDY_TOKEN_FORMAT = "study_token_utf8_sha256_v1"
-    const val NFC_CREDENTIAL_EXECUTION_FORMAT = "methodmesh_nfc_credential_execution_sha256_v1"
+    private const val NFC_CREDENTIAL_SOURCE_EVIDENCE_FORMAT = "methodmesh_nfc_credential_verification_v1"
+    const val NFC_CREDENTIAL_EXECUTION_FORMAT = "methodmesh_nfc_credential_execution_sha256_v2"
 
     fun biometric(result: String): AttestationEvidence = resultEvidence(
         result = result,
@@ -201,19 +206,52 @@ object AttestationEvidenceFactory {
         val credentialId = values[CREDENTIAL_ID_FIELD]?.trim().orEmpty()
         val credentialSubjectId = values[CREDENTIAL_SUBJECT_ID_FIELD]?.trim().orEmpty()
         val credentialEnvelopeHash = values[CREDENTIAL_ENVELOPE_HASH_FIELD]?.trim()?.lowercase().orEmpty()
-        val issuerKeyId = values[ISSUER_KEY_ID_FIELD]?.trim().orEmpty()
+        val issuerKeyId = values[ISSUER_KEY_ID_FIELD]?.trim()?.lowercase().orEmpty()
+        val issuerFingerprint = values[ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256_FIELD]
+            ?.trim()?.lowercase().orEmpty()
+        val sourceEvidenceFormat = values[SOURCE_VERIFICATION_EVIDENCE_FORMAT_FIELD]
+            ?.trim().orEmpty()
+        val sourceEvidenceHash = values[SOURCE_VERIFICATION_EVIDENCE_HASH_FIELD]
+            ?.trim()?.lowercase().orEmpty()
+        val tagUidHex = normalizeUid(values[TAG_UID_HEX_FIELD]?.trim().orEmpty())
         val issuerTrustStatus = values[ISSUER_TRUST_STATUS_FIELD]?.trim().orEmpty()
+
         require(credentialId.isNotBlank() && credentialSubjectId.isNotBlank()) {
             "The referenced NFC credential execution is missing credential identity fields"
         }
         require(SHA256_HEX.matches(credentialEnvelopeHash)) {
             "The referenced NFC credential execution contains an invalid credential envelope hash"
         }
-        require(issuerKeyId.isNotBlank()) {
-            "The referenced NFC credential execution is missing issuer identity"
+        require(SHA256_HEX.matches(issuerFingerprint)) {
+            "The referenced NFC credential execution is missing a valid full issuer fingerprint"
+        }
+        require(issuerKeyId.isNotBlank() && issuerKeyId == issuerFingerprint.take(16)) {
+            "The referenced NFC credential execution contains inconsistent issuer identity fields"
+        }
+        require(sourceEvidenceFormat == NFC_CREDENTIAL_SOURCE_EVIDENCE_FORMAT) {
+            "The referenced NFC credential execution uses an unsupported verification evidence format"
+        }
+        require(SHA256_HEX.matches(sourceEvidenceHash)) {
+            "The referenced NFC credential execution contains an invalid verification evidence hash"
         }
         require(issuerTrustStatus.isNotBlank()) {
             "The referenced NFC credential execution is missing issuer trust status"
+        }
+
+        val reconstructedSourceEvidenceHash = Digests.sha256Hex(
+            listOf(
+                "verification_evidence_format=$NFC_CREDENTIAL_SOURCE_EVIDENCE_FORMAT",
+                "tag_uid_hex=$tagUidHex",
+                "credential_id=$credentialId",
+                "credential_subject_id=$credentialSubjectId",
+                "credential_envelope_hash=$credentialEnvelopeHash",
+                "issuer_public_key_fingerprint_sha256=$issuerFingerprint",
+                "issuer_signature_valid=true",
+                "pin_verified=true"
+            ).joinToString("\n")
+        )
+        require(reconstructedSourceEvidenceHash == sourceEvidenceHash) {
+            "The referenced NFC credential verification evidence does not reconstruct from its recorded execution fields"
         }
 
         val canonical = listOf(
@@ -227,6 +265,10 @@ object AttestationEvidenceFactory {
             "credential_subject_id=$credentialSubjectId",
             "credential_envelope_hash=$credentialEnvelopeHash",
             "issuer_key_id=$issuerKeyId",
+            "issuer_public_key_fingerprint_sha256=$issuerFingerprint",
+            "source_verification_evidence_format=$sourceEvidenceFormat",
+            "source_verification_evidence_hash=$sourceEvidenceHash",
+            "tag_uid_hex=$tagUidHex",
             "issuer_trust_status=$issuerTrustStatus",
             "credential_verified=true",
             "pin_verified=true",
@@ -238,11 +280,7 @@ object AttestationEvidenceFactory {
         ).joinToString("\n")
 
         val evidenceHash = Digests.sha256Hex(canonical)
-        val assertionBasis = if (issuerTrustStatus.equals("trusted", ignoreCase = true)) {
-            "trusted_nfc_credential"
-        } else {
-            "nfc_credential_pin_signature_verified"
-        }
+        val assertionBasis = "nfc_credential_pin_signature_verified"
 
         return ResolvedAttestationVerification(
             evidence = AttestationEvidence(
@@ -257,9 +295,21 @@ object AttestationEvidenceFactory {
                 "evidence_format" to NFC_CREDENTIAL_EXECUTION_FORMAT,
                 "evidence_hash" to evidenceHash,
                 "issuer_key_id" to issuerKeyId,
+                "issuer_public_key_fingerprint_sha256" to issuerFingerprint,
+                "source_verification_evidence_format" to sourceEvidenceFormat,
+                "source_verification_evidence_hash" to sourceEvidenceHash,
+                "tag_uid_hex" to tagUidHex,
                 "issuer_trust_status" to issuerTrustStatus
             ).filterValues { it.isNotBlank() }
         )
+    }
+
+    private fun normalizeUid(value: String): String {
+        val normalized = value.filterNot(Char::isWhitespace).uppercase()
+        require(normalized.isNotBlank() && normalized.length % 2 == 0 && HEX.matches(normalized)) {
+            "The referenced NFC credential execution contains an invalid tag UID"
+        }
+        return normalized
     }
 
     private fun resultEvidence(result: String, format: String, fallback: String): AttestationEvidence =
@@ -269,4 +319,5 @@ object AttestationEvidenceFactory {
         )
 
     private val SHA256_HEX = Regex("^[0-9a-f]{64}$")
+    private val HEX = Regex("^[0-9A-F]+$")
 }

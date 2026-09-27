@@ -46,7 +46,7 @@ The phone retains the authoritative outbound record until the authenticated E2E 
 
 ## ESP persistent spool
 
-Firmware `methodmesh-espmesh-0.4.0` uses an atomic bounded LittleFS JSONL spool. Radio-bound and phone-bound ciphertext survive BLE absence and ESP power cycles. The firmware refuses new storage when the bounded spool is full; it does **not** silently discard an undelivered record to make space. If persisted spool JSON becomes unreadable, the node preserves the affected file and reports `esp_spool_unreadable` rather than replacing it with an empty queue.
+Firmware `methodmesh-espmesh-0.4.1` uses an atomic bounded LittleFS JSONL spool. Radio-bound and phone-bound ciphertext survive BLE absence and ESP power cycles. The firmware refuses new storage when the bounded spool is full; it does **not** silently discard an undelivered record to make space. If persisted spool JSON becomes unreadable, the node preserves the affected file and reports `esp_spool_unreadable` rather than replacing it with an empty queue.
 
 An ESP continues ESP-NOW store-and-forward operation while its phone is absent. A remote phone can therefore leave its ESP powered in a field location, return later, reconnect over BLE and automatically drain the backlog.
 
@@ -132,3 +132,121 @@ safe, and a consumer failure is retried by a secure provider instead of being
 reported as successful dispatch. These are foundations for future heterogeneous
 links and route handover; automatic multi-link routing and topology display are
 not yet implemented.
+
+## Bench framing and provisioning correction — 0.4.1
+
+Downlink packets are capped at 180 bytes, including the complete typed
+`methodmesh.blefrag` v1 JSON/base64 wrapper (54 raw bytes per fragment).
+The old 460-byte shortcut could truncate a CONFIG/HELLO/SYNC response at 253
+bytes on an Android MTU of 256. MTU IRQ data, or the Android HELLO `att_payload`
+when that IRQ is unavailable, gates notifications; no downlink is sent before
+a payload budget is known. The Android provider still requires at least 180
+ATT bytes. Default MTU 23 cannot carry this typed bridge and is rejected rather
+than truncating packets. Transfer IDs are sequential within a node boot; Android
+clears partial reassembly on connection replacement/loss. Legacy and modern
+Android notification callbacks share the same reassembler.
+
+Selecting **Use** only selects/connects a gateway. A setup completion requires a
+parsed CONFIG_ACK matching the pending request ID and exact requested network,
+with `provisioned=true`, identity, firmware and nonnegative spool counts. HELLO,
+SYNC, stale ACKs, errors, disconnection and timeout never complete provisioning.
+A timeout leaves the configuration unconfirmed; the ESP may have saved it, so a
+retry can require the node token. The ready panel shows node/network/firmware,
+spool counts and the actual foreground-service running state. Connected gateways
+may disappear from scans while MethodMesh keeps their BLE connection.
+
+Workbench closeout uses the existing dashboard host callbacks, retaining the
+Workbench destination/module expansion; the host close button says **Back to
+Workbench**. External/protocol return callbacks remain unchanged. `espmesh.message.send`
+remains the test harness; durable radio, encrypted spools, E2E acknowledgement,
+voice admission and mute/relay semantics remain on the existing provider.
+
+## Bench radio correction — 0.4.2
+
+Firmware 0.4.2 explicitly places the disconnected station interface and every
+ESP-NOW node on Wi-Fi channel 6 before ESP-NOW starts. This removes reliance on
+the board's prior/default Wi-Fi channel, which could leave authenticated radio
+messages permanently queued even when nodes had the same network name and key.
+
+Gateway telemetry now includes the active radio channel and a short SHA-256 ID
+of the ESP transport key. The key itself remains hidden. Both phones can compare
+these values to distinguish a channel problem from a key-copy/provisioning
+problem. Android accepts older 0.4.1 responses without these optional fields.
+
+The provisioning screen can create and scan a typed `methodmesh.mesh.join` v1
+QR enrollment bundle. It carries the network ID, ESP transport key and phone E2E
+group key so a second phone can load the complete join configuration in one scan,
+then provision its selected fresh ESP through the existing CONFIG/CONFIG_ACK path.
+The QR is displayed only on explicit request and is labelled as a secret enrollment
+credential. Both exportable mesh keys are wrapped at rest by Android Keystore; QR
+payloads are not logged or written to the ESP spool.
+
+The Workbench provisioning surface is a four-stage guided flow: connect a node,
+create a named mesh or join by QR, show the join QR, then send/receive test packets.
+Creating a mesh generates the ESP transport and E2E group keys without exposing
+key fields in the normal path. When one nearby node is found it is selected
+automatically; multiple candidates remain an explicit choice. The final test uses
+the existing `espmesh.message.send` envelope/runtime path and reports radio
+activity, phone backlog, ESP radio spool and received test text in place.
+
+## Fragmented radio burst reliability — 0.4.3
+
+Firmware 0.4.3 increases the ESP-NOW receive buffer before activating the radio
+and adds a short delay between durable fragments. This prevents a multi-fragment
+encrypted message from overflowing the receiver while MicroPython reassembles it.
+Gateway telemetry reports received radio packets and the latest send error.
+
+The guided QR and test stages also unlock for an already configured node when
+its live network and ESP key identity match the credentials saved on the phone.
+This operational check does not fabricate a provisioning result: Workbench
+completion still requires a validated CONFIG_ACK from the current setup request.
+
+## Radio startup fallback — 0.4.4
+
+Bench telemetry from 0.4.3 showed `radio channel unknown` on both ESP32-C3 nodes:
+the requested 16 KB receive buffer could not be allocated by the bundled
+MicroPython runtime, and the original all-or-nothing startup path disabled
+ESP-NOW. Firmware 0.4.4 tries progressively smaller useful buffers down to the
+runtime default size, keeping the radio active whenever any supported allocation
+succeeds. Durable fragments are paced by 12 ms. Telemetry now exposes the chosen
+buffer and the exact startup error instead of presenting a silent unknown channel.
+
+## ESP32-C3 coexistence runtime — 0.4.5
+
+USB diagnosis of a failing 0.4.4 node reported `WiFi Out of Memory`. The bundled
+MicroPython 1.28 / ESP-IDF 5.5 runtime could not initialize Wi-Fi after the BLE
+gateway had reserved the ESP32-C3 radio heap. Firmware 0.4.5 uses the official
+MicroPython 1.29 ESP32-C3 runtime verified on the physical node, initializes
+Wi-Fi/ESP-NOW and BLE from `boot.py` before the larger `main.py` is compiled,
+and no longer tears down/recreates ESP-NOW during
+CONFIG. A clean USB probe confirmed channel 6, ESP-NOW, BLE and the MethodMesh
+GATT service active concurrently before this runtime was adopted. The receive
+buffer remains at MicroPython's documented 528-byte default to preserve enough
+ESP32-C3 controller memory for BLE; 12 ms fragment pacing prevents burst loss.
+
+## BLE discovery and handshake recovery — 0.4.6
+
+Firmware 0.4.6 advertises the mesh service every 100 ms and paces fragmented
+BLE notifications by 8 ms so HELLO/SYNC telemetry is not lost as a burst. The
+Android provider uses a low-latency service-UUID scan, requests the observed-safe
+256-byte MTU, starts service discovery if the MTU callback stalls, validates
+notification setup, retries HELLO three times, and reconnects automatically if
+the protocol handshake does not complete. The guided screen exposes a discovered
+node immediately and auto-selects a sole candidate after 750 ms rather than
+waiting for the full scan window.
+Manual keys, provisioning-token recovery and protocol diagnostics are contained
+under **Advanced recovery and diagnostics**.
+
+The installed runtime is `app/src/main/assets/firmware/esp32c3_espnow_mesh/main.py`.
+The older `firmware/esp32c3_espmesh` reference is not the bundled image source.
+Rebuild using the repository firmware virtual environment and the installer-owned
+`build_espnow_mesh_image.py`. It mounts LittleFS, replaces runtime/codec files,
+remounts and verifies every file and the unchanged pre-VFS bytes. The flash image
+remains 4 MB; AHT20/LD2410C images and the ROM writer are unchanged.
+
+Host regression: `python3 -m unittest discover -s tools/tests -p test_espmesh_ble.py -v`.
+Android regression: `:app:testDebugUnitTest --tests 'com.example.methodmesh.modules.espmesh.*'`.
+Hardware validation still requires two reflashed C3s: provision each, verify the
+MTU-256 status/CONFIG_ACK panel, close to Workbench, send via the existing harness,
+queue while a peer/phone is offline, power-cycle, reconnect and confirm delivery.
+Test live voice with a voice-capable MTU, mute/relay and resumed durable backlog.

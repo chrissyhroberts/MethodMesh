@@ -35,7 +35,7 @@ assert "if (ownsDurability) throw e" in runtime
 
 # E2E content key must never enter the ESP provisioning/config frame or firmware.
 start = provider.index('val frame = EspMeshBridgeFrame("CONFIG"')
-end = provider.index('return if (enqueueBridgeFrame', start)
+end = provider.index('fun generateE2eGroupKey', start)
 config_slice = provider[start:end]
 for forbidden in ("e2e_group_key", "group_key_wrapped", "AES/GCM"):
     assert forbidden not in config_slice
@@ -48,6 +48,20 @@ assert 'MAX_SPOOL=96' in firmware
 assert 'MAX_WIRE=32768' in firmware
 assert 'GATT_BUF=512' in firmware
 assert 'MAX_BRIDGE=65535' in firmware
+coex = (MAIN / "assets/firmware/esp32c3_espnow_mesh/methodmesh_coex.py").read_text()
+assert 'RADIO_CHANNEL=6' in coex
+assert 'wlan.config(channel=RADIO_CHANNEL)' in coex
+assert 'RADIO_RXBUFS=(528,)' in firmware
+assert 'radio.config(rxbuf=size);radio.active(True)' in firmware
+assert 'radio_start_error' in firmware
+assert coex.index('radio=espnow.ESPNow()') < coex.index('ble=bluetooth.BLE();ble.active(True)')
+assert 'import methodmesh_coex' in (MAIN / "assets/firmware/esp32c3_espnow_mesh/boot.py").read_text()
+assert 'config_save(n);s.advertise();s.notify("CONFIG_ACK"' in firmware
+assert 'config_save(n);s.radio_start()' not in firmware
+assert 'gap_advertise(100000' in firmware
+assert 's.notify_packet(compact(q).encode());time.sleep_ms(8)' in firmware
+assert '"network_key_id":ki(s.c["network_key"])' in firmware
+assert '"radio_channel":s.radio_channel' in firmware
 assert 'MAX_SECURE_WIRE_BYTES = 32 * 1024' in provider
 assert 'esp_spool_full' in firmware
 assert 'esp_spool_unreadable' in firmware

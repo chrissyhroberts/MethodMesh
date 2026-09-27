@@ -1,115 +1,108 @@
-# Validation checklist — Live Stream Translation v0.2.2
+# Validation — Live Stream Translation v0.3.3
 
-## Host build precondition
+Target: MethodMesh Master Book v1.29.
 
-- [ ] `app/build.gradle.kts` contains `implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha1")`.
-- [ ] Run `:app:compileDebugKotlin` only after that shared host dependency has been added.
+## Contract review
 
-## Static/module wiring
+- Module ID preserved: `livestreamtranslate`.
+- Established method IDs preserved:
+  - `conversation.translate.live.fixed`
+  - `conversation.translate.live.auto`
+- Additive method:
+  - `conversation.translate.live.streaming`
+- All established non-speaker output fields are preserved. Draft speaker-tagging inputs/outputs were removed before deployment at the user's request; no deprecated compatibility fields are retained.
+- Module version explicitly `0.3.3`.
+- Maturity/connectivity metadata:
+  - fixed: Development / ONLINE_OFFLINE
+  - auto: Development / ONLINE_OFFLINE
+  - streaming: Experimental / ONLINE_OFFLINE
+- No capability-specific shared Home/registry edit is required by this module; v1.29 metadata is module-owned.
 
-- [ ] `LiveStreamTranslateCapabilityScreen.kt` calls the current shared scaffold with `capabilityId`, `context`, and `canGoBack`, and does not pass the retired scaffold `description` parameter.
-- [ ] `LiveStreamTranslateModule` is registered by the MethodMesh module registry/discovery path.
-- [ ] Both methods appear independently in Capabilities.
-- [ ] Both methods are independently available to Presets and Protocols.
-- [ ] RIL resolves fixed and automatic meeting-translation phrases to the intended method.
-- [ ] The two module-owned XLSForms appear in ODK Forms.
+## Streaming review
 
+The ML Kit speech provider already consumes `startRecognition(...).collect` and emits partial/final responses. the v0.3.x line adds a streaming translation projection above that provider:
 
-## Speech providers and hot-switching
+- every partial source revision receives a monotonic revision number;
+- translation submissions are conflated using `stream_response` delay;
+- only the latest revision may update the visible translated working phrase;
+- final recognizer responses invalidate any outstanding partial translation callback;
+- final segments continue through the established canonical segment translation path;
+- no partial/revisable text is written to committed transcript JSON.
 
-- [ ] Host app includes `com.google.mlkit:genai-speech-recognition:1.0.0-alpha1`.
-- [ ] Fixed mode exposes Automatic, Android, ML Kit Basic and ML Kit GenAI.
-- [ ] Detect-language mode exposes only Automatic and Android.
-- [ ] Automatic fixed mode falls back GenAI → Basic → Android when a provider is unavailable.
-- [ ] Switching engines while idle changes provider immediately without ending the meeting.
-- [ ] Switching while someone is speaking waits for the current final utterance, then changes provider.
-- [ ] The utterance immediately before a switch is emitted exactly once.
-- [ ] Each stored segment contains `recognition_engine` and `recognition_engine_detail`.
-- [ ] Session output contains requested engine, last active engine and switch count.
-- [ ] ML Kit segments leave recognition confidence absent rather than inventing a value.
-- [ ] Explicit ML Kit GenAI selection reports unsupported-device/model status visibly.
-- [ ] ML Kit downloadable model preparation reports progress and begins listening after completion.
+This separation is intentional and testable: working UI may change rapidly; Commit payload may not.
 
-## Fixed-language mode
+`StreamingRevisionGate.kt` is pure Kotlin. Its monotonic-revision / stale-revision rejection / invalidation behaviour was compiled and executed independently during this handoff (`StreamingRevisionGate OK`).
 
-- [ ] Select French → English and start.
-- [ ] Required ML Kit models are prepared before listening.
-- [ ] Partial French speech appears in the Hearing card.
-- [ ] Final source text appears in the feed.
-- [ ] English translation appears without replacing/removing the source text.
-- [ ] Recognition automatically restarts after each final utterance.
-- [ ] Silence/no-match does not terminate the session.
-- [ ] Pause stops recognition and Resume restarts it.
-- [ ] End produces a working result ready for Commit.
-- [ ] End during an in-flight translation stops recognition, shows Finishing translations…, and does not commit an empty/stale translation.
-- [ ] Tap a feed card and confirm translated text is copied.
+## Provider/device expectations
 
-## Auto-language mode
+- ML Kit Speech Recognition Basic: API 31+ potential availability; runtime model status is authoritative.
+- ML Kit GenAI/Advanced: runtime `checkStatus()` authoritative. Current Google documentation lists Pixel 10 and Pixel 11; a Pixel 7a should therefore normally fall back to Basic when Automatic is selected.
+- Explicit GenAI selection should surface unsupported/unavailable rather than silently switch provider.
+- Streaming mode excludes Android SpeechRecognizer.
+- Detect-language mode remains Android-only and requires Android 14+ language switching support.
 
-Test on Android 14+ with a recognition service that supports language switching.
+## ODK/XLSForm review
 
-- [ ] Start with target English and likely languages `fr,es,de`.
-- [ ] Speak French; UI shows French detection and English translation.
-- [ ] Next speak Spanish; UI shows Spanish detection and English translation.
-- [ ] Switching does not require reopening the session.
-- [ ] `high_precision`, `balanced` and `quick_response` are passed through without crash.
-- [ ] If the recognizer returns text without language metadata, the utterance is not silently assigned a guessed language.
-- [ ] On Android <14, the capability refuses auto mode and directs the user to fixed-language mode.
+Active canonical examples:
 
-## Speaker tags
+- `example_odk_showcase_conversation_translate_live_fixed.xlsx`
+- `example_odk_showcase_conversation_translate_live_auto.xlsx`
+- `example_odk_showcase_conversation_translate_live_streaming.xlsx`
 
-- [ ] Speaker tags OFF removes speaker controls and stores blank speaker labels.
-- [ ] Speaker tags ON shows the configured number of chips.
-- [ ] Select Speaker 2; next completed utterance is labelled Speaker 2.
-- [ ] Change to Speaker 3; subsequent utterance uses Speaker 3.
-- [ ] `Speaker ?` is available when identity is uncertain.
+Checks:
 
-## Transcript privacy semantics
+- exactly one MethodMesh invocation per workbook;
+- canonical method IDs;
+- no `methodmesh_return_namespace`;
+- `methodmesh_status` captured;
+- `methodmesh_full_json` captured;
+- canonical unprefixed live-translation returns;
+- fixed/auto historic `form_id` values retained after filename migration;
+- streaming form has its own new `form_id`.
 
-- [ ] Start with transcript ON and speak one utterance.
-- [ ] Turn transcript OFF and speak one utterance; it remains visible in the live feed.
-- [ ] Turn transcript ON and speak another utterance.
-- [ ] End and Commit.
-- [ ] `live_translation_segments_json` includes only the two recorded utterances.
-- [ ] `live_translation_transcript` excludes the unrecorded utterance and contains pause/resume markers.
-- [ ] FULL JSON does not leak the unrecorded utterance through the method output fields.
+## Native UX review
 
-## State and lifecycle
+- primary interaction remains the live meeting surface;
+- streaming live translated phrase updates in place and is tap-to-copy;
+- final feed cards remain tap-to-copy;
+- no speaker attribution controls, fields or inferred identities;
+- transcript ON/OFF changes only final-segment retention, not the live feed;
+- pause/resume and End session remain on the live surface;
+- final transcript/segments remain separate from technical/full JSON.
 
-- [ ] Rotate/recompose during setup; settings remain.
-- [ ] Rotate/recompose during a recorded session; recorded feed state remains.
-- [ ] Leaving the immersive live surface via Back to setup stops the recognizer.
-- [ ] Disposing the capability destroys `SpeechRecognizer` and closes ML Kit translators.
-- [ ] Retry clears previous result and starts a clean working state.
+## Build/test limitations of isolated handoff
 
-## Offline behaviour
+This module handoff does not contain the whole MethodMesh Gradle project. Standalone Kotlin syntax checking therefore reports unresolved Android/Compose/MethodMesh/ML Kit symbols by design. The handoff is additionally checked against current MethodMesh master interface definitions and Google ML Kit Speech Recognition documentation.
 
-On Android 12+ with an installed on-device recognizer:
+Before promotion of the new streaming method beyond Experimental, run in the target checkout:
 
-- [ ] Enable Prefer offline.
-- [ ] Controller uses the on-device recognizer when advertised.
-- [ ] Fixed-language recognition works for an installed offline speech model.
-- [ ] Missing offline speech model fails visibly rather than silently pretending to be offline.
-- [ ] Previously downloaded ML Kit translation models work without network.
+```bash
+./gradlew :app:compileDebugKotlin
+./gradlew :app:testDebugUnitTest
+./gradlew :app:assembleDebug
+```
 
-## ODK round-trip
+Then exercise on-device:
 
-For each XLSForm:
+1. Pixel 7a / API 31+ class device: Streaming + Automatic should reject/fail GenAI runtime availability and fall back to ML Kit Basic.
+2. Speak a long sentence without pausing: translated working phrase should revise before final recognition.
+3. Rapid partial revisions must never cause an older translation to replace a newer one.
+4. End session: committed transcript contains only final segments.
+5. Pause/resume and Back to setup should invalidate outstanding partial translations.
+6. Fixed and automatic-language prototype modes should retain their previous behaviours.
+7. Direct, preset, protocol and each ODK showcase should resolve the same canonical method/output contracts.
 
-- [ ] XLSForm validates.
-- [ ] Launch intent opens the correct capability.
-- [ ] Input settings arrive correctly.
-- [ ] End/Commit returns `methodmesh_execution_id` and `methodmesh_status`.
-- [ ] Transcript and segment count populate the expected fields.
-- [ ] FULL JSON is returned.
-- [ ] Auto form also returns `live_translation_last_detected_language`.
+## External documentation checked
 
-## Device matrix
+- https://developers.google.com/ml-kit/genai/speech-recognition/android
+- https://developers.google.com/ml-kit/language/translation/android
+- https://developer.android.com/reference/android/speech/SpeechRecognizer
 
-Minimum recommended manual matrix:
+## Handoff packaging checks
 
-1. Android 13 device — fixed mode; auto mode correctly blocked.
-2. Android 14/15 device with Google speech service — fixed + auto.
-3. Device with downloaded offline recognition model — offline fixed mode.
-4. No-network test after translation/speech models are installed.
-5. No-network test with missing model to verify useful failure messaging.
+- Module ZIP contains exactly one top-level `livestreamtranslate/` module root.
+- ZIP compressed-data integrity check passed.
+- All three canonical XLSX compressed-data integrity checks passed.
+- Artifact-tool inspection confirmed one `body::intent` invocation per workbook, no return namespace, and presence of both `methodmesh_status` and `methodmesh_full_json`.
+- Final spreadsheet formula/error scan returned no `#REF!`, `#DIV/0!`, `#VALUE!`, `#NAME?` or `#N/A` matches.
+- Isolated Kotlin parse/structure scan found no parser or non-exhaustive-`when` diagnostics; Android/Compose/MethodMesh symbols cannot be resolved without the full host classpath.

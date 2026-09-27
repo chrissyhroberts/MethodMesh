@@ -179,7 +179,8 @@ fun TimeAssuranceWorkbenchPanel(
                 if (provider == null) {
                     "No trusted-time provider is installed."
                 } else {
-                    "Uses ${provider.displayName}. This refreshes MethodMesh evidence; it does not set Android system time."
+                    "Uses ${provider.displayName}. This refreshes MethodMesh evidence; it does not set Android system time. " +
+                        "MethodMesh also refreshes quietly on app open and about every 6 hours when a network is available."
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

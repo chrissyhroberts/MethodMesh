@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -57,6 +58,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ArchitectureId
@@ -74,6 +77,7 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.transport.workflow.ui.CapabilityHostPresentation
+import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.MultiFormatWriter
@@ -128,8 +132,8 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
                 ?: OutputFormatter.PayloadMode.CORE
         )
         val payloadVisible = context.settingShouldBeShown("barcode_payload")
-        val formatVisible = context.settingShouldBeShown("barcode_format")
-        val cycleVisible = context.settingShouldBeShown("barcode_auto_cycle")
+        // barcode_format and barcode_auto_cycle are preset *starting-state* values.
+        // They must never hide the Generator's live presentation controls.
 
         val suppliedPayload = context.action.settings["barcode_payload"]
             ?: context.action.settings["input_barcode_payload"]
@@ -139,6 +143,8 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
         val suppliedFormat = parseFormat(
             context.action.settings["barcode_format"]
                 ?: context.action.settings["input_barcode_format"]
+                ?: context.request.settings["barcode_format"]
+                ?: context.request.settings["input_barcode_format"]
                 ?: "QR_CODE"
         )
 
@@ -148,6 +154,8 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
             mutableStateOf(
                 (context.action.settings["barcode_auto_cycle"]
                     ?: context.action.settings["input_barcode_auto_cycle"]
+                    ?: context.request.settings["barcode_auto_cycle"]
+                    ?: context.request.settings["input_barcode_auto_cycle"]
                     ?: "false").toBoolean()
             )
         }
@@ -173,14 +181,13 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
         val selected = parseFormat(formatName)
         val effectiveFormat = when {
             committedFormatName != null -> parseFormat(committedFormatName!!)
-            !formatVisible -> selected
             selected in compatible -> selected
             compatible.isNotEmpty() -> compatible.first()
             else -> selected
         }
 
-        LaunchedEffect(effectiveFormat.name, committedFormatName, formatVisible) {
-            if (formatVisible && committedFormatName == null && effectiveFormat.name != formatName) {
+        LaunchedEffect(effectiveFormat.name, committedFormatName) {
+            if (committedFormatName == null && effectiveFormat.name != formatName) {
                 formatName = effectiveFormat.name
             }
         }
@@ -241,8 +248,8 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
         }
 
         val cyclingState by rememberUpdatedState(cycling)
-        LaunchedEffect(cycling, payload, compatible, committedPayload, formatVisible) {
-            if (!formatVisible || !cycling || committedPayload != null || compatible.size < 2) return@LaunchedEffect
+        LaunchedEffect(cycling, payload, compatible, committedPayload) {
+            if (!cycling || committedPayload != null || compatible.size < 2) return@LaunchedEffect
             while (cyclingState) {
                 delay(1700)
                 val current = compatible.indexOf(parseFormat(formatName)).coerceAtLeast(0)
@@ -265,8 +272,8 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun moveFormat(delta: Int) {
-            if (!formatVisible || committedPayload != null || compatible.isEmpty()) return
-            if (cycleVisible) cycling = false
+            if (committedPayload != null || compatible.isEmpty()) return
+            cycling = false
             val current = compatible.indexOf(parseFormat(formatName)).coerceAtLeast(0)
             formatName = compatible[(current + delta + compatible.size) % compatible.size].name
         }
@@ -373,39 +380,58 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
         }
 
         if (presentationMode) {
-            Surface(
-                modifier = Modifier.fillMaxSize().clickable { presentationMode = false },
-                color = Color.White
+            Dialog(
+                onDismissRequest = { presentationMode = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
             ) {
-                Box(Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
-                    rendered?.let {
-                        Image(
-                            bitmap = it.bitmap.asImageBitmap(),
-                            contentDescription = "Generated ${prettyFormat(it.format)}",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-                    Surface(
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                        shape = RoundedCornerShape(999.dp),
-                        color = Color.White.copy(alpha = 0.92f),
-                        border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.10f))
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color.White
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .safeDrawingPadding()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            "Tap anywhere to return",
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                            color = Color.Black,
-                            style = MaterialTheme.typography.labelMedium
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            rendered?.let {
+                                Image(
+                                    bitmap = it.bitmap.asImageBitmap(),
+                                    contentDescription = "Generated ${prettyFormat(it.format)}",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
+                        }
+                        TextButton(onClick = { presentationMode = false }) {
+                            Text("Close full screen", color = Color.Black)
+                        }
                     }
                 }
             }
-            return
+        }
+
+        // Dashboard immersive presentation owns its scrolling. External/native-preset
+        // runs are already hosted inside ExternalWorkflowScreen's vertical scroller;
+        // adding another same-axis verticalScroll here causes Compose to measure a
+        // scrollable child with an infinite max height and can crash on preset launch.
+        val generatorScrollState = rememberScrollState()
+        val generatorModifier = if (context.presentationMode == CapabilityPresentationMode.Dashboard) {
+            Modifier.fillMaxSize().verticalScroll(generatorScrollState).padding(16.dp)
+        } else {
+            Modifier.fillMaxWidth().padding(16.dp)
         }
 
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            generatorModifier,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             GeneratorHeader(committed = committedPayload != null, format = effectiveFormat)
@@ -433,21 +459,25 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
             )
 
             if (committedPayload == null) {
-                if (formatVisible) {
-                    GeneratorTransport(
-                        cycling = cycling,
-                        enabled = compatible.size > 1,
-                        cycleVisible = cycleVisible,
-                        onPrevious = { moveFormat(-1) },
-                        onCycle = { if (cycleVisible) cycling = !cycling },
-                        onNext = { moveFormat(+1) }
-                    )
-                }
+                GeneratorTransport(
+                    cycling = cycling,
+                    enabled = compatible.size > 1,
+                    cycleVisible = true,
+                    onPrevious = { moveFormat(-1) },
+                    onCycle = { cycling = !cycling },
+                    onNext = { moveFormat(+1) }
+                )
+
+                GeneratorCapacityCue(
+                    payload = payload,
+                    compatible = compatible,
+                    selected = effectiveFormat
+                )
 
                 if (payloadVisible) {
                     TextField(
                         value = payload,
-                        onValueChange = { payload = it; if (cycleVisible) cycling = false },
+                        onValueChange = { payload = it; cycling = false },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text("Payload") },
                         placeholder = { Text("Paste text, URL, loyalty number…") },
@@ -461,31 +491,23 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
                             modifier = Modifier.weight(1f),
                             onClick = {
                                 val clip = appContext.getSystemService(ClipboardManager::class.java).primaryClip
-                                clip?.getItemAt(0)?.coerceToText(appContext)?.toString()?.let { payload = it; if (cycleVisible) cycling = false }
+                                clip?.getItemAt(0)?.coerceToText(appContext)?.toString()?.let { payload = it; cycling = false }
                             }
                         ) { Text("Paste") }
                         OutlinedButton(
                             modifier = Modifier.weight(1f),
-                            onClick = { payload = ""; if (cycleVisible) cycling = false }
+                            onClick = { payload = ""; cycling = false }
                         ) { Text("Clear") }
                     }
                 } else {
                     PayloadCard(payload = payload, onCopy = { copyPayload(appContext, payload) })
                 }
 
-                if (formatVisible) {
-                    FormatRail(
-                        compatible = compatible,
-                        selected = effectiveFormat,
-                        onSelect = { if (cycleVisible) cycling = false; formatName = it.name }
-                    )
-                } else if (payload.isNotEmpty() && rendered == null) {
-                    Text(
-                        "The fixed ${prettyFormat(effectiveFormat)} format cannot represent this exact payload. The payload will not be altered; choose a different preset format.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+                FormatRail(
+                    compatible = compatible,
+                    selected = effectiveFormat,
+                    onSelect = { cycling = false; formatName = it.name }
+                )
 
                 BarcodePayloadSemantics.safeHttpUrl(payload)?.let { url ->
                     OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { openGeneratedUrl(appContext, url) }) {
@@ -628,69 +650,108 @@ private fun CodeHero(
     onSwipe: (Int) -> Unit,
     onPresent: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .pointerInput(committed) {
-                if (!committed) {
-                    var drag = 0f
-                    detectHorizontalDragGestures(
-                        onDragStart = { drag = 0f },
-                        onHorizontalDrag = { _, amount -> drag += amount },
-                        onDragEnd = {
-                            when {
-                                drag < -70f -> onSwipe(+1)
-                                drag > 70f -> onSwipe(-1)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .pointerInput(committed) {
+                    if (!committed) {
+                        var drag = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { drag = 0f },
+                            onHorizontalDrag = { _, amount -> drag += amount },
+                            onDragEnd = {
+                                when {
+                                    drag < -70f -> onSwipe(+1)
+                                    drag > 70f -> onSwipe(-1)
+                                }
                             }
-                        }
-                    )
-                }
-            },
-        shape = RoundedCornerShape(30.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.08f)),
-        shadowElevation = 3.dp
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth().height(340.dp).padding(22.dp),
-            contentAlignment = Alignment.Center
+                        )
+                    }
+                },
+            shape = RoundedCornerShape(30.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.08f)),
+            shadowElevation = 3.dp
         ) {
-            if (rendered != null) {
-                Image(
-                    bitmap = rendered.bitmap.asImageBitmap(),
-                    contentDescription = "Generated ${prettyFormat(rendered.format)}",
-                    modifier = Modifier.fillMaxSize().clickable(onClick = onPresent),
-                    contentScale = ContentScale.Fit
+            Box(
+                modifier = Modifier.fillMaxWidth().height(340.dp).padding(22.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (rendered != null) {
+                    Image(
+                        bitmap = rendered.bitmap.asImageBitmap(),
+                        contentDescription = "Generated ${prettyFormat(rendered.format)}",
+                        modifier = Modifier.fillMaxSize().clickable(onClick = onPresent),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            if (payloadEmpty) "Ready for a payload" else "No compatible rendering",
+                            color = Color.Black,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            if (payloadEmpty) "Paste or type below" else "Choose another supported format",
+                            color = Color.DarkGray,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+        }
+        if (rendered != null) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onPresent) {
+                    Text("Full screen")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GeneratorCapacityCue(
+    payload: String,
+    compatible: List<BarcodeFormat>,
+    selected: BarcodeFormat
+) {
+    if (payload.isEmpty()) return
+    val byteCount = payload.toByteArray(Charsets.UTF_8).size
+    val unavailable = GENERATOR_ORDER.filterNot { it in compatible }
+    val densityLabel = when {
+        byteCount <= 256 -> "light"
+        byteCount <= 768 -> "comfortable"
+        byteCount <= 1200 -> "dense"
+        else -> "very dense"
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f)
+    ) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                "$byteCount UTF-8 byte${if (byteCount == 1) "" else "s"} · ${compatible.size} format${if (compatible.size == 1) "" else "s"} available · $densityLabel",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (byteCount > 1200 && selected in setOf(BarcodeFormat.QR_CODE, BarcodeFormat.AZTEC, BarcodeFormat.DATA_MATRIX, BarcodeFormat.PDF_417)) {
+                Text(
+                    "Dense symbol: full-screen presentation is recommended for reliable camera scanning.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Surface(
-                    modifier = Modifier.align(Alignment.BottomEnd),
-                    shape = RoundedCornerShape(999.dp),
-                    color = Color.White.copy(alpha = 0.94f),
-                    border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.08f))
-                ) {
-                    Text(
-                        "FULL SCREEN",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        color = Color.Black,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        if (payloadEmpty) "Ready for a payload" else "No compatible rendering",
-                        color = Color.Black,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        if (payloadEmpty) "Paste or type below" else "Choose another supported format",
-                        color = Color.DarkGray,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+            }
+            if (unavailable.isNotEmpty()) {
+                Text(
+                    "Unavailable for this exact payload: ${unavailable.joinToString { prettyFormat(it) }}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -706,13 +767,13 @@ private fun GeneratorTransport(
     onNext: () -> Unit
 ) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(modifier = Modifier.weight(1f), onClick = onPrevious, enabled = enabled) { Text("‹") }
+        OutlinedButton(modifier = Modifier.weight(1f), onClick = onPrevious, enabled = enabled) { Text("‹  Prev") }
         if (cycleVisible) {
             Button(modifier = Modifier.weight(2f), onClick = onCycle, enabled = enabled) {
                 Text(if (cycling) "■  Stop" else "▶  Cycle")
             }
         }
-        OutlinedButton(modifier = Modifier.weight(1f), onClick = onNext, enabled = enabled) { Text("›") }
+        OutlinedButton(modifier = Modifier.weight(1f), onClick = onNext, enabled = enabled) { Text("Next  ›") }
     }
 }
 

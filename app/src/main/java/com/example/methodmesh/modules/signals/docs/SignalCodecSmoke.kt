@@ -342,6 +342,33 @@ fun main() {
         requireSmoke(maxTransfer.frames.isNotEmpty(), "QR 1 MiB transfer produces frames")
     }
 
+    // v0.5.4 capture-first QR Burst: the physical layer can run much faster because
+    // decoding is removed from the capture critical path. Transport/FEC remains MMS/1.
+    run {
+        val balanced = SignalQrBurstProfiles.byId("balanced")
+        requireSmoke(balanced.qrPerSecond == 15, "QR Burst balanced profile is 15 QR/s")
+        requireSmoke(balanced.shardBytes >= 400, "QR Burst balanced profile carries large shards")
+        requireSmoke(qrBurstCycleDurationMs(30, balanced.qrPerSecond) == 2000L, "QR Burst cycle timing")
+
+        val envelope = SignalContentEnvelope.encodeText("RECORDED QR BURST OFFLINE DECODE")
+        val transfer = SignalQrTransferCodec.encode(envelope, balanced.robustness, balanced.shardBytes, "BURSTTEST001")
+        val collector = SignalQrBurstOfflineCollector()
+        val required = transfer.packets.flatMap { packet -> packet.frames.take(packet.dataShardCount) }
+        val stream = buildList {
+            required.reversed().forEach { frame ->
+                add(frame)
+                add(frame) // frozen video commonly contains repeated views of one displayed QR.
+            }
+        }
+        var snap = collector.snapshot()
+        stream.forEach { snap = collector.offerDecoded(it) }
+        requireSmoke(snap.duplicates >= required.size, "QR Burst offline collector counts duplicate video observations")
+        requireSmoke(snap.uniqueQrFrames == required.toSet().size, "QR Burst offline collector deduplicates QR frames")
+        requireSmoke(snap.transfer.complete, "QR Burst offline collector reconstructs out-of-order transfer")
+        val decoded = SignalContentEnvelope.decode(snap.transfer.contentEnvelope!!)
+        requireSmoke(decoded?.text == "RECORDED QR BURST OFFLINE DECODE" && decoded.checksumVerified, "QR Burst offline recovery verifies SHA-256")
+    }
+
     // v0.4.6 shared discrete catalog invariants: TX/RX select the same named
     // physical geometry, and the Morse sound ceiling remains 30 WPM.
     run {

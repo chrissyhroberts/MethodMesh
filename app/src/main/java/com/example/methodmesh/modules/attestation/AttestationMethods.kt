@@ -20,7 +20,7 @@ import com.example.methodmesh.settings.SettingsState
 
 object As100CreateAttestationMethod : As100Method {
     const val ID = "attestation.create"
-    private const val VERSION = "1.1.0"
+    private const val VERSION = "1.2.0"
 
     override val id: String = ID
     override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "Create signed attestation")

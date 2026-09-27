@@ -1,0 +1,26 @@
+{
+  "frame": {
+    "protocol": "methodmesh.gateway",
+    "version": 2,
+    "kind": "CONFIG_ACK",
+    "request_id": "config-bench-01",
+    "body": {
+      "node_id": "espmesh-01234567",
+      "firmware": "methodmesh-espmesh-0.4.1",
+      "provisioned": true,
+      "network_id": "bench-test-01",
+      "pending_for_radio": 3,
+      "pending_for_phone": 2,
+      "spool_error": "",
+      "last_radio_at_ms": 0
+    }
+  },
+  "packets": [
+    "{\"protocol\":\"methodmesh.blefrag\",\"version\":1,\"id\":\"00000001\",\"seq\":0,\"total\":6,\"data\":\"eyJwcm90b2NvbCI6Im1ldGhvZG1lc2guZ2F0ZXdheSIsInZlcnNpb24iOjIsImtpbmQiOiJD\"}",
+    "{\"protocol\":\"methodmesh.blefrag\",\"version\":1,\"id\":\"00000001\",\"seq\":1,\"total\":6,\"data\":\"T05GSUdfQUNLIiwicmVxdWVzdF9pZCI6ImNvbmZpZy1iZW5jaC0wMSIsImJvZHkiOnsibm9k\"}",
+    "{\"protocol\":\"methodmesh.blefrag\",\"version\":1,\"id\":\"00000001\",\"seq\":2,\"total\":6,\"data\":\"ZV9pZCI6ImVzcG1lc2gtMDEyMzQ1NjciLCJmaXJtd2FyZSI6Im1ldGhvZG1lc2gtZXNwbWVz\"}",
+    "{\"protocol\":\"methodmesh.blefrag\",\"version\":1,\"id\":\"00000001\",\"seq\":3,\"total\":6,\"data\":\"aC0wLjQuMSIsInByb3Zpc2lvbmVkIjp0cnVlLCJuZXR3b3JrX2lkIjoiYmVuY2gtdGVzdC0w\"}",
+    "{\"protocol\":\"methodmesh.blefrag\",\"version\":1,\"id\":\"00000001\",\"seq\":4,\"total\":6,\"data\":\"MSIsInBlbmRpbmdfZm9yX3JhZGlvIjozLCJwZW5kaW5nX2Zvcl9waG9uZSI6Miwic3Bvb2xf\"}",
+    "{\"protocol\":\"methodmesh.blefrag\",\"version\":1,\"id\":\"00000001\",\"seq\":5,\"total\":6,\"data\":\"ZXJyb3IiOiIiLCJsYXN0X3JhZGlvX2F0X21zIjowfX0=\"}"
+  ]
+}

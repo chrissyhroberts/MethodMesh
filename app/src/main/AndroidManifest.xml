@@ -95,6 +95,12 @@
             android:exported="true"
             android:label="MethodMesh widget"
             android:theme="@style/Theme.MethodMesh" />
+        <activity
+            android:name=".widgets.MethodMeshWidgetBundleActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:taskAffinity=""
+            android:theme="@style/Theme.MethodMesh.WidgetPopup" />
         <receiver
             android:name=".widgets.MethodMeshWidgetProvider"
             android:exported="false">
@@ -105,6 +111,10 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/methodmesh_widget_info" />
         </receiver>
+        <service
+            android:name=".core.timeassurance.TrustedTimeAutoRefreshJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
         <service
             android:name=".modules.espmesh.EspMeshGatewayService"
             android:exported="false"

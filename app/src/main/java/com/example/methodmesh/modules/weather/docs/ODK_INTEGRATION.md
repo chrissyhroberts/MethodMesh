@@ -112,3 +112,14 @@ The canonical workbooks were initially generated in v0.1.0 and are unchanged in 
 
 
 **v0.2.6 radar presentation patch:** no ODK contract change. Radar camera initialisation and frame rendering are native UI internals only; all eleven XLSForms remain unchanged.
+
+## Radar GIF return — v0.5.0
+
+The canonical `weather.radar` return set now also declares:
+
+- `weather_radar_gif_uri` — attachment-compatible radar animation output;
+- `weather_radar_gif_sha256` — SHA-256 of the generated GIF bytes.
+
+The shipped radar showcase maps `weather_radar_gif_uri` to an XLSForm `image` question rather than a plain text URI. MethodMesh may use a transient FileProvider `content://` URI internally, but the shared external transport is responsible for the read grant / caller attachment handoff. ODK should own persistence in the form submission.
+
+The radar showcase retains one MethodMesh invocation, `input_payload_mode='FULL'`, `return_mode='flat'`, `methodmesh_status`, and `methodmesh_full_json`. Its stable `form_id` is unchanged; the example version is `2026092401`.

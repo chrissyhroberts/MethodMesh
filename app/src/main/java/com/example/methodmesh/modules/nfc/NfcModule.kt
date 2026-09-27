@@ -13,9 +13,9 @@ object NfcModule : MethodMeshModule {
         As100NfcReadMethod,
         As100NfcWriteMethod,
         As100NfcWipeMethod,
-        As100NfcIssuerIdentityMethod,
         As100NfcCredentialProvisioningMethod,
         As100NfcCredentialVerificationMethod,
+        As100NfcIssuerIdentityMethod,
         As100ProtocolNfcCheckMethod,
         As100ProtocolNfcCompleteMethod,
         As100ProtocolNfcProvisionMethod,
@@ -33,8 +33,6 @@ object NfcModule : MethodMeshModule {
         RilBinding("write tag", As100NfcWriteMethod.ID, "Write an NFC tag"),
         RilBinding("wipe nfc", As100NfcWipeMethod.ID, "Remove NDEF user content from an NFC tag"),
         RilBinding("wipe tag", As100NfcWipeMethod.ID, "Remove NDEF user content from an NFC tag"),
-        RilBinding("show nfc issuer identity", As100NfcIssuerIdentityMethod.ID, "Export the local NFC credential issuer public identity"),
-        RilBinding("export nfc issuer identity", As100NfcIssuerIdentityMethod.ID, "Export the local NFC credential issuer public identity"),
         RilBinding(
             "provision nfc credential",
             As100NfcCredentialProvisioningMethod.ID,
@@ -44,6 +42,16 @@ object NfcModule : MethodMeshModule {
             "verify nfc credential",
             As100NfcCredentialVerificationMethod.ID,
             "Verify a portable NFC credential and PIN"
+        ),
+        RilBinding(
+            "show nfc issuer identity",
+            As100NfcIssuerIdentityMethod.ID,
+            "Show this installation's public NFC credential issuer identity"
+        ),
+        RilBinding(
+            "export nfc issuer identity",
+            As100NfcIssuerIdentityMethod.ID,
+            "Export this installation's public NFC credential issuer identity"
         ),
         RilBinding("check protocol card", As100ProtocolNfcCheckMethod.id, "Check whether a protocol step is allowed on an NFC card"),
         RilBinding("complete protocol card", As100ProtocolNfcCompleteMethod.id, "Mark a completed protocol step on an NFC card"),
@@ -56,9 +64,9 @@ object NfcModule : MethodMeshModule {
         NfcReadCapabilityScreen,
         NfcWriteCapabilityScreen,
         NfcWipeCapabilityScreen,
-        NfcIssuerIdentityCapabilityScreen,
         NfcCredentialProvisioningCapabilityScreen,
         NfcCredentialVerificationCapabilityScreen,
+        NfcIssuerIdentityCapabilityScreen,
         ProtocolNfcCheckCapabilityScreen,
         ProtocolNfcCompleteCapabilityScreen,
         ProtocolNfcProvisionCapabilityScreen,
@@ -84,17 +92,9 @@ object NfcModule : MethodMeshModule {
         ),
         As100NfcCredentialVerificationMethod.ID to listOf(
             MethodSetting.TextSetting(
-                "trusted_issuer_fingerprints_sha256",
-                "Trusted issuer SHA-256 fingerprints",
-                "Comma-separated full 64-hex public-key fingerprints supplied by the study form. This is the preferred offline trust anchor.",
-                defaultValue = ""
-            ),
-            MethodSetting.TextSetting("issuer_trust_set_id", "Issuer trust set ID", defaultValue = ""),
-            MethodSetting.TextSetting("issuer_trust_set_version", "Issuer trust set version", defaultValue = ""),
-            MethodSetting.TextSetting(
                 "trusted_issuer_key_ids",
-                "Legacy trusted issuer short IDs",
-                "Backward compatibility only. Prefer full SHA-256 fingerprints.",
+                "Legacy/local issuer allow-list",
+                "Optional immediate local enforcement for specialised workflows. This is not the study provisioning-device registry; leave blank for the normal evidence-first workflow.",
                 defaultValue = ""
             )
         ),

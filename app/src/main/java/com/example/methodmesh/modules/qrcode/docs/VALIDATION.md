@@ -1,6 +1,6 @@
 # barcode module validation
 
-Review date: 2026-09-22<br>
+Review date: 2026-09-22  
 Authority: MethodMesh Master Book v1.22 (2026-09-15).
 
 ## Pass A — contract correctness
@@ -137,3 +137,51 @@ Receiving-repository gates remain mandatory:
 - [x] Scan and Clone preset authoring is likewise placed before the scanner instrument for consistent discoverability.
 - [x] `barcode.generate` version bumped to 1.0.3; scanner and clone contracts/versions are unchanged.
 - [x] XLSForms are unchanged by this UI-only preset-authoring correction.
+
+
+## v2.0.2 generator preset crash correction
+
+- [x] `barcode.generate` no longer nests its own vertical scroller inside `ExternalWorkflowScreen` for native preset / external / ODK launches.
+- [x] Dashboard immersive use retains generator-owned scrolling.
+- [x] Fixed preset `barcode_format` and `barcode_auto_cycle` values resolve from request settings as well as action settings.
+- [x] Capability-owned preset authoring remains visible at the top of the Generator surface.
+- [x] `barcode.generate` version bumped to `1.0.5`; Scan and Clone method versions/contracts are unchanged.
+- [x] XLSForms are unchanged.
+
+
+## v2.0.3 preset live-format controls
+
+- Generator presets treat `barcode_format` and `barcode_auto_cycle` as starting-state settings, not permissions to hide live presentation controls.
+- Previous / Cycle / Next and the compatible-format rail remain visible during preset runs whenever the working payload can be rendered.
+- Fixed preset payloads may remain hidden as inputs; the rendered code can still be changed among compatible symbologies.
+
+
+## v2.0.4 preset live-control correction
+
+- [x] `barcode.generate` does not use `settingShouldBeShown()` to suppress live format transport.
+- [x] Previous / Cycle / Next render for native preset runs as well as direct runs.
+- [x] Compatible-format rail renders for native preset runs as well as direct runs.
+- [x] Preset format/auto-cycle remain starting-state values and do not mutate when the operator changes live presentation.
+- [x] Generator method version bumped to `1.0.6`; Scan and Clone are unchanged.
+
+
+## v1.0.8 Generator presentation/capacity regression checks
+
+- [x] Live generator reports UTF-8 byte count and compatible-format count.
+- [x] Formats rejected by exact ZXing encoding are named in an unavailable cue.
+- [x] Windowed Full screen control is outside the barcode pixels.
+- [x] Full-screen close control is outside the barcode pixels.
+- [x] Full-screen symbol is centered inside safe drawing bounds rather than anchored toward the display cutout/status region.
+
+
+## v1.0.4 Clone live-format / presentation regression checks
+
+- [x] Fixed preset clone format does not suppress Previous / Cycle / Next.
+- [x] Fixed preset auto-cycle setting is only the starting state; Play/Stop remains a live control.
+- [x] Compatible-format rail is visible after capture for both direct and preset runs.
+- [x] Swipe changes compatible clone format in preset runs.
+- [x] Clone reports UTF-8 byte count and names currently unavailable symbologies.
+- [x] No windowed control chip overlays barcode pixels.
+- [x] No full-screen exit chip overlays barcode pixels.
+- [x] Full-screen clone uses safe drawing insets and centers the code in the remaining usable area.
+- [x] Scanner workflow, image-first return contract and XLSForms are unchanged.

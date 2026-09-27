@@ -66,7 +66,7 @@ private const val SIGNAL_QR_EXAMPLE_TEXT = "MethodMesh QR Blast demonstration. T
 
 object SignalQrTransmitCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100SignalQrTransmitMethod.id
-    override val title = "QR burst transmitter"
+    override val title = "QR live transmitter"
     override val description = "Cycle checksum-protected text or a file up to 1 MiB through segmented error-corrected MMS/1 QR frames."
 
     @Composable
@@ -246,7 +246,7 @@ object SignalQrTransmitCapabilityScreen : CapabilityScreenSpec {
 
             SignalInstrumentPanel(
                 kicker = "MMS/1 OPTICAL TRANSMITTER",
-                title = if (contentMode == "file") "QR file blast" else "QR burst transmitter",
+                title = if (contentMode == "file") "QR live file" else "QR live transmitter",
                 accent = SignalCyan,
                 badge = if (active) "On air" else if (cycles > 0) "Cycle complete" else "Ready"
             ) {
@@ -288,9 +288,9 @@ object SignalQrTransmitCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { includeFullJson -> exportStatus = shareSignalText(androidContext, "Share QR blast record", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") ?: "" },
-                    onSave = { includeFullJson -> exportStatus = saveSignalText(androidContext, "qr_blast_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") },
-                    onDone = { includeFullJson -> finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "qr_blast_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, if (includeFullJson) committedFullJson else "") } }
+                    onShare = { exportStatus = shareSignalText(androidContext, "Share QR blast record", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }) ?: "" },
+                    onSave = { exportStatus = saveSignalText(androidContext, "qr_blast_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) },
+                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "qr_blast_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) } }
                 )
             }
 
@@ -378,7 +378,7 @@ object SignalQrTransmitCapabilityScreen : CapabilityScreenSpec {
 
 object SignalQrReceiveCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100SignalQrReceiveMethod.id
-    override val title = "QR burst receiver"
+    override val title = "QR live receiver"
     override val description = "Collect QR shards, reconstruct text or a file up to 1 MiB, then verify SHA-256 against the sender's embedded digest."
 
     @Composable
@@ -526,7 +526,7 @@ object SignalQrReceiveCapabilityScreen : CapabilityScreenSpec {
                 modifier = Modifier.fillMaxWidth()
             ) { Text(if (listening) "Pause camera" else "Start camera") }
 
-            SignalInstrumentPanel(kicker = "MMS/1 OPTICAL COLLECTOR", title = "QR blast receiver", accent = SignalCyan, badge = when { decodedContent?.checksumVerified == true -> "Verified"; transferState.contentEnvelope != null -> "Integrity fail"; listening -> "Scanning"; else -> "Paused" }) {
+            SignalInstrumentPanel(kicker = "MMS/1 OPTICAL COLLECTOR", title = "QR live receiver", accent = SignalCyan, badge = when { decodedContent?.checksumVerified == true -> "Verified"; transferState.contentEnvelope != null -> "Integrity fail"; listening -> "Scanning"; else -> "Paused" }) {
                 val headline = when {
                     decodedContent?.type == "file" -> decodedContent.fileName.orEmpty()
                     decodedContent?.type == "text" -> decodedContent.text.orEmpty()
@@ -586,39 +586,15 @@ object SignalQrReceiveCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { includeFullJson ->
-                        exportStatus = if (committedIsFile) {
-                            shareSignalMedia(
-                                androidContext,
-                                "Share verified received file",
-                                committedFileUri,
-                                committedMime,
-                                verificationText,
-                                if (includeFullJson) committedFullJson else ""
-                            ) ?: ""
-                        } else {
-                            shareSignalText(
-                                androidContext,
-                                "Share verified message",
-                                committedFields[SignalQrReceiveFields.RESULT].orEmpty(),
-                                if (includeFullJson) committedFullJson else ""
-                            ) ?: ""
-                        }
+                    onShare = {
+                        exportStatus = if (committedIsFile) shareSignalMedia(androidContext, "Share verified received file", committedFileUri, committedMime) ?: "" else shareSignalText(androidContext, "Share verified message", committedFields[SignalQrReceiveFields.RESULT].orEmpty()) ?: ""
                     },
-                    onSave = { includeFullJson ->
-                        exportStatus = if (committedIsFile) {
-                            saveSignalMedia(androidContext, "qr_verified_file", committedFileUri, verificationText, if (includeFullJson) committedFullJson else "")
-                        } else {
-                            saveSignalText(androidContext, "qr_verified_text", verificationText + "\ntext=${committedFields[SignalQrReceiveFields.RESULT].orEmpty()}", if (includeFullJson) committedFullJson else "")
-                        }
+                    onSave = {
+                        exportStatus = if (committedIsFile) saveSignalMedia(androidContext, "qr_verified_file", committedFileUri, verificationText, committedFullJson) else saveSignalText(androidContext, "qr_verified_text", verificationText + "\ntext=${committedFields[SignalQrReceiveFields.RESULT].orEmpty()}", committedFullJson)
                     },
-                    onDone = { includeFullJson ->
+                    onDone = {
                         finishSignalResult(context, androidContext, committedResult, onConfirmed) {
-                            if (committedIsFile) {
-                                saveSignalMedia(androidContext, "qr_verified_file", committedFileUri, verificationText, if (includeFullJson) committedFullJson else "")
-                            } else {
-                                saveSignalText(androidContext, "qr_verified_text", verificationText, if (includeFullJson) committedFullJson else "")
-                            }
+                            if (committedIsFile) saveSignalMedia(androidContext, "qr_verified_file", committedFileUri, verificationText, committedFullJson) else saveSignalText(androidContext, "qr_verified_text", verificationText, committedFullJson)
                         }
                     },
                     onOpen = if (committedIsFile) ({ exportStatus = openSignalMedia(androidContext, committedFileUri, committedMime) ?: "" }) else null

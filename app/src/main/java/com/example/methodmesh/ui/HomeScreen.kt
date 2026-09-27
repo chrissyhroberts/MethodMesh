@@ -197,6 +197,7 @@ private fun capabilityUiClass(method: As100Method, module: MethodMeshModule?): C
         id in setOf(
             "android_app_inspector",
             "bluetooth_device_inspector",
+            "nfc_issuer_identity",
             "sensor_node_provisioner",
             "esp32.board_wipe",
             "esp32.runtime_install",
@@ -2043,7 +2044,8 @@ private fun WorkbenchCard(
                         screen = screenMap[method.id],
                         uiClass = CapabilityUiClass.WorkbenchTool,
                         onPresetSaved = {},
-                        onFavouriteChanged = onFavouriteChanged
+                        onFavouriteChanged = onFavouriteChanged,
+                        closeLabel = "Back to Workbench"
                     )
                 }
             }
@@ -2504,7 +2506,8 @@ private fun CapabilityCard(
     screen: CapabilityScreenSpec?,
     uiClass: CapabilityUiClass,
     onPresetSaved: () -> Unit,
-    onFavouriteChanged: () -> Unit = {}
+    onFavouriteChanged: () -> Unit = {},
+    closeLabel: String = "Home"
 ) {
     val context = LocalContext.current
     var expanded by rememberSaveable(method.id) { mutableStateOf(false) }
@@ -2685,7 +2688,8 @@ private fun CapabilityCard(
         val hostPresentation = screen?.hostPresentation ?: CapabilityHostPresentation.Standard
         FullScreenCapabilityDialog(
             onDismiss = { quickTestOpen = false },
-            presentation = hostPresentation
+            presentation = hostPresentation,
+            closeLabel = closeLabel
         ) {
             DashboardCapabilityRunner(
                 method = method,
@@ -2713,7 +2717,8 @@ private fun CapabilityCard(
         val hostPresentation = screen?.hostPresentation ?: CapabilityHostPresentation.Standard
         FullScreenCapabilityDialog(
             onDismiss = { quickTestSaveOpen = false },
-            presentation = hostPresentation
+            presentation = hostPresentation,
+            closeLabel = closeLabel
         ) {
             DashboardCapabilityRunner(
                 method = method,
@@ -2789,6 +2794,7 @@ private fun CapabilityCard(
 private fun FullScreenCapabilityDialog(
     onDismiss: () -> Unit,
     presentation: CapabilityHostPresentation = CapabilityHostPresentation.Standard,
+    closeLabel: String = "Home",
     content: @Composable () -> Unit
 ) {
     Dialog(
@@ -2818,7 +2824,7 @@ private fun FullScreenCapabilityDialog(
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Home")
+                            Text(closeLabel)
                         }
                         Spacer(Modifier.height(12.dp))
                         content()

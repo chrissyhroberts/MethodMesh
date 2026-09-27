@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent"
+    android:padding="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingLeft="2dp"
+        android:paddingTop="4dp"
+        android:paddingRight="2dp"
+        android:paddingBottom="2dp">
+
+        <FrameLayout
+            android:layout_width="64dp"
+            android:layout_height="58dp">
+
+            <FrameLayout
+                android:layout_width="49dp"
+                android:layout_height="49dp"
+                android:layout_gravity="center"
+                android:background="@drawable/widget_bundle_circle_back_far"
+                android:translationX="-5dp"
+                android:translationY="3dp" />
+
+            <FrameLayout
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_gravity="center"
+                android:background="@drawable/widget_bundle_circle_back_near"
+                android:translationX="-2dp"
+                android:translationY="1dp" />
+
+            <TextView
+                android:id="@+id/widgetShortcutCircle"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="center"
+                android:background="@drawable/widget_shortcut_teal_compact"
+                android:contentDescription="@string/app_name"
+                android:gravity="center"
+                android:text="🧰"
+                android:textSize="25sp" />
+
+            <TextView
+                android:id="@+id/bundleCountBadge"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="top|end"
+                android:background="@drawable/widget_bundle_count_badge"
+                android:gravity="center"
+                android:text="6"
+                android:textColor="#FFFFFFFF"
+                android:textSize="8sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/widgetTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="2"
+            android:shadowColor="#B0000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="2"
+            android:text="Field tools"
+            android:textColor="#FFFFFFFF"
+            android:textSize="11sp" />
+    </LinearLayout>
+</FrameLayout>

@@ -143,3 +143,8 @@ If Signal Node firmware becomes part of MethodMesh:
 ## 6. Colour-assisted screen Morse — implemented v0.5.3
 
 Screen Morse now carries redundant mark identity in colour while preserving ordinary Morse timing: WHITE dots/acquisition and RED dashes/START/END. Camera Auto mode calibrates those colours from the known preamble/START sequence and fuses chroma with duration probabilistically. Weak colour is ignored, preserving monochrome interoperability.
+
+
+## 7. QR Burst recorded capture — implemented v0.5.4
+
+`signal.qr_burst.transmit` / `signal.qr_burst.receive` are a separate high-throughput experiment from the original live QR scanner. The transmitter schedules MMS/1 QR frames at 10/15/20/30 QR/s using larger shards. The receiver deliberately performs no QR decoding during capture: it buffers a bounded grayscale camera burst, then runs ZXing over frozen frames offline, deduplicates observations, and feeds unique frames into the existing segmented MMS/1 Reed–Solomon/SHA-256 recovery layer. The Balanced 15 QR/s profile is the first field benchmark; higher rates remain experimental until measured on real phone/display pairs.

@@ -94,3 +94,52 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='esp32.sensor_profile_install',i
 | `usb_device` | Android USB device label. |
 | `firmware_install_error` | Error message if installation failed. |
 | `firmware_installed_time_iso` | Time the result was recorded. |
+
+### ESP mesh 0.4.1 image rebuild
+
+Run `.venv-firmware-tools/bin/python app/src/main/java/com/example/methodmesh/modules/sensorfirmwareinstaller/firmware/build_espnow_mesh_image.py`
+from the repository root. The builder uses littlefs-python to replace and remount-verify
+the mesh files, avoiding the old fixed-length CTZ source slots. It preserves the
+MicroPython base, partition table, 4 MB image size and all unrelated filesystem files.
+The installer profile reports `methodmesh-espmesh-0.4.1`; install the rebuilt full
+ESP-NOW image on bench nodes to obtain the notification-framing fix.
+
+### ESP mesh 0.4.2 radio rebuild
+
+The installer profile reports `methodmesh-espmesh-0.4.2`. The image pins all
+mesh nodes to ESP-NOW Wi-Fi channel 6 and reports the active channel plus an ESP
+network-key ID in gateway telemetry. Rebuild it with the same verified LittleFS
+image command above and install the complete image on every node in the mesh.
+
+### ESP mesh 0.4.3 fragmented-message rebuild
+
+The installer profile reports `methodmesh-espmesh-0.4.3`. The image enlarges the
+ESP-NOW receive buffer and paces durable fragments so encrypted test messages can
+be reassembled reliably. It also reports received packet counts and radio send
+errors. Install the complete image on every node in the mesh.
+
+### ESP mesh 0.4.4 radio-start recovery
+
+The installer profile reports `methodmesh-espmesh-0.4.4`. This corrects the
+0.4.3 bench failure where a receive-buffer allocation error prevented ESP-NOW
+from starting and telemetry showed `radio channel unknown`. The node now falls
+back through safe receive-buffer sizes, reports the selected size/startup error,
+and spaces durable radio fragments by 12 ms.
+
+### ESP mesh 0.4.5 ESP32-C3 coexistence runtime
+
+The installer profile reports `methodmesh-espmesh-0.4.5`. USB diagnosis on the
+bench node identified `WiFi Out of Memory` in the previous MicroPython 1.28 base.
+The complete image now uses the official MicroPython 1.29 ESP32-C3 runtime and
+reserves ESP-NOW and BLE in `boot.py` before `main.py` is compiled. Hardware probing confirmed channel 6, ESP-NOW, BLE
+and GATT registration active together. Provisioning keeps that radio instance
+running rather than recreating it while BLE owns memory. The ESP-NOW receive
+buffer uses the 528-byte runtime default and relies on paced fragments so the
+ESP32-C3 retains enough controller memory for BLE.
+
+### ESP mesh 0.4.6 BLE discovery reliability
+
+The installer profile reports `methodmesh-espmesh-0.4.6`. The node advertises
+the mesh service every 100 ms and spaces fragmented BLE notifications by 8 ms,
+allowing Android to receive complete HELLO and SYNC responses reliably while
+ESP-NOW remains active.

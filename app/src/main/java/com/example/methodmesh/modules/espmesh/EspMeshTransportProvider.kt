@@ -9,11 +9,14 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.ParcelUuid
 import android.util.Base64
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -36,6 +39,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.UUID
 
 data class EspMeshGatewayCandidate(val address: String, val name: String, val rssi: Int)
@@ -44,6 +49,12 @@ data class EspMeshGatewayInfo(
     val firmware: String = "",
     val provisioned: Boolean = false,
     val networkId: String = "",
+    val networkKeyId: String = "",
+    val radioChannel: Int = 0,
+    val radioRxBuffer: Int = 0,
+    val radioRxPackets: Int = 0,
+    val radioSendError: String = "",
+    val radioStartError: String = "",
     val pendingForRadio: Int = 0,
     val pendingForPhone: Int = 0,
     val spoolError: String = "",
@@ -61,6 +72,7 @@ data class EspMeshGatewayFrameDiagnostic(
 
 data class EspMeshTransportSnapshot(
     val enabled: Boolean = false,
+    val serviceRunning: Boolean = false,
     val phoneId: String = "",
     val e2eKeyId: String = "",
     val gatewayAddress: String = "",
@@ -109,6 +121,8 @@ class EspMeshTransportProvider private constructor(private val context: Context)
 
     private val mutableStatus = MutableStateFlow(TransportStatus(false, false, "ESP mesh transport is paused"))
     override val status: StateFlow<TransportStatus> = mutableStatus
+    private val mutableSetupNetworkKey = MutableStateFlow(runCatching { crypto.exportNetworkKey() }.getOrDefault(""))
+    val setupNetworkKey: StateFlow<String> = mutableSetupNetworkKey
     private val mutableGatewayInfo = MutableStateFlow(EspMeshGatewayInfo())
     val gatewayInfo: StateFlow<EspMeshGatewayInfo> = mutableGatewayInfo
     private val mutableRecentInbound = MutableStateFlow<List<MethodMeshTransportEnvelope>>(emptyList())
@@ -125,6 +139,13 @@ class EspMeshTransportProvider private constructor(private val context: Context)
     )
     val liveVoicePackets: SharedFlow<ByteArray> = mutableLiveVoicePackets
 
+    @Volatile private var serviceRunning = false
+
+    internal fun setServiceRunning(running: Boolean) {
+        serviceRunning = running
+        refreshSnapshot()
+    }
+
     private var inbound: (suspend (MethodMeshTransportEnvelope) -> Unit)? = null
     private var gatt: BluetoothGatt? = null
     private var uplink: BluetoothGattCharacteristic? = null
@@ -137,7 +158,16 @@ class EspMeshTransportProvider private constructor(private val context: Context)
     private var lastBleAtMs = 0L
     private var lastRadioAtMs = 0L
     private var lastSyncSentAtMs = 0L
+    private var handshakeAttempt = 0
+    private var serviceDiscoveryStarted = false
     private var lastQueueSnapshot = EspMeshQueueSnapshot(0, 0, 0, 0, 0)
+
+    private val provisioningTracker = EspMeshProvisioningTracker()
+    val provisioning = provisioningTracker.state
+
+    init {
+        restoreProvisioningConfirmation(gatewayAddress())
+    }
 
     private val bleReassembler = EspMeshBlePacketCodec.Reassembler()
     private val writeLock = Any()
@@ -202,12 +232,14 @@ class EspMeshTransportProvider private constructor(private val context: Context)
                 }
             }
             override fun onScanFailed(errorCode: Int) {
-                mutableStatus.value = TransportStatus(true, false, "BLE scan failed ($errorCode)")
+                mutableStatus.value = status.value.copy(detail = "BLE scan failed ($errorCode)")
                 onFinished()
             }
         }
         scanCallback = callback
-        scanner.startScan(callback)
+        val filters = listOf(ScanFilter.Builder().setServiceUuid(ParcelUuid(SERVICE_UUID)).build())
+        val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
+        scanner.startScan(filters, settings, callback)
         mainHandler.postDelayed({
             runCatching { scanner.stopScan(callback) }
             if (scanCallback === callback) scanCallback = null
@@ -215,8 +247,34 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         }, SCAN_DURATION_MS)
     }
 
+
+    fun setSetupNetworkKey(value: String) {
+        mutableSetupNetworkKey.value = value.trim()
+    }
+
+    fun generateSetupNetworkKey(): String {
+        val key = ByteArray(32).also { SecureRandom().nextBytes(it) }
+            .let { Base64.encodeToString(it, Base64.NO_WRAP) }
+        mutableSetupNetworkKey.value = key
+        crypto.storeNetworkKey(key)
+        return key
+    }
+
+    fun setupNetworkKeyId(): String = setupNetworkKey.value.takeIf { it.isNotBlank() }?.let { key ->
+        MessageDigest.getInstance("SHA-256")
+            .digest(key.toByteArray(Charsets.UTF_8))
+            .take(8)
+            .joinToString("") { byte -> "%02x".format(byte) }
+    }.orEmpty()
+
     fun provision(candidate: EspMeshGatewayCandidate) {
+        scanCallback?.let { callback ->
+            runCatching { bluetoothAdapter()?.bluetoothLeScanner?.stopScan(callback) }
+            if (scanCallback === callback) scanCallback = null
+        }
+        mutableGatewayInfo.value = EspMeshGatewayInfo()
         prefs.edit().putString(KEY_ADDRESS, candidate.address).putString(KEY_NAME, candidate.name).putBoolean(KEY_ENABLED, true).apply()
+        restoreProvisioningConfirmation(candidate.address)
         refreshSnapshot()
         ensureServiceRunning(context)
         ensureMaintenanceLoop()
@@ -231,7 +289,12 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         provisioningToken: String,
         peers: List<String> = emptyList()
     ): TransportSendResult {
+        if (provisioning.value.pending) return TransportSendResult(TransportOutboxState.FAILED_RETRYABLE, "Waiting for CONFIG_ACK")
+        if (networkId.trim().length > 64 || networkKey.trim().length > 128) return TransportSendResult(TransportOutboxState.FAILED_PERMANENT, "Network ID/key exceed gateway limits (64/128 characters)")
         if (networkId.isBlank() || networkKey.isBlank()) return TransportSendResult(TransportOutboxState.FAILED_PERMANENT, "Network ID and network key are required")
+        runCatching { crypto.storeNetworkKey(networkKey) }.getOrElse {
+            return TransportSendResult(TransportOutboxState.FAILED_PERMANENT, it.message ?: "Could not save the ESP network key")
+        }
         val keyResult = if (e2eGroupKey.isBlank() && crypto.hasGroupKey()) Result.success(crypto.keyId())
         else runCatching { crypto.importAndStore(e2eGroupKey) }
         if (keyResult.isFailure) return TransportSendResult(TransportOutboxState.FAILED_PERMANENT, keyResult.exceptionOrNull()?.message ?: "Invalid E2E group key")
@@ -243,8 +306,15 @@ class EspMeshTransportProvider private constructor(private val context: Context)
             .put("provisioning_token", provisioningToken.trim())
             .put("phone_id", phoneId())
             .put("peers", org.json.JSONArray(peers)))
-        return if (enqueueBridgeFrame(frame)) TransportSendResult(TransportOutboxState.SENT, "Network settings sent; E2E key retained only on this phone")
-        else TransportSendResult(TransportOutboxState.FAILED_RETRYABLE, "Gateway is not connected")
+        provisioningTracker.begin(frame.requestId, networkId.trim())
+        if (!enqueueBridgeFrame(frame)) {
+            provisioningTracker.fail(frame.requestId, "Could not send settings; reconnect the gateway and retry.")
+            return TransportSendResult(TransportOutboxState.FAILED_RETRYABLE, provisioning.value.detail)
+        }
+        mainHandler.postDelayed({
+            provisioningTracker.fail(frame.requestId, "Gateway confirmation timed out. Configuration is unconfirmed; check the connection and retry with the node token if needed.")
+        }, 30_000L)
+        return TransportSendResult(TransportOutboxState.SENT, provisioning.value.detail)
     }
 
     fun generateE2eGroupKey(): String = crypto.generateAndStore().also { refreshSnapshot() }
@@ -455,6 +525,15 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         mutableLastInvalidFrame.value = null
         when (frame.kind) {
             "HELLO_ACK", "CONFIG_ACK", "SYNC_ACK" -> {
+                if (frame.kind == "CONFIG_ACK") {
+                    try {
+                        if (!provisioningTracker.accept(frame)) return
+                        persistProvisioningConfirmation(frame)
+                    } catch (error: IllegalArgumentException) {
+                        provisioningTracker.fail(frame.requestId, error.message ?: "Invalid CONFIG_ACK")
+                        throw error
+                    }
+                }
                 val body = frame.body
                 val old = mutableGatewayInfo.value
                 val info = EspMeshGatewayInfo(
@@ -462,12 +541,21 @@ class EspMeshTransportProvider private constructor(private val context: Context)
                     firmware = body.optString("firmware", old.firmware),
                     provisioned = body.optBoolean("provisioned", old.provisioned),
                     networkId = body.optString("network_id", old.networkId),
+                    networkKeyId = body.optString("network_key_id", old.networkKeyId),
+                    radioChannel = body.optInt("radio_channel", old.radioChannel),
+                    radioRxBuffer = body.optInt("radio_rxbuf", old.radioRxBuffer),
+                    radioRxPackets = body.optInt("radio_rx_packets", old.radioRxPackets),
+                    radioSendError = body.optString("radio_send_error", old.radioSendError),
+                    radioStartError = body.optString("radio_start_error", old.radioStartError),
                     pendingForRadio = body.optInt("pending_for_radio", old.pendingForRadio),
                     pendingForPhone = body.optInt("pending_for_phone", old.pendingForPhone),
                     spoolError = body.optString("spool_error", old.spoolError),
                     lastRadioAtMs = body.optLong("last_radio_at_ms", old.lastRadioAtMs)
                 )
                 mutableGatewayInfo.value = info
+                if (frame.kind == "HELLO_ACK" && provisioningTracker.invalidateIfGatewayDoesNotMatch(info.nodeId, info.networkId, info.provisioned)) {
+                    clearProvisioningConfirmation()
+                }
                 if (info.lastRadioAtMs > 0) lastRadioAtMs = maxOf(lastRadioAtMs, info.lastRadioAtMs)
                 mutableStatus.value = status.value.copy(detail = when (frame.kind) {
                     "CONFIG_ACK" -> "Mesh network provisioned"
@@ -505,12 +593,47 @@ class EspMeshTransportProvider private constructor(private val context: Context)
                 frame.body.optString("message_id").takeIf(String::isNotBlank)?.let { store.markRemoteStored(it) }
                 refreshSnapshot()
             }
-            "RADIO_ERROR", "ERROR" -> setProtocolError(frame.body.optString("error", "Gateway reported an error"))
+            "RADIO_ERROR", "ERROR" -> {
+                val detail = frame.body.optString("error", "Gateway reported an error")
+                val displayDetail = when (detail) {
+                    "provisioning_token_required" -> "This node already has network settings. Enter the provisioning token shown in its USB serial output, then tap Provision network again. To start over without the token, erase and reinstall the complete ESP-NOW mesh node image."
+                    "invalid_provisioning_token" -> "The provisioning token does not match this node. Copy the token shown in its USB serial output and try again."
+                    else -> "Gateway reported an error: $detail"
+                }
+                provisioningTracker.fail(frame.requestId, displayDetail)
+                setProtocolError(displayDetail)
+            }
         }
         refreshSnapshot()
     }
 
     private fun setProtocolError(detail: String) { mutableStatus.value = status.value.copy(detail = detail) }
+
+    private fun restoreProvisioningConfirmation(address: String) {
+        val savedAddress = prefs.getString(KEY_CONFIRMED_ADDRESS, "").orEmpty()
+        val savedFrame = prefs.getString(KEY_CONFIRMED_CONFIG_ACK, "").orEmpty()
+        if (address.isBlank() || address != savedAddress || savedFrame.isBlank()) {
+            provisioningTracker.reset()
+            return
+        }
+        runCatching { EspMeshBridgeFrame.fromJson(JSONObject(savedFrame)) }
+            .onSuccess(provisioningTracker::restore)
+            .onFailure {
+                clearProvisioningConfirmation()
+                provisioningTracker.reset()
+            }
+    }
+
+    private fun persistProvisioningConfirmation(frame: EspMeshBridgeFrame) {
+        prefs.edit()
+            .putString(KEY_CONFIRMED_ADDRESS, gatewayAddress())
+            .putString(KEY_CONFIRMED_CONFIG_ACK, frame.toJson().toString())
+            .apply()
+    }
+
+    private fun clearProvisioningConfirmation() {
+        prefs.edit().remove(KEY_CONFIRMED_ADDRESS).remove(KEY_CONFIRMED_CONFIG_ACK).apply()
+    }
 
     @SuppressLint("MissingPermission")
     private fun connectConfigured() = connect(gatewayAddress())
@@ -527,6 +650,8 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         val device = runCatching { adapter.getRemoteDevice(address) }.getOrNull()
         if (device == null) { mutableStatus.value = TransportStatus(true, false, "Configured gateway is not currently addressable"); scheduleReconnect(); return }
         closeGatt()
+        handshakeAttempt = 0
+        serviceDiscoveryStarted = false
         mutableStatus.value = TransportStatus(true, false, "Connecting to ${gatewayName().ifBlank { address }}")
         val created = runCatching {
             if (Build.VERSION.SDK_INT >= 26) device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
@@ -538,11 +663,8 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         gatt = created
         if (created != null) {
             mainHandler.postDelayed({
-                if (this.gatt === created && !status.value.connected) {
-                    runCatching { created.disconnect() }; runCatching { created.close() }
-                    if (this.gatt === created) this.gatt = null
-                    mutableStatus.value = TransportStatus(true, false, "Gateway connect timed out; encrypted queues retained")
-                    scheduleReconnect(); refreshSnapshot()
+                if (this.gatt === created && mutableGatewayInfo.value.firmware.isBlank()) {
+                    failBleLink(created, "Gateway setup timed out; reconnecting automatically")
                 }
             }, CONNECT_ATTEMPT_TIMEOUT_MS)
         }
@@ -551,49 +673,74 @@ class EspMeshTransportProvider private constructor(private val context: Context)
 
     private val callback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, statusCode: Int, newState: Int) {
+            if (this@EspMeshTransportProvider.gatt !== gatt) return
             if (newState == BluetoothGatt.STATE_CONNECTED && statusCode == BluetoothGatt.GATT_SUCCESS) {
                 reconnectAttempt = 0; nextReconnectAtMs = 0L; lastBleAtMs = System.currentTimeMillis()
                 mutableStatus.value = TransportStatus(true, true, "Gateway connected")
                 refreshSnapshot()
-                if (!gatt.requestMtu(PREFERRED_MTU)) { negotiatedMtu = DEFAULT_MTU; gatt.discoverServices() }
+                if (!gatt.requestMtu(PREFERRED_MTU)) {
+                    negotiatedMtu = DEFAULT_MTU
+                    discoverServicesOnce(gatt)
+                } else {
+                    mainHandler.postDelayed({
+                        if (this@EspMeshTransportProvider.gatt === gatt && uplink == null) discoverServicesOnce(gatt)
+                    }, MTU_FALLBACK_MS)
+                }
             } else {
                 mutableStatus.value = TransportStatus(isPersistentEnabled(), false, "Gateway unavailable ($statusCode); queues retained")
+                resetGatewaySession()
                 gatt.close(); if (this@EspMeshTransportProvider.gatt === gatt) this@EspMeshTransportProvider.gatt = null
                 uplink = null; downlink = null; lastSyncSentAtMs = 0L; resetWriteQueue(); scheduleReconnect(); refreshSnapshot()
             }
         }
 
         override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, statusCode: Int) {
+            if (this@EspMeshTransportProvider.gatt !== gatt) return
             negotiatedMtu = if (statusCode == BluetoothGatt.GATT_SUCCESS) mtu else DEFAULT_MTU
             mutableStatus.value = mutableStatus.value.copy(detail = "Gateway connected · MTU $negotiatedMtu")
-            gatt.discoverServices()
+            discoverServicesOnce(gatt)
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt, statusCode: Int) {
-            if (statusCode != BluetoothGatt.GATT_SUCCESS) return
+            if (this@EspMeshTransportProvider.gatt !== gatt) return
+            if (statusCode != BluetoothGatt.GATT_SUCCESS) {
+                failBleLink(gatt, "Gateway service discovery failed ($statusCode); reconnecting")
+                return
+            }
             val service = gatt.getService(SERVICE_UUID)
             uplink = service?.getCharacteristic(UPLINK_UUID)
             downlink = service?.getCharacteristic(DOWNLINK_UUID)
             val down = downlink
             if (uplink == null || down == null) {
-                mutableStatus.value = TransportStatus(true, false, "Gateway protocol v2 service not found")
+                failBleLink(gatt, "Gateway protocol service was not found; reconnecting")
                 return
             }
-            gatt.setCharacteristicNotification(down, true)
+            if (!gatt.setCharacteristicNotification(down, true)) {
+                failBleLink(gatt, "Gateway notifications could not be enabled; reconnecting")
+                return
+            }
             val descriptor = down.getDescriptor(CLIENT_CONFIG_UUID)
             if (descriptor != null) {
-                if (Build.VERSION.SDK_INT >= 33) gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                val accepted = if (Build.VERSION.SDK_INT >= 33) gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE) == BluetoothGatt.GATT_SUCCESS
                 else writeLegacyDescriptor(gatt, descriptor)
+                if (!accepted) failBleLink(gatt, "Gateway notification setup was rejected; reconnecting")
             } else sendHello()
             refreshSnapshot()
         }
 
         override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, statusCode: Int) {
+            if (this@EspMeshTransportProvider.gatt !== gatt) return
             if (descriptor.uuid == CLIENT_CONFIG_UUID && statusCode == BluetoothGatt.GATT_SUCCESS) sendHello()
-            else if (descriptor.uuid == CLIENT_CONFIG_UUID) mutableStatus.value = status.value.copy(detail = "Could not enable gateway notifications ($statusCode)")
+            else if (descriptor.uuid == CLIENT_CONFIG_UUID) failBleLink(gatt, "Could not enable gateway notifications ($statusCode); reconnecting")
+        }
+
+        @Suppress("DEPRECATION")
+        override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+            onCharacteristicChanged(gatt, characteristic, characteristic.value ?: return)
         }
 
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+            if (this@EspMeshTransportProvider.gatt !== gatt) return
             if (characteristic.uuid != DOWNLINK_UUID) return
             lastBleAtMs = System.currentTimeMillis()
             val complete = runCatching { bleReassembler.accept(value) }.getOrElse { error ->
@@ -603,6 +750,7 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         }
 
         override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, statusCode: Int) {
+            if (this@EspMeshTransportProvider.gatt !== gatt) return
             if (characteristic.uuid != UPLINK_UUID) return
             synchronized(writeLock) { writeInFlight = false }
             if (statusCode != BluetoothGatt.GATT_SUCCESS) {
@@ -634,17 +782,31 @@ class EspMeshTransportProvider private constructor(private val context: Context)
     }
 
     private fun sendHello() {
+        val attempt = ++handshakeAttempt
+        mutableStatus.value = status.value.copy(detail = "Checking gateway firmware${if (attempt > 1) " · retry $attempt" else ""}")
         enqueueBridgeFrame(EspMeshBridgeFrame("HELLO", body = JSONObject()
             .put("client", "MethodMesh Android")
+            .put("att_payload", (negotiatedMtu - 3).coerceAtMost(MAX_BLE_PACKET_BYTES))
             .put("phone_id", phoneId())
             .put("transport", TRANSPORT_ID)
             .put("protocol_version", EspMeshBridgeFrame.VERSION)
             .put("e2e_key_id", crypto.keyId())))
         mainHandler.postDelayed({
-            if (status.value.connected && mutableGatewayInfo.value.firmware.isBlank()) {
-                mutableStatus.value = status.value.copy(detail = "Gateway did not answer protocol v2; install ESP-NOW firmware 0.4.0 or newer")
+            if (status.value.connected && mutableGatewayInfo.value.firmware.isBlank() && handshakeAttempt == attempt) {
+                if (attempt < MAX_HANDSHAKE_ATTEMPTS) sendHello()
+                else gatt?.let { failBleLink(it, "Gateway handshake timed out; reconnecting automatically") }
             }
         }, HANDSHAKE_TIMEOUT_MS)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun discoverServicesOnce(connection: BluetoothGatt) {
+        if (gatt !== connection || serviceDiscoveryStarted) return
+        serviceDiscoveryStarted = true
+        if (!connection.discoverServices()) {
+            serviceDiscoveryStarted = false
+            failBleLink(connection, "Gateway service discovery could not start; reconnecting")
+        }
     }
 
     private fun sendSyncRequest() {
@@ -736,6 +898,7 @@ class EspMeshTransportProvider private constructor(private val context: Context)
 
     @SuppressLint("MissingPermission")
     private fun failBleLink(connection: BluetoothGatt, detail: String) {
+        resetGatewaySession()
         mutableStatus.value = TransportStatus(isPersistentEnabled(), false, detail)
         resetWriteQueue()
         runCatching { connection.disconnect() }
@@ -750,15 +913,24 @@ class EspMeshTransportProvider private constructor(private val context: Context)
     }
 
     @Suppress("DEPRECATION")
-    private fun writeLegacyDescriptor(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor) {
-        descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE; gatt.writeDescriptor(descriptor)
+    private fun writeLegacyDescriptor(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor): Boolean {
+        descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE; return gatt.writeDescriptor(descriptor)
     }
     @Suppress("DEPRECATION")
     private fun writeLegacyCharacteristic(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, bytes: ByteArray): Boolean {
         characteristic.value = bytes; return gatt.writeCharacteristic(characteristic)
     }
 
+    private fun resetGatewaySession() {
+        provisioningTracker.fail(provisioning.value.requestId, "Gateway disconnected before CONFIG_ACK; configuration is unconfirmed.")
+        mutableGatewayInfo.value = EspMeshGatewayInfo()
+        bleReassembler.clear()
+        handshakeAttempt = 0
+        serviceDiscoveryStarted = false
+    }
+
     private fun closeGatt() {
+        resetGatewaySession()
         runCatching { gatt?.disconnect() }; runCatching { gatt?.close() }
         gatt = null; uplink = null; downlink = null; negotiatedMtu = DEFAULT_MTU; lastSyncSentAtMs = 0L; resetWriteQueue()
     }
@@ -775,7 +947,7 @@ class EspMeshTransportProvider private constructor(private val context: Context)
     private fun refreshSnapshot() {
         val q = queueSnapshot()
         mutableSnapshot.value = EspMeshTransportSnapshot(
-            enabled = isPersistentEnabled(), phoneId = phoneId(), e2eKeyId = crypto.keyId(), gatewayAddress = gatewayAddress(),
+            enabled = isPersistentEnabled(), serviceRunning = serviceRunning, phoneId = phoneId(), e2eKeyId = crypto.keyId(), gatewayAddress = gatewayAddress(),
             gatewayName = gatewayName(), connected = status.value.connected, outboxPending = q.outboundPending,
             inboxTotal = q.inboundTotal, delivered = q.delivered, voiceListening = mutableVoiceListening.value,
             bleMtu = negotiatedMtu,
@@ -794,7 +966,9 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         private const val KEY_ENABLED = "transport_enabled"
         private const val KEY_PHONE_ID = "phone_id"
         private const val KEY_VOICE_LISTENING = "voice_listening"
-        private const val PREFERRED_MTU = 517
+        private const val KEY_CONFIRMED_ADDRESS = "confirmed_gateway_address"
+        private const val KEY_CONFIRMED_CONFIG_ACK = "confirmed_config_ack"
+        private const val PREFERRED_MTU = 256
         private const val DEFAULT_MTU = 23
         private const val MAX_BLE_PACKET_BYTES = 480
         private const val MIN_SUPPORTED_PACKET_BYTES = 180
@@ -810,6 +984,8 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         private const val MAINTENANCE_INTERVAL_MS = 5_000L
         private const val STEADY_SYNC_INTERVAL_MS = 60_000L
         private const val HANDSHAKE_TIMEOUT_MS = 5_000L
+        private const val MAX_HANDSHAKE_ATTEMPTS = 3
+        private const val MTU_FALLBACK_MS = 2_000L
         private const val MAX_RECONNECT_MS = 60_000L
         private const val CONNECT_ATTEMPT_TIMEOUT_MS = 25_000L
         val SERVICE_UUID: UUID = UUID.fromString("b6f2a910-9b8f-4f4e-9a1f-4f37a0010000")

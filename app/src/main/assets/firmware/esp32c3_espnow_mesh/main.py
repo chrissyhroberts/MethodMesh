@@ -1,14 +1,10 @@
+from methodmesh_coex import bluetooth,network,espnow,RADIO_CHANNEL,radio as _BOOT_RADIO,ble as _BOOT_BLE,channel as _BOOT_CHANNEL,rxbuf as _BOOT_RXBUF,error as _BOOT_ERROR
 import json,os,time,binascii,hashlib
 from machine import unique_id
 from sensor_drivers.aht20 import ap as radio_auth,fragment,Reassembler
-try: import bluetooth
-except ImportError: import ubluetooth as bluetooth
-try:
- import network,espnow
-except ImportError:
- network=None;espnow=None
-FW="methodmesh-espmesh-0.4.0";CFG="methodmesh_mesh_config.json";CFG_TMP=CFG+".tmp";CFG_BAK=CFG+".bak";SPOOL="methodmesh_mesh_spool.jsonl";TMP=SPOOL+".tmp";BAK=SPOOL+".bak"
-MAX_SPOOL=96;MAX_BRIDGE=65535;MAX_WIRE=32768;GATT_BUF=512;BLE_PACKET=460;BLE_CHUNK=220;MAX_PARTIAL=8
+FW="methodmesh-espmesh-0.4.6";CFG="methodmesh_mesh_config.json";CFG_TMP=CFG+".tmp";CFG_BAK=CFG+".bak";SPOOL="methodmesh_mesh_spool.jsonl";TMP=SPOOL+".tmp";BAK=SPOOL+".bak"
+MAX_SPOOL=96;MAX_BRIDGE=65535;MAX_WIRE=32768;GATT_BUF=512;BLE_PACKET=180;BLE_CHUNK=54;MAX_PARTIAL=8
+RADIO_RXBUFS=(528,)
 NODE="espmesh-"+"".join("%02x"%b for b in unique_id()[-4:]);TOKEN="".join("%02x"%b for b in unique_id())
 SERVICE=bluetooth.UUID("b6f2a910-9b8f-4f4e-9a1f-4f37a0010000");UP=bluetooth.UUID("b6f2a911-9b8f-4f4e-9a1f-4f37a0010000");DOWN=bluetooth.UUID("b6f2a912-9b8f-4f4e-9a1f-4f37a0010000")
 C_CONNECT=1;C_DISCONNECT=2;G_WRITE=3
@@ -27,6 +23,7 @@ def lu(r,n,k):
  if z<1 or z>220 or len(r)!=21+z:return None
  h=r[:9+z];return (r[3],bytes(r[9:9+z])) if r[9+z:]==hr(k,h)[:12] else None
 def li(p):return binascii.hexlify(sh(p)[:8]).decode()
+def ki(k):return binascii.hexlify(sh(str(k).encode())[:8]).decode() if k else ""
 def disk_sync():
  try:
   f=getattr(os,"sync",None)
@@ -87,26 +84,47 @@ def wire_ok(w):
  except Exception:return False
 class Node:
  def __init__(s):
-  s.c=config_load();s.sp,s.sp_error=spool_load();s.conn=set();s.part={};s.push={};s.fr=Reassembler();s.last_radio=0;s.listen=False;s.lv=[];s.voice_until=0
+  s.c=config_load();s.sp,s.sp_error=spool_load();s.conn={};s.tx=0;s.part={};s.push={};s.fr=Reassembler();s.last_radio=0;s.listen=False;s.lv=[];s.voice_until=0;s.radio=_BOOT_RADIO;s.radio_channel=_BOOT_CHANNEL;s.radio_rxbuf=_BOOT_RXBUF;s.radio_rx=0;s.radio_send_error="";s.radio_start_error=_BOOT_ERROR
   print("MethodMesh node:",s.c["node_id"]);print("Provisioning token:",s.c["provisioning_token"])
-  s.ble=bluetooth.BLE();s.ble.active(True);s.ble.irq(s.irq)
+  if s.radio:
+   for p in s.c["peers"] or ["ff:ff:ff:ff:ff:ff"]:
+    try:s.radio.add_peer(bytes.fromhex(p.replace(":","")))
+    except Exception:pass
+  s.ble=_BOOT_BLE or bluetooth.BLE()
+  if not s.ble.active():s.ble.active(True)
+  s.ble.irq(s.irq)
   ((s.up,s.down),)=s.ble.gatts_register_services(((SERVICE,((UP,bluetooth.FLAG_WRITE),(DOWN,bluetooth.FLAG_READ|bluetooth.FLAG_NOTIFY))),))
-  s.ble.gatts_set_buffer(s.up,GATT_BUF);s.ble.gatts_set_buffer(s.down,GATT_BUF);s.radio=None;s.radio_start();s.advertise()
- def advertise(s):s.ble.gap_advertise(250000,adv_data=adv(services=[SERVICE]),resp_data=adv(name=s.c["node_name"]))
+  s.ble.gatts_set_buffer(s.up,GATT_BUF);s.ble.gatts_set_buffer(s.down,GATT_BUF);s.advertise()
+ def advertise(s):s.ble.gap_advertise(100000,adv_data=adv(services=[SERVICE]),resp_data=adv(name=s.c["node_name"]))
  def radio_start(s):
   if network is None or espnow is None:return
+  s.radio_start_error="";s.radio_rxbuf=0
   try:
    if s.radio:
     try:s.radio.active(False)
     except Exception:pass
-   w=network.WLAN(network.STA_IF);w.active(True);s.radio=espnow.ESPNow();s.radio.active(True)
+   w=network.WLAN(network.STA_IF);w.active(True)
+   try:w.disconnect()
+   except Exception:pass
+   w.config(channel=RADIO_CHANNEL)
+   try:s.radio_channel=int(w.config("channel"))
+   except Exception:s.radio_channel=RADIO_CHANNEL
+   radio=espnow.ESPNow();s.radio=None
+   for size in RADIO_RXBUFS:
+    try:
+     try:radio.active(False)
+     except Exception:pass
+     radio.config(rxbuf=size);radio.active(True);s.radio=radio;s.radio_rxbuf=size;s.radio_start_error="";break
+    except Exception as x:s.radio_start_error=str(x)
+   if not s.radio:s.radio_channel=0;return
    for p in s.c["peers"] or ["ff:ff:ff:ff:ff:ff"]:
     try:s.radio.add_peer(bytes.fromhex(p.replace(":","")))
     except Exception:pass
-  except Exception:s.radio=None
+  except Exception as x:s.radio=None;s.radio_channel=0;s.radio_start_error=str(x)
  def irq(s,e,d):
-  if e==C_CONNECT:s.conn.add(d[0]);s.sync_push()
-  elif e==C_DISCONNECT:s.conn.discard(d[0]);s.advertise()
+  if e==C_CONNECT:s.conn[d[0]]=0
+  elif e==C_DISCONNECT:s.conn.pop(d[0],None);s.advertise()
+  elif e==21:s.conn[d[0]]=min(BLE_PACKET,max(0,d[1]-3))
   elif e==G_WRITE and d[1]==s.up:s.ble_packet(s.ble.gatts_read(s.up))
  def ble_packet(s,raw):
   try:
@@ -130,13 +148,14 @@ class Node:
   except Exception:pass
  def notify_raw(s,b):
   if len(b)<=BLE_PACKET:return s.notify_packet(b)
-  i="%08x"%(time.ticks_ms()&0xffffffff);chunks=[b[x:x+BLE_CHUNK] for x in range(0,len(b),BLE_CHUNK)]
+  s.tx=(s.tx+1)&0xffffffff;i="%08x"%s.tx;chunks=[b[x:x+BLE_CHUNK] for x in range(0,len(b),BLE_CHUNK)]
   for n,d in enumerate(chunks):
-   q={"protocol":"methodmesh.blefrag","version":1,"id":i,"seq":n,"total":len(chunks),"data":binascii.b2a_base64(d).strip().decode()};s.notify_packet(compact(q).encode())
+   q={"protocol":"methodmesh.blefrag","version":1,"id":i,"seq":n,"total":len(chunks),"data":binascii.b2a_base64(d).strip().decode()};s.notify_packet(compact(q).encode());time.sleep_ms(8)
  def notify_packet(s,b):
   if len(b)>BLE_PACKET:return
   s.ble.gatts_write(s.down,b)
   for c in tuple(s.conn):
+   if len(b)>s.conn.get(c,0):continue
    try:s.ble.gatts_notify(c,s.down,b)
    except Exception:pass
  def notify(s,k,r="",wire=None,body=None):
@@ -148,6 +167,7 @@ class Node:
    if q.get("protocol")!="methodmesh.gateway" or int(q.get("version",0))!=2:return
    k=str(q.get("kind",""));rid=str(q.get("request_id",""));body=q.get("body") or {}
    if k=="HELLO":
+    for c in s.conn:s.conn[c]=min(s.conn[c] or BLE_PACKET,int(body.get("att_payload",BLE_PACKET)),BLE_PACKET)
     pid=str(body.get("phone_id") or "")[:128];bound=s.c.get("phone_id","")
     if pid and not bound:s.c["phone_id"]=pid;config_save(s.c)
     s.notify("HELLO_ACK",rid,body=s.info())
@@ -160,7 +180,7 @@ class Node:
    elif k=="SYNC_REQUEST":s.notify("SYNC_ACK",rid,body=s.info());s.sync_push()
   except Exception:pass
  def info(s):
-  return {"node_id":s.c["node_id"],"firmware":FW,"provisioned":s.c["provisioned"],"network_id":s.c["network_id"],"pending_for_radio":sum(1 for r in s.sp if r.get("dir")=="r"),"pending_for_phone":sum(1 for r in s.sp if r.get("dir")=="p"),"spool_error":s.sp_error,"last_radio_at_ms":0}
+  return {"node_id":s.c["node_id"],"firmware":FW,"provisioned":s.c["provisioned"],"network_id":s.c["network_id"],"network_key_id":ki(s.c["network_key"]),"radio_channel":s.radio_channel,"radio_rxbuf":s.radio_rxbuf,"radio_rx_packets":s.radio_rx,"radio_send_error":s.radio_send_error,"radio_start_error":s.radio_start_error,"pending_for_radio":sum(1 for r in s.sp if r.get("dir")=="r"),"pending_for_phone":sum(1 for r in s.sp if r.get("dir")=="p"),"spool_error":s.sp_error,"last_radio_at_ms":0}
  def configure(s,b,rid):
   t=str(b.get("provisioning_token") or "");expected=s.c.get("provisioning_token","")
   if s.c.get("provisioned") and t!=expected:return s.notify("ERROR",rid,body={"error":"provisioning_token_required"})
@@ -168,7 +188,7 @@ class Node:
   n=dict(s.c);n["peers"]=list(b.get("peers") or [])[:32];n["network_id"]=str(b.get("network_id") or "")[:64];n["network_key"]=str(b.get("network_key") or "")[:128]
   pid=str(b.get("phone_id") or "")[:128]
   if pid:n["phone_id"]=pid
-  n["provisioned"]=bool(n["network_id"] and n["network_key"]);s.c=n;config_save(n);s.radio_start();s.advertise();s.notify("CONFIG_ACK",rid,body=s.info())
+  n["provisioned"]=bool(n["network_id"] and n["network_key"]);s.c=n;config_save(n);s.advertise();s.notify("CONFIG_ACK",rid,body=s.info())
  def has(s,mid,d):return any(r.get("id")==mid and r.get("dir")==d for r in s.sp)
  def put(s,wire,d):
   mid=str(wire.get("id",""))
@@ -224,8 +244,9 @@ class Node:
   for p in s.c["peers"] or ["ff:ff:ff:ff:ff:ff"]:
    peer=bytes.fromhex(p.replace(":",""))
    for e in packets:
-    try:s.radio.send(peer,e)
-    except Exception:pass
+    try:s.radio.send(peer,e);s.radio_send_error=""
+    except Exception as x:s.radio_send_error=str(x)
+    time.sleep_ms(12)
  def stored_ack(s,peer,mid):
   q={"methodmesh":2,"kind":"S","network_id":s.c["network_id"],"message_id":mid};q["auth"]=radio_auth(q,s.c["network_key"])
   try:s.radio.add_peer(peer)
@@ -237,6 +258,7 @@ class Node:
   try:
    peer,raw=s.radio.recv(0)
    if not raw:return
+   s.radio_rx+=1
    if raw[:2]==b"MR":
     z=lu(raw,s.c["network_id"],s.c["network_key"])
     if z:s.voice_radio(z[1],z[0])

@@ -1,15 +1,19 @@
 ---
 title: "MethodMesh Master Book"
 subtitle: "Canonical architecture, capability runtime, integration, UX and review standard"
-date: "2026-09-22"
+date: "2026-09-25"
 ---
 
-Version: v1.26
+Version: v1.31
 Status: FINAL - canonical project-wide documentation
-Last updated: 2026-09-22
+Last updated: 2026-09-25
 Authority: sole normative project-wide MethodMesh documentation resource
 
 This edition consolidates the previously separate Master Book, architecture and conceptual specifications, capability-writing guidance, module-review manual, UI/UX standards, ODK/XLSForm integration guidance, provider notes, scheduling guidance, testing guidance and current project-wide implementation doctrine into one resource.
+
+This edition also absorbs the **Instrument Dashboard UI standard** into the canonical Master Book. Instrument-like capabilities may use dense, capability-owned and full-bleed working surfaces when that better serves the task, while preserving the same canonical method, settings, working-result/Commit lifecycle, result-action, preset/protocol and ODK/external contracts. Standalone instrument-dashboard notes may remain as module-local implementation snapshots, but they are not separate project-wide authorities.
+
+This edition further clarifies that instrument density must not be achieved through microscopic typography or undersized touch controls. Where viewport space is available, MethodMesh should spend it on legibility, touchability and stable readouts before adding decorative whitespace or further compressing the interface.
 
 Where older project-wide MethodMesh documents conflict with this book, this book takes precedence. Older documents may be retained in the repository archive for provenance and history, but they are not active authorities.
 
@@ -25,6 +29,12 @@ This edition further makes **temporal provenance a universal property of the can
 This edition also strengthens **global execution provenance for ALCOA+ interpretation**. The canonical FULL envelope now separates caller-declared record/actor context from independently authenticated evidence, preserves subject, operator and data-originator roles without conflating them, and records a request-to-completion monotonic execution interval. The envelope provides evidence that may support ALCOA+ assessment; it does not itself assert regulatory compliance. System-level properties such as completeness, consistency, endurance/retention and availability remain responsibilities of the wider data platform and archive.
 
 This edition also makes **software identity visible and auditable**. Every module and independently callable capability exposes a version and canonical maturity state; shared UI renders the same metadata used by execution infrastructure. The canonical FULL envelope freezes the module/capability identity, version and maturity that actually produced the execution, so a later app upgrade cannot rewrite historical software provenance. Workbench now owns the inspection/control surface for shared Clock Assurance, while Home may expose a discreet policy-neutral recency indicator that links to that inspector.
+
+This edition also establishes **MethodMesh Devices** as the project-wide physical-instrument architecture. Physical devices are capability providers rather than a separate execution system. A device may run MethodMesh-native firmware, ESPHome, adapted third-party firmware or expose an existing instrument through a protocol adapter. Device design, exact build resolution, firmware packages, installation events and physical device instances are separate artefacts; transport media are distinct from application protocols; firmware integrity, package authenticity, device authentication and attestation are distinct trust properties. ESP32 and ESPHome are the first broad implementation platform, not the architectural boundary.
+
+This edition also formalises **evidence-first NFC credential assurance** and quiet Clock Assurance refresh. NFC field verification proves the credential signature and PIN and records the actual issuer identity; study authorisation is a later registry/reconciliation decision rather than an ordinary field-device allow-list decision. The canonical issuer identity is the full SHA-256 fingerprint of the issuer public key encoding, with the short key ID retained only for display/backwards compatibility. Workbench exposes a copyable public issuer certificate/bundle for provisioning-device registration. Clock Assurance may refresh opportunistically on app open and periodically in the background using network-constrained Android scheduling; an offline device waits quietly for connectivity and keeps its prior evidence rather than notifying the user or promoting wall time.
+
+This edition additionally defines the **MethodMesh Devices ↔ MethodMesh Field Transport bridge**. Capability-providing field nodes use a canonical `methodmesh.mft-device/v1` Device Adapter protocol over the existing transport runtime; stable Device IDs and capability contracts remain above radio routes, while pure relays/gateways remain transport infrastructure. Device endpoint security is explicitly separate from both ESP radio membership credentials and the existing phone-to-phone field-group key.
 
 # Contents
 
@@ -42,7 +52,7 @@ This edition also makes **software identity visible and auditable**. Every modul
   - [Capabilities](#capabilities)
   - [ODK Forms](#odk-forms)
   - [Workbench](#workbench)
-  - [Device registry](#device-registry)
+  - [Devices / Device Manager](#devices--device-manager)
   - [Settings](#settings)
   - [Widgets](#widgets)
 - [4A. Getting started and installation](#4a-getting-started-and-installation)
@@ -75,6 +85,7 @@ This edition also makes **software identity visible and auditable**. Every modul
   - [Preset authoring](#preset-authoring)
 - [9. Native run UX](#9-native-run-ux)
   - [Capability-owned, relevant UI](#capability-owned-relevant-ui)
+  - [Instrument dashboard UI standard](#instrument-dashboard-ui-standard)
   - [Live current result](#live-current-result)
   - [Runtime output projection](#runtime-output-projection)
   - [Tap-to-copy invariant](#tap-to-copy-invariant)
@@ -129,10 +140,30 @@ This edition also makes **software identity visible and auditable**. Every modul
 - [17. Location tools](#17-location-tools)
   - [Plus Code capture](#plus-code-capture)
   - [GPS target navigator](#gps-target-navigator)
-- [18. Sensors and hardware](#18-sensors-and-hardware)
-  - [Device registry target model](#device-registry-target-model)
+- [18. MethodMesh Devices and physical instrumentation](#18-methodmesh-devices-and-physical-instrumentation)
+  - [18.1 Scope and architectural rule](#181-scope-and-architectural-rule)
+  - [18.2 Integration classes](#182-integration-classes)
+  - [18.3 Core artefacts](#183-core-artefacts)
+  - [18.4 Device Definition](#184-device-definition)
+  - [18.5 Resolved Device Lock](#185-resolved-device-lock)
+  - [18.6 Catalogues and semantic validation](#186-catalogues-and-semantic-validation)
+  - [18.7 Firmware providers and build model](#187-firmware-providers-and-build-model)
+  - [18.8 ESPHome integration](#188-esphome-integration)
+  - [18.9 Transport model](#189-transport-model)
+  - [18.10 Native Android USB installation](#1810-native-android-usb-installation)
+  - [18.11 Identity, provisioning and trust](#1811-identity-provisioning-and-trust)
+  - [18.12 Device Registry and lifecycle](#1812-device-registry-and-lifecycle)
+  - [18.13 Runtime adapters and capability execution](#1813-runtime-adapters-and-capability-execution)
+  - [18.13A MethodMesh Devices over MethodMesh Field Transport](#1813a-methodmesh-devices-over-methodmesh-field-transport)
+  - [18.14 Calibration](#1814-calibration)
+  - [18.15 Sentinel and provenance](#1815-sentinel-and-provenance)
+  - [18.16 Reference devices](#1816-reference-devices)
+  - [18.17 Implementation sequence and acceptance test](#1817-implementation-sequence-and-acceptance-test)
+  - [18.18 Normative core JSON Schema](#1818-normative-core-json-schema)
+  - [18.19 Architectural invariants](#1819-architectural-invariants)
 - [19. Attestation and audit commitments](#19-attestation-and-audit-commitments)
   - [attestation.create](#attestationcreate)
+  - [NFC credential evidence, issuer identity and central reconciliation](#nfc-credential-evidence-issuer-identity-and-central-reconciliation)
   - [Commitment recipe](#commitment-recipe)
   - [Trusted timestamp](#trusted-timestamp)
 - [20. Documentation rules](#20-documentation-rules)
@@ -595,7 +626,11 @@ ESP32 firmware installation; BLE/Bluetooth inspection;
 Android app inspection; API definition editing and testing; hardware
 diagnostics; prototype/development capabilities.
 
+NFC issuer identity inspection is also a Workbench function. The `nfc_issuer_identity` tool exposes this installation's public credential-issuer identity, including the canonical full public-key fingerprint and a copyable public issuer certificate/bundle suitable for later provisioning-device registration and validation. It MUST NOT expose issuer private-key material and MUST NOT describe possession of the certificate as proof that the installation is study-authorised.
+
 ### ESP32 sensor framework consolidation
+
+The current Workbench ESP32 installer/sensor implementation is an early concrete implementation of the **MethodMesh Devices** architecture defined in Chapter 18. Chapter 18 is authoritative for device definitions, build locking, firmware packages, installation records, device identity, runtime adapters, calibration and provenance. The implementation details below remain normative for the existing ESP32-C3 path until that path is migrated behind the generic Device Manager interfaces.
 
 The Workbench **ESP32 sensor framework** uses one installation capability for complete ESP32-C3 field images. Sensor roles and ESP-NOW mesh-node roles are image choices inside **Install ESP32 image**; a role MUST NOT create a second standalone firmware-installer capability merely because its runtime differs.
 
@@ -916,16 +951,24 @@ The legacy `espmesh.message.send` method MAY remain for compatibility but its no
 
 Deprecated/split wipe, runtime-upload or role-specific installer surfaces MAY remain in source only for recovery/debug compatibility, but MUST NOT be exposed as parallel normal Workbench installation tools once a complete image path exists.
 
-## Device registry
+## Devices / Device Manager
 
-The device registry should eventually be a live useful view, not only a
-static list.
+The **Device Manager** is the user-facing control surface for MethodMesh-managed physical devices. It owns add/provision/install/recover/inspect workflows and projects the underlying live Device Registry rather than presenting a static manifest.
 
-For sensors it should support refreshing and showing current key values,
-such as:
+A normal Devices view SHOULD support:
 
-AHT20: temperature and humidity; LD2410C/LR radar: presence, target
-state, distances and energy values.
+- add a device by purpose/capability rather than by firmware technology;
+- detect supported hardware attached over USB;
+- install or recover firmware through the generic firmware-package/flasher pipeline;
+- provision identity and operational credentials separately from generic firmware compilation;
+- show current device identity, lifecycle, firmware/configuration state, calibration state and capabilities;
+- connect through the configured operational protocol and execute a capability test;
+- surface configuration drift, verification failure and recovery-required state explicitly;
+- expose current values/status where technically useful without turning the registry into a bespoke dashboard for every sensor.
+
+The normal UI SHOULD say things such as **Environmental probe**, **Weight instrument**, **NFC/RFID reader**, **GNSS instrument** or **Connect existing instrument**. ESPHome, Meshtastic, Modbus and other implementation technologies belong behind the device/adapter model unless advanced configuration or diagnostics requires them.
+
+The complete normative device architecture is defined in Chapter 18.
 
 ## Settings
 
@@ -1538,6 +1581,127 @@ A direct single-capability run should not display protocol theatre such as "Step
 
 The shared app may provide a consistent shell for generic actions such as Home, Cancel, Commit, share/save and Technical details. The module owns the capability-specific body. This preserves the golden rule: shared UI knows the action contract, not the bespoke facts of music, maps, sensors, scanners or any other module.
 
+## Instrument dashboard UI standard
+
+Instrument-like capabilities SHOULD feel like purpose-built instruments rather than generic settings forms. This profile applies to calculators, navigation instruments, sensing panels, scoring systems, timers and other capabilities whose primary interaction is a live or rapidly changing control surface.
+
+The standard does **not** create a second execution model. The same canonical method, settings visibility rules, invocation context, live-working-result lifecycle, Commit boundary, preset/protocol behaviour and ODK/external contracts remain authoritative.
+
+### One coherent working surface
+
+- Prefer one primary screen for **configure/interact -> live current result -> Commit -> post-Commit actions / finish**.
+- Do not navigate to a second screen merely to show a calculated result.
+- Avoid wizard language such as `Step 1 of 1` for a direct single-capability run.
+- Keep the current result visible while settings or instrument controls change.
+- The capability-owned panel does not need to resemble the generic `MethodSetting` renderer.
+
+### Instrument visual hierarchy
+
+An instrument panel should normally read in this order:
+
+1. compact instrument identity and current mode;
+2. immediately visible major mode selection where switching mode is central to the task;
+3. primary live result/readout;
+4. task-specific controls and value entry;
+5. working/secondary values;
+6. transient interaction controls such as a keypad;
+7. Commit/finalisation without competing with the live working surface.
+
+Avoid repeated headings that restate information already obvious from the selected mode or active control.
+
+### Visual language
+
+- Prefer calm, technical surfaces with deliberate hierarchy over nested generic cards.
+- A dark neutral instrument surface is appropriate where it materially improves legibility and identity, but is not mandatory.
+- Use accent colour selectively for selection, active controls, successful state and actionable values; do not make every button equally loud.
+- Thin borders and quiet inactive controls are preferred when many bounded choices must remain visible.
+- Numeric readouts MAY use a monospaced treatment where this improves scanning and alignment.
+- Large typography belongs to the primary value, not navigation or framework chrome.
+
+The target is **technical, calm and field-ready**, not decorative dashboard chrome.
+
+### Density, space and touch behaviour
+
+Instrument dashboards should behave like instruments, not stacked forms. **Compactness means low clutter, not small everything.**
+
+- Keep related controls adjacent and use spacing to communicate grouping rather than as decoration.
+- Important modes SHOULD be visible without horizontal swiping where they can reasonably fit in a compact grid or row.
+- Reflow a mode grid to additional rows before shrinking important labels below comfortable reading size.
+- Do not turn every bounded choice into a large card.
+- Visually compact selectors are encouraged, but the actual touch targets MUST remain reliable. High-frequency controls such as calculator keys SHOULD aim for roughly 48dp touch geometry where the available viewport permits it.
+- When spare viewport area exists, spend it first on larger text, larger touch targets and clearer state separation rather than decorative whitespace.
+- Primary numeric readouts SHOULD be visually dominant; on a normal handset, roughly 30–36sp is a reasonable starting range where layout permits. Expression/value readouts commonly benefit from roughly 20–24sp, while ordinary selector/key labels should normally remain around 13–14sp or larger. These are design ranges, not hardcoded cross-device constants.
+- Tiny microtext is appropriate only for genuinely secondary status/audit annotations, not for core mode, unit, value or action labels.
+- Android font scaling SHOULD be respected as far as practical. Fixed-height controls must leave enough vertical room to avoid clipping at ordinary accessibility font scales.
+- Secondary/unselected controls should be visually quiet so the current state carries the visual emphasis.
+- Paired controls belong on the same visual axis; for example, unit-conversion FROM and TO rows should share geometry and place swap within that pair.
+- A single important input need not consume a full generic form row merely because the generic renderer would do so.
+- Avoid decorative empty space. On a handset, the primary workflow should normally fit within one screen before the system keyboard is shown.
+
+### Full-bleed instrument mode
+
+A capability whose primary interaction is an instrument MAY request or implement a capability-owned full-bleed surface when the standard scaffold would spend more useful space on framework chrome than on the instrument.
+
+In full-bleed instrument mode:
+
+- the capability should use the available capability viewport efficiently beneath app-level navigation;
+- generic step badges, repeated capability title/ID, version/maturity badges, Retry and large footer actions need not be duplicated inside the instrument;
+- lifecycle actions still exist: Back, Cancel and Commit/Use may be projected as compact controls in the instrument header;
+- live deterministic calculation normally removes the need for a Retry action;
+- the capability MUST still respect setting visibility, invocation context, working-state preservation, Commit semantics, presets/protocols, ODK/external return behaviour and launch-origin closeout;
+- styling is a presentation override, not a new execution path or private capability contract.
+
+### Stable live readouts
+
+Live result/readout bays MUST reserve their normal populated geometry from the start. Empty, calculating, failed and populated states should not make the readout change height or push surrounding controls.
+
+Use stable one-line or deliberately bounded previews with ellipsis where necessary. The full value/working remains available through the normal copy interaction or technical/detail projection. A result appearing should feel like the display changed, not like the whole instrument reflowed.
+
+### Live values, precision and direct copy
+
+- Recalculate immediately when the operation is cheap and deterministic.
+- The primary result remains directly tappable to copy its useful answer projection.
+- A visible working/formula line may separately copy working plus final answer.
+- Copy confirmation should be subtle and transient.
+- Presentation controls that affect the current result, such as decimal precision, belong close to the readout and apply immediately.
+- A generic Copy action after Commit remains valid even when individual live values are already tap-to-copy.
+
+### Integrated calculator keypad profile
+
+Calculator-style capabilities SHOULD prefer a capability-owned keypad when numeric entry is the primary interaction and this produces a better instrument than invoking the system keyboard.
+
+- Keep the result/display visible near the top while the expression is entered.
+- Reserve the lower working region for a keypad sized for reliable one-handed tapping.
+- A general numeric keypad may support digits, decimal point, `+`, `-`, multiplication, division, parentheses, backspace, clear and `=`.
+- Scientific/engineering entry MAY add an `EXP` key; radix-conversion modes SHOULD expose only digits valid for the selected base; SI-prefix entry MAY expose direct prefix keys. Contextual keypads are preferable to invoking the system keyboard merely because the input alphabet changes.
+- Arithmetic MUST be parsed locally with a bounded safe parser and normal operator precedence; do not use `eval` or execute arbitrary code.
+- Valid expressions may evaluate live; `=` may remain as an explicit calculator affordance but SHOULD NOT be required merely to reveal a deterministic result.
+- The evaluated scalar then feeds the domain operation. Working should preserve both expression evaluation and the subsequent domain calculation where both matter.
+- Numeric expression entry using the capability keypad SHOULD NOT summon the system keyboard. Date/text-specific modes may still use appropriate native inputs.
+
+### Post-Commit action bay
+
+A custom or full-bleed instrument does not lose the normal MethodMesh committed-result contract.
+
+On manual/native **Commit**:
+
+- freeze the canonical execution result and keep that committed primary result visible;
+- do not silently let later working edits mutate the frozen result;
+- reveal the applicable **Copy**, **Share**, **Save to Downloads**, **Include full JSON / audit**, **Done/Home**, and **Edit / new run** actions without forcing a generic result screen;
+- where a transient working region such as a keypad is no longer needed after Commit, that region MAY become the compact post-Commit action bay;
+- capability-specific styling MAY be used for the buttons, but communication and persistence MUST delegate to the shared MethodMesh committed-result projection/transport infrastructure rather than reconstructing receiver-specific Android intent behaviour inside the module;
+- **Share** remains communication-oriented and beef-first; **Save to Downloads** remains the canonical explicit file-oriented persistence path; **Full JSON / audit** remains off by default and uses the canonical FULL projection when enabled;
+- **Edit / new run** returns to an editable working state while preserving the distinction from the already committed payload;
+- **Done/Home** follows launch-origin closeout and native-preset Return/Share/Save completion policy.
+
+ODK/external automatic-return runs normally suppress this manual native action bay. Commit returns the canonical payload directly to the caller and lets the caller own persistence, unless an explicit external contract says otherwise.
+
+### Contract boundary
+
+A rich instrument dashboard is an aggregation/presentation surface, not an implementation boundary. Every operation and output that belongs to the canonical capability remains independently addressable through direct native use, presets, protocols, ODK/XLSForm, schedules, widgets and supported external invocation where technically representable.
+
+Do not invent dashboard-only result fields, private copies of the calculation, or an instrument-only return schema merely to support the visual design.
+
 ## Live current result
 
 Where outputs can be calculated, previewed or acquired during interaction, show the current result on the same screen and update it in real time or immediately after the relevant user action. Do not make the user press Calculate/Go merely to navigate to a second screen containing values that could have been shown in place.
@@ -1676,6 +1840,7 @@ Do not automatically save internal archive copies merely because the user commit
 
 Home/Done/Commit closeout is determined by the launch origin, while the capability implementation remains the same:
 
+- **Workbench launch:** Done/closeout returns to the originating Workbench surface and retains its selected module; gateway selection does not complete provisioning.
 - **Normal app/direct/preset launch:** Home or Done returns to the MethodMesh dashboard.
 - **Widget launch:** Home/Done after the action returns to the Android desktop.
 - **ODK/external roundtrip:** Commit returns the canonical result through the external transport and finishes back to the caller; Cancel returns cancellation to the caller. Do not route through the dashboard or generic native share/save flow.
@@ -3023,6 +3188,10 @@ Reboot is a hard assurance boundary. Monotonic elapsed time is not UTC and MUST 
 
 Clock Assurance is offline-first. Once an anchor has been established, same-boot trusted time can advance without a network connection until caller policy says the anchor/uncertainty is too old. Network access is needed only to obtain new external evidence, not for every time-sensitive decision.
 
+Shared infrastructure SHOULD maintain Clock Assurance opportunistically without turning refresh cadence into a hidden validity policy. The current Android implementation requests a network-constrained refresh when the app opens if no sufficiently recent anchor is already present, suppressing redundant foreground refreshes for approximately 15 minutes, and schedules an inexact periodic background refresh approximately every 6 hours. These are operational acquisition defaults, not universal freshness/acceptance thresholds for capabilities.
+
+If connectivity is unavailable, refresh work SHOULD remain pending until Android reports usable network connectivity. The app MUST NOT notify the user merely because background trusted-time refresh cannot run, MUST NOT start a foreground service solely for that condition, MUST retain any existing valid anchor/evidence, and MUST NOT promote Android wall time to trusted time. A later successful refresh may replace or extend the shared trusted anchor through the normal validated acquisition path.
+
 When time assurance materially affects an externally interpreted result, the capability SHOULD expose the time used, assurance state, wall-clock state and relevant anchor age/uncertainty in its canonical result or full JSON. ODK/Sentinel can then retain why MethodMesh accepted, rejected or qualified a time-sensitive action rather than receiving only a Boolean.
 
 A successfully validated external time observation MAY refresh shared Clock Assurance immediately even when the producing capability's user-facing working result has not yet been Committed. This infrastructure update does not Commit, save or return that capability result; it only improves the process-wide evidence about current time.
@@ -3032,6 +3201,8 @@ A successfully validated external time observation MAY refresh shared Clock Assu
 Workbench provides the canonical human inspection/control surface for Clock Assurance. It SHOULD show, without applying a hidden workflow policy: observed wall time; current trusted estimate/bounds where available; anchor source and age; monotonic/boot continuity; wall-clock relation/divergence; evidence/model schema versions; and explanatory state. This is an inspector of evidence, not a second clock implementation.
 
 Workbench provides an explicit **Sync trusted time** (or equivalently clear) action when a trusted-time acquisition provider is available. Manual sync obtains and validates a new external time observation through the same shared Trusted Timestamp/Clock Assurance admission path used elsewhere and may publish a new trusted anchor. It MUST NOT claim to set, correct or synchronize the Android operating-system clock. Failure to obtain trusted time leaves the prior evidence intact and reports the failure to the operator.
+
+Automatic app-open and periodic background refresh use that same shared validated acquisition path. They are deliberately quiet: lack of connectivity or an unsuccessful background refresh does not generate a user notification. The Workbench inspector may show the resulting anchor age/source/state, but automatic refresh MUST NOT manufacture a separate 'good/bad' status or imply that its scheduling interval is a scientific or regulatory acceptance threshold.
 
 Home MAY expose a discreet policy-neutral Time Assurance recency indicator such as the age of the most recent comparable trusted anchor or explicit `unanchored`/`reboot`/`check` state. Recency display MUST NOT invent a universal good/bad age threshold. Tapping the indicator SHOULD open the Workbench Time Assurance inspector. Material wall-clock divergence/rollback or unusable evidence may be visually distinguished, but the meaning must remain textual and policy-neutral.
 
@@ -3077,32 +3248,2576 @@ north; distance must show current distance; AR camera should be a
 separate view with crosshair/HUD; orientation should work upright as
 required for AR, not only flat.
 
-# 18. Sensors and hardware
+# 18. MethodMesh Devices and physical instrumentation
 
-Hardware/device tools belong mostly in Workbench unless they are
-polished field-facing capabilities.
+MethodMesh Devices is the project-wide architecture for physical instruments, sensors, peripherals and embedded devices.
 
-ESP32 sensor work includes:
+The subsystem extends the existing MethodMesh capability runtime into the physical world without creating a parallel execution system.
 
-firmware installer; sensor provisioner; sensor read; device registry;
-live diagnostics.
+## 18.1 Scope and architectural rule
 
-Rules:
+MethodMesh Devices allows MethodMesh to:
 
-sensor firmware and app protocol must agree on installed profiles;
-provisioning must not retain stale names or stale profiles after proper
-reset; live sensor read should show key values rather than huge
-manifests; device registry should have refresh/live view; firmware
-images that are core to the system should be tracked; manual docs videos
-need not be tracked if updated outside the repo.
+1. describe a physical instrument declaratively;
+2. validate whether a hardware configuration is coherent and safe enough to build;
+3. resolve an appropriate firmware or external-instrument implementation;
+4. obtain or build reproducible firmware where firmware is required;
+5. install firmware directly from Android where supported;
+6. provision device identity and operational credentials;
+7. register physical device instances;
+8. expose physical functions through the normal MethodMesh capability contract;
+9. invoke those functions from native MethodMesh, ODK/Enketo, presets, protocols and other callers;
+10. retain firmware, configuration, calibration and hardware provenance;
+11. detect unexpected changes to device state;
+12. support both MethodMesh-native and suitable third-party implementations.
 
-## Device registry target model
+**MM-DEV-001.** A physical device is a MethodMesh capability provider. It MUST NOT require a second execution/result architecture merely because the method is implemented outside Android.
 
-The Device Registry SHOULD behave as a live registry rather than a static manifest. Known sensors should expose refresh/current values and detected/not-detected state where technically feasible.
+The central rule is:
 
-Firmware profile, provisioning state, app protocol and registry identity MUST agree. Reset/reprovision workflows SHOULD avoid stale names or stale sensor-profile metadata.
+> **A physical device does not need to run MethodMesh-native firmware to be a MethodMesh device.**
 
-Hardware-specific permissions and constraints remain module-owned documentation and should surface only when the task requires them.
+MethodMesh owns the capability contract, device identity, integration boundary and provenance model. The implementation behind that boundary may be ESPHome, MethodMesh-native firmware, Meshtastic, OpenMQTTGateway, another curated firmware project, or an adapter around an existing commercial/scientific instrument.
+
+The subsystem is not intended to replace ESPHome, Meshtastic or other mature projects; become a general home-automation system; maintain forks of every useful firmware project; or make unverified devices appear trustworthy.
+
+## 18.2 Integration classes
+
+Firmware/device integrations are classified as:
+
+- **Native** - firmware maintained as part of MethodMesh and implementing MethodMesh protocols directly.
+- **Adapted** - existing firmware retained substantially upstream, with a MethodMesh adapter translating its interface into MethodMesh capabilities.
+- **Curated** - third-party firmware installed/managed by MethodMesh with minimal or no modification.
+- **Component** - a third-party library, driver or protocol incorporated into MethodMesh-native firmware without adopting the full upstream firmware.
+
+**MM-DEV-002.** MethodMesh SHOULD configure, adapt or consume upstream firmware rather than fork it when the required capability and trust model can be met without a fork.
+
+ESPHome is the preferred initial backend for conventional ESP-based sensors and actuators when its behaviour, transport and security properties meet the requirement. ESP32/ESPHome is an implementation platform, not the architectural boundary.
+
+## 18.3 Core artefacts
+
+MethodMesh Devices defines distinct artefacts:
+
+```text
+Device Definition
+      │
+      ▼
+Resolved Device Lock
+      │
+      ├── managed firmware → Firmware Build / Package → Installation Record
+      │
+      └── external instrument → adapter/binding resolution
+      │
+      ▼
+Device Instance
+```
+
+**MM-DEV-003.** Device design, exact implementation/build resolution, produced firmware where applicable, installation/provisioning events and mutable physical-device state MUST remain distinct objects. A device that does not use MethodMesh-managed firmware MUST NOT be forced through a synthetic firmware-build step.
+
+### Device Definition
+
+Describes **what the device should be**.
+
+Canonical schema:
+
+```text
+methodmesh.device/v1
+```
+
+Recommended extension:
+
+```text
+.mmdevice
+```
+
+It is suitable for source control, review, reuse, versioning and validation. It MUST NOT normally contain passwords, API keys, private keys, a physical Device ID, current calibration events or mutable runtime state.
+
+A Device Definition MAY omit the `firmware` block when MethodMesh is binding directly to an existing external instrument whose firmware is not built or installed by MethodMesh. Such a device still resolves through the Device Lock so the exact hardware catalogue entry, capability binding, adapter/protocol and relevant dependency versions remain reproducible.
+
+### Resolved Device Lock
+
+Describes the exact dependency/configuration resolution used for a build.
+
+Canonical schema:
+
+```text
+methodmesh.device-lock/v1
+```
+
+A flexible source definition such as `latest-tested` is useful for authoring but insufficient for reproducibility. Before a reproducible build, MethodMesh resolves the definition into an immutable lock.
+
+### Firmware Package
+
+Where MethodMesh manages firmware, the Firmware Package contains the exact produced artefacts plus the target-specific installation plan and provenance needed to install them correctly. External instruments that are not flashed by MethodMesh do not require a synthetic Firmware Package.
+
+Canonical schema:
+
+```text
+methodmesh.firmware-package/v1
+```
+
+A package MUST NOT assume that every target consists of one `firmware.bin`.
+
+### Installation Record
+
+Records one concrete MethodMesh-managed firmware install/provision/verification event. A directly integrated external instrument may instead have registration/provisioning lifecycle evidence without a firmware Installation Record.
+
+Canonical schema:
+
+```text
+methodmesh.device-installation/v1
+```
+
+### Device Instance
+
+Represents one physical device and its lifecycle state.
+
+Canonical schema:
+
+```text
+methodmesh.device-instance/v1
+```
+
+A physical Device ID is distinct from the source Device Definition, build ID and firmware package ID.
+
+## 18.4 Device Definition
+
+The canonical serialisation format for `methodmesh.device/v1` is YAML; JSON is an equivalent machine representation because structural validation uses JSON Schema.
+
+A representative environmental instrument is:
+
+```yaml
+schema: methodmesh.device/v1
+
+metadata:
+  name: field-environmental-probe
+  display_name: Field Environmental Probe
+  description: Portable temperature, relative humidity and pressure instrument
+  version: 1.0.0
+
+hardware:
+  catalogue_entry: espressif.esp32-s3-devkitc-1
+
+buses:
+  - id: environmental_i2c
+    type: i2c
+    pins:
+      sda: GPIO8
+      scl: GPIO9
+    parameters:
+      frequency_hz: 400000
+
+peripherals:
+  - id: environment
+    model: bosch.bme280
+    bus: environmental_i2c
+    parameters:
+      address: "0x76"
+
+capabilities:
+  - id: temperature
+    method: measure.temperature
+    contract_version: 1
+    binding:
+      type: peripheral-channel
+      peripheral: environment
+      channel: temperature
+    acquisition:
+      samples: 3
+      aggregation: median
+
+  - id: humidity
+    method: measure.relative_humidity
+    contract_version: 1
+    binding:
+      type: peripheral-channel
+      peripheral: environment
+      channel: humidity
+
+  - id: pressure
+    method: measure.pressure
+    contract_version: 1
+    binding:
+      type: peripheral-channel
+      peripheral: environment
+      channel: pressure
+
+firmware:
+  provider: esphome
+  version:
+    policy: exact
+    value: "2026.9.0"
+  build:
+    strategy: auto
+
+transports:
+  provisioning:
+    - medium: usb
+      protocol: espressif-rom-serial
+
+  operation:
+    - medium: wifi
+      protocol: esphome-native-api
+
+calibration:
+  requirements:
+    - capability: temperature
+      required: false
+
+security:
+  package_integrity: required
+  package_authenticity: preferred
+  device_authentication: preferred
+  device_attestation: optional
+
+provenance:
+  retain_definition: true
+  retain_lock: true
+  retain_generated_configuration: true
+  retain_build_manifest: true
+```
+
+### Capability-first model
+
+The definition states the MethodMesh capability separately from the physical implementation.
+
+```text
+measure.temperature
+        │
+        ├── BME280
+        ├── SHT31
+        ├── DS18B20
+        ├── BLE thermometer
+        ├── Modbus probe
+        └── serial laboratory instrument
+```
+
+Capability semantics belong to the MethodMesh Capability Catalogue. A device binds its implementation to that contract; it MUST NOT silently redefine what a method ID means.
+
+For example:
+
+```yaml
+method: measure.temperature
+contract_version: 1
+```
+
+may resolve to a catalogue contract whose canonical machine unit is `Cel` and whose allowed conversions include Kelvin or degrees Fahrenheit.
+
+### Bindings
+
+Bindings describe how a MethodMesh capability maps to the implementation.
+
+Examples include:
+
+```text
+peripheral-channel
+adapter-endpoint
+esphome-entity
+modbus-register
+serial-command
+mqtt-topic
+native-method
+custom
+```
+
+A peripheral-channel binding may be:
+
+```yaml
+binding:
+  type: peripheral-channel
+  peripheral: environment
+  channel: temperature
+```
+
+### Acquisition behaviour
+
+Measurement semantics and acquisition procedure are separate concepts.
+
+```yaml
+acquisition:
+  samples: 5
+  interval_ms: 200
+  settling_time_ms: 1000
+  aggregation: median
+```
+
+Supported aggregation may include `single`, `mean`, `median`, `minimum`, `maximum` and provider-defined/custom behaviour.
+
+## 18.5 Resolved Device Lock
+
+A Device Definition may intentionally contain flexible policies. A build used for controlled/reproducible deployment MUST resolve those policies before compilation.
+
+A Device Lock SHOULD identify at least:
+
+- Device Definition hash;
+- hardware catalogue revision and resolved hardware catalogue entry;
+- peripheral catalogue revision;
+- capability contract versions/revision;
+- firmware provider and exact provider version;
+- firmware source revision where applicable;
+- framework/compiler/toolchain and versions;
+- external component/dependency versions material to the build;
+- build environment or container digest where used;
+- generated configuration hash;
+- relevant build/compiler options.
+
+Example:
+
+```json
+{
+  "schema": "methodmesh.device-lock/v1",
+  "definition": {
+    "sha256": "..."
+  },
+  "catalogues": {
+    "hardware": { "revision": "..." },
+    "peripherals": { "revision": "..." },
+    "capabilities": { "revision": "..." }
+  },
+  "hardware": {
+    "catalogue_entry": "espressif.esp32-s3-devkitc-1"
+  },
+  "firmware": {
+    "provider": "esphome",
+    "provider_version": "2026.9.0",
+    "source_revision": "...",
+    "toolchain": {
+      "type": "...",
+      "version": "..."
+    }
+  },
+  "generated_configuration": {
+    "format": "esphome-yaml",
+    "sha256": "..."
+  }
+}
+```
+
+**MM-DEV-004.** Flexible source policies MUST resolve to an immutable Device Lock before a build is claimed to be reproducible. A later catalogue/provider update MUST NOT silently change an existing lock.
+
+### Canonicalisation and hashing
+
+Device Definitions MUST be parsed and canonicalised before hashing. Raw YAML bytes are not the semantic identity because whitespace, comments, quoting and key order may differ without changing meaning.
+
+The canonicalisation algorithm MUST be versioned, for example:
+
+```json
+{
+  "canonicalisation": "methodmesh-json-c14n/v1",
+  "hash_algorithm": "sha256",
+  "sha256": "..."
+}
+```
+
+## 18.6 Catalogues and semantic validation
+
+JSON Schema validates the structural shape of a Device Definition. MethodMesh MUST additionally perform semantic validation.
+
+The validation pipeline is:
+
+```text
+Schema validation
+       ↓
+Reference validation
+       ↓
+Catalogue resolution
+       ↓
+Electrical validation
+       ↓
+Pin/bus validation
+       ↓
+Capability validation
+       ↓
+Firmware-provider validation
+       ↓
+Transport compatibility
+       ↓
+Security-policy validation
+       ↓
+Deployment-policy validation
+       ↓
+Resolved device plan
+```
+
+### Hardware catalogue
+
+The versioned hardware catalogue SHOULD describe:
+
+- canonical board ID;
+- manufacturer/platform/chip;
+- available buses/interfaces;
+- available/reserved/bootstrap/input-only/output-only pins;
+- USB interfaces and flashing paths;
+- flash/RAM constraints;
+- power characteristics where known;
+- supported firmware backends;
+- support state.
+
+Support classifications SHOULD distinguish at least:
+
+```text
+validated
+tested
+experimental
+expected-compatible
+unsupported
+```
+
+### Peripheral catalogue
+
+Peripheral entries SHOULD describe:
+
+- canonical peripheral ID/model;
+- supported buses;
+- address ranges/options;
+- required pins;
+- electrical requirements;
+- exposed channels;
+- MethodMesh capability mappings;
+- known constraints/conflicts;
+- driver/provider support;
+- tested boards or breakout variants where relevant.
+
+### Capability catalogue
+
+Capability contracts SHOULD define the semantic result type, canonical unit/vocabulary and contract version independently from any ESPHome or sensor-driver implementation.
+
+### Electrical validation
+
+Where catalogue information permits it, validation SHOULD detect or warn about:
+
+- incompatible logic levels;
+- inappropriate supply voltage;
+- duplicate/incompatible pin use;
+- bootstrapping pin hazards;
+- input/output capability mismatch;
+- bus/address conflicts;
+- required pull-ups/level shifting;
+- likely current/power problems.
+
+USB connectivity and USB power are separate concerns. MethodMesh MUST NOT assume that every Android host can safely power every ESP/peripheral combination. A Device Manager may report `USB power expected sufficient`, `external power recommended`, `powered hub required` or `power requirement unknown` where information permits.
+
+### Machine-readable validation
+
+Validation MUST be capable of returning stable machine-readable findings, for example:
+
+```json
+{
+  "valid": false,
+  "errors": [
+    {
+      "code": "MMDEV-PERIPH-003",
+      "path": "/peripherals/0/parameters/address",
+      "message": "BME280 does not support I2C address 0x45."
+    }
+  ],
+  "warnings": [
+    {
+      "code": "MMDEV-HW-014",
+      "path": "/buses/0/pins/sda",
+      "message": "Selected pin has boot-time behaviour that may affect this configuration."
+    }
+  ]
+}
+```
+
+## 18.7 Firmware providers and build model
+
+Where a Device Definition declares MethodMesh-managed firmware, that declaration is resolved through a provider interface rather than hard-wired into the Device Manager. Definitions for directly integrated external instruments may omit this build path and instead lock the selected adapter/protocol implementation.
+
+Conceptually:
+
+```kotlin
+interface DeviceFirmwareProvider {
+    val providerId: String
+
+    fun evaluate(
+        definition: DeviceDefinition
+    ): SupportResult
+
+    fun resolve(
+        definition: DeviceDefinition,
+        catalogues: CatalogueSet
+    ): ResolvedDevicePlan
+
+    fun generate(
+        lock: DeviceLock
+    ): GeneratedConfiguration
+
+    suspend fun build(
+        lock: DeviceLock,
+        configuration: GeneratedConfiguration
+    ): FirmwarePackage
+}
+```
+
+Initial providers may include:
+
+```text
+EspHomeFirmwareProvider
+MethodMeshEspFirmwareProvider
+ExternalFirmwareProvider
+```
+
+Future providers may target other ecosystems such as Zephyr or RP2040-specific stacks without changing the Device Definition model.
+
+### Build strategies
+
+Supported strategies are:
+
+- **Prebuilt** - approved firmware already exists for the resolved configuration. Preferred for common validated/offline configurations.
+- **Remote** - a controlled build worker compiles the locked configuration and returns a package.
+- **Developer** - a local/developer/CI build uses the same package/manifest contract.
+- **Auto** - resolve to the safest supported strategy according to policy.
+
+The Android app SHOULD NOT initially host the complete ESPHome compilation environment. Android responsibilities are to define, validate, resolve, obtain, verify, flash, provision, verify and operate the device. Compilation may occur through a prebuilt catalogue, controlled build service, developer workstation or CI pipeline.
+
+### Build and package manifests
+
+A build manifest SHOULD record:
+
+- build ID;
+- Device Definition hash;
+- Device Lock hash;
+- provider/version/source revision;
+- compiler/toolchain/build environment;
+- generated configuration hash;
+- build timestamp;
+- produced artefacts and hashes;
+- build result;
+- package-signature information.
+
+Build ID and physical Device ID MUST remain distinct.
+
+A firmware package may contain application, bootloader, partition table, OTA image, filesystem image or other target-specific components. Its manifest MUST describe the actual installation operations. Flash offsets/roles come from the package/backend and MUST NOT be guessed by generic Android code.
+
+## 18.8 ESPHome integration
+
+ESPHome SHOULD be the preferred initial implementation for conventional ESP-based sensors/actuators where it satisfies the capability, timing, transport and security requirements.
+
+MethodMesh generates ESPHome configuration from typed validated objects rather than concatenating arbitrary YAML fragments.
+
+```text
+.mmdevice
+     ↓
+validation
+     ↓
+resolution
+     ↓
+.mmdevice.lock
+     ↓
+ESPHome configuration generator
+     ↓
+generated YAML
+     ↓
+ESPHome compiler
+     ↓
+firmware package
+```
+
+Generated ESPHome configuration SHOULD be retained where required for provenance.
+
+**MM-DEV-005.** ESPHome is an implementation backend. MethodMesh capability contracts and the `.mmdevice` schema MUST NOT become an ESPHome schema by another name.
+
+Using ESPHome as the firmware provider does not imply a runtime transport. A common reference combination is:
+
+```text
+ESPHome firmware
+      +
+Wi-Fi
+      +
+ESPHome native API
+```
+
+MethodMesh MUST NOT assume that `ESPHome + USB` or `ESPHome + BLE` automatically provides a MethodMesh operational protocol. Any USB/BLE operational path must explicitly define compatible firmware behaviour, protocol and adapter.
+
+## 18.9 Transport model
+
+Connectivity is not interoperability.
+
+A runtime/provisioning transport consists conceptually of:
+
+```text
+medium
++
+protocol
++
+adapter
+```
+
+For example:
+
+```yaml
+medium: wifi
+protocol: esphome-native-api
+adapter: esphome
+```
+
+or:
+
+```yaml
+medium: usb
+protocol: methodmesh-serial-v1
+adapter: methodmesh-native
+```
+
+**MM-DEV-006.** Physical medium, application protocol and adapter MUST remain separate concepts.
+
+Initial media may include:
+
+```text
+usb
+uart
+ble
+wifi
+ethernet
+lora
+esp-now
+rs485
+can
+```
+
+Initial protocol identifiers may include:
+
+```text
+espressif-rom-serial
+usb-serial-jtag
+methodmesh-serial-v1
+methodmesh-ble-v1
+esphome-native-api
+mqtt
+http
+modbus-rtu
+modbus-tcp
+meshtastic-api
+openmqttgateway-mqtt
+```
+
+Custom protocols MUST use stable namespaced identifiers.
+
+### Provisioning and operation are independent
+
+A device may use USB to install/provision and Wi-Fi to operate:
+
+```yaml
+transports:
+  provisioning:
+    - medium: usb
+      protocol: espressif-rom-serial
+
+  operation:
+    - medium: wifi
+      protocol: esphome-native-api
+```
+
+Another device may use USB for both stages with different protocols:
+
+```yaml
+transports:
+  provisioning:
+    - medium: usb
+      protocol: espressif-rom-serial
+
+  operation:
+    - medium: usb
+      protocol: methodmesh-serial-v1
+```
+
+USB MUST NOT be treated solely as a firmware-installation mechanism; offline/secure laboratory instruments may legitimately expose normal capabilities over USB.
+
+## 18.10 Native Android USB installation
+
+The normal MethodMesh installer SHOULD be native Android rather than an embedded WebView.
+
+```text
+Compose UI
+   ↓
+Device Manager
+   ↓
+Firmware Flasher
+   ↓
+Android USB Host
+   ↓
+USB transport driver
+   ↓
+target bootloader/flashing protocol
+   ↓
+physical device
+```
+
+Android USB transport drivers and target flashing protocols are separate layers. Potential USB transport paths include native USB Serial/JTAG, CDC-ACM, CP210x, CH34x/CH9102 and FTDI. A board catalogue entry SHOULD identify known supported paths.
+
+The existing ESP32-C3 implementation constraints in the Workbench chapter remain normative until migrated behind these generic interfaces.
+
+### Firmware flasher abstraction
+
+Conceptually:
+
+```kotlin
+interface FirmwareFlasher {
+    suspend fun probe(connection: DeviceConnection): ProbeResult
+    suspend fun enterBootloader(target: FlashTarget): BootloaderResult
+    suspend fun flash(target: FlashTarget, package: FirmwarePackage): FlashResult
+    suspend fun verify(target: FlashTarget, package: FirmwarePackage): VerificationResult
+    suspend fun reboot(target: FlashTarget): RebootResult
+}
+```
+
+The first generic implementation SHOULD target supported Espressif devices. The core interface MUST allow future RP2040, STM32, nRF or other targets without placing ESP-specific assumptions in the Device Manager.
+
+### Bootloader entry
+
+Supported strategies may include:
+
+- automatic DTR/RTS control;
+- native USB bootloader;
+- USB Serial/JTAG;
+- board-specific manual BOOT/RESET instructions.
+
+### Flash safety
+
+Before flashing, MethodMesh MUST where technically possible:
+
+1. enumerate and identify the attached USB device;
+2. request Android permission;
+3. probe the target;
+4. compare the observed target to package compatibility metadata;
+5. show unresolved compatibility warnings;
+6. prevent known-incompatible installation unless an explicit developer override exists;
+7. record any override as an auditable installation event.
+
+Firmware installation success remains verification-gated. ROM/write acknowledgements alone are insufficient.
+
+## 18.11 Identity, provisioning and trust
+
+### Device identity
+
+Every MethodMesh-managed physical device MUST have a MethodMesh Device ID, for example:
+
+```text
+MM-DEV-01K...
+```
+
+The Device ID is independent of human-readable name, MAC address, firmware build, study assignment and current location.
+
+Observed identifiers such as ESP chip identity, USB serial number or MAC address may aid recognition but MUST NOT automatically be treated as cryptographic proof of identity.
+
+### Generic firmware, unique devices
+
+Where possible, multiple physical devices SHOULD run identical generic firmware while receiving unique identity/credentials during provisioning:
+
+```text
+Firmware package ABC
+       │
+       ├── Device A → unique identity/key
+       ├── Device B → unique identity/key
+       └── Device C → unique identity/key
+```
+
+This preserves binary reproducibility without sharing device identity.
+
+### Provisioning
+
+Post-flash provisioning MAY include:
+
+- MethodMesh Device ID;
+- display name;
+- cryptographic identity;
+- Wi-Fi/network credentials;
+- API encryption/authentication material;
+- deployment/study/site identifiers;
+- adapter-specific operational settings.
+
+Secrets SHOULD be introduced after generic firmware compilation wherever possible. Literal secrets MUST NOT appear in normal `.mmdevice` fields.
+
+Secret sources may include `user`, `android-keystore`, `deployment-store`, `generated-on-device`, `generated-by-methodmesh` or another explicitly configured secret provider. Private device keys SHOULD be generated on-device where the hardware/security design supports it.
+
+### Integrity, authenticity, authentication and attestation
+
+These properties are distinct:
+
+- **Package integrity** - the bytes match the expected cryptographic hash.
+- **Package authenticity** - the package/manifest was signed by a trusted key or equivalent authority.
+- **Device authentication** - the physical device proves possession of an expected identity credential.
+- **Device attestation** - the device produces stronger evidence about identity and relevant running state/configuration.
+
+**MM-DEV-007.** A SHA-256 match MUST NOT be described as proof of package authorship, device identity or attestation.
+
+A Device Instance SHOULD represent each relevant trust state separately, for example `verified`, `unverified`, `unsupported`, `failed` or `unknown` for package integrity, package authenticity, device authentication, device attestation, transport security, secure boot and flash encryption.
+
+### Threat model
+
+The subsystem SHOULD explicitly consider at least:
+
+- malicious/malformed USB devices;
+- firmware substitution;
+- compromised build environments;
+- device impersonation;
+- configuration drift;
+- network/radio interception or modification;
+- credential leakage;
+- catalogue compromise leading to unsafe hardware or incorrect firmware resolution.
+
+Security controls SHOULD map to explicit threats rather than a single generic `verified` flag.
+
+## 18.12 Device Registry and lifecycle
+
+The Device Registry records physical instances and is the source for live Device Manager state.
+
+A conceptual instance record is:
+
+```json
+{
+  "schema": "methodmesh.device-instance/v1",
+  "device_id": "MM-DEV-01K...",
+  "display_name": "Clinic 3 Environmental Probe",
+  "definition": {
+    "schema": "methodmesh.device/v1",
+    "sha256": "..."
+  },
+  "lock": {
+    "schema": "methodmesh.device-lock/v1",
+    "sha256": "..."
+  },
+  "hardware": {
+    "catalogue_entry": "espressif.esp32-s3-devkitc-1",
+    "observed_identifiers": {
+      "chip_id": "...",
+      "usb_serial": "..."
+    }
+  },
+  "installation": {
+    "package_id": "MM-FW-...",
+    "package_manifest_sha256": "...",
+    "installed_at": "...",
+    "flash_verified": true
+  },
+  "capabilities": [
+    {
+      "method": "measure.temperature",
+      "contract_version": 1
+    }
+  ],
+  "lifecycle_state": "active"
+}
+```
+
+Core lifecycle states SHOULD include:
+
+```text
+discovered
+provisioning
+active
+maintenance
+suspended
+recovery-required
+retired
+```
+
+Verification/configuration state SHOULD be represented separately from lifecycle state.
+
+### Configuration drift
+
+MethodMesh SHOULD detect unexpected differences between expected and observed state where the implementation can expose enough evidence.
+
+Drift may include:
+
+- firmware changed outside MethodMesh;
+- unexpected OTA update;
+- configuration changed;
+- cryptographic identity changed;
+- physical hardware identifiers changed;
+- registered capability set changed.
+
+Possible state:
+
+```text
+matched
+drift-detected
+verification-unavailable
+verification-failed
+```
+
+**MM-DEV-008.** Unexpected state MUST be surfaced as evidence. The registry MUST NOT silently mutate expected state to make an unplanned change appear compliant.
+
+Retired devices SHOULD remain available to provenance lookup where historical executions refer to them.
+
+## 18.13 Runtime adapters and capability execution
+
+Firmware/protocol-specific behaviour is isolated behind adapters.
+
+Initial architecture:
+
+```text
+DeviceAdapter
+│
+├── MethodMeshNativeAdapter
+├── ESPHomeAdapter
+├── MeshtasticAdapter
+├── OpenMQTTGatewayAdapter
+├── ModbusAdapter
+└── SerialInstrumentAdapter
+```
+
+The adapter translates between external protocol semantics and MethodMesh capability semantics.
+
+### ESPHome adapter
+
+For the native ESPHome API:
+
+```text
+MethodMesh
+    ↓
+ESPHomeAdapter
+    ↓
+ESPHome native protocol
+    ↓
+IP transport
+    ↓
+ESPHome device
+```
+
+The adapter is responsible for entity discovery/mapping, connection lifecycle, configured security, state/action interaction, error translation and evidence returned to the MethodMesh execution engine.
+
+### Capability discovery
+
+Capabilities may resolve from:
+
+- registered Device Definition;
+- firmware/package manifest;
+- adapter configuration;
+- device runtime discovery;
+- signed on-device manifest;
+- a controlled combination of these.
+
+Runtime claims MUST NOT silently override the expected registered capability set. Unexpected runtime capabilities should be reported as unregistered functionality or drift.
+
+### Multiple devices implementing one capability
+
+MethodMesh MUST support multiple devices exposing the same method, for example:
+
+```text
+measure.temperature
+     │
+     ├── Room probe
+     ├── Vaccine refrigerator
+     └── Laboratory probe
+```
+
+Resolution may use explicit Device ID, caller/deployment context, configured default or interactive selection. Regulated/controlled workflows SHOULD use deterministic bindings rather than ambiguous automatic choice.
+
+### Execution contract
+
+Physical-device methods use the existing execution engine:
+
+```text
+Enketo / ODK / native caller
+      ↓
+MethodMesh invocation
+      ↓
+Execution ID
+      ↓
+Capability Resolver
+      ↓
+Device Adapter
+      ↓
+Physical device
+      ↓
+MethodMesh result envelope
+```
+
+A result may carry evidence such as:
+
+```json
+{
+  "device_id": "MM-DEV-01K...",
+  "capability": {
+    "method": "measure.temperature",
+    "contract_version": 1
+  },
+  "measurement": {
+    "value": 23.71,
+    "unit": "Cel"
+  },
+  "device_evidence": {
+    "firmware_package": "MM-FW-...",
+    "configuration_hash": "...",
+    "calibration_status": "current"
+  }
+}
+```
+
+The canonical final output remains the normal MethodMesh result/FULL envelope; device evidence extends rather than replaces existing execution provenance.
+
+## 18.13A MethodMesh Devices over MethodMesh Field Transport
+
+MethodMesh Field Transport (MFT) is a valid operational path for a MethodMesh Device, but MFT and MethodMesh Devices remain different layers. MFT moves authenticated application traffic between logical endpoints; the Device subsystem decides what a physical instrument is, which canonical MethodMesh capabilities it is allowed to provide, how those capabilities are invoked, and what device/provenance evidence belongs in the final result.
+
+The intended boundary is:
+
+```text
+MethodMesh capability invocation
+          ↓
+Capability Resolver
+          ↓
+Device binding / Device Instance
+          ↓
+MFT Device Adapter
+          ↓
+MethodMeshTransportRuntime
+          ↓
+MFT provider / route
+          ↓
+physical MethodMesh Device endpoint
+```
+
+**MM-DEV-MFT-001.** An MFT-reachable physical device MUST enter MethodMesh through the normal Device Adapter and capability-execution architecture. Application modules MUST NOT call ESP-NOW, BLE gateway APIs, radio MAC addresses or ESP-mesh firmware commands directly merely because the selected device happens to be reachable through MFT.
+
+**MM-DEV-MFT-002.** MFT reachability is not device identity. A provisioned physical endpoint uses its MethodMesh Device ID as the stable device identity. Radio-node IDs, BLE addresses, ESP-NOW MAC addresses, gateway addresses and route/interface identifiers remain transport-local evidence.
+
+**MM-DEV-MFT-003.** MFT is not itself a physical `medium` in the Device Definition transport model. A Device Definition continues to declare the physical medium or media the device can use, the device-facing application protocol, and the adapter. MFT performs route/provider selection above those physical links.
+
+A MethodMesh-native ESP-NOW field device may therefore declare:
+
+```yaml
+transports:
+  operation:
+    - medium: esp-now
+      protocol: methodmesh.mft-device/v1
+      adapter: methodmesh-mft-device
+```
+
+A later device that can expose the same application protocol over more than one bearer may list more than one compatible operational medium. Runtime route choice does not alter the capability contract or Device ID.
+
+### Infrastructure nodes versus capability-providing devices
+
+A pure MFT relay, handset gateway, store node or route bridge is transport infrastructure. It does not become a normal MethodMesh Device merely because MethodMesh can inspect its packet counters, queue pressure, battery state or radio health.
+
+```text
+MFT node
+├── relay only                         → MFT infrastructure
+├── handset gateway only                → MFT infrastructure
+├── store/route bridge only             → MFT infrastructure
+└── exposes canonical device capability → may also be a MethodMesh Device
+```
+
+A transport-only node belongs in MFT topology/diagnostics and may have transport-management identity and provenance without inventing a user-facing research capability.
+
+If the same physical board also implements a real MethodMesh capability — for example `measure.temperature`, `location.gnss`, `display.message` or a defined actuator method — that capability-providing physical function may be registered as a Device Instance. Transport role and device capability remain separate facts.
+
+**MM-DEV-MFT-004.** Do not create synthetic research capabilities such as `relay.packet.forward` merely to force transport infrastructure into the Device capability model.
+
+### Current implementation alignment and migration boundary
+
+The current source already provides the two halves required for this bridge:
+
+- `MethodMeshTransportRuntime` owns logical `TransportEndpoint` binding, provider registration, consumer dispatch and durable transport submission;
+- `MethodMeshTransportProvider` isolates concrete providers;
+- `TransportCapabilities` publishes provider limits and supported traffic classes;
+- the current ESP mesh provider owns its encrypted durability and exposes bounded store-and-forward over the persistent BLE ↔ ESP-NOW path;
+- the existing `DeviceRegistry`, `DeviceSignalService` and `DeviceServiceRegistry` are earlier transport-oriented scaffolding and do not yet implement the complete Chapter 18 Device Instance/Adapter model.
+
+The Chapter 18 architecture is authoritative over that scaffolding.
+
+**MM-DEV-MFT-005.** New MFT device work MUST NOT extend the old device-service layer by treating `ESP_NOW`, `MFT`, a BLE gateway, or one specific mesh provider as a monolithic `DeviceTransport`. The production bridge belongs behind a Device Adapter and uses `MethodMeshTransportRuntime` for field delivery.
+
+**MM-DEV-MFT-006.** New managed physical devices MUST use the canonical MethodMesh Device ID model. Legacy registry UUIDs or transport addresses may be retained as migration aliases/evidence but MUST NOT become the permanent identity of newly provisioned Chapter 18 Device Instances.
+
+The existing transport runtime currently exposes the following useful implementation seams:
+
+```text
+TransportEndpoint(kind, id)
+MethodMeshTransportEnvelope
+MethodMeshTransportRuntime.bind(...)
+MethodMeshTransportRuntime.registerConsumer(...)
+MethodMeshTransportRuntime.send(...)
+TransportCapabilities
+```
+
+The MFT Device Adapter SHOULD build on those seams rather than introducing a second radio-specific dispatcher.
+
+The current ESP-NOW provider has a substantially smaller accepted object ceiling than the generic transport envelope permits. Device traffic MUST therefore consult the selected provider's declared `TransportCapabilities` and provider admission checks. A payload that is legal in the generic core envelope is not automatically legal on a constrained field bearer.
+
+### Canonical MFT device application protocol
+
+The canonical MethodMesh-native application protocol for a capability-providing device carried over MFT is:
+
+```text
+methodmesh.mft-device/v1
+```
+
+This is an **application protocol carried by MFT**. It is not an ESP-NOW radio format, BLE GATT protocol, routing protocol or replacement for the canonical MethodMesh capability contract.
+
+The protocol uses ordinary `MethodMeshTransportEnvelope` delivery. A provisioned device endpoint is addressed conceptually as:
+
+```text
+TransportEndpoint(
+    kind = "device",
+    id = "MM-DEV-01K..."
+)
+```
+
+The MethodMesh-side adapter uses a stable service endpoint, for example:
+
+```text
+TransportEndpoint(
+    kind = "service",
+    id = "methodmesh.device-runtime"
+)
+```
+
+Exact in-code endpoint constants may differ, but endpoint kinds/IDs MUST remain logical rather than radio-local.
+
+The protocol reserves these semantic message families:
+
+```text
+DEVICE_ADVERTISE
+DEVICE_DESCRIBE_REQUEST
+DEVICE_DESCRIBE_RESULT
+DEVICE_INVOKE
+DEVICE_ACCEPTED
+DEVICE_RESULT
+DEVICE_EVENT
+DEVICE_STATE
+DEVICE_ERROR
+DEVICE_CANCEL
+```
+
+A later protocol revision may add message families without changing the meaning of existing v1 messages.
+
+`DEVICE_INVOKE` and `DEVICE_RESULT` are the core capability-execution path. `DEVICE_EVENT` and `DEVICE_STATE` support asynchronous observations/state where the declared capability or device-management contract permits them. `DEVICE_ADVERTISE`/`DESCRIBE_*` support bounded discovery and drift checking; they do not grant new capability authority.
+
+### Envelope and correlation rules
+
+For an invocation:
+
+- the envelope `message_id` is the stable transport message identity;
+- `destination` identifies the physical Device ID;
+- `capability_id` identifies the canonical MethodMesh method being invoked;
+- `correlation_id` SHOULD carry the MethodMesh execution ID or another execution-scoped correlation token;
+- `reply_to` on the response SHOULD identify the request message being answered;
+- `payload_type` identifies the versioned MFT-device payload representation;
+- provider-local addresses and retry counters remain outside the application payload.
+
+A representative request is:
+
+```json
+{
+  "message_id": "9d81f267-...",
+  "schema_version": 1,
+  "source": {
+    "kind": "service",
+    "id": "methodmesh.device-runtime"
+  },
+  "destination": {
+    "kind": "device",
+    "id": "MM-DEV-01K..."
+  },
+  "message_type": "DEVICE_INVOKE",
+  "capability_id": "measure.temperature",
+  "correlation_id": "MM-EXEC-...",
+  "payload_type": "application/vnd.methodmesh.mft-device.invoke+json;v=1",
+  "payload": "{\"schema\":\"methodmesh.mft-device-invoke/v1\",\"method\":\"measure.temperature\",\"contract_version\":1,\"invocation_id\":\"...\",\"inputs\":{}}",
+  "metadata": {}
+}
+```
+
+A representative device response is:
+
+```json
+{
+  "message_id": "35a70db3-...",
+  "schema_version": 1,
+  "source": {
+    "kind": "device",
+    "id": "MM-DEV-01K..."
+  },
+  "destination": {
+    "kind": "service",
+    "id": "methodmesh.device-runtime"
+  },
+  "message_type": "DEVICE_RESULT",
+  "capability_id": "measure.temperature",
+  "correlation_id": "MM-EXEC-...",
+  "reply_to": "9d81f267-...",
+  "payload_type": "application/vnd.methodmesh.mft-device.result+json;v=1",
+  "payload": "{\"schema\":\"methodmesh.mft-device-result/v1\",\"invocation_id\":\"...\",\"method\":\"measure.temperature\",\"contract_version\":1,\"status\":\"completed\",\"result\":{\"value\":23.71,\"unit\":\"Cel\"},\"observation\":{\"sequence\":481,\"time_source\":\"device-untrusted\"}}",
+  "metadata": {}
+}
+```
+
+The MFT Device Adapter validates the returned method, contract version, output structure, units/vocabulary and Device ID against the expected MethodMesh capability/Device Instance before handing the result to the canonical execution engine.
+
+**MM-DEV-MFT-007.** `DEVICE_RESULT` is not a second MethodMesh result format. It is adapter input. The final committed result remains the normal canonical MethodMesh result/FULL envelope with device evidence attached.
+
+### Transport acceptance versus device execution
+
+Transport delivery and physical-device execution are distinct states.
+
+For example:
+
+```text
+MFT local durable acceptance
+        ≠
+remote ESP durable acceptance
+        ≠
+arrival at device endpoint
+        ≠
+DEVICE_ACCEPTED
+        ≠
+physical action/measurement complete
+        ≠
+DEVICE_RESULT validated by MethodMesh
+        ≠
+MethodMesh result committed
+```
+
+**MM-DEV-MFT-008.** No transport-layer state such as `LOCAL_DURABLE`, `REMOTE_DURABLE`, link transmission or destination receipt may be presented as proof that a physical measurement was taken or an actuator changed state.
+
+`DEVICE_ACCEPTED` means only that the endpoint has authenticated/validated the request sufficiently to accept it for execution. It MUST NOT be treated as completion.
+
+### Idempotency and at-least-once field delivery
+
+MFT durable delivery is at least once. Device execution therefore requires application-level duplicate handling.
+
+Every `DEVICE_INVOKE` MUST include a stable `invocation_id`. For a retry of the same logical invocation, MethodMesh MUST reuse the same `invocation_id`; it MUST NOT generate a new side-effecting command merely because a transport ACK was lost.
+
+A device endpoint SHOULD retain a bounded recent invocation ledger sufficient to recognise replayed/retried invocations. For a duplicate invocation it SHOULD return the already known acceptance/result where safe rather than execute the physical action again.
+
+**MM-DEV-MFT-009.** Side-effecting device methods MUST be idempotent by construction, protected by a stable invocation ledger, or explicitly declared unsafe for durable/retry delivery. At-least-once transport MUST NOT become repeated actuation.
+
+### Device advertisement, description and drift
+
+A provisioned MFT device SHOULD advertise a compact authenticated summary rather than broadcasting an unlimited full manifest continuously.
+
+A representative advertisement is:
+
+```json
+{
+  "schema": "methodmesh.mft-device-advertisement/v1",
+  "protocol": "methodmesh.mft-device/v1",
+  "device_id": "MM-DEV-01K...",
+  "definition_sha256": "...",
+  "configuration_sha256": "...",
+  "capability_set_sha256": "...",
+  "firmware": {
+    "implementation": "methodmesh-native",
+    "version": "..."
+  },
+  "boot_session": "...",
+  "sequence": 481
+}
+```
+
+The advertisement MUST NOT contain private keys, API secrets, group keys or credentials.
+
+`DEVICE_DESCRIBE_RESULT` may return bounded detail such as protocol version, firmware/configuration evidence and the claimed capability set:
+
+```json
+{
+  "schema": "methodmesh.mft-device-description/v1",
+  "device_id": "MM-DEV-01K...",
+  "protocol": "methodmesh.mft-device/v1",
+  "capabilities": [
+    {
+      "method": "measure.temperature",
+      "contract_version": 1
+    },
+    {
+      "method": "measure.relative_humidity",
+      "contract_version": 1
+    }
+  ],
+  "configuration_sha256": "...",
+  "firmware": {
+    "package_id": "MM-FW-...",
+    "version": "..."
+  }
+}
+```
+
+A newly flashed generic endpoint that has not yet been provisioned does not yet possess a canonical MethodMesh Device ID. It MAY advertise a temporary provisioning identifier or hardware observation sufficient for Device Manager enrolment, but that identifier MUST NOT be promoted to a Device ID merely because it is visible on the network.
+
+The registered Device Definition/Lock/Instance remains authoritative for the capability set expected from a managed device.
+
+**MM-DEV-MFT-010.** Runtime advertisement MAY confirm expected capabilities; it MUST NOT silently create new canonical capability bindings. An unexpected method, contract version, firmware identity, configuration digest or endpoint identity is drift/unregistered functionality and MUST be surfaced as such.
+
+### Device Definition binding
+
+An MFT-capable Device Definition SHOULD use the normal `adapter-endpoint` or another catalogue-defined binding; the Device Definition MUST NOT embed the later physical Device ID.
+
+For example:
+
+```yaml
+capabilities:
+  - id: temperature
+    method: measure.temperature
+    contract_version: 1
+    binding:
+      type: adapter-endpoint
+      endpoint: temperature
+      parameters:
+        protocol: methodmesh.mft-device/v1
+
+transports:
+  operation:
+    - medium: esp-now
+      protocol: methodmesh.mft-device/v1
+      adapter: methodmesh-mft-device
+```
+
+The physical Device Instance supplies the Device ID and current route/binding evidence at provisioning/runtime. This preserves reusable generic definitions while keeping unique device identity out of source-controlled `.mmdevice` files.
+
+### Endpoint security and the existing ESP-mesh trust boundary
+
+The existing ESP-mesh phone-to-phone E2E group key is deliberately **phone-only**. ESP gateways and relay nodes do not receive it.
+
+That security invariant must remain true.
+
+A physical MFT device that must itself understand a MethodMesh request cannot simply decrypt the existing phone-to-phone group ciphertext, because doing so would require placing the human-messaging group key into embedded firmware and would collapse two separate trust domains.
+
+MFT device endpoints therefore require a distinct **device endpoint security context**.
+
+**MM-DEV-MFT-011.** The ESP radio-network key, phone-to-phone E2E field-group key and device endpoint application credential are separate credentials with separate purposes. Possession of one MUST NOT be interpreted as possession of the others.
+
+A first MethodMesh-native implementation MAY use a random per-device 256-bit symmetric application key provisioned after generic firmware installation:
+
+```text
+generic firmware
+      ↓
+provision Device ID
+      ↓
+provision per-device endpoint key / key ID
+      ↓
+store protected credential on device
+      ↓
+store/wrap corresponding credential through Android Keystore/deployment secret store
+```
+
+This is an implementation starting point, not a claim of device attestation. Future endpoint security MAY use asymmetric device identity/session establishment without changing the capability contract.
+
+Intermediate gateways/relays SHOULD see only the minimum routing metadata and endpoint-protected payload required to transport the message. They do not gain device-application plaintext merely because they route it.
+
+Read/observe authority and command/actuation authority MAY require distinct credentials/scopes. A deployment that uses one symmetric endpoint key for both has deliberately granted the same key holders both authorities and MUST NOT describe that as fine-grained authorization.
+
+**MM-DEV-MFT-012.** Network membership never grants actuator authority. An authenticated MFT participant that can route packets is not thereby authorised to invoke a physical side effect.
+
+### ESP mesh provider wire-profile requirement
+
+The current ESP mesh implementation is intentionally phone-to-phone. `EspMeshTransportProvider.send()` encrypts the complete `MethodMeshTransportEnvelope` with the phone-only field-group key into the current secure wire, and the ESP firmware validates/stores/forwards that opaque wire. A remote phone decrypts it; an ESP node cannot.
+
+That is correct for human messaging and MUST NOT be weakened by copying the phone group key into device firmware.
+
+It also means the current provider cannot yet execute `methodmesh.mft-device/v1` at an embedded destination without a deliberate provider extension.
+
+The ESP mesh provider MUST therefore gain an endpoint-protection seam before it is used as the MFT Device transport. The preferred direction is a general opaque routed-wire model with an explicit protection profile/key ID, conceptually:
+
+```text
+routed header
+    message ID
+    logical source/destination
+    origin/return identity
+    expiry / hop budget
+    protection profile
+    key ID
+        +
+opaque protected payload
+```
+
+Reference protection profiles may include:
+
+```text
+phone-group-aead/v1        existing human messaging
+device-endpoint-aead/v1    MethodMesh Device traffic
+```
+
+The names are conceptual until implemented/versioned.
+
+The radio-network authentication layer remains outside both profiles and continues to protect ESP-NOW membership/fragment traffic separately.
+
+For a device-directed wire:
+
+```text
+phone
+  ↓ encrypt for Device ID using device endpoint credential
+ESP gateway/relay
+  ↓ sees route + opaque ciphertext only
+target ESP Device endpoint
+  ↓ matches its logical Device ID
+  ↓ decrypts device-endpoint payload
+  ↓ executes method
+  ↓ encrypts result for authorised MethodMesh recipient
+mesh
+  ↓
+phone / MFT Device Adapter
+```
+
+A relay that is not the destination MUST continue to store/forward ciphertext without acquiring the endpoint key.
+
+The existing phone-to-phone wire/profile SHOULD remain backward compatible. Generalising the routed-wire layer MUST NOT cause old human messages to become readable by ESP firmware.
+
+**MM-DEV-MFT-012A.** The first Device-over-ESP-mesh implementation MUST NOT route a device command by wrapping it only in the existing phone-group ciphertext and then placing the phone group key on the target ESP. It MUST introduce a distinct endpoint-protection path.
+
+The current ESP firmware also treats received durable wires primarily as phone-bound spool records. A capability endpoint firmware/profile therefore needs explicit local-destination handling:
+
+```text
+if logical destination is this Device ID
+    → authenticate/decrypt as device endpoint
+    → invoke local device protocol
+else
+    → retain normal relay/store-and-forward behaviour
+```
+
+This local-consumption path is application behaviour at the destination, not a routing privilege granted to every relay.
+
+### Current traffic-class implementation gap
+
+The MFT architecture requires semantic traffic classes, and `TransportCapabilities` already declares provider support, but the current `MethodMeshTransportEnvelope`/`send()` contract does not yet carry an explicit traffic-class field. Device work MUST treat this as a core transport migration item rather than permanently encoding traffic class in arbitrary string metadata.
+
+Until the core envelope/API is upgraded, the first read-only MFT Device vertical slice MAY use the existing durable path for request/result traffic because its semantics genuinely require durable delivery. It MUST NOT claim that general `TELEMETRY` or `ALERT` dispatch is implemented merely because those enum values/capability hooks exist.
+
+### Freshness and delayed side effects
+
+Store-and-forward is beneficial for sensor observations, messages and many display updates. It can be dangerous for stale physical commands.
+
+A relay or low-cost endpoint may not have trustworthy wall time. A `not_after` timestamp is therefore not independently enforceable by every device merely because the phone that created it had good time.
+
+For side-effecting methods, the Device Adapter/device protocol MUST use an explicit freshness policy appropriate to the risk. Suitable mechanisms may include:
+
+- target-validated trusted time plus an authenticated expiry;
+- a recently negotiated device challenge/session nonce;
+- an interactive/immediate-only command path that is not accepted for delayed replay;
+- a method-specific idempotent state target where delayed application is explicitly safe;
+- another reviewed freshness mechanism.
+
+**MM-DEV-MFT-013.** A potentially hazardous or materially time-sensitive actuator MUST NOT be enabled for arbitrary durable delayed execution merely because MFT can store and forward the command.
+
+The first MFT-device implementation SHOULD therefore prioritise read-only sensing/status and persistent-output operations with safe idempotent semantics. Low-risk actuation may follow once endpoint authorization, idempotency, acknowledgement and freshness are implemented and tested.
+
+### Sensors and observations
+
+A sensor capability remains a normal canonical MethodMesh method such as:
+
+```text
+measure.temperature
+measure.relative_humidity
+measure.pressure
+measure.weight
+```
+
+A device observation/result SHOULD preserve, where available:
+
+- physical Device ID;
+- canonical method and contract version;
+- value and canonical unit/vocabulary;
+- acquisition sequence;
+- observation time;
+- time source/quality;
+- sensor/acquisition quality;
+- calibration state/evidence reference;
+- firmware/configuration evidence required by policy;
+- route/provider evidence as bounded provenance rather than identity.
+
+If the endpoint lacks trustworthy wall time, it MUST NOT fabricate a precise UTC observation time. It may return boot-session identity, monotonic time/sequence and other local evidence; MethodMesh separately records authenticated receipt/execution time evidence available on Android.
+
+Unsolicited periodic readings use `DEVICE_EVENT` only where the canonical capability/device policy permits event publication. Telemetry persistence is producer/policy-driven; a high-frequency stream MUST NOT become durable by accident.
+
+### Actuators
+
+Actuation is a normal MethodMesh capability with stronger execution requirements, not a generic "send bytes to relay" facility.
+
+An actuator invocation SHOULD separate:
+
+```text
+requested target state
+accepted/rejected state
+physical execution state
+confirmed observed state
+failsafe/timeout state
+```
+
+Where feedback hardware exists, the confirmed state SHOULD come from observation rather than assuming that issuing an output command changed the physical world.
+
+Actuator firmware MUST enforce local safety constraints that remain valid even when the phone, gateway or network misbehaves. Examples may include bounded run time, valid operating range, interlocks, fail-safe default state and refusal of malformed/expired/unauthorised commands.
+
+Transport ACK, `DEVICE_ACCEPTED` and physical-state confirmation MUST remain visibly distinct.
+
+### Persistent displays and e-ink endpoints
+
+Persistent displays are a particularly suitable MFT Device class because low-bandwidth durable delivery can be useful even when connectivity later disappears.
+
+Candidate canonical methods include:
+
+```text
+display.message
+display.status
+signal.visual
+```
+
+A display update SHOULD carry a stable content/update ID and monotonic revision/version. The device SHOULD report both:
+
+```text
+received update
+applied/rendered update
+```
+
+where the hardware permits that distinction.
+
+A stale update MUST NOT overwrite a newer applied revision merely because it arrives later through store-and-forward.
+
+E-ink/persistent endpoints SHOULD retain the last valid rendered state across network loss and reboot where hardware/storage permits. A device that cannot prove that rendering completed MUST NOT report a transport ACK as "display updated".
+
+### Location beacons, mobile tags and trackers
+
+Location-capable MethodMesh Devices may expose canonical methods such as:
+
+```text
+location.gnss
+track.gnss
+```
+
+or future registered location/presence methods.
+
+A mobile tag/collar may combine:
+
+- Device ID;
+- last authenticated network contact;
+- GNSS fix when available;
+- motion state;
+- battery/power state;
+- coarse radio-derived position where implemented.
+
+`last_seen` is connectivity evidence, not a location measurement. RSSI-derived positioning remains uncertainty-bearing and MUST NOT be represented as GPS precision.
+
+Where a perimeter/anchor system estimates position from relative radio observations, the result SHOULD retain the method used — for example strongest anchor, weighted centroid, fingerprint model or tracking filter — plus an uncertainty/quality estimate and the anchor observations needed by policy for provenance.
+
+### Infrastructure telemetry
+
+MFT infrastructure may expose operational telemetry such as queue pressure, power state, radio contact, packet counts or gateway health. Such data primarily belongs to MFT diagnostics.
+
+If an infrastructure board also hosts a separately meaningful physical-instrument capability — for example measuring water level, generator voltage or cold-chain temperature — that measurement may be registered through MethodMesh Devices.
+
+Do not convert every internal network statistic into a globally discoverable MethodMesh capability.
+
+### MFT Device Adapter responsibilities
+
+The `methodmesh-mft-device` adapter is responsible for:
+
+1. resolving the selected Device Instance and expected capability binding;
+2. obtaining the device's logical MFT endpoint;
+3. selecting/binding an eligible MFT provider/route through the transport runtime;
+4. applying endpoint security/authentication appropriate to the Device Instance;
+5. encoding `methodmesh.mft-device/v1` requests;
+6. enforcing provider size/traffic-class limitations before submission;
+7. correlating replies to execution/invocation IDs;
+8. deduplicating safe retries;
+9. validating returned Device ID, method, contract version and output;
+10. mapping device/application errors into normal MethodMesh execution errors;
+11. attaching device/route/security/calibration/configuration evidence to the canonical result;
+12. updating Device Registry last-contact/drift evidence without silently mutating expected state.
+
+Conceptually:
+
+```kotlin
+interface MftDeviceAdapter : DeviceAdapter {
+    suspend fun describe(device: DeviceInstance): MftDeviceDescription
+
+    suspend fun invoke(
+        device: DeviceInstance,
+        capability: CapabilityBinding,
+        invocation: DeviceInvocation
+    ): DeviceInvocationResult
+}
+```
+
+This is an architectural interface sketch, not a required source signature.
+
+### Device Manager and Workbench surfaces
+
+The user-facing split is:
+
+```text
+Devices / Device Manager
+    physical instrument identity
+    capabilities
+    firmware/configuration
+    calibration
+    current availability
+    capability test
+    drift/recovery
+
+Workbench → Field Transport
+    gateways
+    relays/store nodes
+    queues
+    routes/interfaces
+    network provisioning
+    packet/link diagnostics
+    provider health
+```
+
+A Device Manager card MAY show bounded route information such as:
+
+```text
+Available via Field Transport
+Provider: ESP mesh
+Last authenticated contact: ...
+Route state: available / unavailable / unknown
+```
+
+but the route/provider is secondary operational state. Changing gateway, route or radio address does not create a new Device Instance.
+
+### MFT device traffic classes
+
+Capability execution must select delivery semantics deliberately.
+
+A reference mapping is:
+
+- control/discovery/description coordination → `CONTROL` where the provider supports a suitable control-data API, otherwise a bounded durable control envelope;
+- ordinary request/result exchanges → `DURABLE` when store-and-forward semantics are appropriate;
+- safety/urgent device alerts → `ALERT` once implemented and tested;
+- periodic observations/state → `TELEMETRY` once implemented and tested;
+- true low-latency ephemeral streams → `LIVE`;
+- large artefacts → `BULK` only through the future resumable object layer.
+
+The current generic `MethodMeshTransportEnvelope`/provider API does not yet expose all traffic classes as independent send paths, and the current ESP mesh provider implements only a subset. General device telemetry/alert semantics are therefore an implementation gap, not something the Device Adapter may fake by relabelling durable messages in the UI.
+
+### Reference ESP-NOW device path
+
+The first MethodMesh-native field-device vertical slice SHOULD use existing inexpensive ESP32-C3 hardware and the current ESP-NOW MFT provider rather than introducing a second radio architecture.
+
+A reference path is:
+
+```text
+ODK / native / preset / protocol
+              ↓
+     MethodMesh execution engine
+              ↓
+        Device capability
+              ↓
+      methodmesh-mft-device
+              ↓
+   MethodMeshTransportRuntime
+              ↓
+        ESP mesh provider
+              ↓
+Phone BLE gateway ESP32-C3
+              ↓
+           ESP-NOW
+              ↓
+     relay/store node(s)
+              ↓
+   capability endpoint ESP32-C3
+              ↓
+       sensor / display
+```
+
+The gateway and relay may remain pure MFT infrastructure. The final capability endpoint is the MethodMesh Device.
+
+### First implementation slice
+
+The first MFT Device Adapter milestone SHOULD be deliberately narrow:
+
+1. migrate/extend the runtime Device Instance representation sufficiently to address one canonical `MM-DEV-*` physical device;
+2. implement `methodmesh.mft-device/v1` encoding/decoding and endpoint consumer registration;
+3. generalise the ESP mesh routed-wire/provider boundary so it can carry a distinct device-endpoint protection profile without exposing the phone-only field-group key to firmware;
+4. add a generic MethodMesh-native ESP32-C3 endpoint firmware profile with post-flash Device ID and endpoint-key provisioning plus local logical-destination consumption;
+5. support bounded authenticated `DEVICE_ADVERTISE`/`DEVICE_DESCRIBE_*`;
+6. expose one read-only canonical sensor capability through the normal Capability Resolver;
+7. invoke it through `MethodMeshTransportRuntime` over the existing ESP mesh provider using genuinely durable request/result semantics;
+8. validate the result and commit it through the normal MethodMesh execution/FULL-envelope path;
+9. repeat the same invocation from ODK/Enketo;
+10. power-cycle/reconnect a gateway/relay without changing Device ID;
+11. demonstrate duplicate request suppression and safe response replay;
+12. demonstrate that an unexpected capability/configuration digest becomes visible drift rather than silently changing the registered device;
+13. add explicit transport traffic-class carriage to the core envelope/API before claiming general TELEMETRY/ALERT device traffic.
+
+Only after this slice is reliable should the implementation add:
+
+- asynchronous telemetry/events;
+- persistent e-ink/display outputs;
+- low-risk idempotent actuators;
+- location anchors/mobile tags;
+- richer power-aware/device-aware routing.
+
+### Acceptance demonstration
+
+A successful first end-to-end demonstration is:
+
+```text
+Phone / MethodMesh
+      │
+      │ canonical capability invocation
+      ▼
+MFT Device Adapter
+      │
+      │ durable endpoint-protected request
+      ▼
+local ESP gateway
+      │
+      ├──── ESP-NOW relay/store node
+      │
+      ▼
+remote ESP capability endpoint
+      │
+      ▼
+physical sensor
+      │
+      ▼
+DEVICE_RESULT
+      │
+      ▼
+canonical MethodMesh result + device evidence
+```
+
+The test passes only when:
+
+- the physical endpoint has a stable MethodMesh Device ID independent of radio addresses;
+- the same canonical capability contract is used natively and from ODK/Enketo;
+- intermediate ESP nodes do not require device-application plaintext credentials;
+- a transport ACK cannot masquerade as a measurement result;
+- the result records the Device ID and relevant firmware/configuration/calibration/security evidence;
+- duplicate/retried delivery does not duplicate physical execution;
+- temporary gateway/relay loss does not corrupt identity or silently lose accepted durable work;
+- runtime capability/configuration mismatch is surfaced as drift;
+- the application code above the Device Adapter does not know or care that the current provider is ESP-NOW.
+
+## 18.14 Calibration
+
+Calibration requirements belong to the Device Definition or deployment policy. Calibration events belong to the physical Device Instance/Sentinel lifecycle.
+
+Example requirement:
+
+```yaml
+calibration:
+  requirements:
+    - capability: weight
+      required: true
+      policy: methodmesh.calibration.weight/v1
+      maximum_age_days: 365
+```
+
+A calibration event MAY record:
+
+- event ID and timestamp;
+- method/policy;
+- operator/evidence of operator where appropriate;
+- reference instrument/material;
+- raw observations;
+- coefficients;
+- attachments/evidence;
+- validity period.
+
+Calibration state may include:
+
+```text
+valid
+due-soon
+expired
+missing
+not-required
+unknown
+```
+
+Where deployment policy requires valid calibration, expired/missing calibration MAY block execution. This is policy-driven rather than a universal hard-coded rule.
+
+## 18.15 Sentinel and provenance
+
+MethodMesh Devices supplies physical-device evidence to the wider MethodMesh/Sentinel provenance model.
+
+The trace may become:
+
+```text
+Study observation
+      ↓
+Form instance
+      ↓
+MethodMesh execution ID
+      ↓
+Capability contract/version
+      ↓
+Device ID
+      ↓
+Calibration state/event
+      ↓
+Installation/provisioning evidence
+      ↓
+Firmware package (where MethodMesh-managed)
+      ↓
+Device Lock
+      ↓
+Device Definition
+      ↓
+Physical hardware identity/evidence
+```
+
+**MM-DEV-009.** Device provenance MUST extend the canonical execution evidence rather than create a separate audit universe. Historical execution evidence MUST NOT be silently rewritten from later firmware, calibration or registry state.
+
+OTA updates are update mechanisms, not trust mechanisms. Controlled OTA updates SHOULD generate equivalent lifecycle/provenance information to USB updates: previous/new package, configuration, update method, time, result and verification state.
+
+Recovery SHOULD support bootloader detection, known-good reinstallation, recreation of non-secret configuration and reassociation to an existing Device Instance only where identity can be established. A reflashed board MUST NOT silently inherit a former Device ID when identity cannot be verified.
+
+## 18.16 Reference devices
+
+The initial architecture SHOULD be validated against deliberately heterogeneous reference devices rather than many near-identical sensors.
+
+### Environmental probe
+
+```text
+ESP32-S3 + BME280 (or SHT31)
+```
+
+Capabilities:
+
+```text
+measure.temperature
+measure.relative_humidity
+measure.pressure
+```
+
+Preferred first implementation: ESPHome, USB installation, Wi-Fi + ESPHome native API operation.
+
+### Weight instrument
+
+```text
+ESP32 + HX711 + load cell
+```
+
+Capability:
+
+```text
+measure.weight
+```
+
+This reference MUST exercise calibration, tare/zero behaviour, stability/acquisition policy and units.
+
+### NFC/RFID instrument
+
+```text
+ESP32 + PN532
+```
+
+Candidate capabilities include `identify.nfc` and `read.nfc`. Reading a UID, reading tag contents and cryptographically authenticating a credential are distinct operations and MUST NOT be conflated.
+
+### GNSS instrument
+
+Candidate capabilities:
+
+```text
+location.gnss
+time.gnss
+track.gnss
+```
+
+Structured results SHOULD retain relevant quality metadata such as fix state/accuracy/satellites/timestamp.
+
+### Industrial instrument gateway
+
+```text
+existing scientific/industrial instrument
+        ↓
+Modbus RTU/TCP or serial
+        ↓
+ESP/bridge where required
+        ↓
+MethodMesh capability
+```
+
+This validates that MethodMesh Devices is not limited to sensors directly wired to ESP GPIO buses.
+
+### Meshtastic
+
+Meshtastic is a reference adapted third-party firmware path:
+
+```text
+MethodMesh → MeshtasticAdapter → Meshtastic → LoRa mesh
+```
+
+MethodMesh should not replace its mature radio stack merely to make the device "native".
+
+### OpenMQTTGateway
+
+OpenMQTTGateway is a reference multi-protocol gateway integration for existing BLE/RF/IR/LoRa-style ecosystems. MethodMesh consumes useful capabilities through an adapter rather than taking ownership of every underlying driver.
+
+### Output/status device
+
+An ESPHome display, WLED node or MethodMesh-native display can demonstrate physical output/actuation through methods such as `display.message`, `display.status` or `signal.visual`.
+
+### MFT field endpoint
+
+A MethodMesh-native ESP32-C3 field endpoint is the reference device for validating the Devices ↔ MFT bridge:
+
+```text
+MethodMesh
+    ↓
+MFT Device Adapter
+    ↓
+existing ESP mesh provider
+    ↓
+ESP-NOW
+    ↓
+ESP32-C3 capability endpoint
+```
+
+The first reference SHOULD expose a read-only physical measurement before adding actuation. It MUST use a canonical MethodMesh Device ID and separate device-endpoint application credential rather than inheriting the phone-to-phone E2E group key or ESP radio-network key. The endpoint is expected to prove that low-cost field nodes can participate in MethodMesh Devices without making ESP-NOW itself the device model.
+
+## 18.17 Implementation sequence and acceptance test
+
+### Phase 1 - contracts and registries
+
+Implement:
+
+```text
+methodmesh.device/v1
+methodmesh.device-lock/v1
+methodmesh.firmware-package/v1
+methodmesh.device-installation/v1
+methodmesh.device-instance/v1
+```
+
+plus catalogue/provider/adapter interfaces.
+
+### Phase 2 - Android USB foundation
+
+Implement USB host detection/permission/interface enumeration, supported serial/native USB paths, ESP target probing, safe bootloader entry, flashing and independent verification using a fixed known package.
+
+### Phase 3 - ESPHome environmental reference device
+
+Implement the full:
+
+```text
+ESP32-S3 + BME280 + ESPHome
+```
+
+flow: `.mmdevice` → lock → generated ESPHome configuration → firmware package → USB install → provision → register → connect → capability execution.
+
+### Phase 4 - execution integration
+
+Demonstrate:
+
+```text
+Enketo
+  ↓
+MethodMesh
+  ↓
+measure.temperature
+  ↓
+Device Manager
+  ↓
+ESPHome device
+  ↓
+result
+  ↓
+Enketo
+```
+
+using the existing external-workflow bridge and execution-ID/FULL-envelope model.
+
+### Phase 4A - MFT Device Adapter reference path
+
+Implement the Devices ↔ MFT bridge defined in §18.13A:
+
+```text
+canonical MethodMesh capability
+        ↓
+MFT Device Adapter
+        ↓
+MethodMeshTransportRuntime
+        ↓
+existing ESP mesh provider
+        ↓
+MethodMesh-native ESP32-C3 capability endpoint
+```
+
+Begin with one read-only sensor capability. Provision Device ID and endpoint application security after generic firmware installation, validate runtime description against the registered Device Instance, and return the observation through the canonical execution/FULL-envelope path. Prove the same invocation from native MethodMesh and ODK/Enketo before adding telemetry, displays or actuation.
+
+### Phase 5 - heterogeneous devices and calibration
+
+Add HX711/load cell, PN532, GNSS and Modbus/serial integration.
+
+### Phase 6 - third-party adapters
+
+Add Meshtastic and OpenMQTTGateway reference adapters.
+
+### Phase 7 - controlled build infrastructure
+
+Add prebuilt package catalogue, exact build locking, controlled ESPHome build worker/CI, signing and artefact retention.
+
+### Phase 8 - Sentinel-grade lifecycle
+
+Add calibration ledger, installation/maintenance history, stronger device authentication/attestation where justified, controlled update policy, validation reports and fleet-level provenance.
+
+### Acceptance test
+
+The first major milestone is complete when all of the following work end-to-end:
+
+1. An unconfigured supported ESP32-S3 is attached to Android by USB.
+2. MethodMesh detects the USB device and probes the target sufficiently to assess package compatibility.
+3. The user selects an environmental probe with BME280 and appropriate I²C pins.
+4. MethodMesh creates a valid `methodmesh.device/v1` definition.
+5. Semantic validation passes.
+6. MethodMesh resolves an immutable `methodmesh.device-lock/v1`.
+7. A compatible ESPHome firmware package is selected or built from that lock.
+8. Package integrity is verified; authenticity is verified where deployment policy requires it.
+9. MethodMesh flashes the target through Android USB using the package's target-specific flash plan.
+10. Flash contents are independently verified to the degree supported by the target.
+11. MethodMesh provisions unique device identity and operational credentials.
+12. The device boots and MethodMesh connects through the declared operational protocol.
+13. A Device Instance is registered.
+14. `measure.temperature`, `measure.relative_humidity` and `measure.pressure` resolve to the device.
+15. A physical capability can be invoked through the normal MethodMesh execution engine.
+16. The result records the physical Device ID and relevant device evidence.
+17. Device ID resolves to its current installation/provisioning evidence; managed-firmware installations resolve to the exact package; all device instances resolve to the lock, definition and exact implementation/build dependencies.
+18. The same capability can be invoked from the existing Enketo external-workflow bridge.
+19. Sentinel can reconstruct the complete observation → execution → capability → device → calibration → installation → package → lock → definition → hardware chain.
+
+## 18.18 Normative core JSON Schema
+
+The structural schema for `methodmesh.device/v1` is JSON Schema Draft 2020-12. Semantic hardware/peripheral/provider validation remains an additional layer.
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://methodmesh.org/schema/device/v1.json",
+  "title": "MethodMesh Device Definition v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "metadata",
+    "hardware",
+    "capabilities",
+    "transports"
+  ],
+  "properties": {
+    "schema": {
+      "const": "methodmesh.device/v1"
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "hardware": {
+      "$ref": "#/$defs/hardware"
+    },
+    "buses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/bus"
+      },
+      "default": []
+    },
+    "peripherals": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/peripheral"
+      },
+      "default": []
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/capability"
+      }
+    },
+    "firmware": {
+      "$ref": "#/$defs/firmware"
+    },
+    "transports": {
+      "$ref": "#/$defs/transports"
+    },
+    "calibration": {
+      "$ref": "#/$defs/calibration"
+    },
+    "security": {
+      "$ref": "#/$defs/security"
+    },
+    "provisioning": {
+      "$ref": "#/$defs/provisioning"
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)+$"
+      },
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "catalogueIdentifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)+$",
+      "minLength": 3,
+      "maxLength": 200
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "$ref": "#/$defs/identifier" },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "author": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "licence": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "tags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        }
+      }
+    },
+    "hardware": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["catalogue_entry"],
+      "properties": {
+        "catalogue_entry": { "$ref": "#/$defs/catalogueIdentifier" },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "bus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "type": {
+          "enum": [
+            "i2c",
+            "spi",
+            "uart",
+            "onewire",
+            "can",
+            "rs485",
+            "gpio",
+            "adc",
+            "dac",
+            "i2s",
+            "custom"
+          ]
+        },
+        "pins": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "integer" }
+            ]
+          }
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "peripheral": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "model"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "model": { "$ref": "#/$defs/catalogueIdentifier" },
+        "bus": { "$ref": "#/$defs/identifier" },
+        "pins": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "integer" }
+            ]
+          }
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "method",
+        "contract_version",
+        "binding"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "method": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)+$"
+        },
+        "contract_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "binding": { "$ref": "#/$defs/binding" },
+        "acquisition": { "$ref": "#/$defs/acquisition" },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": [
+            "peripheral-channel",
+            "adapter-endpoint",
+            "esphome-entity",
+            "modbus-register",
+            "serial-command",
+            "mqtt-topic",
+            "native-method",
+            "custom"
+          ]
+        },
+        "peripheral": { "$ref": "#/$defs/identifier" },
+        "channel": { "$ref": "#/$defs/identifier" },
+        "endpoint": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "samples": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "interval_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "settling_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "aggregation": {
+          "enum": [
+            "single",
+            "mean",
+            "median",
+            "minimum",
+            "maximum",
+            "custom"
+          ]
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "firmware": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider"],
+      "properties": {
+        "provider": { "$ref": "#/$defs/identifier" },
+        "version": { "$ref": "#/$defs/versionPolicy" },
+        "profile": { "$ref": "#/$defs/identifier" },
+        "build": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "strategy": {
+              "enum": [
+                "auto",
+                "prebuilt",
+                "remote",
+                "developer"
+              ],
+              "default": "auto"
+            }
+          }
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "versionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy"],
+      "properties": {
+        "policy": {
+          "enum": [
+            "exact",
+            "catalogue",
+            "latest-tested",
+            "compatible"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "maxLength": 100
+        }
+      }
+    },
+    "transports": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation"],
+      "properties": {
+        "provisioning": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/transport" }
+        },
+        "operation": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/transport" }
+        }
+      }
+    },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["medium", "protocol"],
+      "properties": {
+        "medium": {
+          "enum": [
+            "usb",
+            "uart",
+            "ble",
+            "wifi",
+            "ethernet",
+            "lora",
+            "esp-now",
+            "rs485",
+            "can",
+            "custom"
+          ]
+        },
+        "protocol": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "adapter": { "$ref": "#/$defs/identifier" },
+        "optional": {
+          "type": "boolean",
+          "default": false
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requirements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/calibrationRequirement" }
+        }
+      }
+    },
+    "calibrationRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability", "required"],
+      "properties": {
+        "capability": { "$ref": "#/$defs/identifier" },
+        "required": { "type": "boolean" },
+        "policy": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "maximum_age_days": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "package_integrity": { "$ref": "#/$defs/requirement" },
+        "package_authenticity": { "$ref": "#/$defs/requirement" },
+        "device_authentication": { "$ref": "#/$defs/requirement" },
+        "device_attestation": { "$ref": "#/$defs/requirement" },
+        "secure_boot": { "$ref": "#/$defs/requirement" },
+        "flash_encryption": { "$ref": "#/$defs/requirement" },
+        "encrypted_transport": { "$ref": "#/$defs/requirement" }
+      }
+    },
+    "requirement": {
+      "enum": [
+        "required",
+        "preferred",
+        "optional",
+        "disabled"
+      ]
+    },
+    "provisioning": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "secrets": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/secretRequirement" }
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "secretRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "purpose"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "purpose": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "source": {
+          "enum": [
+            "user",
+            "android-keystore",
+            "deployment-store",
+            "generated-on-device",
+            "generated-by-methodmesh",
+            "external-secret-provider"
+          ]
+        },
+        "required": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "retain_definition": {
+          "type": "boolean",
+          "default": true
+        },
+        "retain_lock": {
+          "type": "boolean",
+          "default": true
+        },
+        "retain_generated_configuration": {
+          "type": "boolean",
+          "default": true
+        },
+        "retain_build_manifest": {
+          "type": "boolean",
+          "default": true
+        },
+        "retain_firmware_package": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  }
+}
+```
+
+The schema defines structure. Reference integrity, hardware/electrical compatibility, capability semantics, provider support, deployment policy and security policy remain semantic-validation responsibilities.
+
+## 18.19 Architectural invariants
+
+The following invariants guide implementation and review:
+
+1. **Capability semantics belong to MethodMesh.** Firmware does not redefine MethodMesh method contracts.
+2. **Device design is not device state.** `.mmdevice` describes a design; Device Registry records describe physical instances.
+3. **Resolution is explicit.** Flexible source policies resolve into an immutable lock before reproducible builds.
+4. **Managed firmware is optional and is not assumed to be one binary.** External instruments may have no MethodMesh firmware package; where MethodMesh does manage firmware, the package describes actual target artefacts and flash operations.
+5. **Connectivity is not interoperability.** Medium, protocol and adapter are separate.
+6. **Installation and operation are separate transports.** USB flashing does not imply USB runtime communication.
+7. **Hashing is not authentication.** Integrity, authenticity, device authentication and attestation remain distinct.
+8. **ESPHome is an implementation backend.** It is not the MethodMesh device schema or capability model.
+9. **Third-party firmware remains third-party firmware.** MethodMesh records provenance rather than obscuring upstream ownership/licensing.
+10. **Unexpected state is evidence.** Configuration drift must be surfaced rather than normalised away.
+11. **Physical devices use the canonical execution/result path.** Device evidence extends the FULL envelope rather than creating another audit format.
+12. **The core remains hardware-family neutral.** ESP32 is the first implementation family, not a permanent assumption in generic interfaces.
+
+13. **Field transport is a route, not a device model.** MFT-connected physical instruments bind through Device Adapters and stable Device IDs; relays/gateways remain transport infrastructure unless they independently provide a canonical MethodMesh capability.
+
+The intended long-term abstraction is:
+
+```text
+Research workflow
+        ↓
+MethodMesh capability
+        ↓
+Device binding
+        ↓
+Physical instrument
+        ↓
+Structured result
+        ↓
+Device identity
+        ↓
+Firmware/configuration/calibration evidence
+        ↓
+Sentinel provenance
+```
+
+MethodMesh Devices is therefore not a collection of ESP projects. It is a reproducible interoperability and provenance layer between MethodMesh workflows and physical instrumentation.
 
 # 19. Attestation and audit commitments
 
@@ -3130,6 +5845,77 @@ calculates commitment_recipe_sha256 . The signed canonical attestation
 binds event_payload_hash and commitment_recipe_sha256 . Large objects do
 not pass through attestation. Media artefacts are represented by byte
 hashes, such as redacted_image_sha256 .
+
+## NFC credential evidence, issuer identity and central reconciliation
+
+MethodMesh NFC credential assurance is **evidence-first**. Three questions are deliberately separate:
+
+```text
+cryptographically valid
+        ≠
+study issued / recognised
+        ≠
+acceptable at the event time
+```
+
+A successful field verification establishes only the first of these unless the workflow has independent evidence for more. Ordinary study verification MUST verify the portable credential structure, decrypt/verify it with the entered PIN, validate the embedded issuer signature, derive the issuer identity from the actual embedded public key, and return the resulting evidence. It MUST NOT treat a caller-supplied issuer label or fingerprint as authoritative.
+
+The canonical issuer identity is:
+
+```text
+issuer_public_key_fingerprint_sha256 = SHA-256(PublicKey.encoded)
+issuer_key_id = first 16 hexadecimal characters of that fingerprint
+```
+
+The full 64-character fingerprint is the durable issuer identity for registry matching and later validation. `issuer_key_id` is retained for compact display and backwards compatibility and MUST NOT replace the full fingerprint where identity matters. The public key itself may also be returned/exported so a later verifier can independently reproduce the fingerprint.
+
+Canonical successful NFC credential verification evidence includes, as applicable:
+
+- `credential_id`;
+- `credential_subject_id`;
+- `credential_envelope_hash`;
+- `issuer_key_id`;
+- `issuer_public_key_fingerprint_sha256`;
+- `issuer_public_key_base64`;
+- `issuer_signature_valid`;
+- `pin_verified`;
+- `tag_uid_hex`;
+- `verification_evidence_format`;
+- `verification_evidence_hash`;
+- the execution ID and canonical FULL JSON/provenance envelope.
+
+The current credential-verification evidence format is versioned as `methodmesh_nfc_credential_verification_v1`. Its evidence hash binds the observed tag UID, credential identity, credential-envelope hash, full issuer fingerprint and successful issuer-signature/PIN verification. Verification output MUST fail rather than silently emit a blank or malformed canonical issuer fingerprint.
+
+The tag UID is useful audit evidence and is bound into the verification evidence where present, but the current portable credential signature does not itself sign the physical tag UID into the credential. Documentation and UI MUST therefore not claim that the present format provides cryptographic clone resistance merely because a UID was recorded.
+
+### Local trust versus study authorisation
+
+A caller MAY explicitly request an optional local/legacy issuer allow-list check for a specialised workflow. Such a check is a local policy evaluation only. Ordinary study XLSForms and the standard evidence-first verification path MUST NOT distribute or depend on a field-device issuer allow-list as the study trust anchor. In that ordinary mode `issuer_trust_status` may legitimately be `not_checked` even though the credential signature and PIN are valid.
+
+Study authorisation is established later by reconciliation against controlled study records, normally including at least:
+
+- a **provisioning-device registry** keyed by the full issuer fingerprint, with device/site/status/commissioning and retirement or revocation state as governed by the study;
+- an **issued-credential registry** keyed by credential ID, with the expected issuer fingerprint and credential lifecycle/status metadata.
+
+A downstream verifier can therefore distinguish, for example, a cryptographically valid credential produced by an unregistered MethodMesh installation from a credential actually issued by a registered study provisioning device. Typical derived states may include `recognised`, `unknown_issuer`, `unknown_credential`, `issuer_mismatch`, `revoked` and `invalid_evidence`; the exact governance vocabulary belongs to the consuming study/verifier rather than the portable credential itself.
+
+MethodMesh does not require a runtime connection to that later reconciliation system in order to capture valid field evidence. The submission carries enough immutable issuer/credential evidence for the central system to make the study-authorisation decision afterwards.
+
+### Provisioning-device issuer certificate/bundle
+
+Workbench exposes `nfc_issuer_identity` as a technical provisioning/validation tool. It exports this installation's public issuer identity using the versioned `methodmesh_nfc_issuer_certificate_v1` bundle. The bundle contains the full public-key fingerprint, short key ID, Base64 public key, signature algorithm and schema/format identity, with a copyable JSON representation.
+
+This bundle is a MethodMesh public-key identity certificate/bundle, not an X.509 CA certificate. It contains no private key and does not by itself prove that the installation is study-authorised. Study authorisation arises when the full fingerprint/certificate is admitted to the study's controlled provisioning-device registry under the relevant governance process.
+
+Provisioning and credential verification MUST derive issuer identity through the same canonical public-key resolver so that provisioning output, Workbench export and later credential verification cannot drift onto different fingerprint conventions.
+
+### NFC evidence in attestation
+
+When `attestation.create` uses a prior NFC credential-verification execution as operator/verification evidence, attestation MUST independently retrieve and validate that referenced execution rather than trusting caller-supplied copies of its fields. It MUST require successful credential, PIN and issuer-signature verification and reconstruct the source `verification_evidence_hash` from the recorded NFC execution fields.
+
+The attestation evidence binding includes the source execution identity plus credential ID/subject, credential-envelope hash, full issuer fingerprint, tag UID and source verification-evidence format/hash. The current attestation-side NFC evidence format is `methodmesh_nfc_credential_execution_sha256_v2`.
+
+A local `issuer_trust_status` MAY be retained as evidence about what the field device checked, but it MUST NOT promote the attestation assertion basis into a claim that the credential is study-authorised. The attestation assertion basis for this path remains `nfc_credential_pin_signature_verified`; later central reconciliation determines whether that cryptographically verified issuer and credential were recognised and acceptable for the study at the relevant event time.
 
 ## Commitment recipe
 
@@ -3705,7 +6491,9 @@ Current project-wide directions distilled from the former roadmap are:
 - continue improving plain-language capability/preset/protocol/ODK-form discovery;
 - finish robust origin-aware closeout for protocols and schedules;
 - implement typed protocol pipes on top of canonical structured results before building a visual editor;
-- make Device Registry more live/observable;
+- implement the generic MethodMesh Device Manager and migrate the current ESP32-C3 installer/sensor paths behind the Chapter 18 Device Definition / Device Lock / Firmware Package / Device Instance contracts;
+- make Device Registry more live/observable and expose firmware/configuration/calibration/verification state rather than only sensor names/values;
+- use ESPHome as the preferred configurable backend for ordinary supported ESP sensors/actuators, while retaining firmware/provider neutrality and native/adapted paths where required;
 - improve shared offline-resource management and distinguish intentional downloads from disposable cache;
 - continue Workbench API-definition/editor tooling and shared `ResultTree`-based online-data infrastructure;
 - keep Android desktop widgets as first-class launch origins;
@@ -3727,6 +6515,8 @@ Known cross-project concerns retained from current documentation include:
 - Home/Done routing has had regressions and remains subject to the launch-origin rules in this book;
 - protocol/schedule completion should achieve the same clean final-result semantics as single-capability runs;
 - online-data/provider UX continues to evolve around the generic API-definition model;
+- the existing ESP32-C3 installer and sensor registry predate the full MethodMesh Devices contracts and require staged migration behind the generic flasher/provider/adapter/registry interfaces without regressing their current verified flashing behaviour;
+- hardware/peripheral/capability/firmware catalogues and `methodmesh.device-lock/v1` do not yet exist as complete runtime artefacts;
 - documentation sprawl is being retired by this v1.06 consolidation.
 
 Old module-specific bugs and feature ideas from the former root roadmap are not reproduced here; they belong with their owning module when still relevant.
@@ -3978,6 +6768,21 @@ These IDs are stable anchors for module reviews, migration scorecards and tests.
 
 - **`MM-OFF-001`** - Capabilities work offline where reasonably possible; online dependencies are explicit.
 
+## NFC credential assurance
+
+- **`MM-NFC-001`** - Ordinary NFC credential verification is evidence-first: verify credential structure/signature and PIN, derive the actual issuer identity from the embedded public key, and return immutable evidence; do not require a study issuer allow-list for the ordinary path.
+- **`MM-NFC-002`** - The canonical issuer identity is the full SHA-256 digest of the DER/SubjectPublicKeyInfo bytes exposed as `PublicKey.encoded`. The first 16 hexadecimal characters are a display/backwards-compatibility key ID only.
+- **`MM-NFC-003`** - Successful verification MUST NOT emit a blank, malformed or caller-trusted canonical issuer fingerprint. The verifier recomputes issuer identity from the embedded verified key.
+- **`MM-NFC-004`** - Cryptographic validity, study recognition/issuance and event-time acceptability are distinct states. No field-device cryptographic success or optional local trust-list match may silently collapse those states into one Boolean.
+- **`MM-NFC-005`** - Ordinary study XLSForms MUST NOT distribute issuer allow-lists as authoritative study trust anchors. Explicit allow-list checking may remain an optional specialised/local compatibility policy.
+- **`MM-NFC-006`** - Verification evidence is versioned and binds at least the credential identity, credential-envelope hash, full issuer fingerprint, successful signature/PIN verification and observed tag UID where required by the evidence format.
+- **`MM-NFC-007`** - Recording/binding a tag UID MUST NOT be described as cryptographic clone resistance when the portable credential signature itself does not bind that UID.
+- **`MM-NFC-008`** - Workbench `nfc_issuer_identity` exports public issuer identity for provisioning-device registration, including the canonical full fingerprint and copyable `methodmesh_nfc_issuer_certificate_v1` bundle. It MUST NOT expose private-key material.
+- **`MM-NFC-009`** - A MethodMesh issuer certificate/bundle is public-key identity evidence, not proof of study authorisation. Study authorisation is established by controlled registration/reconciliation outside the portable credential.
+- **`MM-NFC-010`** - Downstream study reconciliation SHOULD compare the actual full issuer fingerprint with the controlled provisioning-device registry and the credential ID/expected issuer/lifecycle with the issued-credential registry; unknown issuers/credentials and mismatches remain distinguishable from invalid cryptography.
+- **`MM-NFC-011`** - NFC-backed attestation independently resolves and validates the referenced NFC execution and source verification-evidence hash; it MUST NOT trust caller-supplied copies of credential/issuer evidence as equivalent.
+- **`MM-NFC-012`** - NFC-backed attestation binds the full issuer fingerprint and source verification evidence but does not convert a locally checked trust status into a study-authorisation claim; later reconciliation owns that decision.
+
 ## Clock assurance
 
 - **`MM-CLOCK-001`** - Security-, validity-, expiry- and audit-sensitive capabilities use the shared Clock Assurance service rather than treating device wall time as inherently trusted.
@@ -3995,6 +6800,9 @@ These IDs are stable anchors for module reviews, migration scorecards and tests.
 - **`MM-CLOCK-013`** - Sentinel or another later verifier MAY evaluate historical `time_assurance` under governance policy, but MUST preserve the original execution snapshot and MUST NOT rewrite it using later clock anchors or server time.
 - **`MM-CLOCK-014`** - Workbench is the canonical Clock Assurance inspection/control surface and MAY request a fresh trusted anchor through the shared validated acquisition path; this action MUST NOT be represented as setting Android system time.
 - **`MM-CLOCK-015`** - Home MAY show compact policy-neutral anchor recency/evidence state and SHOULD link that indicator to the Workbench inspector; it MUST NOT manufacture a universal freshness threshold.
+- **`MM-CLOCK-016`** - Shared Android infrastructure SHOULD request opportunistic trusted-time refresh on app open and schedule periodic background refresh through network-constrained OS scheduling; operational refresh cadence is not a universal capability freshness/acceptance policy.
+- **`MM-CLOCK-017`** - If network connectivity is unavailable, automatic trusted-time refresh waits quietly until connectivity returns. Failure or deferral MUST NOT generate a user notification solely for refresh absence, MUST NOT require a foreground service solely for that condition, and MUST NOT discard an existing valid anchor.
+- **`MM-CLOCK-018`** - Automatic and manual refresh use the same validated Clock Assurance admission path and MUST NOT set Android system time or silently promote wall-clock observation to trusted time.
 
 ## Online data
 
@@ -4027,6 +6835,21 @@ These IDs are stable anchors for module reviews, migration scorecards and tests.
 - **`MM-SCHED-003`** - Elapsed intervals are anchored to the actual activation trigger, while Daily/Weekly/Monthly calendar recurrences preserve intended local wall-clock time.
 - **`MM-SCHED-004`** - Scheduled preset presentation follows the preset by default and may explicitly override to Show UI or Background; the scheduler does not universally force headless execution.
 - **`MM-SCHED-005`** - Where exact timing is promised, Android exact-alarm access is handled explicitly; notification-launched interactive schedule work is transient and returns to the underlying launch origin after closeout.
+
+## Devices and physical instrumentation
+
+- **`MM-DEV-001`** - A physical device is a normal MethodMesh capability provider; device-backed methods use the canonical execution/result architecture rather than a parallel runtime.
+- **`MM-DEV-002`** - Prefer configuration/adapters/upstream contribution over firmware forks when the required capability and trust model can be met without a fork.
+- **`MM-DEV-003`** - Device Definition, immutable Device Lock, managed Firmware Package/build where applicable, installation/provisioning evidence and physical Device Instance are distinct artefacts with distinct identities; external instruments are not forced through synthetic firmware builds.
+- **`MM-DEV-004`** - Flexible device/firmware policies resolve to an immutable lock before a build is claimed to be reproducible; later catalogue/provider changes do not silently rewrite an existing lock.
+- **`MM-DEV-005`** - ESPHome is an implementation backend, not the MethodMesh capability/device schema; generated ESPHome configuration is derived from validated typed device definitions.
+- **`MM-DEV-006`** - Transport medium, application protocol and adapter are separate; provisioning/install transport is independent from operational transport.
+- **`MM-DEV-007`** - Firmware/package integrity, package authenticity, physical-device authentication and device attestation are distinct trust properties and MUST NOT be collapsed into one `verified` state.
+- **`MM-DEV-008`** - Unexpected firmware/configuration/identity/capability state is surfaced as drift or verification evidence and MUST NOT be silently normalised into the expected registry state.
+- **`MM-DEV-009`** - Device identity, firmware/configuration, installation and calibration evidence extend the canonical MethodMesh/Sentinel execution provenance; later device state MUST NOT silently rewrite historical execution evidence.
+- **`MM-DEV-010`** - Where MethodMesh manages firmware, firmware packages describe actual target artefacts and target-specific flash operations; Android code MUST NOT assume one firmware binary or hard-code generic flash offsets.
+- **`MM-DEV-011`** - Firmware installation success is verification-gated; successful transport/ROM acknowledgements alone are insufficient to report an installed device.
+- **`MM-DEV-012`** - Literal deployment secrets do not belong in normal `.mmdevice` source definitions; secrets are provisioned through explicit secret sources after generic build where feasible.
 
 ## Modules
 
@@ -8244,6 +11067,72 @@ Generated website output, packaged XLSForm assets, mirrored module reference pag
 Standalone source documents should only be archived after the repository reorganisation dry-run confirms their final disposition.
 
 # Appendix M. Version history
+
+## v1.32 - 2026-09-26
+
+- Corrected ESP-NOW bench interoperability by pinning every bundled mesh node to radio channel 6 before ESP-NOW starts; nodes no longer depend on an unspecified prior/default Wi-Fi channel.
+- Added non-secret ESP transport-key ID and active radio-channel telemetry so field setup can verify that both nodes share the same radio configuration without exposing the key.
+- Preserved validated CONFIG_ACK completion across screen/process reopening for the same BLE gateway, while invalidating the saved confirmation when live gateway identity or network state differs.
+- Added typed on-demand mesh-join QR enrollment carrying the network ID plus both authorized group credentials; scanning loads the existing provisioning flow, while Android Keystore wraps the exportable keys at rest and CONFIG_ACK remains the only completion signal.
+- Replaced the ESP mesh setup console with a four-stage guided Workbench flow: connect/auto-select a node, create a named mesh or join by QR with automatic key handling, share the join QR, and confirm radio operation through the existing encrypted message test path. Manual credentials and recovery diagnostics remain available only in the advanced section.
+- Advanced the ESP mesh capability, bundled source/image and installer profile to `methodmesh-espmesh-0.4.6`. USB diagnosis identified `WiFi Out of Memory` in the prior MicroPython 1.28 ESP32-C3 base. The image now uses hardware-verified MicroPython 1.29, reserves ESP-NOW and BLE during `boot.py` before the larger runtime is compiled, preserves the active radio through provisioning, uses the 528-byte receive buffer required for BLE coexistence, and reports explicit startup/send errors. BLE service advertisements now run every 100 ms and fragmented notifications are paced; Android uses low-latency filtered scanning, immediate candidate selection, MTU/service-discovery fallback, bounded HELLO retries and automatic recovery from incomplete handshakes.
+- Allowed the guided QR and mesh-test stages to open for an already configured node when its live network and ESP key identity match the phone's saved credentials. Capability completion still requires a validated CONFIG_ACK.
+
+## v1.31 - 2026-09-25
+
+- Corrected ESP mesh bench provisioning: gateway selection only connects; a validated CONFIG_ACK matching the pending request and network is required for the provisioned capability result. HELLO/SYNC telemetry cannot substitute for that confirmation.
+- Capped firmware downlink notifications at 180 bytes including the typed BLE fragment wrapper, gated by MTU/HELLO payload information, and retained the same gateway v2/provider, radio fragmentation, durability, E2E security and ephemeral voice contracts.
+- Required visible connected/ready, gateway identity, network, firmware, spool and background-service state; clarified connected-gateway scan absence and Workbench-origin closeout.
+- Advanced the bundled ESP mesh source/image and installer profile to `methodmesh-espmesh-0.4.1`; the image builder now writes/remount-verifies LittleFS files instead of requiring a fixed source-file size. The base firmware, flash layout and other sensor images remain unchanged.
+
+## v1.30 - 2026-09-25
+
+- Formalised evidence-first NFC credential assurance: field verification proves credential structure/signature and PIN and records the actual embedded issuer identity; cryptographic validity is explicitly separate from study recognition/issuance and event-time acceptability.
+- Defined the canonical issuer identity as the full SHA-256 fingerprint of `PublicKey.encoded`, with the first 16 hexadecimal characters retained only as the compact/backwards-compatible `issuer_key_id`; provisioning, verification and Workbench export use the same derivation.
+- Removed ordinary study dependence on field-device issuer allow-lists from the canonical architecture while retaining explicit local/legacy allow-list checking as an optional specialised policy.
+- Defined versioned NFC verification evidence (`methodmesh_nfc_credential_verification_v1`) and strengthened NFC-backed attestation (`methodmesh_nfc_credential_execution_sha256_v2`) to reconstruct/bind credential identity, envelope hash, full issuer fingerprint, tag UID and source evidence hash without upgrading local trust status into study authorisation.
+- Added Workbench `nfc_issuer_identity` provisioning-device identity export and copyable `methodmesh_nfc_issuer_certificate_v1` public certificate/bundle; clarified that it is not X.509, contains no private key and becomes study-authorised only through controlled provisioning-device registration.
+- Documented downstream central reconciliation against provisioning-device and issued-credential registries, including explicit unknown-issuer, unknown-credential, issuer-mismatch, revoked and invalid-evidence classes as possible verifier outcomes rather than field-device cryptographic verdicts.
+- Added quiet Clock Assurance maintenance: app-open refresh is suppressed when a sufficiently recent anchor already exists, the current implementation schedules approximately six-hourly inexact background refresh, network absence leaves work pending without notifications, and all automatic refresh uses the same validated anchor-admission path as manual sync.
+
+## v1.29 - 2026-09-23
+
+- Integrated the normative **MethodMesh Devices ↔ MethodMesh Field Transport** bridge into the v1.28 authority without replacing the v1.27/v1.28 Instrument Dashboard UI work.
+- Added `methodmesh.mft-device/v1` as the MethodMesh-native field-device application protocol profile, with logical device/service endpoints, invocation/result/event/state families, correlation, duplicate suppression and strict separation between transport acceptance and physical execution.
+- Clarified that pure relay/gateway/store nodes remain MFT infrastructure rather than synthetic research devices; a field node enters MethodMesh Devices only when it independently provides a canonical physical capability.
+- Defined bounded authenticated device advertisement/description and drift handling; runtime capability claims confirm but never silently override the registered Device Definition/Lock/Instance.
+- Added a distinct device-endpoint security context, preserving separation from both the ESP radio-network credential and the existing phone-only E2E field-group key; network membership does not grant actuator authority.
+- Recorded the current ESP-mesh implementation blocker exposed by source review: the provider currently wraps durable envelopes exclusively in the phone-group secure wire and endpoint ESP firmware treats durable wires as opaque relay/phone-spool records; Device traffic therefore requires a separate endpoint-protection wire profile/local-consumption path rather than copying the phone group key into firmware.
+- Recorded the core traffic-class migration gap: provider capabilities define traffic classes, but the current transport envelope/send API does not yet carry an explicit class; general TELEMETRY/ALERT claims remain blocked until that seam is implemented.
+- Added explicit store-and-forward safety rules for device execution, including stable invocation IDs, idempotency/replay handling and freshness requirements for delayed side effects.
+- Added field-device semantics for sensors, actuators, persistent/e-ink displays, location tags/anchors and infrastructure telemetry, while retaining canonical capability/result contracts.
+- Added the ESP32-C3 **MFT field endpoint** reference device and Phase 4A implementation slice using the existing `MethodMeshTransportRuntime` and ESP mesh provider rather than a new radio-specific execution path.
+- Recorded the current-code migration boundary: legacy `DeviceRegistry`/`DeviceSignalService` scaffolding must migrate behind Chapter 18 Device Adapter/Instance contracts rather than being extended into a second MFT architecture.
+
+## v1.28 - 2026-09-23
+
+- Clarified that instrument density means low clutter rather than tiny typography; spare viewport area should be spent on legibility and touchability before further compression.
+- Added practical accessibility guidance for dominant readouts, expression/value text, selector/key labels, approximately 48dp high-frequency touch targets and Android font scaling.
+- Required mode grids to reflow before important labels become too small.
+- Extended the integrated calculator-keypad profile to cover contextual scientific/engineering `EXP`, SI-prefix and binary/octal/hexadecimal key sets without falling back to the system keyboard.
+
+## v1.27 - 2026-09-23
+
+- Absorbed the Instrument Dashboard UI standard into the canonical Master Book so calculator-, navigation-, sensing-, timing- and other instrument-like capabilities can use dense purpose-built surfaces without creating a parallel execution model.
+- Defined compact/full-bleed instrument presentation, space/density rules, stable live-readout geometry and calculator-owned keypad behaviour.
+- Required custom instrument surfaces to preserve the canonical live working result -> Commit -> post-Commit lifecycle, including Copy, Share, Save to Downloads, optional Full JSON/audit, Edit/new run and launch-origin-aware Done/Home actions.
+- Required custom post-Commit controls to delegate communication and persistence to shared MethodMesh result projection/transport services rather than rebuilding receiver-specific Android sharing logic.
+- Reaffirmed that native-preset Return/Share/Save policy and ODK/external automatic-return behaviour remain canonical when an instrument uses a custom/full-bleed surface.
+
+## v1.26 - 2026-09-23
+
+- Established **MethodMesh Devices** as the canonical physical-instrument architecture: physical devices are normal MethodMesh capability providers and may use native, adapted, curated or component-based implementations.
+- Added the versioned `methodmesh.device/v1`, `methodmesh.device-lock/v1`, `methodmesh.firmware-package/v1`, `methodmesh.device-installation/v1` and `methodmesh.device-instance/v1` artefact model, including the normative core Device Definition JSON Schema; the generic hardware key is catalogue-based rather than board-specific and managed firmware is optional for direct external-instrument integrations.
+- Added exact build locking between declarative device design and firmware build, separating reproducible source/configuration from the exact produced binary.
+- Generalised firmware installation around target-specific multi-artefact Firmware Packages and flash plans; preserved the existing ESP32-C3 transport/ROM/verification constraints as the current implementation profile.
+- Separated transport medium, protocol and adapter; separated provisioning/install transport from operational transport; clarified that ESPHome does not itself imply USB or BLE runtime interoperability.
+- Added native Android Device Manager/USB flashing architecture, hardware/peripheral/capability/firmware catalogues, semantic/electrical validation, device lifecycle/drift, calibration, package integrity/authenticity, device authentication/attestation and Sentinel provenance requirements.
+- Established ESPHome as the preferred initial configurable backend for ordinary ESP sensors/actuators while retaining firmware/provider neutrality; defined environmental, load-cell, NFC, GNSS, Modbus, Meshtastic, OpenMQTTGateway and output-node reference devices.
 
 ## v1.25 - 2026-09-22
 

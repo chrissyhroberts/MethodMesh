@@ -1,10 +1,10 @@
 # Barcode clone
 
-**Canonical MethodMesh authority:** Master Book v1.25 (2026-09-22)
-**Module ID:** `barcode`
-**Method ID:** `barcode.clone`
-**Method version:** `1.0.3`
-**Maturity:** Development
+**Canonical MethodMesh authority:** Master Book v1.22 (2026-09-15)  
+**Module ID:** `barcode`  
+**Method ID:** `barcode.clone`  
+**Method version:** `1.0.4`  
+**Maturity:** Development  
 **Connectivity:** Offline
 
 `barcode.clone` is the camera-to-code bridge: point the windowed camera at a supported barcode/2D code, capture its exact decoded payload, immediately re-present that payload, then swipe through other compatible symbologies and share/save/return the current clone.
@@ -15,7 +15,7 @@ Clone opens as a normal MethodMesh capability surface so the shared preamble and
 
 The scanner is live on entry. The first successful decode pauses the windowed camera and immediately displays the cloned code below it. **Scan another** clears the working clone and resumes the same embedded scanner. This avoids a constantly changing payload while the operator is swiping formats or preparing to share.
 
-`SOURCE` starts with the detected source symbology when ZXing can encode the exact payload in that format. Swipe, previous/next and optional Cycle move only through compatible formats. A fixed incompatible clone format is never silently replaced; export/return actions remain disabled until the exact payload can be represented.
+`SOURCE` starts with the detected source symbology when ZXing can encode the exact payload in that format. Presets may define the starting clone format and whether cycling starts automatically, but these are starting-state settings rather than locks on the live presentation. Swipe, Previous / Cycle / Next, and the compatible-format rail remain available after capture and move only through formats that can represent the exact payload. The payload is never truncated, padded or rewritten.
 
 There is deliberately **no visible Commit button**. Clone still preserves MethodMesh's working-result/finalized-result distinction, but finalization happens atomically when the user selects an action. **Share image**, **Copy image**, **Save image**, **Return clone**, or preset closeout snapshots the current payload + selected symbology into one canonical execution and one PNG. Repeating actions without changing the live state reuses that snapshot. Rescanning, changing the clone format, or changing the text-return policy invalidates it so the next action creates a new canonical snapshot.
 
@@ -93,3 +93,14 @@ Physical clone printing is a roadmap transport/export path, not current behaviou
 ## Capability-owned presets
 
 Clone exposes **Save current setup as preset** alongside the windowed scanner. Starting clone format, automatic cycling and text-payload return can each be fixed or runtime. Running the preset reopens this same windowed Clone instrument with the camera ready; it does not divert to a generic settings page or the external ZXing capture activity.
+
+
+## v1.0.4 live-format and scanner-safe presentation correction
+
+- Clone presets use `barcode_clone_format` and `barcode_auto_cycle` only as starting-state settings; they no longer hide live format controls.
+- Previous / Cycle / Next and the compatible-format rail remain available after a scan whenever multiple exact encodings are possible.
+- Swipe-to-change remains available regardless of whether the preset fixed the starting format.
+- Clone reports UTF-8 payload size, compatible-format count, density guidance and formats unavailable for the exact payload.
+- Windowed **Full screen** control is outside barcode pixels.
+- Full-screen close control is outside barcode pixels.
+- Full-screen clone is centered inside safe drawing bounds so display cutouts/status regions do not push the symbol into a camera dead zone.

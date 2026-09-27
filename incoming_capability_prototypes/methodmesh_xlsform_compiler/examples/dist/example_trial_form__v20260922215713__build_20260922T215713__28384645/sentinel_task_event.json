@@ -1,0 +1,73 @@
+{
+  "schema": "methodmesh.sentinel.task_event.v1",
+  "task_type": "form.compile",
+  "task_schema_version": "1",
+  "request": {
+    "request_id": "11504ec4-ea27-4968-ace5-fac40fb7fbf4",
+    "source": "cli",
+    "operator": null,
+    "input": {
+      "filename": "ordinary_trial_form.xlsx",
+      "sha256": "283846450ab2dda84c769e6fd99509389dd012aed35e5c0643243c132331d76c"
+    },
+    "parameters": {
+      "study_id_override": null,
+      "timestamp_policy_override": null,
+      "overwrite_compatibility_flag": false
+    }
+  },
+  "execution": {
+    "status": "succeeded",
+    "started_at_local": "2026-09-22T21:57:13+00:00",
+    "completed_at_local": "2026-09-22T21:57:14+00:00",
+    "monotonic_duration_ms": 63,
+    "implementation": {
+      "component": "methodmesh-xlsform",
+      "version": "0.3.0",
+      "implementation_sha256": "70cdac923e4089626c2943585f0571a98c55f26104e3fdd69a84a4c92901829d"
+    }
+  },
+  "result": {
+    "release_id": "example_trial_form__v20260922215713__build_20260922T215713__28384645",
+    "form": {
+      "study_id": "EXAMPLE_STUDY",
+      "form_id": "example_trial_form",
+      "form_version": "20260922215713"
+    },
+    "outputs": [
+      {
+        "role": "source_copy",
+        "filename": "SOURCE__ordinary_trial_form.xlsx",
+        "sha256": "283846450ab2dda84c769e6fd99509389dd012aed35e5c0643243c132331d76c",
+        "bytes": 6305
+      },
+      {
+        "role": "release_xlsform",
+        "filename": "example_trial_form__v20260922215713__methodmesh.xlsx",
+        "sha256": "75e662ab3f1e106675c463bee20bc28d1f9ec2ccac3dd49d11bf368695ddd00a",
+        "bytes": 12271
+      },
+      {
+        "role": "commitment_manifest",
+        "filename": "commitment_manifest.json",
+        "sha256": "f133ffee9fa45f6b98a095e9f06b5cf1a72ae6862e420d6401890530f80969df",
+        "bytes": 7572
+      },
+      {
+        "role": "human_manifest",
+        "filename": "MANIFEST.md",
+        "sha256": "054b34775a1e98bb10e9c9b6ccf0b76dfe4df805479f7948ed27353f6761a00c",
+        "bytes": 7213
+      },
+      {
+        "role": "build_report",
+        "filename": "BUILD_REPORT.md",
+        "sha256": "44a452d41b487f79b9e780eae40fcd26392f71b430da272c8de23f97eaa7256a",
+        "bytes": 3429
+      }
+    ],
+    "warnings": [
+      "1 field(s) are explicitly excluded from the attested commitment: display_language"
+    ]
+  }
+}

@@ -47,7 +47,6 @@ internal object NfcPortableCredentialFormat {
         val pinLength: Int,
         val issuedAtIso: String,
         val issuerKeyId: String,
-        val issuerPublicKeyFingerprintSha256: String,
         val issuerPublicKeyBase64: String,
         val envelopeHash: String,
         val credentialSecretHash: String
@@ -74,13 +73,9 @@ internal object NfcPortableCredentialFormat {
         val pinLength: Int = 0,
         val issuedAtIso: String = "",
         val issuerKeyId: String = "",
-        val issuerPublicKeyFingerprintSha256: String = "",
         val issuerPublicKeyBase64: String = "",
         val issuerSignatureValid: Boolean = false,
         val issuerTrusted: Boolean? = null,
-        val issuerTrustBasis: String = "not_checked",
-        val pinVerified: Boolean = false,
-        val pinRejected: Boolean = false,
         val envelopeHash: String = "",
         val credentialSecretHash: String = ""
     )
@@ -141,7 +136,6 @@ internal object NfcPortableCredentialFormat {
             pinLength = aad.pinLength,
             issuedAtIso = issuedAtIso,
             issuerKeyId = issuerKeyId,
-            issuerPublicKeyFingerprintSha256 = signer.fingerprintSha256,
             issuerPublicKeyBase64 = Base64.getEncoder().encodeToString(signer.publicKey.encoded),
             envelopeHash = Digests.sha256Hex(envelope),
             credentialSecretHash = Digests.sha256Hex(secret)
@@ -185,7 +179,6 @@ internal object NfcPortableCredentialFormat {
     fun verify(
         envelope: String,
         pin: CharArray,
-        trustedIssuerFingerprintsSha256: Set<String> = emptySet(),
         trustedIssuerKeyIds: Set<String> = emptySet()
     ): VerifiedCredential {
         val parsed = runCatching { parse(envelope) }.getOrElse { error ->
@@ -205,14 +198,7 @@ internal object NfcPortableCredentialFormat {
         }
 
         val publicKey = runCatching { decodePublicKey(parsed.issuerPublicKey) }.getOrNull()
-        val publicKeyFingerprint = publicKey?.encoded?.let(Digests::sha256Hex).orEmpty()
-        val actualIssuerKeyId = publicKeyFingerprint.take(16)
-        val trust = issuerTrustDecision(
-            publicKeyFingerprintSha256 = publicKeyFingerprint,
-            issuerKeyId = parsed.issuerKeyId,
-            trustedIssuerFingerprintsSha256 = trustedIssuerFingerprintsSha256,
-            trustedIssuerKeyIds = trustedIssuerKeyIds
-        )
+        val actualIssuerKeyId = publicKey?.encoded?.let(Digests::sha256Hex)?.take(16).orEmpty()
         val signatureValid = publicKey != null &&
             actualIssuerKeyId == parsed.issuerKeyId &&
             verifySignature(
@@ -228,18 +214,17 @@ internal object NfcPortableCredentialFormat {
                 credentialId = parsed.credentialId,
                 pinLength = parsed.pinLength,
                 issuerKeyId = parsed.issuerKeyId,
-                issuerPublicKeyFingerprintSha256 = publicKeyFingerprint,
                 issuerPublicKeyBase64 = publicKey?.encoded
                     ?.let(Base64.getEncoder()::encodeToString)
                     .orEmpty(),
                 issuerSignatureValid = false,
-                issuerTrusted = trust.trusted,
-                issuerTrustBasis = trust.basis,
+                issuerTrusted = trustedIssuerKeyIds.takeIf(Set<String>::isNotEmpty)
+                    ?.contains(parsed.issuerKeyId),
                 envelopeHash = Digests.sha256Hex(parsed.envelope)
             )
         }
         val verifiedPublicKey = requireNotNull(publicKey)
-        if (trust.trusted == false) {
+        if (trustedIssuerKeyIds.isNotEmpty() && parsed.issuerKeyId !in trustedIssuerKeyIds) {
             pin.fill('\u0000')
             return VerifiedCredential(
                 verified = false,
@@ -247,11 +232,9 @@ internal object NfcPortableCredentialFormat {
                 credentialId = parsed.credentialId,
                 pinLength = parsed.pinLength,
                 issuerKeyId = parsed.issuerKeyId,
-                issuerPublicKeyFingerprintSha256 = publicKeyFingerprint,
                 issuerPublicKeyBase64 = Base64.getEncoder().encodeToString(verifiedPublicKey.encoded),
                 issuerSignatureValid = true,
                 issuerTrusted = false,
-                issuerTrustBasis = trust.basis,
                 envelopeHash = Digests.sha256Hex(parsed.envelope)
             )
         }
@@ -265,11 +248,10 @@ internal object NfcPortableCredentialFormat {
                 credentialId = parsed.credentialId,
                 pinLength = parsed.pinLength,
                 issuerKeyId = parsed.issuerKeyId,
-                issuerPublicKeyFingerprintSha256 = publicKeyFingerprint,
                 issuerPublicKeyBase64 = Base64.getEncoder().encodeToString(verifiedPublicKey.encoded),
                 issuerSignatureValid = true,
-                issuerTrusted = trust.trusted,
-                issuerTrustBasis = trust.basis,
+                issuerTrusted = trustedIssuerKeyIds.takeIf(Set<String>::isNotEmpty)
+                    ?.contains(parsed.issuerKeyId),
                 envelopeHash = Digests.sha256Hex(parsed.envelope)
             )
         }
@@ -284,12 +266,10 @@ internal object NfcPortableCredentialFormat {
                 credentialId = parsed.credentialId,
                 pinLength = parsed.pinLength,
                 issuerKeyId = parsed.issuerKeyId,
-                issuerPublicKeyFingerprintSha256 = publicKeyFingerprint,
                 issuerPublicKeyBase64 = Base64.getEncoder().encodeToString(verifiedPublicKey.encoded),
                 issuerSignatureValid = true,
-                issuerTrusted = trust.trusted,
-                issuerTrustBasis = trust.basis,
-                pinRejected = true,
+                issuerTrusted = trustedIssuerKeyIds.takeIf(Set<String>::isNotEmpty)
+                    ?.contains(parsed.issuerKeyId),
                 envelopeHash = Digests.sha256Hex(parsed.envelope)
             )
         } catch (_: Exception) {
@@ -301,11 +281,10 @@ internal object NfcPortableCredentialFormat {
                 credentialId = parsed.credentialId,
                 pinLength = parsed.pinLength,
                 issuerKeyId = parsed.issuerKeyId,
-                issuerPublicKeyFingerprintSha256 = publicKeyFingerprint,
                 issuerPublicKeyBase64 = Base64.getEncoder().encodeToString(verifiedPublicKey.encoded),
                 issuerSignatureValid = true,
-                issuerTrusted = trust.trusted,
-                issuerTrustBasis = trust.basis,
+                issuerTrusted = trustedIssuerKeyIds.takeIf(Set<String>::isNotEmpty)
+                    ?.contains(parsed.issuerKeyId),
                 envelopeHash = Digests.sha256Hex(parsed.envelope)
             )
         } finally {
@@ -314,96 +293,30 @@ internal object NfcPortableCredentialFormat {
         }
         val plaintextParts = String(plaintext, StandardCharsets.UTF_8).split('.')
         if (plaintextParts.size != 4 || plaintextParts[0] != VERSION) {
-            return VerifiedCredential(
-                false,
-                "Decrypted credential structure is invalid.",
-                credentialId = parsed.credentialId,
-                pinLength = parsed.pinLength,
-                issuerKeyId = parsed.issuerKeyId,
-                issuerPublicKeyFingerprintSha256 = publicKeyFingerprint,
-                issuerPublicKeyBase64 = Base64.getEncoder().encodeToString(verifiedPublicKey.encoded),
-                issuerSignatureValid = true,
-                issuerTrusted = trust.trusted,
-                issuerTrustBasis = trust.basis,
-                pinVerified = true,
-                envelopeHash = Digests.sha256Hex(parsed.envelope)
-            )
+            return VerifiedCredential(false, "Decrypted credential structure is invalid.")
         }
         val memberId = runCatching { decodeString(plaintextParts[1]) }.getOrDefault("")
         val secret = runCatching { decodeBytes(plaintextParts[2]) }.getOrDefault(ByteArray(0))
         val issuedAtIso = runCatching { decodeString(plaintextParts[3]) }.getOrDefault("")
         if (memberId.isBlank() || secret.size != SECRET_BYTES || issuedAtIso.isBlank()) {
-            return VerifiedCredential(
-                false,
-                "Decrypted credential contents are invalid.",
-                credentialId = parsed.credentialId,
-                pinLength = parsed.pinLength,
-                issuerKeyId = parsed.issuerKeyId,
-                issuerPublicKeyFingerprintSha256 = publicKeyFingerprint,
-                issuerPublicKeyBase64 = Base64.getEncoder().encodeToString(verifiedPublicKey.encoded),
-                issuerSignatureValid = true,
-                issuerTrusted = trust.trusted,
-                issuerTrustBasis = trust.basis,
-                pinVerified = true,
-                envelopeHash = Digests.sha256Hex(parsed.envelope)
-            )
+            return VerifiedCredential(false, "Decrypted credential contents are invalid.")
         }
 
         return VerifiedCredential(
             verified = true,
-            message = if (trust.trusted == true) {
-                "Credential, PIN, signature and trusted issuer verified."
-            } else {
-                "Credential and PIN verified; issuer trust was not checked."
-            },
+            message = "Credential and PIN verified.",
             credentialId = parsed.credentialId,
             credentialSubjectId = memberId,
             pinLength = parsed.pinLength,
             issuedAtIso = issuedAtIso,
             issuerKeyId = parsed.issuerKeyId,
-            issuerPublicKeyFingerprintSha256 = publicKeyFingerprint,
             issuerPublicKeyBase64 = Base64.getEncoder().encodeToString(verifiedPublicKey.encoded),
             issuerSignatureValid = true,
-            issuerTrusted = trust.trusted,
-            issuerTrustBasis = trust.basis,
-            pinVerified = true,
+            issuerTrusted = trustedIssuerKeyIds.takeIf(Set<String>::isNotEmpty)
+                ?.contains(parsed.issuerKeyId),
             envelopeHash = Digests.sha256Hex(parsed.envelope),
             credentialSecretHash = Digests.sha256Hex(secret)
         )
-    }
-
-    private data class IssuerTrustDecision(
-        val trusted: Boolean?,
-        val basis: String
-    )
-
-    private fun issuerTrustDecision(
-        publicKeyFingerprintSha256: String,
-        issuerKeyId: String,
-        trustedIssuerFingerprintsSha256: Set<String>,
-        trustedIssuerKeyIds: Set<String>
-    ): IssuerTrustDecision {
-        val trustedFingerprints = trustedIssuerFingerprintsSha256
-            .map { it.trim().lowercase() }
-            .filter(String::isNotBlank)
-            .toSet()
-        if (trustedFingerprints.isNotEmpty()) {
-            return IssuerTrustDecision(
-                trusted = publicKeyFingerprintSha256.lowercase() in trustedFingerprints,
-                basis = "public_key_sha256"
-            )
-        }
-        val legacyIds = trustedIssuerKeyIds
-            .map { it.trim().lowercase() }
-            .filter(String::isNotBlank)
-            .toSet()
-        if (legacyIds.isNotEmpty()) {
-            return IssuerTrustDecision(
-                trusted = issuerKeyId.lowercase() in legacyIds,
-                basis = "legacy_short_key_id"
-            )
-        }
-        return IssuerTrustDecision(trusted = null, basis = "not_checked")
     }
 
     private data class CredentialAad(
@@ -520,10 +433,8 @@ private fun BigInteger.toFixedUnsignedBytes(size: Int): ByteArray {
 
 internal interface NfcCredentialSigner {
     val publicKey: PublicKey
-    val fingerprintSha256: String
-        get() = Digests.sha256Hex(publicKey.encoded)
     val keyId: String
-        get() = fingerprintSha256.take(16)
+        get() = Digests.sha256Hex(publicKey.encoded).take(16)
 
     fun sign(content: ByteArray): ByteArray
 

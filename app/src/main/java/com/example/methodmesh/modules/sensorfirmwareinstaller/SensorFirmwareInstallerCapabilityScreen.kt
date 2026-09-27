@@ -150,7 +150,7 @@ private val SENSOR_FIRMWARE_PROFILES = listOf(
         description = "MethodMesh BLE-provisioned ESP-NOW relay/gateway node for resilient field transport.",
         sampleIntervalMs = 0,
         fullImageAsset = "firmware/esp32c3_images/methodmesh_esp32c3_espnow_mesh.bin",
-        firmwareVersion = "methodmesh-espmesh-0.4.0",
+        firmwareVersion = "methodmesh-espmesh-0.4.6",
         postInstallInstruction = "Reset the board normally, then open ESP mesh transport to provision the radio network and phone-only E2E group key.",
         isMeshNode = true
     )
