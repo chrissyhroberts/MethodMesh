@@ -213,6 +213,16 @@ object NfcTagRepository {
                 else -> {
                     ndef.writeNdefMessage(message)
                     val requestedHash = Digests.sha256Hex(message.toByteArray())
+                    if (!request.verifyAfterWrite) {
+                        closeQuietly(ndef)
+                        return NdefWriteAttempt(
+                            success = true,
+                            message = "NDEF write completed. Tap the same tag again to verify it.",
+                            previousMessageHash = existingHash.orEmpty(),
+                            writtenMessageHash = requestedHash,
+                            verified = false
+                        )
+                    }
                     // Many tags briefly reset after a successful write. Reading
                     // through the original connected Ndef instance can then
                     // report a lost tag even though the write completed. Close

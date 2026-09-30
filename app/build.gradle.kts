@@ -22,8 +22,8 @@ android {
         applicationId = "com.example.methodmesh"
         minSdk = 27
         targetSdk = 36
-        versionCode = 11
-        versionName = "2.10.0"
+        versionCode = 12
+        versionName = "2.11.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

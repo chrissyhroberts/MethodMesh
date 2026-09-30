@@ -53,7 +53,9 @@ Cryptographic validity and study authorisation are deliberately separate. A
 credential can be structurally valid, correctly signed and unlocked by its PIN
 without implying that the issuer or credential was commissioned by a particular
 study. Ordinary study forms therefore capture the evidence and leave issuer,
-credential, validity and revocation checks to the study reconciliation layer.
+credential, study-authorisation and revocation checks to the study reconciliation
+layer. The portable credential still carries its own cryptographic expiry and
+MethodMesh rejects it after that expiry.
 
 ### `nfc_tag_read`, `nfc_tag_write`, and `nfc_tag_wipe`
 
@@ -219,7 +221,8 @@ Provisioning inputs:
 
 | Input | Required | Meaning |
 |---|---:|---|
-| `credential_subject_id` | yes | Identifier recovered only after successful PIN verification. |
+| `credential_subject_id` | yes | Stable pseudonymous subject/registry identifier encrypted into the credential. |
+| `valid_until_date` | yes | Inclusive ISO calendar date (`YYYY-MM-DD`); MethodMesh stores the following UTC midnight as the exclusive expiry. |
 | `credential_id` | no | Credential identifier; MethodMesh generates one when omitted. |
 | `pin_length` | no | `4` or `6`; default `6`. |
 | `overwrite_policy` | no | `empty_only` (default), `replace`, or `compare_and_replace`. |
@@ -292,7 +295,7 @@ allow-list is supplied, so `issuer_trust_status` is normally `not_checked`.
 successful credential verification it binds the observed NFC tag UID, credential
 ID, credential subject ID, credential-envelope hash, full issuer fingerprint,
 issuer-signature result and PIN-verification result under the version reported in
-`verification_evidence_format`. ROSC1 does not cryptographically bind the tag UID
+`verification_evidence_format`. ROSC2 does not cryptographically bind the tag UID
 inside the signed credential itself, so this records the observed tag but does
 not claim clone resistance.
 
@@ -307,7 +310,7 @@ The on-card record is an NDEF external record of type:
 methodmesh:portable-credential
 ```
 
-The `ROSC1` envelope contains:
+The `ROSC2` envelope contains:
 
 - credential ID and PIN length;
 - random Argon2id salt;
@@ -316,7 +319,10 @@ The `ROSC1` envelope contains:
 - ECDSA issuer signature.
 
 The encrypted content contains the credential subject ID, a random 256-bit
-credential secret, and issue time. A wrong PIN fails authenticated decryption.
+credential secret, issue time, and an exclusive UTC expiry instant. Provisioning
+forms supply the expiry as an inclusive calendar date; MethodMesh stores the
+following UTC midnight and rejects the credential at or after that instant. A
+wrong PIN fails authenticated decryption.
 Changing any signed envelope component invalidates the issuer signature.
 
 The compact envelope is designed to fit a typical 492-byte NDEF credential
@@ -362,9 +368,11 @@ The canonical credential examples now ship as matched XLSForm/XForm pairs:
 The provisioning form captures realistic study-registry context including holder
 display name, pseudonymous registry/subject ID, holder type, role, site,
 organisation/team, administrative validity start/end dates, authorisation and
-issuance reason. Under the current ROSC1 contract, these study identity and
-governance fields remain in ODK/Sentinel and are linked to the returned
-`credential_id`; they are not silently written into the NFC credential.
+issuance reason. These study identity and governance fields remain in
+ODK/Sentinel and are linked to the returned `credential_id`; they are not
+silently written into the NFC credential. Only the validity end date needed for
+portable cryptographic expiry is passed to MethodMesh; Sentinel remains the
+authority for study/provisioner legitimacy.
 
 The verification form captures study/site/purpose context, optional expected
 credential and subject IDs, explicit post-scan mismatch checks, the full actual

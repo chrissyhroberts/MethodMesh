@@ -26,13 +26,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.platform.nfc.NfcTagSignal
@@ -46,7 +41,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.util.UUID
+
+private enum class CredentialProvisioningStage {
+    Setup,
+    ScanCard,
+    EnterPin,
+    ConfirmPin,
+    Write,
+    Verify,
+    Result
+}
 
 object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100NfcCredentialProvisioningMethod.ID
@@ -79,6 +86,13 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                     .ifBlank { "cred_${UUID.randomUUID().toString().replace("-", "").take(16)}" }
             )
         }
+        val suppliedValidUntilDate = sequenceOf(
+            supplied["valid_until_date"],
+            supplied["input_valid_until_date"],
+            supplied["credential_valid_until_date"],
+            supplied["input_credential_valid_until_date"]
+        ).map { it?.trim().orEmpty() }.firstOrNull(String::isNotBlank).orEmpty()
+        var validUntilDate by remember { mutableStateOf(suppliedValidUntilDate) }
         var pinLength by remember {
             mutableIntStateOf(supplied[NfcProvisionFields.PIN_LENGTH]?.toIntOrNull()?.takeIf { it == 4 || it == 6 } ?: 6)
         }
@@ -95,21 +109,21 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
         var overwritePolicyExpanded by remember { mutableStateOf(false) }
         var firstTag by remember { mutableStateOf<NfcTagSignal?>(null) }
         var firstTagUid by remember { mutableStateOf("") }
+        var readerArmToken by remember { mutableIntStateOf(0) }
         var pin by remember { mutableStateOf("") }
         var confirmPin by remember { mutableStateOf("") }
-        var active by remember { mutableStateOf(false) }
-        var writing by remember { mutableStateOf(false) }
-        var awaitingReadBack by remember { mutableStateOf(false) }
+        var stage by remember { mutableStateOf(CredentialProvisioningStage.Setup) }
         var firstWriteValues by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
         val initialStatus = rememberNfcAvailabilityMessage()
         var status by remember { mutableStateOf(initialStatus) }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
-        LaunchedEffect(subjectId, credentialId, pinLength, overwritePolicy) {
+        LaunchedEffect(subjectId, credentialId, validUntilDate, pinLength, overwritePolicy) {
             context.onSettingsChanged(
                 mapOf(
                     NfcProvisionFields.CREDENTIAL_SUBJECT_ID to subjectId,
                     NfcProvisionFields.CREDENTIAL_ID to credentialId,
+                    "valid_until_date" to validUntilDate,
                     NfcProvisionFields.PIN_LENGTH to pinLength.toString(),
                     NfcWriteFields.OVERWRITE_POLICY to overwritePolicy.wireValue
                 )
@@ -129,10 +143,8 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
             result = null
             firstTag = null
             firstTagUid = ""
-            writing = false
-            awaitingReadBack = false
             firstWriteValues = emptyMap()
-            active = true
+            stage = CredentialProvisioningStage.ScanCard
             status = "Tap the NFC card to inspect it before provisioning."
         }
 
@@ -146,6 +158,15 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                     status = "Enter exactly $pinLength digits."
                 pin != confirmPin -> status = "The PIN entries do not match."
                 else -> scope.launch {
+                    val validUntil = runCatching {
+                        // The supplied calendar date is inclusive. Store the next
+                        // UTC midnight as an exclusive instant so the credential
+                        // remains valid for the whole stated day.
+                        LocalDate.parse(validUntilDate).plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant()
+                    }.getOrElse {
+                        status = "Enter valid_until_date as an ISO date (YYYY-MM-DD)."
+                        return@launch
+                    }
                     status = "Preparing the encrypted credential…"
                     val credential = runCatching {
                         withContext(Dispatchers.Default) {
@@ -153,7 +174,8 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                                 credentialSubjectId = subjectId,
                                 credentialId = credentialId,
                                 pin = pin.toCharArray(),
-                                signer = AndroidNfcCredentialSigner
+                                signer = AndroidNfcCredentialSigner,
+                                validUntil = validUntil
                             )
                         }
                     }.getOrElse {
@@ -165,11 +187,8 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                     pin = ""
                     confirmPin = ""
                     pendingCredential = credential
-                    writing = true
-                    active = false
-                    delay(150)
-                    active = true
-                    status = "Tap the same card again and hold it in place while MethodMesh writes and verifies it."
+                    stage = CredentialProvisioningStage.Write
+                    status = "PIN confirmed. Tap the same card to write the credential."
                 }
             }
         }
@@ -179,25 +198,25 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
         }
 
         NfcDeviceServiceEffect(
-            enabled = active,
+            enabled = stage == CredentialProvisioningStage.ScanCard ||
+                stage == CredentialProvisioningStage.Write ||
+                stage == CredentialProvisioningStage.Verify,
+            operationKey = "provisioning-$stage-$readerArmToken",
             holdReaderMode = true,
             onStatus = { status = it },
             onSignal = { tagSignal ->
                 scope.launch {
                     val uid = NfcTagRepository.tagUidHex(tagSignal.androidTag)
-                    if (awaitingReadBack) {
+                    if (stage == CredentialProvisioningStage.Verify) {
                         val credential = pendingCredential
                         if (uid != firstTagUid) {
-                            active = false
+                            readerArmToken += 1
                             status = "That is a different card. Tap the card that was just provisioned."
-                            delay(150)
-                            active = true
                         } else if (credential == null) {
-                            active = false
-                            awaitingReadBack = false
+                            stage = CredentialProvisioningStage.Result
                             status = "Prepared credential is unavailable. Start again."
                         } else {
-                            status = "Verifying the credential written to the card…"
+                            status = "Reading back and verifying the credential…"
                             val execution = withContext(Dispatchers.IO) {
                                 As100NfcCredentialProvisioningMethod.confirmReadBack(
                                     tagSignal = tagSignal,
@@ -207,18 +226,15 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                                     invocationContext = context.request.invocationContext
                                 )
                             }
-                            active = false
-                            awaitingReadBack = false
-                            writing = false
                             pendingCredential = null
                             result = execution
+                            stage = CredentialProvisioningStage.Result
                             status = OutputFormatter.fields(execution, false)[NfcProvisionFields.PROVISION_MESSAGE]
                                 ?.toString()
                                 ?: "Provisioning verification finished."
                             if (context.submitsImmediately) onConfirmed(execution)
                         }
-                    } else if (!writing) {
-                        active = false
+                    } else if (stage == CredentialProvisioningStage.ScanCard) {
                         val tagValues = withContext(Dispatchers.IO) {
                             NfcTagRepository.readTag(tagSignal.androidTag)
                         }
@@ -229,21 +245,21 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                         } else {
                             firstTag = tagSignal
                             firstTagUid = uid
-                            status = "Card accepted. Create the $pinLength-digit PIN, then tap the card again to write."
+                            readerArmToken += 1
+                            stage = CredentialProvisioningStage.EnterPin
+                            status = "Card accepted. Create a $pinLength-digit PIN."
                         }
-                    } else {
+                    } else if (stage == CredentialProvisioningStage.Write) {
                         val credential = pendingCredential
                         if (uid != firstTagUid) {
-                            active = false
-                            writing = false
                             pendingCredential = null
+                            stage = CredentialProvisioningStage.Result
                             status = "That is a different card. Provisioning cancelled before writing."
                         } else if (credential == null) {
-                            active = false
-                            writing = false
+                            stage = CredentialProvisioningStage.Result
                             status = "Prepared credential is unavailable. Start again."
                         } else {
-                            status = "Writing and verifying the credential…"
+                            status = "Writing the credential. Keep the card against the phone…"
                             val execution = withContext(Dispatchers.IO) {
                                 As100NfcCredentialProvisioningMethod.provision(
                                     tagSignal = tagSignal,
@@ -253,7 +269,8 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                                         value = credential.envelope,
                                         mimeType = NfcPortableCredentialFormat.MIME_TYPE,
                                         overwritePolicy = overwritePolicy,
-                                        expectedCurrentHash = supplied["expected_current_hash"]?.takeIf(String::isNotBlank)
+                                        expectedCurrentHash = supplied["expected_current_hash"]?.takeIf(String::isNotBlank),
+                                        verifyAfterWrite = false
                                     ),
                                     invocationContext = context.request.invocationContext
                                 )
@@ -265,17 +282,12 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                             )
                             if (!verified && writeCompleted) {
                                 firstWriteValues = fields.mapValues { it.value.toString() }
-                                writing = false
-                                awaitingReadBack = true
-                                active = false
-                                delay(150)
-                                active = true
-                                status = "The card reset after writing. Tap the same card once more to verify the stored credential."
+                                stage = CredentialProvisioningStage.Verify
+                                status = "Write complete. Tap the same card again to verify the credential."
                             } else {
-                                active = false
                                 result = execution
                                 pendingCredential = null
-                                writing = false
+                                stage = CredentialProvisioningStage.Result
                                 status = fields[NfcProvisionFields.PROVISION_MESSAGE]?.toString()
                                     ?: "Provisioning finished."
                                 if (context.submitsImmediately) onConfirmed(execution)
@@ -292,121 +304,131 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
             context = context,
             canGoBack = context.stepNumber > 1,
             capturedResult = result,
-            resultPreview = result?.let { OutputFormatter.fields(it, false) }.orEmpty(),
+            resultPreview = result?.let { provisioningHumanResult(it) }.orEmpty(),
             onBack = onBack,
             onRetry = { startFirstScan() },
-            onConfirm = { result?.let(onConfirmed) },
-            onCancel = onCancel
+        onConfirm = { result?.let(onConfirmed) },
+        onCancel = onCancel
         ) {
-            OutlinedTextField(
-                value = subjectId,
-                onValueChange = { subjectId = it },
-                label = { Text("Credential subject ID") },
-                enabled = firstTag == null && !active,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = credentialId,
-                onValueChange = { credentialId = it },
-                label = { Text("Credential ID") },
-                enabled = firstTag == null && !active,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth()) {
-                listOf(4, 6).forEach { length ->
-                    OutlinedButton(
-                        onClick = { pinLength = length },
-                        enabled = firstTag == null,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(if (pinLength == length) "✓ $length-digit PIN" else "$length-digit PIN")
-                    }
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            Text("Existing card content", style = MaterialTheme.typography.labelLarge)
-            Spacer(Modifier.height(4.dp))
-            if (context.startsImmediately) {
-                Text(
-                    overwritePolicy.label,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            } else {
-                OutlinedButton(
-                    onClick = { overwritePolicyExpanded = true },
-                    enabled = firstTag == null && !active && !writing && !awaitingReadBack,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        overwritePolicy.label,
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Start
+            when (stage) {
+                CredentialProvisioningStage.Setup -> {
+                    OutlinedTextField(
+                        value = subjectId,
+                        onValueChange = { subjectId = it },
+                        label = { Text("Credential subject ID") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
                     )
-                    Text("▼")
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = credentialId,
+                        onValueChange = { credentialId = it },
+                        label = { Text("Credential ID") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = validUntilDate,
+                        onValueChange = { validUntilDate = it },
+                        label = { Text("Valid until (YYYY-MM-DD)") },
+                        supportingText = { Text("Inclusive date; the credential expires after this UTC day.") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth()) {
+                        listOf(4, 6).forEach { length ->
+                            OutlinedButton(
+                                onClick = { pinLength = length },
+                                modifier = Modifier.weight(1f)
+                            ) { Text(if (pinLength == length) "✓ $length-digit PIN" else "$length-digit PIN") }
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Text("Existing card content", style = MaterialTheme.typography.labelLarge)
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = { overwritePolicyExpanded = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(overwritePolicy.label, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
+                        Text("▼")
+                    }
+                    DropdownMenu(
+                        expanded = overwritePolicyExpanded,
+                        onDismissRequest = { overwritePolicyExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.9f)
+                    ) {
+                        listOf(NfcOverwritePolicy.EmptyOnly, NfcOverwritePolicy.Replace).forEach { policy ->
+                            DropdownMenuItem(
+                                text = { Text(policy.label) },
+                                onClick = { overwritePolicy = policy; overwritePolicyExpanded = false }
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        if (overwritePolicy == NfcOverwritePolicy.EmptyOnly) {
+                            "Safe default: provisioning stops if the card already contains NDEF data."
+                        } else {
+                            "Existing NDEF content will be replaced."
+                        },
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = { startFirstScan() }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Start provisioning")
+                    }
                 }
-                DropdownMenu(
-                    expanded = overwritePolicyExpanded,
-                    onDismissRequest = { overwritePolicyExpanded = false },
-                    modifier = Modifier.fillMaxWidth(0.9f)
-                ) {
-                    listOf(
-                        NfcOverwritePolicy.EmptyOnly,
-                        NfcOverwritePolicy.Replace
-                    ).forEach { policy ->
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(policy.label)
-                                    Text(
-                                        policy.wireValue,
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
-                            },
-                            onClick = {
-                                overwritePolicy = policy
-                                overwritePolicyExpanded = false
-                                if (policy == NfcOverwritePolicy.Replace) {
-                                    status =
-                                        "Replacement enabled. Existing NDEF content will be overwritten after you scan the card again."
-                                }
-                            }
-                        )
+                CredentialProvisioningStage.ScanCard -> ProvisioningStep(
+                    number = 1,
+                    title = "Prepare the card",
+                    instruction = "Tap the NFC card and hold it still."
+                )
+                CredentialProvisioningStage.EnterPin -> {
+                    ProvisioningStep(2, "Create a PIN", "Choose a $pinLength-digit PIN for this credential.")
+                    PinField(pin, {}, "Create PIN", pinLength)
+                    PinPad(pin, { pin = it }, pinLength)
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = { if (pin.length == pinLength) { confirmPin = ""; stage = CredentialProvisioningStage.ConfirmPin; status = "Confirm the PIN." } else status = "Enter all $pinLength digits." },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Continue") }
+                }
+                CredentialProvisioningStage.ConfirmPin -> {
+                    ProvisioningStep(3, "Confirm the PIN", "Enter the same PIN again.")
+                    PinField(confirmPin, {}, "Confirm PIN", pinLength)
+                    PinPad(confirmPin, { confirmPin = it }, pinLength)
+                    Spacer(Modifier.height(12.dp))
+                    Button(onClick = { beginPreparedWrite() }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Confirm PIN")
+                    }
+                }
+                CredentialProvisioningStage.Write -> ProvisioningStep(
+                    number = 4,
+                    title = "Write the credential",
+                    instruction = "Tap the same card and keep it against the phone until the write completes."
+                )
+                CredentialProvisioningStage.Verify -> ProvisioningStep(
+                    number = 5,
+                    title = "Verify the card",
+                    instruction = "Tap the same card again to confirm the credential was stored correctly."
+                )
+                CredentialProvisioningStage.Result -> {
+                    Text(status, style = MaterialTheme.typography.bodyLarge)
+                    if (result == null) {
+                        Spacer(Modifier.height(12.dp))
+                        Button(onClick = { startFirstScan() }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Try again")
+                        }
                     }
                 }
             }
-            Text(
-                when (overwritePolicy) {
-                    NfcOverwritePolicy.EmptyOnly ->
-                        "Safe default: provisioning stops if the card already contains NDEF data."
-                    NfcOverwritePolicy.Replace ->
-                        "Existing NDEF content will be replaced. The previous message hash is retained in the result."
-                    NfcOverwritePolicy.CompareAndReplace ->
-                        "Compare-and-replace is not exposed by credential provisioning."
-                },
-                style = MaterialTheme.typography.labelSmall
-            )
-            if (firstTag != null && result == null && !awaitingReadBack) {
+            if (stage != CredentialProvisioningStage.Result) {
                 Spacer(Modifier.height(12.dp))
-                PinField(pin, { pin = it }, "Create PIN", pinLength, autoFocus = true)
-                Spacer(Modifier.height(8.dp))
-                PinField(confirmPin, { confirmPin = it }, "Confirm PIN", pinLength, autoFocus = pin.length == pinLength)
-                Spacer(Modifier.height(8.dp))
-                Button(onClick = { beginPreparedWrite() }, enabled = !active, modifier = Modifier.fillMaxWidth()) {
-                    Text("Continue to write")
-                }
-            } else if (!active && result == null) {
-                Spacer(Modifier.height(12.dp))
-                Button(onClick = { startFirstScan() }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Scan card to provision")
-                }
+                Text(status, style = MaterialTheme.typography.bodyMedium)
             }
-            Spacer(Modifier.height(12.dp))
-            Text(status, style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(16.dp))
             IntentExampleDropdown(
                 capabilityId = capabilityId,
@@ -491,12 +513,25 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
                     NfcPortableCredentialFormat.verify(envelope, enteredPin, trustedIssuers)
                 }
                 if (!verified.verified) {
+                    val failure = As100NfcCredentialVerificationMethod.failed(
+                        tagSignal = signal,
+                        capturedTagValues = capturedTagValues,
+                        credential = verified,
+                        invocationContext = context.request.invocationContext
+                    )
+                    result = failure
                     attempts += 1
-                    if (attempts >= 5) {
-                        status = "Verification failed five times. Scan the card again to restart."
-                    } else {
+                    val retryable = verified.message == "PIN is incorrect."
+                    if (retryable && attempts < 5) {
                         status = "${verified.message} ${5 - attempts} attempts remain."
                         delay(attempts * 500L)
+                    } else {
+                        status = if (retryable) {
+                            "Verification failed five times. ${verified.message}"
+                        } else {
+                            verified.message
+                        }
+                        if (context.submitsImmediately) onConfirmed(failure)
                     }
                     return@launch
                 }
@@ -567,6 +602,7 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
             }
             if (tagSignal != null && result == null) {
                 PinField(pin, { pin = it }, "Enter PIN", expectedPinLength, autoFocus = true)
+                PinPad(pin, { pin = it }, expectedPinLength)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     if (attempts == 0) {
@@ -610,64 +646,82 @@ private fun PinField(
     pinLength: Int,
     autoFocus: Boolean = false
 ) {
-    val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(autoFocus, pinLength) {
-        if (autoFocus) {
-            delay(100)
-            focusRequester.requestFocus()
-        }
-    }
-
     Column(Modifier.fillMaxWidth()) {
         Text(label, style = MaterialTheme.typography.labelLarge)
         Spacer(Modifier.height(6.dp))
-        BasicTextField(
-            value = value,
-            onValueChange = { onValueChange(digitsOnly(it, pinLength)) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester),
-            decorationBox = { innerTextField ->
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        repeat(pinLength) { index ->
-                            Surface(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(52.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (index == value.length && value.length < pinLength) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.outlineVariant
-                                    }
-                                )
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        if (index < value.length) "●" else "",
-                                        style = MaterialTheme.typography.titleLarge
-                                    )
-                                }
-                            }
-                        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            repeat(pinLength) { index ->
+                Surface(
+                    modifier = Modifier.weight(1f).height(52.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        if (index == value.length && value.length < pinLength) {
+                            MaterialTheme.colorScheme.primary
+                        } else MaterialTheme.colorScheme.outlineVariant
+                    )
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(if (index < value.length) "●" else "", style = MaterialTheme.typography.titleLarge)
                     }
-                    // Keep a real BasicTextField in the semantics/focus tree so Android
-                    // supplies its native numeric-password IME. The visible credential
-                    // UI is the fixed-length row of PIN cells above.
-                    Box(Modifier.height(1.dp)) { innerTextField() }
                 }
             }
-        )
+        }
     }
+}
+
+@Composable
+private fun PinPad(value: String, onValueChange: (String) -> Unit, pinLength: Int) {
+    val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫")
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        keys.chunked(3).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { key ->
+                    if (key.isBlank()) {
+                        Spacer(Modifier.weight(1f))
+                    } else {
+                        OutlinedButton(
+                            onClick = {
+                                onValueChange(
+                                    if (key == "⌫") value.dropLast(1)
+                                    else digitsOnly(value + key, pinLength)
+                                )
+                            },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            enabled = key == "⌫" || value.length < pinLength
+                        ) { Text(key, style = MaterialTheme.typography.titleMedium) }
+                    }
+                }
+            }
+        }
+        OutlinedButton(onClick = { onValueChange("") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Clear")
+        }
+    }
+}
+
+@Composable
+private fun ProvisioningStep(number: Int, title: String, instruction: String) {
+    Text("Step $number of 5", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+    Spacer(Modifier.height(6.dp))
+    Text(title, style = MaterialTheme.typography.headlineSmall)
+    Spacer(Modifier.height(8.dp))
+    Text(instruction, style = MaterialTheme.typography.bodyLarge)
+    Spacer(Modifier.height(14.dp))
+}
+
+private fun provisioningHumanResult(result: ExecutionResult): Map<String, Any?> {
+    val fields = OutputFormatter.fields(result, false)
+    return linkedMapOf(
+        "provision_success" to fields[NfcProvisionFields.PROVISION_SUCCESS],
+        "provision_message" to fields[NfcProvisionFields.PROVISION_MESSAGE],
+        "credential_id" to fields[NfcProvisionFields.CREDENTIAL_ID],
+        "credential_subject_id" to fields[NfcProvisionFields.CREDENTIAL_SUBJECT_ID],
+        "write_verified" to fields[NfcWriteFields.WRITE_VERIFIED]
+    ).filterValues { it?.toString().orEmpty().isNotBlank() }
 }
 
 private fun digitsOnly(value: String, maxLength: Int): String =

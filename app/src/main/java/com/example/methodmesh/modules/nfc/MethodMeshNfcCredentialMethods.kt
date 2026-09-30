@@ -97,6 +97,7 @@ object As100NfcCredentialProvisioningMethod : As100Method {
             NfcProvisionFields.CREDENTIAL_FORMAT_VERSION to NfcPortableCredentialFormat.VERSION,
             NfcProvisionFields.KEY_DERIVATION to NfcPortableCredentialFormat.KEY_DERIVATION,
             NfcProvisionFields.CREDENTIAL_ISSUED_TIME_ISO to credential.issuedAtIso,
+            NfcProvisionFields.VALID_UNTIL_ISO to credential.validUntilIso,
             NfcProvisionFields.CREDENTIAL_ENVELOPE_HASH to credential.envelopeHash,
             NfcProvisionFields.CREDENTIAL_SECRET_HASH to credential.credentialSecretHash,
             NfcProvisionFields.ISSUER_KEY_ID to issuerIdentity.issuerKeyId,
@@ -163,6 +164,7 @@ object As100NfcCredentialProvisioningMethod : As100Method {
             NfcProvisionFields.CREDENTIAL_FORMAT_VERSION to NfcPortableCredentialFormat.VERSION,
             NfcProvisionFields.KEY_DERIVATION to NfcPortableCredentialFormat.KEY_DERIVATION,
             NfcProvisionFields.CREDENTIAL_ISSUED_TIME_ISO to credential.issuedAtIso,
+            NfcProvisionFields.VALID_UNTIL_ISO to credential.validUntilIso,
             NfcProvisionFields.CREDENTIAL_ENVELOPE_HASH to credential.envelopeHash,
             NfcProvisionFields.CREDENTIAL_SECRET_HASH to credential.credentialSecretHash,
             NfcProvisionFields.ISSUER_KEY_ID to issuerIdentity.issuerKeyId,
@@ -283,6 +285,7 @@ object As100NfcCredentialVerificationMethod : As100Method {
             NfcProvisionFields.CREDENTIAL_FORMAT_VERSION to NfcPortableCredentialFormat.VERSION,
             NfcProvisionFields.KEY_DERIVATION to NfcPortableCredentialFormat.KEY_DERIVATION,
             NfcProvisionFields.CREDENTIAL_ISSUED_TIME_ISO to credential.issuedAtIso,
+            NfcProvisionFields.VALID_UNTIL_ISO to credential.validUntilIso,
             NfcProvisionFields.CREDENTIAL_ENVELOPE_HASH to credential.envelopeHash,
             NfcProvisionFields.CREDENTIAL_SECRET_HASH to credential.credentialSecretHash,
             NfcProvisionFields.ISSUER_KEY_ID to issuerIdentity.issuerKeyId,
@@ -306,6 +309,53 @@ object As100NfcCredentialVerificationMethod : As100Method {
             tagSignal = tagSignal,
             values = values,
             success = true,
+            message = credential.message,
+            invocationContext = invocationContext
+        )
+    }
+
+    internal fun failed(
+        tagSignal: NfcTagSignal,
+        capturedTagValues: Map<String, String>,
+        credential: NfcPortableCredentialFormat.VerifiedCredential,
+        invocationContext: InvocationContext? = null
+    ): ExecutionResult {
+        val issuerIdentity = credential.issuerPublicKeyBase64
+            .takeIf(String::isNotBlank)
+            ?.let { runCatching { NfcIssuerIdentityResolver.fromPublicKeyBase64(it) }.getOrNull() }
+        val trustStatus = when (credential.issuerTrusted) {
+            true -> "trusted"
+            false -> "untrusted"
+            null -> "not_checked"
+        }
+        val values = linkedMapOf(
+            NfcCredentialVerificationFields.CREDENTIAL_VERIFIED to "false",
+            NfcCredentialVerificationFields.VERIFICATION_MESSAGE to credential.message,
+            NfcProvisionFields.CREDENTIAL_ID to credential.credentialId,
+            NfcProvisionFields.PIN_LENGTH to credential.pinLength.toString(),
+            NfcProvisionFields.CREDENTIAL_FORMAT_VERSION to NfcPortableCredentialFormat.VERSION,
+            NfcProvisionFields.KEY_DERIVATION to NfcPortableCredentialFormat.KEY_DERIVATION,
+            NfcProvisionFields.CREDENTIAL_ISSUED_TIME_ISO to credential.issuedAtIso,
+            NfcProvisionFields.VALID_UNTIL_ISO to credential.validUntilIso,
+            NfcProvisionFields.CREDENTIAL_ENVELOPE_HASH to credential.envelopeHash,
+            NfcProvisionFields.ISSUER_KEY_ID to credential.issuerKeyId,
+            NfcProvisionFields.ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256 to
+                issuerIdentity?.publicKeyFingerprintSha256.orEmpty(),
+            NfcProvisionFields.ISSUER_PUBLIC_KEY_BASE64 to credential.issuerPublicKeyBase64,
+            NfcProvisionFields.ISSUER_SIGNATURE_ALGORITHM to
+                issuerIdentity?.signatureAlgorithm.orEmpty(),
+            NfcCredentialVerificationFields.PIN_VERIFIED to "false",
+            NfcCredentialVerificationFields.ISSUER_SIGNATURE_VALID to credential.issuerSignatureValid.toString(),
+            NfcCredentialVerificationFields.ISSUER_TRUST_STATUS to trustStatus,
+            NfcEvidenceFields.TAG_UID_HEX to capturedTagValues[NfcEvidenceFields.TAG_UID_HEX].orEmpty()
+        )
+        return credentialExecutionResult(
+            method = this,
+            methodVersion = VERSION,
+            phenomenon = "nfc.credential.verification_failed",
+            tagSignal = tagSignal,
+            values = values,
+            success = false,
             message = credential.message,
             invocationContext = invocationContext
         )

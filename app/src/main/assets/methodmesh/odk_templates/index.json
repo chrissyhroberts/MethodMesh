@@ -1,11 +1,11 @@
 {
   "schema": "methodmesh.odk_template_index.v3",
   "generatedFrom": "app/src/main/java/com/example/methodmesh",
-  "templateCount": 416,
+  "templateCount": 415,
   "moduleCount": 80,
   "validationSummary": {
     "formsNeedingRevision": 142,
-    "cleanForms": 274,
+    "cleanForms": 273,
     "severityCounts": {
       "error": 0,
       "warning": 34,
@@ -6692,9 +6692,9 @@
       "sourceFileName": "example_odk_nfc_credential_provisioning.xlsx",
       "sourceRelativePath": "modules/nfc/docs/example_odk_nfc_credential_provisioning.xlsx",
       "centralFormId": "nfc_credential_provisioning",
-      "formVersion": "2026092502",
+      "formVersion": "2026093006",
       "assetPath": "methodmesh/odk_templates/nfc/example_odk_nfc_credential_provisioning.xlsx",
-      "sha256": "033d9c776a10c5bfe4d9253174e2e331e3d664402fad6429b6eac2b1d865e9a4",
+      "sha256": "c5b723c6a106f8985af77688620aba89b319a5cbc022d7e69adadde894208c56",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6712,9 +6712,9 @@
       "sourceFileName": "example_odk_nfc_credential_verification.xlsx",
       "sourceRelativePath": "modules/nfc/docs/example_odk_nfc_credential_verification.xlsx",
       "centralFormId": "nfc_credential_verification",
-      "formVersion": "2026092501",
+      "formVersion": "2026093002",
       "assetPath": "methodmesh/odk_templates/nfc/example_odk_nfc_credential_verification.xlsx",
-      "sha256": "176ccfd6b87b58ce639f1e3acd2d098ce8d65c8c224630a61ae3da2f8b1a2ec1",
+      "sha256": "3369b2b0fc945e7f1f8f750243ecdeeec01213ba00eae3bd6601e8d5137ef1f5",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6841,26 +6841,6 @@
             "details": ""
           }
         ]
-      }
-    },
-    {
-      "id": "nfc.example_odk_showcase_nfc_credential_provisioning",
-      "moduleId": "nfc",
-      "moduleName": "Nfc",
-      "displayName": "MethodMesh NFC — nfc_credential_provisioning",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_nfc_credential_provisioning.xlsx",
-      "sourceRelativePath": "modules/nfc/docs/example_odk_showcase_nfc_credential_provisioning.xlsx",
-      "centralFormId": "nfc_nfc_credential_provisioning",
-      "formVersion": "2026092502",
-      "assetPath": "methodmesh/odk_templates/nfc/example_odk_showcase_nfc_credential_provisioning.xlsx",
-      "sha256": "8d9706b7e4a11284df7991c91aafdcce3ca0f91d711c682bece67727b029c0c6",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
       }
     },
     {

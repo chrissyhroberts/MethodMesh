@@ -28,7 +28,7 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 internal object NfcPortableCredentialFormat {
-    const val VERSION = "ROSC1"
+    const val VERSION = "ROSC2"
     const val MIME_TYPE = "methodmesh:portable-credential"
     const val KEY_DERIVATION = "argon2id-m32768-t3-p1"
     private const val MEMORY_KIB = 32 * 1024
@@ -38,7 +38,7 @@ internal object NfcPortableCredentialFormat {
     private const val SALT_BYTES = 16
     private const val NONCE_BYTES = 12
     private const val SECRET_BYTES = 32
-    private val envelopePattern = Regex("""ROSC1(?:\.[A-Za-z0-9_-]+){8}""")
+    private val envelopePattern = Regex("""ROSC2(?:\.[A-Za-z0-9_-]+){8}""")
 
     data class ProvisionedCredential(
         val envelope: String,
@@ -46,6 +46,7 @@ internal object NfcPortableCredentialFormat {
         val credentialSubjectId: String,
         val pinLength: Int,
         val issuedAtIso: String,
+        val validUntilIso: String,
         val issuerKeyId: String,
         val issuerPublicKeyBase64: String,
         val envelopeHash: String,
@@ -72,6 +73,7 @@ internal object NfcPortableCredentialFormat {
         val credentialSubjectId: String = "",
         val pinLength: Int = 0,
         val issuedAtIso: String = "",
+        val validUntilIso: String = "",
         val issuerKeyId: String = "",
         val issuerPublicKeyBase64: String = "",
         val issuerSignatureValid: Boolean = false,
@@ -86,6 +88,7 @@ internal object NfcPortableCredentialFormat {
         pin: CharArray,
         signer: NfcCredentialSigner,
         issuedAt: Instant = Instant.now(),
+        validUntil: Instant,
         random: SecureRandom = SecureRandom()
     ): ProvisionedCredential {
         val normalizedSubjectId = credentialSubjectId.trim()
@@ -93,16 +96,19 @@ internal object NfcPortableCredentialFormat {
         require(normalizedSubjectId.isNotBlank()) { "credential_subject_id is required." }
         require(normalizedCredentialId.isNotBlank()) { "credential_id is required." }
         validatePin(pin)
+        require(validUntil.isAfter(issuedAt)) { "Credential expiry must be after its issue time." }
 
         val salt = ByteArray(SALT_BYTES).also(random::nextBytes)
         val nonce = ByteArray(NONCE_BYTES).also(random::nextBytes)
         val secret = ByteArray(SECRET_BYTES).also(random::nextBytes)
         val issuedAtIso = issuedAt.toString()
+        val validUntilIso = validUntil.toString()
         val plaintext = listOf(
             VERSION,
             encodeString(normalizedSubjectId),
             encodeBytes(secret),
-            encodeString(issuedAtIso)
+            encodeString(issuedAtIso),
+            encodeString(validUntilIso)
         ).joinToString(".").toByteArray(StandardCharsets.UTF_8)
 
         val issuerKeyId = signer.keyId
@@ -135,6 +141,7 @@ internal object NfcPortableCredentialFormat {
             credentialSubjectId = normalizedSubjectId,
             pinLength = aad.pinLength,
             issuedAtIso = issuedAtIso,
+            validUntilIso = validUntilIso,
             issuerKeyId = issuerKeyId,
             issuerPublicKeyBase64 = Base64.getEncoder().encodeToString(signer.publicKey.encoded),
             envelopeHash = Digests.sha256Hex(envelope),
@@ -179,7 +186,8 @@ internal object NfcPortableCredentialFormat {
     fun verify(
         envelope: String,
         pin: CharArray,
-        trustedIssuerKeyIds: Set<String> = emptySet()
+        trustedIssuerKeyIds: Set<String> = emptySet(),
+        now: Instant = Instant.now()
     ): VerifiedCredential {
         val parsed = runCatching { parse(envelope) }.getOrElse { error ->
             pin.fill('\u0000')
@@ -292,14 +300,32 @@ internal object NfcPortableCredentialFormat {
             pin.fill('\u0000')
         }
         val plaintextParts = String(plaintext, StandardCharsets.UTF_8).split('.')
-        if (plaintextParts.size != 4 || plaintextParts[0] != VERSION) {
+        if (plaintextParts.size != 5 || plaintextParts[0] != VERSION) {
             return VerifiedCredential(false, "Decrypted credential structure is invalid.")
         }
         val memberId = runCatching { decodeString(plaintextParts[1]) }.getOrDefault("")
         val secret = runCatching { decodeBytes(plaintextParts[2]) }.getOrDefault(ByteArray(0))
         val issuedAtIso = runCatching { decodeString(plaintextParts[3]) }.getOrDefault("")
-        if (memberId.isBlank() || secret.size != SECRET_BYTES || issuedAtIso.isBlank()) {
+        val validUntilIso = runCatching { decodeString(plaintextParts[4]) }.getOrDefault("")
+        val validUntil = runCatching { Instant.parse(validUntilIso) }.getOrNull()
+        if (memberId.isBlank() || secret.size != SECRET_BYTES || issuedAtIso.isBlank() || validUntil == null) {
             return VerifiedCredential(false, "Decrypted credential contents are invalid.")
+        }
+        if (!now.isBefore(validUntil)) {
+            return VerifiedCredential(
+                verified = false,
+                message = "Credential expired.",
+                credentialId = parsed.credentialId,
+                pinLength = parsed.pinLength,
+                issuedAtIso = issuedAtIso,
+                validUntilIso = validUntilIso,
+                issuerKeyId = parsed.issuerKeyId,
+                issuerPublicKeyBase64 = Base64.getEncoder().encodeToString(verifiedPublicKey.encoded),
+                issuerSignatureValid = true,
+                issuerTrusted = trustedIssuerKeyIds.takeIf(Set<String>::isNotEmpty)
+                    ?.contains(parsed.issuerKeyId),
+                envelopeHash = Digests.sha256Hex(parsed.envelope)
+            )
         }
 
         return VerifiedCredential(
@@ -309,6 +335,7 @@ internal object NfcPortableCredentialFormat {
             credentialSubjectId = memberId,
             pinLength = parsed.pinLength,
             issuedAtIso = issuedAtIso,
+            validUntilIso = validUntilIso,
             issuerKeyId = parsed.issuerKeyId,
             issuerPublicKeyBase64 = Base64.getEncoder().encodeToString(verifiedPublicKey.encoded),
             issuerSignatureValid = true,
