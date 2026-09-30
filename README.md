@@ -26,6 +26,8 @@ The latest alpha release includes a debug-signed APK for sideloading from the [G
 
 ## How the pieces connect
 
+![](docs/assets/MethodMesh_Overview.png)
+
 ```mermaid
 flowchart LR
     U[Person or ODK form] --> C[Capability]
