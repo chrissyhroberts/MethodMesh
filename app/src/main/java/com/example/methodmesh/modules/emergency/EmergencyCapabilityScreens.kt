@@ -102,6 +102,16 @@ object EmergencyPackCapabilityScreen : CapabilityScreenSpec {
 private enum class EmergencyPane { DASHBOARD, LOCATION, EXIT, REFERENCE, PREPARE, VAULT }
 
 @Composable
+fun EmergencyControlCentre(
+    context: CapabilityScreenContext,
+    onBack: () -> Unit,
+    onConfirmed: (ExecutionResult) -> Unit,
+    onCancel: () -> Unit
+) {
+    EmergencyScreen(context, EmergencyPane.DASHBOARD, onBack, onConfirmed, onCancel)
+}
+
+@Composable
 private fun EmergencyScreen(
     screenContext: CapabilityScreenContext,
     initialPane: EmergencyPane,

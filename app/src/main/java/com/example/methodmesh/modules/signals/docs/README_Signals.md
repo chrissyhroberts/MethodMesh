@@ -1,6 +1,6 @@
 # MethodMesh Signals
 
-Version: **0.5.3**  
+Version: **0.5.4.1**  
 Module status: **Development**  
 Connectivity: **Offline**
 
@@ -16,8 +16,10 @@ The module is not a replacement for conventional networking, secure messaging or
 |---|---|---|---|---|
 | `signal.morse.transmit` | Morse transmitter | Development | Offline | front screen / rear torch / speaker |
 | `signal.morse.receive` | Morse receiver | Development | Offline | camera luminance / microphone / manual human observation; light sensor legacy-only |
-| `signal.qr.transmit` | QR burst transmitter | Development | Offline | screen -> camera |
-| `signal.qr.receive` | QR burst receiver | Development | Offline | camera |
+| `signal.qr.transmit` | QR live transmitter | Development | Offline | screen -> camera |
+| `signal.qr.receive` | QR live receiver | Development | Offline | camera |
+| `signal.qr_burst.transmit` | QR Burst transmitter | Experimental | Offline | high-rate screen -> recorded camera burst |
+| `signal.qr_burst.receive` | QR Burst recorded receiver | Experimental | Offline | raw camera capture -> offline QR decode |
 | `signal.audio_fsk.transmit` | Audio FSK transmitter | Development | Offline | speaker -> microphone/radio audio path |
 | `signal.audio_fsk.receive` | Audio FSK receiver | Development | Offline | microphone |
 | `signal.ultrasonic.transmit` | Near-ultrasonic transmitter | Experimental | Offline | high-frequency phone audio |
@@ -38,7 +40,8 @@ Every method above is independently registered by `SignalsModule`; the dashboard
 The 0.4 physical-channel pass incorporates repeated real two-phone testing. It keeps the polished instrument family but makes the physical links observable and explicitly framed: Morse now uses cyclic acquisition/START/END framing and message-level consensus; live FSK is wired to clock recovery and exposes a microphone spectrum; QR supports segmented transfers up to 1 MiB with explicit end-to-end SHA-256; tabletop calibration is fail-safe; and long-range camera optics remain available. The live tool remains visually dominant and configuration remains below it.
 
 - **Morse** uses an amber telegraph/beacon language. Transmission is looping-only: every cycle sends three acquisition flashes, a distinctive 12-unit START mark, the message, a different 20-unit END mark, then quiet before repeating. In v0.5.3 screen Morse can add redundant colour evidence without changing canonical timing: acquisition/dots are WHITE and START/END/dashes are RED. The camera learns white from the known acquisition marks and red from START, then fuses chroma and duration probabilistically; if colour separation is weak it falls back to ordinary timing-only Morse. The receiver quarantines any pre-START orphan, accepts consensus votes only from complete START→END cycles, and can use an END-anchored orphan later at reduced weight once a bounded copy establishes message geometry. Confidence combines cross-cycle agreement with finite-evidence shrinkage rather than reporting one clean copy as 100%. Camera reception supports real zoom, Full/Focus/Pinpoint ROIs, tap-to-position and temporal-modulation auto-lock. Screen mode uses deliberate underexposure, median ROI luminance and a two-frame stability gate to reject rolling-shutter swipes; torch/point mode underexposes further, prefers a pinpoint ROI and requires three stable frames to suppress flare-decay edges. Manual receive is a third first-class source: the operator taps START SIGNAL, DOT and DASH while watching/listening to an external sender. START bounds repeated observations; raw tap timing is retained within the working decoder and the entire observation is re-segmented as cadence evidence improves, so an early wrong WPM prior cannot permanently merge letters. Optical timing is capped at 10 WPM with 5 WPM recommended; sound-only transmission/reception is capped at 30 WPM. Mark speed and element/letter/word/cycle gaps are separate discrete axes so optical spacing can be relaxed without changing the mark rate.
-- **QR burst** uses a cyan optical-modem language: current coded frame, frame/cycle/dwell telemetry, Reed-Solomon geometry and recovery progress. Text and files are wrapped with an object SHA-256; larger files are segmented across independent MMS/1 packets and a second transfer-envelope SHA-256 verifies reassembly. The 1 MiB ceiling is supported but can require thousands of QR frames, so text and smaller files are the practical sweet spot. Active transmission expands to a full-screen maximum-brightness optical surface. QR receive exposes actual hardware optical zoom (1x / 2x / 4x / device maximum).
+- **QR live** uses a cyan optical-modem language: current coded frame, frame/cycle/dwell telemetry, Reed-Solomon geometry and recovery progress. Text and files are wrapped with an object SHA-256; larger files are segmented across independent MMS/1 packets and a second transfer-envelope SHA-256 verifies reassembly. The 1 MiB ceiling is supported but can require thousands of QR frames, so text and smaller files are the practical sweet spot. Active transmission expands to a full-screen maximum-brightness optical surface. QR receive exposes actual hardware optical zoom (1x / 2x / 4x / device maximum).
+- **QR Burst recorded mode (v0.5.4)** separates capture from decoding. TX uses 10/15/20/30 QR/s profiles with larger 320–512 byte MMS shards. RX stores a bounded central grayscale camera burst with no ZXing work in the capture loop, then scans the frozen frames offline, deduplicates repeated observations, accepts out-of-order shards and accumulates multiple captures until existing MMS/1 Reed–Solomon recovery plus transmitted SHA-256 verification completes. The 15 QR/s Balanced profile is the first field benchmark, not a throughput guarantee.
 - **Audible FSK** uses a cyan radio-modem language with MARK/SPACE carrier rail, matched A/B/C/D profiles, live microphone spectrum, peak frequency, tone-confidence, clock/sync/frame diagnostics and receiver shard progress. The live receiver uses preamble-based clock acquisition. v0.4.2 adds in-frame percentage telemetry after SYNC, explicit first-frame/cycle time estimates, lower output amplitude to reduce handset/microphone saturation, and a compact binary physical representation of generated MMS/1 frames; the exact CRC-bearing ASCII MMS/1 frame is reconstructed before transport validation.
 - **Near-ultrasonic FSK** uses the same modem grammar, spectrum and A/B/C/D profiles with a violet experimental treatment. Handset testing showed unstable peaks around 14–15 kHz and little useful response above that, so profiles now start at 12/13 kHz and step upward to 15/16 kHz rather than assuming 18/19 kHz is usable.
 - **Tabletop transfer** remains an explicitly **Experimental** research channel. It uses low-frequency OOK transmission into a shared rigid surface, accelerometer rest calibration, live vibration trace and clock/sync/frame telemetry, but current phone-pair testing has not produced reliable reception. The capability is retained for experimentation rather than presented as a dependable transfer path.
@@ -236,7 +239,7 @@ Canonical returns are the declared fields above plus shared `methodmesh_status` 
 
 ---
 
-# QR burst transmitter — `signal.qr.transmit`
+# QR live transmitter — `signal.qr.transmit`
 
 Wrap text or a file up to 1 MiB in a checksum-bearing content envelope and display the transfer as a QR blast. A content SHA-256 travels with the original object. Transfers that exceed one MMS/1 Reed-Solomon matrix are split into independently recoverable MMS/1 segments and also carry a transfer-envelope SHA-256. QR supplies per-symbol error correction; MMS/1 supplies recovery **between** QR frames; the receiver verifies both reassembly and the final reconstructed object before Commit.
 
@@ -273,7 +276,7 @@ Interactive acquisition is required because the screen must actually display at 
 
 ---
 
-# QR burst receiver — `signal.qr.receive`
+# QR live receiver — `signal.qr.receive`
 
 Continuously scan QR codes, reject non-MMS/1 or CRC-invalid frames, retain unique complete frames, and reconstruct once enough independent Reed-Solomon rows are available. Complete received MMS/1 frames are persisted as temporary working state across ordinary Activity recreation; no archive is created unless the caller/preset explicitly requests persistence through shared MethodMesh mechanisms.
 
@@ -297,6 +300,38 @@ com.example.methodmesh.EXECUTE_METHOD(
 ```
 
 Interactive camera acquisition is required. Returns are the declared fields plus shared `methodmesh_status` and `methodmesh_full_json`.
+
+---
+
+# QR Burst transmitter — `signal.qr_burst.transmit`
+
+High-rate optical QR mode for recorded reception. It uses the same `SignalContentEnvelope`, segmented `SignalQrTransferCodec`, MMS/1 frame CRC, Reed–Solomon erasure recovery and final SHA-256 verification as QR live. The physical schedule is different: Safe = 10 QR/s with 320-byte shards; Balanced = 15 QR/s with 448-byte shards; Fast = 20 QR/s with 512-byte shards; Max = experimental 30 QR/s with 512-byte shards. The screen loops frames so a receiver can capture any time window.
+
+## Inputs
+
+`content_mode`, `payload`, `file_uri`, `file_name`, `file_mime`, `profile`, `loop`.
+
+## Declared outputs
+
+`signal_qr_burst_result`, `signal_qr_burst_payload`, `signal_qr_burst_content_type`, `signal_qr_burst_file_name`, `signal_qr_burst_file_mime`, `signal_qr_burst_file_bytes`, `signal_qr_burst_checksum_sha256`, `signal_qr_burst_message_id`, `signal_qr_burst_frame_count`, `signal_qr_burst_qr_per_second`, `signal_qr_burst_shard_bytes`, `signal_qr_burst_cycle_duration_ms`, `signal_qr_burst_profile`, `signal_qr_burst_cycles`, `signal_qr_burst_status`, `signal_qr_burst_error`.
+
+The canonical XLSForm is `example_odk_showcase_signal_qr_burst_transmit.xlsx`.
+
+---
+
+# QR Burst recorded receiver — `signal.qr_burst.receive`
+
+Capture-first receiver. CameraX copies a bounded 480×480-or-smaller center grayscale crop into memory while recording; **no QR decode runs during capture**. When capture stops, ZXing scans the frozen frames offline. Valid QR payloads are deduplicated and fed into the same MMS/1 segmented-transfer accumulator used by QR live. Additional bursts can be captured without clearing already accepted shards. Commit remains disabled until the reconstructed useful object passes transmitted SHA-256 verification.
+
+## Inputs
+
+`capture_seconds` (3/5/8), `zoom_ratio` (1/2/4/8), `message_id_filter`.
+
+## Declared outputs
+
+`signal_qr_burst_received_text`, `signal_qr_burst_content_type`, `signal_qr_burst_received_file_uri`, `signal_qr_burst_file_name`, `signal_qr_burst_file_mime`, `signal_qr_burst_file_bytes`, `signal_qr_burst_expected_sha256`, `signal_qr_burst_reconstructed_sha256`, `signal_qr_burst_checksum_verified`, `signal_qr_burst_message_id`, `signal_qr_burst_captured_frames`, `signal_qr_burst_frames_analyzed`, `signal_qr_burst_qr_decodes`, `signal_qr_burst_unique_qr_frames`, `signal_qr_burst_duplicates`, `signal_qr_burst_rejected`, `signal_qr_burst_recovered_missing_shards`, `signal_qr_burst_capture_ms`, `signal_qr_burst_status`, `signal_qr_burst_error`.
+
+The canonical XLSForm is `example_odk_showcase_signal_qr_burst_receive.xlsx`.
 
 ---
 
@@ -528,6 +563,8 @@ The module owns one v1.08 canonical single-invocation showcase per independently
 - `example_odk_showcase_signal_morse_receive.xlsx`
 - `example_odk_showcase_signal_qr_transmit.xlsx`
 - `example_odk_showcase_signal_qr_receive.xlsx`
+- `example_odk_showcase_signal_qr_burst_transmit.xlsx`
+- `example_odk_showcase_signal_qr_burst_receive.xlsx`
 - `example_odk_showcase_signal_audio_fsk_transmit.xlsx`
 - `example_odk_showcase_signal_audio_fsk_receive.xlsx`
 - `example_odk_showcase_signal_ultrasonic_transmit.xlsx`
@@ -546,7 +583,7 @@ Each workbook contains exactly one `com.example.methodmesh.EXECUTE_METHOD` inten
 
 The current MethodMesh host already declares the permissions used by this first pass:
 
-- `CAMERA` — QR receive, camera-luminance Morse/optical receive, rear torch and Torch PPM transmit;
+- `CAMERA` — QR live/QR Burst receive, camera-luminance Morse/optical receive, rear torch and Torch PPM transmit;
 - `RECORD_AUDIO` — Morse microphone receive, audible FSK receive, near-ultrasonic receive.
 
 Tabletop receive uses the accelerometer and requires no runtime sensor permission.

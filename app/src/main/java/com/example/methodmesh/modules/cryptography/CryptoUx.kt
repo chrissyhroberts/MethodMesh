@@ -1,5 +1,6 @@
 package com.example.methodmesh.modules.cryptography
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -119,10 +120,11 @@ fun CryptoRouteCard(
     title: String,
     question: String,
     actions: String,
-    note: String
+    note: String,
+    onClick: (() -> Unit)? = null
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().let { modifier -> if (onClick != null) modifier.clickable(onClick = onClick) else modifier },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(Modifier.padding(16.dp)) {

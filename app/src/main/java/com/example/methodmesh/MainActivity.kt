@@ -8,6 +8,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.activity.enableEdgeToEdge
 import com.example.methodmesh.calibration.CalibrationRepository
 import com.example.methodmesh.core.ResearchRuntime
+import com.example.methodmesh.core.timeassurance.TrustedTimeAutoRefresh
 import com.example.methodmesh.settings.DisplaySettingsRepository
 import com.example.methodmesh.transport.android.IntentRouterActivity
 import com.example.methodmesh.ui.HomeScreen
@@ -30,6 +31,11 @@ class MainActivity : FragmentActivity() {
                 HomeScreen()
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        TrustedTimeAutoRefresh.requestOnAppOpen(applicationContext)
     }
 
     override fun onNewIntent(intent: Intent) {

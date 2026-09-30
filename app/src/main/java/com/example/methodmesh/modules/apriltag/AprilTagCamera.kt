@@ -15,8 +15,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import androidx.camera.view.CameraController
-import androidx.camera.view.LifecycleCameraController
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -112,14 +112,7 @@ internal fun AprilTagCameraSurface(
         return
     }
 
-    val controller = remember(context) {
-        LifecycleCameraController(context.applicationContext).apply {
-            cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-            setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
-            imageAnalysisBackpressureStrategy = ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
-        }
-    }
-    val executor = remember(settings) { Executors.newSingleThreadExecutor() }
+    val executor = remember { Executors.newSingleThreadExecutor() }
     val detectorResult = remember(settings.family, settings.threads, settings.quadDecimate, settings.refineEdges, settings.tagSizeMm, settings.distanceScale) {
         AprilTagNativeBridge.create(
             AprilTagNativeBridge.DetectorConfig(
@@ -136,10 +129,13 @@ internal fun AprilTagCameraSurface(
     val latestFrame = remember { mutableStateOf<AprilTagFrame?>(null) }
     val latestOnFrame = rememberUpdatedState(onFrame)
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
+    var previewView by remember { mutableStateOf<PreviewView?>(null) }
+    val providerHolder = remember { arrayOfNulls<ProcessCameraProvider>(1) }
     val lastProcessed = remember { AtomicLong(0L) }
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
-    DisposableEffect(controller, lifecycleOwner, executor, detector, settings) {
+    LaunchedEffect(previewView, lifecycleOwner, detector, settings) {
+        val view = previewView ?: return@LaunchedEffect
         if (detector == null) {
             latestOnFrame.value(
                 AprilTagFrame(
@@ -149,53 +145,68 @@ internal fun AprilTagCameraSurface(
                 )
             )
         } else {
-            controller.setImageAnalysisAnalyzer(executor) { image ->
-                val now = System.currentTimeMillis()
-                if (now - lastProcessed.get() < 70L) {
-                    image.close()
-                    return@setImageAnalysisAnalyzer
-                }
-                lastProcessed.set(now)
-                try {
-                    val rotated = RotatedLuma.from(image)
-                    val intrinsics = CameraIntrinsicsResolver.resolve(context, settings, rotated.width, rotated.height, image.imageInfo.rotationDegrees)
-                    val result = detector.detect(
-                        gray = rotated.bytes,
-                        width = rotated.width,
-                        height = rotated.height,
-                        intrinsics = intrinsics
+            val future = ProcessCameraProvider.getInstance(context)
+            future.addListener({
+                runCatching {
+                    val provider = future.get()
+                    providerHolder[0] = provider
+                    val preview = Preview.Builder().build().also { it.setSurfaceProvider(view.surfaceProvider) }
+                    val analysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
+                        .also { useCase ->
+                            useCase.setAnalyzer(executor) { image ->
+                                val now = System.currentTimeMillis()
+                                if (now - lastProcessed.get() < 70L) {
+                                    image.close()
+                                    return@setAnalyzer
+                                }
+                                lastProcessed.set(now)
+                                try {
+                                    val rotated = RotatedLuma.from(image)
+                                    val intrinsics = CameraIntrinsicsResolver.resolve(context, settings, rotated.width, rotated.height, image.imageInfo.rotationDegrees)
+                                    val result = detector.detect(
+                                        gray = rotated.bytes,
+                                        width = rotated.width,
+                                        height = rotated.height,
+                                        intrinsics = intrinsics
+                                    )
+                                    val frame = AprilTagFrame(
+                                        detections = result.getOrDefault(emptyList()),
+                                        width = rotated.width,
+                                        height = rotated.height,
+                                        rotationDegrees = image.imageInfo.rotationDegrees,
+                                        intrinsics = intrinsics,
+                                        backend = AprilTagNativeBridge.backendName,
+                                        error = result.exceptionOrNull()?.message.orEmpty()
+                                    )
+                                    mainHandler.post {
+                                        latestFrame.value = frame
+                                        latestOnFrame.value(frame)
+                                    }
+                                } finally {
+                                    image.close()
+                                }
+                            }
+                        }
+                    provider.unbindAll()
+                    provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+                }.onFailure { error ->
+                    latestOnFrame.value(
+                        AprilTagFrame(
+                            emptyList(), 0, 0, 0, null,
+                            backend = AprilTagNativeBridge.backendName,
+                            error = error.message ?: "Camera unavailable."
+                        )
                     )
-                    val frame = AprilTagFrame(
-                        detections = result.getOrDefault(emptyList()),
-                        width = rotated.width,
-                        height = rotated.height,
-                        rotationDegrees = image.imageInfo.rotationDegrees,
-                        intrinsics = intrinsics,
-                        backend = AprilTagNativeBridge.backendName,
-                        error = result.exceptionOrNull()?.message.orEmpty()
-                    )
-                    mainHandler.post {
-                        latestFrame.value = frame
-                        latestOnFrame.value(frame)
-                    }
-                } finally {
-                    image.close()
                 }
-            }
+            }, ContextCompat.getMainExecutor(context))
         }
-        runCatching { controller.bindToLifecycle(lifecycleOwner) }
-            .onFailure { error ->
-                latestOnFrame.value(
-                    AprilTagFrame(
-                        emptyList(), 0, 0, 0, null,
-                        backend = AprilTagNativeBridge.backendName,
-                        error = error.message ?: "Camera unavailable."
-                    )
-                )
-            }
+    }
+
+    DisposableEffect(Unit) {
         onDispose {
-            controller.clearImageAnalysisAnalyzer()
-            controller.unbind()
+            runCatching { providerHolder[0]?.unbindAll() }
             detector?.close()
             executor.shutdown()
         }
@@ -214,10 +225,10 @@ internal fun AprilTagCameraSurface(
                 PreviewView(viewContext).apply {
                     implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                     scaleType = PreviewView.ScaleType.FIT_CENTER
-                    this.controller = controller
+                    previewView = this
                 }
             },
-            update = { it.controller = controller }
+            update = { previewView = it }
         )
 
         val frame = latestFrame.value

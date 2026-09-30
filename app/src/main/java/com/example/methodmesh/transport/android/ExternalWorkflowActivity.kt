@@ -436,12 +436,22 @@ private fun CapabilityStepScreen(
 ) {
     val scope = rememberCoroutineScope()
     val appContext = LocalContext.current
+    val dashboardRequest = request.source.equals("dashboard", ignoreCase = true) ||
+        request.source.equals("controller", ignoreCase = true) ||
+        request.settings["methodmesh_dashboard"].orEmpty().equals("true", ignoreCase = true) ||
+        request.settings["methodmesh_controller"].orEmpty().equals("true", ignoreCase = true) ||
+        request.invocationContext.caller.equals("dashboard", ignoreCase = true) ||
+        request.invocationContext.caller.equals("controller", ignoreCase = true) ||
+        request.invocationContext.caller.endsWith("_dashboard", ignoreCase = true) ||
+        request.invocationContext.caller.endsWith("_controller", ignoreCase = true) ||
+        request.invocationContext.caller.endsWith(" dashboard", ignoreCase = true)
         val screenContext = CapabilityScreenContext(
         action = action,
         request = request,
         stepNumber = stepNumber,
         totalSteps = totalSteps,
         completionMode = if (
+            dashboardRequest ||
             request.settings["methodmesh_headless"] != "true" &&
             request.settings["input_methodmesh_headless"] != "true" &&
             (request.settings["methodmesh_native_preset_run"] == "true" || request.settings["input_methodmesh_native_preset_run"] == "true") &&

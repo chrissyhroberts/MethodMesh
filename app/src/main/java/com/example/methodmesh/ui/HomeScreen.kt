@@ -99,20 +99,6 @@ import com.example.methodmesh.core.methodmesh.runtime.As100MethodRegistry
 import com.example.methodmesh.core.methodmesh.runtime.CapabilityConfigurationRegistry
 import com.example.methodmesh.core.methodmesh.runtime.CapabilityFavoritesRepository
 import com.example.methodmesh.core.methodmesh.withInvocationContext
-import com.example.methodmesh.core.onlinedata.ApiDefinition
-import com.example.methodmesh.core.onlinedata.ApiDefinitionOrigin
-import com.example.methodmesh.core.onlinedata.ApiDefinitionRepository
-import com.example.methodmesh.core.onlinedata.ApiExecutionResult
-import com.example.methodmesh.core.onlinedata.ApiGetExecutor
-import com.example.methodmesh.core.onlinedata.ApiGetRequest
-import com.example.methodmesh.core.onlinedata.ApiInputType
-import com.example.methodmesh.core.onlinedata.HttpUrlConnectionOnlineHttpClient
-import com.example.methodmesh.core.onlinedata.InMemoryApiDefinitionRegistry
-import com.example.methodmesh.core.onlinedata.OnlineHttpClient
-import com.example.methodmesh.core.onlinedata.OnlineHttpRequest
-import com.example.methodmesh.core.onlinedata.OnlineHttpResponse
-import com.example.methodmesh.core.onlinedata.OnlineExecutionStatus
-import com.example.methodmesh.core.onlinedata.ResultTree
 import com.example.methodmesh.modules.MethodMeshModule
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
 import com.example.methodmesh.modules.MethodMeshMetadataResolver
@@ -149,6 +135,7 @@ import com.example.methodmesh.ui.odk.OdkTemplateLibrary
 import com.example.methodmesh.ui.odkcentral.OdkCentralSettingsScreen
 import com.example.methodmesh.ui.artifacts.FilesScreen
 import com.example.methodmesh.ui.kobo.KoboSettingsScreen
+
 import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.common.model.RemoteModelManager
 import com.google.mlkit.nl.translate.TranslateRemoteModel
@@ -162,6 +149,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private fun moduleMapFor(
+    methods: List<As100Method>,
+    modules: List<MethodMeshModule>
+): Map<String, MethodMeshModule> {
+    val discovered = modules
+        .flatMap { module -> module.as100Methods().map { it.id to module } }
+        .toMap()
+    val registryMappings = methods.mapNotNull { method ->
+        MethodMeshModuleRegistry.moduleForMethod(method.id)?.let { method.id to it }
+    }.toMap()
+    return discovered + registryMappings
+}
 
 private data class ProtocolStepDraft(
     val presetId: String,
@@ -197,6 +197,7 @@ private fun capabilityUiClass(method: As100Method, module: MethodMeshModule?): C
         id in setOf(
             "android_app_inspector",
             "bluetooth_device_inspector",
+            "nfc_issuer_identity",
             "sensor_node_provisioner",
             "esp32.board_wipe",
             "esp32.runtime_install",
@@ -211,7 +212,6 @@ private fun capabilityUiClass(method: As100Method, module: MethodMeshModule?): C
         else -> CapabilityUiClass.ProtocolPrimitive
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -440,6 +440,9 @@ fun HomeScreen() {
     }
 }
 
+private fun isPrimaryDashboard(method: As100Method): Boolean =
+    method.id.endsWith(".dashboard", ignoreCase = true)
+
 @Composable
 private fun DrawerSectionLabel(label: String) {
     Text(
@@ -484,7 +487,7 @@ private fun FavouriteCapabilitiesCard(
     var selectedCapabilityId by rememberSaveable { mutableStateOf<String?>(null) }
     val screenMap = remember { MethodMeshModuleRegistry.capabilityScreens().associateBy { it.capabilityId } }
     val moduleByMethod = remember(modules) {
-        modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
+        moduleMapFor(methods, modules)
     }
     val favouriteIds = remember(revision) { CapabilityFavoritesRepository.all(context) }
     val favourites = methods.filter { it.id in favouriteIds }
@@ -551,7 +554,7 @@ private fun DashboardSearch(
     var selectedCapabilityId by rememberSaveable { mutableStateOf<String?>(null) }
     val screenMap = remember { MethodMeshModuleRegistry.capabilityScreens().associateBy { it.capabilityId } }
     val moduleByMethod = remember(modules) {
-        modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
+        moduleMapFor(methods, modules)
     }
     val searchableMethods = remember(methods, modules) {
         methods
@@ -1045,7 +1048,7 @@ private fun FindCapabilityCard(
     var selectedCapabilityId by rememberSaveable { mutableStateOf<String?>(null) }
     val screenMap = remember { MethodMeshModuleRegistry.capabilityScreens().associateBy { it.capabilityId } }
     val moduleByMethod = remember(modules) {
-        modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
+        moduleMapFor(methods, modules)
     }
     val searchableMethods = remember(methods, modules) {
         methods
@@ -1311,9 +1314,7 @@ private fun ProtocolLibraryCard(
 
                 if (showPresets) {
                     val moduleByMethod = remember {
-                        MethodMeshModuleRegistry.all()
-                            .flatMap { module -> module.as100Methods().map { it.id to module } }
-                            .toMap()
+                        moduleMapFor(As100MethodRegistry.all(), MethodMeshModuleRegistry.all())
                     }
                     Text("Presets", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(
@@ -2002,7 +2003,7 @@ private fun WorkbenchCard(
     onFavouriteChanged: () -> Unit = {}
 ) {
     val screenMap = MethodMeshModuleRegistry.capabilityScreens().associateBy { it.capabilityId }
-    val moduleByMethod = modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
+    val moduleByMethod = moduleMapFor(methods, modules)
     val workbenchMethods = methods.filter { method ->
         capabilityUiClass(method, moduleByMethod[method.id]) == CapabilityUiClass.WorkbenchTool
     }
@@ -2024,7 +2025,6 @@ private fun WorkbenchCard(
         )
 
         TimeAssuranceWorkbenchPanel(Modifier.padding(top = 8.dp, bottom = 12.dp))
-        WorkbenchApiLinksPanel()
 
         grouped.forEach { (moduleName, moduleMethods) ->
             var moduleExpanded by rememberSaveable("Workbench:$moduleName") { mutableStateOf(false) }
@@ -2043,313 +2043,13 @@ private fun WorkbenchCard(
                         screen = screenMap[method.id],
                         uiClass = CapabilityUiClass.WorkbenchTool,
                         onPresetSaved = {},
-                        onFavouriteChanged = onFavouriteChanged
+                        onFavouriteChanged = onFavouriteChanged,
+                        closeLabel = "Back to Workbench"
                     )
                 }
             }
         }
     }
-}
-
-@Composable
-private fun WorkbenchApiLinksPanel() {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var definitions by remember { mutableStateOf(ApiDefinitionRepository.all(context)) }
-    var selectedId by rememberSaveable { mutableStateOf(definitions.firstOrNull()?.id.orEmpty()) }
-    val selected = definitions.firstOrNull { it.id == selectedId } ?: definitions.firstOrNull()
-    val inputValues = remember { mutableStateMapOf<String, String>() }
-    var previewText by rememberSaveable { mutableStateOf("") }
-    var confirmDefinition by remember { mutableStateOf<ApiDefinition?>(null) }
-    var testing by rememberSaveable { mutableStateOf(false) }
-
-    fun refreshDefinitions() {
-        definitions = ApiDefinitionRepository.all(context)
-        if (selectedId.isBlank() || definitions.none { it.id == selectedId }) {
-            selectedId = definitions.firstOrNull()?.id.orEmpty()
-        }
-    }
-
-    LaunchedEffect(selected?.id) {
-        selected?.inputs.orEmpty().forEach { input ->
-            inputValues.putIfAbsent(input.id, input.defaultValue.ifBlank { sampleValueFor(input.type) })
-        }
-        previewText = ""
-    }
-
-    ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 12.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Online API links", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Inspect definitions and preview requests. Live testing will require explicit send confirmation.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { refreshDefinitions() }) {
-                    Text("Refresh")
-                }
-            }
-
-            if (definitions.isEmpty()) {
-                Text("No API definitions found.", style = MaterialTheme.typography.bodySmall)
-                return@Column
-            }
-
-            definitions.forEach { definition ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            selectedId = definition.id
-                            previewText = ""
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = definition.id == selected?.id,
-                        onClick = {
-                            selectedId = definition.id
-                            previewText = ""
-                        }
-                    )
-                    Column(Modifier.weight(1f)) {
-                        Text(definition.name, style = MaterialTheme.typography.labelLarge)
-                        Text(
-                            "${definition.id} · ${definition.origin.name.lowercase()} · v${definition.version}",
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                }
-            }
-
-            selected?.let { definition ->
-                if (definition.privacy.sendsLocation) {
-                    Text(
-                        apiLocationDisclosureText(definition),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                definition.inputs.forEach { input ->
-                    OutlinedTextField(
-                        value = inputValues[input.id].orEmpty(),
-                        onValueChange = { inputValues[input.id] = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        label = { Text(input.name) },
-                        placeholder = { Text(input.id) }
-                    )
-                }
-
-                OutlinedButton(shape = MaterialTheme.shapes.small,
-                    onClick = { previewText = apiDefinitionPreview(definition, inputValues.toMap()) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Preview request")
-                }
-
-                if (definition.origin == ApiDefinitionOrigin.BUNDLED) {
-                    Button(shape = MaterialTheme.shapes.small,
-                        onClick = {
-                            previewText = apiDefinitionPreview(definition, inputValues.toMap())
-                            confirmDefinition = definition
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !testing
-                    ) {
-                        Text(if (testing) "Sending…" else "Send test request")
-                    }
-                } else {
-                    Text(
-                        "Live testing for saved or imported API links will be enabled after the API editor has trust controls.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                if (definition.response.expectedPaths.isNotEmpty()) {
-                    Text("Expected paths", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                    definition.response.expectedPaths.forEach { path ->
-                        Text(path, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
-                    }
-                }
-
-                if (previewText.isNotBlank()) {
-                    SelectionContainer {
-                        Text(
-                            previewText,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 220.dp)
-                                .verticalScroll(rememberScrollState())
-                                .padding(top = 4.dp),
-                            fontFamily = FontFamily.Monospace,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    confirmDefinition?.let { definition ->
-        AlertDialog(
-            onDismissRequest = { confirmDefinition = null },
-            title = { Text("Send API request?") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("MethodMesh will send this bundled test request to ${definition.attribution.providerName}.")
-                    if (definition.privacy.sendsLocation) {
-                        Text(apiLocationDisclosureText(definition), color = MaterialTheme.colorScheme.error)
-                    }
-                    Text("Saved and imported API links remain preview-only until the API editor has trust controls.")
-                }
-            },
-            confirmButton = {
-                Button(shape = MaterialTheme.shapes.small,
-                    onClick = {
-                        val snapshot = definition
-                        val inputs = inputValues.toMap()
-                        confirmDefinition = null
-                        testing = true
-                        previewText = "Sending request…"
-                        scope.launch {
-                            val resultText = withContext(Dispatchers.IO) {
-                                val result = ApiGetExecutor(
-                                    registry = InMemoryApiDefinitionRegistry(listOf(snapshot)),
-                                    httpClient = HttpUrlConnectionOnlineHttpClient()
-                                ).execute(
-                                    ApiGetRequest(
-                                        definitionId = snapshot.id,
-                                        inputs = inputs
-                                    )
-                                )
-                                apiResultPreview(snapshot, result)
-                            }
-                            testing = false
-                            previewText = resultText
-                        }
-                    }
-                ) {
-                    Text("Send")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { confirmDefinition = null }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-}
-
-private fun apiDefinitionPreview(definition: ApiDefinition, inputs: Map<String, String>): String {
-    val executor = ApiGetExecutor(
-        registry = InMemoryApiDefinitionRegistry(listOf(definition)),
-        httpClient = object : OnlineHttpClient {
-            override fun get(request: OnlineHttpRequest): OnlineHttpResponse =
-                error("Offline preview does not send network requests.")
-        }
-    )
-    return runCatching {
-        val prepared = executor.prepare(definition, inputs)
-        buildString {
-            appendLine("Method: ${definition.method.name}")
-            appendLine("URL: ${prepared.redactedUrl}")
-            appendLine("Headers: ${prepared.headers.keys.sorted().joinToString().ifBlank { "none" }}")
-            appendLine("Cache: ${definition.cache.mode.name.lowercase()} · ${definition.cache.ttlSeconds}s")
-            appendLine("Response: ${definition.response.type.name.lowercase()}")
-        }.trim()
-    }.getOrElse { error ->
-        "Cannot prepare request: ${error.message.orEmpty()}"
-    }
-}
-
-private fun apiLocationDisclosureText(definition: ApiDefinition): String {
-    val provider = definition.attribution.providerName.ifBlank { "the provider" }
-    return when (definition.privacy.locationMode) {
-        com.example.methodmesh.core.onlinedata.LocationDisclosureMode.ROUNDED ->
-            "This API sends rounded location to $provider, about ${definition.privacy.roundedLocationRadiusMeters / 1_000} km precision."
-        com.example.methodmesh.core.onlinedata.LocationDisclosureMode.EXACT ->
-            "This API sends exact location to $provider."
-        com.example.methodmesh.core.onlinedata.LocationDisclosureMode.MANUAL ->
-            "This API sends the manually entered location to $provider."
-        com.example.methodmesh.core.onlinedata.LocationDisclosureMode.DISABLED ->
-            "This API is marked as not sending location."
-    }
-}
-
-private fun sampleValueFor(type: ApiInputType): String = when (type) {
-    ApiInputType.LATITUDE -> "52.0779"
-    ApiInputType.LONGITUDE -> "-0.0580"
-    ApiInputType.BOOLEAN -> "true"
-    ApiInputType.NUMBER -> "0"
-    else -> ""
-}
-
-private fun apiResultPreview(
-    definition: ApiDefinition,
-    result: ApiExecutionResult
-): String = buildString {
-    appendLine("Status: ${result.status.name.lowercase()}")
-    appendLine("Provider: ${definition.attribution.providerName}")
-    result.meta.statusCode?.let { appendLine("HTTP: $it") }
-    appendLine("Cache: ${if (result.meta.fromCache) "hit" else "miss"}")
-    result.meta.sourceUrlRedacted.takeIf { it.isNotBlank() }?.let { appendLine("URL: $it") }
-    result.error?.message?.takeIf { it.isNotBlank() }?.let { appendLine("Error: $it") }
-    result.error?.detail?.takeIf { it.isNotBlank() }?.let { appendLine("Detail: $it") }
-    appendLine()
-    appendLine("Data")
-    appendLine(resultTreePreview(result.data))
-}.trim()
-
-private fun resultTreePreview(tree: ResultTree, indent: String = "", maxDepth: Int = 4): String {
-    if (maxDepth <= 0) return "$indent…"
-    return when (tree) {
-        is ResultTree.ObjectNode -> {
-            if (tree.values.isEmpty()) {
-                "${indent}{}"
-            } else {
-                tree.values.entries.take(12).joinToString("\n") { (key, value) ->
-                    when (value) {
-                        is ResultTree.ObjectNode,
-                        is ResultTree.ArrayNode -> "$indent$key:\n${resultTreePreview(value, "$indent  ", maxDepth - 1)}"
-                        else -> "$indent$key: ${resultTreeScalar(value)}"
-                    }
-                } + if (tree.values.size > 12) "\n$indent…" else ""
-            }
-        }
-        is ResultTree.ArrayNode -> {
-            if (tree.values.isEmpty()) {
-                "${indent}[]"
-            } else {
-                tree.values.take(6).mapIndexed { index, value ->
-                    when (value) {
-                        is ResultTree.ObjectNode,
-                        is ResultTree.ArrayNode -> "$indent[$index]\n${resultTreePreview(value, "$indent  ", maxDepth - 1)}"
-                        else -> "$indent[$index] ${resultTreeScalar(value)}"
-                    }
-                }.joinToString("\n") + if (tree.values.size > 6) "\n$indent…" else ""
-            }
-        }
-        else -> "$indent${resultTreeScalar(tree)}"
-    }
-}
-
-private fun resultTreeScalar(tree: ResultTree): String = when (tree) {
-    is ResultTree.StringNode -> tree.value
-    is ResultTree.NumberNode -> tree.value.toString()
-    is ResultTree.BooleanNode -> tree.value.toString()
-    ResultTree.NullNode -> "null"
-    is ResultTree.ObjectNode -> "{…}"
-    is ResultTree.ArrayNode -> "[…]"
 }
 
 @Composable
@@ -2362,7 +2062,7 @@ private fun CapabilityRegistryCard(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val screenMap = MethodMeshModuleRegistry.capabilityScreens().associateBy { it.capabilityId }
-    val moduleByMethod = modules.flatMap { module -> module.as100Methods().map { it.id to module } }.toMap()
+    val moduleByMethod = moduleMapFor(methods, modules)
     val filteredMethods = methods.filter { method ->
         val moduleName = moduleByMethod[method.id]?.displayName.orEmpty()
         capabilityUiClass(method, moduleByMethod[method.id]) == CapabilityUiClass.ProtocolPrimitive &&
@@ -2433,7 +2133,7 @@ private fun CapabilityModuleSection(
     onFavouriteChanged: () -> Unit
 ) {
     var expanded by rememberSaveable("capability-module:$moduleName") { mutableStateOf(false) }
-    val showMethods = expanded || forceExpanded
+    val showMethods = (expanded || forceExpanded) && methods.isNotEmpty()
     val module = methods.firstNotNullOfOrNull { moduleByMethod[it.id] }
     Column(Modifier.fillMaxWidth()) {
         Row(
@@ -2450,11 +2150,7 @@ private fun CapabilityModuleSection(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    buildString {
-                        append(methods.size)
-                        append(" tool")
-                        if (methods.size != 1) append("s")
-                    },
+                    "${methods.size} " + if (methods.size == 1) "capability" else "capabilities",
                     modifier = Modifier.padding(top = 2.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -2483,7 +2179,10 @@ private fun CapabilityModuleSection(
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
         if (showMethods) {
-            methods.sortedBy { it.descriptor.name.lowercase() }.forEach { method ->
+            methods.sortedWith(
+                compareByDescending<As100Method> { isPrimaryDashboard(it) }
+                    .thenBy { it.descriptor.name.lowercase() }
+            ).forEach { method ->
                 CapabilityCard(
                     method = method,
                     module = moduleByMethod[method.id],
@@ -2504,7 +2203,8 @@ private fun CapabilityCard(
     screen: CapabilityScreenSpec?,
     uiClass: CapabilityUiClass,
     onPresetSaved: () -> Unit,
-    onFavouriteChanged: () -> Unit = {}
+    onFavouriteChanged: () -> Unit = {},
+    closeLabel: String = "Home"
 ) {
     val context = LocalContext.current
     var expanded by rememberSaveable(method.id) { mutableStateOf(false) }
@@ -2542,11 +2242,11 @@ private fun CapabilityCard(
         tonalElevation = 2.dp,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
     ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp),
+                .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
@@ -2555,15 +2255,17 @@ private fun CapabilityCard(
                     .clickable { quickTestOpen = true }
             ) {
                 Text(method.descriptor.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                method.descriptor.description?.takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        it,
-                        modifier = Modifier.padding(top = 2.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                if (expanded) {
+                    method.descriptor.description?.takeIf { it.isNotBlank() }?.let {
+                        Text(
+                            it,
+                            modifier = Modifier.padding(top = 2.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
                 }
-                Spacer(Modifier.height(6.dp))
                 VersionAndMaturityBadges(
                     version = method.descriptor.version.orEmpty(),
                     maturity = MethodMeshMetadataResolver.capabilityMaturity(method, module)
@@ -2685,7 +2387,8 @@ private fun CapabilityCard(
         val hostPresentation = screen?.hostPresentation ?: CapabilityHostPresentation.Standard
         FullScreenCapabilityDialog(
             onDismiss = { quickTestOpen = false },
-            presentation = hostPresentation
+            presentation = hostPresentation,
+            closeLabel = closeLabel
         ) {
             DashboardCapabilityRunner(
                 method = method,
@@ -2713,7 +2416,8 @@ private fun CapabilityCard(
         val hostPresentation = screen?.hostPresentation ?: CapabilityHostPresentation.Standard
         FullScreenCapabilityDialog(
             onDismiss = { quickTestSaveOpen = false },
-            presentation = hostPresentation
+            presentation = hostPresentation,
+            closeLabel = closeLabel
         ) {
             DashboardCapabilityRunner(
                 method = method,
@@ -2789,6 +2493,7 @@ private fun CapabilityCard(
 private fun FullScreenCapabilityDialog(
     onDismiss: () -> Unit,
     presentation: CapabilityHostPresentation = CapabilityHostPresentation.Standard,
+    closeLabel: String = "Home",
     content: @Composable () -> Unit
 ) {
     Dialog(
@@ -2818,7 +2523,7 @@ private fun FullScreenCapabilityDialog(
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Home")
+                            Text(closeLabel)
                         }
                         Spacer(Modifier.height(12.dp))
                         content()
@@ -2875,7 +2580,7 @@ private fun CapabilityOutputsSection(method: As100Method) {
 }
 
 @Composable
-private fun SavePresetDialog(
+internal fun SavePresetDialog(
     defaultName: String,
     methodId: String,
     settingSchema: List<MethodSetting>,

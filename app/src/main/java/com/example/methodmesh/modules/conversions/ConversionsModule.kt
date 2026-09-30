@@ -5,9 +5,12 @@ import com.example.methodmesh.modules.RilBinding
 import com.example.methodmesh.settings.MethodSetting
 
 object ConversionsModule : MethodMeshModule {
+    const val VERSION = "0.2.1"
+
     override val moduleId = "conversions"
+    override val version = VERSION
     override val displayName = "Conversions / General Calculator"
-    override val summary = "Offline units, percentages, ratios, date arithmetic and simple geometry."
+    override val summary = "Offline unit and number-representation conversion, plus percentages, ratios, date arithmetic and simple geometry."
     override val iconKey = "calculation"
     override fun as100Methods() = listOf(As100ConversionsMethod)
     override fun rilBindings() = listOf(RilBinding("convert units", As100ConversionsMethod.ID, "Convert units or run a general calculation"))
@@ -20,7 +23,8 @@ object ConversionsModule : MethodMeshModule {
         "kg", "g", "mg", "lb", "oz", "C", "F", "K",
         "m/s", "km/h", "mph", "knot", "Pa", "kPa", "bar", "psi", "mmHg",
         "J", "kJ", "Wh", "kWh", "cal", "kcal", "W", "kW", "MW", "hp",
-        "rad", "deg", "grad", "B", "KB", "MB", "GB", "KiB", "MiB", "GiB"
+        "rad", "deg", "grad", "B", "KB", "MB", "GB", "KiB", "MiB", "GiB",
+        "decimal", "scientific", "engineering", "si", "binary", "octal", "hex"
     ).distinct()
 
     override fun capabilitySettings() = mapOf(
@@ -29,9 +33,9 @@ object ConversionsModule : MethodMeshModule {
                 "category",
                 "Calculation",
                 defaultValue = "length",
-                choices = listOf("length", "area", "volume", "mass", "temperature", "speed", "pressure", "energy", "power", "angle", "data_size", "percentage", "ratio", "date_difference", "date_arithmetic", "age", "geometry")
+                choices = listOf("length", "area", "volume", "mass", "temperature", "speed", "pressure", "energy", "power", "angle", "data_size", "number", "percentage", "ratio", "date_difference", "date_arithmetic", "age", "geometry")
             ),
-            MethodSetting.TextSetting("value", "Value / A", defaultValue = ""),
+            MethodSetting.TextSetting("value", "Expression / A", defaultValue = ""),
             MethodSetting.TextSetting("value2", "Second value / B", defaultValue = ""),
             MethodSetting.TextSetting("value3", "Third value / C", defaultValue = ""),
             MethodSetting.ChoiceSetting("from_unit", "From unit", defaultValue = "m", choices = unitChoices),

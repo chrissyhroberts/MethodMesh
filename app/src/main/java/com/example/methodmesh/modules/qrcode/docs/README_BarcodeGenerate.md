@@ -1,10 +1,10 @@
 # Barcode generate
 
-**Canonical MethodMesh authority:** Master Book v1.25 (2026-09-22)
-**Module ID:** `barcode`
-**Method ID:** `barcode.generate`
-**Method version:** `1.0.3`
-**Maturity:** Development
+**Canonical MethodMesh authority:** Master Book v1.22 (2026-09-15)  
+**Module ID:** `barcode`  
+**Method ID:** `barcode.generate`  
+**Method version:** `1.0.8`  
+**Maturity:** Development  
 **Connectivity:** Offline
 
 `barcode.generate` turns an exact text payload into a scannable code. Presentation may change; the payload does not.
@@ -74,3 +74,22 @@ No camera or network permission is required for generation. There is no barcode 
 ## Capability-owned presets
 
 The generator exposes **Save current setup as preset** in the top preamble, before the barcode canvas, so preset authoring is visible before data entry. Payload, starting format and automatic cycling can each be fixed or runtime. Payload defaults to **Ask when run** to avoid persisting an accidental one-off token; deliberately fixing it creates a reusable card/token preset. Running the preset reopens this same generator UI.
+
+
+## Preset launch stability v1.0.5
+
+Native preset and other external-roundtrip runs are hosted inside MethodMesh's shared vertically scrollable workflow surface. The generator therefore only owns a vertical scroller in dashboard/immersive presentation. Intent/preset/ODK presentation uses the host scroller and must not create a nested same-axis scroll container. Fixed preset `barcode_format` and `barcode_auto_cycle` values are read from both action and request settings so the same preset contract survives every transport projection.
+
+
+## v2.0.4 live preset format controls
+
+Preset values for `barcode_format` and `barcode_auto_cycle` define the starting presentation only. They do not hide or lock the live Generator transport. Previous / Cycle / Next and the compatible-format rail are always rendered during an uncommitted Generator run; controls are disabled only when the exact payload has fewer than two compatible symbologies.
+
+
+## Presentation and capacity cues v1.0.8
+
+- The generator shows UTF-8 byte count and the number of currently encodable symbologies.
+- Symbologies that can no longer represent the exact payload are named explicitly instead of only disappearing from the live rail.
+- Very dense 2D payloads recommend full-screen presentation.
+- Barcode pixels are never covered by the Full screen / close controls. Windowed Full screen is placed outside the code card.
+- Full-screen presentation uses a true full-screen dialog, safe-drawing insets, and centers the symbol in the usable display area so camera cutouts/status regions do not overlap it.

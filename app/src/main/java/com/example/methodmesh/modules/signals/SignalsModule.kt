@@ -16,6 +16,8 @@ object SignalsModule : MethodMeshModule {
         As100SignalMorseReceiveMethod,
         As100SignalQrTransmitMethod,
         As100SignalQrReceiveMethod,
+        As100SignalQrBurstTransmitMethod,
+        As100SignalQrBurstReceiveMethod,
         As100SignalFskTransmitMethod,
         As100SignalFskReceiveMethod,
         As100SignalUltrasonicTransmitMethod,
@@ -32,8 +34,10 @@ object SignalsModule : MethodMeshModule {
     override fun rilBindings() = listOf(
         RilBinding("transmit morse", As100SignalMorseTransmitMethod.id, "Send text as Morse over screen, torch and/or sound; screen can use white dots and red dashes"),
         RilBinding("receive morse", As100SignalMorseReceiveMethod.id, "Decode Morse from camera timing/colour evidence, microphone or manual START/DOT/DASH observation"),
-        RilBinding("transmit qr burst", As100SignalQrTransmitMethod.id, "Loop an error-corrected message as QR frames"),
-        RilBinding("receive qr burst", As100SignalQrReceiveMethod.id, "Recover an error-corrected message from QR frames"),
+        RilBinding("transmit qr live", As100SignalQrTransmitMethod.id, "Loop an error-corrected message as QR frames for continuous live scanning"),
+        RilBinding("receive qr live", As100SignalQrReceiveMethod.id, "Continuously decode and recover an error-corrected message from QR frames"),
+        RilBinding("transmit qr burst", As100SignalQrBurstTransmitMethod.id, "Flash high-rate QR frames for recorded capture and offline decode"),
+        RilBinding("receive qr burst", As100SignalQrBurstReceiveMethod.id, "Record camera frames first, then decode QR shards offline and reconstruct the transfer"),
         RilBinding("transmit audio fsk", As100SignalFskTransmitMethod.id, "Send a small error-corrected packet through sound or a radio audio path"),
         RilBinding("receive audio fsk", As100SignalFskReceiveMethod.id, "Decode a packet from audible FSK"),
         RilBinding("transmit near ultrasonic", As100SignalUltrasonicTransmitMethod.id, "Experimentally send data using high-frequency phone audio"),
@@ -52,6 +56,8 @@ object SignalsModule : MethodMeshModule {
         SignalMorseReceiveCapabilityScreen,
         SignalQrTransmitCapabilityScreen,
         SignalQrReceiveCapabilityScreen,
+        SignalQrBurstTransmitCapabilityScreen,
+        SignalQrBurstReceiveCapabilityScreen,
         SignalFskTransmitCapabilityScreen,
         SignalFskReceiveCapabilityScreen,
         SignalUltrasonicTransmitCapabilityScreen,
@@ -105,6 +111,20 @@ object SignalsModule : MethodMeshModule {
         ),
         As100SignalQrReceiveMethod.id to listOf(
             MethodSetting.TextSetting("message_id_filter", "Message ID filter", "Optional MMS/1 message ID to accept; blank accepts the first active message.", "Filter", "")
+        ),
+        As100SignalQrBurstTransmitMethod.id to listOf(
+            MethodSetting.ChoiceSetting("content_mode", "Content", "Transmit text or a local file using capture-first QR Burst.", "Content", "text", listOf("text", "file")),
+            MethodSetting.TextSetting("payload", "Message", "Text payload when Content is text.", "Content", "MethodMesh QR Burst: capture first, decode afterwards."),
+            MethodSetting.TextSetting("file_uri", "File URI", "Runtime content URI for file transmission.", "Content", ""),
+            MethodSetting.TextSetting("file_name", "File name", "Optional file name supplied by a caller/preset.", "Content", ""),
+            MethodSetting.TextSetting("file_mime", "File MIME", "Optional MIME type supplied by a caller/preset.", "Content", ""),
+            MethodSetting.ChoiceSetting("profile", "Burst profile", "Safe = 10 QR/s. Balanced = 15 QR/s benchmark. Fast = 20 QR/s. Max = experimental 30 QR/s.", "Timing", "balanced", listOf("safe", "balanced", "fast", "max")),
+            MethodSetting.BooleanSetting("loop", "Loop", "Repeat the encoded transfer so a recorded receiver can capture any section and accumulate enough unique MMS/1 shards.", "Timing", true)
+        ),
+        As100SignalQrBurstReceiveMethod.id to listOf(
+            MethodSetting.ChoiceSetting("capture_seconds", "Capture length", "Raw grayscale camera capture duration before offline QR decoding starts.", "Capture", "5", listOf("3", "5", "8")),
+            MethodSetting.ChoiceSetting("zoom_ratio", "Optical zoom", "Real CameraX zoom used during raw burst capture.", "Camera", "1", listOf("1", "2", "4", "8")),
+            MethodSetting.TextSetting("message_id_filter", "Transfer ID filter", "Optional transfer ID prefix. Leave blank to accept any valid MMS/1 QR Burst transfer.", "Filter", "")
         ),
         As100SignalFskTransmitMethod.id to listOf(
             MethodSetting.TextSetting("payload", "Message", "Small text payload to transmit.", "Message", "Hello from MethodMesh"),

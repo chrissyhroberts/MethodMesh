@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,9 +18,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,11 +41,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -107,10 +110,29 @@ object LiveStreamTranslateAutoCapabilityScreen : CapabilityScreenSpec {
     )
 }
 
+object LiveStreamTranslateStreamingCapabilityScreen : CapabilityScreenSpec {
+    override val capabilityId = As100LiveStreamTranslateStreamingMethod.ID
+    override val title = "Live translation · streaming"
+    override val description = "Experimental low-latency mode: translate ML Kit's continuously revised speech hypothesis while speech is still in progress."
+
+    @Composable
+    override fun Render(
+        context: CapabilityScreenContext,
+        onBack: () -> Unit,
+        onConfirmed: (ExecutionResult) -> Unit,
+        onCancel: () -> Unit
+    ) = LiveStreamTranslateScreen(
+        mode = LiveStreamMode.STREAMING,
+        context = context,
+        onBack = onBack,
+        onConfirmed = onConfirmed,
+        onCancel = onCancel
+    )
+}
+
 private data class LiveTranslationSegment(
     val id: String,
     val timeIso: String,
-    val speaker: String,
     val sourceLanguage: String,
     val sourceLanguageTag: String,
     val targetLanguage: String,
@@ -134,7 +156,7 @@ private fun LiveStreamTranslateScreen(
     onCancel: () -> Unit
 ) {
     val androidContext = LocalContext.current
-    val defaultSource = if (mode == LiveStreamMode.FIXED) "fr" else ""
+    val defaultSource = if (mode != LiveStreamMode.AUTO) "fr" else ""
     var sourceLanguage by rememberSaveable {
         mutableStateOf(
             MlKitLanguageCatalog.canonicalCode(
@@ -157,6 +179,9 @@ private fun LiveStreamTranslateScreen(
     var switchSensitivity by rememberSaveable {
         mutableStateOf(context.action.settings["switch_sensitivity"] ?: context.action.settings["input_switch_sensitivity"] ?: "balanced")
     }
+    var streamResponse by rememberSaveable {
+        mutableStateOf(context.action.settings["stream_response"] ?: context.action.settings["input_stream_response"] ?: "balanced")
+    }
     var speechEnginePreference by rememberSaveable {
         mutableStateOf(
             LiveSpeechEngine.fromWire(
@@ -173,16 +198,11 @@ private fun LiveStreamTranslateScreen(
     var transcriptEnabled by rememberSaveable {
         mutableStateOf((context.action.settings["transcript_on_start"] ?: context.action.settings["input_transcript_on_start"] ?: "true").equals("true", true))
     }
-    var speakerTagging by rememberSaveable {
-        mutableStateOf((context.action.settings["speaker_tagging"] ?: context.action.settings["input_speaker_tagging"] ?: "true").equals("true", true))
-    }
-    var speakerSlots by rememberSaveable {
-        mutableStateOf((context.action.settings["speaker_slots"] ?: context.action.settings["input_speaker_slots"] ?: "4").toIntOrNull()?.coerceIn(2, 8) ?: 4)
-    }
-    var currentSpeaker by rememberSaveable { mutableStateOf("Speaker 1") }
     var segmentsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("[]") }
     var transcriptMarkersJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("[]") }
     var partialText by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
+    var streamTranslatedText by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
+    var streamWorkingTranslating by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
     var currentDetectedLanguageTag by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
     var currentLanguageConfidence by rememberSaveable(context.action.canonicalId) { mutableStateOf<Int?>(null) }
     var lastDetectedLanguage by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
@@ -199,14 +219,16 @@ private fun LiveStreamTranslateScreen(
     var pendingTranslations by remember { mutableStateOf(0) }
     var finishRequested by remember { mutableStateOf(false) }
     var fatalError by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
+    var showOdkCard by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
     var pendingOpenAfterPermission by rememberSaveable { mutableStateOf(false) }
     var hasAudioPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(androidContext, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
     }
 
     val runtimeSettingsVisible = when (mode) {
-        LiveStreamMode.FIXED -> listOf("source_language", "target_language", "speech_engine", "prefer_offline", "transcript_on_start", "speaker_tagging", "speaker_slots")
-        LiveStreamMode.AUTO -> listOf("target_language", "allowed_languages", "switch_sensitivity", "speech_engine", "prefer_offline", "transcript_on_start", "speaker_tagging", "speaker_slots")
+        LiveStreamMode.FIXED -> listOf("source_language", "target_language", "speech_engine", "prefer_offline", "transcript_on_start")
+        LiveStreamMode.AUTO -> listOf("target_language", "allowed_languages", "switch_sensitivity", "speech_engine", "prefer_offline", "transcript_on_start")
+        LiveStreamMode.STREAMING -> listOf("source_language", "target_language", "speech_engine", "stream_response", "transcript_on_start")
     }.any(context::settingIsRuntimeInput)
 
     LaunchedEffect(Unit) {
@@ -227,10 +249,29 @@ private fun LiveStreamTranslateScreen(
     }
 
     val translationEngine = remember { LiveStreamTranslationEngine() }
+    val streamingPipeline = remember {
+        StreamingTranslationPipeline(
+            translationEngine = translationEngine,
+            onProjection = { projection ->
+                if (mode == LiveStreamMode.STREAMING) {
+                    when {
+                        projection.sourceText.isBlank() -> streamTranslatedText = ""
+                        projection.translatedText.isNotBlank() -> streamTranslatedText = projection.translatedText
+                    }
+                    streamWorkingTranslating = projection.translating
+                }
+            },
+            onStatus = { message -> if (mode == LiveStreamMode.STREAMING) status = message }
+        )
+    }
 
     fun recognitionConfig() = LiveRecognitionConfig(
         mode = mode,
-        fixedSourceLocale = if (mode == LiveStreamMode.FIXED) LiveStreamLanguageSupport.defaultSpeechLocaleTag(sourceLanguage) else "",
+        fixedSourceLocale = when (mode) {
+            LiveStreamMode.AUTO -> ""
+            LiveStreamMode.STREAMING -> LiveStreamLanguageSupport.streamingSpeechLocaleTag(sourceLanguage)
+            LiveStreamMode.FIXED -> LiveStreamLanguageSupport.defaultSpeechLocaleTag(sourceLanguage)
+        },
         allowedLanguageLocales = allowedSpeechLocales,
         preferOffline = preferOffline,
         switchSensitivity = switchSensitivity,
@@ -250,13 +291,13 @@ private fun LiveStreamTranslateScreen(
     fun appendRecognizedSegment(recognition: LiveRecognitionResult) {
         val text = recognition.text
         val detectionMissing = mode == LiveStreamMode.AUTO && currentDetectedLanguageTag.isBlank()
-        val sourceTag = when {
-            mode == LiveStreamMode.FIXED -> LiveStreamLanguageSupport.defaultSpeechLocaleTag(sourceLanguage)
-            detectionMissing -> ""
-            else -> currentDetectedLanguageTag
+        val sourceTag = when (mode) {
+            LiveStreamMode.FIXED -> LiveStreamLanguageSupport.defaultSpeechLocaleTag(sourceLanguage)
+            LiveStreamMode.STREAMING -> LiveStreamLanguageSupport.streamingSpeechLocaleTag(sourceLanguage)
+            LiveStreamMode.AUTO -> if (detectionMissing) "" else currentDetectedLanguageTag
         }
         val sourceCode = when {
-            mode == LiveStreamMode.FIXED -> sourceLanguage
+            mode != LiveStreamMode.AUTO -> sourceLanguage
             detectionMissing -> ""
             else -> canonicalSpeechLanguage(sourceTag)
         }
@@ -275,7 +316,6 @@ private fun LiveStreamTranslateScreen(
         val segment = LiveTranslationSegment(
             id = id,
             timeIso = Instant.now().toString(),
-            speaker = if (speakerTagging) currentSpeaker else "",
             sourceLanguage = sourceCode,
             sourceLanguageTag = sourceTag,
             targetLanguage = targetLanguage,
@@ -334,11 +374,31 @@ private fun LiveStreamTranslateScreen(
             },
             onSpeechStarted = {
                 partialText = ""
+                streamTranslatedText = ""
+                streamWorkingTranslating = false
+                if (mode == LiveStreamMode.STREAMING) streamingPipeline.clearWorkingProjection()
                 currentDetectedLanguageTag = ""
                 currentLanguageConfidence = null
             },
-            onPartial = { partialText = it },
-            onFinal = ::appendRecognizedSegment,
+            onPartial = { text ->
+                partialText = text
+                if (mode == LiveStreamMode.STREAMING) {
+                    streamingPipeline.submit(
+                        sourceLanguage = sourceLanguage,
+                        targetLanguage = targetLanguage,
+                        sourceText = text,
+                        responseDelayMs = streamingResponseDelayMs(streamResponse)
+                    )
+                }
+            },
+            onFinal = { recognition ->
+                if (mode == LiveStreamMode.STREAMING) {
+                    streamingPipeline.clearWorkingProjection()
+                    streamTranslatedText = ""
+                    streamWorkingTranslating = false
+                }
+                appendRecognizedSegment(recognition)
+            },
             onLanguage = { detected ->
                 currentDetectedLanguageTag = detected.languageTag
                 currentLanguageConfidence = detected.confidenceLevel
@@ -363,6 +423,7 @@ private fun LiveStreamTranslateScreen(
     DisposableEffect(Unit) {
         onDispose {
             recognizer.destroy()
+            streamingPipeline.close()
             translationEngine.close()
         }
     }
@@ -421,7 +482,7 @@ private fun LiveStreamTranslateScreen(
         modelPreparing = true
         modelReady = false
         modelStatus = when (mode) {
-            LiveStreamMode.FIXED -> "Preparing ${languageLabel(sourceLanguage)} and ${languageLabel(targetLanguage)} translation models…"
+            LiveStreamMode.FIXED, LiveStreamMode.STREAMING -> "Preparing ${languageLabel(sourceLanguage)} and ${languageLabel(targetLanguage)} translation models…"
             LiveStreamMode.AUTO -> "Preparing ${languageLabel(targetLanguage)} translation model…"
         }
         val onPrepared: (Result<Unit>) -> Unit = { prepared ->
@@ -441,7 +502,7 @@ private fun LiveStreamTranslateScreen(
                 status = fatalError
             }
         }
-        if (mode == LiveStreamMode.FIXED) {
+        if (mode != LiveStreamMode.AUTO) {
             translationEngine.ensurePair(sourceLanguage, targetLanguage, onPrepared)
         } else {
             translationEngine.ensureModel(targetLanguage, onPrepared)
@@ -455,20 +516,19 @@ private fun LiveStreamTranslateScreen(
         }
     }
 
-    LaunchedEffect(sourceLanguage, targetLanguage, allowedLanguagesText, switchSensitivity, speechEnginePreference, preferOffline, transcriptEnabled, speakerTagging, speakerSlots) {
+    LaunchedEffect(sourceLanguage, targetLanguage, allowedLanguagesText, switchSensitivity, streamResponse, speechEnginePreference, preferOffline, transcriptEnabled) {
         context.onSettingsChanged(
             buildMap {
-                if (mode == LiveStreamMode.FIXED) put("source_language", sourceLanguage)
+                if (mode != LiveStreamMode.AUTO) put("source_language", sourceLanguage)
                 put("target_language", targetLanguage)
                 if (mode == LiveStreamMode.AUTO) {
                     put("allowed_languages", allowedLanguagesText)
                     put("switch_sensitivity", switchSensitivity)
                 }
+                if (mode == LiveStreamMode.STREAMING) put("stream_response", streamResponse)
                 put("speech_engine", speechEnginePreference)
-                put("prefer_offline", preferOffline.toString())
+                if (mode != LiveStreamMode.STREAMING) put("prefer_offline", preferOffline.toString())
                 put("transcript_on_start", transcriptEnabled.toString())
-                put("speaker_tagging", speakerTagging.toString())
-                put("speaker_slots", speakerSlots.toString())
             }
         )
     }
@@ -477,6 +537,9 @@ private fun LiveStreamTranslateScreen(
         recognizer.stop()
         running = false
         partialText = ""
+        streamTranslatedText = ""
+        streamWorkingTranslating = false
+        if (mode == LiveStreamMode.STREAMING) streamingPipeline.clearWorkingProjection()
         val values = liveTranslationValues(
             mode = mode,
             allSegmentsJson = segmentsJson,
@@ -490,32 +553,32 @@ private fun LiveStreamTranslateScreen(
             lastSpeechEngine = activeSpeechEngine,
             engineSwitchCount = engineSwitchCount,
             preferOffline = preferOffline,
-            speakerTagging = speakerTagging,
-            speakerSlots = speakerSlots,
             lastDetectedLanguage = lastDetectedLanguage,
             startedAt = startedAt,
             status = state,
             error = error
         )
-        val request = if (mode == LiveStreamMode.FIXED) {
-            As100LiveStreamTranslateFixedMethod.request(
+        val request = when (mode) {
+            LiveStreamMode.FIXED -> As100LiveStreamTranslateFixedMethod.request(
                 action = As100LiveStreamTranslateFixedMethod.ID,
                 context = context.request.invocationContext.asMap(As100LiveStreamTranslateFixedMethod.ID) + context.action.settings,
-                signals = emptyList(),
-                inputs = emptyList()
+                signals = emptyList(), inputs = emptyList()
             )
-        } else {
-            As100LiveStreamTranslateAutoMethod.request(
+            LiveStreamMode.AUTO -> As100LiveStreamTranslateAutoMethod.request(
                 action = As100LiveStreamTranslateAutoMethod.ID,
                 context = context.request.invocationContext.asMap(As100LiveStreamTranslateAutoMethod.ID) + context.action.settings,
-                signals = emptyList(),
-                inputs = emptyList()
+                signals = emptyList(), inputs = emptyList()
+            )
+            LiveStreamMode.STREAMING -> As100LiveStreamTranslateStreamingMethod.request(
+                action = As100LiveStreamTranslateStreamingMethod.ID,
+                context = context.request.invocationContext.asMap(As100LiveStreamTranslateStreamingMethod.ID) + context.action.settings,
+                signals = emptyList(), inputs = emptyList()
             )
         }
-        val execution = if (mode == LiveStreamMode.FIXED) {
-            As100LiveStreamTranslateFixedMethod.result(request, values, context.request.invocationContext)
-        } else {
-            As100LiveStreamTranslateAutoMethod.result(request, values, context.request.invocationContext)
+        val execution = when (mode) {
+            LiveStreamMode.FIXED -> As100LiveStreamTranslateFixedMethod.result(request, values, context.request.invocationContext)
+            LiveStreamMode.AUTO -> As100LiveStreamTranslateAutoMethod.result(request, values, context.request.invocationContext)
+            LiveStreamMode.STREAMING -> As100LiveStreamTranslateStreamingMethod.result(request, values, context.request.invocationContext)
         }
         result = execution
         resultValuesJson = valuesToJson(values)
@@ -529,6 +592,7 @@ private fun LiveStreamTranslateScreen(
         running = false
         pausedByUser = true
         partialText = ""
+        if (mode == LiveStreamMode.STREAMING) streamingPipeline.clearWorkingProjection()
         if (pendingTranslations == 0) {
             finalizeSession()
         } else {
@@ -546,35 +610,41 @@ private fun LiveStreamTranslateScreen(
 
     val capturedResult = result ?: remember(resultValuesJson) {
         resultValuesJson?.let(::valuesFromJson)?.let { values ->
-            val request = if (mode == LiveStreamMode.FIXED) {
-                As100LiveStreamTranslateFixedMethod.request(
+            val request = when (mode) {
+                LiveStreamMode.FIXED -> As100LiveStreamTranslateFixedMethod.request(
                     action = As100LiveStreamTranslateFixedMethod.ID,
                     context = context.request.invocationContext.asMap(As100LiveStreamTranslateFixedMethod.ID) + context.action.settings + values,
-                    signals = emptyList(),
-                    inputs = emptyList()
+                    signals = emptyList(), inputs = emptyList()
                 )
-            } else {
-                As100LiveStreamTranslateAutoMethod.request(
+                LiveStreamMode.AUTO -> As100LiveStreamTranslateAutoMethod.request(
                     action = As100LiveStreamTranslateAutoMethod.ID,
                     context = context.request.invocationContext.asMap(As100LiveStreamTranslateAutoMethod.ID) + context.action.settings + values,
-                    signals = emptyList(),
-                    inputs = emptyList()
+                    signals = emptyList(), inputs = emptyList()
+                )
+                LiveStreamMode.STREAMING -> As100LiveStreamTranslateStreamingMethod.request(
+                    action = As100LiveStreamTranslateStreamingMethod.ID,
+                    context = context.request.invocationContext.asMap(As100LiveStreamTranslateStreamingMethod.ID) + context.action.settings + values,
+                    signals = emptyList(), inputs = emptyList()
                 )
             }
-            if (mode == LiveStreamMode.FIXED) {
-                As100LiveStreamTranslateFixedMethod.result(request, values, context.request.invocationContext)
-            } else {
-                As100LiveStreamTranslateAutoMethod.result(request, values, context.request.invocationContext)
+            when (mode) {
+                LiveStreamMode.FIXED -> As100LiveStreamTranslateFixedMethod.result(request, values, context.request.invocationContext)
+                LiveStreamMode.AUTO -> As100LiveStreamTranslateAutoMethod.result(request, values, context.request.invocationContext)
+                LiveStreamMode.STREAMING -> As100LiveStreamTranslateStreamingMethod.result(request, values, context.request.invocationContext)
             }
         }
     }
 
     CapabilityScreenScaffold(
-        title = if (mode == LiveStreamMode.FIXED) "Live translation · fixed language" else "Live translation · detect language",
-        capabilityId = if (mode == LiveStreamMode.FIXED) {
-            As100LiveStreamTranslateFixedMethod.ID
-        } else {
-            As100LiveStreamTranslateAutoMethod.ID
+        title = when (mode) {
+            LiveStreamMode.FIXED -> "Live translation · fixed language"
+            LiveStreamMode.AUTO -> "Live translation · detect language"
+            LiveStreamMode.STREAMING -> "Live translation · streaming"
+        },
+        capabilityId = when (mode) {
+            LiveStreamMode.FIXED -> As100LiveStreamTranslateFixedMethod.ID
+            LiveStreamMode.AUTO -> As100LiveStreamTranslateAutoMethod.ID
+            LiveStreamMode.STREAMING -> As100LiveStreamTranslateStreamingMethod.ID
         },
         context = context,
         canGoBack = context.stepNumber > 1,
@@ -589,6 +659,9 @@ private fun LiveStreamTranslateScreen(
             segmentsJson = "[]"
             transcriptMarkersJson = "[]"
             partialText = ""
+            streamTranslatedText = ""
+            streamWorkingTranslating = false
+            if (mode == LiveStreamMode.STREAMING) streamingPipeline.clearWorkingProjection()
             currentDetectedLanguageTag = ""
             currentLanguageConfidence = null
             lastDetectedLanguage = ""
@@ -609,8 +682,12 @@ private fun LiveStreamTranslateScreen(
     ) {
         if (capturedResult == null) {
             Column(Modifier.fillMaxWidth()) {
-                if (mode == LiveStreamMode.FIXED && !context.settingIsFixedInNativePreset("source_language")) {
-                    LanguageSelector("Source language", sourceLanguage) { sourceLanguage = it }
+                if (mode != LiveStreamMode.AUTO && !context.settingIsFixedInNativePreset("source_language")) {
+                    LanguageSelector(
+                        label = "Source language",
+                        selected = sourceLanguage,
+                        choices = if (mode == LiveStreamMode.STREAMING) LiveStreamLanguageSupport.streamingSpeechLanguageCodes else MlKitLanguageCatalog.supportedCodes().toList()
+                    ) { sourceLanguage = it }
                     Spacer(Modifier.height(10.dp))
                 }
                 if (!context.settingIsFixedInNativePreset("target_language")) {
@@ -647,6 +724,22 @@ private fun LiveStreamTranslateScreen(
                         Spacer(Modifier.height(10.dp))
                     }
                 }
+                if (mode == LiveStreamMode.STREAMING && !context.settingIsFixedInNativePreset("stream_response")) {
+                    ChoiceSelector(
+                        label = "Streaming response",
+                        selected = streamResponse,
+                        choices = listOf("fast", "balanced", "stable"),
+                        labels = mapOf("fast" to "Fast", "balanced" to "Balanced", "stable" to "Stable"),
+                        onSelected = { streamResponse = it }
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "Partial speech is working state: MethodMesh translates the newest revisable hypothesis, discards stale translation callbacks, and commits only final recognition segments.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(10.dp))
+                }
                 if (!context.settingIsFixedInNativePreset("speech_engine")) {
                     ChoiceSelector(
                         label = "Speech recognition",
@@ -657,32 +750,22 @@ private fun LiveStreamTranslateScreen(
                     )
                     Spacer(Modifier.height(10.dp))
                 }
-                if (!context.settingIsFixedInNativePreset("prefer_offline")) {
+                if (mode != LiveStreamMode.STREAMING && !context.settingIsFixedInNativePreset("prefer_offline")) {
                     ToggleRow("Prefer offline Android recognition", preferOffline) { preferOffline = it }
                 }
                 if (!context.settingIsFixedInNativePreset("transcript_on_start")) {
                     ToggleRow("Record transcript at start", transcriptEnabled) { transcriptEnabled = it }
                 }
-                if (!context.settingIsFixedInNativePreset("speaker_tagging")) {
-                    ToggleRow("Show quick speaker tags", speakerTagging) { speakerTagging = it }
+                OutlinedButton(onClick = { showOdkCard = !showOdkCard }, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (showOdkCard) "Hide ODK integration" else "ODK integration")
                 }
-                if (speakerTagging && !context.settingIsFixedInNativePreset("speaker_slots")) {
-                    ChoiceSelector(
-                        label = "Speaker buttons",
-                        selected = speakerSlots.toString(),
-                        choices = listOf("2", "3", "4", "5", "6", "8"),
-                        onSelected = { speakerSlots = it.toIntOrNull()?.coerceIn(2, 8) ?: 4 }
-                    )
-                    Spacer(Modifier.height(10.dp))
+                if (showOdkCard) {
+                    Spacer(Modifier.height(8.dp))
+                    LiveStreamTranslateOdkIntegrationCard(mode)
                 }
-                Text(
-                    "Speaker identity is deliberately not guessed: Android SpeechRecognizer exposes language detection but not diarisation. Use the speaker chips during the meeting when speaker attribution matters.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
                 Spacer(Modifier.height(14.dp))
                 Button(onClick = ::openLive, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                    Text("Start live translation")
+                    Text(if (mode == LiveStreamMode.STREAMING) "Start streaming translation" else "Start live translation")
                 }
                 Spacer(Modifier.height(8.dp))
                 if (status.isNotBlank()) Text(status, style = MaterialTheme.typography.bodySmall)
@@ -717,6 +800,9 @@ private fun LiveStreamTranslateScreen(
                     allowedLanguageCodes = allowedLanguageCodes,
                     segments = segmentsFromJson(segmentsJson),
                     partialText = partialText,
+                    streamTranslatedText = streamTranslatedText,
+                    streamWorkingTranslating = streamWorkingTranslating,
+                    streamResponse = streamResponse,
                     currentDetectedLanguageTag = currentDetectedLanguageTag,
                     speechEnginePreference = speechEnginePreference,
                     activeSpeechEngine = activeSpeechEngine,
@@ -727,12 +813,8 @@ private fun LiveStreamTranslateScreen(
                     modelReady = modelReady,
                     running = running,
                     transcriptEnabled = transcriptEnabled,
-                    speakerTagging = speakerTagging,
-                    speakerSlots = speakerSlots,
-                    currentSpeaker = currentSpeaker,
                     fatalError = fatalError,
                     finishing = finishRequested,
-                    onSpeakerSelected = { currentSpeaker = it },
                     onTranscriptChanged = ::recordTranscriptChange,
                     onSpeechEngineSelected = { selected ->
                         speechEnginePreference = selected.wireValue
@@ -745,6 +827,7 @@ private fun LiveStreamTranslateScreen(
                                 running = false
                                 pausedByUser = true
                                 partialText = ""
+                                if (mode == LiveStreamMode.STREAMING) streamingPipeline.clearWorkingProjection()
                             } else if (modelReady) {
                                 pausedByUser = false
                                 fatalError = ""
@@ -762,6 +845,7 @@ private fun LiveStreamTranslateScreen(
                             recognizer.stop()
                             running = false
                             pausedByUser = false
+                            if (mode == LiveStreamMode.STREAMING) streamingPipeline.clearWorkingProjection()
                             liveOpen = false
                         }
                     }
@@ -779,6 +863,9 @@ private fun LiveMeetingSurface(
     allowedLanguageCodes: List<String>,
     segments: List<LiveTranslationSegment>,
     partialText: String,
+    streamTranslatedText: String,
+    streamWorkingTranslating: Boolean,
+    streamResponse: String,
     currentDetectedLanguageTag: String,
     speechEnginePreference: String,
     activeSpeechEngine: String,
@@ -789,12 +876,8 @@ private fun LiveMeetingSurface(
     modelReady: Boolean,
     running: Boolean,
     transcriptEnabled: Boolean,
-    speakerTagging: Boolean,
-    speakerSlots: Int,
-    currentSpeaker: String,
     fatalError: String,
     finishing: Boolean,
-    onSpeakerSelected: (String) -> Unit,
     onTranscriptChanged: (Boolean) -> Unit,
     onSpeechEngineSelected: (LiveSpeechEngine) -> Unit,
     onPauseResume: () -> Unit,
@@ -811,7 +894,7 @@ private fun LiveMeetingSurface(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            if (mode == LiveStreamMode.FIXED) "${languageLabel(sourceLanguage)} → ${languageLabel(targetLanguage)}" else "Detect language → ${languageLabel(targetLanguage)}",
+                            if (mode == LiveStreamMode.AUTO) "Detect language → ${languageLabel(targetLanguage)}" else "${languageLabel(sourceLanguage)} → ${languageLabel(targetLanguage)}",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -847,31 +930,9 @@ private fun LiveMeetingSurface(
             onSelected = onSpeechEngineSelected
         )
 
-        if (speakerTagging) {
-            Spacer(Modifier.height(8.dp))
-            Text("Speaker for next utterance", style = MaterialTheme.typography.labelMedium)
-            Spacer(Modifier.height(4.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                item {
-                    AssistChip(
-                        onClick = { onSpeakerSelected("Speaker ?") },
-                        label = { Text("?") },
-                        border = if (currentSpeaker == "Speaker ?") BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
-                    )
-                }
-                items((1..speakerSlots).toList(), key = { it }) { index ->
-                    val label = "Speaker $index"
-                    AssistChip(
-                        onClick = { onSpeakerSelected(label) },
-                        label = { Text(index.toString()) },
-                        border = if (currentSpeaker == label) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
-                    )
-                }
-            }
-        }
 
         Spacer(Modifier.height(8.dp))
-        if (partialText.isNotBlank() || currentDetectedLanguageTag.isNotBlank()) {
+        if (mode != LiveStreamMode.STREAMING && (partialText.isNotBlank() || currentDetectedLanguageTag.isNotBlank())) {
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
                 Column(Modifier.padding(12.dp)) {
                     Text(
@@ -889,7 +950,15 @@ private fun LiveMeetingSurface(
         }
 
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (segments.isEmpty()) {
+            if (mode == LiveStreamMode.STREAMING) {
+                StreamingTranscriptFeed(
+                    segments = segments,
+                    partialText = partialText,
+                    streamTranslatedText = streamTranslatedText,
+                    streamWorkingTranslating = streamWorkingTranslating,
+                    streamResponse = streamResponse
+                )
+            } else if (segments.isEmpty()) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -897,7 +966,10 @@ private fun LiveMeetingSurface(
                 ) {
                     Text("The translated meeting feed will appear here.", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(6.dp))
-                    Text("Completed utterances are translated; partial speech stays at the top while someone is talking.", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Completed utterances are translated; partial speech stays at the top while someone is talking.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             } else {
                 LazyColumn(
@@ -936,6 +1008,143 @@ private fun LiveMeetingSurface(
 }
 
 @Composable
+private fun StreamingTranscriptFeed(
+    segments: List<LiveTranslationSegment>,
+    partialText: String,
+    streamTranslatedText: String,
+    streamWorkingTranslating: Boolean,
+    streamResponse: String
+) {
+    @Suppress("DEPRECATION")
+    val clipboard = LocalClipboardManager.current
+    val listState = rememberLazyListState()
+    var followTail by rememberSaveable { mutableStateOf(true) }
+    val workingText = streamTranslatedText.ifBlank { partialText }
+    val hasWorkingLine = partialText.isNotBlank() || streamTranslatedText.isNotBlank()
+    val totalItems = segments.size + if (hasWorkingLine) 1 else 0
+
+    val userScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source == NestedScrollSource.UserInput && available.y != 0f) {
+                    followTail = false
+                }
+                return Offset.Zero
+            }
+        }
+    }
+
+    LaunchedEffect(totalItems, workingText, streamWorkingTranslating, followTail) {
+        if (followTail && totalItems > 0) {
+            listState.animateScrollToItem(totalItems - 1)
+        }
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Transcript",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                streamResponse.uppercase(Locale.ROOT),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (!followTail) {
+                Spacer(Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { followTail = true },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                ) {
+                    Text("Follow live ↓", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+
+        if (totalItems == 0) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("Listening for speech…", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Translation will accumulate here from top to bottom.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize().nestedScroll(userScrollConnection).padding(horizontal = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(segments, key = { it.id }) { segment ->
+                    val translated = segment.translatedText.ifBlank { segment.originalText }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (translated.isNotBlank()) clipboard.setText(AnnotatedString(translated))
+                            }
+                    ) {
+                        Text(
+                            translated,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (segment.translationState == "error") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
+                        )
+                        if (segment.translationState == "translating") {
+                            Text(
+                                "translating…",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                if (hasWorkingLine) {
+                    item(key = "working-stream-line") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    streamTranslatedText.takeIf { it.isNotBlank() }?.let {
+                                        clipboard.setText(AnnotatedString(it))
+                                    }
+                                }
+                                .padding(bottom = 8.dp)
+                        ) {
+                            Text(
+                                workingText.ifBlank { "…" },
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontStyle = FontStyle.Italic,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.86f)
+                            )
+                            if (streamWorkingTranslating) {
+                                Text(
+                                    "updating…",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun FeedSegmentCard(segment: LiveTranslationSegment, compact: Boolean = false) {
     @Suppress("DEPRECATION")
     val clipboard = LocalClipboardManager.current
@@ -950,7 +1159,6 @@ private fun FeedSegmentCard(segment: LiveTranslationSegment, compact: Boolean = 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     buildString {
-                        if (segment.speaker.isNotBlank()) append(segment.speaker).append(" · ")
                         append(languageLabel(segment.sourceLanguage)).append(" → ").append(languageLabel(segment.targetLanguage))
                     },
                     style = MaterialTheme.typography.labelMedium,
@@ -1010,14 +1218,19 @@ private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean
 }
 
 @Composable
-private fun LanguageSelector(label: String, selected: String, onSelected: (String) -> Unit) {
+private fun LanguageSelector(
+    label: String,
+    selected: String,
+    choices: List<String> = MlKitLanguageCatalog.supportedCodes().toList(),
+    onSelected: (String) -> Unit
+) {
     var open by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxWidth()) {
         OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
             Text("$label · ${languageLabel(selected)}")
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            MlKitLanguageCatalog.supportedCodes()
+            choices
                 .sortedBy { languageLabel(it).lowercase(Locale.ROOT) }
                 .forEach { code ->
                     DropdownMenuItem(
@@ -1037,6 +1250,7 @@ private fun speechEngineChoices(mode: LiveStreamMode): List<LiveSpeechEngine> = 
         LiveSpeechEngine.MLKIT_GENAI
     )
     LiveStreamMode.AUTO -> listOf(LiveSpeechEngine.AUTO, LiveSpeechEngine.ANDROID)
+    LiveStreamMode.STREAMING -> listOf(LiveSpeechEngine.AUTO, LiveSpeechEngine.MLKIT_BASIC, LiveSpeechEngine.MLKIT_GENAI)
 }
 
 private fun speechEngineLabel(wireValue: String): String =
@@ -1130,8 +1344,6 @@ private fun liveTranslationValues(
     lastSpeechEngine: String,
     engineSwitchCount: Int,
     preferOffline: Boolean,
-    speakerTagging: Boolean,
-    speakerSlots: Int,
     lastDetectedLanguage: String,
     startedAt: String,
     status: String,
@@ -1143,7 +1355,7 @@ private fun liveTranslationValues(
         LiveStreamTranslateFields.TRANSCRIPT to transcriptFromSegments(recordedSegments, markersJson),
         LiveStreamTranslateFields.SEGMENTS_JSON to segmentsToJson(recordedSegments),
         LiveStreamTranslateFields.MODE to mode.wireValue,
-        LiveStreamTranslateFields.SOURCE_LANGUAGE to if (mode == LiveStreamMode.FIXED) sourceLanguage else "auto",
+        LiveStreamTranslateFields.SOURCE_LANGUAGE to if (mode == LiveStreamMode.AUTO) "auto" else sourceLanguage,
         LiveStreamTranslateFields.TARGET_LANGUAGE to targetLanguage,
         LiveStreamTranslateFields.AUTO_ALLOWED_LANGUAGES to allowedLanguages.joinToString(","),
         LiveStreamTranslateFields.SWITCH_SENSITIVITY to if (mode == LiveStreamMode.AUTO) switchSensitivity else "",
@@ -1152,8 +1364,6 @@ private fun liveTranslationValues(
         LiveStreamTranslateFields.ENGINE_SWITCH_COUNT to engineSwitchCount.toString(),
         LiveStreamTranslateFields.PREFER_OFFLINE to preferOffline.toString(),
         LiveStreamTranslateFields.TRANSCRIPT_ENABLED_AT_END to transcriptEnabledAtEnd.toString(),
-        LiveStreamTranslateFields.SPEAKER_TAGGING to speakerTagging.toString(),
-        LiveStreamTranslateFields.SPEAKER_SLOTS to speakerSlots.toString(),
         LiveStreamTranslateFields.LAST_DETECTED_LANGUAGE to lastDetectedLanguage,
         LiveStreamTranslateFields.SEGMENT_COUNT to recordedSegments.size.toString(),
         LiveStreamTranslateFields.STARTED_TIME_ISO to startedAt,
@@ -1196,7 +1406,6 @@ private fun segmentsFromJson(json: String): List<LiveTranslationSegment> = runCa
 private fun segmentToJson(segment: LiveTranslationSegment) = JSONObject().apply {
     put("id", segment.id)
     put("time_iso", segment.timeIso)
-    put("speaker", segment.speaker)
     put("source_language", segment.sourceLanguage)
     put("source_language_tag", segment.sourceLanguageTag)
     put("target_language", segment.targetLanguage)
@@ -1214,7 +1423,6 @@ private fun segmentToJson(segment: LiveTranslationSegment) = JSONObject().apply 
 private fun segmentFromJson(obj: JSONObject) = LiveTranslationSegment(
     id = obj.optString("id"),
     timeIso = obj.optString("time_iso"),
-    speaker = obj.optString("speaker"),
     sourceLanguage = obj.optString("source_language"),
     sourceLanguageTag = obj.optString("source_language_tag"),
     targetLanguage = obj.optString("target_language"),
@@ -1246,21 +1454,17 @@ private fun appendMarkerJson(json: String, type: String, timeIso: String, note: 
 private fun transcriptFromSegments(segments: List<LiveTranslationSegment>, markersJson: String): String {
     val entries = mutableListOf<Pair<String, String>>()
     segments.forEach { segment ->
-        val heading = buildString {
-            append("[").append(shortTime(segment.timeIso)).append("] ")
-            if (segment.speaker.isNotBlank()) append(segment.speaker).append(" · ")
-            append(languageLabel(segment.sourceLanguage)).append(" → ").append(languageLabel(segment.targetLanguage))
-        }
-        val translated = segment.translatedText.ifBlank {
+        val text = segment.translatedText.ifBlank {
             if (segment.translationState == "error") "[translation unavailable]" else segment.originalText
         }
-        entries += segment.timeIso to "$heading\n${segment.originalText}\n$translated"
+        if (text.isNotBlank()) entries += segment.timeIso to text
     }
     runCatching { JSONArray(markersJson) }.getOrNull()?.let { markers ->
         for (i in 0 until markers.length()) {
             val marker = markers.optJSONObject(i) ?: continue
             val time = marker.optString("time_iso")
-            entries += time to "[${shortTime(time)}] — ${marker.optString("note")} —"
+            val note = marker.optString("note")
+            if (note.isNotBlank()) entries += time to "— $note —"
         }
     }
     return entries.sortedBy { it.first }.joinToString("\n\n") { it.second }

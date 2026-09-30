@@ -4,11 +4,11 @@
 **Module implementation:** 0.3.0  
 **MethodMesh standard:** v1.05
 
-The Music module is an offline-first set of tempo, pitch, harmony, rhythm, creation, looping, practice and performance capabilities. This is a migration of the established v0.2.1 module: all 33 established method IDs are preserved.
+The Music module is an offline-first set of tempo, pitch, harmony, rhythm, creation, looping, practice and performance capabilities. This is a migration of the established v0.2.1 module: established method IDs are preserved, with additive live capabilities such as singing-range capture.
 
 ## Canonical architecture
 
-`MusicModule.kt` exposes 33 canonical `As100Method` objects, 33 corresponding native capability screens, per-capability settings, and RIL bindings. Each individual method remains independently addressable for direct native use, presets, protocols and ODK. The five dashboards are aggregation/control surfaces only; they do not replace the underlying capabilities. A module-local `contractParityIssues()` QA helper checks method/screen/settings discovery alignment without teaching shared MethodMesh UI anything music-specific.
+`MusicModule.kt` exposes the canonical `As100Method` objects, corresponding native capability screens, per-capability settings, and RIL bindings. Each individual method remains independently addressable for direct native use, presets, protocols and ODK. Dashboards are aggregation/control surfaces only; they do not replace the underlying capabilities. A module-local `contractParityIssues()` QA helper checks method/screen/settings discovery alignment without teaching shared MethodMesh UI anything music-specific.
 
 ## v1.05 native lifecycle
 
@@ -18,7 +18,7 @@ Commit freezes the canonical payload on the current screen. Post-Commit actions 
 
 Launch-origin routing remains generic: every screen hands the committed `ExecutionResult` to shared `onConfirmed`; external/automatic-return contexts return immediately rather than opening native Share/Save/Home theatre.
 
-## Capability map (33)
+## Capability map
 
 ### Tempo / practice
 `music.tap_tempo`, `music.metronome`, `music.tempo_convert`, `music.delay_time`, `music.polyrhythm`, `music.tempo_trainer`, `music.practice_dashboard`.
@@ -33,7 +33,10 @@ Launch-origin routing remains generic: every screen hands the committed `Executi
 `music.chord_progression`, `music.arpeggiator`, `music.bassline`, `music.melody_sequence`, `music.motif_generator`, `music.song_sketch`, `music.song_sketch_dashboard`.
 
 ### Audio / performance
-`music.live_looper`, `music.setlist_timing`, `music.performance_dashboard`.
+`music.live_looper`, `music.singing_range`, `music.setlist_timing`, `music.performance_dashboard`.
+
+### Singing range
+`music.singing_range` listens continuously while the native screen is open. It accepts only confidence-qualified pitch observations, tracks the lowest and highest demonstrated notes, and returns once when the operator presses **Finish and return range**. ODK receives the final summary and audit JSON, not raw audio or an intermediate pitch stream.
 
 ## Contract compatibility
 
@@ -51,7 +54,7 @@ Simple working/committed UI state uses saveable Compose state. Practice and perf
 
 ## Offline / permissions
 
-All capabilities are offline-first. Drum/pad audio is synthesized locally; no copyrighted sample pack is bundled. `music.live_looper` requires `RECORD_AUDIO`; haptic features use the device vibrator where available. No capability in this module sends music content to a cloud service.
+All capabilities are offline-first. Drum/pad audio is synthesized locally; no copyrighted sample pack is bundled. `music.live_looper` and `music.singing_range` require `RECORD_AUDIO`; haptic features use the device vibrator where available. No capability in this module sends music content to a cloud service.
 
 ## Delivery
 

@@ -57,7 +57,7 @@ import org.json.JSONObject
 object TextDocumentsCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100TextDocumentsMethod.ID
     override val title = "Text documents"
-    override val description = "Create, open, edit, save, copy and share text, Markdown, JSON and JSON Lines files."
+    override val description = "Create, open, edit, save, copy and share text, data, configuration, markup and source-code files."
     override val hostPresentation = CapabilityHostPresentation.Immersive
 
     @Composable
@@ -373,7 +373,7 @@ object TextDocumentsCapabilityScreen : CapabilityScreenSpec {
                             Text("Text documents", style = MaterialTheme.typography.headlineSmall)
                             Text(
                                 when {
-                                    standaloneToolkit -> "A small offline editor for plain text, Markdown, JSON and JSON Lines."
+                                    standaloneToolkit -> "A focused offline editor for text, data, configuration, markup and source-code files."
                                     isOdkLaunch -> "Choose or create the document to return to your form."
                                     else -> "Choose or create the document to return to the calling workflow."
                                 },
@@ -390,33 +390,41 @@ object TextDocumentsCapabilityScreen : CapabilityScreenSpec {
                         Column {
                             Button(onClick = { newMenuOpen = true }) { Text("New") }
                             DropdownMenu(expanded = newMenuOpen, onDismissRequest = { newMenuOpen = false }) {
-                                DocumentFormat.values().forEach { format ->
-                                    DropdownMenuItem(
-                                        text = { Text(format.label) },
-                                        onClick = {
-                                            newMenuOpen = false
-                                            openBuffer("document.${format.extension}", format)
-                                        }
+                                DocumentFormat.values().groupBy { it.group }.forEach { (group, formats) ->
+                                    Text(
+                                        group,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
+                                    formats.forEach { format ->
+                                        DropdownMenuItem(
+                                            text = { Text(format.label) },
+                                            onClick = {
+                                                newMenuOpen = false
+                                                openBuffer("document.${format.extension}", format)
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
                         OutlinedButton(
                             onClick = {
                                 openDocument.launch(
-                                    arrayOf(
-                                        "text/plain",
-                                        "text/markdown",
-                                        "application/json",
-                                        "text/json",
-                                        "application/x-ndjson",
-                                        "application/ndjson",
-                                        "application/jsonl"
-                                    )
+                                    DocumentFormat.pickerMimeTypes
                                 )
                             }
-                        ) { Text("Open file") }
+                        ) { Text("Open text file") }
                     }
+                }
+
+                item {
+                    Text(
+                        "UTF-8 text is opened losslessly. JSON, JSONL, source code, configuration, markup, CSV and log files stay as text; obvious binary or invalid UTF-8 files are rejected clearly.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
                 item {
@@ -497,7 +505,7 @@ object TextDocumentsCapabilityScreen : CapabilityScreenSpec {
                             Column(Modifier.padding(14.dp)) {
                                 Text(document.title, style = MaterialTheme.typography.titleSmall)
                                 Text(
-                                    DocumentFormat.detect(document.title, document.mimeType).label,
+                                    "${DocumentFormat.detect(document.title, document.mimeType).label} · ${document.mimeType.ifBlank { "text file" }}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

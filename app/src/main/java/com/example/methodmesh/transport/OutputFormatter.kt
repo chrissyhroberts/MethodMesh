@@ -5,6 +5,7 @@ import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.TransformationStatus
 import com.example.methodmesh.core.timeassurance.ClockEvidenceSnapshot
 import com.example.methodmesh.core.methodmesh.ExecutionCapabilityIdentity
+import com.example.methodmesh.core.methodmesh.ProvenanceContext
 
 /**
  * Formats MethodMesh results for caller-facing transport.
@@ -91,7 +92,20 @@ object OutputFormatter {
     fun fullEnvelope(result: ExecutionResult, baseFields: Map<String, Any?> = fields(result, true)): Map<String, Any?> {
         val envelope = linkedMapOf<String, Any?>()
         envelope.putAll(baseFields)
-        envelope["methodmesh_envelope_schema_version"] = "2"
+        envelope["methodmesh_envelope_schema_version"] = "3"
+
+        envelope["application"] = result.applicationProvenance?.let { app ->
+            linkedMapOf(
+                "application_id" to app.applicationId,
+                "version_name" to app.versionName,
+                "version_code" to app.versionCode
+            )
+        } ?: linkedMapOf(
+            "application_id" to "unknown",
+            "version_name" to "unknown",
+            "version_code" to null,
+            "provenance_status" to "not_captured"
+        )
 
         val metadata = result.softwareProvenance
         val primary = metadata.firstOrNull()
@@ -120,8 +134,145 @@ object OutputFormatter {
             )
         }
 
+        envelope["execution_provenance"] = executionProvenanceMap(result)
+        envelope["execution_timing"] = executionTimingMap(result)
         envelope["time_assurance"] = timeAssuranceMap(result.timeAssurance)
         return envelope
+    }
+
+    /**
+     * Structured execution context for audit interpretation. Request context is
+     * a claim only. A successful capability may promote an actor assertion when
+     * it emits internally-bound result provenance. The formatter never upgrades
+     * a request claim by inference.
+     */
+    private fun executionProvenanceMap(result: ExecutionResult): Map<String, Any?> {
+        val context = result.request.context
+        fun value(key: String): String? = context[key]?.trim()?.takeIf { it.isNotBlank() }
+        fun actor(
+            id: String?,
+            type: String? = null,
+            assertionBasis: String = "request_context",
+            assertionEvidence: Map<String, String> = emptyMap()
+        ): Any? = id?.let {
+            linkedMapOf<String, Any?>(
+                "id" to it,
+                "type" to type,
+                "assertion_basis" to assertionBasis
+            ).apply {
+                if (assertionEvidence.isNotEmpty()) put("assertion_evidence", assertionEvidence)
+            }
+        }
+
+        val subjectId = value("subject_id") ?: value("context_entity_id")
+        val subjectType = value("context_entity_type") ?: value("entity_type")
+        val requestedOperatorId = value("operator_id")
+        val originatorId = value("data_originator_id")
+        val originatorType = value("data_originator_type")
+
+        val resultOperatorAssertion = result.boundOperatorAssertion(requestedOperatorId)
+        val operatorId = resultOperatorAssertion?.operatorId ?: requestedOperatorId
+        val operatorBasis = resultOperatorAssertion?.basis ?: "request_context"
+        val operatorEvidence = resultOperatorAssertion?.evidence.orEmpty()
+
+        return linkedMapOf(
+            "schema_version" to "2",
+            "execution_id" to result.request.id.value,
+            "method_id" to result.request.method.id.value,
+            "status" to result.status.name,
+            "caller" to value("caller"),
+            "record_context" to linkedMapOf(
+                "study_id" to value("study_id"),
+                "site_id" to value("site_id"),
+                "visit_id" to value("visit_id"),
+                "event_id" to value("event_id"),
+                "form_id" to value("form_id"),
+                "form_version" to value("form_version"),
+                "form_instance_id" to value("form_instance_id"),
+                "submission_id" to value("submission_id")
+            ),
+            "actors" to linkedMapOf(
+                "subject" to actor(subjectId, subjectType),
+                "operator" to actor(operatorId, "operator", operatorBasis, operatorEvidence),
+                "data_originator" to actor(originatorId, originatorType)
+            ),
+            "interpretation" to "Record context and actors default to caller-supplied claims. An actor is promoted only when a successful capability result carries internally-bound assertion evidence; assertion_evidence identifies that basis."
+        )
+    }
+
+    private data class BoundOperatorAssertion(
+        val operatorId: String,
+        val basis: String,
+        val evidence: Map<String, String>
+    )
+
+    private fun ExecutionResult.boundOperatorAssertion(requestedOperatorId: String?): BoundOperatorAssertion? {
+        if (status != TransformationStatus.Succeeded) return null
+        val provenances: Sequence<ProvenanceContext> = sequence {
+            transformations.forEach { yield(it.provenance) }
+            observations.forEach { yield(it.provenance) }
+        }
+        val bound = provenances.firstOrNull { provenance ->
+            !provenance.operatorId.isNullOrBlank() &&
+                !provenance.extra["operator_assertion_basis"].isNullOrBlank()
+        } ?: return null
+
+        val boundOperatorId = bound.operatorId?.trim().orEmpty()
+        if (boundOperatorId.isBlank()) return null
+        if (!requestedOperatorId.isNullOrBlank() && requestedOperatorId != boundOperatorId) return null
+
+        val basis = bound.extra["operator_assertion_basis"]?.trim().orEmpty()
+        if (basis.isBlank()) return null
+        val evidence = bound.extra
+            .filterKeys { it.startsWith("operator_assertion_") && it != "operator_assertion_basis" }
+            .mapKeys { (key, _) -> key.removePrefix("operator_assertion_") }
+            .mapValues { (_, value) -> value.trim() }
+            .filterValues { it.isNotBlank() }
+
+        return BoundOperatorAssertion(
+            operatorId = boundOperatorId,
+            basis = basis,
+            evidence = evidence
+        )
+    }
+
+    /**
+     * Request-to-completion interval derived only from same-boot monotonic time.
+     * Wall time is retained as an observation; duration is never derived from it.
+     */
+    private fun executionTimingMap(result: ExecutionResult): Map<String, Any?> {
+        val started = result.request.startTiming
+        val completed = result.timeAssurance
+        val continuity = when {
+            started == null || completed == null -> "unavailable"
+            started.bootSessionId == null || completed.bootSessionId == null -> "boot_id_unavailable"
+            started.bootSessionId != completed.bootSessionId -> "boot_changed"
+            completed.elapsedRealtimeMillis < started.elapsedRealtimeMillis -> "monotonic_regression"
+            else -> "same_boot"
+        }
+        val duration = if (continuity == "same_boot") {
+            completed!!.elapsedRealtimeMillis - started!!.elapsedRealtimeMillis
+        } else null
+
+        val startedBoundary = linkedMapOf<String, Any?>(
+            "observed_wall_time_iso" to started?.observedWallTimeIso,
+            "elapsed_realtime_ms" to started?.elapsedRealtimeMillis,
+            "boot_session_id" to started?.bootSessionId
+        )
+        val completedBoundary = linkedMapOf<String, Any?>(
+            "observed_wall_time_iso" to completed?.observedWallTimeIso,
+            "elapsed_realtime_ms" to completed?.elapsedRealtimeMillis,
+            "boot_session_id" to completed?.bootSessionId,
+            "evidence_state" to completed?.evidenceState?.wireValue
+        )
+
+        return linkedMapOf(
+            "schema_version" to "1",
+            "started" to startedBoundary,
+            "completed" to completedBoundary,
+            "continuity" to continuity,
+            "monotonic_duration_ms" to duration
+        )
     }
 
     private fun moduleMap(metadata: ExecutionCapabilityIdentity): Map<String, Any?> = linkedMapOf(
@@ -211,7 +362,7 @@ object OutputFormatter {
         if (key in headlineCoreFields) return true
         if (key.startsWith("methodmesh_")) return false
         if (key.startsWith("diagnostic_")) return false
-        if (key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id")) return false
+        if (key in provenanceContextFields) return false
         if (key in calibratedScaleAuditFields) return false
         if (key in documentScanAuditFields) return false
         if (key in plusCodeAuditFields) return false
@@ -284,7 +435,7 @@ object OutputFormatter {
             key in conversationTranslateAuditFields ||
             key in imageRedactionAuditFields ||
             key.startsWith("methodmesh_") ||
-            key in setOf("subject_id", "context_entity_id", "visit_id", "form_id", "operator_id") ||
+            key in provenanceContextFields ||
             key.contains("time", ignoreCase = true) ||
             key.contains("date", ignoreCase = true) ||
             key.contains("hash", ignoreCase = true) ||
@@ -380,10 +531,16 @@ object OutputFormatter {
         if (contextEntityId != null && contextEntityId != subjectId && !result.isDemoPlaceholderSubject(contextEntityId)) {
             fields["context_entity_id"] = contextEntityId
         }
-        listOf("visit_id", "form_id", "operator_id").forEach { key ->
-            result.request.context[key]?.let { fields[key] = it }
-        }
+        provenanceContextFields
+            .filterNot { it == "subject_id" || it == "context_entity_id" }
+            .forEach { key -> result.request.context[key]?.let { fields[key] = it } }
     }
+
+    private val provenanceContextFields = setOf(
+        "subject_id", "context_entity_id", "context_entity_type", "study_id", "site_id",
+        "visit_id", "event_id", "form_id", "form_version", "form_instance_id", "submission_id",
+        "operator_id", "data_originator_type", "data_originator_id", "caller"
+    )
 
     private fun appendObservationsCompact(
         result: ExecutionResult,

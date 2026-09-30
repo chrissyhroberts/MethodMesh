@@ -70,6 +70,41 @@ internal object LiveStreamLanguageSupport {
         "zh" to "zh-CN"
     )
 
+
+    /**
+     * Conservative source-language set for the experimental streaming capability.
+     * These map to locales documented for ML Kit Speech Recognition Basic, so
+     * Automatic can still fall back from Advanced/GenAI to Basic on devices such
+     * as Pixel 7a rather than offering a locale that only the Advanced model may
+     * understand.
+     */
+    val streamingSpeechLanguageCodes: List<String> = listOf(
+        "en", "fr", "it", "de", "es", "hi", "ja", "pt", "tr", "pl", "zh", "ko", "ru", "vi"
+    )
+
+
+    private val streamingBasicLocales = mapOf(
+        "en" to "en-US",
+        "fr" to "fr-FR",
+        "it" to "it-IT",
+        "de" to "de-DE",
+        "es" to "es-ES",
+        "hi" to "hi-IN",
+        "ja" to "ja-JP",
+        "pt" to "pt-BR",
+        "tr" to "tr-TR",
+        "pl" to "pl-PL",
+        "zh" to "cmn-Hans-CN",
+        "ko" to "ko-KR",
+        "ru" to "ru-RU",
+        "vi" to "vi-VN"
+    )
+
+    fun streamingSpeechLocaleTag(language: String): String {
+        val canonical = MlKitLanguageCatalog.canonicalCode(language, language)
+        return streamingBasicLocales[canonical] ?: defaultSpeechLocaleTag(canonical)
+    }
+
     fun defaultSpeechLocaleTag(language: String): String {
         val canonical = MlKitLanguageCatalog.canonicalCode(language, language)
         return defaultSpeechLocales[canonical] ?: canonical

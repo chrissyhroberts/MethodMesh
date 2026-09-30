@@ -217,7 +217,7 @@ internal class AndroidSpeechRecognitionProvider(
                 putExtra(RecognizerIntent.EXTRA_HIDE_PARTIAL_TRAILING_PUNCTUATION, true)
             }
             when (config.mode) {
-                LiveStreamMode.FIXED -> {
+                LiveStreamMode.FIXED, LiveStreamMode.STREAMING -> {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, config.fixedSourceLocale)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, config.fixedSourceLocale)
                 }

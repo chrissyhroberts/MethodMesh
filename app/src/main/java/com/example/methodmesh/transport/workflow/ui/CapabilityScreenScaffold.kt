@@ -63,17 +63,33 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
+private fun isDashboardRequest(action: ExternalActionRequest, request: ExternalWorkflowRequest): Boolean {
+    val caller = request.invocationContext.caller.lowercase()
+    val source = request.source.lowercase()
+    return source == "dashboard" ||
+        source == "controller" ||
+        request.settings["methodmesh_dashboard"].orEmpty().equals("true", ignoreCase = true) ||
+        request.settings["methodmesh_controller"].orEmpty().equals("true", ignoreCase = true) ||
+        action.settings["source"].orEmpty().equals("dashboard", ignoreCase = true) ||
+        action.settings["source"].orEmpty().equals("controller", ignoreCase = true) ||
+        caller == "dashboard" ||
+        caller == "controller" ||
+        caller.endsWith("_dashboard") ||
+        caller.endsWith("_controller") ||
+        caller.endsWith(" dashboard")
+}
+
 data class CapabilityScreenContext(
     val action: ExternalActionRequest,
     val request: ExternalWorkflowRequest,
     val stepNumber: Int,
     val totalSteps: Int,
-    val completionMode: CapabilityCompletionMode = if (request.source.equals("dashboard", ignoreCase = true)) {
+    val completionMode: CapabilityCompletionMode = if (isDashboardRequest(action, request)) {
         CapabilityCompletionMode.ManualConfirmation
     } else {
         CapabilityCompletionMode.AutomaticReturn
     },
-    val presentationMode: CapabilityPresentationMode = if (request.source.equals("dashboard", ignoreCase = true)) {
+    val presentationMode: CapabilityPresentationMode = if (isDashboardRequest(action, request)) {
         CapabilityPresentationMode.Dashboard
     } else {
         CapabilityPresentationMode.IntentLaunch

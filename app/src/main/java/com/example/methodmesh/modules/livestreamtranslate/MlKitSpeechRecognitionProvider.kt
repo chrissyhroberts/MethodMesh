@@ -43,7 +43,7 @@ internal class MlKitSpeechRecognitionProvider(
     private var utteranceActive = false
 
     override fun isPotentiallyAvailable(config: LiveRecognitionConfig): Boolean =
-        Build.VERSION.SDK_INT >= 31 && config.mode == LiveStreamMode.FIXED
+        Build.VERSION.SDK_INT >= 31 && config.mode in setOf(LiveStreamMode.FIXED, LiveStreamMode.STREAMING)
 
     override fun start(config: LiveRecognitionConfig) {
         this.config = config

@@ -1,6 +1,6 @@
 package com.example.methodmesh.modules.espmesh
 
-import android.util.Base64
+import java.util.Base64
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.util.UUID
@@ -72,7 +72,7 @@ object EspMeshBlePacketCodec {
                 JSONObject().apply {
                     put("protocol", PROTOCOL); put("version", VERSION); put("id", transferId)
                     put("seq", index); put("total", chunks.size)
-                    put("data", Base64.encodeToString(chunk, Base64.NO_WRAP))
+                    put("data", Base64.getEncoder().encodeToString(chunk))
                 }.toString().toByteArray(Charsets.UTF_8)
             }
             if (packets.all { it.size <= maxPacketBytes }) return packets
@@ -87,7 +87,9 @@ object EspMeshBlePacketCodec {
         private val MAX_PARTIALS = 16
 
         /** Returns a complete bridge frame, or null while a fragmented frame is incomplete. */
-        fun accept(packet: ByteArray): ByteArray? {
+        @Synchronized fun clear() { partials.clear() }
+
+        @Synchronized fun accept(packet: ByteArray): ByteArray? {
             val text = packet.toString(Charsets.UTF_8)
             val root = runCatching { JSONObject(text) }.getOrNull() ?: return packet
             if (root.optString("protocol") != PROTOCOL) return packet
@@ -96,7 +98,7 @@ object EspMeshBlePacketCodec {
             val seq = root.getInt("seq")
             val total = root.getInt("total")
             require(total in 1..2048 && seq in 0 until total) { "Invalid BLE fragment bounds" }
-            val chunk = Base64.decode(root.getString("data"), Base64.DEFAULT)
+            val chunk = Base64.getDecoder().decode(root.getString("data"))
             val now = System.currentTimeMillis()
             partials.entries.removeIf { now - it.value.created > 60_000L }
             if (!partials.containsKey(id) && partials.size >= MAX_PARTIALS) {

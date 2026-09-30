@@ -1,4 +1,4 @@
-# Signals v0.5.3 validation
+# Signals v0.5.4.1 validation
 
 Status: **Development**  
 Near-ultrasonic capabilities: **Experimental**
@@ -303,7 +303,7 @@ The v0.5.0 Screen Grid and Torch 4-PPM device-test instructions below are retain
 6. Join each transmitter mid-cycle and verify the receiver can accumulate later distinct MMS shards until Reed-Solomon recovery succeeds.
 7. Occlude/drop complete physical frames. Reception may slow, but no payload is Commit-eligible unless MMS CRC and final SHA-256 both verify.
 8. Compare Long/Balanced/Fast completion time and range. Long should trade bitrate for acquisition margin rather than merely being an alias of Balanced.
-9. Confirm the four optical capabilities appear independently in dashboard/direct use, presets, protocols and ODK, and that all 15 canonical XLSForms share the same profile vocabulary.
+9. Confirm the four optical capabilities appear independently in dashboard/direct use, presets, protocols and ODK, and that all 17 canonical XLSForms share the same profile vocabulary.
 10. Rolling-shutter-specific high-speed modulation is not required for any v0.5.0 pass; visible transition bands should be rejected rather than decoded as data.
 
 ## v0.4.3 focused Morse framing retest
@@ -340,7 +340,7 @@ Pure-code validation additionally covers transparent acoustic DEFLATE round-trip
 6. During every active camera, microphone, speaker, torch and surface/sensor session, attempt rotation. The Activity must remain in its current orientation and the session must continue. After Stop, normal rotation must return.
 7. Feed a corrupted/incomplete FSK physical frame and confirm the UI reports `PHY retry: <reason>` without presenting it as a fatal MMS/1 result.
 8. Tabletop TX/RX must be visibly labelled Experimental in both capability surfaces and documentation.
-9. Presets/protocols and all 15 canonical XLSForms must use the same discrete preset vocabulary as native direct use.
+9. Presets/protocols and all 17 canonical XLSForms must use the same discrete preset vocabulary as native direct use.
 
 Pure-code v0.4.5 regression: **20,649 assertions PASS**, including shared A–D profile catalogue invariants and the common 30 WPM Morse audio ceiling.
 
@@ -363,3 +363,23 @@ The native Morse transmitter default/demo payload is `hello, world`, matching th
 - Conventional monochrome Morse remains compatible because indistinguishable white/red calibration yields zero useful colour confidence.
 - Pure Kotlin smoke: **21,010 assertions PASS**, including strong-red recovery of a timing-ambiguous 1.8-unit dash and weak-colour fallback to the ordinary duration decision.
 - Required real-device check: repeat the existing two-phone 5/8/10 WPM screen test at increasing range, recording whether colour confidence remains useful before luminance timing itself fails.
+
+
+## v0.5.4 QR Burst recorded-capture regression
+
+- New canonical capabilities: `signal.qr_burst.transmit` and `signal.qr_burst.receive`; the existing `signal.qr.transmit/receive` live scanner pair remains registered and unchanged at the transport layer.
+- Balanced profile is 15 QR/s with 448-byte MMS/1 shards; Safe/Fast/Max profiles are 10/20/30 QR/s.
+- Receiver capture path performs grayscale frame copies only. ZXing decoding starts after capture stops.
+- Offline collector regression covers duplicated camera observations, out-of-order frames, deduplication, Reed–Solomon reconstruction and final SHA-256 verification.
+- Multiple recorded bursts may accumulate unique MMS/1 shards before Commit.
+- Two new canonical XLSForms exercise the new pair, bringing module parity to 17 methods/screens/settings/RIL bindings/XLSForms.
+
+## v0.5.4.1 Android compile fix
+
+QR Burst Android integration compile fixes only; no transport or capability contract changes:
+
+- removed the invalid standalone `androidx.compose.foundation.layout.weight` import; `Modifier.weight(...)` remains used from the enclosing Row/Column scope;
+- added the missing Compose `getValue` import required by `rememberUpdatedState(... )` property delegation in `SignalQrBurstEngine.kt`;
+- supplied the required `status` argument to the QR Burst transmitter `SignalCommittedCard`.
+
+Pure Kotlin regression after these changes: **21,017 assertions PASS**.

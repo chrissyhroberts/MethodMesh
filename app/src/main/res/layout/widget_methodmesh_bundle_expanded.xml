@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetBackground"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_teal_glass"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="7dp">
+
+    <LinearLayout
+        android:id="@+id/bundleHeader"
+        android:layout_width="match_parent"
+        android:layout_height="22dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/bundleTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Bundle"
+            android:textSize="9sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/bundleCollapse"
+            android:layout_width="24dp"
+            android:layout_height="22dp"
+            android:contentDescription="Collapse bundle"
+            android:gravity="center"
+            android:text="×"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/bundleCurrentArea"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingLeft="3dp"
+        android:paddingRight="3dp">
+
+        <TextView
+            android:id="@+id/bundleCurrentIcon"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:gravity="center"
+            android:text="🧭"
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/bundleCurrentName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="2"
+            android:text="Compass"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/bundleCurrentState"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text=""
+            android:textSize="8sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="26dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/bundlePrevious"
+            android:layout_width="30dp"
+            android:layout_height="26dp"
+            android:contentDescription="Previous tool"
+            android:gravity="center"
+            android:text="‹"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/bundlePosition"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="1 / 6"
+            android:textSize="8sp" />
+
+        <TextView
+            android:id="@+id/bundleNext"
+            android:layout_width="30dp"
+            android:layout_height="26dp"
+            android:contentDescription="Next tool"
+            android:gravity="center"
+            android:text="›"
+            android:textSize="18sp" />
+    </LinearLayout>
+</LinearLayout>

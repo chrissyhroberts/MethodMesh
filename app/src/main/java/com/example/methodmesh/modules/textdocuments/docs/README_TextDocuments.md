@@ -1,15 +1,15 @@
 # Text documents
 
 **Module:** `textdocuments`
-**Release:** v0.11
+**Release:** v0.12
 **Capability:** `document.text.open`
 **Maturity:** **Development**
 **Connectivity:** **Offline**
 **Icon:** `document`
 
-Text documents is MethodMesh's small local document toolkit for plain text, Markdown, JSON and JSON Lines. It creates, opens, edits, finds/replaces, saves, copies and shares documents without silently rewriting their contents. It can also save launch configurations as native MethodMesh presets/shortcuts.
+Text documents is MethodMesh's small local document toolkit for text, data, configuration, markup and source-code files. It creates, opens, edits, finds/replaces, saves, copies and shares documents without silently rewriting their contents. It can also save launch configurations as native MethodMesh presets/shortcuts.
 
-Supported filename forms are `.txt`, `.md`, `.markdown`, `.json`, `.jsonl` and `.ndjson`.
+Recognised filename forms include `.txt`, `.log`, `.md`, `.markdown`, `.json`, `.jsonl`, `.ndjson`, `.yaml`, `.yml`, `.toml`, `.xml`, `.html`, `.htm`, `.css`, `.js`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.py`, `.pyw`, `.kt`, `.kts`, `.java`, `.sh`, `.bash`, `.zsh`, `.sql`, `.csv`, `.tsv`, `.ini`, `.cfg`, `.conf`, `.properties`, `.env`, C/C++/C#/Go/Rust/Swift/Ruby/PHP/Lua/R/Perl/Dart/Groovy/Gradle and common component files. Unknown extensions remain editable as UTF-8 plain text.
 
 ## Interaction model
 
@@ -43,7 +43,7 @@ Android `VIEW` / `EDIT` launches use the same editor and return to the originati
 | `document_mode` | choice | no | `library`, `new`, or `edit`. Controls whether the toolkit opens at the library, starts a blank document, or opens supplied text directly. |
 | `document_text` | text | no | Caller-supplied text. Used directly by `edit`; may be blank. |
 | `document_title` | text | no | Suggested human-facing filename/title. |
-| `document_format` | choice | no | `text`, `markdown`, `json`, `jsonl`. |
+| `document_format` | choice | no | `text`, `markdown`, `json`, `jsonl`, or a recognised text/data/source format. |
 
 ### Outputs
 
@@ -52,7 +52,7 @@ Android `VIEW` / `EDIT` launches use the same editor and return to the originati
 | `document_status` | text | `succeeded` or `failed`. |
 | `document_text` | text | Text returned when the caller completes the editor (**Return to form**, **Continue**, or **Return result**, depending on origin). |
 | `document_title` | text | Human-facing title at return. |
-| `document_format` | text | `text`, `markdown`, `json`, or `jsonl`. |
+| `document_format` | text | The detected or requested text/data/source format. |
 | `document_error` | text | Failure diagnostic; blank on success. |
 
 Shared transport adds `methodmesh_status` and, for the ODK/FULL projection, `methodmesh_full_json`.
@@ -71,7 +71,7 @@ Direct native preset runs are treated as shortcuts. Protocol/sequence execution 
 
 **Save** writes back to the selected URI when write access exists. Otherwise the UI uses **Save As…**. **Save a copy…** is always available for an already-writable document.
 
-JSON and JSON Lines are deliberately lossless text surfaces. Opening, saving or sharing does not pretty-print, minify, sort keys, parse/re-emit or otherwise rewrite the body.
+JSON and JSON Lines are deliberately lossless text surfaces. Opening, saving or sharing does not pretty-print, minify, sort keys, parse/re-emit or otherwise rewrite the body. The editor reads UTF-8 text; binary content is rejected with a clear message rather than being silently decoded as damaged text. Save As preserves an existing extension, including extensions the module does not recognise.
 
 **Share** materialises the current buffer as a temporary typed file through the existing MethodMesh `FileProvider` and supplies the same text to `Intent.EXTRA_TEXT`. The share operation therefore reflects unsaved edits rather than accidentally sharing a stale on-disk version. Share-cache files are disposable and old entries are pruned.
 
@@ -79,7 +79,9 @@ Recent files store URI/title/MIME metadata only, and now contain only documents 
 
 ## Android external-open integration
 
-The module accepts the following types internally:
+The module accepts text-oriented files internally, using the filename extension where available and MIME type as a fallback. The in-app file picker deliberately asks for all files so providers that mislabel source/configuration files as generic binary can still offer them; the reader rejects binary content after inspection.
+
+Common MIME types include:
 
 - `text/plain`
 - `text/markdown`
@@ -88,6 +90,13 @@ The module accepts the following types internally:
 - `application/x-ndjson`
 - `application/ndjson`
 - `application/jsonl`
+- `text/*`
+- `application/xml`
+- `application/yaml`
+- `application/toml`
+- `application/sql`
+- `application/x-sh`
+- `*/*` (the picker fallback; binary content is rejected)
 
 Android resolver visibility is controlled by the app manifest, which is shared integration outside the canonical module folder. The host `DocumentActivity` intent filter must advertise the same MIME set. v0.09 is delivered with a complete replacement manifest separately from the module ZIP; the module tree itself remains Master-Book compliant and contains no copied shared app files.
 
@@ -110,7 +119,7 @@ Connectivity: **Offline**
 | `document_mode` | select/text | optional | `library`, `new`, or `edit`. Lets the form explicitly request selection, creation, or editing. |
 | `document_text` | text | optional | Source text supplied by the form; may be blank when `document_mode=new` or `edit`. |
 | `document_title` | text | optional | Suggested title/filename. |
-| `document_format` | select/text | optional | `text`, `markdown`, `json`, `jsonl`. |
+| `document_format` | select/text | optional | `text`, `markdown`, `json`, `jsonl`, or a recognised text/data/source format. |
 
 ## INTENT CALL
 
@@ -126,7 +135,7 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='document.text.open',input_docum
 | `document_status` | text | always | Capability status. |
 | `document_text` | text | success | Returned edited text. |
 | `document_title` | text | always | Returned title. |
-| `document_format` | text | always | Returned format. |
+| `document_format` | text | always | The detected or requested text/data/source format. |
 | `document_error` | text | failure/blank on success | Failure diagnostic. |
 | `methodmesh_full_json` | text/JSON | always on handled ODK roundtrip | Shared metadata/audit payload. |
 
@@ -140,4 +149,4 @@ Core editing is offline. No online provider receives document contents. Storage 
 
 ## Validation status
 
-v0.11 was reviewed against MethodMesh Master Book v1.22 and the supplied current `app/src/main` interfaces. The review specifically removed the dashboard Commit/result detour, adopted the generic `CapabilityHostPresentation.Immersive` contract, preserved one canonical method across launch origins, and checked the ODK showcase structure. A complete Gradle project is not present in this runtime, so `:app:compileDebugKotlin` / `:app:assembleDebug` could not be executed here. Promotion remains **Development** until local build and representative device/ODK validation pass.
+v0.12 adds broad text-file compatibility, preserves unknown filename extensions, rejects obvious binary content, and adds focused format/extension tests. Promotion remains **Development** until local build and representative device/ODK validation pass.

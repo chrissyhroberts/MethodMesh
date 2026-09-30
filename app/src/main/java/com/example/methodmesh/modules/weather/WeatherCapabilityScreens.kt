@@ -127,6 +127,7 @@ internal fun WeatherToolScreen(
     var showLocation by rememberSaveable(context.action.canonicalId) {
         mutableStateOf(latitude.isBlank() || longitude.isBlank())
     }
+    var showControls by rememberSaveable(context.action.canonicalId) { mutableStateOf(true) }
 
     val resultValues = remember(resultJson) { resultJson.toStringMap() }
     val committedValues = remember(committedJson) { committedJson.toStringMap() }
@@ -176,7 +177,24 @@ internal fun WeatherToolScreen(
             val capture = withContext(Dispatchers.IO) {
                 WeatherRuntime.capture(method, currentSettings())
             }
-            val captured = capture.values
+            var captured = capture.values
+            if (context.submitsImmediately && method.id == As100WeatherRadarMethod.id && captured[statusField] == "succeeded") {
+                val gif = withContext(Dispatchers.IO) {
+                    WeatherRadarAttachment.createGifIfPossible(
+                        context = app,
+                        values = captured,
+                        latitude = latitude.toDoubleOrNull() ?: 0.0,
+                        longitude = longitude.toDoubleOrNull() ?: 0.0,
+                        zoom = zoom.toDoubleOrNull() ?: 5.0
+                    )
+                }
+                if (gif.first.isNotBlank()) {
+                    captured = captured + mapOf(
+                        "weather_radar_gif_uri" to gif.first,
+                        "weather_radar_gif_sha256" to gif.second
+                    )
+                }
+            }
             resultJson = JSONObject(captured).toString()
             running = false
             status = captured[errorField].orEmpty().ifBlank {
@@ -224,14 +242,16 @@ internal fun WeatherToolScreen(
     LaunchedEffect(latitude, longitude, targetTime, frameTime, horizonHours, threshold, sourcePolicy, zoom, offlineOnly) {
         context.onSettingsChanged(currentSettings())
     }
-    val relevantRuntimeFields = weatherRuntimeFields(context, method.id)
-    val nativePresetNeedsRuntimeInput = context.isNativePresetRun && relevantRuntimeFields.isNotEmpty()
+    LaunchedEffect(resultJson) {
+        if (resultJson.isNotBlank()) showControls = false
+    }
+    val nativePresetNeedsRuntimeInput = context.isNativePresetRun && context.runtimeInputFields.isNotEmpty()
     LaunchedEffect(context.startsImmediately, context.action.canonicalId, nativePresetNeedsRuntimeInput) {
         if (!attempted) {
             attempted = true
             if (nativePresetNeedsRuntimeInput) {
                 status = "Complete the runtime settings, then refresh."
-                showLocation = relevantRuntimeFields.any { it == "latitude" || it == "longitude" }
+                showLocation = context.runtimeInputFields.any { it == "latitude" || it == "longitude" }
             } else if (latitude.toDoubleOrNull() != null && longitude.toDoubleOrNull() != null) {
                 runNow()
             } else {
@@ -250,196 +270,69 @@ internal fun WeatherToolScreen(
         Modifier.fillMaxWidth()
     }
 
-    Column(rootModifier.padding(20.dp)) {
-        Text(screenTitle(method.id), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
-        Text(screenSubtitle(method.id), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(10.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (context.stepNumber > 1) OutlinedButton(onClick = onBack) { Text("Back") }
-            OutlinedButton(onClick = onCancel) { Text("Cancel") }
-        }
-        Spacer(Modifier.height(18.dp))
-
-        val locationEditable = weatherSettingShouldBeShown(context, method.id, "latitude") || weatherSettingShouldBeShown(context, method.id, "longitude")
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (locationEditable) {
-                OutlinedButton(onClick = { showLocation = !showLocation }) { Text(if (showLocation) "Hide location" else "Location") }
-                OutlinedButton(onClick = { requestDeviceLocation() }, enabled = !running) { Text("Use GPS") }
+    Column(rootModifier.padding(horizontal = 18.dp, vertical = 14.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column(Modifier.weight(1f)) {
+                Text("WEATHER · ${screenTitle(method.id).uppercase()}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(screenSubtitle(method.id), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Button(
-                onClick = { runNow() },
-                enabled = !running && latitude.toDoubleOrNull() != null && longitude.toDoubleOrNull() != null
-            ) { Text("Refresh") }
-        }
-        if (showLocation && locationEditable) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(latitude, { latitude = it; resultJson = "" }, label = { Text("Latitude") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            Spacer(Modifier.height(6.dp))
-            OutlinedTextField(longitude, { longitude = it; resultJson = "" }, label = { Text("Longitude") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-        }
-        if (weatherSettingShouldBeShown(context, method.id, "target_time_iso") && method.id in setOf(
-                As100WeatherConditionsMethod.id, As100WeatherForecastMethod.id,
-                As100WeatherMeteogramMethod.id, As100WeatherWindMethod.id,
-                As100WeatherAtmosphereMethod.id, As100WeatherSunMethod.id,
-                As100WeatherModelCompareMethod.id
-            )
-        ) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                targetTime,
-                { targetTime = it; resultJson = "" },
-                label = { Text("Selected time (ISO-8601 UTC, optional)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-        }
-        if (weatherSettingShouldBeShown(context, method.id, "horizon_hours") && method.id in setOf(As100WeatherForecastMethod.id, As100WeatherPrecipitationMethod.id, As100WeatherMeteogramMethod.id)) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                horizonHours,
-                { horizonHours = it.filter(Char::isDigit).take(3); resultJson = "" },
-                label = { Text("Horizon (hours)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-        }
-        if (weatherSettingShouldBeShown(context, method.id, "threshold_mm_per_hour") && method.id == As100WeatherPrecipitationMethod.id) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                threshold,
-                { threshold = it.take(8); resultJson = "" },
-                label = { Text("Meaningful rain threshold (mm/h)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-        }
-        if (method.id == As100WeatherRadarMethod.id &&
-            (weatherSettingShouldBeShown(context, method.id, "frame_time_iso") || weatherSettingShouldBeShown(context, method.id, "zoom"))) {
-            if (weatherSettingShouldBeShown(context, method.id, "frame_time_iso")) {
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    frameTime,
-                    { frameTime = it; resultJson = "" },
-                    label = { Text("Radar frame time (ISO-8601 UTC, optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+            Column {
+                if (context.stepNumber > 1) OutlinedButton(onClick = onBack) { Text("Back") }
+                OutlinedButton(onClick = onCancel) { Text("Cancel") }
             }
-            if (weatherSettingShouldBeShown(context, method.id, "zoom")) {
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    zoom,
-                    { zoom = it.take(4); resultJson = "" },
-                    label = { Text("Radar zoom (1–7)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
-        }
-        if (method.id == As100WeatherSnapshotMethod.id &&
-            (weatherSettingShouldBeShown(context, method.id, "target_time_iso") || weatherSettingShouldBeShown(context, method.id, "source_policy"))) {
-            if (weatherSettingShouldBeShown(context, method.id, "target_time_iso")) {
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    targetTime,
-                    { targetTime = it; resultJson = "" },
-                    label = { Text("Event time (ISO-8601)") },
-                    placeholder = { Text("2026-09-10T12:00:00Z") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(Modifier.height(6.dp))
-                OutlinedButton(
-                    onClick = {
-                        showSnapshotDateTimePicker(app, targetTime) { picked ->
-                            targetTime = picked
-                            resultJson = ""
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Pick calendar date & time") }
-                Text(
-                    "Picker uses the device timezone and stores an unambiguous UTC ISO timestamp.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (weatherSettingShouldBeShown(context, method.id, "source_policy")) {
-                Spacer(Modifier.height(8.dp))
-                Text("Source policy", style = MaterialTheme.typography.labelLarge)
-                listOf("best_available", "historical_forecast", "reanalysis", "forecast").forEach { policy ->
-                    OutlinedButton(
-                        onClick = { sourcePolicy = policy; resultJson = "" },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(if (sourcePolicy == policy) "✓ ${policy.replace('_',' ')}" else policy.replace('_',' '))
-                    }
-                }
-            }
-        }
-        if (method.descriptor.parameters["connectivity"] == "ONLINE_OFFLINE" && weatherSettingShouldBeShown(context, method.id, "offline_only")) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(
-                onClick = { offlineOnly = !offlineOnly; resultJson = "" },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (offlineOnly) "Cache only · on" else "Cache only · off")
-            }
-        }
-        if (!context.submitsImmediately && !context.isNativePresetRun) {
-            Spacer(Modifier.height(10.dp))
-            WeatherPresetAuthoring(
-                context = context,
-                methodId = method.id,
-                methodName = screenTitle(method.id),
-                currentSettings = currentSettings()
-            )
         }
         Spacer(Modifier.height(14.dp))
 
-        if (running) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(8.dp))
-            Text(status, style = MaterialTheme.typography.bodySmall)
-        } else if (resultValues.isEmpty()) {
-            InstrumentCard {
-                WeatherGlyph(null, Modifier.width(72.dp).height(72.dp))
-                Spacer(Modifier.height(8.dp))
-                Text(if (status == "Ready") "Choose a location to begin." else status, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    if (method.id == As100WeatherRadarMethod.id) "Observed radar remains distinct from model forecast precipitation."
-                    else "Live data use MethodMesh's declared online-data layer.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        // v1.29 instrument hierarchy: working result/readout before configuration.
+        when {
+            running && resultValues.isEmpty() -> {
+                InstrumentCard {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(8.dp))
+                    Text(status, style = MaterialTheme.typography.titleMedium)
+                }
             }
-        } else {
-            WeatherInstrumentResult(method.id, resultValues) { selectedFrameTime ->
-                frameTime = selectedFrameTime
-                resultJson = ""
-                runNow()
+            resultValues.isEmpty() -> {
+                InstrumentCard {
+                    WeatherGlyph(null, Modifier.width(72.dp).height(72.dp))
+                    Spacer(Modifier.height(8.dp))
+                    Text(if (status == "Ready") "Ready for weather" else status, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        if (method.id == As100WeatherRadarMethod.id) "Observed radar remains distinct from model forecast precipitation."
+                        else "Choose a location or use GPS. The live working result stays on this screen.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            Spacer(Modifier.height(12.dp))
-            if (!context.submitsImmediately) {
-                Button(
-                    onClick = {
-                        committedJson = JSONObject(resultValues).toString()
-                        committedSettingsJson = JSONObject(currentSettings()).toString()
-                        status = "Committed. Refreshing or editing now changes only the working result."
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = resultValues[statusField] == "succeeded"
-                ) { Text(if (committedJson.isBlank()) "Commit result" else "Recommit result") }
+            else -> {
+                WeatherInstrumentResult(method.id, resultValues) { selectedFrameTime ->
+                    frameTime = selectedFrameTime
+                    resultJson = ""
+                    showControls = false
+                    runNow()
+                }
+                if (running) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.height(10.dp))
+                if (!context.submitsImmediately) {
+                    Button(
+                        onClick = {
+                            committedJson = JSONObject(resultValues).toString()
+                            committedSettingsJson = JSONObject(currentSettings()).toString()
+                            status = "Committed. Working changes will not mutate the frozen result."
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = resultValues[statusField] == "succeeded"
+                    ) { Text(if (committedJson.isBlank()) "Commit result" else "Recommit current result") }
+                }
             }
-            Text(
-                "Commit freezes this weather result. Refreshing creates a new working result.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 6.dp)
-            )
         }
+
         committedExecution?.let { execution ->
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
             WeatherCommittedActions(
                 context = context,
                 label = screenTitle(method.id),
@@ -447,6 +340,154 @@ internal fun WeatherToolScreen(
                 workingChanged = committedJson != resultJson,
                 onDone = { onConfirmed(execution) }
             )
+        }
+
+        Spacer(Modifier.height(12.dp))
+        OutlinedButton(onClick = { showControls = !showControls }, modifier = Modifier.fillMaxWidth()) {
+            Text(if (showControls) "Hide location & options" else "Adjust location & options")
+        }
+        if (showControls) {
+            Spacer(Modifier.height(8.dp))
+            InstrumentCard {
+                Text("Location & options", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("Only controls relevant to this invocation are shown.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(10.dp))
+                val locationEditable = context.settingShouldBeShown("latitude") || context.settingShouldBeShown("longitude")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (locationEditable) {
+                        OutlinedButton(onClick = { showLocation = !showLocation }) { Text(if (showLocation) "Hide location" else "Location") }
+                        OutlinedButton(onClick = { requestDeviceLocation() }, enabled = !running) { Text("Use GPS") }
+                    }
+                    Button(
+                        onClick = { runNow() },
+                        enabled = !running && latitude.toDoubleOrNull() != null && longitude.toDoubleOrNull() != null
+                    ) { Text("Refresh") }
+                }
+                if (showLocation && locationEditable) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(latitude, { latitude = it; resultJson = "" }, label = { Text("Latitude") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedTextField(longitude, { longitude = it; resultJson = "" }, label = { Text("Longitude") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                }
+                if (context.settingShouldBeShown("target_time_iso") && method.id in setOf(
+                        As100WeatherConditionsMethod.id, As100WeatherForecastMethod.id,
+                        As100WeatherMeteogramMethod.id, As100WeatherWindMethod.id,
+                        As100WeatherAtmosphereMethod.id, As100WeatherSunMethod.id,
+                        As100WeatherModelCompareMethod.id
+                    )
+                ) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        targetTime,
+                        { targetTime = it; resultJson = "" },
+                        label = { Text("Selected time (ISO-8601 UTC, optional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+                if (context.settingShouldBeShown("horizon_hours") && method.id in setOf(As100WeatherForecastMethod.id, As100WeatherPrecipitationMethod.id, As100WeatherMeteogramMethod.id)) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        horizonHours,
+                        { horizonHours = it.filter(Char::isDigit).take(3); resultJson = "" },
+                        label = { Text("Horizon (hours)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+                if (context.settingShouldBeShown("threshold_mm_per_hour") && method.id == As100WeatherPrecipitationMethod.id) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        threshold,
+                        { threshold = it.take(8); resultJson = "" },
+                        label = { Text("Meaningful rain threshold (mm/h)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+                if (method.id == As100WeatherRadarMethod.id &&
+                    (context.settingShouldBeShown("frame_time_iso") || context.settingShouldBeShown("zoom"))) {
+                    if (context.settingShouldBeShown("frame_time_iso")) {
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            frameTime,
+                            { frameTime = it; resultJson = "" },
+                            label = { Text("Radar frame time (ISO-8601 UTC, optional)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+                    if (context.settingShouldBeShown("zoom")) {
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            zoom,
+                            { zoom = it.take(4); resultJson = "" },
+                            label = { Text("Radar zoom (1–7)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+                }
+                if (method.id == As100WeatherSnapshotMethod.id &&
+                    (context.settingShouldBeShown("target_time_iso") || context.settingShouldBeShown("source_policy"))) {
+                    if (context.settingShouldBeShown("target_time_iso")) {
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            targetTime,
+                            { targetTime = it; resultJson = "" },
+                            label = { Text("Event time (ISO-8601)") },
+                            placeholder = { Text("2026-09-10T12:00:00Z") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        OutlinedButton(
+                            onClick = {
+                                showSnapshotDateTimePicker(app, targetTime) { picked ->
+                                    targetTime = picked
+                                    resultJson = ""
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Pick calendar date & time") }
+                        Text(
+                            "Picker uses the device timezone and stores an unambiguous UTC ISO timestamp.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (context.settingShouldBeShown("source_policy")) {
+                        Spacer(Modifier.height(8.dp))
+                        Text("Source policy", style = MaterialTheme.typography.labelLarge)
+                        listOf("best_available", "historical_forecast", "reanalysis", "forecast").forEach { policy ->
+                            OutlinedButton(
+                                onClick = { sourcePolicy = policy; resultJson = "" },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(if (sourcePolicy == policy) "✓ ${policy.replace('_',' ')}" else policy.replace('_',' '))
+                            }
+                        }
+                    }
+                }
+                if (method.descriptor.parameters["connectivity"] == "ONLINE_OFFLINE" && context.settingShouldBeShown("offline_only")) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = { offlineOnly = !offlineOnly; resultJson = "" },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (offlineOnly) "Cache only · on" else "Cache only · off")
+                    }
+                }
+                if (!context.submitsImmediately && !context.isNativePresetRun) {
+                    Spacer(Modifier.height(10.dp))
+                    WeatherPresetAuthoring(
+                        context = context,
+                        methodId = method.id,
+                        methodName = screenTitle(method.id),
+                        currentSettings = currentSettings()
+                    )
+                }
+            }
         }
         Spacer(Modifier.height(28.dp))
     }
@@ -1075,7 +1116,7 @@ private fun hasWeatherLocationPermission(context: android.content.Context): Bool
 private fun com.example.methodmesh.transport.workflow.ExternalActionRequest.weatherSetting(key: String): String? =
     (settings[key] ?: settings["input_$key"])?.takeIf { it.isNotBlank() }
 
-private fun String.toStringMap(): Map<String,String> {
+internal fun String.toStringMap(): Map<String,String> {
     if (isBlank()) return emptyMap()
     return runCatching {
         val o = JSONObject(this)

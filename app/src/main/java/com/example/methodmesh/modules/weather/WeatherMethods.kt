@@ -25,7 +25,7 @@ import java.time.Instant
 import java.util.Locale
 import kotlin.math.max
 
-internal const val WEATHER_MODULE_VERSION = "0.2.6"
+internal const val WEATHER_MODULE_VERSION = "0.5.1"
 
 internal object WeatherFields {
     val dashboard = listOf(
@@ -70,6 +70,7 @@ internal object WeatherFields {
         "weather_radar_frame_time_iso", "weather_radar_frame_class", "weather_radar_provider", "weather_radar_coverage_state",
         "weather_radar_host", "weather_radar_frame_path", "weather_radar_tile_template", "weather_radar_zoom",
         "weather_radar_observed_frame_count", "weather_radar_nowcast_frame_count", "weather_radar_timeline_json",
+        "weather_radar_gif_uri", "weather_radar_gif_sha256",
         "weather_radar_retrieved_time_iso", "weather_radar_from_cache", "weather_radar_data_age_hours",
         "weather_radar_audit_json", "weather_radar_error"
     )

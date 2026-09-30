@@ -124,7 +124,7 @@ private object BarcodeScanExecution {
 
 object As100BarcodeGenerateMethod : As100Method {
     const val ID = "barcode.generate"
-    internal const val VERSION = "1.0.3"
+    internal const val VERSION = "1.0.8"
 
     override val id: String = ID
     override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "Code generator")
@@ -264,7 +264,7 @@ private object BarcodeGenerateExecution {
 
 object As100BarcodeCloneMethod : As100Method {
     const val ID = "barcode.clone"
-    internal const val VERSION = "1.0.3"
+    internal const val VERSION = "1.0.4"
 
     override val id: String = ID
     override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "Code clone")
@@ -435,3 +435,4 @@ private object BarcodeCloneExecution {
         )
     }
 }
+

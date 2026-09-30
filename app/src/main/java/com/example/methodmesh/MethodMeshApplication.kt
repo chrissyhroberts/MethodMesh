@@ -5,6 +5,7 @@ import com.example.methodmesh.core.onlinedata.ApiDefinitionRepository
 import com.example.methodmesh.core.scheduling.SchedulePlanRuntime
 import com.example.methodmesh.core.scheduling.SchedulerRepository
 import com.example.methodmesh.core.timeassurance.ClockAssuranceRuntime
+import com.example.methodmesh.core.timeassurance.TrustedTimeAutoRefresh
 import com.example.methodmesh.core.transport.MethodMeshTransportRuntime
 import com.example.methodmesh.modules.MethodMeshModuleDiscovery
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
@@ -20,6 +21,7 @@ class MethodMeshApplication : Application() {
         val modules = MethodMeshModuleDiscovery.discover(this)
         MethodMeshModuleRegistry.install(modules)
         modules.forEach { it.initialise(this) }
+        TrustedTimeAutoRefresh.schedulePeriodic(this)
         val transportRuntime = MethodMeshTransportRuntime.initialise(this)
         modules.flatMap { it.transportProviders(this) }.forEach(transportRuntime::registerProvider)
         transportRuntime.start()

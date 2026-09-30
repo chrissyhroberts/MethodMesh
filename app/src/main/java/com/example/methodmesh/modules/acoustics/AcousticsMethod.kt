@@ -234,7 +234,7 @@ object As100AcousticTunerMethod : As100Method {
         methodType = MethodObjectType.SignalInterpreter,
         name = "Instrument tuner",
         version = VERSION,
-        description = "Detect pitch and compare it with chromatic or instrument-specific tuning targets.",
+        description = "Continuously tune against chromatic or instrument-specific targets; return one confirmed final tuning snapshot when the operator finishes.",
         inputs = listOf("instrument", "string_index", "reference_a4_hz", "green_zone_cents", "capture_seconds", "minimum_stable_ms", "maximum_sd_cents"),
         outputs = AcousticTunerFields.outputs,
         graphOutputs = listOf("acoustic.tuning.measurement"),

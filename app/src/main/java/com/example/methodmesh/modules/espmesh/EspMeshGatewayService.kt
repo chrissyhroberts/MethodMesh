@@ -39,6 +39,7 @@ class EspMeshGatewayService : Service() {
         publishForeground("Starting persistent mesh transport…", listening = true, mediaPlayback = false)
         MethodMeshTransportRuntime.get(this).start()
         val provider = EspMeshTransportProvider.get(this)
+        provider.setServiceRunning(true)
         val walkie = EspMeshWalkieTalkieController.get(this)
         notificationJob = scope.launch {
             combine(provider.snapshot, walkie.state) { snapshot, voice -> snapshot to voice }
@@ -69,6 +70,7 @@ class EspMeshGatewayService : Service() {
     }
 
     override fun onDestroy() {
+        EspMeshTransportProvider.get(this).setServiceRunning(false)
         notificationJob?.cancel()
         // Do not stop the shared transport runtime here: process/app lifetime owns it.
         super.onDestroy()

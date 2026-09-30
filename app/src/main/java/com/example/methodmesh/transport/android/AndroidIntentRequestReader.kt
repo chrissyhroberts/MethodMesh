@@ -66,7 +66,8 @@ object AndroidIntentRequestReader {
             if (key.isNotBlank()) values[key] = value
         }
 
-        return RilTransportAdapter.parse(values, source = "android_action")
+        val parsed = RilTransportAdapter.parse(values, source = "android_action")
+        return parsed.copy(source = values["source"]?.takeIf { it.isNotBlank() } ?: parsed.source)
     }
 
     private fun splitArguments(raw: String): List<String> {
@@ -140,13 +141,16 @@ object AndroidIntentRequestReader {
 
     fun invocationContextFrom(parsed: ParsedLaunchConfig): InvocationContext {
         val merged = parsed.settings + parsed.context
-        val entityType = merged["entity_type"]
+        val entityType = merged["context_entity_type"]
+            ?: merged["entity_type"]
             ?: when {
                 merged["specimen_id"] != null -> "specimen"
                 merged["participant_id"] != null -> "participant"
                 else -> ""
             }
-        val entityId = merged["entity_id"]
+        val entityId = merged["context_entity_id"]
+            ?: merged["subject_id"]
+            ?: merged["entity_id"]
             ?: merged["participant_id"]
             ?: merged["specimen_id"]
             ?: ""
@@ -157,7 +161,15 @@ object AndroidIntentRequestReader {
             entityId = entityId,
             visitId = merged["visit_id"].orEmpty(),
             formId = merged["form_id"].orEmpty(),
-            operatorId = merged["operator_id"].orEmpty()
+            formVersion = merged["form_version"].orEmpty(),
+            formInstanceId = merged["form_instance_id"].orEmpty(),
+            submissionId = merged["submission_id"].orEmpty(),
+            studyId = merged["study_id"].orEmpty(),
+            siteId = merged["site_id"].orEmpty(),
+            eventId = merged["event_id"].orEmpty(),
+            operatorId = merged["operator_id"].orEmpty(),
+            dataOriginatorType = merged["data_originator_type"].orEmpty(),
+            dataOriginatorId = merged["data_originator_id"].orEmpty()
         )
     }
 

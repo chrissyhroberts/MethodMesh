@@ -62,3 +62,13 @@ Static source/API review completed against the supplied current `app/src/main` s
 - Direct native presets remain shortcut-like; protocol/sequence invocations still receive an execution result.
 - ODK label is `Return to form`; file Save is not required before return.
 - XLSForm showcase includes one canonical invocation with `input_document_mode` and canonical unprefixed returns.
+
+## v0.12 text-file compatibility checks
+
+- Open `.json`, `.jsonl`, `.ndjson`, `.yaml`, `.yml`, `.toml`, `.xml`, `.html`, `.css`, `.js`, `.ts`, `.py`, `.kt`, `.java`, `.sh`, `.sql`, `.csv`, `.ini`, `.properties` and representative unknown extensions from Android Files.
+- Confirm filename detection takes precedence over inaccurate provider MIME types.
+- Confirm unknown extensions remain editable and Save As preserves their existing extension.
+- Confirm obvious binary content and malformed UTF-8 fail clearly rather than being silently replaced.
+- Confirm New groups formats into Text & data, Data & config, Web & markup and Source code.
+- Confirm Markdown exposes Edit/Preview directly in the editor action strip.
+- Focused automated coverage: `DocumentIoTest`.

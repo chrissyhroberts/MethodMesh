@@ -50,6 +50,9 @@ object EspMeshDiagnosticsCapabilityScreen : CapabilityScreenSpec {
                 Text("Gateway", style = MaterialTheme.typography.titleMedium)
                 Text("${gateway.nodeId} · ${gateway.firmware.ifBlank { "unknown firmware" }}")
                 Text("Network: ${gateway.networkId.ifBlank { "not provisioned" }}")
+                Text("ESP network key ID: ${gateway.networkKeyId.ifBlank { "unavailable" }} · radio channel: ${gateway.radioChannel.takeIf { it > 0 } ?: "unavailable"}")
+                Text("Radio buffer: ${gateway.radioRxBuffer.takeIf { it > 0 } ?: "unavailable"} bytes · packets received: ${gateway.radioRxPackets}")
+                Text("Radio startup: ${gateway.radioStartError.ifBlank { "OK" }} · send error: ${gateway.radioSendError.ifBlank { "none" }}")
                 Text("ESP spool → radio: ${gateway.pendingForRadio} · → phone: ${gateway.pendingForPhone}")
                 if (gateway.spoolError.isNotBlank()) Text("ESP spool error: ${gateway.spoolError}", color = MaterialTheme.colorScheme.error)
             }

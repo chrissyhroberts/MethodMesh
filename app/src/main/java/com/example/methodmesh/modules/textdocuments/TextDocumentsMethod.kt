@@ -30,7 +30,7 @@ object TextDocumentFields {
 
 object As100TextDocumentsMethod : As100Method {
     const val ID = "document.text.open"
-    private const val VERSION = "0.11.0"
+    private const val VERSION = "0.12.0"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Text documents")
@@ -39,7 +39,7 @@ object As100TextDocumentsMethod : As100Method {
         methodType = MethodObjectType.Method,
         name = "Text documents",
         version = VERSION,
-        description = "Create, open, edit, save, copy and share plain text, Markdown, JSON and JSON Lines documents.",
+        description = "Create, open, edit, save, copy and share text, data, configuration, markup and source-code files.",
         outputs = TextDocumentFields.outputs,
         graphOutputs = listOf(ID),
         parameters = mapOf(

@@ -1,5 +1,8 @@
 package com.example.methodmesh.modules.nfc
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +14,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,10 +24,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
@@ -172,6 +180,7 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
 
         NfcDeviceServiceEffect(
             enabled = active,
+            holdReaderMode = true,
             onStatus = { status = it },
             onSignal = { tagSignal ->
                 scope.launch {
@@ -383,9 +392,9 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
             )
             if (firstTag != null && result == null && !awaitingReadBack) {
                 Spacer(Modifier.height(12.dp))
-                PinField(pin, { pin = digitsOnly(it, pinLength) }, "PIN")
+                PinField(pin, { pin = it }, "Create PIN", pinLength, autoFocus = true)
                 Spacer(Modifier.height(8.dp))
-                PinField(confirmPin, { confirmPin = digitsOnly(it, pinLength) }, "Confirm PIN")
+                PinField(confirmPin, { confirmPin = it }, "Confirm PIN", pinLength, autoFocus = pin.length == pinLength)
                 Spacer(Modifier.height(8.dp))
                 Button(onClick = { beginPreparedWrite() }, enabled = !active, modifier = Modifier.fillMaxWidth()) {
                     Text("Continue to write")
@@ -434,29 +443,14 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
         val supplied = remember(context.action.settings, context.request.settings) {
             context.action.settings + context.request.settings.filterValues(String::isNotBlank)
         }
-        val trustedIssuerFingerprintsRaw = remember(supplied) {
-            sequenceOf(
-                supplied["trusted_issuer_fingerprint_sha256"],
-                supplied["trusted_issuer_fingerprints_sha256"]
-            ).filterNotNull().filter(String::isNotBlank).joinToString(",")
-        }
-        val trustedIssuerFingerprints = remember(trustedIssuerFingerprintsRaw) {
-            splitIssuerTrustValues(trustedIssuerFingerprintsRaw)
-                .map { it.lowercase() }
-                .toSet()
-        }
-        val invalidTrustedIssuerFingerprints = remember(trustedIssuerFingerprints) {
-            trustedIssuerFingerprints.filterNot(::isSha256Hex)
-        }
-        val trustedIssuerKeyIds = remember(supplied) {
+        val trustedIssuers = remember(supplied) {
             sequenceOf(supplied["trusted_issuer_key_id"], supplied["trusted_issuer_key_ids"])
                 .filterNotNull()
-                .flatMap { splitIssuerTrustValues(it).asSequence() }
-                .map { it.lowercase() }
+                .flatMap { it.split(',').asSequence() }
+                .map(String::trim)
+                .filter(String::isNotBlank)
                 .toSet()
         }
-        val issuerTrustSetId = supplied["issuer_trust_set_id"].orEmpty()
-        val issuerTrustSetVersion = supplied["issuer_trust_set_version"].orEmpty()
         var tagSignal by remember { mutableStateOf<NfcTagSignal?>(null) }
         var capturedTagValues by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
         var envelope by remember { mutableStateOf("") }
@@ -469,10 +463,6 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
         fun startScan() {
-            if (invalidTrustedIssuerFingerprints.isNotEmpty()) {
-                status = "Invalid trusted issuer fingerprint. Use full 64-character SHA-256 hexadecimal fingerprints."
-                return
-            }
             tagSignal = null
             capturedTagValues = emptyMap()
             envelope = ""
@@ -498,14 +488,9 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
                 val enteredPin = pin.toCharArray()
                 pin = ""
                 val verified = withContext(Dispatchers.Default) {
-                    NfcPortableCredentialFormat.verify(
-                        envelope = envelope,
-                        pin = enteredPin,
-                        trustedIssuerFingerprintsSha256 = trustedIssuerFingerprints,
-                        trustedIssuerKeyIds = trustedIssuerKeyIds
-                    )
+                    NfcPortableCredentialFormat.verify(envelope, enteredPin, trustedIssuers)
                 }
-                if (!verified.verified && verified.pinRejected) {
+                if (!verified.verified) {
                     attempts += 1
                     if (attempts >= 5) {
                         status = "Verification failed five times. Scan the card again to restart."
@@ -515,12 +500,10 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
                     }
                     return@launch
                 }
-                val execution = As100NfcCredentialVerificationMethod.result(
+                val execution = As100NfcCredentialVerificationMethod.verified(
                     tagSignal = signal,
                     capturedTagValues = capturedTagValues,
                     credential = verified,
-                    issuerTrustSetId = issuerTrustSetId,
-                    issuerTrustSetVersion = issuerTrustSetVersion,
                     invocationContext = context.request.invocationContext
                 )
                 result = execution
@@ -535,6 +518,7 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
 
         NfcDeviceServiceEffect(
             enabled = active,
+            holdReaderMode = true,
             onStatus = { status = it },
             onSignal = { signal ->
                 val tagValues = NfcTagRepository.readTag(signal.androidTag)
@@ -576,30 +560,22 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
             onConfirm = { result?.let(onConfirmed) },
             onCancel = onCancel
         ) {
-            Text(
-                when {
-                    trustedIssuerFingerprints.isNotEmpty() -> {
-                        val label = listOfNotNull(
-                            issuerTrustSetId.takeIf(String::isNotBlank),
-                            issuerTrustSetVersion.takeIf(String::isNotBlank)?.let { "v$it" }
-                        ).joinToString(" · ").ifBlank { "configured study trust set" }
-                        "Issuer trust: $label · ${trustedIssuerFingerprints.size} full SHA-256 fingerprint(s)"
-                    }
-                    trustedIssuerKeyIds.isNotEmpty() ->
-                        "Issuer trust: legacy short-key-ID allow-list (${trustedIssuerKeyIds.size})"
-                    else ->
-                        "Issuer trust: not configured. Signature and PIN can be checked, but issuer trust will be reported as not_checked."
-                },
-                style = MaterialTheme.typography.labelSmall
-            )
-            Spacer(Modifier.height(8.dp))
             if (tagSignal == null && !active && result == null) {
                 Button(onClick = { startScan() }, modifier = Modifier.fillMaxWidth()) {
                     Text("Scan credential")
                 }
             }
             if (tagSignal != null && result == null) {
-                PinField(pin, { pin = digitsOnly(it, expectedPinLength) }, "$expectedPinLength-digit PIN")
+                PinField(pin, { pin = it }, "Enter PIN", expectedPinLength, autoFocus = true)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    if (attempts == 0) {
+                        "5 attempts available before the card must be scanned again."
+                    } else {
+                        "${5 - attempts} attempt${if (5 - attempts == 1) "" else "s"} remaining before re-scan."
+                    },
+                    style = MaterialTheme.typography.labelSmall
+                )
                 Spacer(Modifier.height(8.dp))
                 Button(
                     onClick = { verifyPin() },
@@ -617,8 +593,8 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
                 examples = listOf(
                     IntentExample(
                         label = "Verify a credential",
-                        description = "Scan the card, enter its PIN inside MethodMesh, and optionally supply an offline study trust set of full SHA-256 issuer fingerprints.",
-                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',input_payload_mode='FULL',return_mode='flat')"
+                        description = "Scan the card, then enter its PIN inside MethodMesh.",
+                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',return_mode='flat')"
                     )
                 )
             )
@@ -627,26 +603,72 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
 }
 
 @Composable
-private fun PinField(value: String, onValueChange: (String) -> Unit, label: String) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        visualTransformation = PasswordVisualTransformation(),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true
-    )
+private fun PinField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    pinLength: Int,
+    autoFocus: Boolean = false
+) {
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(autoFocus, pinLength) {
+        if (autoFocus) {
+            delay(100)
+            focusRequester.requestFocus()
+        }
+    }
+
+    Column(Modifier.fillMaxWidth()) {
+        Text(label, style = MaterialTheme.typography.labelLarge)
+        Spacer(Modifier.height(6.dp))
+        BasicTextField(
+            value = value,
+            onValueChange = { onValueChange(digitsOnly(it, pinLength)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester),
+            decorationBox = { innerTextField ->
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        repeat(pinLength) { index ->
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(52.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (index == value.length && value.length < pinLength) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.outlineVariant
+                                    }
+                                )
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        if (index < value.length) "●" else "",
+                                        style = MaterialTheme.typography.titleLarge
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    // Keep a real BasicTextField in the semantics/focus tree so Android
+                    // supplies its native numeric-password IME. The visible credential
+                    // UI is the fixed-length row of PIN cells above.
+                    Box(Modifier.height(1.dp)) { innerTextField() }
+                }
+            }
+        )
+    }
 }
 
 private fun digitsOnly(value: String, maxLength: Int): String =
     value.filter(Char::isDigit).take(maxLength)
-
-
-private fun splitIssuerTrustValues(value: String): List<String> =
-    value.split(',', ';', '\n', '\r', ' ')
-        .map(String::trim)
-        .filter(String::isNotBlank)
-
-private fun isSha256Hex(value: String): Boolean =
-    value.length == 64 && value.all { it in '0'..'9' || it.lowercaseChar() in 'a'..'f' }

@@ -1,6 +1,8 @@
 # MethodMesh
 
-MethodMesh is an Android fieldwork and practical-methods toolkit. It turns small, focused capabilities into reusable actions that can be run by a person, called from an ODK form, chained into a protocol, or scheduled for headless execution.
+MethodMesh is an Android toolkit for people who collect data and make observations in the field, in the lab, and out in the wider world. It brings measurements, evidence, forms, instruments, devices, documents, media and practical methods into one place, with reusable actions that can be run by a person, called from an ODK form, chained into a protocol, or scheduled for headless execution.
+
+It is also a Swiss-army knife for people—and especially nerds—who have accumulated a small app for every small job. Instead of switching between dozens of single-purpose apps, MethodMesh gives those jobs a shared home: one dashboard, one artifact and sharing model, reusable presets, composable protocols, schedules, and a growing set of field-ready capabilities.
 
 > **Work in progress — alpha release.** Interfaces, capability contracts, data formats, and module names are still being refined. This repository is useful for experimentation and development; it is not yet a stable production release.
 
@@ -18,7 +20,13 @@ MethodMesh brings common field and everyday tasks into one composable runtime:
 - keep persistent files, logs, backups, exports, and module-owned ODK templates in the shared Files/Artifact layer;
 - connect to devices and experimental ESP-NOW mesh nodes through the transport and sensor framework.
 
+## Download
+
+The latest alpha release includes a debug-signed APK for sideloading from the [GitHub Releases page](https://github.com/chrissyhroberts/MethodMesh/releases/latest). It is suitable for testing and field evaluation; review the release notes and install only on devices where you are comfortable enabling an externally downloaded APK.
+
 ## How the pieces connect
+
+![](docs/assets/MethodMesh_Overview.png)
 
 ```mermaid
 flowchart LR

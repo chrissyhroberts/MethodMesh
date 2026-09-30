@@ -1,42 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widgetRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_background"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="2dp">
 
-    <TextView
-        android:id="@+id/widgetIcon"
-        android:layout_width="34dp"
-        android:layout_height="30dp"
-        android:contentDescription="@string/app_name"
-        android:gravity="center"
-        android:text="🕸️"
-        android:textSize="20sp" />
-
-    <TextView
-        android:id="@+id/widgetTitle"
+    <LinearLayout
+        android:id="@+id/widgetBackground"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_bg_teal_solid"
         android:gravity="center"
-        android:maxLines="2"
-        android:text="MethodMesh"
-        android:textColor="#302A28"
-        android:textSize="12sp"
-        android:textStyle="bold" />
+        android:orientation="vertical"
+        android:padding="8dp">
 
-    <TextView
-        android:id="@+id/widgetSubtitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:gravity="center"
-        android:maxLines="1"
-        android:text="Preset"
-        android:textColor="#477C78"
-        android:textSize="10sp" />
-</LinearLayout>
+        <LinearLayout
+            android:id="@+id/widgetContentPlate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_content_plate_clear"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingLeft="6dp"
+            android:paddingTop="5dp"
+            android:paddingRight="6dp"
+            android:paddingBottom="5dp">
+
+            <TextView
+                android:id="@+id/widgetIcon"
+                android:layout_width="34dp"
+                android:layout_height="30dp"
+                android:contentDescription="@string/app_name"
+                android:gravity="center"
+                android:text="🕸️"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/widgetTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="MethodMesh"
+                android:textColor="#302A28"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widgetSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="Tap to set up"
+                android:textColor="#302A28"
+                android:textSize="9sp" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

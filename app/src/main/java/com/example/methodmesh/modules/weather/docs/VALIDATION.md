@@ -205,3 +205,38 @@ v0.2.6 changes only radar presentation internals:
 - stale asynchronous frame callbacks are ignored if a newer radar frame has already become current.
 
 Current MapLibre Android documentation was checked for `MapLibreMapOptions.camera`, the programmatic `MapView(context, options)` constructor, and `Style.removeLayer/removeSource`. No Weather capability IDs, inputs, outputs, provider definitions or XLSForms changed.
+
+## v0.5.0 — MethodMesh Master Book v1.29 review
+
+The Weather UI was reviewed against the supplied `METHODMESH_MASTER_BOOK_v1.29.md`, particularly the Dashboard and Instrument dashboard UI standards.
+
+Verified by source review:
+
+- the dashboard is now a compact operational surface with progressive disclosure rather than a pasted sequence of every capability;
+- the default user hierarchy is current weather, hourly outlook, weekly outlook and radar before specialist analysis;
+- direct capability surfaces keep the live working result on the same screen and visually ahead of configuration controls;
+- Commit freezes the canonical result and post-Commit actions remain on the capability surface;
+- shared preset authoring remains available and fixed/runtime preset visibility is preserved;
+- ODK/external automatic-return mode suppresses the native manual result workflow and retains host-owned scrolling;
+- all displayed scalar/text result widgets continue to use the module's tap-to-copy projection;
+- map/radar interaction retains explicit page-scroll versus map-gesture control;
+- all eleven existing method IDs and all prior inputs/outputs match v0.2.6; only `weather.radar` adds `weather_radar_gif_uri` and `weather_radar_gif_sha256`.
+
+### XLSForm structural audit
+
+All eleven module-owned XLSForms were re-imported with `artifact_tool` and checked. Every form has:
+
+- exactly one `body::intent` MethodMesh invocation;
+- `input_payload_mode='FULL'`;
+- `return_mode='flat'`;
+- no `methodmesh_return_namespace`;
+- `methodmesh_status`;
+- `methodmesh_full_json`;
+- no duplicate survey node names;
+- no `#REF!`, `#DIV/0!`, `#VALUE!`, `#NAME?` or `#N/A` tokens.
+
+The radar example additionally has `weather_radar_gif_uri` as type `image`, `weather_radar_gif_sha256`, and default zoom `5`.
+
+### Kotlin/build status
+
+A Kotlin compiler syntax-oriented pass found no parser errors (`expecting`, unclosed constructs or unexpected-token errors). A full Android `:app:compileDebugKotlin` build is **not claimed** for this handoff because a complete buildable MethodMesh checkout/toolchain was not available in the working container. Current MethodMesh host API signatures were checked against the repository before packaging.

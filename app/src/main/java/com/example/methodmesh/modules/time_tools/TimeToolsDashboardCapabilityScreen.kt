@@ -69,7 +69,7 @@ object TimeToolsDashboardCapabilityScreen : CapabilityScreenSpec {
 
     private fun launch(context: android.content.Context, methodId: String) {
         context.startActivity(Intent(context, IntentRouterActivity::class.java).apply {
-            action = "com.example.methodmesh.EXECUTE_METHOD(method_id='$methodId',caller='time_dashboard')"
+            action = "com.example.methodmesh.EXECUTE_METHOD(method_id='$methodId',caller='time_dashboard',source='dashboard')"
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
     }

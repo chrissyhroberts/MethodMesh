@@ -41,3 +41,7 @@ ODK/XLSForm contracts are unchanged from v0.2.3. Preset authoring is hidden from
 ## v0.2.6 radar patch
 
 Radar now receives its initial camera before first render and swaps only the radar raster overlay when stepping through frames. This removes the visible world/default-camera-to-Weather-camera adjustment and avoids full basemap reloads during Play.
+
+## v0.5.0 note
+
+This release is aligned to the supplied MethodMesh Master Book v1.29 presentation/lifecycle guidance. After dropping the `weather/` folder into the MethodMesh modules tree, run the receiving repository's normal `:app:compileDebugKotlin`, unit-test and debug-assemble gates before promotion.

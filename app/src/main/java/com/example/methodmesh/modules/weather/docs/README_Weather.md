@@ -185,3 +185,11 @@ app/src/main/java/com/example/methodmesh/modules/weather/
 Do not split its UI, provider definitions or documentation into shared app folders. MethodMesh module discovery/index generation and repository-level asset generation remain host-repository responsibilities.
 
 No shared-framework Weather special case is required.
+
+## v0.5.0 — v1.29 presentation profile
+
+Weather v0.5.0 uses the MethodMesh v1.29 instrument/dashboard hierarchy. The everyday dashboard deliberately prioritises **Now → Next 24 hours → This week → Radar** and moves quantitative rain diagnostics plus specialist/research meteorology behind progressive disclosure. Individual capabilities keep their live working result visually dominant, with configuration available beneath/behind the result rather than presenting as a generic settings form.
+
+The dashboard is an aggregation/presentation surface only. The eleven canonical methods remain independently callable through Capabilities, Presets, Protocols and ODK/XLSForm.
+
+`weather.radar` additionally declares `weather_radar_gif_uri` and `weather_radar_gif_sha256`. External/ODK radar runs attempt to populate these with a transient animated radar GIF and its SHA-256; attachment transfer remains the responsibility of the shared MethodMesh Android transport.

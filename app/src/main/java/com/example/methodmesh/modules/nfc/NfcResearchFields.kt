@@ -90,7 +90,8 @@ object NfcProvisionFields {
     const val CREDENTIAL_ENVELOPE_HASH = "credential_envelope_hash"
     const val CREDENTIAL_SECRET_HASH = "credential_secret_hash"
     const val ISSUER_KEY_ID = "issuer_key_id"
-    const val ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256 = "issuer_public_key_fingerprint_sha256"
+    const val ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256 =
+        "issuer_public_key_fingerprint_sha256"
     const val ISSUER_PUBLIC_KEY_BASE64 = "issuer_public_key_base64"
     const val ISSUER_SIGNATURE_ALGORITHM = "issuer_signature_algorithm"
     const val PROVISION_SUCCESS = "provision_success"
@@ -131,9 +132,6 @@ object NfcCredentialVerificationFields {
     const val PIN_VERIFIED = "pin_verified"
     const val ISSUER_SIGNATURE_VALID = "issuer_signature_valid"
     const val ISSUER_TRUST_STATUS = "issuer_trust_status"
-    const val ISSUER_TRUST_BASIS = "issuer_trust_basis"
-    const val ISSUER_TRUST_SET_ID = "issuer_trust_set_id"
-    const val ISSUER_TRUST_SET_VERSION = "issuer_trust_set_version"
 
     val outputFields: List<String> = listOf(
         CREDENTIAL_VERIFIED,
@@ -153,11 +151,9 @@ object NfcCredentialVerificationFields {
         PIN_VERIFIED,
         ISSUER_SIGNATURE_VALID,
         ISSUER_TRUST_STATUS,
-        ISSUER_TRUST_BASIS,
-        ISSUER_TRUST_SET_ID,
-        ISSUER_TRUST_SET_VERSION,
         VERIFIED_TIME_ISO,
         NfcEvidenceFields.TAG_UID_HEX,
+        NfcCredentialEvidence.FORMAT_FIELD,
         NfcCredentialEvidence.HASH_FIELD
     )
 }
@@ -166,6 +162,7 @@ object NfcCredentialVerificationFields {
 object NfcIssuerIdentityFields {
     const val SCHEMA_VERSION = "issuer_identity_schema_version"
     const val EXPORTED_TIME_ISO = "issuer_identity_exported_time_iso"
+    const val CERTIFICATE_JSON = "issuer_certificate_json"
     const val IDENTITY_JSON = "issuer_identity_json"
 
     val outputFields: List<String> = listOf(
@@ -175,6 +172,7 @@ object NfcIssuerIdentityFields {
         NfcProvisionFields.ISSUER_PUBLIC_KEY_BASE64,
         NfcProvisionFields.ISSUER_SIGNATURE_ALGORITHM,
         EXPORTED_TIME_ISO,
+        CERTIFICATE_JSON,
         IDENTITY_JSON
     )
 }

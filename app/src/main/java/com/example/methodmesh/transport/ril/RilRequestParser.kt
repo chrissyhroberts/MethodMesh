@@ -293,7 +293,9 @@ object RilRequestParser {
 
     private val contextKeys = setOf(
         "caller", "entity_type", "entity_id", "subject", "subject_id", "participant_id",
-        "specimen_id", "visit_id", "form_id", "operator_id", "context_entity_type", "context_entity_id"
+        "specimen_id", "study_id", "site_id", "visit_id", "event_id", "form_id", "form_version",
+        "form_instance_id", "submission_id", "operator_id", "data_originator_type", "data_originator_id",
+        "context_entity_type", "context_entity_id"
     )
 
     private enum class Section {

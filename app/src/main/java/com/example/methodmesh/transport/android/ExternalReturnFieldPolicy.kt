@@ -28,9 +28,20 @@ internal object ExternalReturnFieldPolicy {
         "entity_id",
         "participant_id",
         "specimen_id",
+        "subject_id",
+        "context_entity_type",
+        "context_entity_id",
+        "study_id",
+        "site_id",
         "visit_id",
+        "event_id",
         "form_id",
-        "operator_id"
+        "form_version",
+        "form_instance_id",
+        "submission_id",
+        "operator_id",
+        "data_originator_type",
+        "data_originator_id"
     )
 
     internal fun callerDeclaredOutputKeys(

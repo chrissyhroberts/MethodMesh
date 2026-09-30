@@ -1,39 +1,58 @@
 # Changelog
 
-## v0.2.3
+## 0.3.3 — 2026-09-25 — clean transcript, no speaker attribution
 
-- Fixed runtime Compose crash when opening the live meeting surface.
-- Removed the setup pane's nested `verticalScroll`; scrolling remains owned by the MethodMesh host.
-- Preserved the bounded live-feed `LazyColumn` inside the full-screen meeting dialog.
+- Removed manual speaker tagging and speaker-slot controls completely.
+- Removed speaker inputs, outputs and per-segment speaker fields; no deprecated speaker compatibility fields are retained because they were never used in a deployed contract.
+- Simplified the readable committed transcript to chronological translated text, with only explicit transcript recording pause/resume markers.
+- Recognition/language/provenance detail remains in structured segment/full JSON.
+- Preserved all three established method IDs and the streaming follow-tail interaction.
 
-## 0.2.2 — current MethodMesh scaffold contract fix
+## 0.3.2 — 2026-09-25
 
-- Updated `CapabilityScreenScaffold` invocation to the current MethodMesh host contract.
-- Removed obsolete scaffold-level `description` argument; descriptions remain owned by each `CapabilityScreenSpec`.
-- Added required `capabilityId`, `context`, and `canGoBack = context.stepNumber > 1` arguments.
-- No method IDs, settings, outputs, speech-provider behavior, hot-switch semantics, or ODK contracts changed.
+- Replaced the streaming mode card stack with one simple top-to-bottom accumulating transcript.
+- Final translated segments append in chronological order; the revisable working translation is an inline final row rather than a separate large card.
+- Added follow-tail autoscroll so the newest transcript remains in view while speech/translation revisions arrive.
+- A deliberate vertical swipe suspends follow-tail, preventing automatic scrolling from fighting the user; **Follow live ↓** explicitly resumes live following.
+- Kept per-line tap-to-copy while removing recognition-engine/language/provenance clutter from the transcript surface.
+- No method IDs, setting keys, output keys, ODK `form_id`s or Commit semantics changed.
 
-## 0.2.1 — host build integration correction
+## 0.3.1 — 2026-09-24
 
-- Explicitly marks the ML Kit GenAI speech artifact as a **required host-app Gradle change** when this module is installed.
-- Documents the exact `app/build.gradle.kts` line required for `MlKitSpeechRecognitionProvider.kt` to compile.
-- Clarifies that the returned module folder cannot modify the central app Gradle file under the MethodMesh module handoff rules.
-- No method IDs, settings, output contracts, hot-switch semantics or ODK contracts changed.
+- Rebased ML Kit language-catalog imports onto the v1.29 shared platform API (`com.example.methodmesh.platform.translation`).
+- Corrected the Compose `rememberSaveable` import in the ODK Integration Card.
+- Normalised `supportedCodes()` to `List<String>` at language-selector boundaries after the shared catalogue API changed to return a set.
+- No method IDs, setting keys, output keys, ODK `form_id`s or streaming semantics changed.
 
-## 0.2.0 — speech-provider hot-switching
+## 0.3.0 — 2026-09-24
 
-- Added a provider abstraction underneath the continuous meeting session.
-- Added Android, ML Kit Basic and ML Kit GenAI/Advanced recognition providers.
-- Added `Automatic` routing for fixed-language mode: GenAI → Basic → Android, with visible fallback.
-- Kept automatic-language mode on Android 14+ language detection/switching.
-- Added live engine selector and safe utterance-boundary hot-switching.
-- Added per-segment recognition-engine provenance and session-level requested/last-engine/switch-count outputs.
-- Added ML Kit speech model status/download handling.
-- Updated presets/protocol settings and both ODK XLSForms with speech-engine input/output fields.
-- Kept manual speaker attribution; no recognizer is treated as a diarisation provider.
+- Reviewed/migrated module against MethodMesh Master Book v1.29.
+- Added explicit module version/maturity and canonical capability maturity/connectivity metadata.
+- Existing `conversation.translate.live.fixed` and `conversation.translate.live.auto` IDs preserved; both now honestly tagged Development.
+- Added experimental `conversation.translate.live.streaming` capability.
+- Streaming mode uses ML Kit Speech Recognition continuous partial/final output rather than waiting for utterance completion to update translation.
+- Added a three-stage streaming path: recognizer stream -> conflating translation worker -> revision arbiter.
+- Stale asynchronous partial translations are dropped and cannot overwrite newer phrases.
+- Partial hypotheses remain working-only; only final recognizer segments enter the committed transcript/segment JSON.
+- Added `stream_response` policy (`fast`, `balanced`, `stable`).
+- Streaming Automatic recognition routes GenAI -> Basic and intentionally excludes Android SpeechRecognizer.
+- Restricted streaming source choices conservatively to ML Kit Basic-supported languages so fallback remains viable on devices without GenAI, including Pixel 7a-class devices.
+- Added module-owned ODK integration card.
+- Migrated active XLSForms to v1.29 `example_odk_showcase_*` naming and added a streaming single-invocation showcase; existing fixed/auto `form_id` identities preserved.
+- Removed legacy active XLSForm filenames from the handoff to avoid duplicate form-library records.
 
-## 0.1.0 — initial live meeting translation
+## 0.2.3 — 2026-09-11
 
-- Fixed source-language → target-language live translation.
-- Android 14+ automatic source-language detection/switching mode.
-- Live partial/final feed, transcript controls, speaker tags, Commit lifecycle and ODK round-trip examples.
+- Removed nested vertical scrolling that could crash Compose with infinite maximum-height constraints when the live meeting dialog opened.
+
+## 0.2.2 — 2026-09-11
+
+- Updated `CapabilityScreenScaffold` invocation for the then-current shared scaffold signature.
+
+## 0.2.1 — 2026-09-11
+
+- Documented required host dependency for ML Kit GenAI Speech Recognition.
+
+## 0.2.0 — 2026-09-11
+
+- Added Android / ML Kit Basic / ML Kit GenAI recognition-provider abstraction and safe provider hot-switching.

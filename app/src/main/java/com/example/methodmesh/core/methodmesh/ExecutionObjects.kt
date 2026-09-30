@@ -48,6 +48,18 @@ data class Transformation(
     override val objectType: String = "Transformation"
 }
 
+data class ExecutionTimingBoundary(
+    val observedWallTimeIso: String,
+    val elapsedRealtimeMillis: Long,
+    val bootSessionId: String?
+)
+
+data class ExecutionApplicationIdentity(
+    val applicationId: String,
+    val versionName: String,
+    val versionCode: Long
+)
+
 data class ExecutionRequest(
     override val id: ArchitectureId = ArchitectureId(),
     val action: String,
@@ -55,7 +67,9 @@ data class ExecutionRequest(
     val context: Map<String, String> = emptyMap(),
     val signals: List<Signal> = emptyList(),
     val inputs: List<ArchitectureRef> = emptyList(),
-    val temporalContext: TemporalContext = TemporalContext()
+    val temporalContext: TemporalContext = TemporalContext(),
+    /** Policy-neutral wall/monotonic boundary captured when this execution request was created. */
+    val startTiming: ExecutionTimingBoundary? = null
 ) : ArchitectureObject {
     override val objectType: String = "ExecutionRequest"
 }
@@ -74,6 +88,7 @@ data class ExecutionResult(
     val quality: QualityAssessment? = null,
     val diagnostics: Map<String, String> = emptyMap(),
     val timeAssurance: ClockEvidenceSnapshot? = null,
+    val applicationProvenance: ExecutionApplicationIdentity? = null,
     val softwareProvenance: List<ExecutionCapabilityIdentity> = emptyList()
 ) {
     val knowledgeObjects: List<KnowledgeObject>

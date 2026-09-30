@@ -1,15 +1,15 @@
 {
   "schema": "methodmesh.odk_template_index.v3",
   "generatedFrom": "app/src/main/java/com/example/methodmesh",
-  "templateCount": 411,
-  "moduleCount": 79,
+  "templateCount": 416,
+  "moduleCount": 80,
   "validationSummary": {
-    "formsNeedingRevision": 133,
-    "cleanForms": 278,
+    "formsNeedingRevision": 142,
+    "cleanForms": 274,
     "severityCounts": {
       "error": 0,
       "warning": 34,
-      "style": 153,
+      "style": 170,
       "info": 0
     },
     "authoritativeValidatedForms": 0,
@@ -2280,9 +2280,9 @@
       "sourceFileName": "example_odk_conversion_calculate.xlsx",
       "sourceRelativePath": "modules/conversions/docs/example_odk_conversion_calculate.xlsx",
       "centralFormId": "conversion_calculate",
-      "formVersion": "2026090703",
+      "formVersion": "2026092401",
       "assetPath": "methodmesh/odk_templates/conversions/example_odk_conversion_calculate.xlsx",
-      "sha256": "c28ea82bacf01e0296d7376c6c100336c0cee340e5077d06453d6144679a17d3",
+      "sha256": "05be5817bccb41607519c1fccf2c0432b667a771297beac3edfcf8ef2cf99e3a",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -2312,7 +2312,7 @@
       "centralFormId": "conversions_conversion_calculate",
       "formVersion": "2026090701",
       "assetPath": "methodmesh/odk_templates/conversions/example_odk_showcase_conversion_calculate.xlsx",
-      "sha256": "10e4eb364662c47224fc75805c990fff1a5a00cf53a6e13d19d0b38e21a22b90",
+      "sha256": "caf168f159fd630add96fcc69728df1c1a00831ca4011126ab8a796a339d6ef1",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -2888,6 +2888,198 @@
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": []
+      }
+    },
+    {
+      "id": "display.example_odk_Display",
+      "moduleId": "display",
+      "moduleName": "Display",
+      "displayName": "MethodMesh Display — Show",
+      "description": "",
+      "sourceFileName": "example_odk_Display.xlsx",
+      "sourceRelativePath": "modules/display/docs/example_odk_Display.xlsx",
+      "centralFormId": "methodmesh_display_show",
+      "formVersion": "20260925_0300",
+      "assetPath": "methodmesh/odk_templates/display/example_odk_Display.xlsx",
+      "sha256": "6c95aceb35885df583101f52096652ef535807dd00b15dd0d24cfdc0a0441926",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_Display.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/display/docs/example_odk_Display.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_display.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_display_show' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'display_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260925_0300' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "display.example_odk_Display_Clock",
+      "moduleId": "display",
+      "moduleName": "Display",
+      "displayName": "MethodMesh Display — Clock",
+      "description": "",
+      "sourceFileName": "example_odk_Display_Clock.xlsx",
+      "sourceRelativePath": "modules/display/docs/example_odk_Display_Clock.xlsx",
+      "centralFormId": "methodmesh_display_clock",
+      "formVersion": "20260925_0300",
+      "assetPath": "methodmesh/odk_templates/display/example_odk_Display_Clock.xlsx",
+      "sha256": "cef5c8eb732cc550b6c64707192bc202839ea1022fdb7e772bc93a08b3569eb3",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_Display_Clock.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/display/docs/example_odk_Display_Clock.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_display_clock.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_display_clock' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'display_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260925_0300' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "display.example_odk_Display_Debate_Timer",
+      "moduleId": "display",
+      "moduleName": "Display",
+      "displayName": "MethodMesh Display — Debate Timer",
+      "description": "",
+      "sourceFileName": "example_odk_Display_Debate_Timer.xlsx",
+      "sourceRelativePath": "modules/display/docs/example_odk_Display_Debate_Timer.xlsx",
+      "centralFormId": "methodmesh_display_debate_timer",
+      "formVersion": "20260929_0400",
+      "assetPath": "methodmesh/odk_templates/display/example_odk_Display_Debate_Timer.xlsx",
+      "sha256": "2fd293dbffa3e9d477b7d217ce09e839f82a8caae404c802280622460339d26b",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_Display_Debate_Timer.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/display/docs/example_odk_Display_Debate_Timer.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_display_debate_timer.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_display_debate_timer' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'display_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260929_0400' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "display.example_odk_Display_Timer",
+      "moduleId": "display",
+      "moduleName": "Display",
+      "displayName": "MethodMesh Display — Timer",
+      "description": "",
+      "sourceFileName": "example_odk_Display_Timer.xlsx",
+      "sourceRelativePath": "modules/display/docs/example_odk_Display_Timer.xlsx",
+      "centralFormId": "methodmesh_display_timer",
+      "formVersion": "20260925_0300",
+      "assetPath": "methodmesh/odk_templates/display/example_odk_Display_Timer.xlsx",
+      "sha256": "1984a790d95c55b71fa7e50f902e07ad5a578d22337bafd6206e9b1c5fa4d3cf",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_Display_Timer.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/display/docs/example_odk_Display_Timer.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_display_timer.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_display_timer' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'display_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260925_0300' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
@@ -5544,17 +5736,17 @@
       }
     },
     {
-      "id": "livestreamtranslate.example_odk_live_stream_translate_auto",
+      "id": "livestreamtranslate.example_odk_showcase_conversation_translate_live_auto",
       "moduleId": "livestreamtranslate",
       "moduleName": "Livestreamtranslate",
-      "displayName": "MethodMesh live translation · auto language",
+      "displayName": "MethodMesh live translation · automatic language",
       "description": "",
-      "sourceFileName": "example_odk_live_stream_translate_auto.xlsx",
-      "sourceRelativePath": "modules/livestreamtranslate/docs/example_odk_live_stream_translate_auto.xlsx",
+      "sourceFileName": "example_odk_showcase_conversation_translate_live_auto.xlsx",
+      "sourceRelativePath": "modules/livestreamtranslate/docs/example_odk_showcase_conversation_translate_live_auto.xlsx",
       "centralFormId": "example_odk_live_stream_translate_auto",
-      "formVersion": "2026091102",
-      "assetPath": "methodmesh/odk_templates/livestreamtranslate/example_odk_live_stream_translate_auto.xlsx",
-      "sha256": "45c4bc9da95119394b2c993986362ca3bf4cd62bf8cd73c4319bdd39018f3540",
+      "formVersion": "2026092501",
+      "assetPath": "methodmesh/odk_templates/livestreamtranslate/example_odk_showcase_conversation_translate_live_auto.xlsx",
+      "sha256": "3954349686faeb8ddb3d47c4f524347f0062c3f5e186f8119a3560159806f897",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -5574,17 +5766,17 @@
       }
     },
     {
-      "id": "livestreamtranslate.example_odk_live_stream_translate_fixed",
+      "id": "livestreamtranslate.example_odk_showcase_conversation_translate_live_fixed",
       "moduleId": "livestreamtranslate",
       "moduleName": "Livestreamtranslate",
       "displayName": "MethodMesh live translation · fixed language",
       "description": "",
-      "sourceFileName": "example_odk_live_stream_translate_fixed.xlsx",
-      "sourceRelativePath": "modules/livestreamtranslate/docs/example_odk_live_stream_translate_fixed.xlsx",
+      "sourceFileName": "example_odk_showcase_conversation_translate_live_fixed.xlsx",
+      "sourceRelativePath": "modules/livestreamtranslate/docs/example_odk_showcase_conversation_translate_live_fixed.xlsx",
       "centralFormId": "example_odk_live_stream_translate_fixed",
-      "formVersion": "2026091102",
-      "assetPath": "methodmesh/odk_templates/livestreamtranslate/example_odk_live_stream_translate_fixed.xlsx",
-      "sha256": "3d8e05e318efa59a8e8ffe7b9a229027fb691dfcfdd18b198b23fbbfc0c27575",
+      "formVersion": "2026092501",
+      "assetPath": "methodmesh/odk_templates/livestreamtranslate/example_odk_showcase_conversation_translate_live_fixed.xlsx",
+      "sha256": "51f506b0632598e0ad54f736bcd6ca15350af1fa07e22727eb57574bc4d40799",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -5595,6 +5787,36 @@
             "severity": "style",
             "code": "FORM_ID_MODULE_PREFIX",
             "message": "form_id 'example_odk_live_stream_translate_fixed' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'livestreamtranslate_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "livestreamtranslate.example_odk_showcase_conversation_translate_live_streaming",
+      "moduleId": "livestreamtranslate",
+      "moduleName": "Livestreamtranslate",
+      "displayName": "MethodMesh live translation · streaming",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_conversation_translate_live_streaming.xlsx",
+      "sourceRelativePath": "modules/livestreamtranslate/docs/example_odk_showcase_conversation_translate_live_streaming.xlsx",
+      "centralFormId": "example_odk_showcase_conversation_translate_live_streaming",
+      "formVersion": "2026092501",
+      "assetPath": "methodmesh/odk_templates/livestreamtranslate/example_odk_showcase_conversation_translate_live_streaming.xlsx",
+      "sha256": "b60634bde25eac183f7e3e96ed422e15188451485d1d3bc57ac4d12ac8f4aa03",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'example_odk_showcase_conversation_translate_live_streaming' does not identify its owning module.",
             "location": "settings.form_id",
             "suggestion": "For new forms prefer IDs beginning 'livestreamtranslate_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
             "source": "MethodMesh XLSForm lint",
@@ -6470,9 +6692,9 @@
       "sourceFileName": "example_odk_nfc_credential_provisioning.xlsx",
       "sourceRelativePath": "modules/nfc/docs/example_odk_nfc_credential_provisioning.xlsx",
       "centralFormId": "nfc_credential_provisioning",
-      "formVersion": "2026092202",
+      "formVersion": "2026092502",
       "assetPath": "methodmesh/odk_templates/nfc/example_odk_nfc_credential_provisioning.xlsx",
-      "sha256": "c43d9dc38bdcd03c663947ddc735d812d1af9c27ab6b91848892edd6f9e00b7b",
+      "sha256": "033d9c776a10c5bfe4d9253174e2e331e3d664402fad6429b6eac2b1d865e9a4",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6490,29 +6712,9 @@
       "sourceFileName": "example_odk_nfc_credential_verification.xlsx",
       "sourceRelativePath": "modules/nfc/docs/example_odk_nfc_credential_verification.xlsx",
       "centralFormId": "nfc_credential_verification",
-      "formVersion": "2026092202",
+      "formVersion": "2026092501",
       "assetPath": "methodmesh/odk_templates/nfc/example_odk_nfc_credential_verification.xlsx",
-      "sha256": "f12802263c154a37b3cd6f9034363a7c1183c64586007f0e2a403a56f6e4c6f1",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "nfc.example_odk_nfc_issuer_identity",
-      "moduleId": "nfc",
-      "moduleName": "Nfc",
-      "displayName": "nfc_issuer_identity",
-      "description": "",
-      "sourceFileName": "example_odk_nfc_issuer_identity.xlsx",
-      "sourceRelativePath": "modules/nfc/docs/example_odk_nfc_issuer_identity.xlsx",
-      "centralFormId": "nfc_issuer_identity",
-      "formVersion": "2026092201",
-      "assetPath": "methodmesh/odk_templates/nfc/example_odk_nfc_issuer_identity.xlsx",
-      "sha256": "83c385e1c48b5a0ce10c3f960878c39e380f935d3da7133da58f1e986449f118",
+      "sha256": "176ccfd6b87b58ce639f1e3acd2d098ce8d65c8c224630a61ae3da2f8b1a2ec1",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6649,10 +6851,10 @@
       "description": "",
       "sourceFileName": "example_odk_showcase_nfc_credential_provisioning.xlsx",
       "sourceRelativePath": "modules/nfc/docs/example_odk_showcase_nfc_credential_provisioning.xlsx",
-      "centralFormId": "nfc_showcase_credential_provisioning",
-      "formVersion": "2026092202",
+      "centralFormId": "nfc_nfc_credential_provisioning",
+      "formVersion": "2026092502",
       "assetPath": "methodmesh/odk_templates/nfc/example_odk_showcase_nfc_credential_provisioning.xlsx",
-      "sha256": "f1b2f5a1acf59ee4d9d73346e8b45daa03917067f6e46371d238fb92dc5a6377",
+      "sha256": "8d9706b7e4a11284df7991c91aafdcce3ca0f91d711c682bece67727b029c0c6",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -6669,30 +6871,10 @@
       "description": "",
       "sourceFileName": "example_odk_showcase_nfc_credential_verification.xlsx",
       "sourceRelativePath": "modules/nfc/docs/example_odk_showcase_nfc_credential_verification.xlsx",
-      "centralFormId": "nfc_showcase_credential_verification",
-      "formVersion": "2026092202",
+      "centralFormId": "nfc_nfc_credential_verification",
+      "formVersion": "2026092501",
       "assetPath": "methodmesh/odk_templates/nfc/example_odk_showcase_nfc_credential_verification.xlsx",
-      "sha256": "a9d58ed9433f19e7d8b95b39c8153efca4f96e66ab29a30e5dec2bb6ca549ba8",
-      "capabilityIds": [],
-      "tags": [],
-      "validation": {
-        "authoritativeAvailable": false,
-        "engine": "disabled",
-        "issues": []
-      }
-    },
-    {
-      "id": "nfc.example_odk_showcase_nfc_issuer_identity",
-      "moduleId": "nfc",
-      "moduleName": "Nfc",
-      "displayName": "MethodMesh NFC — nfc_issuer_identity",
-      "description": "",
-      "sourceFileName": "example_odk_showcase_nfc_issuer_identity.xlsx",
-      "sourceRelativePath": "modules/nfc/docs/example_odk_showcase_nfc_issuer_identity.xlsx",
-      "centralFormId": "nfc_showcase_issuer_identity",
-      "formVersion": "2026092201",
-      "assetPath": "methodmesh/odk_templates/nfc/example_odk_showcase_nfc_issuer_identity.xlsx",
-      "sha256": "184ede1b29be891787ab4968f7c1a95495852c7362c3a99b33716ab5e56fa79a",
+      "sha256": "ebef797bfb37cb6c8e59c8d2f2699bbe07584b3f7fd6fb92662bfcac6a553ec0",
       "capabilityIds": [],
       "tags": [],
       "validation": {
@@ -8308,6 +8490,66 @@
       }
     },
     {
+      "id": "signals.example_odk_showcase_signal_qr_burst_receive",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — QR Burst receive",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_qr_burst_receive.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_qr_burst_receive.xlsx",
+      "centralFormId": "signals_signal_qr_burst_receive",
+      "formVersion": "2026092301",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_qr_burst_receive.xlsx",
+      "sha256": "3e2629d0aa19e88c913202d03a987b0f891a9f20768a1a41b50b2e351cbfe993",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_TITLE_DUPLICATE",
+            "message": "Form title 'MethodMesh Signals — QR Burst receive' is used by more than one template.",
+            "location": "settings.form_title",
+            "suggestion": "Use distinct human-readable titles so testers can identify the intended form.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "signals.example_odk_showcase_signal_qr_burst_transmit",
+      "moduleId": "signals",
+      "moduleName": "Signals",
+      "displayName": "MethodMesh Signals — QR Burst transmit",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_signal_qr_burst_transmit.xlsx",
+      "sourceRelativePath": "modules/signals/docs/example_odk_showcase_signal_qr_burst_transmit.xlsx",
+      "centralFormId": "signals_signal_qr_burst_transmit",
+      "formVersion": "2026092301",
+      "assetPath": "methodmesh/odk_templates/signals/example_odk_showcase_signal_qr_burst_transmit.xlsx",
+      "sha256": "54c9de16f7d0b3d3e3b1426343f46c79fa6af58ebaf5dcb95a7d688648c8dbec",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_TITLE_DUPLICATE",
+            "message": "Form title 'MethodMesh Signals — QR Burst transmit' is used by more than one template.",
+            "location": "settings.form_title",
+            "suggestion": "Use distinct human-readable titles so testers can identify the intended form.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
       "id": "signals.example_odk_showcase_signal_qr_receive",
       "moduleId": "signals",
       "moduleName": "Signals",
@@ -8324,7 +8566,17 @@
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_TITLE_DUPLICATE",
+            "message": "Form title 'MethodMesh Signals — QR burst receive' is used by more than one template.",
+            "location": "settings.form_title",
+            "suggestion": "Use distinct human-readable titles so testers can identify the intended form.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
@@ -8344,7 +8596,17 @@
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FORM_TITLE_DUPLICATE",
+            "message": "Form title 'MethodMesh Signals — QR burst transmit' is used by more than one template.",
+            "location": "settings.form_title",
+            "suggestion": "Use distinct human-readable titles so testers can identify the intended form.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
       }
     },
     {
@@ -9706,9 +9968,9 @@
       "sourceFileName": "example_odk_showcase_weather_radar.xlsx",
       "sourceRelativePath": "modules/weather/docs/example_odk_showcase_weather_radar.xlsx",
       "centralFormId": "methodmesh_weather_radar",
-      "formVersion": "2026091002",
+      "formVersion": "2026092401",
       "assetPath": "methodmesh/odk_templates/weather/example_odk_showcase_weather_radar.xlsx",
-      "sha256": "56245a3765bb146f2ffac0d03c6d07ad542635ef6c86761051006aecba8e2658",
+      "sha256": "b99903b1dcb26c444ef881028f10c18b4c8851d09a564316a9404a6847413b46",
       "capabilityIds": [],
       "tags": [],
       "validation": {

@@ -20,7 +20,7 @@ import com.example.methodmesh.settings.SettingsState
 
 object As100CreateAttestationMethod : As100Method {
     const val ID = "attestation.create"
-    private const val VERSION = "1.1.0"
+    private const val VERSION = "1.2.0"
 
     override val id: String = ID
     override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "Create signed attestation")
@@ -153,12 +153,21 @@ object As100CreateAttestationMethod : As100Method {
                 )
             )
         }
+        val operatorAssertionExtra = buildMap {
+            resolvedVerification.operatorAssertionBasis?.let { basis ->
+                put("operator_assertion_basis", basis)
+            }
+            resolvedVerification.operatorAssertionEvidence.forEach { (key, value) ->
+                if (value.isNotBlank()) put("operator_assertion_$key", value)
+            }
+        }
         val provenance = ProvenanceContext(
             provider = "methodmesh.attestation",
             methodId = ID,
             methodVersion = VERSION,
             deviceId = record.publicKeyId,
-            operatorId = record.operatorId
+            operatorId = record.operatorId,
+            extra = operatorAssertionExtra
         )
         val observation = Observation(
             phenomenon = "attestation.signed_event",

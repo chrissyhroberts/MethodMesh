@@ -20,11 +20,10 @@ import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.settings.SettingsState
 import org.json.JSONObject
 import java.time.Instant
-import java.util.Base64
 
 object As100NfcIssuerIdentityMethod : As100Method {
     const val ID = "nfc_issuer_identity"
-    const val VERSION = "1.0.0"
+    const val VERSION = "1.1.0"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "NFC issuer identity")
@@ -33,13 +32,14 @@ object As100NfcIssuerIdentityMethod : As100Method {
         methodType = MethodObjectType.Method,
         name = "NFC issuer identity",
         version = VERSION,
-        description = "Export the local NFC credential issuer public identity for offline study trust configuration.",
+        description = "Export this installation's public NFC credential issuer identity for provisioning-device registration.",
         inputs = emptyList(),
         outputs = NfcIssuerIdentityFields.outputFields,
         parameters = mapOf(
             "category" to "NFC",
             "status" to "Experimental",
-            "network" to "none"
+            "network" to "none",
+            "surface" to "Workbench"
         )
     )
     override val contract = MethodContract(
@@ -67,7 +67,7 @@ object As100NfcIssuerIdentityMethod : As100Method {
         request: ExecutionRequest,
         settingsState: SettingsState?,
         transport: String?
-    ): ExecutionResult {
+    ): ExecutionResult = runCatching {
         val values = NfcIssuerIdentity.currentValues()
         val provenance = ProvenanceContext(
             provider = "methodmesh.nfc",
@@ -90,40 +90,48 @@ object As100NfcIssuerIdentityMethod : As100Method {
             temporalContext = request.temporalContext,
             provenance = provenance
         )
-        return As100ExecutionEngine.complete(
+        As100ExecutionEngine.complete(
             request = request,
             status = TransformationStatus.Succeeded,
             observations = listOf(observation),
             transformations = listOf(transformation)
         ).withInvocationContext(InvocationContext.from(request.context))
+    }.getOrElse { error ->
+        As100ExecutionEngine.complete(
+            request = request,
+            status = TransformationStatus.Failed,
+            diagnostics = mapOf("reason" to (error.message ?: "NFC issuer identity could not be loaded."))
+        ).withInvocationContext(InvocationContext.from(request.context))
     }
 }
 
+/** Public identity exported for central provisioning-device registration. */
 internal object NfcIssuerIdentity {
     const val SCHEMA_VERSION = "1"
+    const val CERTIFICATE_FORMAT = "methodmesh_nfc_issuer_certificate_v1"
 
     fun currentValues(exportedAt: Instant = Instant.now()): LinkedHashMap<String, String> {
-        val publicKey = AndroidNfcCredentialSigner.publicKey
-        val fingerprint = AndroidNfcCredentialSigner.fingerprintSha256
-        val shortId = AndroidNfcCredentialSigner.keyId
-        val publicKeyBase64 = Base64.getEncoder().encodeToString(publicKey.encoded)
-        val identityJson = JSONObject(
+        val identity = NfcIssuerIdentityResolver.local()
+        val certificateJson = JSONObject(
             linkedMapOf<String, Any>(
+                "format" to CERTIFICATE_FORMAT,
                 "schema_version" to SCHEMA_VERSION,
-                "issuer_key_id" to shortId,
-                "issuer_public_key_fingerprint_sha256" to fingerprint,
-                "issuer_public_key_base64" to publicKeyBase64,
-                "signature_algorithm" to NfcCredentialSigner.SIGNATURE_ALGORITHM
+                "issuer_key_id" to identity.issuerKeyId,
+                "issuer_public_key_fingerprint_sha256" to identity.publicKeyFingerprintSha256,
+                "issuer_public_key_base64" to identity.publicKeyBase64,
+                "signature_algorithm" to identity.signatureAlgorithm
             )
         ).toString()
         return linkedMapOf(
             NfcIssuerIdentityFields.SCHEMA_VERSION to SCHEMA_VERSION,
-            NfcProvisionFields.ISSUER_KEY_ID to shortId,
-            NfcProvisionFields.ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256 to fingerprint,
-            NfcProvisionFields.ISSUER_PUBLIC_KEY_BASE64 to publicKeyBase64,
-            NfcProvisionFields.ISSUER_SIGNATURE_ALGORITHM to NfcCredentialSigner.SIGNATURE_ALGORITHM,
+            NfcProvisionFields.ISSUER_KEY_ID to identity.issuerKeyId,
+            NfcProvisionFields.ISSUER_PUBLIC_KEY_FINGERPRINT_SHA256 to identity.publicKeyFingerprintSha256,
+            NfcProvisionFields.ISSUER_PUBLIC_KEY_BASE64 to identity.publicKeyBase64,
+            NfcProvisionFields.ISSUER_SIGNATURE_ALGORITHM to identity.signatureAlgorithm,
             NfcIssuerIdentityFields.EXPORTED_TIME_ISO to exportedAt.toString(),
-            NfcIssuerIdentityFields.IDENTITY_JSON to identityJson
+            NfcIssuerIdentityFields.CERTIFICATE_JSON to certificateJson,
+            // Backwards-compatible alias retained for existing integrations.
+            NfcIssuerIdentityFields.IDENTITY_JSON to certificateJson
         )
     }
 }

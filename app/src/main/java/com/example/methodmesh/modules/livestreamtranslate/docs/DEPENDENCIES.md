@@ -1,31 +1,46 @@
-# Live Stream Translation — required host dependency
+# Dependencies and provider notes
 
-Version 0.2.1 uses Google ML Kit streaming speech recognition for the optional **ML Kit Basic** and **ML Kit GenAI** providers. Because MethodMesh modules are source folders compiled inside the main `:app`, this library must be declared in the host app Gradle dependencies. A module-local documentation file cannot add a Gradle dependency to the host build.
+Live Stream Translation v0.3.3 targets MethodMesh Master Book v1.29 and the current MethodMesh module metadata/runtime contracts.
 
-## Required host-app change
+## Host Gradle dependency
 
-Add this line to the `dependencies { ... }` block in `app/build.gradle.kts`:
+The host app must include:
 
 ```kotlin
 implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha1")
 ```
 
-A sensible placement in the current MethodMesh file is immediately after the existing ML Kit translation dependency:
+The existing MethodMesh host already uses ML Kit Translate (`com.google.mlkit:translate`).
 
-```kotlin
-implementation("com.google.mlkit:translate:17.0.3")
-implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha1")
-```
+## ML Kit Speech Recognition
 
-**Without that host-app change, `:app:compileDebugKotlin` will fail on the `com.google.mlkit.genai...` imports in `MlKitSpeechRecognitionProvider.kt`.**
+Official documentation: https://developers.google.com/ml-kit/genai/speech-recognition/android
 
-No extra coroutines dependency is required for the current MethodMesh app: the app already compiles code using `CoroutineScope`, `SupervisorJob` and `Dispatchers.Main`.
+As of 2026-09-25:
 
-## Provider requirements
+- API status: alpha; backward-incompatible changes remain possible.
+- Basic mode: on-device traditional recognizer, broadly available on Android API 31+.
+- Advanced/GenAI mode: on-device Gemini-based recognizer on supported devices; current documented device support is Pixel 10 and Pixel 11.
+- Input: microphone or supported PCM stream/file-descriptor source.
+- Output: continuous stream of revisable partial text followed by final text.
+- Runtime `checkStatus()` remains authoritative; the module does not hard-code a device whitelist as its availability decision.
 
-- **Android**: platform `SpeechRecognizer`; automatic language detection/switching requires Android 14+ and recognition-service support.
-- **ML Kit Basic**: microphone streaming requires Android 12/API 31+ even though the API library itself supports lower Android levels for non-microphone inputs.
-- **ML Kit GenAI / Advanced**: device-limited; availability is checked at runtime with `checkStatus()` and required features are downloaded when Google reports them as downloadable.
-- **Automatic**: in fixed-language mode, MethodMesh tries GenAI → Basic → Android and falls back visibly. In detect-language mode it selects Android because the ML Kit alpha API is configured with a fixed locale and does not expose Android-style language switching.
+The experimental `conversation.translate.live.streaming` capability is built specifically around this continuous partial/final stream.
 
-The ML Kit Speech Recognition API is alpha. Its public contract may change, so the provider is isolated behind `LiveSpeechRecognitionProvider` rather than leaking ML Kit types into MethodMesh method contracts.
+## ML Kit Translate
+
+Translation runs through the existing on-device ML Kit Translate API. Language packs may need downloading before first use. Once required models are present, streaming capability core execution does not require sending meeting audio/text to a cloud service.
+
+## Android SpeechRecognizer
+
+The fixed and automatic-language prototype modes retain Android SpeechRecognizer as an optional provider. Automatic-language mode uses Android 14+ language detection/switching where the installed recognition service supports it.
+
+Android SpeechRecognizer is not offered by the new streaming capability because that method promises ML Kit continuous partial-result streaming semantics.
+
+## Third-party/privacy summary
+
+Provider: Google ML Kit / Android platform speech APIs.  
+Core streaming audio leaves device: **No**. The module intentionally has no cloud speech provider.  
+Credentials/API key: **None** for implemented providers.  
+Initial connectivity: model/AICore preparation may require network access.  
+Attribution/licence: governed by Android/Google ML Kit SDK terms; no third-party model files are redistributed inside this module.

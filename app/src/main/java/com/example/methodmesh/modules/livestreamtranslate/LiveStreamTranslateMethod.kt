@@ -23,7 +23,8 @@ import java.time.Instant
 
 internal enum class LiveStreamMode(val wireValue: String) {
     FIXED("fixed"),
-    AUTO("auto")
+    AUTO("auto"),
+    STREAMING("streaming")
 }
 
 object LiveStreamTranslateFields {
@@ -39,8 +40,6 @@ object LiveStreamTranslateFields {
     const val ENGINE_SWITCH_COUNT = "live_translation_engine_switch_count"
     const val PREFER_OFFLINE = "live_translation_prefer_offline"
     const val TRANSCRIPT_ENABLED_AT_END = "live_translation_transcript_enabled_at_end"
-    const val SPEAKER_TAGGING = "live_translation_speaker_tagging"
-    const val SPEAKER_SLOTS = "live_translation_speaker_slots"
     const val LAST_DETECTED_LANGUAGE = "live_translation_last_detected_language"
     const val SEGMENT_COUNT = "live_translation_segment_count"
     const val STARTED_TIME_ISO = "live_translation_started_time_iso"
@@ -61,8 +60,6 @@ object LiveStreamTranslateFields {
         ENGINE_SWITCH_COUNT,
         PREFER_OFFLINE,
         TRANSCRIPT_ENABLED_AT_END,
-        SPEAKER_TAGGING,
-        SPEAKER_SLOTS,
         LAST_DETECTED_LANGUAGE,
         SEGMENT_COUNT,
         STARTED_TIME_ISO,
@@ -73,22 +70,37 @@ object LiveStreamTranslateFields {
 }
 
 private object LiveStreamTranslateMethodSupport {
-    const val VERSION = "0.2.1"
+    const val VERSION = "0.3.3"
 
-    fun descriptor(id: String, name: String, description: String, mode: LiveStreamMode) = MethodDescriptor(
+    fun descriptor(
+        id: String,
+        name: String,
+        description: String,
+        mode: LiveStreamMode,
+        inputs: List<String>,
+        maturity: String,
+        connectivity: String
+    ) = MethodDescriptor(
         id = ArchitectureId(id),
         methodType = MethodObjectType.SignalInterpreter,
         name = name,
         version = VERSION,
         description = description,
+        inputs = inputs,
         outputs = LiveStreamTranslateFields.outputs,
         graphOutputs = listOf(id),
         parameters = mapOf(
             "category" to "Audio",
-            "status" to "Production",
+            "maturity" to maturity,
+            "connectivity" to connectivity,
+            "interaction_lifecycle" to "live_working_result_commit",
+            "icon_key" to "language",
             "mode" to mode.wireValue,
-            "offline" to "translation is on-device after ML Kit model download; speech recognition can use Android, ML Kit Basic, or ML Kit GenAI providers",
-            "speech_provider" to "hot-swappable; per-utterance provider provenance is retained in segment JSON"
+            "speech_provider" to when (mode) {
+                LiveStreamMode.STREAMING -> "ML Kit continuous partial/final stream; working partial translations are revision-conflated and never persisted as final transcript segments"
+                LiveStreamMode.AUTO -> "Android language detection/switching; final-utterance translation"
+                LiveStreamMode.FIXED -> "hot-swappable Android / ML Kit Basic / ML Kit GenAI; final-utterance translation"
+            }
         )
     )
 
@@ -152,33 +164,23 @@ object As100LiveStreamTranslateFixedMethod : As100Method {
     override val descriptor = LiveStreamTranslateMethodSupport.descriptor(
         id = ID,
         name = "Live stream translation · fixed source",
-        description = "Continuously capture meeting speech in a selected source language and translate completed utterances into a selected target language.",
-        mode = LiveStreamMode.FIXED
+        description = "Continuously capture meeting speech in a selected source language and translate final recognition segments into a selected target language.",
+        mode = LiveStreamMode.FIXED,
+        inputs = listOf("source_language", "target_language", "speech_engine", "prefer_offline", "transcript_on_start"),
+        maturity = "Development",
+        connectivity = "ONLINE_OFFLINE"
     )
     override val contract = LiveStreamTranslateMethodSupport.contract(ref, descriptor)
 
-    override fun request(
-        action: String,
-        context: Map<String, String>,
-        signals: List<Signal>,
-        inputs: List<ArchitectureRef>
-    ): ExecutionRequest = As100ExecutionEngine.request(
-        action = action,
-        method = ref,
-        context = context,
-        signals = signals,
-        inputs = inputs
-    )
+    override fun request(action: String, context: Map<String, String>, signals: List<Signal>, inputs: List<ArchitectureRef>): ExecutionRequest =
+        As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
 
-    override fun execute(
-        request: ExecutionRequest,
-        settingsState: SettingsState?,
-        transport: String?
-    ): ExecutionResult = As100ExecutionEngine.complete(
-        request,
-        TransformationStatus.Unsupported,
-        diagnostics = mapOf("reason" to "Live stream translation requires the Android microphone boundary plus a configured speech-recognition provider and ML Kit translation.")
-    )
+    override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult =
+        As100ExecutionEngine.complete(
+            request,
+            TransformationStatus.Unsupported,
+            diagnostics = mapOf("reason" to "Live stream translation requires the Android microphone boundary plus a configured speech-recognition provider and ML Kit translation.")
+        )
 
     fun result(request: ExecutionRequest, values: Map<String, String>, invocation: InvocationContext?): ExecutionResult =
         LiveStreamTranslateMethodSupport.result(this, request, values, invocation)
@@ -192,33 +194,53 @@ object As100LiveStreamTranslateAutoMethod : As100Method {
     override val descriptor = LiveStreamTranslateMethodSupport.descriptor(
         id = ID,
         name = "Live stream translation · auto language",
-        description = "Continuously capture meeting speech, ask the Android recognizer to detect/switch language per utterance, and translate into a selected target language.",
-        mode = LiveStreamMode.AUTO
+        description = "Continuously capture meeting speech, ask Android speech recognition to detect/switch language, and translate final recognition segments into a selected target language.",
+        mode = LiveStreamMode.AUTO,
+        inputs = listOf("target_language", "allowed_languages", "switch_sensitivity", "speech_engine", "prefer_offline", "transcript_on_start"),
+        maturity = "Development",
+        connectivity = "ONLINE_OFFLINE"
     )
     override val contract = LiveStreamTranslateMethodSupport.contract(ref, descriptor)
 
-    override fun request(
-        action: String,
-        context: Map<String, String>,
-        signals: List<Signal>,
-        inputs: List<ArchitectureRef>
-    ): ExecutionRequest = As100ExecutionEngine.request(
-        action = action,
-        method = ref,
-        context = context,
-        signals = signals,
-        inputs = inputs
-    )
+    override fun request(action: String, context: Map<String, String>, signals: List<Signal>, inputs: List<ArchitectureRef>): ExecutionRequest =
+        As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
 
-    override fun execute(
-        request: ExecutionRequest,
-        settingsState: SettingsState?,
-        transport: String?
-    ): ExecutionResult = As100ExecutionEngine.complete(
-        request,
-        TransformationStatus.Unsupported,
-        diagnostics = mapOf("reason" to "Automatic live language switching currently requires Android 14+ platform recognizer support; fixed mode can also use ML Kit Basic or GenAI speech recognition.")
+    override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult =
+        As100ExecutionEngine.complete(
+            request,
+            TransformationStatus.Unsupported,
+            diagnostics = mapOf("reason" to "Automatic live language switching requires Android 14+ platform recognizer support.")
+        )
+
+    fun result(request: ExecutionRequest, values: Map<String, String>, invocation: InvocationContext?): ExecutionResult =
+        LiveStreamTranslateMethodSupport.result(this, request, values, invocation)
+}
+
+object As100LiveStreamTranslateStreamingMethod : As100Method {
+    const val ID = "conversation.translate.live.streaming"
+
+    override val id = ID
+    override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Live translation · streaming")
+    override val descriptor = LiveStreamTranslateMethodSupport.descriptor(
+        id = ID,
+        name = "Live translation · streaming",
+        description = "Translate a continuously revised ML Kit speech-recognition stream while speech is still in progress; final recognition segments remain the committed transcript boundary.",
+        mode = LiveStreamMode.STREAMING,
+        inputs = listOf("source_language", "target_language", "speech_engine", "stream_response", "transcript_on_start"),
+        maturity = "Experimental",
+        connectivity = "ONLINE_OFFLINE"
     )
+    override val contract = LiveStreamTranslateMethodSupport.contract(ref, descriptor)
+
+    override fun request(action: String, context: Map<String, String>, signals: List<Signal>, inputs: List<ArchitectureRef>): ExecutionRequest =
+        As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
+
+    override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult =
+        As100ExecutionEngine.complete(
+            request,
+            TransformationStatus.Unsupported,
+            diagnostics = mapOf("reason" to "Streaming live translation requires the Android microphone boundary, ML Kit Speech Recognition streaming output, and ML Kit on-device translation.")
+        )
 
     fun result(request: ExecutionRequest, values: Map<String, String>, invocation: InvocationContext?): ExecutionResult =
         LiveStreamTranslateMethodSupport.result(this, request, values, invocation)

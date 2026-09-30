@@ -18,7 +18,7 @@ object As100EspMeshGatewayMethod : As100Method {
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Provision an ESP mesh BLE gateway")
     override val descriptor = MethodDescriptor(
         id = ArchitectureId(ID), methodType = MethodObjectType.Workflow,
-        name = "ESP mesh transport", version = "0.4.0",
+        name = "ESP mesh transport", version = "0.4.6",
         description = "Discover and provision a nearby MethodMesh ESP mesh gateway.",
         outputs = listOf("esp_mesh_gateway_status"), graphOutputs = listOf("transport.gateway.provisioned"),
         parameters = mapOf("category" to "Field transport", "status" to "Experimental")
@@ -27,5 +27,10 @@ object As100EspMeshGatewayMethod : As100Method {
     override fun request(action: String, context: Map<String, String>, signals: List<com.example.methodmesh.core.methodmesh.Signal>, inputs: List<ArchitectureRef>) =
         As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
     override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult =
-        As100ExecutionEngine.complete(request, TransformationStatus.Succeeded, diagnostics = mapOf("esp_mesh_gateway_status" to "provisioned"))
+        As100ExecutionEngine.complete(request, TransformationStatus.Failed, diagnostics = mapOf("esp_mesh_gateway_status" to "awaiting_config_ack"))
+
+    fun confirmed(request: ExecutionRequest, acknowledgement: EspMeshBridgeFrame): ExecutionResult {
+        EspMeshProvisioningTracker.validate(acknowledgement, acknowledgement.body.optString("network_id"))
+        return As100ExecutionEngine.complete(request, TransformationStatus.Succeeded, diagnostics = mapOf("esp_mesh_gateway_status" to "provisioned"))
+    }
 }

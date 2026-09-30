@@ -20,7 +20,7 @@ import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.settings.SettingsState
 
-private const val SIGNALS_VERSION = "0.5.3"
+private const val SIGNALS_VERSION = "0.5.4.1"
 
 object SignalMorseTransmitFields {
     const val RESULT = "signal_morse_result"
@@ -86,6 +86,50 @@ object SignalQrReceiveFields {
     const val STATUS = "signal_qr_status"
     const val ERROR = "signal_qr_error"
     val outputs = listOf(RESULT, CONTENT_TYPE, RECEIVED_FILE_URI, FILE_NAME, FILE_MIME, FILE_BYTES, EXPECTED_SHA256, RECONSTRUCTED_SHA256, CHECKSUM_VERIFIED, MESSAGE_ID, FRAMES_SEEN, FRAMES_ACCEPTED, FRAMES_REJECTED, RECOVERED_MISSING, CRC_VERIFIED, STATUS, ERROR)
+}
+
+object SignalQrBurstTransmitFields {
+    const val RESULT = "signal_qr_burst_result"
+    const val PAYLOAD = "signal_qr_burst_payload"
+    const val CONTENT_TYPE = "signal_qr_burst_content_type"
+    const val FILE_NAME = "signal_qr_burst_file_name"
+    const val FILE_MIME = "signal_qr_burst_file_mime"
+    const val FILE_BYTES = "signal_qr_burst_file_bytes"
+    const val CHECKSUM_SHA256 = "signal_qr_burst_checksum_sha256"
+    const val MESSAGE_ID = "signal_qr_burst_message_id"
+    const val FRAME_COUNT = "signal_qr_burst_frame_count"
+    const val QR_PER_SECOND = "signal_qr_burst_qr_per_second"
+    const val SHARD_BYTES = "signal_qr_burst_shard_bytes"
+    const val CYCLE_DURATION_MS = "signal_qr_burst_cycle_duration_ms"
+    const val PROFILE = "signal_qr_burst_profile"
+    const val CYCLES = "signal_qr_burst_cycles"
+    const val STATUS = "signal_qr_burst_status"
+    const val ERROR = "signal_qr_burst_error"
+    val outputs = listOf(RESULT, PAYLOAD, CONTENT_TYPE, FILE_NAME, FILE_MIME, FILE_BYTES, CHECKSUM_SHA256, MESSAGE_ID, FRAME_COUNT, QR_PER_SECOND, SHARD_BYTES, CYCLE_DURATION_MS, PROFILE, CYCLES, STATUS, ERROR)
+}
+
+object SignalQrBurstReceiveFields {
+    const val RESULT = "signal_qr_burst_received_text"
+    const val CONTENT_TYPE = "signal_qr_burst_content_type"
+    const val RECEIVED_FILE_URI = "signal_qr_burst_received_file_uri"
+    const val FILE_NAME = "signal_qr_burst_file_name"
+    const val FILE_MIME = "signal_qr_burst_file_mime"
+    const val FILE_BYTES = "signal_qr_burst_file_bytes"
+    const val EXPECTED_SHA256 = "signal_qr_burst_expected_sha256"
+    const val RECONSTRUCTED_SHA256 = "signal_qr_burst_reconstructed_sha256"
+    const val CHECKSUM_VERIFIED = "signal_qr_burst_checksum_verified"
+    const val MESSAGE_ID = "signal_qr_burst_message_id"
+    const val CAPTURED_FRAMES = "signal_qr_burst_captured_frames"
+    const val FRAMES_ANALYZED = "signal_qr_burst_frames_analyzed"
+    const val QR_DECODES = "signal_qr_burst_qr_decodes"
+    const val UNIQUE_QR_FRAMES = "signal_qr_burst_unique_qr_frames"
+    const val DUPLICATES = "signal_qr_burst_duplicates"
+    const val REJECTED = "signal_qr_burst_rejected"
+    const val RECOVERED_MISSING = "signal_qr_burst_recovered_missing_shards"
+    const val CAPTURE_MS = "signal_qr_burst_capture_ms"
+    const val STATUS = "signal_qr_burst_status"
+    const val ERROR = "signal_qr_burst_error"
+    val outputs = listOf(RESULT, CONTENT_TYPE, RECEIVED_FILE_URI, FILE_NAME, FILE_MIME, FILE_BYTES, EXPECTED_SHA256, RECONSTRUCTED_SHA256, CHECKSUM_VERIFIED, MESSAGE_ID, CAPTURED_FRAMES, FRAMES_ANALYZED, QR_DECODES, UNIQUE_QR_FRAMES, DUPLICATES, REJECTED, RECOVERED_MISSING, CAPTURE_MS, STATUS, ERROR)
 }
 
 object SignalFskTransmitFields {
@@ -403,8 +447,8 @@ object As100SignalMorseReceiveMethod : SignalsMethod(
 
 object As100SignalQrTransmitMethod : SignalsMethod(
     id = "signal.qr.transmit",
-    name = "QR burst transmitter",
-    description = "Loop error-corrected MMS/1 text or a small checksum-protected file as QR frames for camera reception.",
+    name = "QR live transmitter",
+    description = "Loop error-corrected MMS/1 text or a checksum-protected file as QR frames for continuous live camera decoding.",
     type = MethodObjectType.Workflow,
     inputs = listOf("content_mode", "payload", "file_uri", "file_name", "file_mime", "robustness", "shard_bytes", "frame_duration_ms", "loop"),
     outputs = SignalQrTransmitFields.outputs,
@@ -417,8 +461,8 @@ object As100SignalQrTransmitMethod : SignalsMethod(
 
 object As100SignalQrReceiveMethod : SignalsMethod(
     id = "signal.qr.receive",
-    name = "QR burst receiver",
-    description = "Continuously collect MMS/1 QR frames and reconstruct checksum-verified text or a file up to 1 MiB despite missing, duplicated, or reordered frames.",
+    name = "QR live receiver",
+    description = "Continuously decode MMS/1 QR frames in real time and reconstruct checksum-verified text or a file up to 1 MiB despite missing, duplicated, or reordered frames.",
     type = MethodObjectType.SignalInterpreter,
     inputs = listOf("message_id_filter"),
     outputs = SignalQrReceiveFields.outputs,
@@ -427,6 +471,34 @@ object As100SignalQrReceiveMethod : SignalsMethod(
     errorField = SignalQrReceiveFields.ERROR,
     phenomenon = "signal.qr.reception",
     maturity = "Development"
+)
+
+object As100SignalQrBurstTransmitMethod : SignalsMethod(
+    id = "signal.qr_burst.transmit",
+    name = "QR Burst transmitter",
+    description = "Transmit checksum-protected text or files as high-rate MMS/1 QR frames for capture-first offline video-frame decoding.",
+    type = MethodObjectType.Workflow,
+    inputs = listOf("content_mode", "payload", "file_uri", "file_name", "file_mime", "profile", "loop"),
+    outputs = SignalQrBurstTransmitFields.outputs,
+    graphOutput = "signal.qr_burst.transmission",
+    statusField = SignalQrBurstTransmitFields.STATUS,
+    errorField = SignalQrBurstTransmitFields.ERROR,
+    phenomenon = "signal.qr_burst.transmission",
+    maturity = "Experimental"
+)
+
+object As100SignalQrBurstReceiveMethod : SignalsMethod(
+    id = "signal.qr_burst.receive",
+    name = "QR Burst recorded receiver",
+    description = "Capture camera frames without decoding, then scan the frozen burst offline, deduplicate/reorder MMS/1 QR shards, recover missing frames and verify SHA-256.",
+    type = MethodObjectType.SignalInterpreter,
+    inputs = listOf("capture_seconds", "zoom_ratio", "message_id_filter"),
+    outputs = SignalQrBurstReceiveFields.outputs,
+    graphOutput = "signal.qr_burst.reception",
+    statusField = SignalQrBurstReceiveFields.STATUS,
+    errorField = SignalQrBurstReceiveFields.ERROR,
+    phenomenon = "signal.qr_burst.reception",
+    maturity = "Experimental"
 )
 
 object As100SignalFskTransmitMethod : SignalsMethod(

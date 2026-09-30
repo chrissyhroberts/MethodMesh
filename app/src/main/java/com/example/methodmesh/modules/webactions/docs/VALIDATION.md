@@ -1,4 +1,4 @@
-# Web Actions v0.10 validation record
+# Web Actions v0.11 validation record
 
 Status: **Development / admission candidate**
 
@@ -15,6 +15,26 @@ This module has been reviewed against the MethodMesh v1.05 module-refresh requir
 | `web.precooked_enketo` | yes | yes | yes | yes | yes | one-shot Enketo `return_url` |
 | `web.roundtrip` | yes | yes | yes | yes | yes | one-shot callback parameter/placeholder |
 | `web.open` | yes | yes | yes | yes | yes | successful browser dispatch only |
+| `webactions.dashboard` | yes | yes | yes | yes | yes | in-page API fetch and result/export closeout |
+| `webactions.workflows_dashboard` | yes | yes | yes | yes | yes | opens a selected sibling web workflow |
+| `web.api.openmeteo_current_weather` | yes | yes | yes | yes | yes | API response returned |
+| `web.api.openmeteo_daily_forecast` | yes | yes | yes | yes | yes | API response returned |
+| `web.api.openmeteo_air_quality` | yes | yes | yes | yes | yes | API response returned |
+| `web.api.gdacs_current_events` | yes | yes | yes | yes | yes | API response returned |
+| `web.api.usgs_earthquakes_today` | yes | yes | yes | yes | yes | API response returned |
+| `web.api.worldbank_indicator` | yes | yes | yes | yes | yes | API response returned |
+| `web.api.frankfurter_rates` | yes | yes | yes | yes | yes | API response returned |
+| `web.api.gbif_country_occurrences` | yes | yes | yes | yes | yes | API response returned |
+
+The named API capabilities use the shared `core/onlinedata` executor and the
+existing `api.get` result fields. Native screens use the shared capability
+result surface for readable values, clipboard, share and Downloads export.
+ODK callers requesting `FULL` receive the complete response in
+`methodmesh_full_json`; MethodMesh does not persist the response as a database.
+Location-aware screens expose both Android GPS acquisition and manual
+latitude/longitude entry. The online data dashboard keeps API execution and
+result closeout in the same page; the separate workflows dashboard launches
+browser/form actions through the ordinary workflow activity.
 
 All public capabilities have a method descriptor, typed capability settings where appropriate, a capability-specific screen, RIL binding, and ODK example.
 
