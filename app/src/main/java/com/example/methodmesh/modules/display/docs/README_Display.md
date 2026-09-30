@@ -1,13 +1,14 @@
 # MethodMesh Display
 
 **Module ID:** `display`  
-**Module version:** 0.3.1  
+**Module version:** 0.4.0  
 **Maturity:** Development
 
-Display turns the Android device into an across-the-room visual surface. The module now has three deliberately distinct capabilities:
+Display turns the Android device into an across-the-room visual surface. The module now has four deliberately distinct capabilities:
 
 - `display.show` — general signs, text/emoji, images and animated media;
 - `display.timer` — a large countdown display with a short alarm-like local beep pattern at zero;
+- `display.debate_timer` — a green/yellow/red speaking-time countdown with a single warning beep and a stronger zero alarm;
 - `display.clock` — a large local 24-hour clock, optionally with the date above it.
 
 The earlier proliferation of separate static/marquee/board/code methods remains removed. Those are still presentation options of `display.show`, not separate capabilities. Timer and clock are separate because they have genuinely different live time semantics rather than merely different styling.
@@ -71,6 +72,45 @@ Canonical timer outputs include:
 - `display_timer_audit_json`
 - `display_timer_error`
 
+
+## `display.debate_timer`
+
+`display.debate_timer` reuses the display countdown model but adds debate/speaking-time phase signalling. The default preset is five minutes total with a one-minute warning:
+
+- **green** while more than the warning threshold remains;
+- **yellow** from the warning threshold down to one second;
+- **red** at `00:00`.
+
+Settings:
+
+- `duration_seconds` — total speaking time, default 300 seconds;
+- `warning_seconds` — remaining time at which the display turns yellow, default 60 seconds;
+- `warning_beep` — one short, discrete beep when the yellow phase is first entered;
+- `beep` — the same bounded two-burst alarm cadence used by `display.timer` when zero is reached;
+- `high_brightness` — temporarily request maximum screen brightness.
+
+Native configuration uses the same Android number-picker H/M/S wheels as the ordinary timer for both total time and warning threshold. The warning threshold is constrained to the configured total duration.
+
+Runtime semantics are monotonic and drift-resistant. The timer derives remaining time from an absolute `SystemClock.elapsedRealtime()` deadline. The one-minute/default warning beep is edge-triggered and stored as saveable state: pause/resume, recomposition or orientation changes do not replay it. Restart clears both the warning-beep and zero-alarm latches so the next run can signal both thresholds again. Pausing preserves the current colour phase.
+
+Canonical debate-timer outputs include:
+
+- `display_debate_timer_status`
+- `display_debate_timer_result`
+- `display_debate_timer_duration_seconds`
+- `display_debate_timer_warning_seconds`
+- `display_debate_timer_remaining_seconds`
+- `display_debate_timer_phase` (`green`, `yellow`, `red`)
+- `display_debate_timer_warning_beep`
+- `display_debate_timer_beep`
+- `display_debate_timer_high_brightness`
+- `display_debate_timer_started_time_iso`
+- `display_debate_timer_stopped_time_iso`
+- `display_debate_timer_elapsed_ms`
+- `display_debate_timer_completion_reason`
+- `display_debate_timer_audit_json`
+- `display_debate_timer_error`
+
 ## `display.clock`
 
 `display.clock` is a deliberately minimal local-time display.
@@ -104,22 +144,24 @@ Canonical clock outputs include:
 
 ## Presets, protocols, ODK and external invocation
 
-All three capabilities are independently registered MethodMesh methods and therefore remain available through direct native use, Presets, Protocols, RIL and external/ODK invocation.
+All four capabilities are independently registered MethodMesh methods and therefore remain available through direct native use, Presets, Protocols, RIL and external/ODK invocation.
 
 Representative method calls are:
 
 - `display.show` with content/presentation settings;
 - `display.timer` with `duration_seconds`, `beep`, `theme` and `high_brightness`;
+- `display.debate_timer` with `duration_seconds`, `warning_seconds`, `warning_beep`, `beep` and `high_brightness`;
 - `display.clock` with `clock_format`, `show_date`, `theme` and `high_brightness`.
 
 Module-owned XLSForm examples are included separately so each grouped intent can use the canonical `methodmesh_full_json` return field without name collisions:
 
 - `docs/example_odk_Display.xlsx` — `display.show`;
 - `docs/example_odk_Display_Timer.xlsx` — `display.timer`;
+- `docs/example_odk_Display_Debate_Timer.xlsx` — `display.debate_timer`;
 - `docs/example_odk_Display_Clock.xlsx` — `display.clock`.
 
 Fixed Preset/external settings may start the presentation immediately through the normal `CapabilityScreenContext.startsImmediately` lifecycle. Canonical results continue through the shared MethodMesh Commit/automatic-return machinery.
 
 ## Display target
 
-All v0.3 capabilities render to the current local Android screen. The broader display renderer/target architecture remains available for future external displays without multiplying sign methods merely because transport/rendering technology changes.
+All current Display capabilities render to the current local Android screen. The broader display renderer/target architecture remains available for future external displays without multiplying sign methods merely because transport/rendering technology changes.

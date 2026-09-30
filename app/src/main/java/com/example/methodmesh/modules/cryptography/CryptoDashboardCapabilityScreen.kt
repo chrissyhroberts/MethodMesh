@@ -1,5 +1,7 @@
 package com.example.methodmesh.modules.cryptography
 
+import android.content.Context
+import android.content.Intent
 import android.os.Build
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.android.IntentRouterActivity
 import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
@@ -119,31 +122,36 @@ object CryptoDashboardCapabilityScreen : CapabilityScreenSpec {
                     "Privacy",
                     "I need other people or systems to receive data without seeing the plaintext.",
                     "Choose: Protect text with a password · Protect a file with a password",
-                    "Encryption hides content. The password must travel separately and cannot be recovered by MethodMesh."
+                    "Encryption hides content. The password must travel separately and cannot be recovered by MethodMesh.",
+                    onClick = { launch(androidContext, As100TextEncryptMethod.id) }
                 )
                 CryptoRouteCard(
                     "Authenticity & integrity",
                     "I need someone to check that content really matches what I signed and was not changed.",
                     "Choose: Set up my signing identity · Sign a file or message · Check a signature",
-                    "Signing does not hide content. A trusted identity card/fingerprint connects a signing key to a person."
+                    "Signing does not hide content. A trusted identity card/fingerprint connects a signing key to a person.",
+                    onClick = { launch(androidContext, As100SignMethod.id) }
                 )
                 CryptoRouteCard(
                     "Live proof",
                     "I need someone to prove they control a signing key right now, not merely show an old signature.",
                     "Choose: Create a live identity challenge · Prove I control my signing key · Check a live identity proof",
-                    "Challenges expire and protect against replay. They prove current key possession, not legal identity by themselves."
+                    "Challenges expire and protect against replay. They prove current key possession, not legal identity by themselves.",
+                    onClick = { launch(androidContext, As100ChallengeCreateMethod.id) }
                 )
                 CryptoRouteCard(
                     "Authenticator",
                     "I need six/eight digit login codes without using Google or Microsoft Authenticator.",
                     "Choose: Add an authenticator account · Authenticator codes · Back up my authenticator",
-                    "TOTP seeds stay in a biometric-gated local locker. Treat setup seeds and backups as highly sensitive."
+                    "TOTP seeds stay in a biometric-gated local locker. Treat setup seeds and backups as highly sensitive.",
+                    onClick = { launch(androidContext, As100TotpGenerateMethod.id) }
                 )
                 CryptoRouteCard(
                     "Recovery & checking",
                     "I need several people/places to share recovery responsibility, or I need to fingerprint exact content.",
                     "Choose: Create recovery shares · Recover a shared secret · Create a content fingerprint",
-                    "Recovery shares are sensitive; fingerprints check exact bytes but do not encrypt or prove authorship."
+                    "Recovery shares are sensitive; fingerprints check exact bytes but do not encrypt or prove authorship.",
+                    onClick = { launch(androidContext, As100SecretSplitMethod.id) }
                 )
 
                 Text("This device", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -172,5 +180,12 @@ object CryptoDashboardCapabilityScreen : CapabilityScreenSpec {
                 }
             }
         }
+    }
+
+    private fun launch(context: Context, methodId: String) {
+        context.startActivity(Intent(context, IntentRouterActivity::class.java).apply {
+            action = "com.example.methodmesh.EXECUTE_METHOD(method_id='$methodId',caller='cryptography_dashboard',source='dashboard')"
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
     }
 }

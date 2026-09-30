@@ -103,9 +103,10 @@ The time-series interval defaults to 100 ms and is configurable. Spectrum averag
 1. Choose **Chromatic** or an instrument preset.
 2. Optionally select a particular string; `0` means choose the nearest target automatically.
 3. Play a note.
-4. The tuner shows measured frequency, target note/frequency and cents deviation.
-5. The target zone defaults to ±5 cents and is shown as a green zone.
-6. A captured tuner result requires the configured stable-pitch window.
+4. The tuner listens continuously while the screen is open and shows measured frequency, target note/frequency, cents deviation and a live gauge.
+5. Select a string explicitly when tuning a known string, or leave the selector on nearest-target mode.
+6. Press **Finish tuning** when the current string is settled. A captured tuner result requires the configured stable-pitch window.
+7. When invoked from ODK, MethodMesh returns once, at **Finish tuning**, with the final stable note/frequency/cents/state snapshot plus its normal audit JSON. It does not stream audio frames or intermediate tuning updates into ODK.
 
 Bundled tuning presets:
 

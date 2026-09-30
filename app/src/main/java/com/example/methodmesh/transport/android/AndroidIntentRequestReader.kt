@@ -66,7 +66,8 @@ object AndroidIntentRequestReader {
             if (key.isNotBlank()) values[key] = value
         }
 
-        return RilTransportAdapter.parse(values, source = "android_action")
+        val parsed = RilTransportAdapter.parse(values, source = "android_action")
+        return parsed.copy(source = values["source"]?.takeIf { it.isNotBlank() } ?: parsed.source)
     }
 
     private fun splitArguments(raw: String): List<String> {

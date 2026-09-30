@@ -11,7 +11,7 @@ import com.example.methodmesh.settings.MethodSetting
 object TrustedTimestampModule : MethodMeshModule {
     override val moduleId = "trustedtimestamp"
     override val displayName = "Trusted timestamp"
-    override val summary = "Create portable RFC 3161 proof-of-existence bundles without uploading the source content."
+    override val summary = "Create and verify portable RFC 3161 proof-of-existence bundles without uploading source content."
 
     val maturityTag = TrustedTimestampContractMetadata.MATURITY
     val connectivityTag = TrustedTimestampContractMetadata.CONNECTIVITY
@@ -20,14 +20,15 @@ object TrustedTimestampModule : MethodMeshModule {
         TrustedTimeRefreshRegistry.register(TrustedTimestampTimeSyncProvider())
     }
 
-    override fun as100Methods() = listOf(As100TrustedTimestampMethod)
+    override fun as100Methods() = listOf(As100TrustedTimestampMethod, As100TrustedTimestampVerificationMethod)
 
     override fun rilBindings() = listOf(
         RilBinding("prove existence", As100TrustedTimestampMethod.ID, "Create an RFC 3161 proof of existence"),
-        RilBinding("trusted timestamp", As100TrustedTimestampMethod.ID, "Timestamp exact content with a trusted authority")
+        RilBinding("trusted timestamp", As100TrustedTimestampMethod.ID, "Timestamp exact content with a trusted authority"),
+        RilBinding("verify trusted timestamp", As100TrustedTimestampVerificationMethod.ID, "Verify a proof bundle against exact source bytes")
     )
 
-    override fun capabilityScreens() = listOf(TrustedTimestampCapabilityScreen)
+    override fun capabilityScreens() = listOf(TrustedTimestampCapabilityScreen, TrustedTimestampVerificationCapabilityScreen)
 
     override fun capabilitySettings() = mapOf(
         As100TrustedTimestampMethod.ID to listOf(
@@ -58,6 +59,12 @@ object TrustedTimestampModule : MethodMeshModule {
                 "Expose capability metadata JSON in runtime",
                 defaultValue = false
             )
+        ),
+        As100TrustedTimestampVerificationMethod.ID to listOf(
+            MethodSetting.TextSetting("proof_file", "Proof bundle URI/path (advanced)", defaultValue = ""),
+            MethodSetting.TextSetting("source_file", "Source file URI/path (advanced)", defaultValue = ""),
+            MethodSetting.TextSetting("source_text", "Source text", defaultValue = ""),
+            MethodSetting.IntSetting("timeout_ms", "Network timeout (ms)", defaultValue = 10000, minimum = 1000, maximum = 30000)
         )
     )
 }

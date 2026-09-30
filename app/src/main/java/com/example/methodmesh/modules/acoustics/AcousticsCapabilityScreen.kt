@@ -332,7 +332,11 @@ private fun AcousticCapabilityUi(
         displayPaused = false
         listening = true
         measurementActive = false
-        if (measureNow) beginMeasurement() else status = "Live analyser · press Start measurement to record an observation."
+        if (measureNow || mode == AcousticMode.TUNE) {
+            captureStartedAtMs = System.currentTimeMillis()
+            captureStartedIso = Instant.now().toString()
+        }
+        if (measureNow) beginMeasurement() else status = if (mode == AcousticMode.TUNE) "Live tuner · play a string and adjust until the needle settles." else "Live analyser · press Start measurement to record an observation."
 
         engine.start(
             sampleRateHz = sampleRateHz.toIntOrNull() ?: 48_000,
@@ -341,7 +345,7 @@ private fun AcousticCapabilityUi(
             maxFrequencyHz = maxFrequencyHz.toDoubleOrNull() ?: 5000.0,
             onInfo = { info ->
                 captureInfo = info
-                if (!measurementActive) status = if (info.unprocessedUsed) "Live analyser · unprocessed microphone path" else "Live analyser · ${info.audioSourceLabel} input"
+            if (!measurementActive) status = if (mode == AcousticMode.TUNE) "Live tuner · ${info.audioSourceLabel} input" else if (info.unprocessedUsed) "Live analyser · unprocessed microphone path" else "Live analyser · ${info.audioSourceLabel} input"
             },
             onFrame = { next ->
                 if (measurementActive || mode != AcousticMode.ANALYSE) {
@@ -384,12 +388,12 @@ private fun AcousticCapabilityUi(
     LaunchedEffect(autoStartEligible, launchAttempted) {
         if (autoStartEligible && !launchAttempted) {
             launchAttempted = true
-            startListening(true)
+            startListening(mode != AcousticMode.TUNE)
         }
     }
 
-    LaunchedEffect(listening, measurementActive, captureSequence, captureSeconds) {
-        if (listening && measurementActive) {
+    LaunchedEffect(listening, measurementActive, captureSequence, captureSeconds, mode) {
+        if (mode != AcousticMode.TUNE && listening && measurementActive) {
             val durationMs = ((captureSeconds.toDoubleOrNull() ?: 2.0).coerceIn(0.5, 60.0) * 1000.0).toLong()
             delay(durationMs)
             if (listening) finaliseCapture()
@@ -428,9 +432,10 @@ private fun AcousticCapabilityUi(
                 onMinimumStable = { minimumStableMs = it }, onMaximumSdCents = { maximumSdCents = it },
                 onMinimumConfidence = { minimumPitchConfidence = it })
             AcousticMode.TUNE -> TunerControlsAndDisplay(context, settings, frame, accumulator, listening,
-                onInstrument = { instrument = it }, onStringIndex = { stringIndex = it },
+                onInstrument = { instrument = it; stringIndex = "0"; accumulator.reset(); frame = null; status = "Instrument changed · play the next string." },
+                onStringIndex = { stringIndex = it; accumulator.reset(); frame = null; status = "String changed · play it until the gauge settles." },
                 onReferenceA4 = { referenceA4Hz = it }, onGreenZone = { greenZoneCents = it },
-                onCaptureSeconds = { captureSeconds = it }, onMinimumStable = { minimumStableMs = it },
+                onMinimumStable = { minimumStableMs = it },
                 onMaximumSdCents = { maximumSdCents = it }, onMinimumConfidence = { minimumPitchConfidence = it },
                 onSampleRate = { sampleRateHz = it })
             AcousticMode.LEVEL -> LevelControlsAndDisplay(context, settings, frame, accumulator, captureInfo, listening,
@@ -460,6 +465,14 @@ private fun AcousticCapabilityUi(
         }
 
         when {
+            mode == AcousticMode.TUNE && !listening -> {
+                Button(onClick = { startListening(false) }, modifier = Modifier.fillMaxWidth()) { Text("Start tuner") }
+            }
+            mode == AcousticMode.TUNE && listening -> {
+                Button(onClick = { finaliseCapture() }, modifier = Modifier.fillMaxWidth()) { Text("Finish tuning") }
+                Spacer(Modifier.height(6.dp))
+                OutlinedButton(onClick = { stopListening(); measurementActive = false; status = "Tuning stopped without returning a result." }, modifier = Modifier.fillMaxWidth()) { Text("Stop without result") }
+            }
             context.submitsImmediately -> {
                 if (listening) Text("Timed measurement in progress…", style = MaterialTheme.typography.bodyMedium)
             }
@@ -567,7 +580,6 @@ private fun TunerControlsAndDisplay(
     onStringIndex: (String) -> Unit,
     onReferenceA4: (String) -> Unit,
     onGreenZone: (String) -> Unit,
-    onCaptureSeconds: (String) -> Unit,
     onMinimumStable: (String) -> Unit,
     onMaximumSdCents: (String) -> Unit,
     onMinimumConfidence: (String) -> Unit,
@@ -605,7 +617,6 @@ private fun TunerControlsAndDisplay(
     }
     if (context.settingShouldBeShown("reference_a4_hz")) NumberField("Reference A4 (Hz)", settings["reference_a4_hz"].orEmpty(), onReferenceA4)
     if (context.settingShouldBeShown("green_zone_cents")) NumberField("In-tune zone (± cents)", settings["green_zone_cents"].orEmpty(), onGreenZone)
-    if (context.settingShouldBeShown("capture_seconds")) NumberField("Automatic capture (s)", settings["capture_seconds"].orEmpty(), onCaptureSeconds)
     if (context.settingShouldBeShown("minimum_stable_ms")) NumberField("Minimum stable duration (ms)", settings["minimum_stable_ms"].orEmpty(), onMinimumStable, integerOnly = true)
     if (context.settingShouldBeShown("maximum_sd_cents")) NumberField("Maximum pitch SD (cents)", settings["maximum_sd_cents"].orEmpty(), onMaximumSdCents)
     if (context.settingShouldBeShown("minimum_pitch_confidence")) NumberField("Minimum pitch confidence", settings["minimum_pitch_confidence"].orEmpty(), onMinimumConfidence)

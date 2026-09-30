@@ -7,10 +7,12 @@ import com.example.methodmesh.settings.MethodSetting
 object WebActionsModule : MethodMeshModule {
     override val moduleId = "webactions"
     override val displayName = "Web Actions"
-    override val summary = "Run ODK Central and other web workflows with explicit completion; create precooked Enketo sessions when runtime prefill is needed."
+    override val summary = "Run web workflows and fetch useful online data streams, returning complete JSON to ODK or readable results for people."
     override val iconKey = "web"
 
     override fun as100Methods() = listOf(
+        As100WebActionsDashboardMethod,
+        As100WebActionsWorkflowsDashboardMethod,
         As100OdkWebFormsRoundtripMethod,
         As100OdkEnketoRoundtripMethod,
         As100KoboEnketoRoundtripMethod,
@@ -18,9 +20,11 @@ object WebActionsModule : MethodMeshModule {
         As100EnketoRoundtripMethod,
         As100WebRoundtripMethod,
         As100WebOpenMethod
-    )
+    ) + WebApiMethods.all
 
     override fun rilBindings() = listOf(
+        RilBinding("open web actions dashboard", As100WebActionsDashboardMethod.ID, "Choose any Web Actions workflow or online data capability"),
+        RilBinding("open web workflows dashboard", As100WebActionsWorkflowsDashboardMethod.ID, "Choose an ODK form, Enketo session, web workflow, or browser page"),
         RilBinding(
             "complete ODK Web Forms form",
             As100OdkWebFormsRoundtripMethod.ID,
@@ -57,9 +61,17 @@ object WebActionsModule : MethodMeshModule {
         ),
         RilBinding("run web roundtrip", As100WebRoundtripMethod.ID, "Run a web workflow with a one-shot return URL"),
         RilBinding("open web page", As100WebOpenMethod.ID, "Open an HTTP or HTTPS page in the Android browser")
-    )
+    ) + WebApiMethods.all.map { method ->
+        RilBinding(
+            "fetch ${method.definition.name.lowercase()}",
+            method.id,
+            "Fetch the complete ${method.definition.name} data stream"
+        )
+    }
 
     override fun capabilityScreens() = listOf(
+        WebActionsDashboardCapabilityScreen,
+        WebActionsWorkflowsDashboardCapabilityScreen,
         OdkWebFormsRoundtripCapabilityScreen,
         OdkEnketoRoundtripCapabilityScreen,
         KoboEnketoRoundtripCapabilityScreen,
@@ -67,7 +79,7 @@ object WebActionsModule : MethodMeshModule {
         EnketoRoundtripCapabilityScreen,
         WebRoundtripCapabilityScreen,
         WebOpenCapabilityScreen
-    )
+    ) + WebApiCapabilityScreens.all
 
     override fun capabilitySettings() = mapOf(
         As100OdkCentralRoundtripMethod.ID to listOf(
@@ -255,7 +267,53 @@ object WebActionsModule : MethodMeshModule {
                 group = "Security"
             )
         )
-    )
+    ) + WebApiMethods.all.associate { method -> method.id to webApiSettings(method) }
+
+    private fun webApiSettings(method: WebApiMethod): List<MethodSetting> = buildList {
+        if (method.definition.inputs.any { it.id == "latitude" } && method.definition.inputs.any { it.id == "longitude" }) {
+            add(
+                MethodSetting.ChoiceSetting(
+                    id = "location_mode",
+                    label = "Location source",
+                    description = "Choose current GPS or enter latitude and longitude manually. GPS never prevents manual entry.",
+                    defaultValue = "manual",
+                    choices = listOf("gps", "manual"),
+                    group = "Location"
+                )
+            )
+        }
+        method.definition.inputs.forEach { input ->
+            add(
+                MethodSetting.TextSetting(
+                    id = input.id,
+                    label = input.name,
+                    description = input.description.ifBlank { "Input sent to ${method.definition.attribution.providerName}." },
+                    defaultValue = input.defaultValue,
+                    group = "Request"
+                )
+            )
+        }
+        add(
+            MethodSetting.MultiChoiceSetting(
+                id = "result_paths",
+                label = "Returned fields",
+                description = "Useful values shown in the compact result. The full response remains available in methodmesh_full_json for ODK.",
+                defaultValue = method.definition.response.expectedPaths.joinToString("|"),
+                choices = method.definition.response.expectedPaths,
+                delimiter = "|",
+                group = "Return"
+            )
+        )
+        add(
+            MethodSetting.TextSetting(
+                id = "fallback_value",
+                label = "Fallback value",
+                description = "Optional value if a selected field is missing.",
+                defaultValue = "",
+                group = "Return"
+            )
+        )
+    }
 
 
     private fun hostedFormSettings(label: String, description: String, group: String) = listOf(

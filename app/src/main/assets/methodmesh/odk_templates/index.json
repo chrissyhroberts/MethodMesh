@@ -1,15 +1,15 @@
 {
   "schema": "methodmesh.odk_template_index.v3",
   "generatedFrom": "app/src/main/java/com/example/methodmesh",
-  "templateCount": 415,
+  "templateCount": 416,
   "moduleCount": 80,
   "validationSummary": {
-    "formsNeedingRevision": 141,
+    "formsNeedingRevision": 142,
     "cleanForms": 274,
     "severityCounts": {
       "error": 0,
       "warning": 34,
-      "style": 167,
+      "style": 170,
       "info": 0
     },
     "authoritativeValidatedForms": 0,
@@ -2978,6 +2978,54 @@
             "severity": "style",
             "code": "FORM_VERSION_NONSTANDARD",
             "message": "version '20260925_0300' does not use the MethodMesh YYYYMMDDrr convention.",
+            "location": "settings.version",
+            "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "display.example_odk_Display_Debate_Timer",
+      "moduleId": "display",
+      "moduleName": "Display",
+      "displayName": "MethodMesh Display — Debate Timer",
+      "description": "",
+      "sourceFileName": "example_odk_Display_Debate_Timer.xlsx",
+      "sourceRelativePath": "modules/display/docs/example_odk_Display_Debate_Timer.xlsx",
+      "centralFormId": "methodmesh_display_debate_timer",
+      "formVersion": "20260929_0400",
+      "assetPath": "methodmesh/odk_templates/display/example_odk_Display_Debate_Timer.xlsx",
+      "sha256": "2fd293dbffa3e9d477b7d217ce09e839f82a8caae404c802280622460339d26b",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": [
+          {
+            "severity": "style",
+            "code": "FILENAME_NONSTANDARD",
+            "message": "Filename 'example_odk_Display_Debate_Timer.xlsx' does not follow the MethodMesh XLSForm naming convention.",
+            "location": "modules/display/docs/example_odk_Display_Debate_Timer.xlsx",
+            "suggestion": "Use lower-snake-case names such as 'example_odk_display_debate_timer.xlsx'. Rename the repository file only after checking references.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_ID_MODULE_PREFIX",
+            "message": "form_id 'methodmesh_display_debate_timer' does not identify its owning module.",
+            "location": "settings.form_id",
+            "suggestion": "For new forms prefer IDs beginning 'display_'. Existing deployed IDs are compatibility contracts and should not be changed casually.",
+            "source": "MethodMesh XLSForm lint",
+            "details": ""
+          },
+          {
+            "severity": "style",
+            "code": "FORM_VERSION_NONSTANDARD",
+            "message": "version '20260929_0400' does not use the MethodMesh YYYYMMDDrr convention.",
             "location": "settings.version",
             "suggestion": "ODK accepts other version strings, but MethodMesh recommends a 10-digit YYYYMMDDrr value for consistency.",
             "source": "MethodMesh XLSForm lint",

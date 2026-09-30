@@ -237,7 +237,7 @@ There is no fabricated offline timestamp fallback.
 ## Known limitations
 
 - Maturity remains **Development** until explicitly promoted after build/device/ODK validation.
-- A dedicated in-app proof-verification method is not yet exposed.
+- `integrity.trusted_timestamp.verify` verifies an exported proof ZIP against the exact source file or UTF-8 text supplied to it. It reports source-hash match, proof-bundle component integrity, RFC 3161 signature validation, authority details, timestamp, serial and configured trust status. A result of `verified_trusted` means the authority chain matched the configured registry; `verified_cryptographically_unconfigured` means the RFC 3161 proof is valid but the authority is not configured as a trusted registry match. Source content remains local; the configured registry check may fetch public certificates.
 - Custom TSA endpoints can be cryptographically consistent without being independently trusted.
 - TSA certificate rotation requires registry maintenance.
 - Clock anchoring requires the token signer to match the pinned configured signer, a valid configured chain at generation time, and a critical timestamp-only EKU; a proof that does not meet that stronger trust contract remains proof evidence but does not refresh Clock Assurance.

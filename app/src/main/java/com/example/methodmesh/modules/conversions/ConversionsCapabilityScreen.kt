@@ -16,11 +16,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
@@ -28,14 +32,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.core.protocols.CapabilityPreset
+import com.example.methodmesh.core.protocols.ProtocolLibraryRepository
 import com.example.methodmesh.core.protocols.PresetResultAction
+import com.example.methodmesh.core.protocols.ProtocolPayloadMode
+import com.example.methodmesh.core.artifacts.AndroidArtifacts
 import com.example.methodmesh.transport.OutputExportRepository
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.*
+import com.example.methodmesh.ui.SavePresetDialog
 import kotlinx.coroutines.delay
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
 import java.time.LocalDate
 
 object ConversionsCapabilityScreen : CapabilityScreenSpec {
@@ -51,6 +61,7 @@ object ConversionsCapabilityScreen : CapabilityScreenSpec {
         onConfirmed: (ExecutionResult) -> Unit,
         onCancel: () -> Unit
     ) {
+        val appContext = LocalContext.current
         var category by rememberSaveable {
             mutableStateOf(context.action.settings["category"] ?: context.action.settings["input_category"] ?: "length")
         }
@@ -89,12 +100,17 @@ object ConversionsCapabilityScreen : CapabilityScreenSpec {
         var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
         var committedValuesJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var presetDialogOpen by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var presetStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
 
         val unitChoices = when (category) {
             "temperature" -> listOf("C", "F", "K")
             "number" -> NumberRepresentation.ids
             else -> As100ConversionsMethod.unitsByCategory[category]?.keys?.toList().orEmpty()
         }
+        val interactiveBodyHeight = (LocalConfiguration.current.screenHeightDp - 360)
+            .coerceAtLeast(420)
+            .dp
 
         fun settings() = mapOf(
             "category" to category,
@@ -258,12 +274,39 @@ object ConversionsCapabilityScreen : CapabilityScreenSpec {
                         )
                     }
 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "Save this conversion setup for reuse",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = InstrumentMuted
+                        )
+                        InstrumentActionButton(
+                            label = "PRESET",
+                            enabled = true,
+                            onClick = { presetDialogOpen = true }
+                        )
+                    }
+                    presetStatus?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = InstrumentTeal
+                        )
+                    }
+
                     InstrumentDivider()
 
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f)
+                            // External workflow hosts may measure this immersive screen
+                            // inside an unbounded column. A weighted child then collapses
+                            // to zero height, leaving only the mode selector visible.
+                            .height(interactiveBodyHeight)
                     ) {
                         when (category) {
                             "number" -> NumberConversionPanel(
@@ -418,6 +461,53 @@ object ConversionsCapabilityScreen : CapabilityScreenSpec {
                     }
                 }
             }
+        }
+
+        if (presetDialogOpen) {
+            SavePresetDialog(
+                defaultName = "conversions ${humanLabel(category)}",
+                methodId = As100ConversionsMethod.ID,
+                settingSchema = ConversionsModule.capabilitySettings()[As100ConversionsMethod.ID].orEmpty(),
+                initialSettings = settings().mapValues { it.value as Any },
+                defaultPayloadMode = ProtocolPayloadMode.CORE,
+                onDismiss = { presetDialogOpen = false },
+                onSave = { name, description, payloadMode, resultAction, launchMode, savedSettings ->
+                    val logSettings = savedSettings.toMutableMap()
+                    if (logSettings["methodmesh_save_to_log"]?.toString() == "true") {
+                        val logName = logSettings["methodmesh_log_name"]?.toString()?.trim().orEmpty().ifBlank { "$name log" }
+                        val service = AndroidArtifacts.service(appContext)
+                        val logRef = service.createPersistent(
+                            name = "$logName/data.jsonl",
+                            mime = "application/jsonl",
+                            input = ByteArrayInputStream("".toByteArray())
+                        )
+                        val summaryRef = service.createPersistent(
+                            name = "$logName.txt",
+                            mime = "text/plain",
+                            input = ByteArrayInputStream("$logName\n\n".toByteArray()),
+                            collectionId = logRef.id
+                        )
+                        service.setCollection(logRef, logRef.id)
+                        logSettings["methodmesh_log_ref"] = logRef.id
+                        logSettings["methodmesh_log_summary_ref"] = summaryRef.id
+                        logSettings["methodmesh_log_name"] = logName
+                    }
+                    val saved = ProtocolLibraryRepository.savePreset(
+                        appContext,
+                        CapabilityPreset(
+                            name = name,
+                            methodId = As100ConversionsMethod.ID,
+                            settingsJson = JSONObject(logSettings).toString(),
+                            payloadMode = payloadMode,
+                            resultAction = resultAction,
+                            launchMode = launchMode,
+                            description = description.ifBlank { As100ConversionsMethod.descriptor.description.orEmpty() }
+                        )
+                    )
+                    presetDialogOpen = false
+                    presetStatus = "Saved preset: ${saved.name}"
+                }
+            )
         }
     }
 }
@@ -1470,8 +1560,8 @@ private fun AgePanel(
 ) {
     CalculatorCard {
         ResultCard(resultValues)
-        if (showDate1) DateField(date1, onDate1Change, "Birth date")
-        if (showDate2) DateField(date2, onDate2Change, "At date (optional; blank = today)")
+        if (showDate1) AgeDateField(date1, onDate1Change, "Birth date")
+        if (showDate2) AgeDateField(date2, onDate2Change, "At date (optional; blank = today)")
     }
 }
 
@@ -1768,6 +1858,65 @@ private fun DateField(value: String, onValueChange: (String) -> Unit, label: Str
         label = "$label · YYYY-MM-DD",
         keyboardType = KeyboardType.Text
     )
+}
+
+@Composable
+private fun AgeDateField(value: String, onValueChange: (String) -> Unit, label: String) {
+    var fieldValue by remember(value) {
+        mutableStateOf(
+            TextFieldValue(
+                text = value,
+                selection = TextRange(value.length)
+            )
+        )
+    }
+    var hadFocus by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(
+            "$label · YYYYMMDD".uppercase(),
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp),
+            fontWeight = FontWeight.Bold,
+            color = InstrumentGold
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            color = InstrumentSurfaceRaised,
+            border = BorderStroke(1.dp, InstrumentLine.copy(alpha = 0.8f))
+        ) {
+            BasicTextField(
+                value = fieldValue,
+                onValueChange = { updated ->
+                    val formatted = ageDateText(updated.text)
+                    fieldValue = TextFieldValue(formatted, TextRange(formatted.length))
+                    onValueChange(formatted)
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                cursorBrush = SolidColor(InstrumentTeal),
+                textStyle = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = 22.sp,
+                    color = InstrumentText,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Medium
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        if (focusState.isFocused && !hadFocus) {
+                            hadFocus = true
+                            fieldValue = fieldValue.copy(
+                                selection = TextRange(0, fieldValue.text.length)
+                            )
+                        } else if (!focusState.isFocused) {
+                            hadFocus = false
+                        }
+                    }
+                    .padding(horizontal = 14.dp, vertical = 11.dp)
+            )
+        }
+    }
 }
 
 @Composable
@@ -2196,3 +2345,13 @@ private fun signedIntegerText(value: String): String {
 }
 
 private fun dateText(value: String): String = value.filter { it.isDigit() || it == '-' }.take(10)
+
+private fun ageDateText(value: String): String {
+    val digits = value.filter { it.isDigit() }.take(8)
+    return buildString {
+        digits.forEachIndexed { index, digit ->
+            if (index == 4 || index == 6) append('-')
+            append(digit)
+        }
+    }
+}

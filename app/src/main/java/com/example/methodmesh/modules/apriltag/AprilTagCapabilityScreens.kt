@@ -149,7 +149,15 @@ private class AprilTagCapabilityScreenSpec(
                     presetStatus = presetStatus,
                     onSavePreset = if (canSavePreset) ({ presetDialogOpen = true }) else null
                 )
-                Column(Modifier.fillMaxWidth().weight(1f)) {
+                val instrumentBodyModifier = if (context.presentationMode == CapabilityPresentationMode.IntentLaunch) {
+                    val screenHeightDp = LocalConfiguration.current.screenHeightDp
+                    Modifier
+                        .fillMaxWidth()
+                        .height((screenHeightDp - 96).coerceAtLeast(320).dp)
+                } else {
+                    Modifier.fillMaxWidth().weight(1f)
+                }
+                Column(instrumentBodyModifier) {
                     when (capabilityId) {
                         As100AprilTagDetectMethod.id -> DetectInstrument(instrumentContext) { committedValuesJson = valuesToJson(it) }
                         As100AprilTagCalibrateFocalMethod.id -> CalibrationInstrument(instrumentContext) { committedValuesJson = valuesToJson(it) }

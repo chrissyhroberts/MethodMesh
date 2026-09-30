@@ -1,6 +1,6 @@
 # Validation — Multi-counter
 
-Status: **Development prototype / build not yet admitted**
+Status: **Development / state model covered; full module admission pending combined validation pass**
 
 ## Contract checks performed in packaging review
 
@@ -16,6 +16,7 @@ Status: **Development prototype / build not yet admitted**
 - Countdown expiry, pending stagger starts and pause/reset operations are represented explicitly in state.
 - Event-log truncation is declared in audit rather than silent.
 - `MulticounterState.kt` passes a Kotlin compiler syntax check against a minimal stub of the Android JSON/method boundary; this is not a substitute for the Android Gradle build.
+- `MulticounterStateTest.kt` covers counter policy, staggered timer activation, finish/JSON round-trip behaviour, and declared event-log truncation.
 
 ## Required repository validation before admission
 

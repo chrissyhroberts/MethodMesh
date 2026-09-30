@@ -1,15 +1,31 @@
-# Display v0.3.1 validation notes
+# Display v0.4.0 validation notes
 
 ## Capability surface
 
-The module exposes exactly three intentional capabilities:
+The module exposes exactly four intentional capabilities:
 
 - `display.show` — general visual content;
 - `display.timer` — display-oriented countdown;
+- `display.debate_timer` — colour-phase speaking/debate countdown;
 - `display.clock` — display-oriented local clock.
 
 The old unused `display.static`, `display.marquee`, `display.board`, `display.code` and `display.sequence` IDs remain absent. Static text, marquee, board-like multiline text and giant codes remain options/inputs of `display.show` rather than returning as separate methods.
 
+
+
+## v0.4 debate timer
+
+- Added canonical `display.debate_timer`; no existing method IDs were changed.
+- Defaults: 300 seconds total, yellow warning at 60 seconds remaining.
+- Visual phase is derived only from remaining time: green above the warning threshold, yellow from the threshold through one second, red at zero.
+- Total and warning thresholds use the same native Android H/M/S number-wheel editor as `display.timer`.
+- Runtime remains based on an absolute monotonic `SystemClock.elapsedRealtime()` deadline.
+- The warning sound is one bounded short beep when the yellow phase is first entered. `warningPlayed` is saveable and does not reset on pause/resume, recomposition or orientation.
+- The zero sound reuses the existing finite alarm cadence (three short beeps, pause, three short beeps).
+- Restart clears warning/alarm latches and creates a new deadline. Pause preserves remaining milliseconds and therefore preserves the displayed phase.
+- STOP commits `remaining_seconds`, phase and completion reason; Back cancels without Commit.
+- Bottom controls retain navigation-bar padding plus the existing extra clearance.
+- Added a dedicated module-owned ODK example for `display.debate_timer`.
 
 ## v0.3.1 timer input/alarm refinement
 
@@ -59,9 +75,9 @@ The old unused `display.static`, `display.marquee`, `display.board`, `display.co
 
 `display.clock` similarly presents device-local current time; it does not create a second scheduling subsystem.
 
-All three capabilities remain independently callable through the standard MethodMesh method/screen/settings contracts.
+All four capabilities remain independently callable through the standard MethodMesh method/screen/settings contracts.
 
-Three module-owned XLSForm examples are supplied, one per public method, each using a grouped `body::intent` call and the canonical `methodmesh_full_json` return field.
+Four module-owned XLSForm examples are supplied, one per public method, each using a grouped `body::intent` call and the canonical `methodmesh_full_json` return field.
 
 ## Build status
 
@@ -77,14 +93,13 @@ Run after drop-in:
 Recommended device smoke test:
 
 1. existing `display.show` still/scroll behaviour in portrait and landscape;
-2. 5-second countdown reaches zero accurately and emits one beep;
-3. Pause for several seconds then Resume without losing/gaining countdown time;
-4. Restart after zero;
-5. countdown orientation change while running;
-6. timer controls clear Android gesture/3-button navigation;
-7. clock `HH:MM` with date off;
-8. clock `HH:MM:SS` with date on;
+2. ordinary 5-second countdown reaches zero accurately and emits the bounded alarm cadence;
+3. ordinary timer Pause/Resume and Restart remain accurate;
+4. debate timer starts green at 5:00, becomes yellow at 1:00, emits exactly one warning beep, then becomes red at 00:00 and emits the zero alarm cadence;
+5. pause/resume and rotate the debate timer after the warning beep and confirm it does not replay;
+6. restart the debate timer and confirm the warning beep is available again on the next threshold crossing;
+7. timer/debate controls remain clear of Android gesture/3-button navigation;
+8. clock `HH:MM` with date off and `HH:MM:SS` with date on;
 9. rotate clock portrait/landscape and confirm auto-fit;
-10. white-on-black, black-on-white and black-on-yellow timer/clock themes;
-11. Preset with fixed countdown settings starts immediately;
-12. external/ODK result return after STOP.
+10. Preset with fixed debate-timer settings starts immediately;
+11. external/ODK result return after STOP for all public methods.

@@ -1,5 +1,6 @@
 package com.example.methodmesh.modules.music
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
+import com.example.methodmesh.transport.android.IntentRouterActivity
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
@@ -140,6 +142,15 @@ private fun PracticeDashboardUi(context: CapabilityScreenContext, onBack: () -> 
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("Reset session timer") }
+                OutlinedButton(
+                    onClick = {
+                        androidContext.startActivity(Intent(androidContext, IntentRouterActivity::class.java).apply {
+                            action = "com.example.methodmesh.EXECUTE_METHOD(method_id='${As100SingingRangeMethod.ID}',caller='music_practice_dashboard',source='dashboard')"
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Find singing range") }
                 Button(
                     enabled = workingValues[As100PracticeDashboardMethod.fields.status] == "succeeded",
                     onClick = {

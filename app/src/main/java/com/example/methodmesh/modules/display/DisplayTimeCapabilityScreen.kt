@@ -84,6 +84,22 @@ class DisplayTimerCapabilityScreen : CapabilityScreenSpec {
     }
 }
 
+class DisplayDebateTimerCapabilityScreen : CapabilityScreenSpec {
+    override val capabilityId = DisplayDebateTimerMethod.ID
+    override val title = DisplayDebateTimerMethod.title
+    override val description = DisplayDebateTimerMethod.help
+
+    @Composable
+    override fun Render(
+        context: CapabilityScreenContext,
+        onBack: () -> Unit,
+        onConfirmed: (ExecutionResult) -> Unit,
+        onCancel: () -> Unit
+    ) {
+        DisplayDebateTimerUi(context, onBack, onConfirmed, onCancel)
+    }
+}
+
 class DisplayClockCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = DisplayClockMethod.ID
     override val title = DisplayClockMethod.title
@@ -245,6 +261,196 @@ private fun DisplayTimerUi(
             durationSeconds = durationSeconds(),
             beep = beep,
             theme = theme,
+            highBrightness = highBrightness,
+            onStop = ::finishTimer,
+            onCancel = { showing = false }
+        )
+    }
+}
+
+@Composable
+private fun DisplayDebateTimerUi(
+    context: CapabilityScreenContext,
+    onBack: () -> Unit,
+    onConfirmed: (ExecutionResult) -> Unit,
+    onCancel: () -> Unit
+) {
+    fun initial(key: String, fallback: String) =
+        context.action.settings[key] ?: context.action.settings["input_$key"] ?: fallback
+
+    val initialDuration = (initial("duration_seconds", DisplayDebateTimerMethod.DEFAULT_DURATION_SECONDS.toString())
+        .toIntOrNull() ?: DisplayDebateTimerMethod.DEFAULT_DURATION_SECONDS).coerceIn(1, 359999)
+    val initialWarning = (initial("warning_seconds", DisplayDebateTimerMethod.DEFAULT_WARNING_SECONDS.toString())
+        .toIntOrNull() ?: DisplayDebateTimerMethod.DEFAULT_WARNING_SECONDS).coerceIn(1, initialDuration)
+
+    var hours by rememberSaveable(context.action.canonicalId) { mutableStateOf(initialDuration / 3600) }
+    var minutes by rememberSaveable(context.action.canonicalId) { mutableStateOf((initialDuration % 3600) / 60) }
+    var seconds by rememberSaveable(context.action.canonicalId) { mutableStateOf(initialDuration % 60) }
+    var warningHours by rememberSaveable(context.action.canonicalId) { mutableStateOf(initialWarning / 3600) }
+    var warningMinutes by rememberSaveable(context.action.canonicalId) { mutableStateOf((initialWarning % 3600) / 60) }
+    var warningSecondsPart by rememberSaveable(context.action.canonicalId) { mutableStateOf(initialWarning % 60) }
+    var warningBeep by rememberSaveable(context.action.canonicalId) {
+        mutableStateOf(initial("warning_beep", "true").toBooleanStrictOrNull() ?: true)
+    }
+    var beep by rememberSaveable(context.action.canonicalId) {
+        mutableStateOf(initial("beep", "true").toBooleanStrictOrNull() ?: true)
+    }
+    var highBrightness by rememberSaveable(context.action.canonicalId) {
+        mutableStateOf(initial("high_brightness", "true").toBooleanStrictOrNull() ?: true)
+    }
+    var showing by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+    var startedIso by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
+    var startedElapsed by rememberSaveable(context.action.canonicalId) { mutableStateOf(0L) }
+    var autoStarted by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+    var committed by remember { mutableStateOf<ExecutionResult?>(null) }
+    var committedPreview by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+
+    fun durationSeconds(): Int = (
+        hours.coerceIn(0, 99) * 3600 +
+            minutes.coerceIn(0, 59) * 60 +
+            seconds.coerceIn(0, 59)
+        ).coerceIn(0, 359999)
+
+    fun rawWarningSeconds(): Int = (
+        warningHours.coerceIn(0, 99) * 3600 +
+            warningMinutes.coerceIn(0, 59) * 60 +
+            warningSecondsPart.coerceIn(0, 59)
+        ).coerceIn(0, 359999)
+
+    fun warningSeconds(): Int {
+        val duration = durationSeconds().coerceAtLeast(1)
+        return rawWarningSeconds().coerceIn(1, duration)
+    }
+
+    fun settings() = context.action.settings + mapOf(
+        "duration_seconds" to durationSeconds().toString(),
+        "warning_seconds" to warningSeconds().toString(),
+        "warning_beep" to warningBeep.toString(),
+        "beep" to beep.toString(),
+        "high_brightness" to highBrightness.toString()
+    )
+
+    fun startTimer() {
+        if (durationSeconds() <= 0) return
+        startedIso = Instant.now().toString()
+        startedElapsed = SystemClock.elapsedRealtime()
+        showing = true
+    }
+
+    fun finishTimer(remainingSeconds: Int, completionReason: String) {
+        showing = false
+        if (startedIso.isBlank()) return
+        val stopped = Instant.now().toString()
+        val elapsed = (SystemClock.elapsedRealtime() - startedElapsed).coerceAtLeast(0L)
+        val values = DisplayDebateTimerMethod.values(
+            settings = settings(),
+            startedIso = startedIso,
+            stoppedIso = stopped,
+            elapsedMs = elapsed,
+            remainingSeconds = remainingSeconds,
+            completionReason = completionReason
+        )
+        val request = DisplayDebateTimerMethod.request(
+            DisplayDebateTimerMethod.ID,
+            context.request.invocationContext.asMap(DisplayDebateTimerMethod.ID) + settings() + values,
+            emptyList(),
+            emptyList()
+        )
+        committedPreview = values
+        committed = DisplayDebateTimerMethod.result(request, values, context.request.invocationContext)
+    }
+
+    LaunchedEffect(context.startsImmediately, autoStarted, committed, initialDuration, initialWarning) {
+        if (context.startsImmediately && !autoStarted && committed == null && initialDuration > 0) {
+            autoStarted = true
+            startTimer()
+        }
+    }
+
+    CapabilityScreenScaffold(
+        title = DisplayDebateTimerMethod.title,
+        capabilityId = DisplayDebateTimerMethod.ID,
+        context = context,
+        canGoBack = context.stepNumber > 1,
+        capturedResult = committed,
+        resultPreview = committedPreview,
+        onBack = onBack,
+        onRetry = {
+            committed = null
+            committedPreview = emptyMap()
+            autoStarted = false
+        },
+        onConfirm = { committed?.let(onConfirmed) },
+        onCancel = {
+            showing = false
+            onCancel()
+        }
+    ) {
+        if (committed == null) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (context.settingShouldBeShown("duration_seconds")) {
+                    Text("Total time", style = MaterialTheme.typography.labelMedium)
+                    DurationWheelPicker(
+                        hours = hours,
+                        minutes = minutes,
+                        seconds = seconds,
+                        onHoursChange = { hours = it },
+                        onMinutesChange = { minutes = it },
+                        onSecondsChange = { seconds = it }
+                    )
+                }
+                if (context.settingShouldBeShown("warning_seconds")) {
+                    Text("Yellow warning begins with", style = MaterialTheme.typography.labelMedium)
+                    DurationWheelPicker(
+                        hours = warningHours,
+                        minutes = warningMinutes,
+                        seconds = warningSecondsPart,
+                        onHoursChange = { warningHours = it },
+                        onMinutesChange = { warningMinutes = it },
+                        onSecondsChange = { warningSecondsPart = it }
+                    )
+                    if (rawWarningSeconds() > durationSeconds() && durationSeconds() > 0) {
+                        Text(
+                            "Warning is capped at the total duration (${formatCountdownSeconds(durationSeconds())}).",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Card(Modifier.fillMaxWidth()) {
+                    DebateTimerFace(
+                        remainingSeconds = durationSeconds(),
+                        warningSeconds = warningSeconds(),
+                        modifier = Modifier.fillMaxWidth().height(132.dp)
+                    )
+                }
+                DebatePhaseLegend(warningSeconds())
+
+                if (context.settingShouldBeShown("warning_beep")) {
+                    CompactSwitchRow("Single beep at yellow", warningBeep) { warningBeep = it }
+                }
+                if (context.settingShouldBeShown("beep")) {
+                    CompactSwitchRow("Alarm beeps at zero", beep) { beep = it }
+                }
+                if (context.settingShouldBeShown("high_brightness")) {
+                    CompactSwitchRow("High brightness", highBrightness) { highBrightness = it }
+                }
+                Button(
+                    enabled = durationSeconds() > 0,
+                    onClick = { startTimer() },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("START") }
+            }
+        }
+    }
+
+    if (showing) {
+        FullScreenDebateCountdown(
+            durationSeconds = durationSeconds(),
+            warningSeconds = warningSeconds(),
+            warningBeep = warningBeep,
+            beep = beep,
             highBrightness = highBrightness,
             onStop = ::finishTimer,
             onCancel = { showing = false }
@@ -423,21 +629,7 @@ private fun FullScreenCountdown(
     LaunchedEffect(finished, beep) {
         if (finished && beep && !alarmPlayed) {
             alarmPlayed = true
-            val tone = runCatching { ToneGenerator(AudioManager.STREAM_ALARM, 100) }.getOrNull()
-            try {
-                // A bounded alarm cadence: three short beeps, a pause, then three more.
-                // This is deliberately finite; Display is not a persistent alarm service.
-                repeat(2) { burst ->
-                    repeat(3) {
-                        tone?.startTone(ToneGenerator.TONE_PROP_BEEP, 240)
-                        delay(360L)
-                    }
-                    if (burst == 0) delay(480L)
-                }
-            } finally {
-                tone?.stopTone()
-                tone?.release()
-            }
+            playCountdownZeroAlarm()
         }
     }
 
@@ -512,6 +704,131 @@ private fun FullScreenCountdown(
 }
 
 @Composable
+private fun FullScreenDebateCountdown(
+    durationSeconds: Int,
+    warningSeconds: Int,
+    warningBeep: Boolean,
+    beep: Boolean,
+    highBrightness: Boolean,
+    onStop: (Int, String) -> Unit,
+    onCancel: () -> Unit
+) {
+    var controls by rememberSaveable { mutableStateOf(true) }
+    var running by rememberSaveable(durationSeconds, warningSeconds) { mutableStateOf(true) }
+    var finished by rememberSaveable(durationSeconds, warningSeconds) { mutableStateOf(false) }
+    var warningPlayed by rememberSaveable(durationSeconds, warningSeconds) { mutableStateOf(false) }
+    var alarmPlayed by rememberSaveable(durationSeconds, warningSeconds) { mutableStateOf(false) }
+    var deadlineElapsed by rememberSaveable(durationSeconds, warningSeconds) {
+        mutableStateOf(SystemClock.elapsedRealtime() + durationSeconds.toLong() * 1000L)
+    }
+    var pausedRemainingMs by rememberSaveable(durationSeconds, warningSeconds) {
+        mutableStateOf(durationSeconds.toLong() * 1000L)
+    }
+    var nowElapsed by remember { mutableStateOf(SystemClock.elapsedRealtime()) }
+
+    DisplayWindowEffects(highBrightness)
+    BackHandler { onCancel() }
+
+    LaunchedEffect(running, deadlineElapsed, warningSeconds, warningBeep) {
+        while (running) {
+            val now = SystemClock.elapsedRealtime()
+            nowElapsed = now
+            val remaining = (deadlineElapsed - now).coerceAtLeast(0L)
+            val warningMs = warningSeconds.toLong() * 1000L
+            if (warningBeep && !warningPlayed && remaining in 1L..warningMs) {
+                warningPlayed = true
+                playDebateWarningBeep()
+            }
+            if (remaining <= 0L) {
+                pausedRemainingMs = 0L
+                running = false
+                finished = true
+                controls = true
+                break
+            }
+            delay(80L)
+        }
+    }
+
+    LaunchedEffect(finished, beep) {
+        if (finished && beep && !alarmPlayed) {
+            alarmPlayed = true
+            playCountdownZeroAlarm()
+        }
+    }
+
+    LaunchedEffect(controls, finished) {
+        if (controls && !finished) {
+            delay(4000L)
+            controls = false
+        }
+    }
+
+    val remainingMs = if (running) (deadlineElapsed - nowElapsed).coerceAtLeast(0L) else pausedRemainingMs
+    val remainingSecondsNow = ((remainingMs + 999L) / 1000L).toInt().coerceAtLeast(0)
+
+    Dialog(
+        onDismissRequest = onCancel,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) { detectTapGestures { controls = !controls } }
+        ) {
+            DebateTimerFace(
+                remainingSeconds = remainingSecondsNow,
+                warningSeconds = warningSeconds,
+                modifier = Modifier.fillMaxSize()
+            )
+            if (controls) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(start = 12.dp, end = 12.dp, bottom = 18.dp),
+                    color = Color.Black.copy(alpha = .82f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    FlowRow(
+                        modifier = Modifier.padding(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (!finished) {
+                            OutlinedButton(onClick = {
+                                if (running) {
+                                    pausedRemainingMs = (deadlineElapsed - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+                                    running = false
+                                } else if (pausedRemainingMs > 0L) {
+                                    deadlineElapsed = SystemClock.elapsedRealtime() + pausedRemainingMs
+                                    running = true
+                                }
+                            }) { Text(if (running) "Pause" else "Resume") }
+                        }
+                        OutlinedButton(onClick = {
+                            val full = durationSeconds.toLong() * 1000L
+                            pausedRemainingMs = full
+                            deadlineElapsed = SystemClock.elapsedRealtime() + full
+                            nowElapsed = SystemClock.elapsedRealtime()
+                            finished = false
+                            warningPlayed = false
+                            alarmPlayed = false
+                            running = true
+                        }) { Text("Restart") }
+                        Button(onClick = {
+                            val remaining = if (finished) 0 else remainingSecondsNow
+                            onStop(remaining, if (finished) "countdown_finished" else "stopped_by_operator")
+                        }) { Text("STOP") }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun FullScreenClock(
     format: String,
     showDate: Boolean,
@@ -563,6 +880,34 @@ private fun FullScreenClock(
     }
 }
 
+private suspend fun playDebateWarningBeep() {
+    val tone = runCatching { ToneGenerator(AudioManager.STREAM_ALARM, 72) }.getOrNull()
+    try {
+        tone?.startTone(ToneGenerator.TONE_PROP_BEEP, 170)
+        delay(220L)
+    } finally {
+        tone?.stopTone()
+        tone?.release()
+    }
+}
+
+private suspend fun playCountdownZeroAlarm() {
+    val tone = runCatching { ToneGenerator(AudioManager.STREAM_ALARM, 100) }.getOrNull()
+    try {
+        // Bounded alarm cadence: three short beeps, a pause, then three more.
+        repeat(2) { burst ->
+            repeat(3) {
+                tone?.startTone(ToneGenerator.TONE_PROP_BEEP, 240)
+                delay(360L)
+            }
+            if (burst == 0) delay(480L)
+        }
+    } finally {
+        tone?.stopTone()
+        tone?.release()
+    }
+}
+
 @Composable
 private fun DisplayWindowEffects(highBrightness: Boolean) {
     val view = LocalView.current
@@ -603,6 +948,67 @@ private fun TimerFace(
             color = palette.foreground,
             modifier = Modifier.fillMaxSize()
         )
+    }
+}
+
+@Composable
+private fun DebateTimerFace(
+    remainingSeconds: Int,
+    warningSeconds: Int,
+    modifier: Modifier = Modifier
+) {
+    val phase = debateTimerPhase(remainingSeconds, warningSeconds)
+    val palette = when (phase) {
+        "red" -> TimePalette(Color(0xFFB71C1C), Color.White)
+        "yellow" -> TimePalette(Color(0xFFFFD600), Color.Black)
+        else -> TimePalette(Color(0xFF1B5E20), Color.White)
+    }
+    Box(
+        modifier = modifier.background(palette.background).padding(10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        AutoFitSingleLineText(
+            text = formatCountdownSeconds(remainingSeconds),
+            color = palette.foreground,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+private fun DebatePhaseLegend(warningSeconds: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        DebateLegendChip("Green", "main time", Color(0xFF1B5E20), Color.White, Modifier.weight(1f))
+        DebateLegendChip(
+            "Yellow",
+            "≤ ${formatCountdownSeconds(warningSeconds)}",
+            Color(0xFFFFD600),
+            Color.Black,
+            Modifier.weight(1f)
+        )
+        DebateLegendChip("Red", "00:00", Color(0xFFB71C1C), Color.White, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun DebateLegendChip(
+    title: String,
+    subtitle: String,
+    background: Color,
+    foreground: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(modifier = modifier, color = background, shape = RoundedCornerShape(8.dp)) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(title, color = foreground, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Text(subtitle, color = foreground, style = MaterialTheme.typography.labelSmall)
+        }
     }
 }
 

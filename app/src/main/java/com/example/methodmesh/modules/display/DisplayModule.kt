@@ -8,15 +8,21 @@ import com.example.methodmesh.settings.MethodSetting
 object DisplayModule : MethodMeshModule {
     override val moduleId = "display"
     override val displayName = "Display"
-    override val version = "0.3.1"
-    override val summary = "Turn the device into a large sign, countdown timer or clock."
+    override val version = "0.4.0"
+    override val summary = "Turn the device into a large sign, countdown timer, debate timer or clock."
     override val iconKey = "display"
 
-    override fun as100Methods() = listOf(DisplayShowMethod, DisplayTimerMethod, DisplayClockMethod)
+    override fun as100Methods() = listOf(
+        DisplayShowMethod,
+        DisplayTimerMethod,
+        DisplayDebateTimerMethod,
+        DisplayClockMethod
+    )
 
     override fun capabilityScreens() = listOf(
         DisplayCapabilityScreen(),
         DisplayTimerCapabilityScreen(),
+        DisplayDebateTimerCapabilityScreen(),
         DisplayClockCapabilityScreen()
     )
 
@@ -28,6 +34,8 @@ object DisplayModule : MethodMeshModule {
         RilBinding("flash message", DisplayShowMethod.ID, "Show a safely rate-limited flashing message"),
         RilBinding("show countdown", DisplayTimerMethod.ID, "Show a large countdown timer"),
         RilBinding("count down", DisplayTimerMethod.ID, "Show a large countdown timer"),
+        RilBinding("show debate timer", DisplayDebateTimerMethod.ID, "Show a green/yellow/red debate countdown"),
+        RilBinding("start debate timer", DisplayDebateTimerMethod.ID, "Start a green/yellow/red debate countdown"),
         RilBinding("show clock", DisplayClockMethod.ID, "Show a large local clock")
     )
 
@@ -132,6 +140,41 @@ object DisplayModule : MethodMeshModule {
                 label = "Appearance",
                 defaultValue = "white_on_black",
                 choices = listOf("white_on_black", "black_on_white", "black_on_yellow")
+            ),
+            MethodSetting.BooleanSetting(
+                id = "high_brightness",
+                label = "Use high brightness while showing",
+                defaultValue = true
+            )
+        ),
+        DisplayDebateTimerMethod.ID to listOf(
+            MethodSetting.IntSetting(
+                id = "duration_seconds",
+                label = "Total duration",
+                description = "Total debate countdown duration in seconds.",
+                defaultValue = DisplayDebateTimerMethod.DEFAULT_DURATION_SECONDS,
+                minimum = 1,
+                maximum = 359999,
+                unit = "seconds"
+            ),
+            MethodSetting.IntSetting(
+                id = "warning_seconds",
+                label = "Yellow warning",
+                description = "Switch from green to yellow when this many seconds remain.",
+                defaultValue = DisplayDebateTimerMethod.DEFAULT_WARNING_SECONDS,
+                minimum = 1,
+                maximum = 359999,
+                unit = "seconds"
+            ),
+            MethodSetting.BooleanSetting(
+                id = "warning_beep",
+                label = "Single beep at warning",
+                defaultValue = true
+            ),
+            MethodSetting.BooleanSetting(
+                id = "beep",
+                label = "Alarm beeps at zero",
+                defaultValue = true
             ),
             MethodSetting.BooleanSetting(
                 id = "high_brightness",

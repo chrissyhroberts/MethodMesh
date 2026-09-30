@@ -27,6 +27,7 @@ object MusicModule : MethodMeshModule {
         As100HarmonicsMethod,
         As100SetListTimingMethod,
         As100MusicReferenceMethod,
+        As100SingingRangeMethod,
         As100PracticeDashboardMethod,
         As100PerformanceDashboardMethod,
         As100ReferenceDashboardMethod,
@@ -65,6 +66,7 @@ object MusicModule : MethodMeshModule {
         RilBinding("explore harmonics", As100HarmonicsMethod.ID, "Calculate a harmonic series"),
         RilBinding("time set list", As100SetListTimingMethod.ID, "Calculate total performance duration"),
         RilBinding("music reference", As100MusicReferenceMethod.ID, "Show scale notes and diatonic triads"),
+        RilBinding("find singing range", As100SingingRangeMethod.ID, "Listen continuously and find the lowest and highest notes a singer demonstrates"),
         RilBinding("open practice dashboard", As100PracticeDashboardMethod.ID, "Open the live music practice dashboard"),
         RilBinding("open performance dashboard", As100PerformanceDashboardMethod.ID, "Open the persistent set-list dashboard"),
         RilBinding("open music reference dashboard", As100ReferenceDashboardMethod.ID, "Open the key, scale and chord reference dashboard"),
@@ -101,6 +103,7 @@ object MusicModule : MethodMeshModule {
         HarmonicsCapabilityScreen,
         SetListTimingCapabilityScreen,
         MusicReferenceCapabilityScreen,
+        SingingRangeCapabilityScreen,
         PracticeDashboardCapabilityScreen,
         PerformanceDashboardCapabilityScreen,
         ReferenceDashboardCapabilityScreen,
@@ -143,6 +146,10 @@ object MusicModule : MethodMeshModule {
     }
 
     override fun capabilitySettings() = mapOf(
+        As100SingingRangeMethod.ID to listOf(
+            MethodSetting.FloatSetting("reference_a4_hz", "Reference A4", defaultValue = 440f, minimum = 400f, maximum = 480f, step = 0.1f, unit = "Hz", decimals = 1),
+            MethodSetting.FloatSetting("minimum_confidence", "Minimum pitch confidence", defaultValue = 0.70f, minimum = 0.1f, maximum = 1f, step = 0.05f, decimals = 2)
+        ),
         As100TapTempoMethod.ID to listOf(
             MethodSetting.TextSetting("tap_intervals_ms", "Tap intervals", "Optional comma-separated millisecond intervals for ODK/protocol use.", defaultValue = "")
         ),

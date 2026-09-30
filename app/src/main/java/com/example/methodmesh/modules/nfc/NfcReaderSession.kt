@@ -115,7 +115,11 @@ fun NfcDeviceServiceEffect(
     enabled: Boolean,
     onStatus: (String) -> Unit,
     onSignal: (NfcTagSignal) -> Unit,
-    holdReaderMode: Boolean = false
+    // NFC screens own the adapter for their whole lifetime. The enabled flag
+    // still controls whether the current operation accepts a tag, but a
+    // competing NDEF application must not receive the tag first while the
+    // operator is inside MethodMesh's NFC surface.
+    holdReaderMode: Boolean = true
 ) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }

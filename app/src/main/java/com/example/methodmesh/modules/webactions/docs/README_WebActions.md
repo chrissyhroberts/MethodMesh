@@ -1,8 +1,13 @@
-# MethodMesh Web Actions module v0.06
+# MethodMesh Web Actions module v0.07
 
 ## Purpose
 
 Web Actions turns human-facing web workflows into canonical MethodMesh capabilities with explicit completion semantics.
+
+It also provides the practical home for MethodMesh's bundled online data links:
+small, ready-to-run capabilities for people collecting data in the field, lab,
+or wider world, and a useful Swiss-army knife for people who otherwise keep a
+different one-purpose app for every public data source.
 
 The normal ODK workflow is intentionally simple:
 
@@ -91,6 +96,59 @@ This is for non-ODK services. URLs returned in results are redacted for common s
 ### `web.open` — Open web page
 
 Opens a normal HTTP(S) page. Its success result means **browser dispatch succeeded**, not that the remote website completed an operation.
+
+### `webactions.dashboard` — Online data dashboard
+
+The native Web Actions dashboard is the friendly starting point for the named
+online data streams. It keeps function selection, GPS/manual location input,
+fetch, readable result, commit, copy, share, save and FULL JSON export on one
+page. It does not create a second result or storage path.
+
+### `webactions.workflows_dashboard` — Web workflows dashboard
+
+Hosted forms, Enketo sessions, generic web roundtrips and browser pages have a
+separate dashboard. Selecting one opens its own explicit workflow surface and
+completion controls, so browser navigation cannot displace an API result.
+
+### Bundled online data capabilities
+
+The former Workbench API-links tester is no longer a second execution surface.
+Each bundled link is now a normal Web Actions capability with a fixed, clearly
+named provider/data stream and the same shared online-data executor used by
+`api.get`:
+
+| Capability | Data stream |
+|---|---|
+| `web.api.openmeteo_current_weather` | Open-Meteo current weather |
+| `web.api.openmeteo_daily_forecast` | Open-Meteo daily forecast |
+| `web.api.openmeteo_air_quality` | Open-Meteo current air quality |
+| `web.api.gdacs_current_events` | GDACS current disaster events |
+| `web.api.usgs_earthquakes_today` | USGS earthquakes for the last day |
+| `web.api.worldbank_indicator` | Latest World Bank indicator value |
+| `web.api.frankfurter_rates` | Frankfurter reference exchange rates |
+| `web.api.gbif_country_occurrences` | GBIF occurrence records for a country |
+
+Each capability fetches the complete declared response. Compact selected
+fields make the native result readable; **Include full JSON** adds the complete
+response and provenance to the normal share/copy/download actions. For ODK,
+request `input_payload_mode='FULL'`: the complete response is carried in the
+standard `methodmesh_full_json` sidecar. MethodMesh does not become the data
+log or database; it returns the result to the caller or the operator's chosen
+native export action.
+
+Location-aware links disclose their rounded-location behaviour before sending.
+Provider attribution, source/update metadata, cache status and structured
+failure details remain in the result contract. The generic `api.get` capability
+and declarative definition infrastructure remain available for compatibility,
+custom definitions and future editor work; these named webactions are the
+human-friendly shortcuts.
+
+For every location-aware API screen, the operator can choose **Use GPS** or
+**Enter manually**. GPS requests the normal Android location permission and a
+current fix; manual latitude/longitude remains available if permission is
+denied, unavailable, or the operator has a deliberate survey coordinate.
+ODK callers can supply `latitude`/`longitude` directly, or use the compatible
+`gps_latitude`/`gps_longitude` aliases.
 
 ## Native UX and Commit lifecycle
 

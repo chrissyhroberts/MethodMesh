@@ -514,8 +514,10 @@ anything; how to retry, cancel or continue; final combined result.
 
 ### One capability contract, multiple interaction surfaces
 
-The dashboard is mandatory, but it is only one interaction surface. It
-must never become the implementation boundary for a capability.
+The app Dashboard is a top-level navigation surface, but it is only one
+interaction surface. A module-level curated dashboard is optional: it should
+exist only where a useful summary or multi-capability control surface has been
+designed. It must never become the implementation boundary for a capability.
 
 Every MethodMesh capability is defined once by a canonical module-owned
 contract. Direct native runs, the dashboard, preset creation, protocol
@@ -530,15 +532,30 @@ it.
 
 ### Required surface parity
 
-Every module must provide a useful dashboard presence appropriate to the
-module. The dashboard may aggregate, summarise and expose quick
-controls, but dashboard aggregation must never hide or replace the
-individual capabilities.
+The Capabilities catalogue is the universal module entry surface. It must
+expose every individual capability directly. If a module has a curated
+dashboard capability, that capability is shown first when the module is
+expanded, followed by the remaining capabilities in a compact list. The
+curated dashboard is not given a separate visibility privilege, card treatment
+or execution contract; it is simply an ordinary capability with a useful
+module-level summary/control UI. A module does not need a synthetic dashboard
+or controller capability merely to be discoverable.
 
 Every individual capability must remain independently discoverable and
-selectable when creating presets and protocols. A module with a rich
+selectable when creating presets and protocols. A module with a rich curated
 dashboard is not exempt from exposing its underlying primitives for
-composition.
+composition, and the curated dashboard must not hide or replace them.
+
+### Compact capability catalogue
+
+The Capabilities catalogue is a compact discovery list rather than a prose
+manual. Module rows may be collapsed to keep the catalogue manageable. When a
+module is expanded, dashboards (if any) appear first and all other capabilities
+follow in one list; there is no second nested "individual capabilities"
+disclosure layer. Capability descriptions and technical details are collapsed
+by default behind **Details**, while the capability name, version and maturity
+remain visible. Selecting **Details** expands the description and available
+advanced information without changing how the capability is launched.
 
 ODK/XLSForm must be able to invoke every capability and request every
 declared output that MethodMesh itself can produce, including obscure or
@@ -1249,9 +1266,11 @@ If the handoff is zipped, the ZIP must open to exactly one top-level
   ODK example, method implementation and native screen as appropriate.
   Do not collapse independent capabilities into a single private
   dashboard implementation.
-- A custom dashboard file is optional. The **dashboard presence is not
-  optional**. If generic shared rendering can provide that presence from
-  module metadata, no custom dashboard file is needed.
+- A custom module-level dashboard file is optional. The **Capabilities
+  catalogue presence is not optional**: every module and capability must be
+  discoverable through the shared catalogue. Add a curated dashboard only
+  when it provides a real multi-capability summary or control surface; do not
+  create a synthetic dashboard merely to satisfy discovery.
 - `Repository.kt` is optional. Do not create repository/service/helper
   layers merely to make the folder look architecturally elaborate.
 - Module-specific helpers belong in this folder. Shared framework
@@ -3035,12 +3054,24 @@ The visual canvas must not become the semantic architecture.
 
 # 14. Online data and APIs
 
-api.get is the runtime capability for declared API definitions.
+`api.get` remains the generic runtime capability for declared API definitions.
+The bundled provider definitions also have named convenience capabilities in
+the Web Actions module, so a field/lab operator can choose a useful data stream
+without first understanding the definition registry. These named capabilities
+reuse the same declarative executor and return the complete response through
+the normal ODK `methodmesh_full_json` sidecar or native share/copy/save actions.
 
-Individual API providers should usually be data definitions, not bespoke
-capabilities.
+The generic definition registry remains the extension point for custom and
+future provider definitions. It must not turn MethodMesh into a data log or
+database: execution returns data to the caller or an explicitly chosen native
+export action.
 
-The API definition editor/tester belongs in Workbench.
+Web Actions owns an in-page online-data dashboard for selecting a function,
+entering GPS/manual location, fetching, viewing a human-readable result and
+using the normal commit/copy/share/save/FULL-JSON closeout. Browser/form tools
+have a separate workflows dashboard and remain on the normal workflow host.
+Location-aware API surfaces MUST offer both current GPS acquisition and manual
+coordinate entry; GPS permission failure MUST NOT remove the manual path.
 
 ## Bundled APIs
 
@@ -6495,11 +6526,11 @@ Current project-wide directions distilled from the former roadmap are:
 - make Device Registry more live/observable and expose firmware/configuration/calibration/verification state rather than only sensor names/values;
 - use ESPHome as the preferred configurable backend for ordinary supported ESP sensors/actuators, while retaining firmware/provider neutrality and native/adapted paths where required;
 - improve shared offline-resource management and distinguish intentional downloads from disposable cache;
-- continue Workbench API-definition/editor tooling and shared `ResultTree`-based online-data infrastructure;
+- continue shared `ResultTree`-based online-data infrastructure and, where needed, generic API-definition tooling; keep named bundled data streams discoverable through Web Actions;
 - keep Android desktop widgets as first-class launch origins;
 - evaluate sideload-first capability packs only after measuring APK-size drivers and without undermining the single capability contract;
 - consider a future declarative capability-package format for capabilities expressible without new Android code;
-- keep online provider definitions generic rather than turning each public API into a bespoke capability.
+- keep the underlying provider definitions generic; named Web Actions capabilities are deliberately thin, fixed-input convenience wrappers rather than separate HTTP implementations.
 
 ## 24.3 Capability packaging direction
 
@@ -6594,7 +6625,9 @@ legacy `example_odk_<purpose>.xlsx` files are migration artefacts.
 
 11. Implement one canonical capability contract and project it into every required surface; do not implement separate dashboard/native/preset/protocol/ODK versions.
 
-12. Always provide a dashboard presence, but never make the dashboard the only way to invoke a capability.
+12. Always provide shared Capabilities-catalogue presence. Add a curated
+dashboard only where it provides a real multi-capability summary or control
+surface; never make that dashboard the only way to invoke a capability.
 
 13. Expose every individual capability independently for preset creation and protocol creation, even when the dashboard aggregates several capabilities.
 
@@ -6643,8 +6676,9 @@ composition, not as part of the canonical example.
 
 Before merging any change, ask:
 
-Is there a dashboard presence without making the dashboard the
-implementation boundary? Can every individual capability still be
+Is the module and every capability present in the shared Capabilities
+catalogue? If a curated dashboard exists, does it provide a real summary or
+control surface without making itself the implementation boundary? Can every individual capability still be
 selected for a preset? Can every individual capability still be selected
 as a protocol step? Can ODK invoke the same method and request every
 declared output? Are all of those surfaces using one canonical contract

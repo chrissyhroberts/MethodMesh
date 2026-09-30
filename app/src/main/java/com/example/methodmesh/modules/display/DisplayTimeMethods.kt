@@ -47,6 +47,31 @@ object DisplayTimerFields {
     )
 }
 
+
+object DisplayDebateTimerFields {
+    const val STATUS = "display_debate_timer_status"
+    const val RESULT = "display_debate_timer_result"
+    const val DURATION_SECONDS = "display_debate_timer_duration_seconds"
+    const val WARNING_SECONDS = "display_debate_timer_warning_seconds"
+    const val REMAINING_SECONDS = "display_debate_timer_remaining_seconds"
+    const val PHASE = "display_debate_timer_phase"
+    const val WARNING_BEEP = "display_debate_timer_warning_beep"
+    const val BEEP = "display_debate_timer_beep"
+    const val HIGH_BRIGHTNESS = "display_debate_timer_high_brightness"
+    const val STARTED_TIME_ISO = "display_debate_timer_started_time_iso"
+    const val STOPPED_TIME_ISO = "display_debate_timer_stopped_time_iso"
+    const val ELAPSED_MS = "display_debate_timer_elapsed_ms"
+    const val COMPLETION_REASON = "display_debate_timer_completion_reason"
+    const val AUDIT_JSON = "display_debate_timer_audit_json"
+    const val ERROR = "display_debate_timer_error"
+
+    val outputs = listOf(
+        STATUS, RESULT, DURATION_SECONDS, WARNING_SECONDS, REMAINING_SECONDS, PHASE,
+        WARNING_BEEP, BEEP, HIGH_BRIGHTNESS, STARTED_TIME_ISO, STOPPED_TIME_ISO,
+        ELAPSED_MS, COMPLETION_REASON, AUDIT_JSON, ERROR
+    )
+}
+
 object DisplayClockFields {
     const val STATUS = "display_clock_status"
     const val RESULT = "display_clock_result"
@@ -209,6 +234,161 @@ object DisplayTimerMethod : As100Method {
         values = values,
         statusField = DisplayTimerFields.STATUS,
         errorField = DisplayTimerFields.ERROR,
+        invocation = invocation
+    )
+}
+
+
+object DisplayDebateTimerMethod : As100Method {
+    const val ID = "display.debate_timer"
+    private const val METHOD_VERSION = "0.1.0"
+    const val DEFAULT_DURATION_SECONDS = 300
+    const val DEFAULT_WARNING_SECONDS = 60
+
+    override val id = ID
+    val title = "Debate timer"
+    val help = "Show a large debate countdown: green during the main period, yellow at the warning threshold and red at zero."
+
+    override val ref = ArchitectureRef(ArchitectureId(ID), "Method", title)
+    override val descriptor = MethodDescriptor(
+        id = ArchitectureId(ID),
+        methodType = MethodObjectType.Workflow,
+        name = title,
+        version = METHOD_VERSION,
+        description = help,
+        outputs = DisplayDebateTimerFields.outputs,
+        graphOutputs = listOf(ID),
+        parameters = mapOf(
+            "category" to "Development",
+            "status" to "Development",
+            "interaction" to "interactive"
+        )
+    )
+    override val contract = MethodContract(
+        method = ref,
+        producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
+        producedFields = descriptor.outputs,
+        producedGraphOutputs = descriptor.graphOutputs
+    )
+
+    override fun request(
+        action: String,
+        context: Map<String, String>,
+        signals: List<Signal>,
+        inputs: List<ArchitectureRef>
+    ) = As100ExecutionEngine.request(
+        action = action,
+        method = ref,
+        context = context,
+        signals = signals,
+        inputs = inputs
+    )
+
+    override fun execute(
+        request: ExecutionRequest,
+        settingsState: SettingsState?,
+        transport: String?
+    ): ExecutionResult {
+        val duration = request.context.setting("duration_seconds", DEFAULT_DURATION_SECONDS.toString())
+            .toIntOrNull()?.coerceIn(1, 359999) ?: DEFAULT_DURATION_SECONDS
+        val warning = request.context.setting("warning_seconds", DEFAULT_WARNING_SECONDS.toString())
+            .toIntOrNull()?.coerceIn(1, duration) ?: DEFAULT_WARNING_SECONDS.coerceAtMost(duration)
+        val values = values(
+            settings = request.context + mapOf("duration_seconds" to duration.toString(), "warning_seconds" to warning.toString()),
+            startedIso = "",
+            stoppedIso = Instant.now().toString(),
+            elapsedMs = 0L,
+            remainingSeconds = duration,
+            completionReason = "headless_specification"
+        )
+        return buildDisplayTemporalResult(
+            methodId = ID,
+            methodVersion = METHOD_VERSION,
+            methodRef = ref,
+            entityType = "DisplayDebateTimerPresentation",
+            request = request,
+            values = values,
+            statusField = DisplayDebateTimerFields.STATUS,
+            errorField = DisplayDebateTimerFields.ERROR,
+            invocation = InvocationContext.from(request.context)
+        )
+    }
+
+    fun values(
+        settings: Map<String, String>,
+        startedIso: String,
+        stoppedIso: String,
+        elapsedMs: Long,
+        remainingSeconds: Int,
+        completionReason: String
+    ): Map<String, String> {
+        val duration = settings.setting("duration_seconds", DEFAULT_DURATION_SECONDS.toString())
+            .toIntOrNull()?.takeIf { it in 1..359999 }
+            ?: return failure(settings, "Duration must be between 1 and 359999 seconds.")
+        val warning = settings.setting("warning_seconds", DEFAULT_WARNING_SECONDS.toString())
+            .toIntOrNull()?.takeIf { it in 1..duration }
+            ?: return failure(settings, "Warning threshold must be between 1 second and the total duration.")
+        val warningBeep = settings.setting("warning_beep", "true").toBooleanStrictOrNull() ?: true
+        val beep = settings.setting("beep", "true").toBooleanStrictOrNull() ?: true
+        val highBrightness = settings.setting("high_brightness", "true").toBooleanStrictOrNull() ?: true
+        val remaining = remainingSeconds.coerceIn(0, duration)
+        val phase = debateTimerPhase(remaining, warning)
+        val resultText = "${formatCountdownSeconds(remaining)} · ${phase.uppercase(Locale.US)}"
+        val audit = JSONObject()
+            .put("method_id", ID)
+            .put("method_version", METHOD_VERSION)
+            .put("duration_seconds", duration)
+            .put("warning_seconds", warning)
+            .put("remaining_seconds", remaining)
+            .put("phase", phase)
+            .put("warning_beep", warningBeep)
+            .put("beep", beep)
+            .put("high_brightness", highBrightness)
+            .put("started_time_iso", startedIso)
+            .put("stopped_time_iso", stoppedIso)
+            .put("elapsed_ms", elapsedMs)
+            .put("completion_reason", completionReason)
+
+        return linkedMapOf(
+            DisplayDebateTimerFields.STATUS to "succeeded",
+            DisplayDebateTimerFields.RESULT to resultText,
+            DisplayDebateTimerFields.DURATION_SECONDS to duration.toString(),
+            DisplayDebateTimerFields.WARNING_SECONDS to warning.toString(),
+            DisplayDebateTimerFields.REMAINING_SECONDS to remaining.toString(),
+            DisplayDebateTimerFields.PHASE to phase,
+            DisplayDebateTimerFields.WARNING_BEEP to warningBeep.toString(),
+            DisplayDebateTimerFields.BEEP to beep.toString(),
+            DisplayDebateTimerFields.HIGH_BRIGHTNESS to highBrightness.toString(),
+            DisplayDebateTimerFields.STARTED_TIME_ISO to startedIso,
+            DisplayDebateTimerFields.STOPPED_TIME_ISO to stoppedIso,
+            DisplayDebateTimerFields.ELAPSED_MS to elapsedMs.toString(),
+            DisplayDebateTimerFields.COMPLETION_REASON to completionReason,
+            DisplayDebateTimerFields.AUDIT_JSON to audit.toString(),
+            DisplayDebateTimerFields.ERROR to ""
+        )
+    }
+
+    private fun failure(settings: Map<String, String>, error: String) =
+        DisplayDebateTimerFields.outputs.associateWith { "" }.toMutableMap().apply {
+            this[DisplayDebateTimerFields.STATUS] = "failed"
+            this[DisplayDebateTimerFields.DURATION_SECONDS] = settings.setting("duration_seconds", "")
+            this[DisplayDebateTimerFields.WARNING_SECONDS] = settings.setting("warning_seconds", "")
+            this[DisplayDebateTimerFields.ERROR] = error
+        }
+
+    fun result(
+        request: ExecutionRequest,
+        values: Map<String, String>,
+        invocation: InvocationContext?
+    ) = buildDisplayTemporalResult(
+        methodId = ID,
+        methodVersion = METHOD_VERSION,
+        methodRef = ref,
+        entityType = "DisplayDebateTimerPresentation",
+        request = request,
+        values = values,
+        statusField = DisplayDebateTimerFields.STATUS,
+        errorField = DisplayDebateTimerFields.ERROR,
         invocation = invocation
     )
 }
@@ -402,6 +582,13 @@ internal fun formatCountdownSeconds(totalSeconds: Int): String {
     } else {
         String.format(Locale.US, "%02d:%02d", minutes, seconds)
     }
+}
+
+
+internal fun debateTimerPhase(remainingSeconds: Int, warningSeconds: Int): String = when {
+    remainingSeconds <= 0 -> "red"
+    remainingSeconds <= warningSeconds -> "yellow"
+    else -> "green"
 }
 
 private fun Map<String, String>.setting(key: String, default: String): String =
