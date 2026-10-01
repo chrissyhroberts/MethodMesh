@@ -1,13 +1,74 @@
 {
-  "schema": "methodmesh.odk_template_index.v3",
+  "schema": "methodmesh.odk_template_index.v4",
   "generatedFrom": "app/src/main/java/com/example/methodmesh",
+  "nfcFormCompiler": {
+    "contractSchema": "methodmesh.nfc_form_contract.v1",
+    "selectedContractVersion": "v1",
+    "availableContractVersions": [
+      "v1"
+    ],
+    "mappings": {
+      "nfc_credential_provisioning": {
+        "method_version": "1.0.1",
+        "credential_format_version": "ROSC2",
+        "intent_inputs": {
+          "credential_subject_id": "credential_subject_id_input",
+          "pin_length": "pin_length_input",
+          "valid_until_date": "valid_until_date_iso",
+          "overwrite_policy": "overwrite_policy_input"
+        },
+        "required_intent_literals": {
+          "nfc_form_contract_version": "v1",
+          "nfc_method_version": "1.0.1"
+        },
+        "required_return_fields": [
+          "credential_id",
+          "credential_subject_id",
+          "valid_until_iso",
+          "provision_success",
+          "provision_message",
+          "write_verified",
+          "issuer_key_id",
+          "issuer_public_key_fingerprint_sha256",
+          "methodmesh_full_json"
+        ],
+        "compatibility_statement": "Invokes nfc_credential_provisioning v1.0.1 with the ROSC2 credential format, passes the inclusive ISO valid-until date, and captures the authenticated exclusive expiry plus write verification and full JSON."
+      },
+      "nfc_credential_verification": {
+        "method_version": "1.1.0",
+        "credential_format_version": "ROSC2",
+        "intent_inputs": {},
+        "required_intent_literals": {
+          "nfc_form_contract_version": "v1",
+          "nfc_method_version": "1.1.0"
+        },
+        "required_return_fields": [
+          "methodmesh_execution_id",
+          "methodmesh_status",
+          "credential_verified",
+          "credential_verification_message",
+          "credential_id",
+          "credential_subject_id",
+          "valid_until_iso",
+          "pin_verified",
+          "issuer_signature_valid",
+          "issuer_trust_status",
+          "issuer_key_id",
+          "issuer_public_key_fingerprint_sha256",
+          "methodmesh_full_json"
+        ],
+        "compatibility_statement": "Invokes nfc_credential_verification v1.1.0 for ROSC2 credentials and captures the authenticated expiry, PIN/signature outcomes, human-readable failure message, Sentinel-reconciliation issuer evidence, and full JSON."
+      }
+    },
+    "statement": "NFC mappings are MethodMesh method/credential-format contracts only; study and provisioner legitimacy remains with Sentinel."
+  },
   "templateCount": 415,
   "moduleCount": 80,
   "validationSummary": {
-    "formsNeedingRevision": 142,
-    "cleanForms": 273,
+    "formsNeedingRevision": 144,
+    "cleanForms": 271,
     "severityCounts": {
-      "error": 0,
+      "error": 4,
       "warning": 34,
       "style": 170,
       "info": 0
@@ -6694,14 +6755,47 @@
       "centralFormId": "nfc_credential_provisioning",
       "formVersion": "2026093006",
       "assetPath": "methodmesh/odk_templates/nfc/example_odk_nfc_credential_provisioning.xlsx",
-      "sha256": "c5b723c6a106f8985af77688620aba89b319a5cbc022d7e69adadde894208c56",
+      "sha256": "90ded5beae2591afc45ebe8beb13ac3cbec19a71b50f6bbd236216f4add9028c",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
         "issues": []
-      }
+      },
+      "methodMappings": [
+        {
+          "methodId": "nfc_credential_provisioning",
+          "contractVersion": "v1",
+          "methodVersion": "1.0.1",
+          "credentialFormatVersion": "ROSC2",
+          "surveyRow": 8,
+          "intent": "com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_provisioning',input_nfc_form_contract_version='v1',input_nfc_method_version='1.0.1',input_credential_subject_id=${credential_subject_id_input},input_pin_length=${pin_length_input},input_valid_until_date=${valid_until_date_iso},input_overwrite_policy=${overwrite_policy_input},input_payload_mode='FULL',return_mode='flat')",
+          "arguments": {
+            "nfc_form_contract_version": "'v1'",
+            "nfc_method_version": "'1.0.1'",
+            "credential_subject_id": "${credential_subject_id_input}",
+            "pin_length": "${pin_length_input}",
+            "valid_until_date": "${valid_until_date_iso}",
+            "overwrite_policy": "${overwrite_policy_input}",
+            "payload_mode": "'FULL'",
+            "return_mode": "'flat'"
+          },
+          "requiredReturnFields": [
+            "credential_id",
+            "credential_subject_id",
+            "valid_until_iso",
+            "provision_success",
+            "provision_message",
+            "write_verified",
+            "issuer_key_id",
+            "issuer_public_key_fingerprint_sha256",
+            "methodmesh_full_json"
+          ],
+          "compatibilityStatement": "Invokes nfc_credential_provisioning v1.0.1 with the ROSC2 credential format, passes the inclusive ISO valid-until date, and captures the authenticated exclusive expiry plus write verification and full JSON."
+        }
+      ],
+      "nfcFormContractVersion": "v1"
     },
     {
       "id": "nfc.example_odk_nfc_credential_verification",
@@ -6714,14 +6808,57 @@
       "centralFormId": "nfc_credential_verification",
       "formVersion": "2026093002",
       "assetPath": "methodmesh/odk_templates/nfc/example_odk_nfc_credential_verification.xlsx",
-      "sha256": "3369b2b0fc945e7f1f8f750243ecdeeec01213ba00eae3bd6601e8d5137ef1f5",
+      "sha256": "4d07dd179509875169de52371993ca059bc0a5164c427f37f997eb763c24cdff",
       "capabilityIds": [],
       "tags": [],
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
-      }
+        "issues": [
+          {
+            "severity": "error",
+            "code": "NFC_RETURN_SCHEMA_STALE",
+            "message": "NFC form mapped to 'nfc_credential_verification' is missing current return fields: methodmesh_execution_id.",
+            "location": "survey",
+            "suggestion": "Regenerate the MethodMesh NFC mapping so expiry and diagnostic/full-JSON fields are retained.",
+            "source": "MethodMesh XLSForm lint",
+            "details": "Mapped method version: 1.1.0; credential format: ROSC2"
+          }
+        ]
+      },
+      "methodMappings": [
+        {
+          "methodId": "nfc_credential_verification",
+          "contractVersion": "v1",
+          "methodVersion": "1.1.0",
+          "credentialFormatVersion": "ROSC2",
+          "surveyRow": 3,
+          "intent": "com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_verification',input_nfc_form_contract_version='v1',input_nfc_method_version='1.1.0',input_payload_mode='FULL',return_mode='flat')",
+          "arguments": {
+            "nfc_form_contract_version": "'v1'",
+            "nfc_method_version": "'1.1.0'",
+            "payload_mode": "'FULL'",
+            "return_mode": "'flat'"
+          },
+          "requiredReturnFields": [
+            "methodmesh_execution_id",
+            "methodmesh_status",
+            "credential_verified",
+            "credential_verification_message",
+            "credential_id",
+            "credential_subject_id",
+            "valid_until_iso",
+            "pin_verified",
+            "issuer_signature_valid",
+            "issuer_trust_status",
+            "issuer_key_id",
+            "issuer_public_key_fingerprint_sha256",
+            "methodmesh_full_json"
+          ],
+          "compatibilityStatement": "Invokes nfc_credential_verification v1.1.0 for ROSC2 credentials and captures the authenticated expiry, PIN/signature outcomes, human-readable failure message, Sentinel-reconciliation issuer evidence, and full JSON."
+        }
+      ],
+      "nfcFormContractVersion": "v1"
     },
     {
       "id": "nfc.example_odk_nfc_tag_read",
@@ -6860,8 +6997,67 @@
       "validation": {
         "authoritativeAvailable": false,
         "engine": "disabled",
-        "issues": []
-      }
+        "issues": [
+          {
+            "severity": "error",
+            "code": "NFC_CONTRACT_VERSION_MISSING",
+            "message": "NFC intent for 'nfc_credential_verification' must explicitly request contract 'v1'.",
+            "location": "survey.body::intent row 3",
+            "suggestion": "Add input_nfc_form_contract_version='v1' to the intent.",
+            "source": "MethodMesh XLSForm lint",
+            "details": "Received: <missing>; method version: 1.1.0"
+          },
+          {
+            "severity": "error",
+            "code": "NFC_CONTRACT_VERSION_MISSING",
+            "message": "NFC intent for 'nfc_credential_verification' must explicitly request contract '1.1.0'.",
+            "location": "survey.body::intent row 3",
+            "suggestion": "Add input_nfc_method_version='1.1.0' to the intent.",
+            "source": "MethodMesh XLSForm lint",
+            "details": "Received: <missing>; method version: 1.1.0"
+          },
+          {
+            "severity": "error",
+            "code": "NFC_RETURN_SCHEMA_STALE",
+            "message": "NFC form mapped to 'nfc_credential_verification' is missing current return fields: valid_until_iso.",
+            "location": "survey",
+            "suggestion": "Regenerate the MethodMesh NFC mapping so expiry and diagnostic/full-JSON fields are retained.",
+            "source": "MethodMesh XLSForm lint",
+            "details": "Mapped method version: 1.1.0; credential format: ROSC2"
+          }
+        ]
+      },
+      "methodMappings": [
+        {
+          "methodId": "nfc_credential_verification",
+          "contractVersion": "v1",
+          "methodVersion": "1.1.0",
+          "credentialFormatVersion": "ROSC2",
+          "surveyRow": 3,
+          "intent": "com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_verification',return_mode='flat',input_payload_mode='FULL')",
+          "arguments": {
+            "return_mode": "'flat'",
+            "payload_mode": "'FULL'"
+          },
+          "requiredReturnFields": [
+            "methodmesh_execution_id",
+            "methodmesh_status",
+            "credential_verified",
+            "credential_verification_message",
+            "credential_id",
+            "credential_subject_id",
+            "valid_until_iso",
+            "pin_verified",
+            "issuer_signature_valid",
+            "issuer_trust_status",
+            "issuer_key_id",
+            "issuer_public_key_fingerprint_sha256",
+            "methodmesh_full_json"
+          ],
+          "compatibilityStatement": "Invokes nfc_credential_verification v1.1.0 for ROSC2 credentials and captures the authenticated expiry, PIN/signature outcomes, human-readable failure message, Sentinel-reconciliation issuer evidence, and full JSON."
+        }
+      ],
+      "nfcFormContractVersion": "v1"
     },
     {
       "id": "nfc.example_odk_showcase_nfc_tag_read",

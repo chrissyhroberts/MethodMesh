@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -79,6 +80,7 @@ fun TimeAssuranceWorkbenchPanel(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
+    var expanded by rememberSaveable { mutableStateOf(false) }
     var snapshot by remember { mutableStateOf(readSnapshot()) }
     var syncing by remember { mutableStateOf(false) }
     var syncMessage by remember { mutableStateOf<String?>(null) }
@@ -98,7 +100,7 @@ fun TimeAssuranceWorkbenchPanel(
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -111,8 +113,11 @@ fun TimeAssuranceWorkbenchPanel(
                     )
                 }
                 EvidenceStateBadge(snapshot)
+                Spacer(Modifier.width(10.dp))
+                Text(if (expanded) "−" else "+", color = MaterialTheme.colorScheme.primary)
             }
 
+            if (expanded) {
             Spacer(Modifier.height(14.dp))
             snapshot?.let { evidence ->
                 EvidenceRow("Observed wall time", evidence.observedWallTimeIso)
@@ -195,6 +200,7 @@ fun TimeAssuranceWorkbenchPanel(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Refresh view")
+            }
             }
         }
     }

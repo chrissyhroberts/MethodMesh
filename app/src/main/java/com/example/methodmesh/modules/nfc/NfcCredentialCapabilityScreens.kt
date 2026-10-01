@@ -55,6 +55,23 @@ private enum class CredentialProvisioningStage {
     Result
 }
 
+private fun suppliedNfcFormContractVersion(settings: Map<String, String>): String =
+    settings["nfc_form_contract_version"]
+        ?: settings["input_nfc_form_contract_version"]
+        ?: NfcCredentialFormContract.CURRENT_VERSION
+
+private fun nfcContractError(methodId: String, settings: Map<String, String>): String? {
+    val requested = suppliedNfcFormContractVersion(settings)
+    val mapping = NfcCredentialFormContract.forMethod(methodId, requested)
+        ?: return "Unsupported NFC form contract '$requested' for $methodId. Supported versions: ${NfcCredentialFormContract.supportedVersions().joinToString(", ")}."
+    val requestedMethodVersion = settings["nfc_method_version"]
+        ?: settings["input_nfc_method_version"]
+        ?: mapping.methodVersion
+    return if (requestedMethodVersion != mapping.methodVersion) {
+        "NFC form requests $methodId v$requestedMethodVersion, but contract $requested maps to v${mapping.methodVersion}."
+    } else null
+}
+
 object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100NfcCredentialProvisioningMethod.ID
     override val title = "NFC credential provisioning"
@@ -131,6 +148,10 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun startFirstScan() {
+            nfcContractError(capabilityId, supplied)?.let {
+                status = it
+                return
+            }
             if (invalidRequestedOverwritePolicy) {
                 status =
                     "Unknown overwrite_policy '$requestedOverwritePolicy'. Use empty_only or replace."
@@ -315,7 +336,7 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                     OutlinedTextField(
                         value = subjectId,
                         onValueChange = { subjectId = it },
-                        label = { Text("Credential subject ID") },
+                        label = { Text("Staff member name") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -436,12 +457,12 @@ object NfcCredentialProvisioningCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "Provision a new credential",
                         description = "Safe default for an empty card. The PIN is entered only inside MethodMesh and is never returned to ODK.",
-                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',input_credential_subject_id='operator_001',input_pin_length='6',input_overwrite_policy='empty_only')"
+                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',input_nfc_form_contract_version='v1',input_nfc_method_version='1.0.1',input_credential_subject_id='operator_001',input_pin_length='6',input_overwrite_policy='empty_only')"
                     ),
                     IntentExample(
                         label = "Replace an existing credential",
                         description = "Explicitly replace existing writable NDEF content and retain the previous message hash in the result.",
-                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',input_credential_subject_id='operator_001',input_pin_length='6',input_overwrite_policy='replace')"
+                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',input_nfc_form_contract_version='v1',input_nfc_method_version='1.0.1',input_credential_subject_id='operator_001',input_pin_length='6',input_overwrite_policy='replace')"
                     )
                 )
             )
@@ -485,6 +506,10 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
 
         fun startScan() {
+            nfcContractError(capabilityId, supplied)?.let {
+                status = it
+                return
+            }
             tagSignal = null
             capturedTagValues = emptyMap()
             envelope = ""
@@ -630,7 +655,7 @@ object NfcCredentialVerificationCapabilityScreen : CapabilityScreenSpec {
                     IntentExample(
                         label = "Verify a credential",
                         description = "Scan the card, then enter its PIN inside MethodMesh.",
-                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',return_mode='flat')"
+                        intentUri = "com.example.methodmesh.EXECUTE_METHOD(method_id='$capabilityId',input_nfc_form_contract_version='v1',input_nfc_method_version='1.1.0',input_payload_mode='FULL',return_mode='flat')"
                     )
                 )
             )

@@ -68,13 +68,13 @@ content; it does not claim forensic erasure of physical chip memory.
 Provisioning:
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_provisioning',input_credential_subject_id='operator_001',input_pin_length='6',input_overwrite_policy='empty_only',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_provisioning',input_nfc_form_contract_version='v1',input_nfc_method_version='1.0.1',input_credential_subject_id='operator_001',input_pin_length='6',input_valid_until_date='2026-12-31',input_overwrite_policy='empty_only',input_payload_mode='FULL',return_mode='flat')
 ```
 
 Verification:
 
 ```text
-com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_verification',return_mode='flat')
+com.example.methodmesh.EXECUTE_METHOD(method_id='nfc_credential_verification',input_nfc_form_contract_version='v1',input_nfc_method_version='1.1.0',input_payload_mode='FULL',return_mode='flat')
 ```
 
 Generic read and write:
@@ -221,7 +221,7 @@ Provisioning inputs:
 
 | Input | Required | Meaning |
 |---|---:|---|
-| `credential_subject_id` | yes | Stable pseudonymous subject/registry identifier encrypted into the credential. |
+| `credential_subject_id` | yes | Staff member name stored as the credential subject. This identifies the credential holder, not a study participant. |
 | `valid_until_date` | yes | Inclusive ISO calendar date (`YYYY-MM-DD`); MethodMesh stores the following UTC midnight as the exclusive expiry. |
 | `credential_id` | no | Credential identifier; MethodMesh generates one when omitted. |
 | `pin_length` | no | `4` or `6`; default `6`. |

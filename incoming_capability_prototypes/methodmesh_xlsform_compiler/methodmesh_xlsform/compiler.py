@@ -37,6 +37,8 @@ MANIFEST_SCHEMA = "methodmesh.xlsform_commitment_manifest.v2"
 BUNDLE_SCHEMA = "methodmesh.xlsform_release_bundle.v1"
 RECIPE_SCHEMA = "methodmesh.commitment_recipe.v1"
 GENERATED_MARKER = "methodmesh-xlsform-compiler:v1"
+ATTESTATION_METHOD_VERSION = "1.2.0"
+ATTESTATION_SCHEMA_VERSION = "4"
 
 MM_COMMIT_VALUES = {"", "auto", "value", "sha256", "exclude"}
 
@@ -829,6 +831,8 @@ def compile_xlsform(
         "input_event_type='odk_form_commitment',"
         "input_event_payload_hash=${mm_event_payload_hash},"
         "input_commitment_recipe=${mm_commitment_recipe},"
+        f"input_attestation_method_version='{ATTESTATION_METHOD_VERSION}',"
+        f"input_attestation_schema_version='{ATTESTATION_SCHEMA_VERSION}',"
         "input_verification_method='NfcCredential',"
         "input_verification_execution_id=${mm_auth_methodmesh_execution_id},"
         "input_trusted_timestamp=${mm_timestamp_policy},"

@@ -224,7 +224,7 @@ fun CapabilityScreenScaffold(
     }
     val showResultScreen = capturedResult != null && !automaticReturn && userResultPreview.isNotEmpty()
     val mediaResultUris = remember(capturedResult?.request?.id?.value, userResultPreview, resultDetailPreview) {
-        ResultShare.shareableMediaUris(userResultPreview + resultDetailPreview)
+        shareableResultUris(userResultPreview + resultDetailPreview)
     }
     val fullJsonText = remember(capturedResult?.request?.id?.value) {
         capturedResult?.let {
@@ -891,6 +891,16 @@ private fun shareResultBundle(
         jsonText = jsonText,
         fileLabel = label
     )
+}
+
+/** A compiler delivery bundle is the handoff artifact; do not fan it back out
+ * into its constituent XLSX/proof files when the operator presses Share. */
+private fun shareableResultUris(fields: Map<String, Any?>): List<Uri> {
+    val delivery = fields.entries.firstOrNull { (key, value) ->
+        key.equals("delivery_zip_uri", ignoreCase = true) &&
+            value?.toString()?.trim()?.let { ResultShare.isShareableMediaField(key, it) } == true
+    }?.value?.toString()?.trim()
+    return if (!delivery.isNullOrBlank()) listOf(Uri.parse(delivery)) else ResultShare.shareableMediaUris(fields)
 }
 
 private fun shareMediaLabel(uris: List<Uri>): String {

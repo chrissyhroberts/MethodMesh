@@ -59,6 +59,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
@@ -129,6 +130,7 @@ import com.example.methodmesh.ui.components.VersionAndMaturityBadges
 import com.example.methodmesh.ui.timeassurance.HomeTimeRecencyChip
 import com.example.methodmesh.ui.timeassurance.TimeAssuranceWorkbenchPanel
 import com.example.methodmesh.ui.sensors.SensorDashboard
+import com.example.methodmesh.modules.espmesh.EspMeshTransportProvider
 import com.example.methodmesh.ui.odk.OdkTemplateCatalog
 import com.example.methodmesh.ui.odk.OdkTemplateDescriptor
 import com.example.methodmesh.ui.odk.OdkTemplateLibrary
@@ -3486,6 +3488,9 @@ private fun RuntimeStateCard(expandedByDefault: Boolean = false) {
 
 @Composable
 private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
+    val appContext = LocalContext.current.applicationContext
+    val meshProvider = remember { EspMeshTransportProvider.get(appContext) }
+    val meshSnapshot by meshProvider.snapshot.collectAsState()
     var displayExpanded by rememberSaveable { mutableStateOf(false) }
     var odkCentralExpanded by rememberSaveable { mutableStateOf(false) }
     var koboExpanded by rememberSaveable { mutableStateOf(false) }
@@ -3505,6 +3510,27 @@ private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("ESP mesh communications", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (meshSnapshot.enabled) "Mesh transport is enabled and may keep a foreground notification visible."
+                    else "Mesh transport is disabled; no mesh service or foreground notification will run.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = meshSnapshot.enabled,
+                onCheckedChange = { meshProvider.setPersistentEnabled(it) }
+            )
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
         PageSection(
             title = "Display",

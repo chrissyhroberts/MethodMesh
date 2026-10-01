@@ -87,8 +87,10 @@ object AttestationEvidenceFactory {
      * credential/PIN success.
      *
      * To prevent replay between ODK forms, the prior verification and the
-     * attestation call must carry the same caller, form_id and visit_id. The
-     * reference ODK workflow uses visit_id as the unique ODK instance ID.
+     * attestation call must carry the same caller, form_id, form_version and
+     * form_instance_id. The study identifier is deliberately not part of this
+     * linkage: NFC authenticates the staff operator, while attestation signs
+     * the frozen data state of the current form instance.
      */
     fun nfcCredentialExecution(context: Map<String, String>): ResolvedAttestationVerification {
         val executionId = context["verification_execution_id"]?.trim().orEmpty()
@@ -139,12 +141,6 @@ object AttestationEvidenceFactory {
         val currentCaller = context["caller"]?.trim().orEmpty()
         require(sourceCaller.isNotBlank() && currentCaller.isNotBlank() && sourceCaller == currentCaller) {
             "The referenced NFC credential verification belongs to a different caller context"
-        }
-
-        val sourceStudyId = prior.request.context["study_id"]?.trim().orEmpty()
-        val currentStudyId = context["study_id"]?.trim().orEmpty()
-        require(sourceStudyId.isNotBlank() && currentStudyId.isNotBlank() && sourceStudyId == currentStudyId) {
-            "NfcCredential verification reuse requires the same non-blank study_id on both MethodMesh calls"
         }
 
         val sourceFormId = prior.request.context["form_id"]?.trim().orEmpty()
