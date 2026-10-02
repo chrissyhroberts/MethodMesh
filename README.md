@@ -28,24 +28,8 @@ The latest alpha release includes a debug-signed APK for sideloading from the [G
 
 ![](docs/assets/MethodMesh_Overview.png)
 
-```mermaid
-flowchart LR
-    U[Person or ODK form] --> C[Capability]
-    C --> P[Preset<br/>configured capability]
-    P --> R[Protocol<br/>ordered preset steps]
-    R --> S[Schedule<br/>calendar, sequence, or interval]
-    S --> H[Headless runtime<br/>notifications, logs, outputs]
+<img width="1226" height="460" alt="image" src="https://github.com/user-attachments/assets/bb866458-383f-45c1-85a8-48bbb5433ed3" />
 
-    C <--> A[Artifact Service]
-    P --> A
-    R --> A
-    H --> A
-    A --> F[Files / Artifact Store<br/>persistent files and logs]
-    A --> T[Transient handoff<br/>ODK attachment, share, export]
-
-    O[ODK XLSForms] --> C
-    M[Device and ESP mesh transport] --> C
-```
 
 The important distinction is between an **artifact** and a saved file. A capability can receive a document, produce a signed PDF, and hand it to ODK or another capability without silently creating a permanent copy. A preset may opt into a persistent log when a workflow needs history.
 
