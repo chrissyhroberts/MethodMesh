@@ -62,11 +62,11 @@
     },
     "statement": "NFC mappings are MethodMesh method/credential-format contracts only; study and provisioner legitimacy remains with Sentinel."
   },
-  "templateCount": 415,
-  "moduleCount": 80,
+  "templateCount": 416,
+  "moduleCount": 81,
   "validationSummary": {
     "formsNeedingRevision": 144,
-    "cleanForms": 271,
+    "cleanForms": 272,
     "severityCounts": {
       "error": 4,
       "warning": 34,
@@ -3985,6 +3985,26 @@
       "formVersion": "2026090701",
       "assetPath": "methodmesh/odk_templates/expenses/example_odk_showcase_expenses_manage.xlsx",
       "sha256": "4da1f3c61a8017a0771a8bc51cd0009527963886dc209727eb8bcd6bef0255fb",
+      "capabilityIds": [],
+      "tags": [],
+      "validation": {
+        "authoritativeAvailable": false,
+        "engine": "disabled",
+        "issues": []
+      }
+    },
+    {
+      "id": "externaldisplay.example_odk_showcase_external_display",
+      "moduleId": "externaldisplay",
+      "moduleName": "Externaldisplay",
+      "displayName": "MethodMesh External display — external_display.present",
+      "description": "",
+      "sourceFileName": "example_odk_showcase_external_display.xlsx",
+      "sourceRelativePath": "modules/externaldisplay/docs/example_odk_showcase_external_display.xlsx",
+      "centralFormId": "externaldisplay_external_display",
+      "formVersion": "2026100101",
+      "assetPath": "methodmesh/odk_templates/externaldisplay/example_odk_showcase_external_display.xlsx",
+      "sha256": "699bb2ade56070e724da1154ca6baffe9c27dfc08d47633660477d108fa46f0b",
       "capabilityIds": [],
       "tags": [],
       "validation": {

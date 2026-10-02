@@ -363,12 +363,16 @@ class EspMeshTransportProvider private constructor(private val context: Context)
         if (enabled) {
             ensureServiceRunning(context); ensureMaintenanceLoop(); if (gatewayAddress().isNotBlank() && !status.value.connected) connectConfigured()
         } else {
+            EspMeshWalkieTalkieController.get(context).stopTransmit()
+            EspMeshWalkieTalkieController.get(context).setListening(false)
             inbound = null
             maintenanceJob?.cancel(); maintenanceJob = null
             scanCallback?.let { runCatching { bluetoothAdapter()?.bluetoothLeScanner?.stopScan(it) } }
             scanCallback = null
             closeGatt(); mutableStatus.value = TransportStatus(false, false, "ESP mesh transport is paused")
             context.stopService(android.content.Intent(context, EspMeshGatewayService::class.java))
+            android.app.NotificationManager::class.java.let { context.getSystemService(it) }
+                ?.cancel(EspMeshGatewayService.NOTIFICATION_ID)
         }
         refreshSnapshot()
     }

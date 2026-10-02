@@ -64,6 +64,17 @@
             android:theme="@style/Theme.MethodMesh" />
 
         <activity
+            android:name=".modules.externaldisplay.ExternalDisplayActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:label="MethodMesh presentation"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.MethodMesh" />
+        <receiver
+            android:name=".modules.externaldisplay.ExternalDisplayControlReceiver"
+            android:exported="false" />
+
+        <activity
             android:name=".transport.android.IntentRouterActivity"
             android:exported="true"
             android:excludeFromRecents="true"

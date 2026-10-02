@@ -3519,8 +3519,8 @@ private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
             Column(Modifier.weight(1f)) {
                 Text("ESP mesh communications", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 Text(
-                    if (meshSnapshot.enabled) "Mesh transport is enabled and may keep a foreground notification visible."
-                    else "Mesh transport is disabled; no mesh service or foreground notification will run.",
+                    if (meshSnapshot.enabled) "Mesh transport and Talk/Listen controls are enabled; a foreground notification may be visible while the service runs."
+                    else "Mesh transport is disabled; no mesh service, notification, or Talk/Listen control will run.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

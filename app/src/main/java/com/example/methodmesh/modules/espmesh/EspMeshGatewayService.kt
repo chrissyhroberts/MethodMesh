@@ -30,6 +30,10 @@ class EspMeshGatewayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        if (!EspMeshTransportProvider.persistentEnabled(this)) {
+            stopSelf()
+            return
+        }
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(NotificationChannel(CHANNEL, "MethodMesh mesh transport", NotificationManager.IMPORTANCE_LOW))
         // Start only as connectedDevice. Android 15+ forbids launching a
@@ -72,6 +76,7 @@ class EspMeshGatewayService : Service() {
     override fun onDestroy() {
         EspMeshTransportProvider.get(this).setServiceRunning(false)
         notificationJob?.cancel()
+        if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE)
         // Do not stop the shared transport runtime here: process/app lifetime owns it.
         super.onDestroy()
     }
@@ -110,6 +115,6 @@ class EspMeshGatewayService : Service() {
 
     companion object {
         private const val CHANNEL = "espmesh_gateway"
-        private const val NOTIFICATION_ID = 4201
+        const val NOTIFICATION_ID = 4201
     }
 }
