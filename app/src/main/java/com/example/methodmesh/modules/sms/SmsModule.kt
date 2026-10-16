@@ -7,12 +7,12 @@ import com.example.methodmesh.settings.MethodSetting
 object SmsModule : MethodMeshModule {
     override val moduleId = "sms"
     override val displayName = "Send SMS"
-    override val summary = "Send a short templated SMS message to a phone number."
+    override val summary = "Send an identical short SMS message individually to one or more phone numbers."
 
     override fun as100Methods() = listOf(As100SendSmsMethod)
 
     override fun rilBindings() = listOf(
-        RilBinding("send SMS", As100SendSmsMethod.ID, "Send a templated SMS message to a phone number"),
+        RilBinding("send SMS", As100SendSmsMethod.ID, "Send an identical SMS individually to one or more phone numbers"),
         RilBinding("send text message", As100SendSmsMethod.ID, "Send any short value or custom message by SMS")
     )
 
