@@ -36,7 +36,7 @@ The non-prefixed forms `sms_phone` and `sms_message` are also accepted by the di
 
 ## ODK example
 
-Open `example_odk_sms.send.xlsx` and install it in ODK Collect. The workbook captures phone number input and an arbitrary field value, calculates the final SMS body inside XLSForm, then calls `sms.send` with the phone-number input and full message. A single number keeps the original behaviour; multiple comma-, semicolon-, or newline-separated numbers result in separate identical SMS messages.
+Open `example_odk_sms_send.xlsx` or `example_odk_showcase_sms_send.xlsx` and install it in ODK Collect. The bundled forms capture phone-number input and an arbitrary field value, calculate the final SMS body inside XLSForm, call `sms.send` with the phone-number input and full message, and map the recipient list, count, and per-recipient results. A single number keeps the original behaviour; multiple comma-, semicolon-, or newline-separated numbers result in separate identical SMS messages.
 
 ## Notes
 
