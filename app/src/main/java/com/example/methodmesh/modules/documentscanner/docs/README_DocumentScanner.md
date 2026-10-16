@@ -18,6 +18,12 @@ Scan pages and return OCR/searchable outputs:
 com.example.methodmesh.EXECUTE_METHOD(method_id='document.scan',input_page_limit='10',input_scanner_mode='full',input_allow_gallery_import='true',input_run_ocr='true',input_return_searchable_pdf='true',input_return_text_file='true',input_payload_mode='FULL',return_mode='flat')
 ```
 
+To request timestamp proof from the showcase or another ODK caller, add
+`input_timestamp_policy='preferred'` or `input_timestamp_policy='required'`.
+Only the PDF SHA-256 digest is sent to the configured TSA; the PDF remains on
+the device. `preferred` keeps the scan when TSA acquisition is unavailable,
+while `required` fails the scan without a proof.
+
 ## Intent examples
 
 Quick PDF-only scan:
@@ -34,6 +40,7 @@ com.example.methodmesh.EXECUTE_METHOD(method_id='document.scan',input_page_limit
 - `input_run_ocr`: read printed text from each scanned page on device.
 - `input_return_searchable_pdf`: create a PDF attachment containing the scanned pages and OCR text.
 - `input_return_text_file`: also attach OCR text as a plain `.txt` file.
+- `input_timestamp_policy`: `disabled`, `preferred`, or `required` for an RFC 3161 proof of the returned PDF.
 
 ## Outputs
 
@@ -56,13 +63,20 @@ Audit/full JSON return additionally includes:
 - `document_scan_page_limit`
 - `document_scan_time_iso`
 - `document_scan_error`
+- `document_scan_timestamp_status`
+- `document_scan_timestamp_proof_uri`
+- `document_scan_timestamp_proof_filename`
+- `document_scan_timestamp_authority`
+- `document_scan_timestamp_time_iso`
+- `document_scan_timestamp_sha256`
+- `document_scan_timestamp_error`
 - `methodmesh_full_json` when `input_payload_mode='FULL'`
 
 ## ODK example
 
 - `example_odk_document.scan.xlsx`
 
-The production example returns the searchable PDF URI and OCR text as the main useful values, plus `methodmesh_full_json` for background metadata/audit storage. Android also grants returned document content URIs to the calling app.
+The production example requests `preferred` timestamp proof and returns the searchable PDF URI, OCR text, and timestamp proof fields, plus `methodmesh_full_json` for background metadata/audit storage. Android also grants returned document content URIs to the calling app.
 
 ## Notes
 

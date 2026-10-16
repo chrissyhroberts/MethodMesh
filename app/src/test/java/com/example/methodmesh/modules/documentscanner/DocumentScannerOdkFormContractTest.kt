@@ -25,9 +25,12 @@ class DocumentScannerOdkFormContractTest {
         }
 
         assertTrue("Workbook must invoke document.scan", "method_id='document.scan'" in xml)
+        assertTrue("Workbook must map the timestamp policy input", "input_timestamp_policy='preferred'" in xml)
         assertTrue("Workbook must request full payload metadata", "input_payload_mode='FULL'" in xml)
         assertTrue("Workbook must return the searchable PDF URI", ">document_scan_searchable_pdf_uri<" in xml)
         assertTrue("Workbook must return OCR text", ">document_scan_ocr_text<" in xml)
+        assertTrue("Workbook must return timestamp proof URI", ">document_scan_timestamp_proof_uri<" in xml)
+        assertTrue("Workbook must return timestamp status", ">document_scan_timestamp_status<" in xml)
         assertTrue("Workbook must return the background audit JSON", ">methodmesh_full_json<" in xml)
         assertTrue("Workbook must save the canonical form title", ">Document scanner<" in xml)
     }

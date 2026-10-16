@@ -34,6 +34,13 @@ object DocumentScannerFields {
     const val GALLERY_IMPORT_ALLOWED = "document_scan_gallery_import_allowed"
     const val PAGE_LIMIT = "document_scan_page_limit"
     const val SCANNED_TIME_ISO = "document_scan_time_iso"
+    const val TIMESTAMP_STATUS = "document_scan_timestamp_status"
+    const val TIMESTAMP_PROOF_URI = "document_scan_timestamp_proof_uri"
+    const val TIMESTAMP_PROOF_FILENAME = "document_scan_timestamp_proof_filename"
+    const val TIMESTAMP_AUTHORITY = "document_scan_timestamp_authority"
+    const val TIMESTAMP_TIME_ISO = "document_scan_timestamp_time_iso"
+    const val TIMESTAMP_SHA256 = "document_scan_timestamp_sha256"
+    const val TIMESTAMP_ERROR = "document_scan_timestamp_error"
     const val ERROR = "document_scan_error"
 
     val outputs = listOf(
@@ -49,6 +56,13 @@ object DocumentScannerFields {
         GALLERY_IMPORT_ALLOWED,
         PAGE_LIMIT,
         SCANNED_TIME_ISO,
+        TIMESTAMP_STATUS,
+        TIMESTAMP_PROOF_URI,
+        TIMESTAMP_PROOF_FILENAME,
+        TIMESTAMP_AUTHORITY,
+        TIMESTAMP_TIME_ISO,
+        TIMESTAMP_SHA256,
+        TIMESTAMP_ERROR,
         ERROR
     )
 }

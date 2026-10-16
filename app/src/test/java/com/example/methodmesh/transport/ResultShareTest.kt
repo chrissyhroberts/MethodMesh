@@ -16,14 +16,26 @@ class ResultShareTest {
 
         assertEquals(
             listOf(
-                "content://com.example.methodmesh.fileprovider/shared_cache/page-1.jpg",
                 "content://com.example.methodmesh.fileprovider/shared_cache/searchable.pdf"
             ),
             attachments.map { it.uri }
         )
         assertEquals(
-            listOf("document_scan_page_image_1.jpg", "document_scan_searchable_pdf.pdf"),
+            listOf("document_scan_searchable_pdf.pdf"),
             attachments.map { it.name }
+        )
+    }
+
+    @Test
+    fun `document scan falls back to scanner pdf when searchable pdf is absent`() {
+        val fields = mapOf(
+            "document_scan_pdf_uri" to "content://com.example.methodmesh/file/scanner.pdf",
+            "document_scan_searchable_pdf_uri" to ""
+        )
+
+        assertEquals(
+            listOf("content://com.example.methodmesh/file/scanner.pdf"),
+            ResultShare.shareableMediaAttachmentValues(fields).map { it.uri }
         )
     }
 }

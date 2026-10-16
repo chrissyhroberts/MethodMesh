@@ -211,7 +211,17 @@ object ResultShare {
 
     internal fun shareableMediaAttachmentValues(fields: Map<String, Any?>): List<MediaAttachmentValue> {
         val attachments = mutableListOf<MediaAttachmentValue>()
+        val hasSearchableDocumentPdf = fields["document_scan_searchable_pdf_uri"]
+            ?.toString()
+            ?.trim()
+            ?.isNotBlank() == true
         fields.forEach { (key, value) ->
+            // Page images are audit-side inputs to the generated document, not
+            // an additional delivery version. Likewise, suppress the original
+            // scanner PDF whenever the searchable PDF is present.
+            if (key == "document_scan_page_image_uris_json" ||
+                (key == "document_scan_pdf_uri" && hasSearchableDocumentPdf)
+            ) return@forEach
             val raw = value?.toString()?.trim().orEmpty()
             if (raw.isBlank()) return@forEach
             if (isShareableMediaField(key, raw)) {
