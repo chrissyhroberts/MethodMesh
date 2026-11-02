@@ -38,6 +38,58 @@ These range from calculations to camera, map and network interactions. Each capa
 
 See the [module directories](app/src/main/java/com/example/methodmesh/modules/) for capability documentation and module-owned XLSForms.
 
+### Sensors, metrology and device-to-device signals
+
+Some of the more specialist workflows combine physical instruments, the phone camera and local communication channels:
+
+| Example | Capabilities | Equipment, channel and useful results |
+| --- | --- | --- |
+| Log room temperature and humidity | `sensor.read` with the `aht20` profile | A registered ESP32 BLE node with an AHT20 sensor returns `temperature_c` and `relative_humidity_pct`. Read once, collect a trace, or average a sampling window. |
+| Observe room presence/occupancy | `sensor.read` with the `ld2410c` profile | An ESP32 BLE node with an LD2410C mmWave radar returns `presence`, `target_state`, moving/stationary target distance and energy. This is presence evidence, not a count or identification of people. |
+| Measure distance, yaw, pitch and roll | `apriltag.range_pose` | The phone camera observes a printed tag of known detection-edge size. Returns `apriltag_distance_m`, camera-frame XYZ, `apriltag_yaw_deg`, `apriltag_pitch_deg` and `apriltag_roll_deg`, with camera-model and pose-quality evidence. |
+| Measure apparatus alignment or relative movement | `apriltag.relative_pose`, `apriltag.track_pose` | Observe a target/moving tag with a fixed reference tag to obtain relative translation/orientation or a motion trace with displacement, path length and speed. |
+| Transfer text or a small file between phones without a network | `signal.qr.transmit`, `signal.qr.receive` | One screen displays a sequence of error-corrected QR frames; the other phone's camera reconstructs the object and checks its transmitted SHA-256. The receiver can return text or an actual file attachment. |
+| Send a message through sound | `signal.audio_fsk.transmit`, `signal.audio_fsk.receive` | Encode an explicit text payload as audible frequency-shift-keyed tones; receive through the other phone's microphone. Matching modem profiles control the local speaker-to-microphone link. |
+| Recover a transfer from a recorded optical burst | `signal.qr_burst.transmit`, `signal.qr_burst.receive` | Experimental capture-first QR transfer: record a bounded camera burst, decode the frozen frames, accumulate shards and verify the reconstructed object. |
+| Bring structured paper records back into a form workflow | `paper.form.design`, `paper.form.transcribe` | Design a paper form/schema, then register a captured page using its fiducials, extract configured fields and review uncertain values before Commit. |
+
+AprilTag metrology is **Experimental**. Metric results require the measured tag detection-edge size and a usable camera model; yaw/pitch/roll describe orientation in the documented frame, not a geographic heading. Camera-frame axes are +x right, +y down, +z forward. The returned Euclidean range differs from optical-axis depth. See [AprilTag range and pose](app/src/main/java/com/example/methodmesh/modules/apriltag/docs/README_AprilTagRangePose.md) for calibration and geometry assumptions.
+
+Signals' QR and audible FSK links are **Development** capabilities for explicit local transfers. A checksum establishes agreement with the transmitted object; sender authentication and confidentiality require separate protection. Reception depends on channel conditions and handset hardware. Signals also includes Morse, screen/torch optical modems, near-ultrasonic experiments, tabletop vibration experiments and a sensor scope. See [Signals](app/src/main/java/com/example/methodmesh/modules/signals/docs/README_Signals.md), [sensor reading](app/src/main/java/com/example/methodmesh/modules/sensorread/docs/README_SensorRead.md), [sensor provisioning](app/src/main/java/com/example/methodmesh/modules/sensorprovisioner/docs/README_SensorProvisioner.md), and [Paper Bridge](app/src/main/java/com/example/methodmesh/modules/paperbridge/docs/README_PaperFormTranscribe.md).
+
+<details>
+<summary>Example ODK calls for sensors, pose and phone-to-phone transfer</summary>
+
+Read a registered AHT20 node. Replace the device ID with one provisioned on the phone; `strict` prevents silently substituting another nearby node:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='sensor.read',input_device_id='room_01_environment',input_sensor_profile='aht20',input_sensor_read_mode='single',input_device_match_policy='strict',return_mode='fields')
+```
+
+For room-presence sampling, use the provisioned radar node's ID and `input_sensor_profile='ld2410c'`. Capture its declared `presence`, `target_state` and distance/energy fields instead of temperature/humidity.
+
+Open AprilTag range/pose for tag 0 with a measured 100 mm detection edge, then Commit the camera observation:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='apriltag.range_pose',input_target_tag_id='0',input_tag_size_mm='100',return_mode='fields')
+```
+
+Transmit a small message as QR frames on one phone:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='signal.qr.transmit',input_content_mode='text',input_payload='Room 01: sampling complete',return_mode='fields')
+```
+
+Receive on the second phone using its camera:
+
+```text
+com.example.methodmesh.EXECUTE_METHOD(method_id='signal.qr.receive',return_mode='fields')
+```
+
+These are separate runs on the sending and receiving devices. Completion of a transmit run is not proof that another device received it. The same capabilities can be opened directly in MethodMesh; ODK forms use the result-group pattern below and capture `methodmesh_full_json` with the useful return fields.
+
+</details>
+
 ## Download
 
 The latest alpha release includes a debug-signed APK for sideloading from the [GitHub Releases page](https://github.com/chrissyhroberts/MethodMesh/releases/latest). It is suitable for testing and field evaluation; review the release notes and install only on devices where you are comfortable enabling an externally downloaded APK.
@@ -172,6 +224,111 @@ The FULL envelope includes the execution/method identity and result fields, capt
 **Return representation and data scope are separate controls.** `return_mode='json'` chooses a representation; it does not by itself define audit scope. `CORE`, `AUDIT` and `FULL` are compatibility tokens for payload projection (`input_payload_mode` in a flat call). ODK still receives the shared FULL sidecar and applicable binary results; a form must declare the fields it wants to retain. Native manual sharing keeps FULL JSON optional, and native saving/export may materialise it as `metadata.json`.
 
 Check both the shared status and the capability's documented success/error fields before using a result. A successful Android return is not itself proof that a measurement or calculation succeeded. Conditional outputs may be absent or empty; do not invent a universal capability-specific success, timestamp or JSON field.
+
+### Canonical JSON provenance payload
+
+`methodmesh_full_json` is a JSON-encoded text field containing the shared **FULL execution envelope**. It keeps the result and its provenance together: what ran, which software produced it, the supplied record/actor context, when the execution began and completed, and what clock evidence was available. Capability result fields remain at the top level alongside the shared provenance objects; there is no universal nested `data` object.
+
+| Envelope field/object | Meaning |
+| --- | --- |
+| `methodmesh_envelope_schema_version` | Version of the outer envelope layout, currently the string `"3"`. This is distinct from app/capability versions and nested schema versions. |
+| `methodmesh_execution_id`, `methodmesh_method_id`, `methodmesh_status` | Identity and outcome of this execution. Domain values such as `temperature_c`, device-selection metadata, hashes and capability-owned JSON sit alongside these fields when produced. |
+| `application` | Captured Android application ID, version name and numeric version code. |
+| `module`, `capability` | Captured IDs, names, implementation versions and maturity states. These are frozen with the result; exporting after an upgrade does not relabel an old execution with the new software version. |
+| `execution_provenance` | Versioned execution identity, caller, `record_context` and distinct `actors`: subject, operator and data originator. The current nested schema version is `"2"`. |
+| `execution_timing` | Versioned request/completion boundaries: observed wall times, monotonic elapsed readings and boot IDs. `monotonic_duration_ms` is calculated only with valid same-boot continuity; otherwise it is `null` with an explanatory continuity state. |
+| `time_assurance` | Policy-neutral clock evidence: observed wall time, monotonic/boot continuity, trusted-time estimate/bounds/uncertainty where available, anchor provenance and wall-clock comparison. It can explicitly report `wall_clock_only`, `reboot_unanchored` or `indeterminate` instead of claiming trusted time. |
+| `capabilities`, `workflow_steps` | Conditional composition metadata: multiple captured software identities, and individual committed execution envelopes for a multi-step workflow. They are not required arrays on an ordinary single-capability result. |
+
+**Actor roles and evidence are separate.** The subject is what the record concerns, the operator is who performed the action, and the data originator is the declared person/device/source responsible for the data. A caller-supplied actor carries `assertion_basis: "request_context"`. An operator assertion can carry a stronger basis and `assertion_evidence` only when a successful capability result explicitly binds that evidence. Merely supplying `operator_id` or a device name does not verify identity. Unknown actors may be `null`; genuinely uncaptured legacy software provenance is marked unknown rather than inferred from today's installation.
+
+<details>
+<summary>Illustrative sensor-result provenance JSON</summary>
+
+This is an abbreviated example, not an actual measurement or a complete schema. IDs, readings, software versions and timestamps are illustrative; some result fields, record-context leaves and explanatory fields are omitted. It shows a 1,250 ms sensor execution with caller-declared actors and no trusted-time anchor:
+
+```json
+{
+  "methodmesh_envelope_schema_version": "3",
+  "methodmesh_execution_id": "743ed144-0902-4388-aaf3-58dffdc08136",
+  "methodmesh_method_id": "sensor.read",
+  "methodmesh_status": "Succeeded",
+  "temperature_c": "21.6",
+  "relative_humidity_pct": "48.2",
+  "actual_device_id": "room_01_environment",
+  "application": {
+    "application_id": "com.example.methodmesh",
+    "version_name": "2.15.1",
+    "version_code": 17
+  },
+  "module": {
+    "id": "sensorread", "name": "ESP32 sensor framework",
+    "version": "0.1.0", "maturity": "development"
+  },
+  "capability": {
+    "id": "sensor.read", "name": "Read sensor",
+    "version": "0.1.0", "maturity": "development"
+  },
+  "execution_provenance": {
+    "schema_version": "2",
+    "execution_id": "743ed144-0902-4388-aaf3-58dffdc08136",
+    "method_id": "sensor.read",
+    "status": "Succeeded",
+    "caller": "odk",
+    "record_context": {
+      "form_id": "room_environment",
+      "form_instance_id": "uuid:0e223326-c979-4e47-91e3-70837126cfb2"
+    },
+    "actors": {
+      "subject": {
+        "id": "room/01", "type": "room", "assertion_basis": "request_context"
+      },
+      "operator": {
+        "id": "staff/OP-07", "type": "operator", "assertion_basis": "request_context"
+      },
+      "data_originator": null
+    }
+  },
+  "execution_timing": {
+    "schema_version": "1",
+    "started": {
+      "observed_wall_time_iso": "2026-11-02T10:15:00.000Z",
+      "elapsed_realtime_ms": 100000,
+      "boot_session_id": "android_boot_count:42"
+    },
+    "completed": {
+      "observed_wall_time_iso": "2026-11-02T10:15:01.250Z",
+      "elapsed_realtime_ms": 101250,
+      "boot_session_id": "android_boot_count:42",
+      "evidence_state": "wall_clock_only"
+    },
+    "continuity": "same_boot",
+    "monotonic_duration_ms": 1250
+  },
+  "time_assurance": {
+    "schema_version": "1",
+    "observed_wall_time_iso": "2026-11-02T10:15:01.250Z",
+    "evidence_state": "wall_clock_only",
+    "monotonic": {
+      "elapsed_realtime_ms": 101250,
+      "boot_session_id": "android_boot_count:42",
+      "continuity": "no_anchor"
+    },
+    "trusted_time": null,
+    "anchor": null,
+    "wall_clock": {
+      "relation": "not_comparable",
+      "offset_from_trusted_interval_ms": null
+    }
+  }
+}
+```
+
+`execution_timing.continuity: "same_boot"` permits measuring the run's duration even though `time_assurance.monotonic.continuity: "no_anchor"` says there is no trusted-time anchor to advance. Knowing elapsed duration does not establish a trusted civil timestamp.
+
+</details>
+
+Consumers should parse the JSON and use the outer and nested schema versions independently, tolerate additional fields, preserve `null`/unknown evidence, and retain the original payload with the record. The envelope does not automatically contain every raw signal or every input, embed attachment bytes, or make itself a signed/immutable record. Hashes, signature/timestamp proofs and referenced files must be retained and verified as their capability contracts require. Downstream access control, retention, reconciliation and archive integrity remain responsibilities of the wider workflow. See the Master Book's [structured execution provenance](docs/METHODMESH_MASTER_BOOK.md#structured-execution-provenance) and [universal temporal provenance](docs/METHODMESH_MASTER_BOOK.md#universal-temporal-provenance) sections.
 
 ### Files, completion and composition
 
