@@ -123,7 +123,34 @@ Schedules are JSON-backed bundles of one or more cron tasks. A task can invoke a
 
 ## ODK and external invocation
 
-ODK Collect launches MethodMesh through an Android intent, supplies capability inputs, and receives named results and any file attachments. MethodMesh uses **RIL (Research Intent Language)** to describe the request internally. The convenient `method_id`/`input_*` call and an explicit RIL request use the same execution path.
+ODK Collect launches MethodMesh through an Android intent, supplies capability inputs, and receives named results and any file attachments. Its request can use the convenient `method_id`/`input_*` call or explicit RIL text; both are handled by the shared Android/ODK request adapter.
+
+### What is RIL, and do I need it?
+
+**RIL means Research Intent Language.** It is MethodMesh's declarative language for describing requested work: the operation, its context and execution conditions, and the information to return. It separates that request from the mechanism used to carry it, such as an Android intent. The capability's own contract still defines the actual input types, units, defaults, calculations and outputs.
+
+**RIL is still used in the current app.** The Android/ODK adapter accepts an explicit `ril` request, or converts a normal `method_id` call into the RIL action/context/return structure and combines it with the supplied inputs. Both routes resolve the same registered capabilities. Native capability implementations also have direct method APIs; using the app does not require composing RIL text.
+
+The language organises a request into five sections:
+
+| Section | Question it answers | Meaning in this integration |
+| --- | --- | --- |
+| **WHAT** | What should happen? | A capability ID, such as `sensor.read`, or a phrase explicitly registered by its module. |
+| **WHEN** | When should it happen? | Temporal intent in the language design. The current text parser can read policy values, but a `WHEN` clause alone does not create a durable scheduled job. Use MethodMesh schedules for that. |
+| **WHERE** | What location or context does it concern? | Caller/subject and record context supplied for the operation. Context values do not automatically enforce geographic constraints or authenticate identities. |
+| **HOW** | Which inputs and execution rules apply? | Capability input values and supported modifiers. |
+| **RESULT** | What information should come back? | Requested return representation and, where used, graph selectors and aliases. |
+
+**For ordinary XLSForms, start with the `method_id`/`input_*` call below.** You do not need to learn the text syntax to call a capability. Explicit RIL is useful when inspecting a request or expressing its action, context, modifiers and return selectors together in readable text. It is a supported request binding, not an AI service or a free-form natural-language command interface.
+
+The [RIL specification in the Master Book](docs/METHODMESH_MASTER_BOOK.md#appendix-e-research-intent-language---ril-absorbed-source-v003) describes the wider language model. The Android text binding implements a limited subset; the specification's broader temporal, spatial and orchestration concepts are not a claim that every feature is implemented by the parser.
+
+RIL describes **requested work**. The returned **`methodmesh_full_json` describes the execution and its provenance**. They serve different stages of the same roundtrip:
+
+```text
+ODK call or explicit RIL -> shared request adapter -> capability execution
+                        <- named results, attachments and provenance JSON
+```
 
 ### Generic capability call
 
