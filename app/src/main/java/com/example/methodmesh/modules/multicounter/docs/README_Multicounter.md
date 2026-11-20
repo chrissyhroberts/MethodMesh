@@ -47,6 +47,16 @@ Leader Alice (12)
 
 JSON/event history is kept out of the primary native result surface.
 
+Active counts and timer state survive ordinary activity recreation. Finishing is
+guarded against duplicate callbacks and freezes one execution and audit snapshot;
+recreation retains that exact object, identity and timing rather than issuing a
+replacement envelope. Only a small finished marker is saved after finishing, not
+another copy of the audit/event log. Active sessions still use saved UI state.
+
+If the finished execution is lost after restart, the operator must explicitly
+start a new session; old values are not silently returned as newly issued evidence.
+This is not durable session storage or a cross-reboot timer guarantee.
+
 ## Settings and inputs
 
 All settings are declared through `MethodSetting`.
