@@ -121,7 +121,7 @@ object As100ApiGetMethod : As100Method {
         val observation = Observation(
             phenomenon = "api.get",
             subject = ArchitectureRef(entity.id, entity.objectType, ID),
-            values = values + (ApiGetFields.RETRIEVED_TIME_ISO to values[ApiGetFields.RETRIEVED_TIME_ISO].orEmpty().ifBlank { Instant.now().toString() }),
+            values = values + (ApiGetFields.RETRIEVED_TIME_ISO to values[ApiGetFields.RETRIEVED_TIME_ISO].orEmpty()),
             temporalContext = request.temporalContext,
             provenance = provenance
         )
@@ -190,7 +190,7 @@ object As100ApiGetMethod : As100Method {
             ApiGetFields.SOURCE_URL to result.meta.sourceUrlRedacted,
             ApiGetFields.RESPONSE_JSON to result.data.toJsonString(),
             ApiGetFields.ERROR to result.error?.message.orEmpty(),
-            ApiGetFields.RETRIEVED_TIME_ISO to (result.meta.retrievedAt ?: result.meta.requestedAt).toString(),
+            ApiGetFields.RETRIEVED_TIME_ISO to result.meta.retrievedAt?.toString().orEmpty(),
             ApiGetFields.DATA_AGE_HOURS to dataAgeHours(result)
         ) + exchange
     }
@@ -536,8 +536,8 @@ object As100ApiGetMethod : As100Method {
             ApiGetFields.SOURCE_URL to "",
             ApiGetFields.RESPONSE_JSON to "{}",
             ApiGetFields.ERROR to error,
-            ApiGetFields.RETRIEVED_TIME_ISO to Instant.now().toString(),
-            ApiGetFields.DATA_AGE_HOURS to "0"
+            ApiGetFields.RETRIEVED_TIME_ISO to "",
+            ApiGetFields.DATA_AGE_HOURS to ""
         )
 
     private fun Map<String, String>.value(key: String): String =
@@ -565,7 +565,7 @@ object As100ApiGetMethod : As100Method {
     }
 
     private fun dataAgeHours(result: ApiExecutionResult): String {
-        val retrieved = result.meta.retrievedAt ?: result.meta.requestedAt
+        val retrieved = result.meta.retrievedAt ?: return ""
         val ageSeconds = java.time.Duration.between(retrieved, Instant.now()).seconds.coerceAtLeast(0)
         return "%.2f".format(java.util.Locale.US, ageSeconds / 3600.0)
     }

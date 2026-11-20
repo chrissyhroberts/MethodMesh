@@ -121,7 +121,10 @@ class ApiGetExecutor(
             }
 
         val effectivePolicy = request.networkPolicy ?: definition.cache.mode
-        val cached = cache.find(prepared.cacheKey)
+        // A no-store request/definition must not reuse old data or leave new
+        // response bytes behind. A network preference cannot weaken this rule.
+        val cacheAllowed = effectivePolicy != CacheMode.NO_STORE && definition.cache.mode != CacheMode.NO_STORE
+        val cached = if (cacheAllowed) cache.find(prepared.cacheKey) else null
         val stale = cached?.record?.isStale(requestedAt) ?: true
 
         if (cached != null && effectivePolicy == CacheMode.OFFLINE_ONLY) {
@@ -227,7 +230,7 @@ class ApiGetExecutor(
             raw = raw
         )
 
-        if (definition.cache.mode != CacheMode.NO_STORE) {
+        if (cacheAllowed) {
             val freshUntil = when (definition.cache.mode) {
                 CacheMode.TTL,
                 CacheMode.FRESH_PREFERRED,

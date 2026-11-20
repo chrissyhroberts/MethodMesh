@@ -195,6 +195,73 @@ class ApiGetExecutorTest {
         assertFalse(prepared.redactedUrl.contains("SECRET"))
     }
 
+    @Test fun noStoreOverrideBypassesAnExistingFreshCache() {
+        val definition = weatherDefinition()
+        val http = FakeHttpClient()
+        val cache = InMemoryApiResultCache()
+        val executor = ApiGetExecutor(InMemoryApiDefinitionRegistry(listOf(definition)), http, cache, clock = clock)
+        val request = ApiGetRequest(definition.id, mapOf("latitude" to "52", "longitude" to "0"))
+        val cached = executor.execute(request)
+        val fresh = executor.execute(request.copy(networkPolicy = CacheMode.NO_STORE))
+        assertEquals(2, http.calls.size)
+        assertFalse(fresh.meta.fromCache)
+        assertEquals(cached.resultId, executor.execute(request).resultId)
+        assertEquals(2, http.calls.size)
+    }
+
+    @Test fun noStoreOverrideDoesNotWriteAFreshResultIntoCache() {
+        val definition = weatherDefinition()
+        val http = FakeHttpClient()
+        val executor = ApiGetExecutor(InMemoryApiDefinitionRegistry(listOf(definition)), http, clock = clock)
+        val request = ApiGetRequest(definition.id, mapOf("latitude" to "52", "longitude" to "0"))
+        executor.execute(request.copy(networkPolicy = CacheMode.NO_STORE))
+        val next = executor.execute(request)
+        assertEquals(2, http.calls.size)
+        assertFalse(next.meta.fromCache)
+    }
+
+    @Test fun aNoStoreDefinitionDoesNotTouchTheCacheEvenWithAPolicyOverride() {
+        val definition = weatherDefinition().copy(cache = CachePolicy.noStore())
+        val cache = object : ApiResultCache {
+            override fun find(cacheKey: String): CachedApiResult? = error("Forbidden cache read")
+            override fun save(cacheKey: String, result: ApiExecutionResult, record: CacheRecord) = error("Forbidden cache write")
+        }
+        val executor = ApiGetExecutor(InMemoryApiDefinitionRegistry(listOf(definition)), FakeHttpClient(), cache, clock = clock)
+        val result = executor.execute(ApiGetRequest(definition.id, mapOf("latitude" to "52", "longitude" to "0"), CacheMode.FRESH_REQUIRED))
+        assertEquals(OnlineExecutionStatus.SUCCESS, result.status)
+        assertFalse(result.meta.fromCache)
+    }
+
+    @Test fun offlineOnlyUsesOriginalRetrievalEvidenceWithoutCallingTheProvider() {
+        val definition = weatherDefinition()
+        val http = FakeHttpClient()
+        val cache = InMemoryApiResultCache()
+        val registry = InMemoryApiDefinitionRegistry(listOf(definition))
+        val request = ApiGetRequest(definition.id, mapOf("latitude" to "52", "longitude" to "0"))
+        val original = ApiGetExecutor(registry, http, cache, clock = clock).execute(request)
+        val later = Clock.fixed(clock.instant().plusSeconds(3600), ZoneOffset.UTC)
+        val offline = ApiGetExecutor(registry, ThrowingHttpClient, cache, clock = later)
+            .execute(request.copy(networkPolicy = CacheMode.OFFLINE_ONLY))
+        assertEquals(OnlineExecutionStatus.STALE_CACHE, offline.status)
+        assertEquals(original.resultId, offline.resultId)
+        assertEquals(original.meta.retrievedAt, offline.meta.retrievedAt)
+        assertEquals(later.instant(), offline.meta.requestedAt)
+        assertTrue(offline.meta.fromCache && offline.meta.isStale)
+    }
+
+    @Test fun freshRequiredDoesNotQuietlyFallbackWhenTheProviderIsOffline() {
+        val definition = weatherDefinition()
+        val cache = InMemoryApiResultCache()
+        val registry = InMemoryApiDefinitionRegistry(listOf(definition))
+        val request = ApiGetRequest(definition.id, mapOf("latitude" to "52", "longitude" to "0"))
+        ApiGetExecutor(registry, FakeHttpClient(), cache, clock = clock).execute(request)
+        val failed = ApiGetExecutor(registry, ThrowingHttpClient, cache, clock = clock)
+            .execute(request.copy(networkPolicy = CacheMode.FRESH_REQUIRED))
+        assertEquals(OnlineExecutionStatus.NETWORK_ERROR, failed.status)
+        assertFalse(failed.meta.fromCache)
+        assertEquals(null, failed.meta.retrievedAt)
+    }
+
     private fun weatherDefinition(): ApiDefinition =
         ApiDefinition(
             id = "openmeteo.current_weather",

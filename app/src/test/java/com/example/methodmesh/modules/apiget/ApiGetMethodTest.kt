@@ -14,6 +14,45 @@ import org.junit.Test
 import java.time.Instant
 
 class ApiGetMethodTest {
+    @Test fun missingDefinitionDoesNotClaimFreshlyRetrievedData() {
+        val values = As100ApiGetMethod.runApi(mapOf("definition_id" to "test.nonexistent_definition"))
+        assertEquals("failed", values[ApiGetFields.STATUS])
+        assertEquals("", values[ApiGetFields.RETRIEVED_TIME_ISO])
+        assertEquals("", values[ApiGetFields.DATA_AGE_HOURS])
+    }
+
+    @Test fun networkFailureWithoutAResponseHasNoRetrievalTimeOrDataAge() {
+        val definition = BundledApiDefinitions.openMeteoCurrentWeather
+        val failed = ApiExecutionResult(definitionId = definition.id, definitionVersion = definition.version,
+            status = OnlineExecutionStatus.NETWORK_ERROR, meta = ApiResultMeta(requestedAt = Instant.now()), data = ResultTree.NullNode)
+        val values = As100ApiGetMethod.valuesFrom(definition, failed, emptyMap())
+        assertEquals("failed", values[ApiGetFields.STATUS])
+        assertEquals("", values[ApiGetFields.RETRIEVED_TIME_ISO])
+        assertEquals("", values[ApiGetFields.DATA_AGE_HOURS])
+    }
+
+    @Test fun executionProjectionDoesNotInventMissingProviderRetrievalEvidence() {
+        val result = As100ApiGetMethod.result(As100ApiGetMethod.request(context = emptyMap()),
+            mapOf(ApiGetFields.STATUS to "failed", ApiGetFields.RETRIEVED_TIME_ISO to ""), null)
+        assertEquals(TransformationStatus.Failed, result.status)
+        assertEquals("", OutputFormatter.fields(result)[ApiGetFields.RETRIEVED_TIME_ISO])
+    }
+
+    @Test fun cachedProviderDataKeepsItsActualRetrievalTimeAndAge() {
+        val definition = BundledApiDefinitions.openMeteoCurrentWeather
+        val retrieved = Instant.now().minusSeconds(7200)
+        val cached = ApiExecutionResult(definitionId = definition.id, definitionVersion = definition.version,
+            status = OnlineExecutionStatus.STALE_CACHE,
+            meta = ApiResultMeta(requestedAt = Instant.now(), retrievedAt = retrieved, fromCache = true, isStale = true),
+            data = ResultTree.objectNode("current" to ResultTree.objectNode("temperature_2m" to ResultTree.number(18.5))))
+        val values = As100ApiGetMethod.valuesFrom(definition, cached, emptyMap())
+        assertEquals("succeeded", values[ApiGetFields.STATUS])
+        assertEquals("true", values[ApiGetFields.FROM_CACHE])
+        assertEquals("true", values[ApiGetFields.STALE])
+        assertEquals(retrieved.toString(), values[ApiGetFields.RETRIEVED_TIME_ISO])
+        assertTrue(values.getValue(ApiGetFields.DATA_AGE_HOURS).toDouble() >= 2.0)
+    }
+
     @Test
     fun selectedResultPathBecomesCoreApiValue() {
         val definition = BundledApiDefinitions.openMeteoCurrentWeather
