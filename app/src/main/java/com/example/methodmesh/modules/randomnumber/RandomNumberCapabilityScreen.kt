@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -25,6 +24,7 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 
 object RandomNumberCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100RandomNumberMethod.ID
@@ -45,8 +45,10 @@ object RandomNumberCapabilityScreen : CapabilityScreenSpec {
         var seedMode by rememberSaveable { mutableStateOf(context.action.settings["seed_mode"] ?: context.action.settings["input_seed_mode"] ?: "secure_random") }
         var seed by rememberSaveable { mutableStateOf(context.action.settings["seed"] ?: context.action.settings["input_seed"] ?: "") }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
-        var result by remember { mutableStateOf<ExecutionResult?>(null) }
-        var status by remember { mutableStateOf("Ready to generate.") }
+        var result by rememberRetainedExecutionResult(context.action.canonicalId)
+        val status = result?.let {
+            OutputFormatter.fields(it, false)[RandomNumberFields.STATUS]?.toString().orEmpty().ifBlank { "Generated." }
+        } ?: if (launched) "Previous result unavailable after restart. Generate again to start a new execution." else "Ready to generate."
 
         LaunchedEffect(count, min, max, step, seedMode, seed) {
             context.onSettingsChanged(
@@ -62,6 +64,7 @@ object RandomNumberCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun generate() {
+            launched = true
             val settings = mapOf("count" to count, "min" to min, "max" to max, "step" to step, "seed_mode" to seedMode, "seed" to seed)
             val request = As100RandomNumberMethod.request(
                 action = As100RandomNumberMethod.ID,
@@ -71,7 +74,6 @@ object RandomNumberCapabilityScreen : CapabilityScreenSpec {
             )
             val execution = As100RandomNumberMethod.result(request, As100RandomNumberMethod.generate(settings), context.request.invocationContext)
             result = execution
-            status = OutputFormatter.fields(execution, false)[RandomNumberFields.STATUS]?.toString().orEmpty().ifBlank { "Generated." }
             if (context.submitsImmediately) onConfirmed(execution)
         }
 

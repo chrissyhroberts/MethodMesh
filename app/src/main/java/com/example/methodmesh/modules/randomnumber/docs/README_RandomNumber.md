@@ -4,6 +4,10 @@ Capability: `random.number.generate`
 
 Generates secure or fixed-seed random numbers with explicit count, range and step controls.
 
+## Native result lifecycle
+
+Ordinary activity recreation retains the generated execution and its original values, execution ID and clock/software evidence. It does not silently generate a replacement. The retained payload is in run-isolated memory, not Android's saved-state Bundle; leaving the screen releases that memory. After process loss, a missing prior result requires an explicit new generation rather than presenting a new draw as the old execution.
+
 ## Intent examples
 
 ```text
