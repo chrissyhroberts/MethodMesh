@@ -610,6 +610,22 @@ Signals is transient by default:
 
 Shared MethodMesh preset-log behaviour remains available when a preset explicitly opts into persistence.
 
+### Sensor-scope Commit retention — 22 October 2026
+
+`signal.sensor.scope` now constructs one execution at Commit and retains that exact object through ordinary Activity recreation. Native display/actions and automatic return use the same execution and canonical FULL JSON. Explicit Recommit creates a new execution even when sampled values are identical; live sensor updates do not rewrite the old capture. No committed-value JSON is placed in saved UI state. If retained evidence is unavailable, a visible warning requires a fresh explicit live Commit instead of reconstructing an envelope or returning old values as a new capture.
+
+Four sensor-scope screen cases use emulator sensors (one controlled repeated-reading fixture) to check retention/Done, identical-value Recommit, simulated missing-envelope recovery and automatic return without replay. This does not qualify physical measurement accuracy, actual OS process-kill recovery or ODK acceptance. The subsequent 23 October increment below removes the remaining transmit/receive committed-envelope reconstruction paths; physical working-session acceptance remains separate.
+
+### Transmit/receive Commit retention — 23 October 2026
+
+All 16 physical transmit/receive capabilities now retain the exact original committed execution using the existing Activity-scoped store. A module-local `SignalCommitState` is used by the 14 affected screen bodies (the audible/high-band FSK variants share bodies). Native display, Full JSON, export and Done read the same record used by automatic return at Commit. Explicit Recommit always constructs and stores a new execution, even if the captured field values are identical.
+
+Committed-value JSON is no longer duplicated into saved UI state. Only a small committed marker and an opaque retention key are saved for this boundary. Existing working state and the small QR transfer-summary fields retain their existing handling. If the original execution is lost, a visible warning suppresses the unavailable record's result actions; an explicit Commit creates a new record from available working state, not a restored historical execution. No physical transmission is automatically started by this retention helper, and this is not durable process-death recovery.
+
+Verification: seven focused JVM cases exercise this boundary across all 16 physical contracts and check every affected screen's wiring. Four retained-store, five registry/contract-parity and five native-closeout JVM cases also pass. Eight actual-screen emulator cases use completed, screen-only QR/QR Burst transmit cycles to verify retention/Done, identical-value Recommit, simulated missing-envelope recovery and automatic return without replay on recreation. Five existing Signals closeout Android cases also pass. Both debug APKs build; the 13 Android cases pass in one focused run.
+
+The codecs, timing profiles, CRC/SHA-256 distinctions, public IDs, fields, settings, capability versions and physical capture logic are unchanged. Real transmitter/receiver pairing, microphone/camera/torch/contact paths, interruption of active physical sessions, large in-progress frame payloads, actual OS process loss and real ODK/protocol callers remain acceptance work. Native Share/Save conformity was addressed in the subsequent 24 October continuation below; physical/caller acceptance remains open.
+
 ## v0.4 physical-device interpretation
 
 Real-device testing drove this revision. Optical QR is currently the strongest machine link; camera Morse is genuinely useful and benefits from repeated-copy consensus. Audible and high-band FSK must first demonstrate energy at the intended frequencies in the spectrum, then clock/sync acquisition, before MMS/1 recovery can occur. Tabletop transfer remains Experimental and calibration failures are now surfaced as recoverable UI errors instead of escaping the sensor callback.
@@ -681,3 +697,11 @@ Primary live-session controls (Start/Stop/Listen/Transmit/Calibrate) sit above t
 - Mark classification is probabilistic rather than a hard colour switch. Duration supplies one likelihood and chroma supplies an independent soft likelihood; strong colour can recover a transition-smeared mark near the timing boundary, while low colour confidence contributes effectively no evidence.
 - A monochrome sender remains compatible. If START and acquisition chroma are not separable, colour calibration collapses and the receiver behaves as the existing timing-only decoder.
 - Pure regression includes a deliberately ambiguous 1.8-unit mark: calibrated red recovers it as a dash, while weak colour evidence leaves it as the timing-derived dot.
+
+## Native committed exports — 24 October 2026
+
+All 15 committed-card sites (17 declared capabilities including sensor scope) use one Signals-local action bay over the original retained execution. Include full JSON / audit is off by default and keyed to the execution. Generic Copy/Share use the useful primary text plus optional canonical FULL audit; individual value taps remain scalar. Share supplies equivalent message/text-sidecar content and actual typed media. Save to Downloads writes useful text/media and a separate metadata JSON file only when selected. Received-file verification text and real file bytes/URI are preserved; declared MIME fills only generic provider metadata.
+
+Final native preset Share now actually dispatches before confirmation; failed Share/Save stays open. Intermediate/external completion does not perform final exports. Existing Open received file and physical transmission/acquisition remain unchanged. No codecs, verification meaning, public IDs or capability versions change.
+
+Both debug builds and 49 focused JVM checks pass. Forty Android cases were verified across an initial 39-pass/one-label-failure run and three successful targeted reruns; eight real screen-only QR/QR Burst lifecycle cases are included. Other committed-component tests use synthetic records, not hardware capture. Actual legacy-storage permission, receiver apps and physical pairing remain unqualified. See repository handoff docs/handoffs/NATIVE_EXPORTS_AND_LEGACY_DOWNLOADS_2026-10-24.md.

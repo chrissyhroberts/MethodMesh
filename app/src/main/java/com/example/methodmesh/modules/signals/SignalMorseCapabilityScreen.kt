@@ -103,7 +103,7 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
         var completedCycles by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Ready") }
         var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val committed = rememberSignalCommit(context.action.canonicalId)
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         var cameraGranted by remember { mutableStateOf(hasPermission(androidContext, Manifest.permission.CAMERA)) }
         var transmitJob by remember { mutableStateOf<Job?>(null) }
@@ -258,9 +258,8 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
                 SignalMorseTransmitFields.STATUS to "sent",
                 SignalMorseTransmitFields.ERROR to ""
             )
-            committedJson = fieldsJson(values)
             status = "Committed. Live settings remain editable; recommit after another transmission to replace the frozen result."
-            val result = signalResult(As100SignalMorseTransmitMethod, context, values)
+            val result = committed.capture(signalResult(As100SignalMorseTransmitMethod, context, values))
             if (context.submitsImmediately) onConfirmed(result)
         }
 
@@ -283,16 +282,14 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
 
         DisposableEffect(Unit) { onDispose { stopTransmission(userRequested = false) } }
 
-        val committedFields = fieldsFromJson(committedJson)
-        val committedResult = remember(committedJson) {
-            committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(As100SignalMorseTransmitMethod, context, it) }
-        }
-        val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+        val committedFields = committed.fields
+        val committedResult = committed.result
 
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            SignalCommitRecoveryNotice(committed)
             Button(
                 onClick = { if (sending) stopTransmission() else startTransmission() },
                 modifier = Modifier.fillMaxWidth()
@@ -371,9 +368,9 @@ object SignalMorseTransmitCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share Morse message", committedFields[SignalMorseTransmitFields.RESULT].orEmpty()) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "morse_transmission", committedFields[SignalMorseTransmitFields.RESULT].orEmpty(), committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "morse_transmission", committedFields[SignalMorseTransmitFields.RESULT].orEmpty(), committedFullJson) } }
+                    context = context,
+                    result = committedResult,
+                    onConfirmed = onConfirmed
                 )
             }
 
@@ -629,7 +626,7 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
         var orphanObservations by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var unanimousCharacters by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var consensusCharacters by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
-        var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val committed = rememberSignalCommit(context.action.canonicalId)
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         var cameraGranted by remember { mutableStateOf(hasPermission(androidContext, Manifest.permission.CAMERA)) }
         var audioGranted by remember { mutableStateOf(hasPermission(androidContext, Manifest.permission.RECORD_AUDIO)) }
@@ -858,9 +855,8 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
                 SignalMorseReceiveFields.STATUS to "received",
                 SignalMorseReceiveFields.ERROR to ""
             )
-            committedJson = fieldsJson(values)
             status = "Committed. Continue listening only after starting a new reception."
-            val result = signalResult(As100SignalMorseReceiveMethod, context, values)
+            val result = committed.capture(signalResult(As100SignalMorseReceiveMethod, context, values))
             if (context.submitsImmediately) onConfirmed(result)
         }
 
@@ -914,11 +910,11 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
-        val committedFields = fieldsFromJson(committedJson)
-        val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(As100SignalMorseReceiveMethod, context, it) } }
-        val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+        val committedFields = committed.fields
+        val committedResult = committed.result
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SignalCommitRecoveryNotice(committed)
             if (source != "manual") {
                 Button(
                     onClick = { if (listening) stopListening() else startListening() },
@@ -1230,9 +1226,9 @@ object SignalMorseReceiveCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share decoded Morse", committedFields[SignalMorseReceiveFields.RESULT].orEmpty()) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "morse_reception", committedFields[SignalMorseReceiveFields.RESULT].orEmpty(), committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "morse_reception", committedFields[SignalMorseReceiveFields.RESULT].orEmpty(), committedFullJson) } }
+                    context = context,
+                    result = committedResult,
+                    onConfirmed = onConfirmed
                 )
             }
 

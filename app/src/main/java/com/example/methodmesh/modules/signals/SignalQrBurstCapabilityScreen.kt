@@ -83,8 +83,9 @@ object SignalQrBurstTransmitCapabilityScreen : CapabilityScreenSpec {
         var frameIndex by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var cycles by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Prepare content, then start the recorded QR burst.") }
+        var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val committed = rememberSignalCommit(context.action.canonicalId)
         SignalActiveSessionOrientationGuard(active)
 
         val profile = SignalQrBurstProfiles.byId(profileId)
@@ -96,6 +97,7 @@ object SignalQrBurstTransmitCapabilityScreen : CapabilityScreenSpec {
             transferId = SignalPacketCodec.newMessageId().take(12)
             status = reason
             error = ""
+            exportStatus = ""
         }
 
         val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -213,9 +215,9 @@ object SignalQrBurstTransmitCapabilityScreen : CapabilityScreenSpec {
                 SignalQrBurstTransmitFields.STATUS to "sent",
                 SignalQrBurstTransmitFields.ERROR to ""
             )
-            committedJson = fieldsJson(values)
             status = "Committed QR Burst transmission."
-            val result = signalResult(As100SignalQrBurstTransmitMethod, context, values)
+            exportStatus = ""
+            val result = committed.capture(signalResult(As100SignalQrBurstTransmitMethod, context, values))
             if (context.submitsImmediately) onConfirmed(result)
         }
 
@@ -226,11 +228,11 @@ object SignalQrBurstTransmitCapabilityScreen : CapabilityScreenSpec {
             onDispose { if (window != null && previous != null) window.attributes = window.attributes.apply { screenBrightness = previous } }
         }
 
-        val committedFields = fieldsFromJson(committedJson)
-        val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(As100SignalQrBurstTransmitMethod, context, it) } }
-        val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+        val committedFields = committed.fields
+        val committedResult = committed.result
 
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SignalCommitRecoveryNotice(committed)
             Button(onClick = { if (active) stop() else start() }, enabled = frames.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
                 Text(if (active) "Stop QR Burst" else "Start QR Burst")
             }
@@ -265,11 +267,11 @@ object SignalQrBurstTransmitCapabilityScreen : CapabilityScreenSpec {
                         "Frames" to committedFields[SignalQrBurstTransmitFields.FRAME_COUNT].orEmpty(),
                         "Profile" to committedFields[SignalQrBurstTransmitFields.PROFILE].orEmpty()
                     ),
-                    status = null,
+                    status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { shareSignalText(androidContext, "Share QR Burst record", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }) },
-                    onSave = { saveSignalText(androidContext, "qr_burst_transmit", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) }
+                    context = context,
+                    result = committedResult,
+                    onConfirmed = onConfirmed
                 )
             }
 
@@ -351,7 +353,7 @@ object SignalQrBurstReceiveCapabilityScreen : CapabilityScreenSpec {
         var captureMsTotal by rememberSaveable(context.action.canonicalId) { mutableStateOf(0L) }
         var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Capture a short burst while the transmitting QR fills the target area. Decoding happens afterwards.") }
         var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val committed = rememberSignalCommit(context.action.canonicalId)
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         val buffer = remember { SignalQrBurstFrameBuffer() }
         val collector = remember { SignalQrBurstOfflineCollector(messageFilter) }
@@ -469,21 +471,20 @@ object SignalQrBurstReceiveCapabilityScreen : CapabilityScreenSpec {
                 SignalQrBurstReceiveFields.STATUS to "received",
                 SignalQrBurstReceiveFields.ERROR to ""
             )
-            committedJson = fieldsJson(values)
             status = "Committed verified QR Burst reception."
-            val result = signalResult(As100SignalQrBurstReceiveMethod, context, values)
+            val result = committed.capture(signalResult(As100SignalQrBurstReceiveMethod, context, values))
             if (context.submitsImmediately) onConfirmed(result)
         }
 
         val decodedContent = snapshot.transfer.contentEnvelope?.let(SignalContentEnvelope::decode)
-        val committedFields = fieldsFromJson(committedJson)
-        val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(As100SignalQrBurstReceiveMethod, context, it) } }
-        val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+        val committedFields = committed.fields
+        val committedResult = committed.result
         val committedIsFile = committedFields[SignalQrBurstReceiveFields.CONTENT_TYPE] == "file"
         val committedFileUri = committedFields[SignalQrBurstReceiveFields.RECEIVED_FILE_URI].orEmpty()
         val committedMime = committedFields[SignalQrBurstReceiveFields.FILE_MIME].orEmpty()
 
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SignalCommitRecoveryNotice(committed)
             Button(
                 onClick = { if (capturing) analyzeCurrentBurst() else startCapture() },
                 enabled = !analyzing,
@@ -583,10 +584,13 @@ object SignalQrBurstReceiveCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = if (committedIsFile) shareSignalMedia(androidContext, "Share QR Burst file", committedFileUri, committedMime) ?: "" else shareSignalText(androidContext, "Share QR Burst message", committedFields[SignalQrBurstReceiveFields.RESULT].orEmpty()) ?: "" },
-                    onSave = { exportStatus = if (committedIsFile) saveSignalMedia(androidContext, "qr_burst_verified_file", committedFileUri, verification, committedFullJson) else saveSignalText(androidContext, "qr_burst_verified_text", verification + "\ntext=${committedFields[SignalQrBurstReceiveFields.RESULT].orEmpty()}", committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) },
-                    onOpen = if (committedIsFile) ({ exportStatus = openSignalMedia(androidContext, committedFileUri, committedMime) ?: "" }) else null
+                    onOpen = if (committedIsFile) ({ exportStatus = openSignalMedia(androidContext, committedFileUri, committedMime) ?: "" }) else null,
+                    context = context,
+                    result = committedResult,
+                    onConfirmed = onConfirmed,
+                    exportText = if (committedIsFile) verification else committedFields[SignalQrBurstReceiveFields.RESULT].orEmpty(),
+                    mediaUri = if (committedIsFile) committedFileUri else "",
+                    mediaMime = committedMime
                 )
             }
 
