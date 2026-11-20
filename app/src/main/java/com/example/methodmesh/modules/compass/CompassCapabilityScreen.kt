@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.SensorManager
 import android.widget.Toast
@@ -65,19 +64,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
-import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.withInvocationContext
-import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.platform.camera.LiveCameraPreview
 import com.example.methodmesh.platform.sensors.PhoneSensorRepository
-import com.example.methodmesh.transport.OutputExportRepository
-import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.OutputFormatter
-import com.example.methodmesh.transport.ReturnMode
+import com.example.methodmesh.transport.workflow.ui.CanonicalCommittedResultActions
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
-import org.json.JSONObject
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.cos
@@ -125,16 +120,24 @@ object CompassCapabilityScreen : CapabilityScreenSpec {
 
         var sightOpen by rememberSaveable(action.canonicalId) { mutableStateOf(false) }
         var initialSightHandled by rememberSaveable(action.canonicalId) { mutableStateOf(false) }
-        var committedFieldsJson by rememberSaveable(action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
+        var hadCommitted by rememberSaveable(action.canonicalId) { mutableStateOf(false) }
+        var committedResult by rememberRetainedExecutionResult(action.canonicalId)
         var status by rememberSaveable(action.canonicalId) {
             mutableStateOf("Live magnetic heading. Keep the phone away from magnets and steel.")
         }
         var cameraError by rememberSaveable(action.canonicalId) { mutableStateOf("") }
         var hasCameraPermission by remember { mutableStateOf(hasCameraPermission(androidContext)) }
-        var includeFullJson by rememberSaveable(action.canonicalId) { mutableStateOf(false) }
-        var exportStatus by rememberSaveable(action.canonicalId) { mutableStateOf("") }
+        var actionsBusy by remember { mutableStateOf(false) }
         var showTechnicalDetails by rememberSaveable(action.canonicalId) { mutableStateOf(false) }
+
+        LaunchedEffect(hadCommitted, committedResult?.request?.id?.value) {
+            if (hadCommitted && committedResult == null) {
+                hadCommitted = false
+                sightOpen = false
+                actionsBusy = false
+                status = "Captured result unavailable. Commit a new live reading to continue."
+            }
+        }
 
         val cameraPermissionLauncher = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -205,6 +208,7 @@ object CompassCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun commit(heading: Float?, viewMode: String, axis: String) {
+            if (actionsBusy) return
             val execution = buildExecution(heading, viewMode, axis) ?: return
             val fields = OutputFormatter.fields(execution, includeProvenance = false)
             val error = fields[CompassFields.ERROR]?.toString().orEmpty()
@@ -213,11 +217,9 @@ object CompassCapabilityScreen : CapabilityScreenSpec {
                 return
             }
 
-            val compassFields = fields.filterKeys { it.startsWith("compass_") }
             committedResult = execution
-            committedFieldsJson = compassFieldsToJson(compassFields)
+            hadCommitted = true
             status = "Committed. The live compass remains active; recommit to replace this frozen reading."
-            exportStatus = ""
             sightOpen = false
 
             // ODK, protocol, schedules and dependency runs are automatic-return
@@ -226,36 +228,12 @@ object CompassCapabilityScreen : CapabilityScreenSpec {
             if (context.submitsImmediately) onConfirmed(execution)
         }
 
-        val restoredResult = remember(committedFieldsJson) {
-            committedFieldsJson?.let(::compassFieldsFromJson)?.takeIf { it.isNotEmpty() }?.let { fields ->
-                As100CompassMethod.result(
-                    request = As100CompassMethod.request(
-                        action = action.canonicalId,
-                        context = request.invocationContext.asMap(action.canonicalId) + action.settings,
-                        signals = emptyList(),
-                        inputs = emptyList()
-                    ),
-                    values = fields,
-                    invocation = request.invocationContext
-                )
-            }
-        }
-        val frozenResult = committedResult ?: restoredResult
-        val frozenFields = remember(frozenResult?.request?.id?.value, committedFieldsJson) {
+        val frozenResult = committedResult
+        val frozenFields = remember(frozenResult?.request?.id?.value) {
             frozenResult?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty()
         }
-        val fullJsonText = remember(frozenResult?.request?.id?.value) {
-            frozenResult?.let {
-                OutputFormatter.format(
-                    result = it,
-                    returnMode = ReturnMode.Json,
-                    includeProvenance = true,
-                    payloadMode = OutputFormatter.PayloadMode.FULL
-                )
-            }.orEmpty()
-        }
-
         fun openSight() {
+            if (actionsBusy) return
             sightOpen = true
             if (showCamera && !hasCameraPermission) {
                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -267,77 +245,6 @@ object CompassCapabilityScreen : CapabilityScreenSpec {
             androidContext.getSystemService(ClipboardManager::class.java)
                 .setPrimaryClip(ClipData.newPlainText(label, value))
             Toast.makeText(androidContext, "Copied $label", Toast.LENGTH_SHORT).show()
-        }
-
-        fun resultPayload(): String {
-            val beef = frozenFields[CompassFields.RESULT]?.toString().orEmpty()
-            return ResultShare.buildShareText(
-                text = beef,
-                jsonText = if (includeFullJson) fullJsonText else ""
-            )
-        }
-
-        fun shareCommitted() {
-            val beef = frozenFields[CompassFields.RESULT]?.toString().orEmpty()
-            if (beef.isBlank()) return
-            runCatching {
-                ResultShare.share(
-                    context = androidContext,
-                    chooserTitle = "Share compass reading",
-                    text = beef,
-                    attachments = emptyList(),
-                    jsonText = if (includeFullJson) fullJsonText else ""
-                )
-            }.onFailure {
-                exportStatus = "Share failed: ${it.message ?: "no sharing app available"}"
-            }
-        }
-
-        fun saveCommitted() {
-            val beef = frozenFields[CompassFields.RESULT]?.toString().orEmpty()
-            if (beef.isBlank()) return
-            runCatching {
-                OutputExportRepository.saveToDownloads(
-                    context = androidContext,
-                    label = "Compass",
-                    text = beef,
-                    mediaUris = emptyList(),
-                    jsonText = if (includeFullJson) fullJsonText else ""
-                )
-            }.onSuccess {
-                exportStatus = "Saved ${it.summary}"
-            }.onFailure {
-                exportStatus = "Downloads save failed: ${it.message ?: "storage error"}"
-            }
-        }
-
-        fun finishCommitted() {
-            val execution = frozenResult ?: return
-            if (!context.isNativePresetRun || !context.isLastStep) {
-                onConfirmed(execution)
-                return
-            }
-
-            val presetResultAction = PresetResultAction.normalize(
-                request.settings["methodmesh_preset_result_action"]
-                    ?: request.settings["input_methodmesh_preset_result_action"]
-                    ?: PresetResultAction.HOME
-            )
-            val finishToLauncher = request.settings["methodmesh_finish_to_launcher"] == "true" ||
-                request.settings["input_methodmesh_finish_to_launcher"] == "true"
-
-            if (presetResultAction == PresetResultAction.SAVE) {
-                saveCommitted()
-                onConfirmed(execution)
-            } else if (finishToLauncher) {
-                onConfirmed(execution)
-            } else {
-                androidContext.startActivity(
-                    Intent(androidContext, MainActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                )
-            }
         }
 
         LaunchedEffect(startInSight, initialSightHandled, frozenResult) {
@@ -393,13 +300,14 @@ object CompassCapabilityScreen : CapabilityScreenSpec {
             ) {
                 Button(
                     onClick = { commit(flatHeading, "flat", "device_top_edge") },
-                    enabled = flatHeading != null && targetBearingOrNull() != null,
+                    enabled = !actionsBusy && flatHeading != null && targetBearingOrNull() != null,
                     modifier = Modifier.weight(1.25f).height(52.dp)
                 ) {
                     Text(if (frozenResult == null) "Commit reading" else "Recommit reading")
                 }
                 OutlinedButton(
                     onClick = ::openSight,
+                    enabled = !actionsBusy,
                     modifier = Modifier.weight(0.75f).height(52.dp)
                 ) {
                     Text("Sight")
@@ -407,20 +315,16 @@ object CompassCapabilityScreen : CapabilityScreenSpec {
             }
 
             if (frozenResult != null && !context.submitsImmediately) {
-                CommittedReadingCard(
-                    fields = frozenFields,
-                    includeFullJson = includeFullJson,
-                    onIncludeFullJsonChanged = { includeFullJson = it },
+                CompassCommittedResult(
+                    context = context,
+                    result = frozenResult,
                     settingsChanged = committedSettingsChanged,
-                    exportStatus = exportStatus,
                     onTapResult = {
                         copy("compass result", frozenFields[CompassFields.RESULT]?.toString().orEmpty())
                     },
-                    onCopyBundle = { copy("compass result", resultPayload()) },
                     onCopyField = ::copy,
-                    onShare = ::shareCommitted,
-                    onSave = ::saveCommitted,
-                    onDone = ::finishCommitted,
+                    onConfirmed = onConfirmed,
+                    onBusyChanged = { actionsBusy = it },
                     showTechnicalDetails = showTechnicalDetails,
                     onShowTechnicalDetailsChanged = { showTechnicalDetails = it }
                 )
@@ -712,22 +616,19 @@ private fun DarkValueTile(
 }
 
 @Composable
-private fun CommittedReadingCard(
-    fields: Map<String, Any?>,
-    includeFullJson: Boolean,
-    onIncludeFullJsonChanged: (Boolean) -> Unit,
+internal fun CompassCommittedResult(
+    context: CapabilityScreenContext,
+    result: ExecutionResult,
     settingsChanged: Boolean,
-    exportStatus: String,
     onTapResult: () -> Unit,
-    onCopyBundle: () -> Unit,
     onCopyField: (String, String) -> Unit,
-    onShare: () -> Unit,
-    onSave: () -> Unit,
-    onDone: () -> Unit,
+    onConfirmed: (ExecutionResult) -> Unit,
     showTechnicalDetails: Boolean,
-    onShowTechnicalDetailsChanged: (Boolean) -> Unit
+    onShowTechnicalDetailsChanged: (Boolean) -> Unit,
+    onBusyChanged: (Boolean) -> Unit = {}
 ) {
-    val result = fields[CompassFields.RESULT]?.toString().orEmpty()
+    val fields = remember(result) { OutputFormatter.fields(result, includeProvenance = false) }
+    val primary = fields[CompassFields.RESULT]?.toString().orEmpty()
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
@@ -738,8 +639,8 @@ private fun CommittedReadingCard(
                 Column(Modifier.weight(1f)) {
                     Text("COMMITTED", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     Text(
-                        result.ifBlank { "Compass reading committed" },
-                        modifier = Modifier.clickable(enabled = result.isNotBlank(), onClick = onTapResult),
+                        primary.ifBlank { "Compass reading committed" },
+                        modifier = Modifier.clickable(enabled = primary.isNotBlank(), onClick = onTapResult),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -782,28 +683,11 @@ private fun CommittedReadingCard(
             }
 
             HorizontalDivider()
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Include full JSON", style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        if (includeFullJson) "Share/copy append debug JSON text; Save adds metadata.json." else "Actions use only the main compass result.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(checked = includeFullJson, onCheckedChange = onIncludeFullJsonChanged)
-            }
-
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onCopyBundle, modifier = Modifier.weight(1f)) { Text("Copy") }
-                OutlinedButton(onClick = onShare, modifier = Modifier.weight(1f)) { Text("Share") }
-                OutlinedButton(onClick = onSave, modifier = Modifier.weight(1f)) { Text("Save") }
-            }
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text("Done") }
-
-            if (exportStatus.isNotBlank()) {
-                Text(exportStatus, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-            }
+            CanonicalCommittedResultActions(
+                result = result, label = "Compass", screenContext = context,
+                primaryText = primary, attachments = emptyList(),
+                onDone = { onConfirmed(result) }, onBusyChanged = onBusyChanged
+            )
 
             OutlinedButton(
                 onClick = { onShowTechnicalDetailsChanged(!showTechnicalDetails) },
@@ -1147,15 +1031,3 @@ private fun String.degreeText(): String = filter { it.isDigit() || it == '.' }.l
 
 private fun Map<String, String>.setting(key: String): String? =
     (this[key] ?: this["input_$key"])?.takeIf { it.isNotBlank() }
-
-private fun compassFieldsToJson(values: Map<String, Any?>): String =
-    JSONObject().apply {
-        values.toSortedMap().forEach { (key, value) -> put(key, value?.toString().orEmpty()) }
-    }.toString()
-
-private fun compassFieldsFromJson(json: String): Map<String, String> = runCatching {
-    val root = JSONObject(json.ifBlank { "{}" })
-    buildMap {
-        root.keys().forEach { key -> put(key, root.optString(key)) }
-    }
-}.getOrDefault(emptyMap())
