@@ -2,7 +2,6 @@ package com.example.methodmesh.transport.workflow.ui
 
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.widget.Toast
@@ -28,7 +27,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,24 +42,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.methodmesh.MainActivity
-import com.example.methodmesh.core.artifacts.AndroidArtifacts
-import com.example.methodmesh.core.artifacts.ArtifactRef
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.PresetResultAction
-import com.example.methodmesh.transport.OutputExportRepository
 import com.example.methodmesh.transport.OutputFormatter
-import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
 import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
 import com.example.methodmesh.ui.components.VersionAndMaturityBadges
-import java.time.Instant
-import java.util.UUID
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
 
 private fun isDashboardRequest(action: ExternalActionRequest, request: ExternalWorkflowRequest): Boolean {
     val caller = request.invocationContext.caller.lowercase()
@@ -94,6 +82,7 @@ data class CapabilityScreenContext(
     } else {
         CapabilityPresentationMode.IntentLaunch
     },
+    val hostOwnsNativePresetCloseout: Boolean = false,
     val onSettingsChanged: (Map<String, String>) -> Unit = {}
 ) {
     val isLastStep: Boolean get() = stepNumber >= totalSteps
@@ -189,15 +178,12 @@ fun CapabilityScreenScaffold(
     onCancel: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    val appContext = LocalContext.current
     val capabilityMetadata = remember(capabilityId) {
         runCatching { MethodMeshModuleRegistry.capabilityMetadata(capabilityId) }.getOrNull()
     }
     val intentPresentation = context.presentationMode == CapabilityPresentationMode.IntentLaunch
     val automaticReturn = context.completionMode == CapabilityCompletionMode.AutomaticReturn
-    val nativePresetRun = intentPresentation && !automaticReturn &&
-        (context.request.settings["methodmesh_native_preset_run"] == "true" ||
-            context.request.settings["input_methodmesh_native_preset_run"] == "true")
+    val nativePresetRun = context.isNativePresetRun && !automaticReturn
     val presetResultAction = PresetResultAction.normalize(
         context.request.settings["methodmesh_preset_result_action"]
             ?: context.request.settings["input_methodmesh_preset_result_action"]
@@ -205,139 +191,23 @@ fun CapabilityScreenScaffold(
     )
     val finishToLauncher = context.request.settings["methodmesh_finish_to_launcher"] == "true" ||
         context.request.settings["input_methodmesh_finish_to_launcher"] == "true"
-    val presetLogRef = context.request.settings["methodmesh_log_ref"]
-        ?: context.request.settings["input_methodmesh_log_ref"]
-    val presetLogSummaryRef = context.request.settings["methodmesh_log_summary_ref"]
-        ?: context.request.settings["input_methodmesh_log_summary_ref"]
-    val allowManualExport = !context.request.source.equals("dashboard", ignoreCase = true) &&
-        !context.request.source.equals("intent_test", ignoreCase = true)
-    var exportPackage by remember(capturedResult?.request?.id?.value) { mutableStateOf<OutputExportRepository.ExportPackage?>(null) }
-    var exportStatus by rememberSaveable(capturedResult?.request?.id?.value) { mutableStateOf<String?>(null) }
-    var shareStatus by rememberSaveable(capturedResult?.request?.id?.value) { mutableStateOf<String?>(null) }
     var showDetails by rememberSaveable { mutableStateOf(false) }
-    var includeFullJson by rememberSaveable(capturedResult?.request?.id?.value) { mutableStateOf(false) }
+    var actionsBusy by remember(capturedResult?.request?.id?.value) { mutableStateOf(false) }
+    var automaticDeliveryId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
     val userResultPreview = remember(capturedResult?.request?.id?.value, resultPreview) {
         OutputFormatter.projectFields(resultPreview, OutputFormatter.PayloadMode.CORE, capturedResult?.status)
     }
     val resultDetailPreview = remember(capturedResult?.request?.id?.value, resultPreview, userResultPreview) {
         resultPreview.filterKeys { it !in userResultPreview.keys }
     }
-    val showResultScreen = capturedResult != null && !automaticReturn && userResultPreview.isNotEmpty()
+    val showResultScreen = capturedResult != null && !automaticReturn
     val mediaResultUris = remember(capturedResult?.request?.id?.value, userResultPreview, resultDetailPreview) {
         shareableResultUris(userResultPreview + resultDetailPreview)
-    }
-    val fullJsonText = remember(capturedResult?.request?.id?.value) {
-        capturedResult?.let {
-            OutputFormatter.format(
-                result = it,
-                returnMode = ReturnMode.Json,
-                includeProvenance = true,
-                payloadMode = OutputFormatter.PayloadMode.FULL
-            )
-        }.orEmpty()
-    }
-    LaunchedEffect(capturedResult?.request?.id?.value, presetLogRef) {
-        val result = capturedResult ?: return@LaunchedEffect
-        val refId = presetLogRef?.trim().orEmpty()
-        if (refId.isBlank()) return@LaunchedEffect
-        runCatching {
-            withContext(Dispatchers.IO) {
-                val service = AndroidArtifacts.service(appContext)
-                val entryId = result.request.id.value
-                val existing = service.open(ArtifactRef(refId)).bufferedReader().useLines { lines ->
-                    lines.any { line -> runCatching { JSONObject(line).optString("entry_id") == entryId }.getOrDefault(false) }
-                }
-                if (existing) return@withContext
-                val media = org.json.JSONArray()
-                val mediaErrors = org.json.JSONArray()
-                val createdMediaRefs = mutableListOf<ArtifactRef>()
-                mediaResultUris.forEach { uri ->
-                    runCatching {
-                        val mediaId = UUID.randomUUID().toString()
-                        val displayName = uri.lastPathSegment?.substringAfterLast('/')?.ifBlank { null }
-                            ?: "media-$mediaId"
-                        val mime = appContext.contentResolver.getType(uri) ?: "application/octet-stream"
-                        val mediaRef = appContext.contentResolver.openInputStream(uri)?.use { input ->
-                            service.createPersistent(
-                                name = "${refId.take(12)}/media/${entryId}-${displayName.substringAfterLast('/')}",
-                                mime = mime,
-                                input = input,
-                                collectionId = refId,
-                                entryId = entryId,
-                                mediaId = mediaId
-                            )
-                        } ?: error("Media URI could not be opened")
-                        createdMediaRefs += mediaRef
-                        media.put(JSONObject()
-                            .put("media_id", mediaId)
-                            .put("artifact_ref", mediaRef.id)
-                            .put("filename", displayName)
-                            .put("mime_type", mime))
-                    }.onFailure { error ->
-                        mediaErrors.put(JSONObject()
-                            .put("uri", uri.toString())
-                            .put("error", error.message ?: "media copy failed"))
-                    }
-                }
-                val record = JSONObject()
-                    .put("recorded_at", Instant.now().toString())
-                    .put("entry_id", entryId)
-                    .put("capability", capabilityId)
-                    .put("execution_id", result.request.id.value)
-                    .put("status", result.status)
-                    .put("fields", JSONObject(resultPreview.mapValues { it.value?.toString().orEmpty() }))
-                    .put("media", media)
-                    .put("media_errors", mediaErrors)
-                    .toString() + "\n"
-                runCatching { service.appendPersistent(ArtifactRef(refId), record.toByteArray()) }
-                    .onFailure { error ->
-                        createdMediaRefs.forEach { ref -> runCatching { service.delete(ref) } }
-                        throw error
-                    }
-                val summary = resultPreview.entries.firstOrNull { (key, value) ->
-                    !key.startsWith("methodmesh_") && value?.toString().orEmpty().isNotBlank()
-                }
-                if (!presetLogSummaryRef.isNullOrBlank() && summary != null) {
-                    service.appendPersistent(
-                        ArtifactRef(presetLogSummaryRef),
-                        "${Instant.now()} — ${summary.key}: ${summary.value}\n".toByteArray()
-                    )
-                }
-            }
-        }
-    }
-    fun finishNativePreset() {
-        if (presetResultAction == PresetResultAction.SAVE) {
-            runCatching {
-                OutputExportRepository.saveToDownloads(
-                    context = appContext,
-                    label = title,
-                    text = humanShareText(userResultPreview),
-                    mediaUris = mediaResultUris.map(Uri::toString),
-                    jsonText = if (includeFullJson) fullJsonText else ""
-                )
-            }
-                .onSuccess {
-                    exportStatus = "Saved ${it.summary}"
-                }
-                .onFailure { exportStatus = "Downloads save failed: ${it.message ?: "storage error"}" }
-            onConfirm()
-            return
-        }
-        if (finishToLauncher) {
-            onConfirm()
-            return
-        }
-        appContext.startActivity(
-            Intent(appContext, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-        )
     }
     val finishButtonLabel = if (nativePresetRun && context.isLastStep) {
         when (presetResultAction) {
             PresetResultAction.SAVE -> "Save and finish"
-            PresetResultAction.SHARE -> if (finishToLauncher) "Done" else "Home"
+            PresetResultAction.SHARE -> "Share and finish"
             else -> if (finishToLauncher) "Done" else "Home"
         }
     } else if (context.isLastStep) {
@@ -351,7 +221,8 @@ fun CapabilityScreenScaffold(
     // soon as a result exists. The execution ID keys this effect so a result is
     // never delivered twice during recomposition.
     LaunchedEffect(context.completionMode, capturedResult?.request?.id?.value) {
-        if (capturedResult != null && context.completionMode == CapabilityCompletionMode.AutomaticReturn) {
+        if (capturedResult != null && automaticReturn && automaticDeliveryId != capturedResult.request.id.value) {
+            automaticDeliveryId = capturedResult.request.id.value
             onConfirm()
         }
     }
@@ -442,95 +313,28 @@ fun CapabilityScreenScaffold(
             Spacer(Modifier.height(12.dp))
             if (showResultScreen) {
                 Column(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Include full JSON", style = MaterialTheme.typography.titleSmall)
-                        Switch(
-                            checked = includeFullJson,
-                            onCheckedChange = { includeFullJson = it },
-                            enabled = fullJsonText.isNotBlank()
-                        )
-                    }
-                    Text(
-                        if (includeFullJson) "Share sends result.txt, media and metadata.json; Copy keeps using text." else "Share sends result.txt plus relevant media; Copy keeps using text.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    CanonicalCommittedResultActions(
+                        result = checkNotNull(capturedResult), label = title, screenContext = context,
+                        primaryText = humanShareText(userResultPreview),
+                        // Keep the existing domain delivery-bundle selection; never fan out a compiler ZIP.
+                        attachments = mediaResultUris.map { uri ->
+                            ResultShare.Attachment(uri.lastPathSegment.orEmpty().ifBlank { "attachment" }, uri)
+                        },
+                        completionLabel = finishButtonLabel,
+                        shareButtonLabel = if (mediaResultUris.isNotEmpty()) shareMediaLabel(mediaResultUris) else "Share result",
+                        onDone = onConfirm,
+                        onBusyChanged = { actionsBusy = it }
                     )
-                    Spacer(Modifier.height(8.dp))
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            runCatching {
-                                shareResultBundle(
-                                    context = appContext,
-                                    label = title,
-                                    text = humanShareText(userResultPreview),
-                                    mediaUris = mediaResultUris,
-                                    jsonText = if (includeFullJson) fullJsonText else ""
-                                )
-                            }
-                                .onSuccess { shareStatus = "Sharing result…" }
-                                .onFailure { shareStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
-                        }
-                    ) { Text(if (mediaResultUris.isNotEmpty()) shareMediaLabel(mediaResultUris) else "Share result") }
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            runCatching {
-                                val text = ResultShare.buildShareText(
-                                    humanShareText(userResultPreview),
-                                    if (includeFullJson) fullJsonText else ""
-                                )
-                                if (text.isBlank()) throw IllegalStateException("No text result to copy.")
-                                appContext.getSystemService(ClipboardManager::class.java)
-                                    .setPrimaryClip(ClipData.newPlainText("MethodMesh result", text))
-                            }
-                                .onSuccess { shareStatus = "Copied result." }
-                                .onFailure { shareStatus = "Copy failed: ${it.message ?: "no text result"}" }
-                        },
-                        enabled = userResultPreview.any { (key, value) -> !looksLikeShareableMediaUri(key, value?.toString().orEmpty()) }
-                    ) { Text("Copy") }
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            runCatching {
-                                OutputExportRepository.saveToDownloads(
-                                    context = appContext,
-                                    label = title,
-                                    text = humanShareText(userResultPreview),
-                                    mediaUris = mediaResultUris.map(Uri::toString),
-                                    jsonText = if (includeFullJson) fullJsonText else ""
-                                )
-                            }
-                                .onSuccess { exportStatus = "Saved ${it.summary}" }
-                                .onFailure { exportStatus = "Downloads save failed: ${it.message ?: "storage error"}" }
-                        },
-                        enabled = userResultPreview.isNotEmpty() || mediaResultUris.isNotEmpty()
-                    ) { Text("Save to Downloads") }
-                    Spacer(Modifier.height(8.dp))
-                    if (nativePresetRun && context.isLastStep) {
-                        Button(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = { finishNativePreset() }
-                        ) { Text(finishButtonLabel) }
-                        Spacer(Modifier.height(8.dp))
-                    } else {
-                        Button(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = onConfirm
-                        ) { Text(finishButtonLabel) }
-                    }
                     Spacer(Modifier.height(8.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (canGoBack) {
-                            OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Back") }
+                            OutlinedButton(onClick = { if (!actionsBusy) onBack() }, enabled = !actionsBusy,
+                                modifier = Modifier.weight(1f)) { Text("Back") }
                         }
-                        OutlinedButton(onClick = onRetry, modifier = Modifier.weight(1f)) { Text("Retry") }
-                        OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                    }
-                    shareStatus?.let {
-                        Text(it, modifier = Modifier.padding(top = 8.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        OutlinedButton(onClick = { if (!actionsBusy) onRetry() }, enabled = !actionsBusy,
+                            modifier = Modifier.weight(1f)) { Text("Retry") }
+                        OutlinedButton(onClick = { if (!actionsBusy) onCancel() }, enabled = !actionsBusy,
+                            modifier = Modifier.weight(1f)) { Text("Cancel") }
                     }
                 }
             } else {
@@ -564,57 +368,6 @@ fun CapabilityScreenScaffold(
                         Spacer(Modifier.width(8.dp))
                         Button(enabled = true, onClick = onConfirm) {
                             Text(if (context.isLastStep) "Done" else "Continue")
-                        }
-                    }
-                }
-            }
-
-            if (exportStatus != null || exportPackage != null) {
-                Spacer(Modifier.height(10.dp))
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f)
-                ) {
-                    Column(Modifier.padding(14.dp)) {
-                        exportStatus?.let {
-                            Text(
-                                it,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                        exportPackage?.let { pkg ->
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                "JSON: ${pkg.json.filename}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                            if (pkg.attachments.isNotEmpty()) {
-                                Text(
-                                    "Attachments: ${pkg.attachments.size}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedButton(onClick = {
-                                    runCatching { OutputExportRepository.openLocation(appContext, pkg) }
-                                        .onFailure { exportStatus = "Open failed: ${it.message ?: "no file app available"}" }
-                                }) { Text(if (pkg.folderUri != null) "Open folder" else "Open file") }
-                                Button(onClick = {
-                                    runCatching { OutputExportRepository.share(appContext, pkg) }
-                                        .onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
-                                }) { Text("Share") }
-                                if (pkg.attachments.any { it.mimeType.startsWith("image/") || it.mimeType.startsWith("audio/") || it.mimeType.startsWith("video/") || it.mimeType == "application/pdf" }) {
-                                    OutlinedButton(onClick = {
-                                        runCatching { OutputExportRepository.shareMedia(appContext, pkg) }
-                                            .onFailure { exportStatus = "Media share failed: ${it.message ?: "no media available"}" }
-                                    }) { Text("Share media") }
-                                }
-                            }
                         }
                     }
                 }
@@ -873,25 +626,6 @@ private fun isInputDetailField(key: String): Boolean =
         key.endsWith("_source") ||
         key.endsWith("_original_text") ||
         key.endsWith("_original_uri")
-
-private fun shareResultBundle(
-    context: android.content.Context,
-    label: String,
-    text: String,
-    mediaUris: List<Uri>,
-    jsonText: String
-) {
-    ResultShare.share(
-        context = context,
-        chooserTitle = "Share result",
-        text = text,
-        attachments = mediaUris.map { uri ->
-            ResultShare.Attachment(uri.lastPathSegment.orEmpty().ifBlank { "attachment" }, uri)
-        },
-        jsonText = jsonText,
-        fileLabel = label
-    )
-}
 
 /** A compiler delivery bundle is the handoff artifact; do not fan it back out
  * into its constituent XLSX/proof files when the operator presses Share. */

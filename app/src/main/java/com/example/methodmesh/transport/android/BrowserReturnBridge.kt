@@ -143,11 +143,10 @@ object BrowserReturnBridge {
     }
 
     /**
-     * Collect exact content:// scalar fields and content:// values embedded in
-     * JSON/list strings. The latter matters for capabilities that return a set
-     * of page images rather than one image field.
+     * Collect returned scalar/list/ClipData attachments, not URI-like evidence
+     * inside arbitrary audit JSON. No parsing of the canonical FULL envelope.
      */
-    private fun collectContentUriFields(fields: Map<String, Any?>): LinkedHashMap<String, MutableList<String>> {
+    internal fun collectContentUriFields(fields: Map<String, Any?>): LinkedHashMap<String, MutableList<String>> {
         val found = linkedMapOf<String, MutableList<String>>()
         fields.forEach { (field, value) ->
             // Audit/value envelopes may legitimately contain URI strings as
@@ -155,15 +154,9 @@ object BrowserReturnBridge {
             // media copy; otherwise one URI can be exported merely because it
             // appears inside methodmesh_full_json.
             if (field == "methodmesh_full_json" || field == "value") return@forEach
-            val text = value?.toString().orEmpty()
-            if (text.isBlank()) return@forEach
-
-            val uris = linkedSetOf<String>()
-            if (text.startsWith("content://")) uris += text
-            CONTENT_URI_REGEX.findAll(text).forEach { match ->
-                match.value.trimEnd('"', '\'', ']', '}', ',').takeIf { it.startsWith("content://") }?.let(uris::add)
+            ExternalReturnAttachments.contentUris(field, value).forEach { uri ->
+                found.getOrPut(uri) { mutableListOf() }.add(field)
             }
-            uris.forEach { uri -> found.getOrPut(uri) { mutableListOf() }.add(field) }
         }
         return found
     }
@@ -316,5 +309,4 @@ object BrowserReturnBridge {
             .toString()
     }
 
-    private val CONTENT_URI_REGEX = Regex("content://[^\\s\\\"',}\\]]+")
 }

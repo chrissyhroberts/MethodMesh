@@ -4,6 +4,19 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ResultShareTest {
+    @Test fun textOnlyResultsRetainTheirMessageAndAuditText() {
+        val text = ResultShare.buildShareText("Useful result", "{\"audit\":true}")
+        assertEquals(text, ResultShare.messageTextForShare(text, 0))
+    }
+    @Test fun filesNeverAdvertiseACompetingFilenameSummaryAsMessageText() {
+        val text = ResultShare.buildShareText("Proof ZIP: proof.zip", "{\"audit\":true}")
+        for (files in listOf(1, 2, 5)) assertEquals(null, ResultShare.messageTextForShare(text, files))
+        assertEquals("Proof ZIP: proof.zip\n\nmetadata.json\n{\"audit\":true}", text)
+    }
+    @Test fun blankTextDoesNotCreateAnEmptyMessageRoute() {
+        assertEquals(null, ResultShare.messageTextForShare("", 0))
+    }
+
     @Test
     fun `shareable media attachments include uri arrays from document scan fields`() {
         val fields = mapOf(

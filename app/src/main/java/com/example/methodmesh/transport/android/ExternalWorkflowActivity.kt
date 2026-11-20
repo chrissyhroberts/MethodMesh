@@ -1,8 +1,9 @@
 package com.example.methodmesh.transport.android
 
-import com.example.methodmesh.core.timeassurance.ClockAssuranceRuntime
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,14 +22,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,22 +34,24 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.ViewModelProvider
 import com.example.methodmesh.platform.devices.PlatformDeviceBootstrap
 import com.example.methodmesh.core.ResearchRuntime
 import com.example.methodmesh.core.methodmesh.ExecutionResult
-import com.example.methodmesh.core.methodmesh.TransformationStatus
-import com.example.methodmesh.core.methodmesh.runtime.As100MethodRegistry
 import com.example.methodmesh.core.methodmesh.withInvocationContext
+import com.example.methodmesh.core.methodmesh.runtime.As100MethodRegistry
 import com.example.methodmesh.calibration.CalibrationRepository
 import com.example.methodmesh.settings.DisplaySettingsRepository
 import com.example.methodmesh.transport.OutputFormatter
-import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.ReturnNamespaceProjector
 import com.example.methodmesh.transport.workflow.ConfirmedWorkflowStep
 import com.example.methodmesh.transport.workflow.ExternalActionRequest
 import com.example.methodmesh.transport.workflow.ExternalWorkflowRequest
+import com.example.methodmesh.transport.workflow.WorkflowResultProjection
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.PresetLogWriter
+import com.example.methodmesh.transport.workflow.NativePresetCloseoutPolicy
+import com.example.methodmesh.MainActivity
 import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.modules.MethodMeshModuleRegistry
@@ -60,17 +60,17 @@ import com.example.methodmesh.ui.theme.MethodMeshTheme
 /**
  * Production execution surface for third-party callers such as ODK.
  *
- * Unlike the dashboard, this activity treats each requested action as a focused
- * capability screen with capture/retry/confirm controls. Confirmed steps are
- * written into the MethodMesh graph and the final screen shows exactly what
- * will be returned to the caller.
+ * Hosts canonical capability screens, retains workflow progress across activity
+ * recreation, and projects this run's committed results back to its caller.
  */
 class ExternalWorkflowActivity : FragmentActivity() {
     private lateinit var request: ExternalWorkflowRequest
-    private var resultReturned = false
+    private lateinit var workflow: ExternalWorkflowViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        workflow = ViewModelProvider(this)[ExternalWorkflowViewModel::class.java]
+        workflow.initialise(restoringActivity = savedInstanceState != null)
         PlatformDeviceBootstrap.initialise()
         // External and scheduled launches can start the app process without
         // MainActivity ever being created. Initialise device calibration here
@@ -82,26 +82,38 @@ class ExternalWorkflowActivity : FragmentActivity() {
 
         setContent {
             MethodMeshTheme {
-                ExternalWorkflowScreen(
-                    request = request,
-                    onCancel = { finishWithCancel("Workflow cancelled.") },
-                    onReturn = { confirmed -> finishWithResult(confirmed) }
-                )
+                if (workflow.interrupted) {
+                    Column(Modifier.fillMaxSize().padding(24.dp)) {
+                        Text("Run interrupted", style = MaterialTheme.typography.headlineMedium)
+                        Spacer(Modifier.height(12.dp))
+                        Text("This run could not be restored. Close it and retry from the caller. Any device or external actions already completed may have taken effect.")
+                        Spacer(Modifier.height(12.dp))
+                        Button(onClick = { finishWithCancel("Workflow interrupted; caller retry required.") }) { Text("Close") }
+                    }
+                    BackHandler { finishWithCancel("Workflow interrupted; caller retry required.") }
+                } else {
+                    ExternalWorkflowScreen(
+                        request = request,
+                        workflow = workflow,
+                        onCancel = { finishWithCancel("Workflow cancelled.") },
+                        onReturn = { confirmed -> finishWithResult(confirmed) }
+                    )
+                }
             }
         }
     }
 
     private fun finishWithResult(confirmed: List<ConfirmedWorkflowStep>) {
-        if (resultReturned) return
-        resultReturned = true
+        if (workflow.resultReturned) return
+        workflow.resultReturned = true
         val returnNamespace = ReturnNamespaceProjector.namespaceFrom(request.settings)
         runCatching { ReturnNamespaceProjector.validate(returnNamespace) }
             .onFailure {
-                resultReturned = false
+                workflow.resultReturned = false
                 finishWithCancel(it.message ?: "Invalid MethodMesh return namespace.")
                 return
             }
-        val combined = combineResults(confirmed.map { it.result })
+        val combined = WorkflowResultProjection.combine(confirmed.map { it.result })
         val payloadMode = request.settings["payload_mode"]
             ?: request.settings["input_payload_mode"]
             ?: request.settings["return_payload"]
@@ -110,7 +122,6 @@ class ExternalWorkflowActivity : FragmentActivity() {
         val selectedFields = OutputFormatter.selectedFields(
             result = combined,
             selectors = request.returns,
-            graph = ResearchRuntime.session.graph(),
             includeProvenance = true
         )
         val fields = OutputFormatter.projectFields(selectedFields, payloadMode, combined.status)
@@ -119,7 +130,6 @@ class ExternalWorkflowActivity : FragmentActivity() {
             returnMode = request.returnMode,
             includeProvenance = true,
             selectors = request.returns,
-            graph = ResearchRuntime.session.graph(),
             payloadMode = payloadMode
         )
         val flatReturnFields = linkedMapOf<String, String?>(
@@ -159,19 +169,9 @@ class ExternalWorkflowActivity : FragmentActivity() {
         // every binary result URI. Payload projection may reduce ordinary
         // fields, but it must not silently separate the result's beef from
         // its media or audit trail.
-        flatReturnFields["methodmesh_full_json"] = OutputFormatter.format(
-            result = combined,
-            returnMode = ReturnMode.Json,
-            includeProvenance = true,
-            graph = ResearchRuntime.session.graph(),
-            payloadMode = OutputFormatter.PayloadMode.FULL
-        )
-        completeFields.forEach { (key, value) ->
-            val text = value?.toString().orEmpty()
-            if (text.startsWith("content://")) {
-                flatReturnFields[key] = text
-            }
-        }
+        flatReturnFields["methodmesh_full_json"] = WorkflowResultProjection.fullJson(confirmed.map { it.result })
+        ExternalReturnAttachments.preserveFields(completeFields, flatReturnFields)
+        addLogWarning(flatReturnFields)
 
         // Stock Enketo/browser callers cannot receive Android Activity results.
         // Browser deep links therefore receive the same projected external
@@ -194,46 +194,31 @@ class ExternalWorkflowActivity : FragmentActivity() {
             projected = ReturnIntentProjector.projectFlatReturn(flatReturnFields, returnNamespace)
         )
         setResult(RESULT_OK, data)
+        if (NativePresetCloseoutPolicy.opensHome(request.settings)) {
+            // Never clear the host's task before its confirmation/log coroutine
+            // has finished. Module screens delegate native Home to this point.
+            runCatching {
+                startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK))
+            }.onFailure { Toast.makeText(this, "Result completed. Home could not be opened.", Toast.LENGTH_LONG).show() }
+        }
         finish()
     }
 
-    private fun combineResults(results: List<ExecutionResult>): ExecutionResult {
-        val first = results.firstOrNull() ?: error("No confirmed results to return.")
-        val allSucceeded = results.all { it.status == TransformationStatus.Succeeded }
-        return first.copy(
-            status = if (allSucceeded) TransformationStatus.Succeeded else TransformationStatus.Failed,
-            entities = results.flatMap { it.entities },
-            attributes = results.flatMap { it.attributes },
-            observations = results.flatMap { it.observations },
-            relationships = results.flatMap { it.relationships },
-            classifications = results.flatMap { it.classifications },
-            transformations = results.flatMap { it.transformations },
-            states = results.flatMap { it.states },
-            validation = results.flatMap { it.validation },
-            diagnostics = results.flatMap { it.diagnostics.entries }
-                .associate { (key, value) -> key to value }
-                .plus("workflow_step_count" to results.size.toString()),
-            timeAssurance = runCatching { ClockAssuranceRuntime.snapshot() }.getOrNull(),
-            softwareProvenance = results
-                .flatMap { it.softwareProvenance }
-                .distinctBy { it.id }
-        )
-    }
-
     private fun finishWithCancel(message: String) {
-        if (resultReturned) return
-        resultReturned = true
+        if (workflow.resultReturned) return
+        workflow.resultReturned = true
         val returnNamespace = runCatching { ReturnNamespaceProjector.namespaceFrom(request.settings) }.getOrDefault("")
         val safeNamespace = runCatching {
             ReturnNamespaceProjector.validate(returnNamespace)
             returnNamespace
         }.getOrDefault("")
-        val cancelFields = linkedMapOf<String, String?>(
-            "methodmesh_closeout_status" to "cancelled",
-            "methodmesh_closeout_step_count" to "0",
-            "methodmesh_closeout_has_payload" to "false",
-            "error" to message
-        )
+        val cancelFields = WorkflowResultProjection.cancellationFields(
+            request = request,
+            currentIndex = workflow.progress.index,
+            completedStepCount = workflow.progress.confirmed.take(workflow.progress.index).size,
+            message = message
+        ).toMutableMap()
+        addLogWarning(cancelFields)
         BrowserReturnBridge.handleIfRequested(
             context = this,
             request = request,
@@ -248,6 +233,14 @@ class ExternalWorkflowActivity : FragmentActivity() {
         )
         setResult(RESULT_CANCELED, data)
         finish()
+    }
+
+    private fun addLogWarning(fields: MutableMap<String, String?>) {
+        workflow.logWarning()?.let { warning ->
+            // Storage metadata must not rewrite a method's status or FULL evidence.
+            fields["methodmesh_log_warning"] = warning
+            Toast.makeText(this, "Persistent log incomplete. Captured result returned unchanged.", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun isBrowserDeepLink(): Boolean =
@@ -266,13 +259,24 @@ private fun hasMeaningfulPayload(fields: Map<String, Any?>): Boolean =
 @Composable
 private fun ExternalWorkflowScreen(
     request: ExternalWorkflowRequest,
+    workflow: ExternalWorkflowViewModel,
     onCancel: () -> Unit,
     onReturn: (List<ConfirmedWorkflowStep>) -> Unit
 ) {
-    val confirmed = remember { mutableStateListOf<ConfirmedWorkflowStep>() }
-    var index by remember { mutableIntStateOf(0) }
-    var acceptedIndex by remember { mutableIntStateOf(-1) }
+    val progress = workflow.progress
+    val application = LocalContext.current.applicationContext
+    val confirmed = progress.confirmed
+    val index = progress.index
+    val acceptedIndex = progress.acceptedIndex
     val actions = request.actions
+    val stepState = rememberSaveableStateHolder()
+
+    BackHandler {
+        if (index > 0) workflow.progress = workflow.progress.back() else onCancel()
+    }
+    LaunchedEffect(progress.stepKey) {
+        if (actions.isNotEmpty() && index == actions.size) onReturn(confirmed)
+    }
 
     Column(
         modifier = Modifier
@@ -280,6 +284,7 @@ private fun ExternalWorkflowScreen(
             .verticalScroll(rememberScrollState())
             .padding(8.dp)
     ) {
+        workflow.logWarning()?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         if (actions.isEmpty()) {
             Text(
                 "MethodMesh",
@@ -294,46 +299,41 @@ private fun ExternalWorkflowScreen(
         }
 
         if (index < actions.size) {
-            val action = actions[index].withPipeSettings(confirmed)
+            val action = progress.actionFor(request)
             if (actions.size > 1 && acceptedIndex != index) {
                 ExternalStepIntroScreen(
                     stepNumber = index + 1,
                     totalSteps = actions.size,
                     title = action.requestedId,
-                    lastCompleted = confirmed.lastOrNull()?.let(::externalLastCompletedSummary).orEmpty(),
-                    onGo = { acceptedIndex = index },
+                    lastCompleted = confirmed.take(index).lastOrNull()?.let(::externalLastCompletedSummary).orEmpty(),
+                    onGo = { workflow.progress = workflow.progress.accept() },
                     onCancel = onCancel
                 )
             } else {
-                CapabilityStepScreen(
-                    action = action,
-                    request = request,
-                    stepNumber = index + 1,
-                    totalSteps = actions.size,
-                    canGoBack = index > 0,
-                    onBack = { if (index > 0) index -= 1 },
-                    onConfirmed = { result ->
-                        val recorded = ResearchRuntime.session.record(result.withInvocationContext(request.invocationContext))
-                        val completedStep = ConfirmedWorkflowStep(action, recorded)
-                        if (confirmed.size > index) {
-                            confirmed[index] = completedStep
-                        } else {
-                            confirmed.add(completedStep)
-                        }
-                        if (index == actions.lastIndex) {
-                            onReturn(confirmed.toList())
-                        } else {
-                            index += 1
-                        }
-                    },
-                    onCancel = onCancel
-                )
+                stepState.SaveableStateProvider(progress.stepKey) {
+                    CapabilityStepScreen(
+                        action = action,
+                        request = request,
+                        stepNumber = index + 1,
+                        totalSteps = actions.size,
+                        canGoBack = index > 0,
+                        genericResults = workflow.genericResults,
+                        stepKey = progress.stepKey,
+                        onBack = { workflow.progress = workflow.progress.back() },
+                        onConfirmed = { result ->
+                            workflow.confirmStep(progress.stepKey, action, request, result) {
+                                PresetLogWriter.record(application, request, it).warning
+                            }
+                        },
+                        onCancel = onCancel
+                    )
+                }
             }
         } else {
             ReturnSummaryScreen(
                 request = request,
                 confirmed = confirmed,
-                onBack = { index = (actions.size - 1).coerceAtLeast(0) },
+                onBack = { workflow.progress = workflow.progress.back() },
                 onReturn = { onReturn(confirmed.toList()) },
                 onCancel = onCancel
             )
@@ -380,28 +380,6 @@ private fun externalLastCompletedSummary(step: ConfirmedWorkflowStep): String {
     }
 }
 
-private fun ExternalActionRequest.withPipeSettings(confirmed: List<ConfirmedWorkflowStep>): ExternalActionRequest {
-    if (confirmed.isEmpty()) return this
-    return copy(settings = pipeSettings(confirmed) + settings)
-}
-
-private fun pipeSettings(confirmed: List<ConfirmedWorkflowStep>): Map<String, String> {
-    val piped = linkedMapOf<String, String>()
-    confirmed.forEachIndexed { index, step ->
-        val fields = OutputFormatter.fields(step.result, includeProvenance = false)
-        fields.forEach { (key, value) ->
-            val text = value?.toString().orEmpty()
-            if (text.isNotBlank()) {
-                piped["step_${index + 1}_$key"] = text
-                piped["previous_$key"] = text
-                piped.putIfAbsent(key, text)
-            }
-        }
-    }
-    return piped
-}
-
-
 @Composable
 private fun RequestDebugSummary(request: ExternalWorkflowRequest) {
     Spacer(Modifier.height(6.dp))
@@ -430,12 +408,12 @@ private fun CapabilityStepScreen(
     stepNumber: Int,
     totalSteps: Int,
     canGoBack: Boolean,
+    genericResults: MutableMap<String, ExecutionResult>,
+    stepKey: String,
     onBack: () -> Unit,
     onConfirmed: (ExecutionResult) -> Unit,
     onCancel: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val appContext = LocalContext.current
     val dashboardRequest = request.source.equals("dashboard", ignoreCase = true) ||
         request.source.equals("controller", ignoreCase = true) ||
         request.settings["methodmesh_dashboard"].orEmpty().equals("true", ignoreCase = true) ||
@@ -463,28 +441,30 @@ private fun CapabilityStepScreen(
             CapabilityCompletionMode.ManualConfirmation
         } else {
             CapabilityCompletionMode.AutomaticReturn
-        }
+        },
+        hostOwnsNativePresetCloseout = true
     )
-    capabilityScreenFor(action).Render(
+    capabilityScreenFor(action, genericResults, stepKey).Render(
         context = screenContext,
         onBack = onBack,
-        onConfirmed = { result ->
-            scope.launch {
-                runCatching { PresetLogWriter.record(appContext, request, result) }
-                onConfirmed(result)
-            }
-        },
+        onConfirmed = onConfirmed,
         onCancel = onCancel
     )
 }
 
-private fun capabilityScreenFor(action: ExternalActionRequest): CapabilityScreenSpec =
+private fun capabilityScreenFor(
+    action: ExternalActionRequest,
+    genericResults: MutableMap<String, ExecutionResult>,
+    stepKey: String
+): CapabilityScreenSpec =
     MethodMeshModuleRegistry.screenFor(action.canonicalId)
-        ?: GenericCapabilityScreen(action.canonicalId)
+        ?: GenericCapabilityScreen(action.canonicalId, genericResults, stepKey)
 
 
 private class GenericCapabilityScreen(
-    override val capabilityId: String
+    override val capabilityId: String,
+    private val genericResults: MutableMap<String, ExecutionResult>,
+    private val stepKey: String
 ) : CapabilityScreenSpec {
     override val title: String = "Capability action"
     override val description: String = "Run a registered MethodMesh method and confirm its graph result."
@@ -496,7 +476,7 @@ private class GenericCapabilityScreen(
         onConfirmed: (ExecutionResult) -> Unit,
         onCancel: () -> Unit
     ) {
-        GenericMethodWorkflowStep(context, context.stepNumber > 1, onBack, onConfirmed, onCancel)
+        GenericMethodWorkflowStep(context, context.stepNumber > 1, genericResults, stepKey, onBack, onConfirmed, onCancel)
     }
 }
 
@@ -504,6 +484,8 @@ private class GenericCapabilityScreen(
 private fun GenericMethodWorkflowStep(
     screenContext: CapabilityScreenContext,
     canGoBack: Boolean,
+    genericResults: MutableMap<String, ExecutionResult>,
+    stepKey: String,
     onBack: () -> Unit,
     onConfirmed: (ExecutionResult) -> Unit,
     onCancel: () -> Unit
@@ -511,7 +493,7 @@ private fun GenericMethodWorkflowStep(
     val action = screenContext.action
     val request = screenContext.request
     val method = As100MethodRegistry.find(action.canonicalId)
-    var result by remember { mutableStateOf<ExecutionResult?>(null) }
+    val result = genericResults[stepKey]
     var status by remember { mutableStateOf(if (method == null) "Unknown method: ${action.canonicalId}" else "Ready.") }
 
     fun runAction() {
@@ -524,11 +506,13 @@ private fun GenericMethodWorkflowStep(
             settingsState = null,
             transport = request.source
         ).withInvocationContext(request.invocationContext)
-        result = execution
+        genericResults[stepKey] = execution
         status = "Execution complete: ${execution.status.name}"
     }
 
-    LaunchedEffect(action.canonicalId) { runAction() }
+    LaunchedEffect(stepKey) {
+        if (genericResults[stepKey] == null) runAction()
+    }
 
     com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold(
         title = "Capability action",
@@ -560,23 +544,12 @@ private fun ReturnSummaryScreen(
     onReturn: () -> Unit,
     onCancel: () -> Unit
 ) {
-    val combined = remember(confirmed.size) {
-        confirmed.first().result.copy(
-            status = if (confirmed.all { it.result.status == TransformationStatus.Succeeded }) TransformationStatus.Succeeded else TransformationStatus.Failed,
-            entities = confirmed.flatMap { it.result.entities },
-            attributes = confirmed.flatMap { it.result.attributes },
-            observations = confirmed.flatMap { it.result.observations },
-            relationships = confirmed.flatMap { it.result.relationships },
-            classifications = confirmed.flatMap { it.result.classifications },
-            transformations = confirmed.flatMap { it.result.transformations },
-            states = confirmed.flatMap { it.result.states },
-            validation = confirmed.flatMap { it.result.validation }
-        )
+    val combined = remember(confirmed) {
+        WorkflowResultProjection.combine(confirmed.map { it.result })
     }
     val fields = OutputFormatter.selectedFields(
         result = combined,
         selectors = request.returns,
-        graph = ResearchRuntime.session.graph(),
         includeProvenance = true
     )
 

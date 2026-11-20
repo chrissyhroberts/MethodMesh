@@ -59,6 +59,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MethodMesh">
         <activity
+            android:name=".transport.android.DownloadStoragePermissionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:label="Save to Downloads"
+            android:theme="@style/Theme.MethodMesh" />
+        <activity
             android:name=".transport.android.ExternalWorkflowActivity"
             android:exported="false"
             android:label="MethodMesh Workflow"

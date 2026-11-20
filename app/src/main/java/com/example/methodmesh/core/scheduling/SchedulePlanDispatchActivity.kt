@@ -13,8 +13,21 @@ import com.example.methodmesh.transport.android.IntentRouterActivity
 import org.json.JSONObject
 
 class SchedulePlanDispatchActivity : Activity() {
+    private var checkpoint = DispatchCheckpoint()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState != null) {
+            checkpoint = DispatchCheckpoint.restore(savedInstanceState.getString("dispatch_phase"), true, null)
+        }
+        // Android owns the already-started child's pending result registration.
+        // Do not repeat IN_PROGRESS, notifier side effects or child launches.
+        if (checkpoint.phase == DispatchCheckpoint.Phase.AwaitingResult) return
+        if (checkpoint.phase !in setOf(DispatchCheckpoint.Phase.New, DispatchCheckpoint.Phase.Ready)) {
+            finishTransientTask()
+            return
+        }
+        checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.Ready)
         val instance = SchedulePlanStore.instance(this, intent.getStringExtra("instance_id").orEmpty())
         val occurrence = instance?.occurrences?.firstOrNull { it.id == intent.getStringExtra("occurrence_id") }
         if (instance == null || occurrence == null) {
@@ -38,6 +51,7 @@ class SchedulePlanDispatchActivity : Activity() {
                 SchedulePresetLaunchMode.BACKGROUND -> PresetLaunchMode.BACKGROUND
                 SchedulePresetLaunchMode.FOLLOW_PRESET -> PresetLaunchMode.normalize(preset.launchMode)
             }
+            checkpoint = checkpoint.beginChild() ?: return
             startActivityForResult(Intent(this, IntentRouterActivity::class.java).apply {
                 this.action = "com.example.methodmesh.EXECUTE_METHOD"
                 putExtra("method_id", preset.methodId)
@@ -67,21 +81,31 @@ class SchedulePlanDispatchActivity : Activity() {
                 }
             }, REQUEST_PRESET)
         } else {
+            checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.ResultReceived)
             SchedulePlanStore.updateActionExecution(this, instance.id, occurrence.id, actionIndex, ScheduleActionExecutionState.COMPLETED)
             Toast.makeText(this, action?.message?.ifBlank { occurrence.laneName } ?: occurrence.laneName, Toast.LENGTH_LONG).show()
             continueOrComplete(instance.id, occurrence.id, actionIndex)
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("dispatch_phase", checkpoint.phase.name)
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != REQUEST_PRESET) return
+        checkpoint = checkpoint.takeResult() ?: return
         val instanceId = intent.getStringExtra("instance_id").orEmpty()
         val occurrenceId = intent.getStringExtra("occurrence_id").orEmpty()
         val instance = SchedulePlanStore.instance(this, instanceId)
         val occurrence = instance?.occurrences?.firstOrNull { it.id == occurrenceId }
         val actionIndex = intent.getIntExtra("action_index", 0)
-        if (instance == null || occurrence == null || resultCode != RESULT_OK) {
+        val fields = data?.extras?.let { extras ->
+            extras.keySet().associateWith { key -> extras.getString(key) }
+        }.orEmpty()
+        if (instance == null || occurrence == null || !CapabilityReturnCompletion.succeeded(resultCode == RESULT_OK, fields)) {
             SchedulePlanStore.updateActionExecution(this, instanceId, occurrenceId, actionIndex, ScheduleActionExecutionState.FAILED, "Preset returned without successful completion")
             complete(instanceId, occurrenceId, ScheduleOccurrenceState.FAILED)
         } else {
@@ -98,6 +122,7 @@ class SchedulePlanDispatchActivity : Activity() {
         if (nextIndex >= occurrence.actions.size) {
             complete(instanceId, occurrenceId, ScheduleOccurrenceState.COMPLETED)
         } else {
+            checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.Finished)
             startActivity(Intent(this, SchedulePlanDispatchActivity::class.java).apply {
                 putExtra("instance_id", instanceId)
                 putExtra("occurrence_id", occurrenceId)
@@ -119,6 +144,7 @@ class SchedulePlanDispatchActivity : Activity() {
      * whatever the user was doing beforehand.
      */
     private fun finishTransientTask() {
+        checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.Finished)
         finishAndRemoveTask()
     }
 

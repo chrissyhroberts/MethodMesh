@@ -112,6 +112,10 @@ object RilRequestParser {
 
     private fun isResultDirective(line: String): Boolean {
         val lower = line.lowercase()
+        // Explicit invocation wins over selector heuristics. A canonical method
+        // ID may itself contain entity./state./execution. (for example
+        // crypto.identity.export); that does not turn an execute command into a return.
+        if (lower.startsWith("execute ")) return false
         return lower.startsWith("return ") ||
             lower.startsWith("data ") ||
             lower.startsWith("provenance ") ||

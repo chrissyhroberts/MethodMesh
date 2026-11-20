@@ -36,7 +36,11 @@ class IntentRouterActivity : ComponentActivity() {
             intent.categories?.contains(Intent.CATEGORY_BROWSABLE) == true &&
             intent.data?.scheme.equals("methodmesh", ignoreCase = true)
 
-        workflowLauncher.launch(workflowIntentFor(intent))
+        // ActivityResultRegistry restores the pending child/result on recreation.
+        // Launching again here would repeat the caller's workflow after rotation.
+        if (savedInstanceState == null) {
+            workflowLauncher.launch(workflowIntentFor(intent))
+        }
     }
 
     /**
