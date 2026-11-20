@@ -143,3 +143,9 @@ Metadata: complete structured selection, events, audit hash and FULL execution J
 - Only ODK/external automatic runs and genuine headless/protocol/sequence execution return immediately on Commit.
 - Result construction is guarded so a commit/projection error is surfaced in-place rather than tearing down the activity.
 - On full-screen presets, the committed SVG preview contracts and the canonical result actions occupy a dedicated scrollable region so Share/Copy/Save/JSON/Done remain reachable on smaller displays.
+
+## 24 October 2026 — exact evidence and preset completion
+
+Both native result surfaces pass launch context to common actions; final preset Share/Save gates confirmation and Downloads writes run off the UI thread. The full-screen header no longer has an extra Done that bypasses those actions. The original execution survives recreation instead of being rebuilt by executing saved selection/events. Missing original evidence exposes explicit new-run recovery. No selection algorithm, SVG/polygon identity or canonical field changes.
+
+Actual-screen tests inject a synthetic frozen record for rotation/Done and verify native-preset dialog chooser dispatch before confirmation; shared component tests cover failed Share/Save. The Dialog's replaced LocalContext requires a chooser monitor, so actual Dialog launch failure is not separately fault-injected. Real polygon/heatmap acquisition, OS process death and Collect acceptance remain open. See docs/handoffs/CANONICAL_ACTIONS_AND_RESULT_RETENTION_2026-10-24.md for the focused 27 JVM / multi-run Android limits.
