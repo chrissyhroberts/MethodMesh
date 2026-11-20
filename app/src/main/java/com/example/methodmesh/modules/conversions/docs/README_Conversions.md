@@ -38,6 +38,8 @@ Percentage, ratio/proportion, date difference, date arithmetic, age and simple g
 - Working input state uses saveable Compose state, so ordinary activity recreation restores the working configuration and the result is regenerated from it.
 - The native instrument projects the ordinary MethodMesh lifecycle as compact in-panel Back/Cancel/Commit controls while still returning through the shared launch-origin closeout contract; it does not introduce a private result screen.
 - On manual/native **Commit**, the current result is frozen in-place and the keypad/working region becomes a compact post-commit action bay with **Copy**, **Share**, **Save**, **Full JSON**, **Edit**, and **Done**. Share/Save use the capability’s canonical human result (`conversion_summary`, falling back to answer value+unit) through the shared MethodMesh transport services; the module does not build receiver-specific Android intents.
+- Ordinary activity recreation retains the exact committed execution, including its original execution ID and temporal/software evidence. It does not reconstruct a committed envelope from saved calculator values. The full payload stays in run-isolated memory, outside Android's saved-state Bundle. If process loss removes that execution, the screen requires an explicit new run; a saved readout is not promoted into fabricated historical evidence.
+- Preset Save/Share-and-finish closes only when the requested operation succeeds. A failed operation keeps the committed result available with its error so the operator can retry; it does not silently confirm completion.
 - ODK/external automatic-return runs do not expose this native action bay: Commit returns the canonical payload directly to the caller, preserving the external-roundtrip contract.
 
 

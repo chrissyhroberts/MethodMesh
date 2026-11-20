@@ -97,7 +97,7 @@ object ConversionsCapabilityScreen : CapabilityScreenSpec {
         }
         var result by remember { mutableStateOf<ExecutionResult?>(null) }
         var workingValues by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
-        var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
+        var committedResult by rememberRetainedExecutionResult("${context.action.canonicalId}:committed")
         var committedValuesJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var presetDialogOpen by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
@@ -209,19 +209,17 @@ object ConversionsCapabilityScreen : CapabilityScreenSpec {
                 }.getOrNull()
             }.orEmpty()
         }
-        val restoredCommittedResult = remember(committedValuesJson, category, value, value2, value3, from, to, operation, date1, date2, shape, decimalPlaces) {
-            if (committedValuesJson.isNullOrBlank() || restoredCommittedValues.isEmpty()) {
-                null
-            } else {
-                val restoredSettings = settings()
-                val request = As100ConversionsMethod.request(
-                    action = capabilityId,
-                    context = context.request.invocationContext.asMap(capabilityId) + context.action.settings + restoredSettings,
-                    signals = emptyList(),
-                    inputs = emptyList()
-                )
-                As100ConversionsMethod.result(request, restoredCommittedValues, context.request.invocationContext)
+        if (committedValuesJson != null && committedResult == null) {
+            // A saved readout is not the original execution's identity/timing.
+            // Ordinary rotation retains it in memory; process loss requires an
+            // explicit new run, never a fabricated committed envelope.
+            Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(24.dp)) {
+                Text("Committed result unavailable", style = MaterialTheme.typography.headlineSmall)
+                Text("The previous execution could not be restored after restart. Start a new run to calculate and commit a new result.")
+                Button(onClick = { committedValuesJson = null }) { Text("Start new run") }
+                OutlinedButton(onClick = onCancel) { Text("Close") }
             }
+            return
         }
 
         // Immersive capability surface: the host gives this screen the real viewport.
@@ -240,7 +238,7 @@ object ConversionsCapabilityScreen : CapabilityScreenSpec {
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                val frozenResult = committedResult ?: restoredCommittedResult
+                val frozenResult = committedResult
                 InstrumentHeader(
                     category = category,
                     canGoBack = context.stepNumber > 1 && frozenResult == null,
@@ -873,7 +871,7 @@ private fun InstrumentCommittedActions(
             .onFailure { status = "Copy failed: ${it.message ?: "no text result"}" }
     }
 
-    fun shareResult() {
+    fun shareResult(): Boolean =
         runCatching {
             ResultShare.share(
                 context = appContext,
@@ -885,9 +883,9 @@ private fun InstrumentCommittedActions(
             )
         }.onSuccess { status = "Sharing committed result…" }
             .onFailure { status = "Share failed: ${it.message ?: "no sharing app available"}" }
-    }
+            .isSuccess
 
-    fun saveResult() {
+    fun saveResult(): Boolean =
         runCatching {
             OutputExportRepository.saveToDownloads(
                 context = appContext,
@@ -898,10 +896,10 @@ private fun InstrumentCommittedActions(
             )
         }.onSuccess { status = "Saved ${it.summary}" }
             .onFailure { status = "Save failed: ${it.message ?: "storage error"}" }
-    }
+            .isSuccess
 
     fun finishNativePresetHome() {
-        if (finishToLauncher) {
+        if (finishToLauncher || context.hostOwnsNativePresetCloseout) {
             onDone()
             return
         }
@@ -919,12 +917,10 @@ private fun InstrumentCommittedActions(
         }
         when (presetAction) {
             PresetResultAction.SAVE -> {
-                saveResult()
-                onDone()
+                if (saveResult()) onDone()
             }
             PresetResultAction.SHARE -> {
-                shareResult()
-                finishNativePresetHome()
+                if (shareResult()) finishNativePresetHome()
             }
             else -> finishNativePresetHome()
         }
@@ -955,14 +951,14 @@ private fun InstrumentCommittedActions(
                 label = "SHARE",
                 enabled = hasShareableResult,
                 modifier = Modifier.weight(1f),
-                onClick = ::shareResult
+                onClick = { shareResult() }
             )
 
             InstrumentPostCommitButton(
                 label = "SAVE",
                 enabled = hasShareableResult,
                 modifier = Modifier.weight(1f),
-                onClick = ::saveResult
+                onClick = { saveResult() }
             )
         }
 
