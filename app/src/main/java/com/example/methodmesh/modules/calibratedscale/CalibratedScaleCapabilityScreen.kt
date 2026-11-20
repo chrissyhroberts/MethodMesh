@@ -16,6 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -32,7 +35,7 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.transport.workflow.ui.IntentExample
 import com.example.methodmesh.transport.workflow.ui.IntentExampleDropdown
-import org.json.JSONObject
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 
 object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId: String = As100CalibratedScaleMethod.ID
@@ -50,15 +53,21 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
         val request = context.request
         val interaction = remember { CalibratedScaleInteraction() }
         val calibration by CalibrationRepository.calibration
-        val settings = remember(action.settings) {
+        val onSettingsChanged by rememberUpdatedState(context.onSettingsChanged)
+        val settings = rememberSaveable(
+            action.settings,
+            saver = calibratedScaleSettingsSaver(interaction.settings) { key, value ->
+                onSettingsChanged(mapOf(key to value.toString()))
+            }
+        ) {
             SettingsState(interaction.settings) { key, value ->
-                context.onSettingsChanged(mapOf(key to value.toString()))
+                onSettingsChanged(mapOf(key to value.toString()))
             }.also { state ->
                 applyParameters(state, interaction.settings, action.settings)
             }
         }
-        var resultContextJson by rememberSaveable(action.canonicalId) { mutableStateOf<String?>(null) }
-        var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        var hasCapturedMeasurement by rememberSaveable(action.canonicalId) { mutableStateOf(false) }
+        var result by rememberRetainedExecutionResult(action.canonicalId)
         var status by rememberSaveable(action.canonicalId) { mutableStateOf("Ready to measure.") }
         var touchedValuesText by rememberSaveable(action.canonicalId) { mutableStateOf("") }
         val touchedValues = remember(touchedValuesText) {
@@ -98,20 +107,32 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
             return execution
         }
 
-        val restoredResult = remember(resultContextJson, action.settings, request.source) {
-            resultContextJson
-                ?.let(::calibratedScaleContextFromJson)
-                ?.let(::buildResult)
-        }
-        val capturedResult = result ?: restoredResult
+        val capturedResult = result
 
         fun captureValue(): ExecutionResult {
+            result?.let { return it }
             val contextValues = measurementContextValues()
             val execution = buildResult(contextValues)
             result = execution
-            resultContextJson = calibratedScaleContextToJson(contextValues)
+            hasCapturedMeasurement = true
             status = "Measurement captured."
             return execution
+        }
+
+        if (hasCapturedMeasurement && capturedResult == null) {
+            // Saved values cannot reproduce the original execution's identity,
+            // clock evidence or calibration snapshot after process loss.
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Captured measurement unavailable")
+                Text("The previous execution could not be restored after restart. Start a new measurement and select the marker(s) again.")
+                Button(onClick = {
+                    hasCapturedMeasurement = false
+                    setTouchedValues(emptySet())
+                    status = "Ready to measure."
+                }) { Text("Start new measurement") }
+                OutlinedButton(onClick = onCancel) { Text("Close") }
+            }
+            return
         }
 
         if (context.startsImmediately && capturedResult == null) {
@@ -143,7 +164,7 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
             onBack = onBack,
             onRetry = {
                 result = null
-                resultContextJson = null
+                hasCapturedMeasurement = false
                 setTouchedValues(emptySet())
                 status = "Ready to measure."
             },
@@ -303,7 +324,7 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
             interaction.Render(settings) { valueId ->
                 setTouchedValues(touchedValues + valueId)
                 result = null
-                resultContextJson = null
+                hasCapturedMeasurement = false
                 status = "Selection changed. Capture when ready."
             }
             Spacer(Modifier.height(10.dp))
@@ -374,15 +395,19 @@ object CalibratedScaleCapabilityScreen : CapabilityScreenSpec {
     }
 }
 
-private fun calibratedScaleContextToJson(values: Map<String, String>): String =
-    JSONObject().apply { values.toSortedMap().forEach { (key, value) -> put(key, value) } }.toString()
-
-private fun calibratedScaleContextFromJson(json: String): Map<String, String> = runCatching {
-    val root = JSONObject(json.ifBlank { "{}" })
-    buildMap {
-        root.keys().forEach { key -> put(key, root.optString(key)) }
+// Save typed working values together with the separately saved selection flags.
+// Restoring must not emit new operator-input callbacks.
+internal fun calibratedScaleSettingsSaver(
+    schema: List<MethodSetting>,
+    onValueChanged: (String, Any) -> Unit = { _, _ -> }
+): Saver<SettingsState, Any> = mapSaver(
+    save = { it.asMap() },
+    restore = { saved ->
+        SettingsState(schema, onValueChanged).also { state ->
+            state.restore(saved.filterValues { it != null }.mapValues { requireNotNull(it.value) })
+        }
     }
-}.getOrDefault(emptyMap())
+)
 
 private fun Float.formatConfigNumber(): String =
     if (this % 1f == 0f) toInt().toString() else toString()

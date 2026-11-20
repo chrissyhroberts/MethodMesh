@@ -23,6 +23,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -414,6 +419,7 @@ class CalibratedScaleInteraction {
                         }
 
                         CanvasScale(
+                            label = label,
                             value = current,
                             minimum = scaleMinimum,
                             maximum = scaleMaximum,
@@ -424,6 +430,7 @@ class CalibratedScaleInteraction {
                     }
                 } else {
                     CanvasScale(
+                        label = label,
                         value = current,
                         minimum = scaleMinimum,
                         maximum = scaleMaximum,
@@ -449,6 +456,7 @@ class CalibratedScaleInteraction {
 
     @Composable
     private fun CanvasScale(
+        label: String,
         value: Float,
         minimum: Float,
         maximum: Float,
@@ -467,7 +475,21 @@ class CalibratedScaleInteraction {
         }
 
         Box(
-            modifier = modifier.pointerInput(minimum, maximum, vertical) {
+            modifier = modifier.semantics {
+                contentDescription = label
+                accessibleScaleValue(value, minimum, maximum)?.let { current ->
+                    progressBarRangeInfo = ProgressBarRangeInfo(current, minimum..maximum)
+                    setProgress { proposed ->
+                        val selected = accessibleScaleValue(proposed, minimum, maximum)
+                        if (selected == null) false else {
+                            // Same path as a deliberate drag; range constraints and
+                            // the requirement to select every marker still apply.
+                            onValueChange(selected)
+                            true
+                        }
+                    }
+                }
+            }.pointerInput(minimum, maximum, vertical) {
                 detectDragGestures(
                     onDragStart = { offset ->
                         onValueChange(
@@ -562,6 +584,11 @@ class CalibratedScaleInteraction {
 
 
 }
+
+internal fun accessibleScaleValue(value: Float, minimum: Float, maximum: Float): Float? =
+    if (value.isFinite() && minimum.isFinite() && maximum.isFinite() && maximum > minimum) {
+        value.coerceIn(minimum, maximum)
+    } else null
 
 internal fun formatScaleCurrentValue(
     value: Float,

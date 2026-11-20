@@ -60,6 +60,18 @@ screen calibration without cluttering the form with extra visible columns.
 The live current-value label always shows decimal precision (`5.0`, `5.4`, or
 `0.25` for a 0–1 scale) so the interaction is visibly continuous.
 
+## Recreation and accessible selection
+
+Working values and configuration survive ordinary activity recreation together
+with the marker-selection flags. Accessible progress actions follow the same
+selection path as dragging: a scalar requires an explicit selection, and a range
+still requires both markers. Physical line sizing and range constraints are unchanged.
+
+Once captured, the exact original execution (including calibration, identity and
+clock evidence) is retained in memory through recreation, not rebuilt from values.
+If that execution is unavailable after restart, the operator must explicitly start
+a new measurement and select the marker(s) again. This is not durable result storage.
+
 ## ODK examples
 
 Each workbook is independently importable:
