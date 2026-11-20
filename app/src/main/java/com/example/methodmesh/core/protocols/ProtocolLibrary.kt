@@ -155,10 +155,12 @@ object ProtocolLibraryRepository {
 
     fun removePreset(context: Context, id: String) {
         writeArray(context, PRESETS, JSONArray().apply { presets(context).filterNot { it.id == id }.forEach { put(encodePreset(it)) } })
+        PresetFavoritesRepository.set(context, id, false)
     }
 
     fun removeProtocol(context: Context, id: String) {
         writeArray(context, PROTOCOLS, JSONArray().apply { protocols(context).filterNot { it.id == id }.forEach { put(encodeProtocol(it)) } })
+        ProtocolFavoritesRepository.set(context, id, false)
     }
 
     fun archiveProtocol(context: Context, id: String): Boolean {
