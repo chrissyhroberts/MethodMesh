@@ -631,7 +631,7 @@ internal object WeatherCalculations {
 
     private fun input(s: Map<String, String>, key: String): String = (s[key] ?: s["input_$key"] ?: s["previous_$key"]).orEmpty().trim()
     private fun provider(s: Map<String, String>) = input(s, "provider").ifBlank { "Open-Meteo" }
-    private fun retrieved(s: Map<String, String>) = input(s, "retrieved_time_iso").ifBlank { Instant.now().toString() }
+    private fun retrieved(s: Map<String, String>) = input(s, "retrieved_time_iso")
     private fun fromCache(s: Map<String, String>) = input(s, "from_cache").ifBlank { "false" }
     private fun age(s: Map<String, String>) = input(s, "data_age_hours")
     private fun apiError(s: Map<String, String>) = input(s, "api_error").ifBlank { "Weather data are unavailable." }

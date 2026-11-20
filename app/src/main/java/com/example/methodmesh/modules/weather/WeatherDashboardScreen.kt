@@ -44,9 +44,8 @@ import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -65,7 +64,8 @@ internal fun WeatherDashboardScreen(
     context: CapabilityScreenContext,
     onBack: () -> Unit,
     onConfirmed: (ExecutionResult) -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    captureWeather: (WeatherMethodBase, Map<String, String>) -> WeatherRuntimeCapture = WeatherRuntime::capture
 ) {
     val app = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -75,9 +75,10 @@ internal fun WeatherDashboardScreen(
     var rainThreshold by rememberSaveable { mutableStateOf(context.action.settings["threshold_mm_per_hour"] ?: context.action.settings["input_threshold_mm_per_hour"] ?: "0.2") }
     var offlineOnly by rememberSaveable { mutableStateOf((context.action.settings["offline_only"] ?: context.action.settings["input_offline_only"]).equals("true", true)) }
     var payloadJson by rememberSaveable { mutableStateOf("") }
-    var committedDashboardJson by rememberSaveable { mutableStateOf("") }
-    var committedSettingsJson by rememberSaveable { mutableStateOf("") }
-    var running by rememberSaveable { mutableStateOf(false) }
+    var payloadSettingsJson by rememberSaveable { mutableStateOf("") }
+    var committedExecution by rememberRetainedExecutionResult("${context.action.canonicalId}:committed")
+    var wasCommitted by rememberSaveable { mutableStateOf(false) }
+    var running by remember { mutableStateOf(false) }
     var message by rememberSaveable { mutableStateOf("Locating…") }
     var attempted by rememberSaveable { mutableStateOf(false) }
     var showLocation by rememberSaveable { mutableStateOf(context.isNativePresetRun && context.runtimeInputFields.isNotEmpty()) }
@@ -115,83 +116,98 @@ internal fun WeatherDashboardScreen(
             context.request.invocationContext
         )
 
-    val committedExecution = remember(committedDashboardJson, committedSettingsJson) {
-        val values = committedDashboardJson.toStringMap()
-        val settings = committedSettingsJson.toStringMap()
-        values.takeIf { it.isNotEmpty() }?.let { buildDashboardExecution(it, settings.ifEmpty { currentSettings() }) }
+    LaunchedEffect(Unit) {
+        if (wasCommitted && committedExecution == null) {
+            payloadJson = ""
+            payloadSettingsJson = ""
+            wasCommitted = false
+            message = "Committed result unavailable. Refresh and Commit a new result."
+        } else if (!running && message in setOf("Refreshing weather…", "Getting current location…")) {
+            message = "Previous request was interrupted. Refresh to retry."
+        }
     }
 
     fun runDashboard() {
         if (running || latitude.toDoubleOrNull() == null || longitude.toDoubleOrNull() == null) return
         running = true
         message = "Refreshing weather…"
+        val settings = currentSettings().toMap()
         scope.launch {
-            val settings = currentSettings()
-            val capture = withContext(Dispatchers.IO) {
-                coroutineScope {
-                    val atmosphereDeferred = async { WeatherRuntime.capture(As100WeatherAtmosphereMethod, settings).values }
-                    val modelDeferred = async { WeatherRuntime.capture(As100WeatherModelCompareMethod, settings).values }
-                    val dashboardCapture = WeatherRuntime.capture(
-                        As100WeatherDashboardMethod,
-                        settings + ("horizon_hours" to "240")
-                    )
-                    val shared = dashboardCapture.settings
-                    val radarSettings = dashboardCapture.radarPayload?.let { p ->
-                        shared + mapOf(
-                            "provider" to p.provider,
-                            "retrieved_time_iso" to p.retrievedTimeIso,
-                            "from_cache" to p.fromCache.toString(),
-                            "data_age_hours" to p.dataAgeHours?.toString().orEmpty(),
-                            "api_error" to p.error
+            try {
+                val capture = withContext(Dispatchers.IO) {
+                    coroutineScope {
+                        val atmosphereDeferred = async { captureWeather(As100WeatherAtmosphereMethod, settings).values }
+                        val modelDeferred = async { captureWeather(As100WeatherModelCompareMethod, settings).values }
+                        val dashboardCapture = captureWeather(
+                            As100WeatherDashboardMethod,
+                            settings + ("horizon_hours" to "240")
                         )
-                    } ?: shared
-                    val snapshotTime = dashboardCapture.values["weather_dashboard_valid_time_iso"].orEmpty()
-                    mapOf(
-                        "dashboard" to dashboardCapture.values,
-                        "conditions" to As100WeatherConditionsMethod.calculate(shared),
-                        "forecast" to As100WeatherForecastMethod.calculate(shared + ("horizon_hours" to "168")),
-                        "precipitation" to As100WeatherPrecipitationMethod.calculate(shared + ("horizon_hours" to "24")),
-                        "radar" to As100WeatherRadarMethod.calculate(radarSettings + ("zoom" to "5")),
-                        "meteogram" to As100WeatherMeteogramMethod.calculate(shared + ("horizon_hours" to "72")),
-                        "wind" to As100WeatherWindMethod.calculate(shared),
-                        "sun" to As100WeatherSunMethod.calculate(shared),
-                        "snapshot" to As100WeatherSnapshotMethod.calculate(shared + mapOf("target_time_iso" to snapshotTime, "source_policy" to "forecast")),
-                        "atmosphere" to atmosphereDeferred.await(),
-                        "model_compare" to modelDeferred.await()
-                    )
+                        val shared = dashboardCapture.settings
+                        val radarSettings = dashboardCapture.radarPayload?.let { p ->
+                            shared + mapOf(
+                                "provider" to p.provider,
+                                "retrieved_time_iso" to p.retrievedTimeIso,
+                                "from_cache" to p.fromCache.toString(),
+                                "data_age_hours" to p.dataAgeHours?.toString().orEmpty(),
+                                "api_error" to p.error
+                            )
+                        } ?: shared
+                        val snapshotTime = dashboardCapture.values["weather_dashboard_valid_time_iso"].orEmpty()
+                        mapOf(
+                            "dashboard" to dashboardCapture.values,
+                            "conditions" to As100WeatherConditionsMethod.calculate(shared),
+                            "forecast" to As100WeatherForecastMethod.calculate(shared + ("horizon_hours" to "168")),
+                            "precipitation" to As100WeatherPrecipitationMethod.calculate(shared + ("horizon_hours" to "24")),
+                            "radar" to As100WeatherRadarMethod.calculate(radarSettings + ("zoom" to "5")),
+                            "meteogram" to As100WeatherMeteogramMethod.calculate(shared + ("horizon_hours" to "72")),
+                            "wind" to As100WeatherWindMethod.calculate(shared),
+                            "sun" to As100WeatherSunMethod.calculate(shared),
+                            "snapshot" to As100WeatherSnapshotMethod.calculate(shared + mapOf("target_time_iso" to snapshotTime, "source_policy" to "forecast")),
+                            "atmosphere" to atmosphereDeferred.await(),
+                            "model_compare" to modelDeferred.await()
+                        )
+                    }
                 }
+                payloadJson = JSONObject().apply { capture.forEach { (k, v) -> put(k, JSONObject(v)) } }.toString()
+                payloadSettingsJson = JSONObject(settings).toString()
+                message = "Live dashboard"
+                context.onSettingsChanged(settings)
+                if (context.submitsImmediately) onConfirmed(buildDashboardExecution(capture["dashboard"].orEmpty(), settings))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                message = "Weather refresh failed: ${failure.message ?: "Unable to complete request"}"
+            } finally {
+                running = false
             }
-            payloadJson = JSONObject().apply { capture.forEach { (k, v) -> put(k, JSONObject(v)) } }.toString()
-            running = false
-            message = "Live dashboard"
-            context.onSettingsChanged(settings)
-            if (context.submitsImmediately) onConfirmed(buildDashboardExecution(capture["dashboard"].orEmpty(), settings))
         }
     }
 
     fun useGps() {
-        if (!hasDashboardLocationPermission(app)) return
+        if (running || !hasDashboardLocationPermission(app)) return
         running = true
         message = "Getting current location…"
-        val token = CancellationTokenSource()
-        LocationServices.getFusedLocationProviderClient(app)
-            .getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, token.token)
-            .addOnSuccessListener { loc ->
+        scope.launch {
+            var refresh = false
+            try {
+                val loc = weatherDeviceLocation(app)
                 if (loc == null) {
-                    running = false
                     message = "Current GPS position unavailable."
                 } else {
                     latitude = loc.latitude.toString()
                     longitude = loc.longitude.toString()
-                    running = false
                     showLocation = false
-                    runDashboard()
+                    refresh = true
                 }
-            }
-            .addOnFailureListener {
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                message = failure.message ?: "Location failed."
+            } finally {
                 running = false
-                message = it.message ?: "Location failed."
             }
+            if (refresh) runDashboard()
+        }
     }
 
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -270,6 +286,9 @@ internal fun WeatherDashboardScreen(
         }
 
         Spacer(Modifier.height(12.dp))
+        if (!running && dashboard.isNotEmpty() && (message.startsWith("Weather refresh failed:") || message.startsWith("Previous request"))) {
+            Text(message, color = MaterialTheme.colorScheme.error)
+        }
         when {
             running && dashboard.isEmpty() -> LoadingDashboard(message)
             dashboard.isEmpty() -> DashboardEmpty(message)
@@ -386,12 +405,13 @@ internal fun WeatherDashboardScreen(
                     Spacer(Modifier.height(10.dp))
                     Button(
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = !running && payloadSettingsJson.isNotBlank(),
                         onClick = {
-                            committedDashboardJson = JSONObject(dashboard).toString()
-                            committedSettingsJson = JSONObject(currentSettings()).toString()
+                            committedExecution = buildDashboardExecution(dashboard, payloadSettingsJson.toStringMap())
+                            wasCommitted = true
                             message = "Committed dashboard snapshot. Live refreshes no longer alter the frozen payload."
                         }
-                    ) { Text(if (committedDashboardJson.isBlank()) "Commit dashboard snapshot" else "Recommit dashboard snapshot") }
+                    ) { Text(if (committedExecution == null) "Commit dashboard snapshot" else "Recommit dashboard snapshot") }
                 }
             }
         }
@@ -402,7 +422,7 @@ internal fun WeatherDashboardScreen(
                 context = context,
                 label = "Weather dashboard",
                 result = execution,
-                workingChanged = dashboard.isNotEmpty() && committedDashboardJson != JSONObject(dashboard).toString(),
+                workingChanged = dashboard != execution.observations.singleOrNull()?.values || currentSettings().any { (key, value) -> execution.request.context[key] != value },
                 onDone = { onConfirmed(execution) }
             )
         }

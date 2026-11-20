@@ -2,6 +2,7 @@ package com.example.methodmesh.modules.weather
 
 import com.example.methodmesh.core.onlinedata.ApiAttribution
 import com.example.methodmesh.core.onlinedata.ApiDefinition
+import com.example.methodmesh.core.onlinedata.ApiExecutionResult
 import com.example.methodmesh.core.onlinedata.ApiDefinitionOrigin
 import com.example.methodmesh.core.onlinedata.ApiGetExecutor
 import com.example.methodmesh.core.onlinedata.ApiGetRequest
@@ -221,14 +222,18 @@ internal object WeatherOnlineData {
                 researchLinked = researchLinked
             )
         )
+        return fromExecutionResult(definition, result)
+    }
+
+    internal fun fromExecutionResult(definition: ApiDefinition, result: ApiExecutionResult, now: Instant = Instant.now()): WeatherOnlinePayload {
         val ok = result.status == OnlineExecutionStatus.SUCCESS || result.status == OnlineExecutionStatus.STALE_CACHE
         val retrieved = result.meta.retrievedAt
-        val age = retrieved?.let { Duration.between(it, Instant.now()).seconds.coerceAtLeast(0) / 3600.0 }
+        val age = retrieved?.let { Duration.between(it, now).seconds.coerceAtLeast(0) / 3600.0 }
         return WeatherOnlinePayload(
             definitionId = definition.id,
             provider = definition.attribution.providerName,
             json = if (ok) result.data.toJsonString() else "",
-            retrievedTimeIso = (retrieved ?: result.meta.requestedAt).toString(),
+            retrievedTimeIso = retrieved?.toString().orEmpty(),
             fromCache = result.meta.fromCache,
             stale = result.meta.isStale,
             dataAgeHours = age,
