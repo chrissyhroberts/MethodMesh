@@ -40,6 +40,14 @@ specific revision is supported, and deletion requires explicit confirmation
 before all revisions for that memory are removed. Screenshots, OCR text, and
 extracted values are intentionally excluded.
 
+## `screen.visual_extract`
+
+Visual extraction runs local OCR against one frame and either the current
+volatile selections or a specific encrypted memory revision. Values are shown
+as editable working fields; empty or ambiguous regions cannot be committed.
+The result records the frame reference and pinned memory version and exposes
+validated dynamic field names alongside the stable JSON values object.
+
 ## Integration boundary
 
 The module is discovered from `ScreenToolsModule.kt`. The MediaProjection

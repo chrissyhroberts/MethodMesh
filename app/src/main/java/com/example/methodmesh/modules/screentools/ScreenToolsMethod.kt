@@ -85,6 +85,24 @@ object ScreenMemoryFields {
     )
 }
 
+object ScreenExtractFields {
+    const val STATUS = "screen_extract_status"
+    const val ERROR = "screen_extract_error"
+    const val FRAME_REF = "screen_extract_frame_ref"
+    const val CAPTURE_TIME_ISO = "screen_extract_capture_time_iso"
+    const val MEMORY_ID = "screen_extract_memory_id"
+    const val MEMORY_VERSION = "screen_extract_memory_version"
+    const val VALUES_JSON = "screen_extract_values_json"
+    const val DYNAMIC_FIELDS_JSON = "screen_extract_dynamic_fields_json"
+    const val FIELD_COUNT = "screen_extract_field_count"
+    const val RETENTION = "screen_extract_retention"
+
+    val outputs = listOf(
+        STATUS, ERROR, FRAME_REF, CAPTURE_TIME_ISO, MEMORY_ID,
+        MEMORY_VERSION, VALUES_JSON, DYNAMIC_FIELDS_JSON, FIELD_COUNT, RETENTION
+    )
+}
+
 object ScreenCaptureMethod : As100Method {
     const val ID = "screen.capture"
     private const val VERSION = "0.1.0"
@@ -384,6 +402,88 @@ object ScreenMemoryMethod : As100Method {
             transformations = listOf(transformation),
             diagnostics = if (succeeded) emptyMap() else mapOf(
                 ScreenMemoryFields.ERROR to values[ScreenMemoryFields.ERROR].orEmpty()
+            )
+        ).withInvocationContext(invocation)
+    }
+}
+
+object ScreenExtractMethod : As100Method {
+    const val ID = "screen.visual_extract"
+    private const val VERSION = "0.1.0"
+
+    override val id = ID
+    override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Visual extraction")
+    override val descriptor = MethodDescriptor(
+        id = ArchitectureId(ID),
+        methodType = MethodObjectType.SignalInterpreter,
+        name = "Visual extraction",
+        version = VERSION,
+        description = "Resolve named values from a frame using current or pinned visual selections.",
+        inputs = listOf("screen_capture_frame_ref", "selection_memory_id", "selection_memory_version"),
+        outputs = ScreenExtractFields.outputs,
+        graphOutputs = listOf(ID),
+        parameters = mapOf(
+            "category" to "Screen Tools",
+            "status" to "Development",
+            "connectivity" to "Offline",
+            "retention" to "volatile_process_memory",
+            "review_required" to "true"
+        )
+    )
+    override val contract = MethodContract(
+        method = ref,
+        requiredContext = emptyList(),
+        producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
+        producedFields = descriptor.outputs,
+        producedGraphOutputs = descriptor.graphOutputs
+    )
+
+    override fun request(action: String, context: Map<String, String>, signals: List<Signal>, inputs: List<ArchitectureRef>) =
+        As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
+
+    override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult =
+        As100ExecutionEngine.complete(
+            request,
+            TransformationStatus.Unsupported,
+            diagnostics = mapOf("reason" to "Visual extraction requires the Android OCR and review boundary.")
+        )
+
+    fun result(
+        request: ExecutionRequest,
+        values: Map<String, String>,
+        dynamicValues: Map<String, String>,
+        invocation: InvocationContext?
+    ): ExecutionResult {
+        val succeeded = values[ScreenExtractFields.STATUS] == "succeeded"
+        val entity = Entity(
+            ArchitectureId("screen-extract:${UUID.randomUUID()}"),
+            "ScreenVisualExtraction",
+            temporalContext = request.temporalContext
+        )
+        val provenance = ProvenanceContext("methodmesh.screen_tools", ID, VERSION)
+        val observation = Observation(
+            phenomenon = ID,
+            subject = ArchitectureRef(entity.id, entity.objectType, ID),
+            values = values + dynamicValues,
+            temporalContext = request.temporalContext,
+            provenance = provenance
+        )
+        val transformation = Transformation(
+            action = ID,
+            method = ref,
+            outputs = listOf(ArchitectureRef(observation.id, observation.objectType, observation.phenomenon)),
+            status = if (succeeded) TransformationStatus.Succeeded else TransformationStatus.Failed,
+            temporalContext = request.temporalContext,
+            provenance = provenance
+        )
+        return As100ExecutionEngine.complete(
+            request,
+            if (succeeded) TransformationStatus.Succeeded else TransformationStatus.Failed,
+            entities = listOf(entity),
+            observations = listOf(observation),
+            transformations = listOf(transformation),
+            diagnostics = if (succeeded) emptyMap() else mapOf(
+                ScreenExtractFields.ERROR to values[ScreenExtractFields.ERROR].orEmpty()
             )
         ).withInvocationContext(invocation)
     }
