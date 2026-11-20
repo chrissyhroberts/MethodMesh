@@ -35,6 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -88,20 +90,25 @@ internal fun NetworkToolsDashboard(
     var host by rememberSaveable { mutableStateOf(context.action.setting("host").orEmpty()) }
     var port by rememberSaveable { mutableStateOf(context.action.setting("port") ?: "443") }
     var cidr by rememberSaveable { mutableStateOf(context.action.setting("cidr") ?: "192.168.1.0/24") }
-    var runningTool by rememberSaveable { mutableStateOf("") }
+    var runningTool by remember { mutableStateOf("") }
     var resultJson by rememberSaveable { mutableStateOf("") }
     var resultOperation by rememberSaveable { mutableStateOf("") }
     var resultSettingsJson by rememberSaveable { mutableStateOf("") }
-    var committedResultJson by rememberSaveable { mutableStateOf("") }
-    var committedSettingsJson by rememberSaveable { mutableStateOf("") }
+    var committedExecution by rememberRetainedExecutionResult("${context.action.canonicalId}:committed")
+    var wasCommitted by rememberSaveable { mutableStateOf(false) }
+    var diagnosticStatus by rememberSaveable { mutableStateOf("") }
     var showOdkCard by rememberSaveable { mutableStateOf(false) }
 
     val result = remember(resultJson) { resultJson.toStringMap() }
-    val committedValues = remember(committedResultJson) { committedResultJson.toStringMap() }
-    val committedSettings = remember(committedSettingsJson) { committedSettingsJson.toStringMap() }
-    val committedExecution = remember(committedResultJson, committedSettingsJson) {
-        committedValues.takeIf { it.isNotEmpty() }?.let { values ->
-            buildNetworkExecution(context, values, committedSettings)
+    val committedValues = committedExecution?.observations?.singleOrNull()?.values.orEmpty()
+    LaunchedEffect(Unit) {
+        if (wasCommitted && committedExecution == null) {
+            resultJson = ""
+            resultSettingsJson = ""
+            wasCommitted = false
+            diagnosticStatus = "Committed result unavailable. Run the diagnostic and Commit a new result."
+        } else if (runningTool.isBlank() && diagnosticStatus == "Running diagnostic…") {
+            diagnosticStatus = "Previous diagnostic was interrupted. Run it again to retry."
         }
     }
 
@@ -156,6 +163,7 @@ internal fun NetworkToolsDashboard(
     fun runTool(operation: NetworkOperation) {
         if (runningTool.isNotBlank()) return
         runningTool = operation.id
+        diagnosticStatus = "Running diagnostic…"
         val settings = settingsFor(operation)
         scope.launch {
             try {
@@ -165,6 +173,11 @@ internal fun NetworkToolsDashboard(
                 resultOperation = operation.id
                 resultSettingsJson = settings.toJsonString()
                 resultJson = values.toJsonString()
+                diagnosticStatus = ""
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                diagnosticStatus = "Diagnostic failed: ${failure.message ?: "Unable to complete diagnostic"}"
             } finally {
                 runningTool = ""
             }
@@ -182,9 +195,10 @@ internal fun NetworkToolsDashboard(
         }
     }
 
-    val currentWorkingSettingsJson = NetworkOperation.from(resultOperation)
-        ?.let { settingsFor(it).toJsonString() }
-        .orEmpty()
+    val currentWorkingSettings = NetworkOperation.from(resultOperation)?.let(::settingsFor).orEmpty()
+    val workingChanged = committedExecution?.let { execution ->
+        committedValues != result || currentWorkingSettings.any { (key, value) -> execution.request.context[key] != value }
+    } ?: false
 
     // The Standard MethodMesh dashboard host already owns vertical scrolling. Adding another
     // root verticalScroll here causes an infinite-height Compose measurement crash.
@@ -239,16 +253,16 @@ internal fun NetworkToolsDashboard(
             onCalculate = { runTool(NetworkOperation.CIDR) }
         )
 
+        if (diagnosticStatus.isNotBlank() && runningTool.isBlank()) Text(diagnosticStatus, color = MaterialTheme.colorScheme.error)
         if (result.isNotEmpty()) {
             NetworkWorkingResultCard(
                 values = result,
                 title = "Working result",
-                onCommit = {
-                    committedResultJson = resultJson
-                    committedSettingsJson = resultSettingsJson
-                },
-                committedChanged = committedResultJson.isNotBlank() &&
-                    (committedResultJson != resultJson || committedSettingsJson != currentWorkingSettingsJson)
+                onCommit = if (runningTool.isBlank() && resultSettingsJson.isNotBlank()) ({
+                    committedExecution = buildNetworkExecution(context, result, resultSettingsJson.toStringMap())
+                    wasCommitted = true
+                }) else null,
+                committedChanged = workingChanged
             )
         }
 
@@ -257,7 +271,7 @@ internal fun NetworkToolsDashboard(
                 context = context,
                 label = "Network tools",
                 result = execution,
-                workingChanged = committedResultJson != resultJson || committedSettingsJson != currentWorkingSettingsJson,
+                workingChanged = workingChanged,
                 onDone = { onConfirmed(execution) }
             )
         }

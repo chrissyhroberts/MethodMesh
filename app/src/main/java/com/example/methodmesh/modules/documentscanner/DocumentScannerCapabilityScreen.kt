@@ -29,6 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -47,6 +48,15 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.example.methodmesh.platform.timestamp.TimestampSource
+import com.example.methodmesh.platform.timestamp.TrustedTimestampAuthorities
+import com.example.methodmesh.platform.timestamp.TrustedTimestampEngine
+import com.example.methodmesh.platform.timestamp.proofZipName
+import com.example.methodmesh.platform.timestamp.toHex
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -66,12 +76,14 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
         onCancel: () -> Unit
     ) {
         val appContext = LocalContext.current
+        val scope = rememberCoroutineScope()
         var pageLimitText by rememberSaveable { mutableStateOf(context.action.settings["page_limit"] ?: context.action.settings["input_page_limit"] ?: "10") }
         var scannerMode by rememberSaveable { mutableStateOf(context.action.settings["scanner_mode"] ?: context.action.settings["input_scanner_mode"] ?: "full") }
         var allowGallery by rememberSaveable { mutableStateOf((context.action.settings["allow_gallery_import"] ?: context.action.settings["input_allow_gallery_import"] ?: "true").equals("true", true)) }
         var runOcr by rememberSaveable { mutableStateOf((context.action.settings["run_ocr"] ?: context.action.settings["input_run_ocr"] ?: "true").equals("true", true)) }
         var returnSearchablePdf by rememberSaveable { mutableStateOf((context.action.settings["return_searchable_pdf"] ?: context.action.settings["input_return_searchable_pdf"] ?: "true").equals("true", true)) }
         var returnTextFile by rememberSaveable { mutableStateOf((context.action.settings["return_text_file"] ?: context.action.settings["input_return_text_file"] ?: "true").equals("true", true)) }
+        var timestampPolicy by rememberSaveable { mutableStateOf(context.action.settings["timestamp_policy"] ?: context.action.settings["input_timestamp_policy"] ?: "disabled") }
         var status by rememberSaveable { mutableStateOf("Ready to scan a paper document.") }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var resultFieldsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
@@ -81,7 +93,8 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
             "allow_gallery_import",
             "run_ocr",
             "return_searchable_pdf",
-            "return_text_file"
+            "return_text_file",
+            "timestamp_policy"
         ).any(context::settingIsRuntimeInput)
         val resultValues = remember(resultFieldsJson) { resultFieldsJson?.let(::documentScannerValuesFromJson) }
         val result = remember(resultValues, context.request.invocationContext) {
@@ -96,7 +109,7 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
-        LaunchedEffect(pageLimitText, scannerMode, allowGallery, runOcr, returnSearchablePdf, returnTextFile) {
+        LaunchedEffect(pageLimitText, scannerMode, allowGallery, runOcr, returnSearchablePdf, returnTextFile, timestampPolicy) {
             context.onSettingsChanged(
                 mapOf(
                     "page_limit" to pageLimitText,
@@ -104,7 +117,8 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
                     "allow_gallery_import" to allowGallery.toString(),
                     "run_ocr" to runOcr.toString(),
                     "return_searchable_pdf" to returnSearchablePdf.toString(),
-                    "return_text_file" to returnTextFile.toString()
+                    "return_text_file" to returnTextFile.toString(),
+                    "timestamp_policy" to timestampPolicy
                 )
             )
         }
@@ -134,7 +148,7 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
                 complete(failureValues(pageLimitText, scannerMode, allowGallery, "No document scanner result was returned."), false)
             } else {
                 status = "Copying scan outputs…"
-                handleScanResult(appContext, scanResult, pageLimitText, scannerMode, allowGallery, runOcr, returnSearchablePdf, returnTextFile, ::complete)
+                handleScanResult(appContext, scope, scanResult, pageLimitText, scannerMode, allowGallery, runOcr, returnSearchablePdf, returnTextFile, timestampPolicy, ::complete)
             }
         }
 
@@ -232,10 +246,13 @@ object DocumentScannerCapabilityScreen : CapabilityScreenSpec {
                     description = "Also attach the extracted text as a plain .txt file."
                 )
                 }
+                if (!context.settingIsFixedInNativePreset("timestamp_policy")) {
+                TimestampPolicyChooser(timestampPolicy = timestampPolicy, onPolicySelected = { timestampPolicy = it })
+                }
                 Spacer(Modifier.height(8.dp))
             }
             Text(
-                "Configured: up to ${pageLimitText.toIntOrNull()?.coerceIn(1, 50) ?: 10} page(s), mode $scannerMode, OCR ${if (runOcr) "on" else "off"}, searchable PDF ${if (returnSearchablePdf) "on" else "off"}.",
+                "Configured: up to ${pageLimitText.toIntOrNull()?.coerceIn(1, 50) ?: 10} page(s), mode $scannerMode, OCR ${if (runOcr) "on" else "off"}, searchable PDF ${if (returnSearchablePdf) "on" else "off"}, TSA proof $timestampPolicy.",
                 style = MaterialTheme.typography.bodySmall
             )
             Spacer(Modifier.height(12.dp))
@@ -295,6 +312,28 @@ private fun ScannerModeChooser(scannerMode: String, onScannerModeSelected: (Stri
 }
 
 @Composable
+private fun TimestampPolicyChooser(timestampPolicy: String, onPolicySelected: (String) -> Unit) {
+    Text("TSA timestamp proof", style = MaterialTheme.typography.bodySmall)
+    Row(Modifier.fillMaxWidth()) {
+        listOf("disabled" to "Disabled", "preferred" to "Preferred", "required" to "Required").forEach { (value, label) ->
+            if (timestampPolicy == value) {
+                Button(onClick = { onPolicySelected(value) }, modifier = Modifier.weight(1f).padding(2.dp)) { Text("✓ $label") }
+            } else {
+                OutlinedButton(onClick = { onPolicySelected(value) }, modifier = Modifier.weight(1f).padding(2.dp)) { Text(label) }
+            }
+        }
+    }
+    Text(
+        when (timestampPolicy) {
+            "required" -> "The scan fails if the TSA proof cannot be obtained."
+            "preferred" -> "The scan succeeds without proof if the TSA is unavailable."
+            else -> "No TSA proof is requested."
+        },
+        style = MaterialTheme.typography.bodySmall
+    )
+}
+
+@Composable
 private fun ScannerModeButton(
     value: String,
     label: String,
@@ -311,6 +350,7 @@ private fun ScannerModeButton(
 
 private fun handleScanResult(
     context: Context,
+    scope: CoroutineScope,
     result: GmsDocumentScanningResult,
     pageLimitText: String,
     scannerMode: String,
@@ -318,6 +358,7 @@ private fun handleScanResult(
     runOcr: Boolean,
     returnSearchablePdf: Boolean,
     returnTextFile: Boolean,
+    timestampPolicy: String,
     complete: (Map<String, String>, Boolean) -> Unit
 ) {
     val scanId = System.currentTimeMillis().toString()
@@ -338,15 +379,54 @@ private fun handleScanResult(
         DocumentScannerFields.GALLERY_IMPORT_ALLOWED to allowGallery.toString(),
         DocumentScannerFields.PAGE_LIMIT to pageLimitText,
         DocumentScannerFields.SCANNED_TIME_ISO to Instant.now().toString(),
+        DocumentScannerFields.TIMESTAMP_STATUS to "disabled",
+        DocumentScannerFields.TIMESTAMP_PROOF_URI to "",
+        DocumentScannerFields.TIMESTAMP_PROOF_FILENAME to "",
+        DocumentScannerFields.TIMESTAMP_AUTHORITY to TrustedTimestampAuthorities.FREETSA.name,
+        DocumentScannerFields.TIMESTAMP_TIME_ISO to "",
+        DocumentScannerFields.TIMESTAMP_SHA256 to "",
+        DocumentScannerFields.TIMESTAMP_ERROR to "",
         DocumentScannerFields.ERROR to ""
     )
+    fun finish(values: Map<String, String>) {
+        if (timestampPolicy == "disabled") {
+            complete(values + timestampFields("disabled"), true)
+            return
+        }
+        scope.launch {
+            val timestamped = runCatching {
+                withContext(Dispatchers.IO) { timestampPdf(context, values) }
+            }
+                .fold(
+                    onSuccess = { it },
+                    onFailure = { error ->
+                        timestampFields(
+                            status = "failed",
+                            error = "${error::class.java.simpleName}: ${error.message ?: "Timestamp request failed."}"
+                        )
+                    }
+                )
+            withContext(Dispatchers.Main) {
+                val requiredFailure = timestampPolicy == "required" && timestamped[DocumentScannerFields.TIMESTAMP_STATUS] != "succeeded"
+                complete(
+                    values + timestamped + if (requiredFailure) {
+                        mapOf(
+                            DocumentScannerFields.STATUS to "failed",
+                            DocumentScannerFields.ERROR to "Required TSA timestamp proof could not be obtained."
+                        )
+                    } else emptyMap(),
+                    !requiredFailure
+                )
+            }
+        }
+    }
     if (copiedPageUris.isEmpty()) {
         complete(baseValues + (DocumentScannerFields.STATUS to "failed") + (DocumentScannerFields.ERROR to "No page images were returned by the scanner."), false)
         return
     }
     if (!runOcr) {
         val searchable = if (returnSearchablePdf) createSearchablePdf(context, copiedPageUris, emptyList(), scanId).orEmpty() else ""
-        complete(baseValues.withPreferredSearchablePdf(searchable), true)
+        finish(baseValues.withPreferredSearchablePdf(searchable))
         return
     }
     ocrPages(context, copiedPageUris) { pageTexts, error ->
@@ -357,14 +437,13 @@ private fun handleScanResult(
         val combinedText = pageTexts.mapIndexed { index, text -> "Page ${index + 1}\n$text" }.joinToString("\n\n")
         val textFileUri = if (returnTextFile) createTextFile(context, combinedText, scanId).orEmpty() else ""
         val searchable = if (returnSearchablePdf) createSearchablePdf(context, copiedPageUris, pageTexts, scanId).orEmpty() else ""
-        complete(
+        finish(
             baseValues.withPreferredSearchablePdf(searchable) + mapOf(
                 DocumentScannerFields.SEARCHABLE_PDF_URI to searchable,
                 DocumentScannerFields.OCR_TEXT to combinedText,
                 DocumentScannerFields.OCR_TEXT_FILE_URI to textFileUri,
                 DocumentScannerFields.OCR_PAGE_COUNT to pageTexts.size.toString()
-            ),
-            true
+            )
         )
     }
 }
@@ -484,6 +563,70 @@ private fun Bitmap.fitWidth(width: Int): Bitmap {
     return Bitmap.createScaledBitmap(this, width, height, true)
 }
 
+private fun timestampFields(
+    status: String,
+    authority: String = TrustedTimestampAuthorities.FREETSA.name,
+    proofUri: String = "",
+    proofFilename: String = "",
+    timeIso: String = "",
+    sha256: String = "",
+    error: String = ""
+): Map<String, String> = mapOf(
+    DocumentScannerFields.TIMESTAMP_STATUS to status,
+    DocumentScannerFields.TIMESTAMP_PROOF_URI to proofUri,
+    DocumentScannerFields.TIMESTAMP_PROOF_FILENAME to proofFilename,
+    DocumentScannerFields.TIMESTAMP_AUTHORITY to authority,
+    DocumentScannerFields.TIMESTAMP_TIME_ISO to timeIso,
+    DocumentScannerFields.TIMESTAMP_SHA256 to sha256,
+    DocumentScannerFields.TIMESTAMP_ERROR to error
+)
+
+private fun timestampPdf(context: Context, values: Map<String, String>): Map<String, String> {
+    val pdfUri = values[DocumentScannerFields.SEARCHABLE_PDF_URI].orEmpty()
+        .ifBlank { values[DocumentScannerFields.SCANNER_PDF_URI].orEmpty() }
+    require(pdfUri.isNotBlank()) { "No PDF was available to timestamp." }
+
+    val (sizeBytes, digest) = TrustedTimestampEngine.hashUri(
+        context.contentResolver,
+        Uri.parse(pdfUri)
+    )
+    val authority = TrustedTimestampAuthorities.FREETSA
+    val source = TimestampSource(
+        displayName = "document-scan.pdf",
+        sizeBytes = sizeBytes,
+        sha256 = digest.toHex()
+    )
+    val (request, responseDer) = TrustedTimestampEngine.requestTimestamp(
+        digest = digest,
+        authorityUrl = authority.endpoint,
+        timeoutMs = 10_000
+    )
+    val evidence = TrustedTimestampEngine.parseAndValidate(
+        request = request,
+        responseDer = responseDer,
+        digest = digest,
+        authorityUrl = authority.endpoint,
+        timeoutMs = 10_000
+    )
+    val proofBytes = TrustedTimestampEngine.createProofZip(source, evidence)
+    val filename = proofZipName(source.displayName)
+    val cacheFile = File(context.cacheDir, filename)
+    cacheFile.outputStream().use { it.write(proofBytes) }
+    val proofUri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        cacheFile
+    ).toString()
+    return timestampFields(
+        status = "succeeded",
+        authority = evidence.authorityName,
+        proofUri = proofUri,
+        proofFilename = filename,
+        timeIso = evidence.generationTimeIso,
+        sha256 = digest.toHex()
+    )
+}
+
 private fun String.toScannerMode(): Int = when (this) {
     "base" -> GmsDocumentScannerOptions.SCANNER_MODE_BASE
     "base_with_filter" -> GmsDocumentScannerOptions.SCANNER_MODE_BASE_WITH_FILTER
@@ -512,5 +655,12 @@ private fun failureValues(pageLimitText: String, scannerMode: String, allowGalle
     DocumentScannerFields.GALLERY_IMPORT_ALLOWED to allowGallery.toString(),
     DocumentScannerFields.PAGE_LIMIT to pageLimitText,
     DocumentScannerFields.SCANNED_TIME_ISO to Instant.now().toString(),
+    DocumentScannerFields.TIMESTAMP_STATUS to "disabled",
+    DocumentScannerFields.TIMESTAMP_PROOF_URI to "",
+    DocumentScannerFields.TIMESTAMP_PROOF_FILENAME to "",
+    DocumentScannerFields.TIMESTAMP_AUTHORITY to TrustedTimestampAuthorities.FREETSA.name,
+    DocumentScannerFields.TIMESTAMP_TIME_ISO to "",
+    DocumentScannerFields.TIMESTAMP_SHA256 to "",
+    DocumentScannerFields.TIMESTAMP_ERROR to "",
     DocumentScannerFields.ERROR to message
 )

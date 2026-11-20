@@ -50,6 +50,7 @@ import com.example.methodmesh.settings.MethodSetting
 import com.example.methodmesh.transport.OutputExportRepository
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.ReturnMode
+import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import java.io.ByteArrayInputStream
 import org.json.JSONObject
@@ -472,7 +473,7 @@ internal fun WeatherCommittedActions(
             context.request.settings["input_methodmesh_finish_to_launcher"] == "true"
 
     fun finishNativePresetHome() {
-        if (finishToLauncher) {
+        if (finishToLauncher || context.hostOwnsNativePresetCloseout) {
             onDone()
             return
         }
@@ -486,34 +487,22 @@ internal fun WeatherCommittedActions(
     }
 
     fun copyResult() {
-        val text = shareText + if (includeFullJson && fullJson.isNotBlank()) "\n\n$fullJson" else ""
+        val text = ResultShare.buildShareText(shareText, if (includeFullJson) fullJson else "")
         if (text.isBlank()) return
         appContext.getSystemService(ClipboardManager::class.java)
             .setPrimaryClip(ClipData.newPlainText("$label result", text))
         actionStatus = "Copied committed result."
     }
 
-    fun shareResult() {
-        val text = shareText + if (includeFullJson && fullJson.isNotBlank()) "\n\n$fullJson" else ""
-        if (text.isBlank()) return
-        runCatching {
-            appContext.startActivity(
-                Intent.createChooser(
-                    Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, text)
-                    },
-                    "Share $label result"
-                )
-            )
-        }.onSuccess {
-            actionStatus = "Sharing committed result…"
-        }.onFailure {
-            actionStatus = "Share failed: ${it.message ?: "no sharing app available"}"
-        }
-    }
+    fun shareResult(): Boolean = runCatching {
+        ResultShare.share(
+            context = appContext, chooserTitle = "Share $label result", text = shareText,
+            attachments = emptyList(), jsonText = if (includeFullJson) fullJson else "", fileLabel = label
+        )
+    }.onSuccess { actionStatus = "Sharing committed result…" }
+        .onFailure { actionStatus = "Share failed: " + (it.message ?: "no sharing app available") }.isSuccess
 
-    fun saveResult() {
+    fun saveResult(): Boolean =
         runCatching {
             OutputExportRepository.saveToDownloads(
                 context = appContext,
@@ -526,8 +515,7 @@ internal fun WeatherCommittedActions(
             actionStatus = "Saved ${it.summary}"
         }.onFailure {
             actionStatus = "Downloads save failed: ${it.message ?: "storage error"}"
-        }
-    }
+        }.isSuccess
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -549,24 +537,22 @@ internal fun WeatherCommittedActions(
             Spacer(Modifier.height(6.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedButton(onClick = ::copyResult, modifier = Modifier.weight(1f)) { Text("Copy") }
-                OutlinedButton(onClick = ::shareResult, modifier = Modifier.weight(1f)) { Text("Share") }
-                OutlinedButton(onClick = ::saveResult, modifier = Modifier.weight(1f)) { Text("Save") }
+                OutlinedButton(onClick = { shareResult() }, modifier = Modifier.weight(1f)) { Text("Share") }
+                OutlinedButton(onClick = { saveResult() }, modifier = Modifier.weight(1f)) { Text("Save") }
             }
             Spacer(Modifier.height(8.dp))
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    if (!context.isNativePresetRun) {
+                    if (!context.isNativePresetRun || !context.isLastStep) {
                         onDone()
                     } else {
                         when (presetAction) {
                             PresetResultAction.SAVE -> {
-                                saveResult()
-                                onDone()
+                                if (saveResult()) onDone()
                             }
                             PresetResultAction.SHARE -> {
-                                shareResult()
-                                finishNativePresetHome()
+                                if (shareResult()) finishNativePresetHome()
                             }
                             else -> finishNativePresetHome()
                         }
@@ -574,8 +560,8 @@ internal fun WeatherCommittedActions(
                 }
             ) {
                 Text(
-                    if (context.isNativePresetRun && presetAction == PresetResultAction.SAVE) "Save and finish"
-                    else if (context.isNativePresetRun && presetAction == PresetResultAction.SHARE) "Share and finish"
+                    if (context.isNativePresetRun && context.isLastStep && presetAction == PresetResultAction.SAVE) "Save and finish"
+                    else if (context.isNativePresetRun && context.isLastStep && presetAction == PresetResultAction.SHARE) "Share and finish"
                     else "Done"
                 )
             }

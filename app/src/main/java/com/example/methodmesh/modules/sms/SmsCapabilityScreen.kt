@@ -34,11 +34,13 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import java.security.MessageDigest
+import org.json.JSONArray
+import org.json.JSONObject
 
 object SmsCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100SendSmsMethod.ID
     override val title = "Send SMS"
-    override val description = "Send a short templated SMS message to a phone number."
+    override val description = "Send an identical SMS separately to one or more phone numbers."
 
     @SuppressLint("MissingPermission")
     @Composable
@@ -91,16 +93,16 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun sendNow() {
-            val cleanPhone = phone.trim()
+            val recipients = parseSmsRecipients(phone)
             val message = finalMessage().trim()
-            if (cleanPhone.isBlank()) {
-                status = "Enter a phone number."
-                record(failedSmsValues(cleanPhone, message, "Missing phone number."))
+            if (recipients.isEmpty()) {
+                status = "Enter at least one phone number."
+                record(failedSmsValues(phone.trim(), message, "Missing phone number."))
                 return
             }
             if (message.isBlank()) {
                 status = "Enter a message."
-                record(failedSmsValues(cleanPhone, message, "Missing SMS message."))
+                record(failedSmsValues(phone.trim(), message, "Missing SMS message."))
                 return
             }
             if (!hasSmsPermission(androidContext)) {
@@ -111,23 +113,31 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
             runCatching {
                 val manager = smsManager(androidContext)
                 val parts = manager.divideMessage(message)
-                if (parts.size > 1) manager.sendMultipartTextMessage(cleanPhone, null, parts, null, null)
-                else manager.sendTextMessage(cleanPhone, null, message, null, null)
-                status = "SMS sent to $cleanPhone."
-                record(
-                    mapOf(
-                        SmsFields.PHONE to cleanPhone,
-                        SmsFields.MESSAGE to message,
-                        SmsFields.MESSAGE_SHA256 to sha256Hex(message),
-                        SmsFields.STATUS to "sent",
-                        SmsFields.PARTS to parts.size.toString(),
-                        SmsFields.ERROR to ""
-                    )
-                )
+                val results = recipients.map { recipient ->
+                    runCatching {
+                        if (parts.size > 1) manager.sendMultipartTextMessage(recipient, null, parts, null, null)
+                        else manager.sendTextMessage(recipient, null, message, null, null)
+                        mapOf("phone" to recipient, "status" to "sent", "error" to "")
+                    }.getOrElse { error ->
+                        mapOf("phone" to recipient, "status" to "failed", "error" to (error.message ?: error::class.java.simpleName))
+                    }
+                }
+                val failed = results.filter { it["status"] != "sent" }
+                val overallStatus = when {
+                    failed.isEmpty() -> "sent"
+                    failed.size == results.size -> "failed"
+                    else -> "partial"
+                }
+                status = when (overallStatus) {
+                    "sent" -> "SMS sent individually to ${recipients.size} recipient(s)."
+                    "partial" -> "SMS sent to ${recipients.size - failed.size} of ${recipients.size} recipients."
+                    else -> "SMS failed for all ${recipients.size} recipients."
+                }
+                record(smsValues(phone.trim(), recipients, message, parts.size, overallStatus, results))
             }.onFailure { error ->
                 val messageText = error.message ?: error::class.java.simpleName
                 status = "SMS failed: $messageText"
-                record(failedSmsValues(cleanPhone, message, messageText))
+                record(failedSmsValues(phone.trim(), message, messageText))
             }
         }
 
@@ -165,9 +175,9 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
                 OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
-                    label = { Text("Phone number") },
+                    label = { Text("Phone numbers") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    minLines = 2
                 )
                 Spacer(Modifier.height(8.dp))
             }
@@ -182,12 +192,18 @@ object SmsCapabilityScreen : CapabilityScreenSpec {
                 Spacer(Modifier.height(8.dp))
             }
             Spacer(Modifier.height(10.dp))
-            Text("Recipient: ${phone.ifBlank { "not configured" }}", style = MaterialTheme.typography.bodySmall)
+            Text("Recipients: ${parseSmsRecipients(phone).size}", style = MaterialTheme.typography.bodySmall)
             Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp))
             Button({ sendNow() }, Modifier.fillMaxWidth(), enabled = phone.isNotBlank() && message.isNotBlank()) { Text(if (result == null) "Send SMS" else "Send again") }
         }
     }
 }
+
+internal fun parseSmsRecipients(value: String): List<String> = value
+    .split(Regex("[,;\\r\\n]+"))
+    .map(String::trim)
+    .filter(String::isNotBlank)
+    .distinct()
 
 private fun Map<String, String>.firstPresent(vararg keys: String): String = keys.firstNotNullOfOrNull { key -> get(key)?.trim()?.takeIf(String::isNotBlank) }.orEmpty()
 
@@ -201,11 +217,33 @@ private fun smsManager(context: Context): SmsManager =
 
 private fun failedSmsValues(phone: String, message: String, error: String): Map<String, String> = mapOf(
     SmsFields.PHONE to phone,
+    SmsFields.RECIPIENTS_JSON to JSONArray(parseSmsRecipients(phone)).toString(),
+    SmsFields.RECIPIENT_COUNT to parseSmsRecipients(phone).size.toString(),
+    SmsFields.RECIPIENT_RESULTS_JSON to "[]",
     SmsFields.MESSAGE to message,
     SmsFields.MESSAGE_SHA256 to if (message.isBlank()) "" else sha256Hex(message),
     SmsFields.STATUS to "failed",
     SmsFields.PARTS to "0",
     SmsFields.ERROR to error
+)
+
+private fun smsValues(
+    inputPhone: String,
+    recipients: List<String>,
+    message: String,
+    parts: Int,
+    status: String,
+    results: List<Map<String, String>>
+): Map<String, String> = mapOf(
+    SmsFields.PHONE to inputPhone,
+    SmsFields.RECIPIENTS_JSON to JSONArray(recipients).toString(),
+    SmsFields.RECIPIENT_COUNT to recipients.size.toString(),
+    SmsFields.RECIPIENT_RESULTS_JSON to JSONArray(results.map { JSONObject(it) }).toString(),
+    SmsFields.MESSAGE to message,
+    SmsFields.MESSAGE_SHA256 to sha256Hex(message),
+    SmsFields.STATUS to status,
+    SmsFields.PARTS to parts.toString(),
+    SmsFields.ERROR to results.firstOrNull { it["status"] != "sent" }?.get("error").orEmpty()
 )
 
 private fun sha256Hex(value: String): String = MessageDigest.getInstance("SHA-256")

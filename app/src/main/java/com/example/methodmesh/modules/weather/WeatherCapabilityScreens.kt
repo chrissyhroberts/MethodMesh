@@ -55,9 +55,8 @@ import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -83,7 +82,8 @@ internal fun WeatherToolScreen(
     context: CapabilityScreenContext,
     onBack: () -> Unit,
     onConfirmed: (ExecutionResult) -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    captureWeather: (WeatherMethodBase, Map<String, String>) -> WeatherRuntimeCapture = WeatherRuntime::capture
 ) {
     val app = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -119,9 +119,10 @@ internal fun WeatherToolScreen(
         mutableStateOf(context.action.weatherSetting("offline_only")?.equals("true", ignoreCase = true) == true)
     }
     var resultJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-    var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-    var committedSettingsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-    var running by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+    var resultSettingsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
+    var committedExecution by rememberRetainedExecutionResult("${context.action.canonicalId}:committed")
+    var wasCommitted by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+    var running by remember { mutableStateOf(false) }
     var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Ready") }
     var attempted by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
     var showLocation by rememberSaveable(context.action.canonicalId) {
@@ -130,8 +131,7 @@ internal fun WeatherToolScreen(
     var showControls by rememberSaveable(context.action.canonicalId) { mutableStateOf(true) }
 
     val resultValues = remember(resultJson) { resultJson.toStringMap() }
-    val committedValues = remember(committedJson) { committedJson.toStringMap() }
-    val committedSettings = remember(committedSettingsJson) { committedSettingsJson.toStringMap() }
+    val committedValues = committedExecution?.observations?.singleOrNull()?.values.orEmpty()
     val statusField = method.descriptor.outputs.first { it.endsWith("_status") }
     val errorField = method.descriptor.outputs.first { it.endsWith("_error") }
 
@@ -159,9 +159,14 @@ internal fun WeatherToolScreen(
         values,
         context.request.invocationContext
     )
-    val committedExecution = remember(committedJson, committedSettingsJson) {
-        committedValues.takeIf { it.isNotEmpty() }?.let { values ->
-            buildExecution(values, committedSettings.ifEmpty { currentSettings() })
+    LaunchedEffect(Unit) {
+        if (wasCommitted && committedExecution == null) {
+            resultJson = ""
+            resultSettingsJson = ""
+            wasCommitted = false
+            status = "Committed result unavailable. Refresh and Commit a new result."
+        } else if (!running && status in setOf("Refreshing weather…", "Getting current location…")) {
+            status = "Previous request was interrupted. Refresh to retry."
         }
     }
 
@@ -173,61 +178,64 @@ internal fun WeatherToolScreen(
         }
         running = true
         status = "Refreshing weather…"
+        val settingsSnapshot = currentSettings().toMap()
         scope.launch {
-            val capture = withContext(Dispatchers.IO) {
-                WeatherRuntime.capture(method, currentSettings())
-            }
-            var captured = capture.values
-            if (context.submitsImmediately && method.id == As100WeatherRadarMethod.id && captured[statusField] == "succeeded") {
-                val gif = withContext(Dispatchers.IO) {
-                    WeatherRadarAttachment.createGifIfPossible(
-                        context = app,
-                        values = captured,
-                        latitude = latitude.toDoubleOrNull() ?: 0.0,
-                        longitude = longitude.toDoubleOrNull() ?: 0.0,
-                        zoom = zoom.toDoubleOrNull() ?: 5.0
-                    )
+            try {
+                val capture = withContext(Dispatchers.IO) { captureWeather(method, settingsSnapshot) }
+                var captured = capture.values
+                if (context.submitsImmediately && method.id == As100WeatherRadarMethod.id && captured[statusField] == "succeeded") {
+                    val gif = withContext(Dispatchers.IO) {
+                        WeatherRadarAttachment.createGifIfPossible(
+                            context = app, values = captured,
+                            latitude = settingsSnapshot["latitude"]?.toDoubleOrNull() ?: 0.0,
+                            longitude = settingsSnapshot["longitude"]?.toDoubleOrNull() ?: 0.0,
+                            zoom = settingsSnapshot["zoom"]?.toDoubleOrNull() ?: 5.0
+                        )
+                    }
+                    if (gif.first.isNotBlank()) captured = captured + mapOf("weather_radar_gif_uri" to gif.first, "weather_radar_gif_sha256" to gif.second)
                 }
-                if (gif.first.isNotBlank()) {
-                    captured = captured + mapOf(
-                        "weather_radar_gif_uri" to gif.first,
-                        "weather_radar_gif_sha256" to gif.second
-                    )
+                resultJson = JSONObject(captured).toString()
+                resultSettingsJson = JSONObject(settingsSnapshot).toString()
+                status = captured[errorField].orEmpty().ifBlank {
+                    if (captured[statusField] == "succeeded") "Current working result" else "Weather unavailable"
                 }
+                context.onSettingsChanged(settingsSnapshot)
+                if (context.submitsImmediately) onConfirmed(buildExecution(captured, settingsSnapshot))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                status = "Weather refresh failed: ${failure.message ?: "Unable to complete request"}"
+            } finally {
+                running = false
             }
-            resultJson = JSONObject(captured).toString()
-            running = false
-            status = captured[errorField].orEmpty().ifBlank {
-                if (captured[statusField] == "succeeded") "Current working result" else "Weather unavailable"
-            }
-            context.onSettingsChanged(capture.settings)
-            if (context.submitsImmediately) onConfirmed(buildExecution(captured))
         }
     }
 
     fun useDeviceLocation() {
-        if (!hasWeatherLocationPermission(app)) return
+        if (running || !hasWeatherLocationPermission(app)) return
         running = true
         status = "Getting current location…"
-        val token = CancellationTokenSource()
-        LocationServices.getFusedLocationProviderClient(app)
-            .getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, token.token)
-            .addOnSuccessListener { loc ->
+        scope.launch {
+            var refresh = false
+            try {
+                val loc = weatherDeviceLocation(app)
                 if (loc == null) {
-                    running = false
                     status = "Current GPS position is unavailable."
                 } else {
                     latitude = loc.latitude.toString()
                     longitude = loc.longitude.toString()
                     showLocation = false
-                    running = false
-                    runNow()
+                    refresh = true
                 }
-            }
-            .addOnFailureListener {
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                status = failure.message ?: "Location failed."
+            } finally {
                 running = false
-                status = it.message ?: "Location failed."
             }
+            if (refresh) runNow()
+        }
     }
 
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -284,6 +292,9 @@ internal fun WeatherToolScreen(
         Spacer(Modifier.height(14.dp))
 
         // v1.29 instrument hierarchy: working result/readout before configuration.
+        if (!running && resultValues.isNotEmpty() && (status.startsWith("Weather refresh failed:") || status.startsWith("Previous request"))) {
+            Text(status, color = MaterialTheme.colorScheme.error)
+        }
         when {
             running && resultValues.isEmpty() -> {
                 InstrumentCard {
@@ -320,13 +331,13 @@ internal fun WeatherToolScreen(
                 if (!context.submitsImmediately) {
                     Button(
                         onClick = {
-                            committedJson = JSONObject(resultValues).toString()
-                            committedSettingsJson = JSONObject(currentSettings()).toString()
+                            committedExecution = buildExecution(resultValues, resultSettingsJson.toStringMap())
+                            wasCommitted = true
                             status = "Committed. Working changes will not mutate the frozen result."
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = resultValues[statusField] == "succeeded"
-                    ) { Text(if (committedJson.isBlank()) "Commit result" else "Recommit current result") }
+                        enabled = !running && resultValues[statusField] == "succeeded" && resultSettingsJson.isNotBlank()
+                    ) { Text(if (committedExecution == null) "Commit result" else "Recommit current result") }
                 }
             }
         }
@@ -337,7 +348,7 @@ internal fun WeatherToolScreen(
                 context = context,
                 label = screenTitle(method.id),
                 result = execution,
-                workingChanged = committedJson != resultJson,
+                workingChanged = committedValues != resultValues || currentSettings().any { (key, value) -> execution.request.context[key] != value },
                 onDone = { onConfirmed(execution) }
             )
         }
@@ -353,21 +364,27 @@ internal fun WeatherToolScreen(
                 Text("Only controls relevant to this invocation are shown.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(10.dp))
                 val locationEditable = context.settingShouldBeShown("latitude") || context.settingShouldBeShown("longitude")
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (locationEditable) {
+                if (locationEditable) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { showLocation = !showLocation }) { Text(if (showLocation) "Hide location" else "Location") }
                         OutlinedButton(onClick = { requestDeviceLocation() }, enabled = !running) { Text("Use GPS") }
                     }
-                    Button(
-                        onClick = { runNow() },
-                        enabled = !running && latitude.toDoubleOrNull() != null && longitude.toDoubleOrNull() != null
-                    ) { Text("Refresh") }
-                }
-                if (showLocation && locationEditable) {
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(latitude, { latitude = it; resultJson = "" }, label = { Text("Latitude") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     Spacer(Modifier.height(6.dp))
-                    OutlinedTextField(longitude, { longitude = it; resultJson = "" }, label = { Text("Longitude") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                }
+                Button(
+                    onClick = { runNow() },
+                    enabled = !running && latitude.toDoubleOrNull() != null && longitude.toDoubleOrNull() != null,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Refresh") }
+                if (showLocation && locationEditable) {
+                    if (context.settingShouldBeShown("latitude")) {
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(latitude, { latitude = it; resultJson = "" }, label = { Text("Latitude") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    }
+                    if (context.settingShouldBeShown("longitude")) {
+                        Spacer(Modifier.height(6.dp))
+                        OutlinedTextField(longitude, { longitude = it; resultJson = "" }, label = { Text("Longitude") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    }
                 }
                 if (context.settingShouldBeShown("target_time_iso") && method.id in setOf(
                         As100WeatherConditionsMethod.id, As100WeatherForecastMethod.id,

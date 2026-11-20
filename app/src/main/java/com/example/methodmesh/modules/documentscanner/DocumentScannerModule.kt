@@ -25,7 +25,8 @@ object DocumentScannerModule : MethodMeshModule {
             MethodSetting.BooleanSetting("allow_gallery_import", "Allow gallery import", defaultValue = true),
             MethodSetting.BooleanSetting("run_ocr", "Run OCR", defaultValue = true),
             MethodSetting.BooleanSetting("return_searchable_pdf", "Return searchable PDF", defaultValue = true),
-            MethodSetting.BooleanSetting("return_text_file", "Return OCR text file", defaultValue = true)
+            MethodSetting.BooleanSetting("return_text_file", "Return OCR text file", defaultValue = true),
+            MethodSetting.ChoiceSetting("timestamp_policy", "TSA timestamp proof", defaultValue = "disabled", choices = listOf("disabled", "preferred", "required"))
         )
     )
 }

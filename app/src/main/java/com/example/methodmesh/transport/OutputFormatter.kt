@@ -628,6 +628,8 @@ object OutputFormatter {
 
     private fun formatJsonValue(value: Any?): String = when (value) {
         null -> "null"
+        is Double -> if (value.isFinite()) value.toString() else "null"
+        is Float -> if (value.isFinite()) value.toString() else "null"
         is Number -> value.toString()
         is Boolean -> value.toString()
         is Map<*, *> -> value.entries.joinToString(prefix = "{", separator = ",", postfix = "}") { (key, nestedValue) ->
@@ -637,8 +639,27 @@ object OutputFormatter {
         else -> quote(value.toString())
     }
 
-    private fun quote(value: String): String =
-        "\"${value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")}\""
+    private fun quote(value: String): String = buildString {
+        append('"')
+        value.forEach { character ->
+            when (character) {
+                '"' -> append("\\\"")
+                '\\' -> append("\\\\")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
+                '\b' -> append("\\b")
+                '\u000C' -> append("\\f")
+                else -> if (character < ' ') {
+                    append("\\u")
+                    append(character.code.toString(16).padStart(4, '0'))
+                } else {
+                    append(character)
+                }
+            }
+        }
+        append('"')
+    }
 
     private fun escapeCsv(value: String): String {
         val mustQuote = value.any { it == ',' || it == '"' || it == '\n' || it == '\r' }

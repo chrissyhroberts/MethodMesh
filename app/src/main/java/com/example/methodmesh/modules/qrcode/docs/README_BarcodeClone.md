@@ -1,6 +1,6 @@
 # Barcode clone
 
-**Canonical MethodMesh authority:** Master Book v1.22 (2026-09-15)  
+**Canonical MethodMesh authority:** Master Book v1.31 (2026-09-25)
 **Module ID:** `barcode`  
 **Method ID:** `barcode.clone`  
 **Method version:** `1.0.4`  
@@ -26,6 +26,12 @@ Native Share/Copy default to image-only. A small **Include payload text in Share
 `barcode_return_text_payload` controls whether the canonical scalar text payload is returned alongside the image. It defaults to `true` for useful ODK roundtrip behaviour, and can be fixed to `false` by a preset/protocol/ODK caller when the cloned PNG is sufficient. The payload is still used internally to render the code; suppressing its return never changes the encoded barcode.
 
 ODK/external roundtrips receive `barcode_clone_image_uri` as a caller-readable PNG attachment. They stay on the same windowed interactive screen until the operator chooses **Return clone**, which is the external-roundtrip finalization boundary. The canonical showcase requests both the PNG and text payload plus `methodmesh_full_json`, because a clone workflow normally wants the artefact; a text-only workflow should use `barcode.scan` instead.
+
+## Execution retention — 23 October 2026
+
+The exact action snapshot and its original canonical PNG URI survive ordinary Activity recreation in memory. Unchanged repeated actions reuse that record. Marker plus unavailable execution requires **Start new scan**, not silent snapshot regeneration. There is still no visible Commit button. This is not durable process-death or media-lifetime assurance.
+
+See repository handoff `docs/handoffs/PAPER_BARCODE_RETENTION_2026-10-23.md` for exact tests and limitations.
 
 ## Cross-surface exposure
 

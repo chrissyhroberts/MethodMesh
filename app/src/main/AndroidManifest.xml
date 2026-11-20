@@ -20,6 +20,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -58,10 +59,27 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MethodMesh">
         <activity
+            android:name=".transport.android.DownloadStoragePermissionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:label="Save to Downloads"
+            android:theme="@style/Theme.MethodMesh" />
+        <activity
             android:name=".transport.android.ExternalWorkflowActivity"
             android:exported="false"
             android:label="MethodMesh Workflow"
             android:theme="@style/Theme.MethodMesh" />
+
+        <activity
+            android:name=".modules.externaldisplay.ExternalDisplayActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:label="MethodMesh presentation"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.MethodMesh" />
+        <receiver
+            android:name=".modules.externaldisplay.ExternalDisplayControlReceiver"
+            android:exported="false" />
 
         <activity
             android:name=".transport.android.IntentRouterActivity"
@@ -119,6 +137,10 @@
             android:name=".modules.espmesh.EspMeshGatewayService"
             android:exported="false"
             android:foregroundServiceType="connectedDevice|mediaPlayback" />
+        <service
+            android:name=".modules.screentools.ScreenProjectionService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
         <receiver
             android:name=".modules.espmesh.EspMeshVoiceActionReceiver"
             android:enabled="true"

@@ -45,6 +45,9 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
+import com.example.methodmesh.ui.components.NumericSettingField
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -67,234 +70,271 @@ object AstronomyDashboardCapabilityScreen : CapabilityScreenSpec {
         onConfirmed: (ExecutionResult) -> Unit,
         onCancel: () -> Unit
     ) {
-        val app = LocalContext.current
-        val scope = rememberCoroutineScope()
-        val lightRepo = remember { LightPollutionRepository(app) }
-        var lightCacheCount by remember { mutableStateOf(lightRepo.cacheCount()) }
-        var activeLightRaster by remember { mutableStateOf<LightPollutionRepository.RasterRegion?>(null) }
-        var lightHeatmap by remember { mutableStateOf<Bitmap?>(null) }
-        var currentSite by remember { mutableStateOf<AstroLocation?>(null) }
-        var lightBusy by rememberSaveable { mutableStateOf(false) }
-        val initial = remember(context.action.settings) { context.action.settings.mapKeys { it.key.removePrefix("input_") } }
-        var settingsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf(JSONObject(initial).toString()) }
-        val settings = settingsMap(settingsJson)
-        var result by remember { mutableStateOf<ExecutionResult?>(null) }
-        var values by remember { mutableStateOf<Map<String,String>>(emptyMap()) }
-        var status by rememberSaveable { mutableStateOf("Locating…") }
-        var loading by rememberSaveable { mutableStateOf(false) }
-        var attempted by rememberSaveable { mutableStateOf(false) }
+        AstronomyDashboardScreen(context, onBack, onConfirmed, onCancel)
+    }
+}
 
-        fun merge(extra: Map<String,String>) {
-            val base = settingsMap(settingsJson)
-            settingsJson = JSONObject(base.toMutableMap().apply { putAll(extra) }).toString()
-            context.onSettingsChanged(settingsMap(settingsJson))
+@Composable
+internal fun AstronomyDashboardScreen(
+    context: CapabilityScreenContext,
+    onBack: () -> Unit,
+    onConfirmed: (ExecutionResult) -> Unit,
+    onCancel: () -> Unit,
+    loadDashboard: (android.content.Context, Double, Double) -> AstronomyDashboardLivePayload = AstronomyLiveData::dashboard,
+    deviceLocation: suspend (android.content.Context) -> AstroLocation = ::astronomyDeviceLocation
+) {
+    val app = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val lightRepo = remember { LightPollutionRepository(app) }
+    var lightCacheCount by remember { mutableStateOf(lightRepo.cacheCount()) }
+    var activeLightRaster by remember { mutableStateOf<LightPollutionRepository.RasterRegion?>(null) }
+    var lightHeatmap by remember { mutableStateOf<Bitmap?>(null) }
+    var lightBusy by remember { mutableStateOf(false) }
+    val initial = remember(context.action.settings) { context.action.settings.mapKeys { it.key.removePrefix("input_") } }
+    var settingsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf(JSONObject(initial).toString()) }
+    val settings = settingsMap(settingsJson)
+    var result by rememberRetainedExecutionResult("${context.action.canonicalId}:snapshot")
+    var hadSnapshot by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+    val values = result?.observations?.singleOrNull()?.values.orEmpty()
+    var currentSite by remember(result?.request?.id) {
+        mutableStateOf(result?.request?.context?.let { snapshot ->
+            val lat = snapshot["latitude"]?.toDoubleOrNull()
+            val lon = snapshot["longitude"]?.toDoubleOrNull()
+            if (lat != null && lon != null) AstroLocation(lat, lon, snapshot["resolved_location_source"].orEmpty()) else null
+        })
+    }
+    var status by rememberSaveable { mutableStateOf("Locating…") }
+    var loading by remember { mutableStateOf(false) }
+    var attempted by rememberSaveable { mutableStateOf(false) }
+
+    fun merge(extra: Map<String,String>) {
+        val base = settingsMap(settingsJson)
+        settingsJson = JSONObject(base.toMutableMap().apply { putAll(extra) }).toString()
+        context.onSettingsChanged(settingsMap(settingsJson))
+    }
+
+    suspend fun fetchAt(location: AstroLocation, inputSnapshot: Map<String, String>) {
+        currentSite = location
+        status = "Refreshing sky data…"
+        val bundle = withContext(Dispatchers.IO) {
+            val live = loadDashboard(app, location.latitude, location.longitude)
+            val lookup = lightRepo.query(location.latitude, location.longitude)
+            val raster = lookup
+                ?.takeIf { it.cacheKind == "nasa_gibs_raster" }
+                ?.let { lightRepo.rasterById(it.regionId) }
+                ?: lightRepo.rasterCovering(location.latitude, location.longitude)
+            val heat = raster?.let(lightRepo::heatmapBitmap)
+            DashboardRefreshBundle(live, lookup, raster, heat)
         }
+        activeLightRaster = bundle.raster
+        lightHeatmap = bundle.heatmap
+        lightCacheCount = lightRepo.cacheCount()
+        val lightValues = bundle.lookup?.let(As100LightPollutionMethod::fromLookup).orEmpty()
+        val extra = mapOf(
+            "latitude" to location.latitude.toString(),
+            "longitude" to location.longitude.toString(),
+            "resolved_location_source" to location.source,
+            "light_pollution_radiance_nw_cm2_sr" to lightValues[LightPollutionFields.RADIANCE].orEmpty(),
+            "light_pollution_unit" to lightValues[LightPollutionFields.UNIT].orEmpty(),
+            "light_pollution_label" to lightValues[LightPollutionFields.LABEL].orEmpty(),
+            "light_pollution_dataset" to lightValues[LightPollutionFields.DATASET].orEmpty(),
+            "light_pollution_dataset_date" to lightValues[LightPollutionFields.DATASET_DATE].orEmpty(),
+            "light_pollution_cache_kind" to lightValues[LightPollutionFields.CACHE_KIND].orEmpty(),
+            "light_pollution_value_mcd_m2" to lightValues[LightPollutionFields.LEGACY_VALUE].orEmpty(),
+            "light_pollution_ratio" to lightValues[LightPollutionFields.LEGACY_RATIO].orEmpty(),
+            "weather_json" to bundle.live.weatherJson,
+            "air_quality_json" to bundle.live.airQualityJson,
+            "hourly_json" to bundle.live.hourlyJson,
+            "jet_json" to bundle.live.jetJson,
+            "retrieved_time_iso" to bundle.live.retrievedTimeIso,
+            "data_age_hours" to bundle.live.dataAgeHours?.toString().orEmpty(),
+            "from_cache" to bundle.live.fromCache.toString()
+        )
+        // Provider bodies belong to this exact execution, not saved input/UI state.
+        val merged = inputSnapshot + extra
+        val calculated = As100DashboardMethod.calculate(merged)
+        result = methodExecution(As100DashboardMethod, context, calculated, merged)
+        hadSnapshot = true
+        status = if (calculated[DashboardFields.STATUS] == "succeeded") "Updated" else calculated[DashboardFields.ERROR].orEmpty()
+    }
 
-        fun fetchAt(location: AstroLocation) {
-            currentSite = location
-            loading = true
-            status = "Refreshing sky data…"
-            scope.launch {
-                runCatching {
-                    withContext(Dispatchers.IO) {
-                        val live = AstronomyLiveData.dashboard(app, location.latitude, location.longitude)
-                        val lookup = lightRepo.query(location.latitude, location.longitude)
-                        val raster = lookup
-                            ?.takeIf { it.cacheKind == "nasa_gibs_raster" }
-                            ?.let { lightRepo.rasterById(it.regionId) }
-                            ?: lightRepo.rasterCovering(location.latitude, location.longitude)
-                        val heat = raster?.let(lightRepo::heatmapBitmap)
-                        DashboardRefreshBundle(live, lookup, raster, heat)
-                    }
-                }.onSuccess { bundle ->
-                    activeLightRaster = bundle.raster
-                    lightHeatmap = bundle.heatmap
-                    lightCacheCount = lightRepo.cacheCount()
-                    val lightValues = bundle.lookup?.let(As100LightPollutionMethod::fromLookup).orEmpty()
-                    val extra = mapOf(
-                        "latitude" to location.latitude.toString(),
-                        "longitude" to location.longitude.toString(),
-                        "resolved_location_source" to location.source,
-                        "light_pollution_radiance_nw_cm2_sr" to lightValues[LightPollutionFields.RADIANCE].orEmpty(),
-                        "light_pollution_unit" to lightValues[LightPollutionFields.UNIT].orEmpty(),
-                        "light_pollution_label" to lightValues[LightPollutionFields.LABEL].orEmpty(),
-                        "light_pollution_dataset" to lightValues[LightPollutionFields.DATASET].orEmpty(),
-                        "light_pollution_dataset_date" to lightValues[LightPollutionFields.DATASET_DATE].orEmpty(),
-                        "light_pollution_cache_kind" to lightValues[LightPollutionFields.CACHE_KIND].orEmpty(),
-                        "light_pollution_value_mcd_m2" to lightValues[LightPollutionFields.LEGACY_VALUE].orEmpty(),
-                        "light_pollution_ratio" to lightValues[LightPollutionFields.LEGACY_RATIO].orEmpty(),
-                        "weather_json" to bundle.live.weatherJson,
-                        "air_quality_json" to bundle.live.airQualityJson,
-                        "hourly_json" to bundle.live.hourlyJson,
-                        "jet_json" to bundle.live.jetJson,
-                        "retrieved_time_iso" to bundle.live.retrievedTimeIso.ifBlank { Instant.now().toString() },
-                        "data_age_hours" to bundle.live.dataAgeHours?.toString().orEmpty(),
-                        "from_cache" to bundle.live.fromCache.toString()
-                    )
-                    merge(extra)
-                    val merged = settings + extra
-                    val calculated = As100DashboardMethod.calculate(merged)
-                    val execution = methodExecution(As100DashboardMethod, context, calculated, merged)
-                    values = calculated
-                    result = execution
-                    status = if (calculated[DashboardFields.STATUS] == "succeeded") "Updated" else calculated[DashboardFields.ERROR].orEmpty()
-                    loading = false
-                }.onFailure { error ->
-                    loading = false
-                    status = "Refresh failed: ${error.message ?: "live data unavailable"}"
-                }
-            }
+    fun selectedLocation(snapshot: Map<String, String>): AstroLocation? {
+        return when (snapshot["location_source"].orEmpty().ifBlank { "auto" }) {
+            "plus_code" -> explicitLocation(snapshot + mapOf("latitude" to "", "longitude" to ""))
+            "manual" -> explicitLocation(snapshot + mapOf("plus_code" to "", "location_source" to "manual"))
+            else -> null
+        }?.takeIf { it.latitude.isFinite() && it.longitude.isFinite() && it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0 }
+    }
+
+    fun refresh(centreOnGps: Boolean = false) {
+        if (loading || lightBusy) return
+        val snapshot = settingsMap(settingsJson).toMap()
+        val mode = if (centreOnGps) "auto" else snapshot["location_source"].orEmpty().ifBlank { "auto" }
+        val selected = if (mode == "auto") null else selectedLocation(snapshot)
+        if (mode != "auto" && selected == null) {
+            status = if (mode == "plus_code") "Enter a valid Plus Code." else "Enter valid latitude and longitude."
+            return
         }
-
-        fun selectedLocation(): AstroLocation? {
-            return when (settings["location_source"].orEmpty().ifBlank { "auto" }) {
-                "plus_code" -> explicitLocation(settings + mapOf("latitude" to "", "longitude" to ""))
-                "manual" -> explicitLocation(settings + mapOf("plus_code" to "", "location_source" to "manual"))
-                else -> null
-            }
-        }
-
-        fun refresh() {
-            val mode = settings["location_source"].orEmpty().ifBlank { "auto" }
-            if (mode == "auto") {
-                currentLocation(app, ::fetchAt) { status = it; loading = false }
-                return
-            }
-            val selected = selectedLocation()
-            if (selected == null) {
-                status = if (mode == "plus_code") "Enter a valid Plus Code." else "Enter valid latitude and longitude."
+        loading = true
+        status = if (mode == "auto") "Getting current location…" else "Refreshing sky data…"
+        scope.launch {
+            try {
+                val location = selected ?: deviceLocation(app)
+                if (centreOnGps) merge(mapOf("location_source" to "auto"))
+                fetchAt(location, snapshot + ("location_source" to mode))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                status = "Refresh failed: ${error.message ?: "live data unavailable"}"
+            } finally {
                 loading = false
-            } else fetchAt(selected)
-        }
-
-        fun centreOnGps() {
-            if (!hasLocationPermission(app)) return
-            currentLocation(app, { location ->
-                merge(mapOf(
-                    "location_source" to "auto",
-                    "latitude" to location.latitude.toString(),
-                    "longitude" to location.longitude.toString(),
-                    "resolved_location_source" to location.source
-                ))
-                fetchAt(location)
-            }) { status = it; loading = false }
-        }
-
-        val launcher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestMultiplePermissions()
-        ) { _: Map<String, Boolean> ->
-            if (hasLocationPermission(app)) centreOnGps()
-            else status = "Location denied. Select Plus Code or latitude/longitude instead."
-        }
-
-        fun startRefresh() {
-            if (loading) return
-            val mode = settings["location_source"].orEmpty().ifBlank { "auto" }
-            if (mode != "auto") refresh()
-            else if (hasLocationPermission(app)) refresh()
-            else launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-        }
-
-        fun requestGpsCentre() {
-            if (loading) return
-            if (hasLocationPermission(app)) centreOnGps()
-            else launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-        }
-
-        val lightImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) scope.launch {
-                runCatching {
-                    withContext(Dispatchers.IO) {
-                        app.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                            ?: error("Could not read selected file.")
-                    }
-                }.mapCatching(lightRepo::importRegion)
-                    .onSuccess { region ->
-                        lightCacheCount = lightRepo.cacheCount()
-                        status = "Imported ${region.name}. Refreshing dashboard…"
-                        startRefresh()
-                    }
-                    .onFailure { error -> status = "Light-pollution import failed: ${error.message.orEmpty()}" }
             }
         }
+    }
 
-        fun downloadLightHeatmap() {
-            val location = currentSite
-            if (location == null) {
-                status = "Refresh the dashboard location before downloading a light-pollution heatmap."
-                return
-            }
-            if (lightBusy) return
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { _: Map<String, Boolean> ->
+        if (hasLocationPermission(app)) refresh()
+        else status = "Location denied. Select Plus Code or latitude/longitude instead."
+    }
+
+    fun startRefresh() {
+        if (loading || lightBusy) return
+        val mode = settings["location_source"].orEmpty().ifBlank { "auto" }
+        if (mode != "auto") refresh()
+        else if (hasLocationPermission(app)) refresh()
+        else launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+    }
+
+    fun requestGpsCentre() {
+        if (loading || lightBusy) return
+        merge(mapOf("location_source" to "auto"))
+        if (hasLocationPermission(app)) refresh(true)
+        else launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+    }
+
+    val lightImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
             lightBusy = true
-            status = "Downloading 50 km NASA nighttime-radiance heatmap…"
-            scope.launch {
-                runCatching {
-                    withContext(Dispatchers.IO) {
-                        LightPollutionNetwork.downloadAndCache(lightRepo, location.latitude, location.longitude, 50.0)
-                    }
-                }.onSuccess { region ->
-                    lightBusy = false
-                    lightCacheCount = lightRepo.cacheCount()
-                    activeLightRaster = region
-                    lightHeatmap = lightRepo.heatmapBitmap(region)
-                    status = "NASA ${region.datasetDate} heatmap cached. Refreshing dashboard…"
-                    fetchAt(location)
-                }.onFailure { error ->
-                    lightBusy = false
-                    status = "Light-pollution download failed: ${error.message.orEmpty()}"
+            status = "Importing light-pollution data…"
+            var refreshAfterImport = false
+            try {
+                val region = withContext(Dispatchers.IO) {
+                    val text = app.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        ?: error("Could not read selected file.")
+                    lightRepo.importRegion(text)
                 }
+                lightCacheCount = lightRepo.cacheCount()
+                status = "Imported ${region.name}. Refreshing dashboard…"
+                refreshAfterImport = true
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                status = "Light-pollution import failed: ${error.message.orEmpty()}"
+            } finally {
+                lightBusy = false
             }
+            if (refreshAfterImport) startRefresh()
         }
+    }
 
-        LaunchedEffect(Unit) {
-            if (!attempted) {
-                attempted = true
-                startRefresh()
+    fun downloadLightHeatmap() {
+        val location = currentSite
+        if (location == null) {
+            status = "Refresh the dashboard location before downloading a light-pollution heatmap."
+            return
+        }
+        if (lightBusy || loading) return
+        lightBusy = true
+        status = "Downloading 50 km NASA nighttime-radiance heatmap…"
+        scope.launch {
+            var refreshAfterDownload = false
+            try {
+                val (region, heatmap) = withContext(Dispatchers.IO) {
+                    val region = LightPollutionNetwork.downloadAndCache(lightRepo, location.latitude, location.longitude, 50.0)
+                    region to lightRepo.heatmapBitmap(region)
+                }
+                lightCacheCount = lightRepo.cacheCount()
+                activeLightRaster = region
+                lightHeatmap = heatmap
+                status = "NASA ${region.datasetDate} heatmap cached. Refreshing dashboard…"
+                refreshAfterDownload = true
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                status = "Light-pollution download failed: ${error.message.orEmpty()}"
+            } finally {
+                lightBusy = false
             }
+            if (refreshAfterDownload) startRefresh()
         }
+    }
 
-        // Dashboard-style capabilities stay in their live presentation for native
-        // dashboard use and for native preset runs. External/ODK invocation still
-        // receives the normal automatic structured return.
-        val keepLiveDashboard =
-            context.presentationMode == CapabilityPresentationMode.Dashboard || context.isNativePresetRun
-        val scaffoldResult = if (keepLiveDashboard) null else result
-        CapabilityScreenScaffold(
-            title = title,
-            capabilityId = capabilityId,
+    LaunchedEffect(Unit) {
+        if (hadSnapshot && result == null) {
+            hadSnapshot = false
+            attempted = true
+            status = "Snapshot unavailable. Refresh to acquire a new snapshot."
+        } else if (status in setOf("Refreshing sky data…", "Getting current location…", "Importing light-pollution data…", "Downloading 50 km NASA nighttime-radiance heatmap…")) {
+            status = "Previous request was interrupted. Refresh to retry."
+        } else if (!attempted) {
+            attempted = true
+            if (context.awaitingRuntimeInputs) status = "Enter runtime inputs, then Refresh."
+            else startRefresh()
+        }
+    }
+
+    // Dashboard-style capabilities stay in their live presentation for native
+    // dashboard use and for native preset runs. External/ODK invocation still
+    // receives the normal automatic structured return.
+    val keepLiveDashboard =
+        context.presentationMode == CapabilityPresentationMode.Dashboard || context.isNativePresetRun
+    val scaffoldResult = if (keepLiveDashboard) null else result
+    CapabilityScreenScaffold(
+        title = AstronomyDashboardCapabilityScreen.title,
+        capabilityId = AstronomyDashboardCapabilityScreen.capabilityId,
+        context = context,
+        canGoBack = context.stepNumber > 1,
+        capturedResult = scaffoldResult,
+        resultPreview = scaffoldResult?.let { mapOf(DashboardFields.RESULT to OutputFormatter.fields(it, false)[DashboardFields.RESULT]?.toString().orEmpty()) }.orEmpty(),
+        onBack = onBack,
+        onRetry = { result = null; hadSnapshot = false; startRefresh() },
+        onConfirm = { result?.let(onConfirmed) },
+        onCancel = onCancel
+    ) {
+        if (context.settingIsRuntimeInput("hours_ahead")) {
+            NumericSettingField("Plan ahead", settings["hours_ahead"]?.toFloatOrNull() ?: 14f,
+                2f, 24f, unit = "h", decimals = 0) { merge(mapOf("hours_ahead" to it.toInt().toString())) }
+        }
+        if (context.settingIsRuntimeInput("minimum_score")) {
+            NumericSettingField("Usable window threshold", settings["minimum_score"]?.toFloatOrNull() ?: 55f,
+                0f, 100f, decimals = 0) { merge(mapOf("minimum_score" to it.toInt().toString())) }
+        }
+        DashboardBody(
+            values = values,
+            status = status,
+            loading = loading || lightBusy,
             context = context,
-            canGoBack = context.stepNumber > 1,
-            capturedResult = scaffoldResult,
-            resultPreview = scaffoldResult?.let { mapOf(DashboardFields.RESULT to OutputFormatter.fields(it, false)[DashboardFields.RESULT]?.toString().orEmpty()) }.orEmpty(),
-            onBack = onBack,
-            onRetry = { result = null; values = emptyMap(); startRefresh() },
-            onConfirm = { result?.let(onConfirmed) },
-            onCancel = onCancel
-        ) {
-            DashboardBody(
-                values = values,
-                status = status,
-                loading = loading,
-                locationMode = settings["location_source"].orEmpty().ifBlank { "auto" },
-                plusCode = settings["plus_code"].orEmpty(),
-                latitude = settings["latitude"].orEmpty(),
-                longitude = settings["longitude"].orEmpty(),
-                onLocationModeChange = { mode -> merge(mapOf("location_source" to mode)) },
-                onPlusCodeChange = { value -> merge(mapOf("plus_code" to value)) },
-                onLatitudeChange = { value -> merge(mapOf("latitude" to value)) },
-                onLongitudeChange = { value -> merge(mapOf("longitude" to value)) },
-                onCentreGps = ::requestGpsCentre,
-                onRefresh = ::startRefresh,
-                lightRegionCount = lightCacheCount,
-                lightRaster = activeLightRaster,
-                lightHeatmap = lightHeatmap,
-                lightBusy = lightBusy,
-                onDownloadLightRegion = ::downloadLightHeatmap,
-                onImportLightRegion = { lightImportLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) },
-                onUseSnapshot = if (keepLiveDashboard && result != null) ({ onConfirmed(result!!) }) else null,
-                snapshotButtonLabel = if (context.isNativePresetRun) "Finish" else "Use this snapshot"
-            )
-        }
+            locationMode = settings["location_source"].orEmpty().ifBlank { "auto" },
+            plusCode = settings["plus_code"].orEmpty(),
+            latitude = settings["latitude"].orEmpty(),
+            longitude = settings["longitude"].orEmpty(),
+            onLocationModeChange = { mode -> merge(mapOf("location_source" to mode)) },
+            onPlusCodeChange = { value -> merge(mapOf("plus_code" to value)) },
+            onLatitudeChange = { value -> merge(mapOf("latitude" to value)) },
+            onLongitudeChange = { value -> merge(mapOf("longitude" to value)) },
+            onCentreGps = ::requestGpsCentre,
+            onRefresh = ::startRefresh,
+            lightRegionCount = lightCacheCount,
+            lightRaster = activeLightRaster,
+            lightHeatmap = lightHeatmap,
+            lightBusy = lightBusy,
+            onDownloadLightRegion = ::downloadLightHeatmap,
+            onImportLightRegion = { lightImportLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) },
+            onUseSnapshot = if (keepLiveDashboard && result != null) ({ onConfirmed(result!!) }) else null,
+            snapshotButtonLabel = if (context.isNativePresetRun) "Finish" else "Use this snapshot"
+        )
     }
 }
 
@@ -310,6 +350,7 @@ private fun DashboardBody(
     values: Map<String,String>,
     status: String,
     loading: Boolean,
+    context: CapabilityScreenContext,
     locationMode: String,
     plusCode: String,
     latitude: String,
@@ -333,6 +374,8 @@ private fun DashboardBody(
     val score = values[DashboardFields.OVERALL_SCORE]?.toIntOrNull()
     val source = values[DashboardFields.LOCATION_SOURCE].orEmpty()
     val updated = displayTime(values[DashboardFields.RETRIEVED_TIME].orEmpty())
+
+    Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 6.dp))
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -367,6 +410,7 @@ private fun DashboardBody(
         latitude = latitude,
         longitude = longitude,
         loading = loading,
+        context = context,
         onModeChange = onLocationModeChange,
         onPlusCodeChange = onPlusCodeChange,
         onLatitudeChange = onLatitudeChange,
@@ -422,7 +466,7 @@ private fun DashboardBody(
         Button(onClick = onDownloadLightRegion, enabled = !lightBusy && lat != null && lon != null, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
             if (lightBusy) CircularProgressIndicator(strokeWidth = 2.dp) else Text(if (dataset.isBlank()) "Download 50 km heatmap" else "Refresh 50 km heatmap")
         }
-        OutlinedButton(onClick = onImportLightRegion, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        OutlinedButton(onClick = onImportLightRegion, enabled = !loading && !lightBusy, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
             Text("Import legacy regional data")
         }
     }
@@ -465,17 +509,19 @@ private fun DashboardLocationControls(
     latitude: String,
     longitude: String,
     loading: Boolean,
+    context: CapabilityScreenContext,
     onModeChange: (String) -> Unit,
     onPlusCodeChange: (String) -> Unit,
     onLatitudeChange: (String) -> Unit,
     onLongitudeChange: (String) -> Unit,
     onCentreGps: () -> Unit
 ) {
+    if (listOf("location_source", "plus_code", "latitude", "longitude").none { context.settingShouldBeShown(it) }) return
     var expanded by rememberSaveable { mutableStateOf(false) }
     val label = when (mode) { "plus_code" -> "Plus Code"; "manual" -> "Latitude / longitude"; else -> "Current GPS" }
     DashboardSection("Location") {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) {
+            if (context.settingShouldBeShown("location_source")) Box(Modifier.weight(1f)) {
                 OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text("$label  ▾") }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     DropdownMenuItem(text = { Text("Current GPS") }, onClick = { expanded = false; onModeChange("auto") })
@@ -484,15 +530,17 @@ private fun DashboardLocationControls(
                 }
             }
             Spacer(Modifier.padding(4.dp))
-            OutlinedButton(onClick = onCentreGps, enabled = !loading) { Text("◎ GPS") }
+            if (listOf("location_source", "latitude", "longitude").all { context.settingShouldBeShown(it) }) {
+                OutlinedButton(onClick = onCentreGps, enabled = !loading) { Text("◎ GPS") }
+            }
         }
         when (mode) {
-            "plus_code" -> OutlinedTextField(value = plusCode, onValueChange = onPlusCodeChange, label = { Text("Plus Code") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            "plus_code" -> if (context.settingShouldBeShown("plus_code")) OutlinedTextField(value = plusCode, onValueChange = onPlusCodeChange, label = { Text("Plus Code") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             "manual" -> {
                 Row(Modifier.fillMaxWidth()) {
-                    OutlinedTextField(value = latitude, onValueChange = onLatitudeChange, label = { Text("Latitude") }, singleLine = true, modifier = Modifier.weight(1f))
+                    if (context.settingShouldBeShown("latitude")) OutlinedTextField(value = latitude, onValueChange = onLatitudeChange, label = { Text("Latitude") }, singleLine = true, modifier = Modifier.weight(1f))
                     Spacer(Modifier.padding(3.dp))
-                    OutlinedTextField(value = longitude, onValueChange = onLongitudeChange, label = { Text("Longitude") }, singleLine = true, modifier = Modifier.weight(1f))
+                    if (context.settingShouldBeShown("longitude")) OutlinedTextField(value = longitude, onValueChange = onLongitudeChange, label = { Text("Longitude") }, singleLine = true, modifier = Modifier.weight(1f))
                 }
             }
             else -> Text("Refresh uses a fresh GPS fix. The GPS button also switches back to Current GPS and recentres immediately.", style = MaterialTheme.typography.bodySmall)

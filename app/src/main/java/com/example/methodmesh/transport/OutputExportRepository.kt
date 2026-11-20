@@ -18,6 +18,7 @@ import com.example.methodmesh.core.methodmesh.ExecutionResult
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.OutputStream
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -25,6 +26,8 @@ import java.util.UUID
 
 /** Writes direct-run results and returned attachments to the user-configured folder. */
 object OutputExportRepository {
+    private class DownloadCleanupFailure(cause: Throwable? = null) :
+        IllegalStateException("Could not remove incomplete download.", cause)
     private const val PREFS = "methodmesh_global_settings"
     private const val OUTPUT_TREE_URI = "output_tree_uri"
     private const val LAST_OUTPUT_FOLDER_URI = "last_output_folder_uri"
@@ -86,57 +89,64 @@ object OutputExportRepository {
         label: String,
         text: String,
         mediaUris: List<String>,
-        jsonText: String = ""
+        jsonText: String = "",
+        mediaMimeTypes: Map<String, String> = emptyMap()
     ): DownloadsExport {
+        LegacyDownloadsPermission.requireAccess(context)
         val operationInstant = Instant.now()
         val stem = ResultShare.coherentFileStem(label, operationInstant)
         val folderName = stem
         val exported = mutableListOf<ExportedFile>()
-        if (text.isNotBlank()) {
-            val name = "${stem}_result.txt"
-            val uri = writePublicDownload(
-                context = context,
-                folderName = folderName,
-                name = name,
-                mime = "text/plain",
-                bytes = text.toByteArray(Charsets.UTF_8)
-            ) ?: throw IllegalStateException("Could not write text result to Downloads.")
-            exported += ExportedFile("result_text", name, uri, "text/plain")
+        fun write(field: String, name: String, mime: String, contents: (OutputStream) -> Unit) {
+            val uri = writePublicDownload(context, folderName, name, mime, contents)
+                ?: error("Could not create Downloads file: $name")
+            exported += ExportedFile(field, name, uri, mime)
         }
-        if (jsonText.isNotBlank()) {
-            val name = "${stem}_metadata.json"
-            val uri = writePublicDownload(
-                context = context,
-                folderName = folderName,
-                name = name,
-                mime = "application/json",
-                bytes = jsonText.toByteArray(Charsets.UTF_8)
-            ) ?: throw IllegalStateException("Could not write JSON metadata to Downloads.")
-            exported += ExportedFile("metadata_json", name, uri, "application/json")
+        try {
+            if (text.isNotBlank()) {
+                write("result_text", "${stem}_result.txt", "text/plain") { it.write(text.toByteArray(Charsets.UTF_8)) }
+            }
+            if (jsonText.isNotBlank()) {
+                write("metadata_json", "${stem}_metadata.json", "application/json") { it.write(jsonText.toByteArray(Charsets.UTF_8)) }
+            }
+            mediaUris.distinct().forEachIndexed { index, source ->
+                val sourceUri = Uri.parse(source)
+                val resolvedMime = if (source.startsWith("content://")) {
+                    context.contentResolver.getType(sourceUri)?.takeIf { it.isNotBlank() && it != "application/octet-stream" }
+                } else null
+                val usefulMime = resolvedMime ?: mediaMimeTypes[source]?.takeIf { it.isNotBlank() && it != "application/octet-stream" }
+                val ext = extension(source).takeIf { it != "bin" }
+                    ?: usefulMime?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
+                    ?: "bin"
+                val sourceBase = sourceDisplayName(context, source)
+                    ?.let { name -> name.substringBeforeLast('.', name) }
+                    ?.let(::safeSegment)?.lowercase()?.takeIf { it.isNotBlank() }
+                val suffix = sourceBase?.let { "${it}_${index + 1}" } ?: "media_${index + 1}"
+                val name = "${stem}_${suffix}.$ext"
+                write("media_${index + 1}", name, usefulMime ?: mimeTypeFor(name)) { output ->
+                    // Stream large artefacts; never report a partial bundle as a
+                    // successful save merely because text was written first.
+                    requireNotNull(openSource(context, source)) { "Could not read selected media." }
+                        .use { input -> input.copyTo(output) }
+                }
+            }
+            check(exported.isNotEmpty()) { "No text or media was available to save." }
+            return DownloadsExport(exported, folderName)
+        } catch (failure: Exception) {
+            var cleanupFailed = failure.suppressed.any { it is DownloadCleanupFailure }
+            exported.forEach { file ->
+                runCatching {
+                    if (file.uri.startsWith("content://")) {
+                        check(context.contentResolver.delete(Uri.parse(file.uri), null, null) > 0) { "Could not remove incomplete download." }
+                    } else {
+                        val path = File(file.uri)
+                        check(!path.exists() || path.delete()) { "Could not remove incomplete download." }
+                    }
+                }.onFailure { cleanupFailed = true; failure.addSuppressed(it) }
+            }
+            val detail = if (cleanupFailed) " Some incomplete files could not be removed." else " No files from this attempt were kept."
+            throw IllegalStateException("Could not save all result files.$detail", failure)
         }
-        mediaUris.distinct().forEachIndexed { index, source ->
-            val sourceUri = Uri.parse(source)
-            val resolvedMime = if (source.startsWith("content://")) {
-                context.contentResolver.getType(sourceUri)?.takeIf { it.isNotBlank() }
-            } else null
-            val ext = extension(source).takeIf { it != "bin" }
-                ?: resolvedMime?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
-                ?: "bin"
-            val sourceName = sourceDisplayName(context, source)
-            val sourceBase = sourceName
-                ?.let { name -> name.substringBeforeLast('.', name) }
-                ?.let(::safeSegment)
-                ?.lowercase()
-                ?.takeIf { it.isNotBlank() }
-            val suffix = sourceBase?.let { "${it}_${index + 1}" } ?: "media_${index + 1}"
-            val name = "${stem}_${suffix}.$ext"
-            val mime = resolvedMime ?: mimeTypeFor(name)
-            val bytes = openSource(context, source)?.use { it.readBytes() } ?: return@forEachIndexed
-            val uri = writePublicDownload(context, folderName, name, mime, bytes)
-            if (uri != null) exported += ExportedFile("media_${index + 1}", name, uri, mime)
-        }
-        if (exported.isEmpty()) throw IllegalStateException("No text or media was available to save.")
-        return DownloadsExport(exported, folderName)
     }
 
     fun exportFlatPackage(
@@ -155,7 +165,7 @@ object OutputExportRepository {
             .joinToString("/")
         val attachments = JSONArray()
         val tree = configuredFolder(context).takeIf { it.isNotBlank() }?.let(Uri::parse)
-        val treeFolder = tree?.let { createTreeDirectoryPath(context, it, folderName) }
+        val treeFolder = tree?.let { checkNotNull(createTreeDirectoryPath(context, it, folderName)) { "The configured output folder is unavailable. Choose a writable folder and retry." } }
         val folderUri = treeFolder?.toString() ?: defaultOutputFolderDocumentUri(folderName)
         val exportedAttachments = mutableListOf<ExportedFile>()
         val usedNames = mutableSetOf<String>()
@@ -172,42 +182,31 @@ object OutputExportRepository {
             return candidate
         }
 
-        val jsonFields = JSONObject()
-        fields.toSortedMap().forEach { (key, value) ->
-            val exportedValue = if (value?.isNotBlank() == true && ResultShare.isShareableMediaField(key, value)) {
-                uniqueAttachmentName(key, value)
-            } else {
-                value
-            }
-            jsonFields.put(key, exportedValue ?: JSONObject.NULL)
-        }
+        val plan = ExportAttachmentProjection.plan(fields, ::uniqueAttachmentName)
+        val jsonFields = plan.fields
 
-        ResultShare.shareableMediaAttachmentValues(fields)
+        plan.attachments
             .forEach { attachment ->
                 val field = attachment.field
-                val source = attachment.uri
-                val name = jsonFields.optString(field)
-                    .takeIf { it.isNotBlank() && it != "null" && !it.trimStart().startsWith("[") }
-                    ?: uniqueAttachmentName(field, source)
+                val source = attachment.source
+                val name = attachment.filename
                 val mime = mimeTypeFor(name)
                 val written = if (treeFolder != null) {
                     copyToTreeFolder(context, treeFolder, source, name, mime)
                 } else {
                     copyToDefault(context, folderName, source, name, mime)
                 }
-                if (written != null) {
-                    attachments.put(JSONObject().apply {
-                        put("step_index", 0)
-                        put("step_number", 1)
-                        put("step_name", sourceStem)
-                        put("field", field)
-                        put("filename", name)
-                        put("uri", written)
-                        put("mime_type", mime)
-                        put("exported_at", Instant.now().toString())
-                    })
-                    exportedAttachments += ExportedFile(field, name, written, mime)
-                }
+                attachments.put(JSONObject().apply {
+                    put("step_index", 0)
+                    put("step_number", 1)
+                    put("step_name", sourceStem)
+                    put("field", field)
+                    put("filename", name)
+                    put("uri", written)
+                    put("mime_type", mime)
+                    put("exported_at", Instant.now().toString())
+                })
+                exportedAttachments += ExportedFile(field, name, written, mime)
             }
 
         val exportedAt = Instant.now().toString()
@@ -255,6 +254,7 @@ object OutputExportRepository {
         ))
     }
 
+    @Synchronized
     fun exportProtocolStepPackage(
         context: Context,
         protocolFolder: String,
@@ -269,7 +269,7 @@ object OutputExportRepository {
         val packageId = protocolSubmissionId.ifBlank { UUID.randomUUID().toString() }
         val folderName = safePath(protocolFolder).ifBlank { safeSegment("protocol_${UUID.randomUUID()}") }
         val tree = configuredFolder(context).takeIf { it.isNotBlank() }?.let(Uri::parse)
-        val treeFolder = tree?.let { createOrFindTreeDirectoryPath(context, it, folderName) }
+        val treeFolder = tree?.let { checkNotNull(createOrFindTreeDirectoryPath(context, it, folderName)) { "The configured output folder is unavailable. Choose a writable folder and retry." } }
         val folderUri = treeFolder?.toString() ?: defaultOutputFolderDocumentUri(folderName)
         val exportedAt = Instant.now().toString()
         val attachments = JSONArray()
@@ -289,45 +289,37 @@ object OutputExportRepository {
             return candidate
         }
 
-        val jsonFields = JSONObject()
-        fields.toSortedMap().forEach { (key, value) ->
-            val exportedValue = if (value?.isNotBlank() == true && ResultShare.isShareableMediaField(key, value)) {
-                uniqueAttachmentName(key, value)
-            } else {
-                value
-            }
-            jsonFields.put(key, exportedValue ?: JSONObject.NULL)
-        }
+        // Read history before copying anything. Unreadable/corrupt existing evidence
+        // must not be interpreted as a new, empty protocol run.
+        val prior = readProtocolResultJson(context, treeFolder, folderName)
+        val plan = ExportAttachmentProjection.plan(fields, ::uniqueAttachmentName)
+        val jsonFields = plan.fields
 
-        ResultShare.shareableMediaAttachmentValues(fields)
+        plan.attachments
             .forEach { attachment ->
                 val field = attachment.field
-                val source = attachment.uri
-                val name = jsonFields.optString(field)
-                    .takeIf { it.isNotBlank() && it != "null" && !it.trimStart().startsWith("[") }
-                    ?: uniqueAttachmentName(field, source)
+                val source = attachment.source
+                val name = attachment.filename
                 val mime = mimeTypeFor(name)
                 val written = if (treeFolder != null) {
                     copyToTreeFolder(context, treeFolder, source, name, mime)
                 } else {
                     copyToDefault(context, folderName, source, name, mime)
                 }
-                if (written != null) {
-                    attachments.put(JSONObject().apply {
-                        put("step_index", stepIndex)
-                        put("step_number", stepIndex + 1)
-                        put("step_name", stepName)
-                        put("field", field)
-                        put("filename", name)
-                        put("uri", written)
-                        put("mime_type", mime)
-                        put("exported_at", exportedAt)
-                    })
-                    exportedAttachments += ExportedFile(field, name, written, mime)
-                }
+                attachments.put(JSONObject().apply {
+                    put("step_index", stepIndex)
+                    put("step_number", stepIndex + 1)
+                    put("step_name", stepName)
+                    put("field", field)
+                    put("filename", name)
+                    put("uri", written)
+                    put("mime_type", mime)
+                    put("exported_at", exportedAt)
+                })
+                exportedAttachments += ExportedFile(field, name, written, mime)
             }
 
-        val existing = readProtocolResultJson(context, treeFolder, folderName) ?: JSONObject().apply {
+        val existing = prior ?: JSONObject().apply {
             put("methodmesh_output_schema", "methodmesh.output.package")
             put("methodmesh_export_version", "2")
             put("export_kind", "protocol_run")
@@ -396,9 +388,8 @@ object OutputExportRepository {
         val method = safeSegment(result.request.method.id.value).ifBlank { "methodmesh_method" }
         val folderName = safeSegment("${timestamp}_${method}_${result.request.id.value}_$packageId")
         val attachments = JSONArray()
-        val attachmentFields = ResultShare.shareableMediaAttachmentValues(fields)
         val tree = configuredFolder(context).takeIf { it.isNotBlank() }?.let(Uri::parse)
-        val treeFolder = tree?.let { createTreeDirectory(context, it, folderName) }
+        val treeFolder = tree?.let { checkNotNull(createTreeDirectory(context, it, folderName)) { "The configured output folder is unavailable. Choose a writable folder and retry." } }
         val folderUri = treeFolder?.toString() ?: defaultOutputFolderDocumentUri(folderName)
         val exportedAttachments = mutableListOf<ExportedFile>()
         val usedNames = mutableSetOf<String>()
@@ -415,41 +406,29 @@ object OutputExportRepository {
             return candidate
         }
 
-        val jsonFields = JSONObject().apply {
-            fields.forEach { (key, value) ->
-                val exportedValue = if (value != null && ResultShare.isShareableMediaField(key, value.toString())) {
-                    uniqueAttachmentName(key, value.toString())
-                } else value
-                put(key, exportedValue ?: JSONObject.NULL)
-            }
-        }
+        val plan = ExportAttachmentProjection.plan(fields, ::uniqueAttachmentName)
+        val jsonFields = plan.fields
 
-        fun addAttachment(field: String, source: String) {
-            val exportedName = jsonFields.optString(field)
-            val name = exportedName
-                .takeIf { it.isNotBlank() && it != "null" && !it.trimStart().startsWith("[") }
-                ?: uniqueAttachmentName(field, source)
+        fun addAttachment(field: String, source: String, name: String) {
             val mime = mimeTypeFor(name)
             val written = if (treeFolder != null) {
                 copyToTreeFolder(context, treeFolder, source, name, mime)
             } else {
                 copyToDefault(context, folderName, source, name, mime)
             }
-            if (written != null) {
-                attachments.put(JSONObject().apply {
-                    put("step_index", 0)
-                    put("step_number", 1)
-                    put("step_name", method)
-                    put("field", field)
-                    put("filename", name)
-                    put("uri", written)
-                    put("mime_type", mime)
-                    put("exported_at", Instant.now().toString())
-                })
-                exportedAttachments += ExportedFile(field, name, written, mime)
-            }
+            attachments.put(JSONObject().apply {
+                put("step_index", 0)
+                put("step_number", 1)
+                put("step_name", method)
+                put("field", field)
+                put("filename", name)
+                put("uri", written)
+                put("mime_type", mime)
+                put("exported_at", Instant.now().toString())
+            })
+            exportedAttachments += ExportedFile(field, name, written, mime)
         }
-        attachmentFields.forEach { attachment -> addAttachment(attachment.field, attachment.uri) }
+        plan.attachments.forEach { attachment -> addAttachment(attachment.field, attachment.source, attachment.filename) }
         val exportedAt = Instant.now().toString()
         val json = JSONObject().apply {
             put("methodmesh_output_schema", "methodmesh.output.package")
@@ -692,15 +671,17 @@ object OutputExportRepository {
 
     private fun extension(source: String): String = Uri.parse(source).lastPathSegment?.substringAfterLast('.', "bin")?.takeIf { it.length <= 8 } ?: "bin"
 
-    private fun copyToDefault(context: Context, folderName: String, source: String, name: String, mime: String): String? = runCatching {
-        val bytes = openSource(context, source)?.use { it.readBytes() } ?: return null
-        writeDefault(context, folderName, name, mime, bytes)
-    }.getOrNull()
+    private fun copyToDefault(context: Context, folderName: String, source: String, name: String, mime: String): String {
+        return requireNotNull(openSource(context, source)) { "Could not read selected attachment: $name" }.use { input ->
+            checkNotNull(writeDefault(context, folderName, name, mime) { input.copyTo(it) }) { "Could not save selected attachment: $name" }
+        }
+    }
 
-    private fun copyToTreeFolder(context: Context, folder: Uri, source: String, name: String, mime: String): String? = runCatching {
-        val bytes = openSource(context, source)?.use { it.readBytes() } ?: return null
-        writeTreeDocument(context, folder, name, mime, bytes)
-    }.getOrNull()
+    private fun copyToTreeFolder(context: Context, folder: Uri, source: String, name: String, mime: String): String {
+        return requireNotNull(openSource(context, source)) { "Could not read selected attachment: $name" }.use { input ->
+            checkNotNull(writeTreeDocument(context, folder, name, mime) { input.copyTo(it) }) { "Could not save selected attachment: $name" }
+        }
+    }
 
     private fun openSource(context: Context, source: String) = if (source.startsWith("content://")) {
         context.contentResolver.openInputStream(Uri.parse(source))
@@ -715,18 +696,21 @@ object OutputExportRepository {
         return JSONArray().apply { objects.sortedBy { it.optInt("step_index", 0) }.forEach { put(it) } }
     }
 
-    private fun readProtocolResultJson(context: Context, treeFolder: Uri?, folderName: String): JSONObject? = runCatching {
+    private fun readProtocolResultJson(context: Context, treeFolder: Uri?, folderName: String): JSONObject? {
         val uri = if (treeFolder != null) {
             findTreeChild(context, treeFolder, safeSegment("${folderName.substringAfterLast('/')}_protocol_result") + ".json", directory = false)
                 ?: findTreeChild(context, treeFolder, "protocol_result.json", directory = false)
         } else {
             findDefaultDocument(context, folderName, safeSegment("${folderName.substringAfterLast('/')}_protocol_result") + ".json")
                 ?: findDefaultDocument(context, folderName, "protocol_result.json")
-        } ?: return@runCatching null
-        context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { reader ->
-            JSONObject(reader.readText())
+        } ?: return null
+        return requireNotNull(context.contentResolver.openInputStream(uri)) { "Existing protocol export could not be read." }.bufferedReader().use { reader ->
+            JSONObject(reader.readText()).also { json ->
+                val steps = requireNotNull(json.optJSONArray("steps")) { "Existing protocol export has no valid step history." }
+                for (index in 0 until steps.length()) steps.getJSONObject(index)
+            }
         }
-    }.getOrNull()
+    }
 
     private fun createOrFindTreeDirectoryPath(context: Context, tree: Uri, path: String): Uri? = runCatching {
         var parent = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
@@ -738,14 +722,14 @@ object OutputExportRepository {
         parent
     }.getOrNull()
 
-    private fun findTreeChild(context: Context, parent: Uri, name: String, directory: Boolean): Uri? = runCatching {
+    private fun findTreeChild(context: Context, parent: Uri, name: String, directory: Boolean): Uri? {
         val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(parent, DocumentsContract.getDocumentId(parent))
         val projection = arrayOf(
             DocumentsContract.Document.COLUMN_DOCUMENT_ID,
             DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             DocumentsContract.Document.COLUMN_MIME_TYPE
         )
-        context.contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+        requireNotNull(context.contentResolver.query(childrenUri, projection, null, null, null)) { "Output folder could not be read." }.use { cursor ->
             val idIndex = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
             val nameIndex = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
             val mimeIndex = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
@@ -753,18 +737,21 @@ object OutputExportRepository {
                 val display = cursor.getString(nameIndex)
                 val mime = cursor.getString(mimeIndex)
                 if (display == name && (!directory || mime == DocumentsContract.Document.MIME_TYPE_DIR)) {
-                    return@runCatching DocumentsContract.buildDocumentUriUsingTree(parent, cursor.getString(idIndex))
+                    return DocumentsContract.buildDocumentUriUsingTree(parent, cursor.getString(idIndex))
                 }
             }
         }
-        null
-    }.getOrNull()
+        return null
+    }
 
     private fun writeTreeDocumentReplace(context: Context, parent: Uri, name: String, mime: String, bytes: ByteArray): String? {
-        findTreeChild(context, parent, name, directory = false)?.let { existing ->
-            runCatching { DocumentsContract.deleteDocument(context.contentResolver, existing) }
-        }
-        return writeTreeDocument(context, parent, name, mime, bytes)
+        val existing = findTreeChild(context, parent, name, directory = false)
+            ?: return writeTreeDocument(context, parent, name, mime, bytes)
+        return replaceProtocolDocument(context, existing, bytes, backup = { previous ->
+            checkNotNull(writeTreeDocument(context, parent, "${name.removeSuffix(".json")}_recovery_${UUID.randomUUID()}.json", mime, previous)) {
+                "Could not back up the previous protocol history; it was not overwritten."
+            }
+        }, removeBackup = { DocumentsContract.deleteDocument(context.contentResolver, Uri.parse(it)) })
     }
 
     private fun findDefaultDocument(context: Context, folderName: String, name: String): Uri? {
@@ -776,7 +763,7 @@ object OutputExportRepository {
         val projection = arrayOf(MediaStore.Files.FileColumns._ID)
         val selection = "${MediaStore.Files.FileColumns.RELATIVE_PATH}=? AND ${MediaStore.Files.FileColumns.DISPLAY_NAME}=?"
         val args = arrayOf(relativePath, name)
-        context.contentResolver.query(MediaStore.Files.getContentUri("external"), projection, selection, args, null)?.use { cursor ->
+        requireNotNull(context.contentResolver.query(MediaStore.Files.getContentUri("external"), projection, selection, args, null)) { "Existing protocol export folder could not be read." }.use { cursor ->
             if (cursor.moveToFirst()) {
                 val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID))
                 return Uri.withAppendedPath(MediaStore.Files.getContentUri("external"), id.toString())
@@ -786,14 +773,33 @@ object OutputExportRepository {
     }
 
     private fun writeDefaultReplace(context: Context, folderName: String, name: String, mime: String, bytes: ByteArray): String? {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            findDefaultDocument(context, folderName, name)?.let { existing ->
-                runCatching { context.contentResolver.delete(existing, null, null) }
+        val existing = findDefaultDocument(context, folderName, name)
+            ?: return writeDefault(context, folderName, name, mime, bytes)
+        return replaceProtocolDocument(context, existing, bytes, backup = { previous ->
+            checkNotNull(writeDefault(context, folderName, "${name.removeSuffix(".json")}_recovery_${UUID.randomUUID()}.json", mime, previous)) {
+                "Could not back up the previous protocol history; it was not overwritten."
             }
-        } else {
-            File(defaultFolder(context), folderName).resolve(name).delete()
-        }
-        return writeDefault(context, folderName, name, mime, bytes)
+        }, removeBackup = { raw ->
+            if (raw.startsWith("content://")) context.contentResolver.delete(Uri.parse(raw), null, null)
+            else File(raw).delete()
+        })
+    }
+
+    private fun replaceProtocolDocument(context: Context, existing: Uri, bytes: ByteArray,
+                                        backup: (ByteArray) -> String, removeBackup: (String) -> Unit): String {
+        val previous = requireNotNull(context.contentResolver.openInputStream(existing)) { "Previous protocol history could not be read." }.use { it.readBytes() }
+        fun read(uri: Uri) = requireNotNull(context.contentResolver.openInputStream(uri)) { "Protocol document could not be read back." }.use { it.readBytes() }
+        RecoverableExportReplace.write(previous, bytes, backup = {
+            val recovery = backup(previous)
+            val readable = if (recovery.startsWith("content://")) read(Uri.parse(recovery)) else File(recovery).readBytes()
+            check(previous.contentEquals(readable)) { "Protocol recovery copy could not be verified; previous history was not overwritten." }
+            recovery
+        }, overwrite = { contents ->
+            requireNotNull(context.contentResolver.openOutputStream(existing, "rwt")) { "Protocol document could not be opened for replacement." }
+                .use { it.write(contents) }
+            check(contents.contentEquals(read(existing))) { "Protocol replacement could not be verified." }
+        }, removeBackup = removeBackup)
+        return existing.toString()
     }
 
     private fun createTreeDirectory(context: Context, tree: Uri, name: String): Uri? = runCatching {
@@ -810,13 +816,25 @@ object OutputExportRepository {
         parent
     }.getOrNull()
 
-    private fun writeTreeDocument(context: Context, parent: Uri, name: String, mime: String, bytes: ByteArray): String? {
+    private fun writeTreeDocument(context: Context, parent: Uri, name: String, mime: String, bytes: ByteArray): String? =
+        writeTreeDocument(context, parent, name, mime) { it.write(bytes) }
+
+    private fun writeTreeDocument(context: Context, parent: Uri, name: String, mime: String, contents: (OutputStream) -> Unit): String? {
         val uri = DocumentsContract.createDocument(context.contentResolver, parent, mime, name) ?: return null
-        context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } ?: return null
-        return uri.toString()
+        try {
+            requireNotNull(context.contentResolver.openOutputStream(uri)) { "Output document could not be opened." }.use(contents)
+            return uri.toString()
+        } catch (failure: Exception) {
+            runCatching { check(DocumentsContract.deleteDocument(context.contentResolver, uri)) }
+                .onFailure { failure.addSuppressed(it) }
+            throw failure
+        }
     }
 
-    private fun writeDefault(context: Context, folderName: String, name: String, mime: String, bytes: ByteArray): String? {
+    private fun writeDefault(context: Context, folderName: String, name: String, mime: String, bytes: ByteArray): String? =
+        writeDefault(context, folderName, name, mime) { it.write(bytes) }
+
+    private fun writeDefault(context: Context, folderName: String, name: String, mime: String, contents: (OutputStream) -> Unit): String? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = android.content.ContentValues().apply {
                 put(MediaStore.Files.FileColumns.DISPLAY_NAME, name)
@@ -826,9 +844,9 @@ object OutputExportRepository {
             }
             val uri = context.contentResolver.insert(MediaStore.Files.getContentUri("external"), values) ?: return null
             return runCatching {
-                context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } ?: error("Unable to write output")
+                context.contentResolver.openOutputStream(uri)?.use(contents) ?: error("Unable to write output")
                 val completed = android.content.ContentValues().apply { put(MediaStore.Files.FileColumns.IS_PENDING, 0) }
-                context.contentResolver.update(uri, completed, null, null)
+                check(context.contentResolver.update(uri, completed, null, null) > 0) { "Output could not be published." }
                 uri.toString()
             }.getOrElse {
                 context.contentResolver.delete(uri, null, null)
@@ -836,11 +854,11 @@ object OutputExportRepository {
             }
         }
         val out = File(defaultFolder(context), folderName).apply { mkdirs() }.resolve(name)
-        out.writeBytes(bytes)
+        out.outputStream().use(contents)
         return out.absolutePath
     }
 
-    private fun writePublicDownload(context: Context, folderName: String, name: String, mime: String, bytes: ByteArray): String? {
+    private fun writePublicDownload(context: Context, folderName: String, name: String, mime: String, contents: (OutputStream) -> Unit): String? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = android.content.ContentValues().apply {
                 put(MediaStore.Files.FileColumns.DISPLAY_NAME, name)
@@ -850,18 +868,25 @@ object OutputExportRepository {
             }
             val uri = context.contentResolver.insert(MediaStore.Files.getContentUri("external"), values) ?: return null
             return runCatching {
-                context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } ?: error("Unable to write download")
+                context.contentResolver.openOutputStream(uri)?.use(contents) ?: error("Unable to write download")
                 val completed = android.content.ContentValues().apply { put(MediaStore.Files.FileColumns.IS_PENDING, 0) }
-                context.contentResolver.update(uri, completed, null, null)
+                check(context.contentResolver.update(uri, completed, null, null) > 0) { "Unable to finalise download" }
                 uri.toString()
             }.getOrElse {
-                context.contentResolver.delete(uri, null, null)
+                runCatching {
+                    check(context.contentResolver.delete(uri, null, null) > 0) { "Could not remove incomplete download." }
+                }.onFailure { cleanup -> it.addSuppressed(DownloadCleanupFailure(cleanup)) }
                 throw it
             }
         }
         val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val out = File(downloads, "MethodMesh/$folderName").apply { mkdirs() }.resolve(name)
-        out.writeBytes(bytes)
+        try {
+            out.outputStream().use(contents)
+        } catch (failure: Exception) {
+            if (out.exists() && !out.delete()) failure.addSuppressed(DownloadCleanupFailure())
+            throw failure
+        }
         return out.absolutePath
     }
 
@@ -901,6 +926,8 @@ object OutputExportRepository {
 
     private fun mimeTypeFor(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {
         "json" -> "application/json"
+        "yaml", "yml" -> "application/yaml"
+        "zip" -> "application/zip"
         "jpg", "jpeg" -> "image/jpeg"
         "png" -> "image/png"
         "pdf" -> "application/pdf"

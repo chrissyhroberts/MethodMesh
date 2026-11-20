@@ -115,6 +115,7 @@ fun NfcDeviceServiceEffect(
     enabled: Boolean,
     onStatus: (String) -> Unit,
     onSignal: (NfcTagSignal) -> Unit,
+    operationKey: Any? = null,
     // NFC screens own the adapter for their whole lifetime. The enabled flag
     // still controls whether the current operation accepts a tag, but a
     // competing NDEF application must not receive the tag first while the
@@ -154,7 +155,7 @@ fun NfcDeviceServiceEffect(
     // In held-reader mode, enabled means "accept the next tag", not
     // "give NFC back to Android". The reader stays owned by MethodMesh and
     // the one-shot gate is simply armed/disarmed between workflow stages.
-    LaunchedEffect(enabled, holdReaderMode, session) {
+    LaunchedEffect(enabled, holdReaderMode, session, operationKey) {
         if (holdReaderMode) {
             if (enabled) session?.arm() else session?.disarm()
         }

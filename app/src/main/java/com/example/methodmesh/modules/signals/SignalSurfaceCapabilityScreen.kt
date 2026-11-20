@@ -74,7 +74,7 @@ object SignalSurfaceTransmitCapabilityScreen : CapabilityScreenSpec {
         var totalBits by remember { mutableStateOf(0) }
         var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Place both phones firmly on the same surface. Speaker contact matters.") }
         var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val committed = rememberSignalCommit(context.action.canonicalId)
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         var job by remember { mutableStateOf<Job?>(null) }
         val continueFlag = remember { AtomicBoolean(false) }
@@ -147,9 +147,8 @@ object SignalSurfaceTransmitCapabilityScreen : CapabilityScreenSpec {
                 SignalSurfaceTransmitFields.STATUS to "sent",
                 SignalSurfaceTransmitFields.ERROR to ""
             )
-            committedJson = fieldsJson(values)
             status = "Committed. SHA-256 and physical settings are frozen with the transmission record."
-            val result = signalResult(As100SignalSurfaceTransmitMethod, context, values)
+            val result = committed.capture(signalResult(As100SignalSurfaceTransmitMethod, context, values))
             if (context.submitsImmediately) onConfirmed(result)
         }
 
@@ -159,11 +158,11 @@ object SignalSurfaceTransmitCapabilityScreen : CapabilityScreenSpec {
         SignalActiveSessionOrientationGuard(sending)
         DisposableEffect(Unit) { onDispose { continueFlag.set(false); job?.cancel() } }
 
-        val committedFields = fieldsFromJson(committedJson)
-        val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(As100SignalSurfaceTransmitMethod, context, it) } }
-        val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+        val committedFields = committed.fields
+        val committedResult = committed.result
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SignalCommitRecoveryNotice(committed)
             Button(
                 onClick = { if (sending) stop() else start() },
                 modifier = Modifier.fillMaxWidth()
@@ -184,15 +183,21 @@ object SignalSurfaceTransmitCapabilityScreen : CapabilityScreenSpec {
                 Text(if (committedResult == null) "Commit" else "Recommit")
             }
             if (committedResult != null && !context.submitsImmediately) {
-                SignalCommittedCard("Committed tabletop transmission", "message", committedFields[SignalSurfaceTransmitFields.RESULT].orEmpty(), listOf(
+                SignalCommittedCard(
+                    title = "Committed tabletop transmission",
+                    primaryLabel = "message",
+                    primaryValue = committedFields[SignalSurfaceTransmitFields.RESULT].orEmpty(),
+                    fields = listOf(
                     "SHA-256" to committedFields[SignalSurfaceTransmitFields.CHECKSUM_SHA256].orEmpty(),
                     "Carrier" to committedFields[SignalSurfaceTransmitFields.CARRIER_HZ].orEmpty(),
                     "Bit ms" to committedFields[SignalSurfaceTransmitFields.BIT_MS].orEmpty(),
                     "Cycles" to committedFields[SignalSurfaceTransmitFields.CYCLES].orEmpty()
-                ), exportStatus, { l,v -> copySignalValue(androidContext,l,v) },
-                    { exportStatus = shareSignalText(androidContext,"Share tabletop transmission",committedFields[SignalSurfaceTransmitFields.RESULT].orEmpty()) ?: "" },
-                    { exportStatus = saveSignalText(androidContext,"surface_transmission",committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" },committedFullJson) },
-                    { finishSignalResult(context,androidContext,committedResult,onConfirmed) { saveSignalText(androidContext,"surface_transmission",committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" },committedFullJson) } }
+                ),
+                    status = exportStatus,
+                    onCopy = { l,v -> copySignalValue(androidContext,l,v) },
+                    context = context,
+                    result = committedResult,
+                    onConfirmed = onConfirmed
                 )
             }
             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -267,7 +272,7 @@ object SignalSurfaceReceiveCapabilityScreen : CapabilityScreenSpec {
         var physicalRejected by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Place both phones on the same surface, then calibrate while the transmitter is quiet. Sensor sampling uses 100 Hz and needs no high-rate sensor permission.") }
         var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val committed = rememberSignalCommit(context.action.canonicalId)
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         val trace = remember { mutableStateListOf<Float>() }
         val engine = remember(androidContext) { SignalSurfaceReceiverEngine(androidContext) }
@@ -354,17 +359,18 @@ object SignalSurfaceReceiveCapabilityScreen : CapabilityScreenSpec {
                 SignalSurfaceReceiveFields.CARRIER_HZ to carrierHz.roundToInt().toString(), SignalSurfaceReceiveFields.BIT_MS to bitMs.toString(),
                 SignalSurfaceReceiveFields.BASELINE to baseline.toString(), SignalSurfaceReceiveFields.THRESHOLD to threshold.toString(), SignalSurfaceReceiveFields.STATUS to "received", SignalSurfaceReceiveFields.ERROR to ""
             )
-            committedJson=fieldsJson(values); status="Committed verified tabletop reception."
-            val result=signalResult(As100SignalSurfaceReceiveMethod,context,values); if(context.submitsImmediately) onConfirmed(result)
+            status="Committed verified tabletop reception."
+            val result = committed.capture(signalResult(As100SignalSurfaceReceiveMethod,context,values)); if(context.submitsImmediately) onConfirmed(result)
         }
         fun invalidate() { stop(); baseline=0.0; threshold=0.0; resetWorking("Receiver settings changed. Recalibrate before receiving; committed result remains frozen.") }
 
         LaunchedEffect(carrierHz,bitMs,calibrationMs,sensitivity) { context.onSettingsChanged(mapOf("surface_profile" to SignalPresetCatalog.closestSurface(carrierHz, bitMs).id, "carrier_hz" to carrierHz.roundToInt().toString(),"bit_ms" to bitMs.toString(),"calibration_ms" to calibrationMs.toString(),"sensitivity" to sensitivity.toString())) }
         SignalActiveSessionOrientationGuard(listening || calibrating)
         DisposableEffect(Unit) { onDispose { engine.stop() } }
-        val committedFields=fieldsFromJson(committedJson); val committedResult=remember(committedJson){committedFields.takeIf{it.isNotEmpty()}?.let{signalResult(As100SignalSurfaceReceiveMethod,context,it)}}; val committedFullJson=remember(committedJson){fullJson(committedResult)}
+        val committedFields = committed.fields; val committedResult = committed.result
 
         Column(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+            SignalCommitRecoveryNotice(committed)
             Button(
                 onClick=::startCalibration,
                 modifier=Modifier.fillMaxWidth()
@@ -381,7 +387,17 @@ object SignalSurfaceReceiveCapabilityScreen : CapabilityScreenSpec {
                 Text("Experimental: current phone-pair testing has not produced reliable surface reception. Retained as a research channel.", color=SignalMuted, style=MaterialTheme.typography.bodySmall)
             }
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) { Button(onClick=::commit,enabled=content?.checksumVerified==true,modifier=Modifier.weight(1f)){Text(if(committedResult==null)"Commit verified" else "Recommit")}; OutlinedButton(onClick={stop();resetWorking()},modifier=Modifier.weight(1f)){Text("Reset")} }
-            if(committedResult!=null && !context.submitsImmediately) SignalCommittedCard("Committed tabletop reception","received text",committedFields[SignalSurfaceReceiveFields.RESULT].orEmpty(),listOf("SHA-256" to committedFields[SignalSurfaceReceiveFields.CHECKSUM_SHA256].orEmpty(),"Verified" to committedFields[SignalSurfaceReceiveFields.CHECKSUM_VERIFIED].orEmpty(),"Recovered" to committedFields[SignalSurfaceReceiveFields.RECOVERED_MISSING].orEmpty(),"Baseline" to committedFields[SignalSurfaceReceiveFields.BASELINE].orEmpty()),exportStatus,{l,v->copySignalValue(androidContext,l,v)},{exportStatus=shareSignalText(androidContext,"Share tabletop message",committedFields[SignalSurfaceReceiveFields.RESULT].orEmpty())?:""},{exportStatus=saveSignalText(androidContext,"surface_reception",committedFields.entries.joinToString("\n"){"${it.key}=${it.value}"},committedFullJson)},{finishSignalResult(context,androidContext,committedResult,onConfirmed){saveSignalText(androidContext,"surface_reception",committedFields.entries.joinToString("\n"){"${it.key}=${it.value}"},committedFullJson)}})
+            if(committedResult!=null && !context.submitsImmediately) SignalCommittedCard(
+                title = "Committed tabletop reception",
+                primaryLabel = "received text",
+                primaryValue = committedFields[SignalSurfaceReceiveFields.RESULT].orEmpty(),
+                fields = listOf("SHA-256" to committedFields[SignalSurfaceReceiveFields.CHECKSUM_SHA256].orEmpty(),"Verified" to committedFields[SignalSurfaceReceiveFields.CHECKSUM_VERIFIED].orEmpty(),"Recovered" to committedFields[SignalSurfaceReceiveFields.RECOVERED_MISSING].orEmpty(),"Baseline" to committedFields[SignalSurfaceReceiveFields.BASELINE].orEmpty()),
+                status = exportStatus,
+                onCopy = {l,v->copySignalValue(androidContext,l,v)},
+                context = context,
+                result = committedResult,
+                onConfirmed = onConfirmed
+            )
             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
                 Text("Calibration & clock",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
                 if(context.settingShouldBeShown("surface_profile") || context.settingShouldBeShown("carrier_hz") || context.settingShouldBeShown("bit_ms")){

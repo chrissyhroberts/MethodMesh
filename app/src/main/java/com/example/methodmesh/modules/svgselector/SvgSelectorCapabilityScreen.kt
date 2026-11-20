@@ -59,6 +59,8 @@ import com.example.methodmesh.core.methodmesh.withInvocationContext
 import com.example.methodmesh.settings.MethodSetting
 import com.example.methodmesh.settings.SettingsState
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
+import com.example.methodmesh.transport.workflow.ui.CapturedExecutionRecovery
 import com.example.methodmesh.transport.workflow.ui.CanonicalCommittedResultActions
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
@@ -99,7 +101,7 @@ object SvgSelectorCapabilityScreen : CapabilityScreenSpec {
         var committedSelectionJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
         var committedEventsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
         var committedCompletedAt by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedExecution by remember(context.action.canonicalId) { mutableStateOf<ExecutionResult?>(null) }
+        var committedExecution by rememberRetainedExecutionResult(context.action.canonicalId)
         val requestedName = context.action.settings["input_svg_name"].orEmpty()
             .ifBlank { context.action.settings["svg_name"].orEmpty() }
             .ifBlank { settings.getString("svg_name") }
@@ -176,14 +178,7 @@ object SvgSelectorCapabilityScreen : CapabilityScreenSpec {
             return As100SvgSelectorMethod.execute(request, transport = context.request.source).withInvocationContext(context.request.invocationContext)
         }
 
-        val restoredCommittedResult = remember(committedSelectionJson, committedEventsJson, committedCompletedAt, startedAt, svgName, mode, boundedHeatmapLevels) {
-            val selection = committedSelectionJson
-            val events = committedEventsJson
-            val completedAt = committedCompletedAt
-            if (selection == null || events == null || completedAt == null) null
-            else runCatching { execute(selection, events, completedAt) }.getOrNull()
-        }
-        val committedResult = committedExecution ?: restoredCommittedResult
+        val committedResult = committedExecution
 
         fun clearCommittedForEditing(message: String = "Editing working selection.") {
             committedSelectionJson = null
@@ -191,6 +186,14 @@ object SvgSelectorCapabilityScreen : CapabilityScreenSpec {
             committedCompletedAt = null
             committedExecution = null
             status = message
+        }
+
+        if (committedSelectionJson != null && committedResult == null) {
+            CapturedExecutionRecovery(
+                onRestart = { clearCommittedForEditing("Review the selection and commit a new record.") },
+                onClose = onCancel
+            )
+            return
         }
 
         fun commitWorkingResult() {
@@ -245,6 +248,7 @@ object SvgSelectorCapabilityScreen : CapabilityScreenSpec {
                 )
             ) {
                 PresetFullscreenSelector(
+                    context = context,
                     title = title,
                     svgName = svgName,
                     mode = mode,
@@ -409,6 +413,7 @@ object SvgSelectorCapabilityScreen : CapabilityScreenSpec {
                     fontWeight = FontWeight.Bold
                 )
                 CanonicalCommittedResultActions(
+                    screenContext = context,
                     result = committedResult,
                     label = title,
                     onDone = { committedResult?.let(onConfirmed) },
@@ -423,6 +428,7 @@ object SvgSelectorCapabilityScreen : CapabilityScreenSpec {
 
 @Composable
 private fun PresetFullscreenSelector(
+    context: CapabilityScreenContext,
     title: String,
     svgName: String,
     mode: String,
@@ -470,9 +476,7 @@ private fun PresetFullscreenSelector(
                     )
                 }
                 Spacer(Modifier.padding(horizontal = 4.dp))
-                OutlinedButton(onClick = if (committedResult == null) onCancel else onDone) {
-                    Text(if (committedResult == null) "Cancel" else "Done")
-                }
+                if (committedResult == null) OutlinedButton(onClick = onCancel) { Text("Cancel") }
             }
 
             Text(
@@ -547,6 +551,7 @@ private fun PresetFullscreenSelector(
             } else {
                 Spacer(Modifier.height(8.dp))
                 CanonicalCommittedResultActions(
+                    screenContext = context,
                     result = committedResult,
                     label = title,
                     onDone = onDone,

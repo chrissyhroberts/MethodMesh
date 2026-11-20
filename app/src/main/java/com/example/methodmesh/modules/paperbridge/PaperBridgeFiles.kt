@@ -45,7 +45,7 @@ internal object PaperBridgeFiles {
      * Build the portable standalone transcription artifact. ODK callers do not need this
      * archive because they receive the named values/media directly through Android result
      * transport. The archive remains available as a portable helper; native post-Commit
-     * Save writes the frozen result into the shared MethodMesh Files/ArtifactStore.
+     * Save uses the shared canonical Downloads exporter for the frozen result.
      */
     fun createResultArchive(
         context: Context,

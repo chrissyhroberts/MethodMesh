@@ -441,23 +441,6 @@ object PickOneCapabilityScreen : CapabilityScreenSpec {
     }
 }
 
-object SpinnerCapabilityScreen : CapabilityScreenSpec {
-    override val capabilityId = As100SpinnerMethod.ID
-    override val title = "Spinner"
-    override val description = "Spin an equal-segment wheel and reveal a random choice."
-    @Composable
-    override fun Render(context: CapabilityScreenContext, onBack: () -> Unit, onConfirmed: (ExecutionResult) -> Unit, onCancel: () -> Unit) {
-        var items by rememberSaveable { mutableStateOf(context.chanceSetting("items", "Yes\nNo")) }
-        var rngMode by rememberSaveable { mutableStateOf(context.chanceSetting("rng_mode", "secure_random")) }
-        var seed by rememberSaveable { mutableStateOf(context.chanceSetting("seed", "")) }
-        var animationMode by rememberSaveable { mutableStateOf(context.chanceSetting("animation_mode", "full")) }
-        WheelCapabilityScreen(
-            title, capabilityId, context, onBack, onConfirmed, onCancel,
-            items, { items = it }, rngMode, { rngMode = it }, seed, { seed = it }, animationMode, { animationMode = it }, weighted = false
-        )
-    }
-}
-
 object WeightedChoiceCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100WeightedChoiceMethod.ID
     override val title = "Weighted choice"
@@ -1143,8 +1126,8 @@ private fun ChanceBoolToggle(label: String, value: Boolean, onSelected: (Boolean
     ChanceSwitchRow(label = label, checked = value, onCheckedChange = onSelected)
 }
 
-private fun CapabilityScreenContext.chanceSetting(key: String, default: String): String = action.settings[key] ?: action.settings["input_$key"] ?: request.settings[key] ?: request.settings["input_$key"] ?: default
-private fun CapabilityScreenContext.chanceBoolSetting(key: String, default: Boolean): Boolean = when ((action.settings[key] ?: action.settings["input_$key"] ?: request.settings[key] ?: request.settings["input_$key"])?.lowercase()) { "true", "1", "yes" -> true; "false", "0", "no" -> false; else -> default }
+internal fun CapabilityScreenContext.chanceSetting(key: String, default: String): String = action.settings[key] ?: action.settings["input_$key"] ?: request.settings[key] ?: request.settings["input_$key"] ?: default
+internal fun CapabilityScreenContext.chanceBoolSetting(key: String, default: Boolean): Boolean = when ((action.settings[key] ?: action.settings["input_$key"] ?: request.settings[key] ?: request.settings["input_$key"])?.lowercase()) { "true", "1", "yes" -> true; "false", "0", "no" -> false; else -> default }
 
 private fun cardExecution(context: CapabilityScreenContext, values: Map<String, String>): ExecutionResult {
     val request = As100CardDrawMethod.request(As100CardDrawMethod.ID, context.request.invocationContext.asMap(As100CardDrawMethod.ID) + context.action.settings, emptyList(), emptyList())

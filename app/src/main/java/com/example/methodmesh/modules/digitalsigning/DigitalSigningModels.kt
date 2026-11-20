@@ -5,6 +5,11 @@ import java.io.File
 
 enum class DigitalSigningMode { Navigate, Ink, Check, Text, Move, Erase }
 
+enum class DigitalSigningWorkflow(val id: String) {
+    ParticipantInk("participant_ink"),
+    OwnerSavedSignature("owner_saved_signature")
+}
+
 enum class PdfInputOrigin(val id: String) {
     Odk("odk"),
     FilePicker("file_picker"),
@@ -31,9 +36,11 @@ data class MarkupElement(
     val kind: Kind,
     val text: String = "",
     val sizePt: Float = 18f,
-    val argb: Int = 0xFF141718.toInt()
+    val argb: Int = 0xFF141718.toInt(),
+    /** Private app-file path for an owner signature; never a public URI. */
+    val assetPath: String? = null
 ) {
-    enum class Kind { Check, Text }
+    enum class Kind { Check, Text, Signature }
 }
 
 data class WorkingPdf(
@@ -103,12 +110,16 @@ data class VerificationBundle(
 }
 
 data class DigitalSigningCommittedResult(
+    val workflow: DigitalSigningWorkflow = DigitalSigningWorkflow.ParticipantInk,
     val sourceOrigin: PdfInputOrigin,
     val sourceFilename: String,
     val sourceSha256: String,
     val signedFilename: String,
     val signedPdfUri: String,
     val signedSha256: String,
+    val proofCode: String = DigitalSigningProofCode.fromSha256(signedSha256),
+    val savedSignatureId: String? = null,
+    val signatureAuthentication: String? = null,
     val pageCount: Int,
     val inkPresent: Boolean,
     val inkStrokeCount: Int,

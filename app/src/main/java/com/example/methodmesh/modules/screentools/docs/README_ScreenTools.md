@@ -1,0 +1,79 @@
+# Screen Tools
+
+Screen Tools currently contains the first vertical slice of the rewritten
+module: `screen.capture`.
+
+## `screen.capture`
+
+The capability requests Android MediaProjection consent, starts a typed
+foreground service, and lets the operator capture the current visible screen
+from the notification. Captured frames are retained only in process memory,
+with a maximum of four frames. The capability returns a
+`screen-session://...` reference for the current process only; it is not a
+durable image attachment and must not be submitted to ODK as one.
+
+The operator explicitly chooses **Use latest frame** before the result can be
+committed. Stopping the service does not persist a screenshot. Process death,
+discard, or a new capture session invalidates the in-memory frame reference.
+
+## `screen.ocr`
+
+`screen.ocr` reads the selected volatile frame with the bundled Latin ML Kit
+recognizer. It returns the recognized text and a stable JSON array of word
+regions using normalized image coordinates in the range `[0,1]`. The OCR
+result is tied to the exact in-process frame reference; an expired reference
+fails instead of silently selecting a newer frame.
+
+## `screen.visual_select`
+
+`screen.visual_select` lets the operator draw one or more normalized regions
+on a captured frame, assign unique names, and commit the selection definition.
+The current increment keeps those definitions in the process session only;
+encrypted versioned persistence is owned by the upcoming Selection Memory
+capability.
+
+## `screen.selection_memory`
+
+Selection Memory encrypts named normalized regions with an Android Keystore
+key in `noBackupFilesDir`. Each save creates an immutable revision. Loading a
+specific revision is supported, and deletion requires explicit confirmation
+before all revisions for that memory are removed. Screenshots, OCR text, and
+extracted values are intentionally excluded.
+
+## `screen.visual_extract`
+
+Visual extraction runs local OCR against one frame and either the current
+volatile selections or a specific encrypted memory revision. Values are shown
+as editable working fields; empty or ambiguous regions cannot be committed.
+The result records the frame reference and pinned memory version and exposes
+validated dynamic field names alongside the stable JSON values object.
+
+## `screen.image_crop`
+
+Image Crop creates a bounded bitmap from a normalized ROI on a volatile frame.
+The source and crop receive in-process `screen-session://` references; no
+gallery, MediaStore, file URI, or durable ODK attachment is created.
+
+## `screen.web_capture`
+
+Web Capture accepts HTTPS URLs only, refuses main-frame failures and redirects
+away from HTTPS, and captures the visible WebView viewport into a volatile
+frame. JavaScript is opt-in. It does not provide whole-document capture or an
+ODK image attachment.
+
+## `screen.app_open`
+
+App Open dispatches either an installed launcher activity or an HTTPS deep
+link. Its successful result means Android accepted the dispatch; it does not
+claim access to private target-app state or completion inside that app.
+
+## Integration boundary
+
+The module is discovered from `ScreenToolsModule.kt`. The MediaProjection
+service is declared in the application manifest because Android requires a
+typed foreground service for this operation. No overlay permission is used in
+this first slice; capture is exposed through the foreground notification.
+
+Visual selection, selection memory, visual extraction, web capture, app
+opening, and image cropping will be added as separate methods after these
+capture/OCR contracts pass device and transport validation.

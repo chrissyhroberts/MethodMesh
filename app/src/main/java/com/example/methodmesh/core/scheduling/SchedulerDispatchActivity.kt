@@ -8,6 +8,7 @@ import com.example.methodmesh.transport.android.IntentRouterActivity
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,7 +45,7 @@ import com.example.methodmesh.transport.OutputExportRepository
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.ui.theme.MethodMeshTheme
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
@@ -53,7 +54,8 @@ import java.time.Instant
 import java.util.UUID
 
 class SchedulerDispatchActivity : ComponentActivity() {
-    private var resultHandled = false
+    private var checkpoint = DispatchCheckpoint()
+    private var summaryArgs: List<String>? = null
     private var activeSchedule: ResearchSchedule? = null
     private val testChain: Boolean
         get() = intent.getBooleanExtra("test_chain", false)
@@ -78,19 +80,57 @@ class SchedulerDispatchActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState != null) {
+            checkpoint = DispatchCheckpoint.restore(
+                savedInstanceState.getString("dispatch_phase"),
+                savedInstanceState.getBoolean("dispatch_initialised"),
+                savedInstanceState.getString("dispatch_resume_phase")
+            )
+            summaryArgs = savedInstanceState.getStringArrayList("dispatch_summary")
+        }
         val schedule = SchedulerRepository.get(this, intent.getStringExtra("schedule_id").orEmpty())
             ?: transientProtocolSchedule()
             ?: transientPresetSchedule()
         if (schedule == null) { finish(); return }
         activeSchedule = schedule
-        SchedulerRepository.recordEvent(this, schedule.id, "dispatch_started:${intent.getStringExtra("notification_kind").orEmpty().ifBlank { "direct" }}")
-        if (schedule.chainOrder <= 0 && protocolId.isBlank()) {
-            clearChainClipboard(schedule)
-            if (schedule.chainId.isNotBlank()) {
-                initialiseScheduleChainRun(schedule)
-            } else {
-                clearRunContext(scheduleRunContextKey(schedule))
+        if (!checkpoint.initialised && checkpoint.phase == DispatchCheckpoint.Phase.New) {
+            checkpoint = checkpoint.initialise()
+            SchedulerRepository.recordEvent(this, schedule.id, "dispatch_started:${intent.getStringExtra("notification_kind").orEmpty().ifBlank { "direct" }}")
+            if (schedule.chainOrder <= 0 && protocolId.isBlank()) {
+                clearChainClipboard(schedule)
+                if (schedule.chainId.isNotBlank()) {
+                    initialiseScheduleChainRun(schedule)
+                } else {
+                    clearRunContext(scheduleRunContextKey(schedule))
+                }
             }
+        }
+        resumeDispatch(schedule)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("dispatch_phase", checkpoint.phase.name)
+        outState.putBoolean("dispatch_initialised", checkpoint.initialised)
+        outState.putString("dispatch_resume_phase", checkpoint.resumePhase.name)
+        summaryArgs?.let { outState.putStringArrayList("dispatch_summary", ArrayList(it)) }
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun resumeDispatch(schedule: ResearchSchedule) {
+        when (checkpoint.phase) {
+            DispatchCheckpoint.Phase.Intro -> { showStepIntro(schedule); return }
+            DispatchCheckpoint.Phase.AwaitingResult -> { showWaiting(); return }
+            DispatchCheckpoint.Phase.ManualCompletion -> { showManualCompletionCheck(schedule); return }
+            DispatchCheckpoint.Phase.CancelConfirmation -> { showCancelRunConfirmation(); return }
+            DispatchCheckpoint.Phase.Summary -> {
+                val args = summaryArgs
+                if (args?.size == 4) showRunResult(args[0], args[1], args[2], args[3]) else showInterrupted()
+                return
+            }
+            DispatchCheckpoint.Phase.Finished -> { finishRun(); return }
+            DispatchCheckpoint.Phase.ResultReceived, DispatchCheckpoint.Phase.Interrupted -> { showInterrupted(); return }
+            DispatchCheckpoint.Phase.Ready -> { dispatch(schedule); return }
+            DispatchCheckpoint.Phase.New -> Unit
         }
         if (schedule.target == SchedulerTarget.PROTOCOL && outputGroupFolder.isBlank()) {
             launchProtocolStep(schedule, schedule.targetValue, 0)
@@ -100,19 +140,25 @@ class SchedulerDispatchActivity : ComponentActivity() {
             showStepIntro(schedule)
             return
         }
+        checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.Ready)
+        dispatch(schedule)
+    }
+
+    private fun dispatch(schedule: ResearchSchedule) {
         if (protocolId.isNotBlank()) {
             val protocol = ProtocolLibraryRepository.protocol(this, protocolId)
             val step = protocol?.steps?.sortedBy { it.order }?.getOrNull(protocolStepIndex)
             val preset = step?.let { ProtocolLibraryRepository.preset(this, it.presetId) }
             if (preset == null) {
                 SchedulerRepository.recordEvent(this, schedule.id, "protocol_step_missing:$protocolStepIndex")
-                finish()
+                finishRun()
                 return
             }
             launchPreset(preset, currentPipeSettings(schedule))
             return
         }
         if (schedule.target == SchedulerTarget.WEB_FORM) {
+            checkpoint = checkpoint.beginChild() ?: return
             startActivityForResult(Intent(Intent.ACTION_VIEW, Uri.parse(schedule.targetValue)), 102)
             return
         }
@@ -124,18 +170,20 @@ class SchedulerDispatchActivity : ComponentActivity() {
             val preset = ProtocolLibraryRepository.preset(this, schedule.targetValue)
             if (preset == null) {
                 SchedulerRepository.recordEvent(this, schedule.id, "preset_not_found:${schedule.targetValue}")
-                finish()
+                finishRun()
                 return
             }
             launchPreset(preset, currentPipeSettings(schedule))
             return
         }
         if (schedule.target == SchedulerTarget.NOTIFICATION) {
+            checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.Finished)
             SchedulerRepository.markCompleted(this, schedule)
             finish()
             return
         }
         if (schedule.target == SchedulerTarget.CLIPBOARD) {
+            checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.ResultReceived)
             publishChainClipboard(schedule, schedule.targetValue, "MethodMesh scheduled action")
             SchedulerRepository.markCompleted(this, schedule)
             val next = SchedulerRepository.nextInChain(this, schedule)
@@ -150,25 +198,55 @@ class SchedulerDispatchActivity : ComponentActivity() {
             finishRun()
             return
         }
-        CoroutineScope(Dispatchers.Main).launch {
+        // Resolution is read-only and may be repeated after recreation. The old
+        // Activity's job is cancelled before it can launch a second form.
+        lifecycleScope.launch {
             val form = kotlinx.coroutines.withContext(Dispatchers.IO) {
                 ExternalFormCatalog.list(this@SchedulerDispatchActivity, schedule.projectId, schedule.packageName)
                     .firstOrNull { it.id.equals(schedule.targetValue, ignoreCase = true) || it.name.equals(schedule.targetValue, ignoreCase = true) }
             }
             if (form == null) {
-                finish()
+                finishRun()
                 return@launch
             }
+            checkpoint = checkpoint.beginChild() ?: return@launch
             startActivityForResult(
                 Intent(Intent.ACTION_EDIT).setDataAndType(form.uri, "vnd.android.cursor.item/vnd.odk.form").setPackage(form.packageName),
                 100
             )
         }
     }
+
+    private fun showWaiting() {
+        setContent {
+            MethodMeshTheme {
+                Column(Modifier.fillMaxSize().padding(24.dp)) {
+                    Text("Waiting for the current step", style = MaterialTheme.typography.headlineSmall)
+                    Text("The step has already been opened. It will not be started again automatically. If it cannot return, close this run and retry deliberately.")
+                    Button(onClick = { finishRun() }) { Text("Close run") }
+                }
+                BackHandler { finishRun() }
+            }
+        }
+    }
+
+    private fun showInterrupted() {
+        checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.Interrupted)
+        setContent {
+            MethodMeshTheme {
+                Column(Modifier.fillMaxSize().padding(24.dp)) {
+                    Text("Run interrupted", style = MaterialTheme.typography.headlineSmall)
+                    Text("The run could not be resumed safely. Earlier device or external actions may already have taken effect. Close this run before retrying.")
+                    Button(onClick = { finishRun() }) { Text("Close run") }
+                }
+                BackHandler { finishRun() }
+            }
+        }
+    }
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultHandled) return
-        resultHandled = true
+        if (requestCode !in setOf(100, 101, 102)) return
+        checkpoint = checkpoint.takeResult() ?: return
         val current = activeSchedule ?: SchedulerRepository.get(this, intent.getStringExtra("schedule_id").orEmpty())
         if ((requestCode == 100 || requestCode == 102) && current != null && shouldAskManualCompletion(current)) {
             showManualCompletionCheck(current)
@@ -176,9 +254,18 @@ class SchedulerDispatchActivity : ComponentActivity() {
         }
         // ODK Collect and browser-based forms commonly return RESULT_CANCELED even
         // after the external activity has completed. For those transports, returning
-        // to MethodMesh is the completion signal. Capability calls retain strict
-        // RESULT_OK semantics unless this is an explicit test run.
-        val completed = resultCode == RESULT_OK || requestCode == 100 || requestCode == 102 || testChain
+        // to MethodMesh is the completion signal. A capability RESULT_OK only
+        // confirms delivery; its canonical execution status must also succeed.
+        // Preserve the existing explicit test-chain override and manual-form flow.
+        val completed = if (requestCode == 101) {
+            testChain || CapabilityReturnCompletion.succeeded(resultCode == RESULT_OK, data?.let(::returnedFields).orEmpty())
+        } else resultCode == RESULT_OK || requestCode == 100 || requestCode == 102 || testChain
+        if (requestCode == 101 && !completed && current != null) {
+            SchedulerRepository.recordEvent(this, current.id, "capability_return_not_succeeded")
+            if (resultCode == RESULT_OK) {
+                Toast.makeText(this, "Capability did not succeed. Later steps were not run.", Toast.LENGTH_LONG).show()
+            }
+        }
         val activeProtocol = if (completed && current != null && protocolId.isNotBlank()) {
             ProtocolLibraryRepository.protocol(this, protocolId)
         } else null
@@ -186,7 +273,7 @@ class SchedulerDispatchActivity : ComponentActivity() {
         val nextChainStep = if (completed && current != null && protocolId.isBlank()) {
             SchedulerRepository.nextInChain(this, current)
         } else null
-        if (requestCode == 101 && (resultCode == RESULT_OK || testChain) && data != null) {
+        if (requestCode == 101 && completed && data != null) {
             val returnedFields = returnedFields(data)
             if (completed && current != null) appendCurrentRunContext(current, returnedFields)
             val output = data.getStringExtra("value").orEmpty().ifBlank {
@@ -231,7 +318,10 @@ class SchedulerDispatchActivity : ComponentActivity() {
         } else if (completed && current != null) {
             val event = if (protocolHasNextStep || chainHasNextStep) "step_completed" else "completed"
             SchedulerRepository.recordEvent(this, current.id, event)
-        } else current?.let { SchedulerRepository.recordEvent(this, it.id, "cancelled") }
+        } else current?.let {
+            val outcome = if (requestCode == 101 && resultCode == RESULT_OK) "failed" else "cancelled"
+            SchedulerRepository.recordEvent(this, it.id, outcome)
+        }
         if (completed && current != null && protocolId.isNotBlank()) {
             val nextStep = nextProtocolStep
             if (nextStep != null) {
@@ -280,6 +370,7 @@ class SchedulerDispatchActivity : ComponentActivity() {
         schedule.target == SchedulerTarget.WEB_FORM || schedule.target == SchedulerTarget.ODK_FORM
 
     private fun showStepIntro(schedule: ResearchSchedule) {
+        checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.Intro)
         setContent {
             MethodMeshTheme {
                 StepIntroScreen(
@@ -288,8 +379,10 @@ class SchedulerDispatchActivity : ComponentActivity() {
                     stepLabel = stepCounterLabel(schedule),
                     lastCompleted = previousStepSummary(),
                     onGo = {
+                        if (checkpoint.phase != DispatchCheckpoint.Phase.Intro) return@StepIntroScreen
                         intent.putExtra("methodmesh_step_accepted", true)
-                        recreate()
+                        checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.Ready)
+                        dispatch(schedule)
                     },
                     onCancel = { showCancelRunConfirmation() }
                 )
@@ -298,15 +391,17 @@ class SchedulerDispatchActivity : ComponentActivity() {
     }
 
     private fun showManualCompletionCheck(schedule: ResearchSchedule) {
+        checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.ManualCompletion)
         setContent {
             MethodMeshTheme {
                 ManualCompletionScreen(
                     title = "Did you complete ${stepTitle(schedule)}?",
                     onYes = { completeManualStep(schedule) },
                     onNo = {
-                        resultHandled = false
+                        if (checkpoint.phase != DispatchCheckpoint.Phase.ManualCompletion) return@ManualCompletionScreen
                         intent.putExtra("methodmesh_step_accepted", true)
-                        recreate()
+                        checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.Ready)
+                        dispatch(schedule)
                     },
                     onCancel = { showCancelRunConfirmation() }
                 )
@@ -315,6 +410,8 @@ class SchedulerDispatchActivity : ComponentActivity() {
     }
 
     private fun completeManualStep(schedule: ResearchSchedule) {
+        if (checkpoint.phase != DispatchCheckpoint.Phase.ManualCompletion) return
+        checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.ResultReceived)
         appendCurrentRunContext(schedule, mapOf("manual_step_completed" to "true", "manual_step_name" to stepTitle(schedule)))
         val next = if (protocolId.isBlank()) SchedulerRepository.nextInChain(this, schedule) else null
         if (next != null) {
@@ -334,12 +431,13 @@ class SchedulerDispatchActivity : ComponentActivity() {
     }
 
     private fun showCancelRunConfirmation() {
+        if (checkpoint.phase != DispatchCheckpoint.Phase.CancelConfirmation) checkpoint = checkpoint.showCancel()
         setContent {
             MethodMeshTheme {
                 CancelRunScreen(
                     onKeepGoing = {
-                        intent.putExtra("methodmesh_step_accepted", false)
-                        recreate()
+                        checkpoint = checkpoint.keepGoing()
+                        activeSchedule?.let(::resumeDispatch) ?: finishRun()
                     },
                     onCancelRun = { finishRun() }
                 )
@@ -348,6 +446,7 @@ class SchedulerDispatchActivity : ComponentActivity() {
     }
 
     private fun finishRun() {
+        checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.Finished)
         if (finishToLauncher) finishAndRemoveTask() else finish()
     }
 
@@ -412,6 +511,7 @@ class SchedulerDispatchActivity : ComponentActivity() {
         }
         val submissionId = protocolSubmissionId.ifBlank { submissionIdFromProtocolFolder(group) }
         if (stepIndex == 0) clearRunContext(protocolRunContextKey(submissionId, group, protocol.id))
+        checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.Finished)
         startActivity(Intent(this, SchedulerDispatchActivity::class.java)
             .setAction("com.example.methodmesh.SCHEDULED_PROTOCOL_DISPATCH")
             .putExtra("schedule_id", schedule.id)
@@ -471,6 +571,7 @@ class SchedulerDispatchActivity : ComponentActivity() {
         presetLaunchMode: String = PresetLaunchMode.AUTO,
         pipeSettings: Map<String, String> = currentPipeSettings(activeSchedule)
     ) {
+        checkpoint = checkpoint.beginChild() ?: return
         startActivityForResult(Intent(this, IntentRouterActivity::class.java).apply {
             action = "com.example.methodmesh.EXECUTE_METHOD"
             putExtra("method_id", methodId)
@@ -660,6 +761,8 @@ class SchedulerDispatchActivity : ComponentActivity() {
     }
 
     private fun showRunResult(runName: String, contextKey: String, folderName: String, methodId: String) {
+        summaryArgs = listOf(runName, contextKey, folderName, methodId)
+        checkpoint = checkpoint.copy(phase = DispatchCheckpoint.Phase.Summary)
         val steps = readRunContextSteps(contextKey)
         val combinedFields = combinedRunFields(steps)
         setContent {

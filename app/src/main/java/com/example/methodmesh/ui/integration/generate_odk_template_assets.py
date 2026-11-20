@@ -53,6 +53,88 @@ SELECT_RE = re.compile(r"^select_(?:one|multiple)\s+([^\s]+)", re.I)
 VAR_REF_RE = re.compile(r"\$\{([^}]+)\}")
 FUNCTION_RE = re.compile(r"(?<![A-Za-z0-9_.-])([A-Za-z][A-Za-z0-9_.-]*)\s*\(")
 
+# This is deliberately kept beside the build-time XLSForm compiler rather than in
+# Sentinel/study code.  It describes the MethodMesh-facing part of the NFC form
+# contract only.  Study/provisioner legitimacy remains Sentinel's responsibility.
+#
+# Keep these values in lock-step with MethodMeshNfcCredentialMethods.kt and
+# NfcPortableCredential.kt.  A form that names one of these methods but omits a
+# required current-schema field is not a compatible NFC form.
+NFC_FORM_CONTRACTS = {
+    "v1": {
+        "nfc_credential_provisioning": {
+        "method_version": "1.0.1",
+        "credential_format_version": "ROSC2",
+        "intent_inputs": {
+            "credential_subject_id": "credential_subject_id_input",
+            "pin_length": "pin_length_input",
+            "valid_until_date": "valid_until_date_iso",
+            "overwrite_policy": "overwrite_policy_input",
+        },
+        "required_intent_literals": {
+            "nfc_form_contract_version": "v1",
+            "nfc_method_version": "1.0.1",
+        },
+        "required_return_fields": [
+            "credential_id",
+            "credential_subject_id",
+            "valid_until_iso",
+            "provision_success",
+            "provision_message",
+            "write_verified",
+            "issuer_key_id",
+            "issuer_public_key_fingerprint_sha256",
+            "methodmesh_full_json",
+        ],
+        "compatibility_statement": (
+            "Invokes nfc_credential_provisioning v1.0.1 with the ROSC2 credential "
+            "format, passes the inclusive ISO valid-until date, and captures the "
+            "authenticated exclusive expiry plus write verification and full JSON."
+        ),
+        },
+        "nfc_credential_verification": {
+        "method_version": "1.1.0",
+        "credential_format_version": "ROSC2",
+        "intent_inputs": {},
+        "required_intent_literals": {
+            "nfc_form_contract_version": "v1",
+            "nfc_method_version": "1.1.0",
+        },
+        "required_return_fields": [
+            "methodmesh_execution_id",
+            "methodmesh_status",
+            "credential_verified",
+            "credential_verification_message",
+            "credential_id",
+            "credential_subject_id",
+            "valid_until_iso",
+            "pin_verified",
+            "issuer_signature_valid",
+            "issuer_trust_status",
+            "issuer_key_id",
+            "issuer_public_key_fingerprint_sha256",
+            "methodmesh_full_json",
+        ],
+        "compatibility_statement": (
+            "Invokes nfc_credential_verification v1.1.0 for ROSC2 credentials and "
+            "captures the authenticated expiry, PIN/signature outcomes, human-readable "
+            "failure message, Sentinel-reconciliation issuer evidence, and full JSON."
+        ),
+        },
+    },
+}
+NFC_FORM_CONTRACT_CURRENT = "v1"
+# Compatibility alias for callers that used the pre-registry name.
+NFC_FORM_METHOD_MAPPINGS = NFC_FORM_CONTRACTS[NFC_FORM_CONTRACT_CURRENT]
+
+
+def nfc_form_contract(version: str) -> dict:
+    try:
+        return NFC_FORM_CONTRACTS[version]
+    except KeyError as exc:
+        supported = ", ".join(sorted(NFC_FORM_CONTRACTS))
+        raise ValueError(f"Unsupported NFC form contract '{version}'. Supported versions: {supported}") from exc
+
 
 def _cell_column(ref: str) -> str:
     match = re.match(r"([A-Za-z]+)", ref or "")
@@ -253,6 +335,96 @@ def issue(severity: str, code: str, message: str, *, location: str = "", suggest
     }
 
 
+def _intent_method_id(intent: str) -> str:
+    match = re.search(r"method_id\s*=\s*'([^']+)'", intent or "")
+    if match:
+        return match.group(1).strip()
+    match = re.search(r'method_id\s*=\s*"([^"]+)"', intent or "")
+    return match.group(1).strip() if match else ""
+
+
+def _intent_arguments(intent: str) -> dict[str, str]:
+    result = {}
+    for key, value in re.findall(r"(?:^|,)\s*([A-Za-z][A-Za-z0-9_]*)\s*=\s*([^,\)]+)", intent or ""):
+        normalized = key[6:] if key.startswith("input_") else key
+        result[normalized] = value.strip()
+    return result
+
+
+def nfc_form_mappings(tables: dict[str, tuple[list[str], list[dict[str, str]]]], contract_version: str = NFC_FORM_CONTRACT_CURRENT) -> list[dict]:
+    """Return the NFC method mappings declared by survey body::intent rows."""
+    contract_registry = nfc_form_contract(contract_version)
+    _, rows = tables.get("survey", ([], []))
+    mappings: list[dict] = []
+    for row_index, row in enumerate(rows, start=2):
+        intent = row.get("body::intent", "").strip()
+        method_id = _intent_method_id(intent)
+        contract = contract_registry.get(method_id)
+        if not intent or not contract:
+            continue
+        mappings.append({
+            "methodId": method_id,
+            "contractVersion": contract_version,
+            "methodVersion": contract["method_version"],
+            "credentialFormatVersion": contract["credential_format_version"],
+            "surveyRow": row_index,
+            "intent": intent,
+            "arguments": _intent_arguments(intent),
+            "requiredReturnFields": contract["required_return_fields"],
+            "compatibilityStatement": contract["compatibility_statement"],
+        })
+    return mappings
+
+
+def validate_nfc_mappings(tables: dict[str, tuple[list[str], list[dict[str, str]]]], contract_version: str = NFC_FORM_CONTRACT_CURRENT) -> list[dict]:
+    problems: list[dict] = []
+    contract_registry = nfc_form_contract(contract_version)
+    _, survey_rows = tables.get("survey", ([], []))
+    declared_fields = {row.get("name", "").strip() for row in survey_rows if row.get("name", "").strip()}
+    mappings = nfc_form_mappings(tables, contract_version)
+    for mapping in mappings:
+        method_id = mapping["methodId"]
+        contract = contract_registry[method_id]
+        args = mapping["arguments"]
+        row = mapping["surveyRow"]
+        for argument, field in contract["intent_inputs"].items():
+            if argument not in args:
+                problems.append(issue(
+                    "error", "NFC_INTENT_INPUT_MISSING",
+                    f"NFC intent for '{method_id}' does not pass required input '{argument}'.",
+                    location=f"survey.body::intent row {row}",
+                    suggestion=f"Pass input_{argument}=\u00a0${{{field}}} using the current NFC credential schema.",
+                    details=f"Required field: {field}; method version: {contract['method_version']}",
+                ))
+            elif field not in declared_fields:
+                problems.append(issue(
+                    "error", "NFC_INTENT_FIELD_MISSING",
+                    f"NFC intent references '${{{field}}}', but that survey field is not declared.",
+                    location=f"survey.name row {row}",
+                    suggestion=f"Add the current NFC input field '{field}' or update the intent deliberately.",
+                ))
+        for argument, expected in contract.get("required_intent_literals", {}).items():
+            actual = args.get(argument, "").strip().strip("'\"")
+            if actual != expected:
+                problems.append(issue(
+                    "error", "NFC_CONTRACT_VERSION_MISSING",
+                    f"NFC intent for '{method_id}' must explicitly request contract '{expected}'.",
+                    location=f"survey.body::intent row {row}",
+                    suggestion=f"Add input_{argument}='{expected}' to the intent.",
+                    details=f"Received: {actual or '<missing>'}; method version: {contract['method_version']}",
+                ))
+        missing_outputs = [field for field in contract["required_return_fields"] if field not in declared_fields]
+        if missing_outputs:
+            problems.append(issue(
+                "error", "NFC_RETURN_SCHEMA_STALE",
+                f"NFC form mapped to '{method_id}' is missing current return fields: {', '.join(missing_outputs)}.",
+                location="survey",
+                suggestion="Regenerate the MethodMesh NFC mapping so expiry and diagnostic/full-JSON fields are retained.",
+                details=f"Mapped method version: {contract['method_version']}; credential format: {contract['credential_format_version']}",
+            ))
+    return problems
+
+
 def static_validate(item: SourceForm, settings: dict[str, str]) -> list[dict]:
     problems: list[dict] = []
     tables = workbook_tables(item.path)
@@ -443,7 +615,7 @@ def authoritative_validate(path: Path, enabled: bool) -> tuple[bool, str, list[d
     return True, "pyxform + ODK Validate", problems
 
 
-def build_entry(item: SourceForm, asset_path: str, authoritative: bool) -> dict:
+def build_entry(item: SourceForm, asset_path: str, authoritative: bool, nfc_contract_version: str) -> dict:
     settings = xlsform_settings(item.path)
     file_fallback = form_name_from_file(item.path)
     display_name = settings.get("form_title", "").strip() or file_fallback
@@ -451,9 +623,12 @@ def build_entry(item: SourceForm, asset_path: str, authoritative: bool) -> dict:
     version = settings.get("version", "").strip()
     stable_id = f"{slug(item.module_id)}.{slug(item.path.stem)}"
     problems = static_validate(item, settings)
+    tables = workbook_tables(item.path)
+    problems.extend(validate_nfc_mappings(tables, nfc_contract_version))
+    mappings = nfc_form_mappings(tables, nfc_contract_version)
     auth_available, auth_engine, auth_issues = authoritative_validate(item.path, authoritative)
     problems.extend(auth_issues)
-    return {
+    entry = {
         "id": stable_id,
         "moduleId": item.module_id,
         "moduleName": item.module_name,
@@ -473,6 +648,10 @@ def build_entry(item: SourceForm, asset_path: str, authoritative: bool) -> dict:
             "issues": problems,
         },
     }
+    if mappings:
+        entry["methodMappings"] = mappings
+        entry["nfcFormContractVersion"] = nfc_contract_version
+    return entry
 
 
 def _global_validation(entries: list[dict]) -> None:
@@ -498,7 +677,8 @@ def _global_validation(entries: list[dict]) -> None:
             entry["validation"]["issues"].append(issue("style", "FORM_TITLE_DUPLICATE", f"Form title '{entry['displayName']}' is used by more than one template.", location="settings.form_title", suggestion="Use distinct human-readable titles so testers can identify the intended form."))
 
 
-def generate(source_root: Path, assets_root: Path, include_all_xlsx: bool, authoritative: bool) -> tuple[int, int, dict]:
+def generate(source_root: Path, assets_root: Path, include_all_xlsx: bool, authoritative: bool, nfc_contract_version: str = NFC_FORM_CONTRACT_CURRENT) -> tuple[int, int, dict]:
+    nfc_form_contract(nfc_contract_version)
     forms = discover(source_root, include_all_xlsx)
     catalog_root = assets_root / "methodmesh" / "odk_templates"
     if catalog_root.exists():
@@ -512,7 +692,7 @@ def generate(source_root: Path, assets_root: Path, include_all_xlsx: bool, autho
         target_dir.mkdir(parents=True, exist_ok=True)
         target = target_dir / item.path.name
         shutil.copy2(item.path, target)
-        entries.append(build_entry(item, target.relative_to(assets_root).as_posix(), authoritative))
+        entries.append(build_entry(item, target.relative_to(assets_root).as_posix(), authoritative, nfc_contract_version))
         per_module[item.module_id] = per_module.get(item.module_id, 0) + 1
     _global_validation(entries)
 
@@ -537,8 +717,15 @@ def generate(source_root: Path, assets_root: Path, include_all_xlsx: bool, autho
         "engine": "pyxform + ODK Validate + MethodMesh XLSForm lint" if entries and authoritative_count == len(entries) else "MethodMesh XLSForm lint",
     }
     index = {
-        "schema": "methodmesh.odk_template_index.v3",
+        "schema": "methodmesh.odk_template_index.v4",
         "generatedFrom": "app/src/main/java/com/example/methodmesh",
+        "nfcFormCompiler": {
+            "contractSchema": "methodmesh.nfc_form_contract.v1",
+            "selectedContractVersion": nfc_contract_version,
+            "availableContractVersions": sorted(NFC_FORM_CONTRACTS),
+            "mappings": nfc_form_contract(nfc_contract_version),
+            "statement": "NFC mappings are MethodMesh method/credential-format contracts only; study and provisioner legitimacy remains with Sentinel.",
+        },
         "templateCount": len(entries),
         "moduleCount": len(per_module),
         "validationSummary": summary,
@@ -554,13 +741,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--assets-root", type=Path, default=Path("src/main/assets"))
     parser.add_argument("--all-xlsx", action="store_true", help="Include every XLSX in docs/ rather than detected XLSForms only.")
     parser.add_argument("--no-authoritative-validation", action="store_true", help="Skip optional pyxform + ODK Validate even if xls2xform is installed.")
+    parser.add_argument("--nfc-contract-version", default=NFC_FORM_CONTRACT_CURRENT, choices=sorted(NFC_FORM_CONTRACTS), help="Immutable MethodMesh NFC form contract to target; older versions remain available for deployed forms.")
     args = parser.parse_args(argv)
     source_root = args.source_root.resolve()
     assets_root = args.assets_root.resolve()
     if not source_root.is_dir():
         parser.error(f"source root does not exist: {source_root}")
     assets_root.mkdir(parents=True, exist_ok=True)
-    count, modules, summary = generate(source_root, assets_root, args.all_xlsx, not args.no_authoritative_validation)
+    count, modules, summary = generate(source_root, assets_root, args.all_xlsx, not args.no_authoritative_validation, args.nfc_contract_version)
     print(f"Generated {count} ODK template(s) from {modules} owner(s) into {assets_root / 'methodmesh/odk_templates'}")
     print(f"Validation: {summary['cleanForms']} clean, {summary['formsNeedingRevision']} need revision, {summary['severityCounts'].get('error', 0)} error(s).")
     if not summary["authoritativeValidationAvailable"]:

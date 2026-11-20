@@ -208,3 +208,9 @@ No OCR is performed by the Expenses capability.
 - One public capability only: `expenses.manage`.
 - Expense voiding is exposed; editing an existing expense is still internal repository functionality rather than a native UI action.
 - No automatic migration from the old v0.1 split `trip.json` / `expenses.json` layout.
+
+## 24 October 2026 — frozen result closeout
+
+The committed capability summary retains its original execution through recreation and uses origin-aware common Share/Copy/Save/Done controls. A final native preset must dispatch Share or successfully save before confirmation; failure stays open. Common Downloads work is single-flight/off the UI thread. Existing ledger edits, money calculations, receipt capture and CSV/JSON/ZIP domain exports are unchanged.
+
+Both builds and focused shared unit checks pass. Actual-screen checks inject a synthetic frozen summary and verify original-record rotation/Done and failed final Share; they are not end-to-end ledger/receipt/financial acceptance. See docs/handoffs/CANONICAL_ACTIONS_AND_RESULT_RETENTION_2026-10-24.md for exact evidence and remaining limits.

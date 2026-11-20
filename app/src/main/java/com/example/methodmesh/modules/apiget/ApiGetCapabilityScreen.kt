@@ -25,8 +25,11 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -40,6 +43,8 @@ import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -64,8 +69,10 @@ object ApiGetCapabilityScreen : CapabilityScreenSpec {
         var definitionId by rememberSaveable {
             mutableStateOf(context.action.settings.value("definition_id").ifBlank { definitions.firstOrNull()?.id.orEmpty() })
         }
-        val selectedDefinition = definitions.firstOrNull { it.id == definitionId } ?: definitions.firstOrNull()
-        val inputValues = remember { mutableStateMapOf<String, String>() }
+        // A removed/unknown definition must not silently send inputs to a
+        // different provider. The normal executor returns its declared failure.
+        val selectedDefinition = definitions.firstOrNull { it.id == definitionId }
+        val inputValues = rememberSaveable(saver = apiInputValuesSaver()) { mutableStateMapOf<String, String>() }
         var resultPathsRaw by rememberSaveable {
             mutableStateOf(
                 context.action.settings.value("result_paths")
@@ -80,8 +87,10 @@ object ApiGetCapabilityScreen : CapabilityScreenSpec {
         var currencySearchTo by rememberSaveable { mutableStateOf("") }
         var amount by rememberSaveable { mutableStateOf(context.action.settings.value("amount")) }
         var launched by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
-        var running by rememberSaveable { mutableStateOf(false) }
-        var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        // The composition-owned request is cancelled on disposal. Do not save
+        // a busy flag that outlives its coroutine and permanently disables Retry.
+        var running by remember { mutableStateOf(false) }
+        var result by rememberRetainedExecutionResult(context.action.canonicalId)
         var status by rememberSaveable { mutableStateOf("Ready.") }
         var expandedInputId by remember { mutableStateOf<String?>(null) }
 
@@ -114,41 +123,51 @@ object ApiGetCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun runApi() {
-            val definition = selectedDefinition ?: return
+            if (running) return
+            val definition = selectedDefinition
             val selectedPaths = resultPathsRaw.pathSet().ifEmpty {
-                As100ApiGetMethod.defaultResultPaths(definition).toSet()
+                definition?.let { As100ApiGetMethod.defaultResultPaths(it).toSet() }.orEmpty()
             }
             val settings = mapOf(
-                "definition_id" to definition.id,
-                "result_path" to selectedPaths.firstOrNull().orEmpty().ifBlank { As100ApiGetMethod.defaultResultPath(definition) },
+                "definition_id" to definitionId,
+                "result_path" to selectedPaths.firstOrNull().orEmpty().ifBlank { definition?.let(As100ApiGetMethod::defaultResultPath).orEmpty() },
                 "result_paths" to selectedPaths.joinToString("|"),
                 "fallback_value" to fallbackValue,
                 "amount" to amount
             ) + inputValues.toMap()
+            launched = true
             running = true
+            result = null
             status = "Sending request…"
             scope.launch {
-                val execution = withContext(Dispatchers.IO) {
-                    val request = As100ApiGetMethod.request(
-                        action = As100ApiGetMethod.ID,
-                        context = context.request.invocationContext.asMap(As100ApiGetMethod.ID) + context.action.settings + settings,
-                        signals = emptyList(),
-                        inputs = emptyList()
-                    )
-                    As100ApiGetMethod.result(request, As100ApiGetMethod.runApi(settings), context.request.invocationContext)
+                try {
+                    val execution = withContext(Dispatchers.IO) {
+                        val request = As100ApiGetMethod.request(
+                            action = As100ApiGetMethod.ID,
+                            context = context.request.invocationContext.asMap(As100ApiGetMethod.ID) + context.action.settings + settings,
+                            signals = emptyList(),
+                            inputs = emptyList()
+                        )
+                        As100ApiGetMethod.result(request, As100ApiGetMethod.runApi(settings), context.request.invocationContext)
+                    }
+                    result = execution
+                    val fields = OutputFormatter.fields(execution, includeProvenance = false)
+                    status = fields[ApiGetFields.VALUE]?.toString()?.takeIf { it.isNotBlank() }
+                        ?: fields[ApiGetFields.ERROR]?.toString()?.takeIf { it.isNotBlank() }
+                        ?: execution.status.name
+                    // The shared scaffold owns automatic external confirmation.
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    status = "API request failed: ${failure.message ?: "Unable to complete request"}"
+                } finally {
+                    running = false
                 }
-                result = execution
-                val fields = OutputFormatter.fields(execution, includeProvenance = false)
-                status = fields[ApiGetFields.VALUE]?.toString()?.takeIf { it.isNotBlank() }
-                    ?: fields[ApiGetFields.ERROR]?.toString()?.takeIf { it.isNotBlank() }
-                    ?: execution.status.name
-                running = false
-                if (context.submitsImmediately) onConfirmed(execution)
             }
         }
 
         LaunchedEffect(context.presentationMode, context.action.settings, selectedDefinition?.id) {
-            if ((context.startsImmediately || context.presentationMode == CapabilityPresentationMode.IntentLaunch) && !launched && selectedDefinition != null) {
+            if ((context.startsImmediately || context.presentationMode == CapabilityPresentationMode.IntentLaunch && !context.awaitingRuntimeInputs) && !launched) {
                 launched = true
                 runApi()
             }
@@ -399,7 +418,12 @@ object ApiGetCapabilityScreen : CapabilityScreenSpec {
             Button(onClick = { runApi() }, modifier = Modifier.fillMaxWidth(), enabled = !running && selectedDefinition != null) {
                 Text(if (running) "Sending…" else "Run API")
             }
-            Text(status, modifier = Modifier.padding(top = 8.dp))
+            Text(
+                if (launched && !running && result == null && status == "Sending request…") {
+                    "Previous request was interrupted. Run API to retry."
+                } else status,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
     }
 
@@ -498,3 +522,10 @@ object ApiGetCapabilityScreen : CapabilityScreenSpec {
         return if (retrievedAt.isBlank()) ageText else "$ageText · $retrievedAt"
     }
 }
+
+internal fun apiInputValuesSaver(): Saver<SnapshotStateMap<String, String>, Any> = mapSaver(
+    save = { it.toMap() },
+    restore = { saved -> mutableStateMapOf<String, String>().apply {
+        saved.forEach { (key, value) -> put(key, value as String) }
+    } }
+)

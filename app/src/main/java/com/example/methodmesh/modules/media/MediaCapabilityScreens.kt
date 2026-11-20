@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.OutputFormatter
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 import com.example.methodmesh.transport.workflow.ui.CanonicalCommittedResultActions
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
@@ -307,7 +308,7 @@ object MediaCatalogueSearchCapabilityScreen : CapabilityScreenSpec {
         var enrichmentBusyId by remember { mutableStateOf("") }
         var enrichmentMessage by remember { mutableStateOf("") }
         var enrichmentRevision by remember { mutableStateOf(0) }
-        var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
+        var committedResult by rememberRetainedExecutionResult(context.action.canonicalId)
 
         val frozenResult = committedResult
         if (frozenResult != null && !context.submitsImmediately) {
@@ -319,6 +320,7 @@ object MediaCatalogueSearchCapabilityScreen : CapabilityScreenSpec {
                     "Result frozen for this capability run."
                 )
                 CanonicalCommittedResultActions(
+                    screenContext = context,
                     result = frozenResult,
                     label = "media selection",
                     onDone = { onConfirmed(frozenResult) },
@@ -637,7 +639,7 @@ object MediaCatalogueImportCapabilityScreen : CapabilityScreenSpec {
         var showManual by rememberSaveable { mutableStateOf(false) }
         var replace by rememberSaveable { mutableStateOf(context.action.settings["import_mode"] != "merge") }
         var pendingResult by remember { mutableStateOf<ExecutionResult?>(null) }
-        var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
+        var committedResult by rememberRetainedExecutionResult(context.action.canonicalId)
 
         val frozenResult = committedResult
         if (frozenResult != null && !context.submitsImmediately) {
@@ -649,6 +651,7 @@ object MediaCatalogueImportCapabilityScreen : CapabilityScreenSpec {
                     fields.values.firstOrNull { it?.toString()?.isNotBlank() == true }?.toString().orEmpty().ifBlank { "Catalogue result frozen." }
                 )
                 CanonicalCommittedResultActions(
+                    screenContext = context,
                     result = frozenResult,
                     label = "media catalogue import",
                     onDone = { onConfirmed(frozenResult) },
@@ -863,7 +866,7 @@ object MediaCaptureCapabilityScreen : CapabilityScreenSpec {
         var tags by rememberSaveable { mutableStateOf(initial["tags"].orEmpty()) }
         var notes by rememberSaveable { mutableStateOf(initial["notes"].orEmpty()) }
         var observedText by rememberSaveable { mutableStateOf(initial["observed_text"].orEmpty()) }
-        var committed by remember { mutableStateOf<ExecutionResult?>(null) }
+        var committed by rememberRetainedExecutionResult(context.action.canonicalId)
 
         fun values() = initial + mapOf(
             "media_type" to type, "title" to title, "creator" to creator, "year" to year,
@@ -882,6 +885,7 @@ object MediaCaptureCapabilityScreen : CapabilityScreenSpec {
                 if (detail.isNotBlank()) Text(detail, style = MaterialTheme.typography.titleMedium)
                 Text("Tap the title to copy it.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable { copy(androidContext, "media title", fields[MediaFields.TITLE]?.toString().orEmpty()) })
                 CanonicalCommittedResultActions(
+                    screenContext = context,
                     result = frozen,
                     label = "captured media",
                     onDone = { onConfirmed(frozen) },
@@ -943,7 +947,7 @@ object MediaLibraryCapabilityScreen : CapabilityScreenSpec {
         var items by remember { mutableStateOf<List<MediaPersonalItem>>(emptyList()) }
         var selectedWorkId by rememberSaveable { mutableStateOf("") }
         var enrichmentBusyId by remember { mutableStateOf("") }
-        var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
+        var committedResult by rememberRetainedExecutionResult(context.action.canonicalId)
         var enrichmentRevision by remember { mutableStateOf(0) }
 
         fun refresh() {
@@ -978,6 +982,7 @@ object MediaLibraryCapabilityScreen : CapabilityScreenSpec {
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 MediaHero("Committed", "Media shelf", "Result frozen for this capability run.")
                 CanonicalCommittedResultActions(
+                    screenContext = context,
                     result = frozenResult,
                     label = "media library result",
                     onDone = { onConfirmed(frozenResult) },
@@ -1074,7 +1079,7 @@ object MediaLibraryStateCapabilityScreen : CapabilityScreenSpec {
         var favourite by rememberSaveable { mutableStateOf(initial["favourite"]?.toBooleanStrictOrNull() ?: false) }
         var watchlist by rememberSaveable { mutableStateOf(initial["watchlist"]?.toBooleanStrictOrNull() ?: false) }
         var watched by rememberSaveable { mutableStateOf(initial["watched"]?.toBooleanStrictOrNull() ?: false) }
-        var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        var result by rememberRetainedExecutionResult(context.action.canonicalId)
 
         fun values() = initial + mapOf("title" to title, "creator" to creator, "work_id" to workId, "favourite" to favourite.toString(), "watchlist" to watchlist.toString(), "watched" to watched.toString())
         LaunchedEffect(title, creator, workId, favourite, watchlist, watched) { context.onSettingsChanged(values()) }
@@ -1085,6 +1090,7 @@ object MediaLibraryStateCapabilityScreen : CapabilityScreenSpec {
                 MediaHero("Updated", title, "Your MethodMesh media state has been saved.")
                 Text(listOf(if (favourite) "★ Favourite" else "", if (watchlist) "✓ Watchlist" else "", if (watched) "✓ Watched" else "").filter { it.isNotBlank() }.joinToString("   "), style = MaterialTheme.typography.titleMedium)
                 CanonicalCommittedResultActions(
+                    screenContext = context,
                     result = frozen,
                     label = "media state",
                     onDone = { onConfirmed(frozen) },
@@ -1128,7 +1134,7 @@ object MediaAudioIdentifyCapabilityScreen : CapabilityScreenSpec {
         var status by rememberSaveable { mutableStateOf("Ready") }
         var recorder by remember { mutableStateOf<MediaRecorder?>(null) }
         var clipPath by rememberSaveable { mutableStateOf("") }
-        var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        var result by rememberRetainedExecutionResult(context.action.canonicalId)
         val sampleSeconds = (context.action.settings["sample_seconds"]?.toIntOrNull() ?: 10).coerceIn(5, 20)
 
         DisposableEffect(Unit) {
@@ -1250,6 +1256,7 @@ object MediaAudioIdentifyCapabilityScreen : CapabilityScreenSpec {
                         Text("Nothing matched this sample. Tap the listen button and try again closer to the source.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     CanonicalCommittedResultActions(
+                    screenContext = context,
                         result = currentResult,
                         label = "audio identification",
                         onDone = { onConfirmed(currentResult) },

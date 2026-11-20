@@ -87,6 +87,7 @@ object NfcProvisionFields {
     const val CREDENTIAL_FORMAT_VERSION = "credential_format_version"
     const val KEY_DERIVATION = "key_derivation"
     const val CREDENTIAL_ISSUED_TIME_ISO = "credential_issued_time_iso"
+    const val VALID_UNTIL_ISO = "valid_until_iso"
     const val CREDENTIAL_ENVELOPE_HASH = "credential_envelope_hash"
     const val CREDENTIAL_SECRET_HASH = "credential_secret_hash"
     const val ISSUER_KEY_ID = "issuer_key_id"
@@ -105,6 +106,7 @@ object NfcProvisionFields {
         CREDENTIAL_FORMAT_VERSION,
         KEY_DERIVATION,
         CREDENTIAL_ISSUED_TIME_ISO,
+        VALID_UNTIL_ISO,
         CREDENTIAL_ENVELOPE_HASH,
         CREDENTIAL_SECRET_HASH,
         ISSUER_KEY_ID,
@@ -142,6 +144,7 @@ object NfcCredentialVerificationFields {
         NfcProvisionFields.CREDENTIAL_FORMAT_VERSION,
         NfcProvisionFields.KEY_DERIVATION,
         NfcProvisionFields.CREDENTIAL_ISSUED_TIME_ISO,
+        NfcProvisionFields.VALID_UNTIL_ISO,
         NfcProvisionFields.CREDENTIAL_ENVELOPE_HASH,
         NfcProvisionFields.CREDENTIAL_SECRET_HASH,
         NfcProvisionFields.ISSUER_KEY_ID,

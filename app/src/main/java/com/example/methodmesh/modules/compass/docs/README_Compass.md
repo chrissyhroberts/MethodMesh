@@ -38,6 +38,8 @@ The production interaction is now instrument-first rather than settings-form-fir
 
 If settings are changed after a commit, the committed payload stays frozen and the UI says that a recommit is required to replace it.
 
+The original committed execution is retained in Activity-scoped memory through ordinary recreation, including its identity, timing, software evidence and canonical FULL JSON. Only an opaque retention key and a committed-state flag enter saved UI state; committed values are not used to manufacture a replacement execution. If the original is unavailable, the screen reports “Captured result unavailable” and requires an explicit new live Commit. This is not durable process-death recovery. Four emulator screen cases verify retention/Done, Recommit, missing-envelope recovery and automatic return without replay; physical heading/calibration and actual external caller acceptance remain separate.
+
 ### Launch-origin closeout
 
 - normal dashboard/direct run: **Done** returns the committed result to the dashboard flow;
@@ -258,3 +260,10 @@ Potential future work, outside this migration:
 - bearing hold/lock;
 - inclinometer as a separate method;
 - composition with GPS target bearing through the public GPS navigation contract.
+
+
+## 28 October 2026 — committed action closeout
+
+The live compass and frozen reading/technical details remain on the same screen. Common action controls use exactly compass_result as the native text and preserve canonical FULL as optional audit. Final native preset Share and Save must succeed before confirming the original execution; intermediate Done returns control without final exports. Failed actions stay visible/retryable through recreation. Downloads work runs off the UI thread, with synchronous busy gating of Recommit/Sight while export or completion is pending. Host confirmation/logging owns navigation.
+
+No compass math, magnetic reference, sensor/camera acquisition, public fields or automatic-return semantics change. Both builds/37 focused JVM cases pass; 44 Android cases were verified across an initial 42-pass/two-failure run and 13 passing targeted reruns, as detailed in docs/handoffs/BARCODE_COMPASS_RESULT_ACTIONS_2026-10-28.md. The real Compass emulator screen and host logging order are checked; physical accuracy, camera sight and clinical/Collect/device acceptance are not certified.

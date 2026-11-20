@@ -49,5 +49,7 @@ data class NfcWriteRequest(
     val mimeType: String = "text/plain",
     val languageCode: String = "en",
     val overwritePolicy: NfcOverwritePolicy = NfcOverwritePolicy.EmptyOnly,
-    val expectedCurrentHash: String? = null
+    val expectedCurrentHash: String? = null,
+    /** When false, the caller performs a deliberate fresh-tap verification. */
+    val verifyAfterWrite: Boolean = true
 )

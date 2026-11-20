@@ -40,6 +40,7 @@ import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 import kotlinx.coroutines.delay
 import java.time.Instant
 import kotlin.math.ceil
@@ -75,8 +76,8 @@ object MulticounterCapabilityScreen : CapabilityScreenSpec {
         val autoStart = context.startsImmediately && (!context.isNativePresetRun || context.runtimeInputFields.isEmpty())
         var sessionStarted by rememberSaveable(context.action.canonicalId) { mutableStateOf(autoStart) }
         var sessionJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var finalizedFieldsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var result by remember { mutableStateOf<ExecutionResult?>(null) }
+        var hasFinishedSession by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var result by rememberRetainedExecutionResult(context.action.canonicalId)
         var nowRealtimeMs by remember { mutableStateOf(SystemClock.elapsedRealtime()) }
 
         fun currentSettings(): Map<String, String> = linkedMapOf(
@@ -109,13 +110,13 @@ object MulticounterCapabilityScreen : CapabilityScreenSpec {
             nowRealtimeMs = now
             val state = MulticounterSessionState.create(currentSettings(), now, Instant.now().toString())
             sessionJson = state.toJson()
-            finalizedFieldsJson = ""
+            hasFinishedSession = false
             result = null
             sessionStarted = true
         }
 
         fun updateState(transform: (MulticounterSessionState, Long, String) -> MulticounterSessionState) {
-            if (sessionJson.isBlank()) return
+            if (sessionJson.isBlank() || hasFinishedSession || result != null) return
             val now = SystemClock.elapsedRealtime()
             val wall = Instant.now().toString()
             nowRealtimeMs = now
@@ -124,15 +125,17 @@ object MulticounterCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun finishSession() {
-            if (sessionJson.isBlank()) return
+            if (sessionJson.isBlank() || hasFinishedSession || result != null) return
             val now = SystemClock.elapsedRealtime()
             val finishedIso = Instant.now().toString()
             nowRealtimeMs = now
             val state = MulticounterSessionState.fromJson(sessionJson).finish(now, finishedIso)
-            sessionJson = state.toJson()
             val fields = As100MulticounterMethod.fieldsFor(state, now, finishedIso)
-            finalizedFieldsJson = As100MulticounterMethod.fieldsToJson(fields)
             result = executionFor(fields)
+            hasFinishedSession = true
+            // The immutable final snapshot is in the retained execution. Do not
+            // duplicate its potentially large audit/event log in saved state.
+            sessionJson = ""
         }
 
         LaunchedEffect(
@@ -142,20 +145,14 @@ object MulticounterCapabilityScreen : CapabilityScreenSpec {
             if (!sessionStarted) context.onSettingsChanged(currentSettings())
         }
 
-        LaunchedEffect(sessionStarted, sessionJson) {
-            if (sessionStarted && sessionJson.isBlank()) createSession()
-        }
-
-        LaunchedEffect(finalizedFieldsJson) {
-            if (finalizedFieldsJson.isNotBlank() && result == null) {
-                result = executionFor(As100MulticounterMethod.fieldsFromJson(finalizedFieldsJson))
-            }
+        LaunchedEffect(sessionStarted, sessionJson, hasFinishedSession) {
+            if (sessionStarted && sessionJson.isBlank() && !hasFinishedSession) createSession()
         }
 
         // Update visible time without serialising the session on every tick. State JSON
         // changes only when a scheduled timer starts or a countdown expires.
-        LaunchedEffect(sessionStarted, sessionJson, timerPrecision) {
-            if (!sessionStarted || sessionJson.isBlank()) return@LaunchedEffect
+        LaunchedEffect(sessionStarted, sessionJson, timerPrecision, hasFinishedSession) {
+            if (!sessionStarted || sessionJson.isBlank() || hasFinishedSession) return@LaunchedEffect
             while (true) {
                 val state = runCatching { MulticounterSessionState.fromJson(sessionJson) }.getOrNull() ?: break
                 if (!state.hasActiveTimers) break
@@ -171,6 +168,21 @@ object MulticounterCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
+        if (hasFinishedSession && result == null) {
+            // A saved final readout is not the original execution envelope.
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Finished session unavailable")
+                Text("The previous execution could not be restored after restart. Start a new session to record a new result.")
+                Button(onClick = {
+                    hasFinishedSession = false
+                    sessionJson = ""
+                    sessionStarted = false
+                }) { Text("Start new session") }
+                OutlinedButton(onClick = onCancel) { Text("Close") }
+            }
+            return
+        }
+
         CapabilityScreenScaffold(
             title = title,
             capabilityId = capabilityId,
@@ -181,7 +193,7 @@ object MulticounterCapabilityScreen : CapabilityScreenSpec {
             onBack = onBack,
             onRetry = {
                 result = null
-                finalizedFieldsJson = ""
+                hasFinishedSession = false
                 sessionJson = ""
                 sessionStarted = false
             },

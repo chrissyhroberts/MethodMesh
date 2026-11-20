@@ -1,11 +1,22 @@
 # MethodMesh Weather
 
-**Module version:** 0.2.6  
-**Normative project authority:** MethodMesh Master Book v1.08 FINAL, 2026-09-08
+**Module version:** 0.5.1 (current source; no version bump in this review)
+**Normative project authority:** MethodMesh Master Book v1.31, 2026-09-25
 
 Weather is a self-contained MethodMesh meteorological module. It combines a high-information native dashboard with independently invokable canonical weather capabilities for direct use, Presets, Protocols and ODK/XLSForm.
 
 The dashboard is an aggregation surface, not a parallel implementation. Every useful operation below remains independently callable.
+
+## Engineering review continuation — 21 October 2026
+
+- Dashboard and focused-screen Commit retain the original execution in activity-scoped memory across rotation, including identity, timing, software evidence and complete JSON. Saved values are not used to manufacture a replacement committed execution. Lost committed memory requires an explicit Refresh/new Commit; this is not durable process recovery.
+- Each acquisition snapshots its inputs before the request. Later edits do not become the input provenance of the earlier response. Saved input settings do not gain raw provider bodies. Working result JSON is still saved UI state; large-payload/Binder limits remain open.
+- Disposing a screen cancels its GPS token and fences late callbacks. Interrupted refreshes do not restore an orphan busy flag or automatically repeat acquisition; explicit Retry/Refresh remains available. Blocking network calls may still finish/timeout after coroutine cancellation.
+- The focused location panel keeps fixed native-preset fields hidden individually. Refresh has its own full-width row so location/GPS labels cannot clip it off a phone-width screen.
+- Missing provider-retrieval time stays unknown/blank; request time and current wall time are not substituted. Actual cached retrieval time, age and cache/stale evidence remain distinct from execution timing.
+- Failed Save/Share does not finish a committed native run. For host-managed native presets, Home/Done delegates confirmation and the opt-in log attempt to the shared host before Home navigation. Log failure follows the user's non-blocking warning policy; it does not alter method success or frozen evidence.
+
+The engineering handoff records cached/local fixtures and their limits. Live provider/GPS, real ODK callers, genuine process death and all eleven capability-specific workflows are not certified by these checks. Public method/input/output IDs and source XLSForms are unchanged.
 
 ## Public capability inventory
 
@@ -193,3 +204,11 @@ Weather v0.5.0 uses the MethodMesh v1.29 instrument/dashboard hierarchy. The eve
 The dashboard is an aggregation/presentation surface only. The eleven canonical methods remain independently callable through Capabilities, Presets, Protocols and ODK/XLSForm.
 
 `weather.radar` additionally declares `weather_radar_gif_uri` and `weather_radar_gif_sha256`. External/ODK radar runs attempt to populate these with a transient animated radar GIF and its SHA-256; attachment transfer remains the responsibility of the shared MethodMesh Android transport.
+
+## Committed export continuation — 24 October 2026
+
+Weather Share now delegates to canonical ResultShare, providing equivalent message/text-sidecar content; generic Copy uses the same metadata.json text marker when audit is enabled. Optional audit defaults off and is a separate metadata file only for Downloads Save. Weather and Network now apply preset Share/Save-and-finish only on the last step; intermediate Done returns the original record without exporting or Home navigation. Failure keeps the committed record available, and actual-host Home/logging order remains intact.
+
+Shared Save on API 27/28 now opens permission-only UI before any file write if access is missing. Granting access does not replay an export: return and explicitly retry Save. Modern Android does not request that legacy permission. The legacy path is policy/source/build checked, not yet accepted on an older device. No provider/GPS/scientific behavior or public contract changes.
+
+Both builds, 49 focused JVM cases and 40 Android cases verified across two runs are recorded in repository handoff docs/handoffs/NATIVE_EXPORTS_AND_LEGACY_DOWNLOADS_2026-10-24.md. New committed-component cases are synthetic/local; real callers/recipients, other devices and provider/hardware acceptance remain open.

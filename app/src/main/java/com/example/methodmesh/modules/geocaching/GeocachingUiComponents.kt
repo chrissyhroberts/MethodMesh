@@ -1,5 +1,7 @@
 package com.example.methodmesh.modules.geocaching
 
+import android.app.Activity
+import android.content.ContextWrapper
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -16,6 +18,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalView
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.findViewTreeViewModelStoreOwner
+import java.util.UUID
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -93,9 +100,19 @@ internal fun MethodSurface(
     onDoneResult: ((ExecutionResult) -> Unit)? = null,
     body:@Composable ColumnScope.()->Unit
 ){
-    val committedResult = remember(committedKey, context.submitsImmediately) {
-        if (committed && !context.submitsImmediately) committedResultFactory?.invoke() else null
+    val owner = checkNotNull(LocalView.current.findViewTreeViewModelStoreOwner())
+    val records = remember(owner) { ViewModelProvider(owner)[GeocachingCommittedRecords::class.java] }
+    val recordKey = rememberSaveable(context.action.canonicalId) { UUID.randomUUID().toString() }
+    val record = remember(records, recordKey) { records.slot(recordKey) }
+    var hadRecord by rememberSaveable(recordKey) { mutableStateOf(false) }
+    val activity = LocalContext.current.geoHostActivity()
+    DisposableEffect(records, recordKey, activity) {
+        onDispose { if (activity != null && !activity.isChangingConfigurations) records.forget(recordKey) }
     }
+    val committedResult = if (context.submitsImmediately) null else
+        record.resolve(committed, committedKey, !hadRecord, committedResultFactory)
+    if (!committed) hadRecord = false else if (committedResult != null) hadRecord = true
+    val recordMissing = committed && hadRecord && committedResult == null && committedResultFactory != null
     Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background){
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()){
             Row(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically){
@@ -111,12 +128,19 @@ internal fun MethodSurface(
                         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Committed · result frozen", fontWeight = FontWeight.SemiBold)
                             CanonicalCommittedResultActions(
+                    screenContext = context,
                                 result = committedResult,
                                 label = title,
                                 onDone = {
                                     if (onDoneResult != null) onDoneResult(committedResult) else onDone?.invoke()
                                 }
                             )
+                        }
+                    } else if (recordMissing) {
+                        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Captured result unavailable", fontWeight = FontWeight.SemiBold)
+                            Text("The original execution was lost. Review the saved snapshot above; no replacement has been created.")
+                            Button(onClick = { hadRecord = false }, modifier = Modifier.fillMaxWidth()) { Text("Commit snapshot as new record") }
                         }
                     } else if (onDone != null) {
                         Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -146,6 +170,12 @@ internal fun CopyableValue(value:String,label:String?=null){
     },colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant.copy(alpha=.45f))){
         Column(Modifier.padding(horizontal=12.dp,vertical=9.dp)){label?.let{Text(it,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)};Text(value,fontFamily=FontFamily.Monospace,fontWeight=FontWeight.SemiBold)}
     }
+}
+
+private tailrec fun Context.geoHostActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.geoHostActivity()
+    else -> null
 }
 
 @Composable internal fun CommitButton(committed:Boolean,onCommit:()->Unit){if(!committed)Button(onClick=onCommit,modifier=Modifier.fillMaxWidth()){Text("Commit")}else OutlinedButton(onClick=onCommit,modifier=Modifier.fillMaxWidth()){Text("Recommit current result")}}

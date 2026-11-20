@@ -30,6 +30,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -162,6 +163,14 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
             mutableStateOf(initial("pen_width_pt", "2.8").toFloatOrNull()?.coerceIn(0.8f, 12f) ?: 2.8f)
         }
         var penColor by rememberSaveable { mutableStateOf(initial("pen_color", "black").ifBlank { "black" }) }
+        var workflow by rememberSaveable {
+            mutableStateOf(DigitalSigningWorkflow.entries.firstOrNull { it.id == initial("signing_workflow", "participant_ink") }
+                ?: DigitalSigningWorkflow.ParticipantInk)
+        }
+        var savedSignatureId by rememberSaveable { mutableStateOf<String?>(null) }
+        var signatureAuthentication by rememberSaveable { mutableStateOf<String?>(null) }
+        var savedSignatures by remember { mutableStateOf(DigitalSigningSignatureStore.list(appContext)) }
+        var showSignaturePicker by rememberSaveable { mutableStateOf(false) }
         val effectiveFinalise = finaliseForced || finalisePdf
 
         var workingPdf by remember { mutableStateOf<WorkingPdf?>(null) }
@@ -300,6 +309,47 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
         val pdfPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
             if (uri != null) importPdf(uri, PdfInputOrigin.FilePicker)
         }
+        val signaturePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                runCatching {
+                    val bytes = withContext(Dispatchers.IO) {
+                        appContext.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                            ?: error("Could not read the signature image.")
+                    }
+                    DigitalSigningSignatureStore.save(appContext, uri.lastPathSegment ?: "Imported signature", bytes)
+                }.onSuccess {
+                    savedSignatures = DigitalSigningSignatureStore.list(appContext)
+                    status = "Saved signature imported. Fingerprint unlock is required before use."
+                    showSignaturePicker = true
+                }.onFailure { status = "Could not import signature: ${it.message ?: "unavailable"}" }
+            }
+        }
+
+        fun placeSavedSignature(saved: DigitalSigningSignatureStore.SavedSignature) {
+            DigitalSigningSignatureStore.unlock(
+                context = appContext,
+                signature = saved,
+                onUnlocked = { _, authenticationMethod ->
+                    workflow = DigitalSigningWorkflow.OwnerSavedSignature
+                    savedSignatureId = saved.id
+                    signatureAuthentication = authenticationMethod
+                    elements = elements + MarkupElement(
+                        id = UUID.randomUUID().toString(),
+                        pageIndex = currentPage,
+                        x = 0.5f,
+                        y = 0.72f,
+                        kind = MarkupElement.Kind.Signature,
+                        sizePt = 150f,
+                        assetPath = saved.file.absolutePath
+                    )
+                    mode = DigitalSigningMode.Move
+                    status = "Saved signature unlocked and placed. Use Move to reposition it."
+                    showSignaturePicker = false
+                },
+                onFailure = { message -> status = "Saved signature remains locked: $message" }
+            )
+        }
 
         fun chooseFromFiles(ref: ArtifactRef) {
             scope.launch {
@@ -429,12 +479,15 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                             pdf.outputFile
                         ).toString()
                         DigitalSigningCommittedResult(
+                            workflow = workflow,
                             sourceOrigin = working.sourceOrigin,
                             sourceFilename = working.displayName,
                             sourceSha256 = working.sourceSha256,
                             signedFilename = pdf.outputFile.name,
                             signedPdfUri = uri,
                             signedSha256 = pdf.signedSha256,
+                            savedSignatureId = savedSignatureId,
+                            signatureAuthentication = signatureAuthentication,
                             pageCount = pdf.pageCount,
                             inkPresent = strokes.isNotEmpty() || elements.isNotEmpty(),
                             inkStrokeCount = strokes.size,
@@ -566,6 +619,7 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                         textToPlace = textToPlace,
                         onStrokeAdded = { stroke -> strokes = strokes + stroke },
                         onElementAdded = { element -> elements = elements + element },
+                        onChooseSavedSignature = { showSignaturePicker = true },
                         onElementMoved = { id, x, y -> elements = elements.map { if (it.id == id) it.copy(x = x, y = y) else it } },
                         onEraseAt = { point, zoom ->
                             val threshold = (0.028f / zoom.coerceAtLeast(1f)).coerceAtLeast(0.006f)
@@ -655,8 +709,47 @@ object DigitalSigningCapabilityScreen : CapabilityScreenSpec {
                 }
             }
         }
+        if (showSignaturePicker) {
+            SavedSignatureDialog(
+                signatures = savedSignatures,
+                onImport = { signaturePicker.launch(arrayOf("image/png", "image/jpeg", "image/webp")) },
+                onPick = ::placeSavedSignature,
+                onDismiss = { showSignaturePicker = false }
+            )
+        }
         }
     }
+}
+
+@Composable
+private fun SavedSignatureDialog(
+    signatures: List<DigitalSigningSignatureStore.SavedSignature>,
+    onImport: () -> Unit,
+    onPick: (DigitalSigningSignatureStore.SavedSignature) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Owner signature") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Saved signatures require fingerprint authentication before they can be placed.")
+                if (signatures.isEmpty()) {
+                    Text("No saved signatures yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    signatures.forEach { signature ->
+                        OutlinedButton(onClick = { onPick(signature) }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Unlock ${signature.displayName}")
+                        }
+                    }
+                }
+                OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
+                    Text("Import and save signature")
+                }
+            }
+        },
+        confirmButton = { Button(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable
@@ -716,6 +809,7 @@ private fun FullScreenSigningWorkspace(
     elements: List<MarkupElement>,
     onStrokeAdded: (InkStroke) -> Unit,
     onElementAdded: (MarkupElement) -> Unit,
+    onChooseSavedSignature: () -> Unit,
     onElementMoved: (String, Float, Float) -> Unit,
     onEraseAt: (InkPoint, Float) -> Unit,
     onUndo: () -> Unit,
@@ -767,6 +861,7 @@ private fun FullScreenSigningWorkspace(
             onUndo = onUndo,
             canUndo = strokes.any { it.pageIndex == currentPage } || elements.any { it.pageIndex == currentPage },
             onAddText = onTextRequested,
+            onChooseSavedSignature = onChooseSavedSignature,
             penColor = penColor,
             onPenColorChanged = onPenColorChanged,
             showPenColor = showPenColor,
@@ -1032,6 +1127,11 @@ private fun PdfFullScreenPage(
                             drawLine(Color(element.argb), center + Offset(-size / 3f, size), center + Offset(size, -size), strokeWidth = (size / 7f).coerceAtLeast(2f), cap = StrokeCap.Round)
                         }
                         MarkupElement.Kind.Text -> drawIntoCanvas { canvas -> canvas.nativeCanvas.drawText(element.text, center.x, center.y, android.graphics.Paint().apply { color = element.argb; textSize = size }) }
+                        MarkupElement.Kind.Signature -> drawRect(
+                            color = Color(element.argb).copy(alpha = 0.12f),
+                            topLeft = center + Offset(-size, -size / 2f),
+                            size = androidx.compose.ui.geometry.Size(size * 2f, size)
+                        )
                     }
                 }
                 if (activePoints.isNotEmpty()) {
@@ -1138,6 +1238,7 @@ private fun MarkupOverlay(
     onUndo: () -> Unit,
     canUndo: Boolean,
     onAddText: (String) -> Unit,
+    onChooseSavedSignature: () -> Unit,
     penColor: String,
     onPenColorChanged: (String) -> Unit,
     showPenColor: Boolean,
@@ -1182,6 +1283,7 @@ private fun MarkupOverlay(
                 OutlinedButton(onClick = { onModeChanged(if (mode == DigitalSigningMode.Check) DigitalSigningMode.Navigate else DigitalSigningMode.Check) }, enabled = enabled) { Text(if (mode == DigitalSigningMode.Check) "✓ ON" else "✓") }
                 OutlinedButton(onClick = { onModeChanged(if (mode == DigitalSigningMode.Move) DigitalSigningMode.Navigate else DigitalSigningMode.Move) }, enabled = enabled) { Text(if (mode == DigitalSigningMode.Move) "Move ON" else "Move") }
                 OutlinedButton(onClick = { onAddText(textValue.ifBlank { "Text" }) }, enabled = enabled) { Text("Text") }
+                OutlinedButton(onClick = onChooseSavedSignature, enabled = enabled) { Text("Saved signature") }
                 OverlayButton("Undo", enabled = enabled && canUndo, onClick = onUndo)
             }
 

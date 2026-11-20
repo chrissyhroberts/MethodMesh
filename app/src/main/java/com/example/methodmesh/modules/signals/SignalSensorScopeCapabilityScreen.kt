@@ -30,8 +30,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.platform.sensors.PhoneSensorRepository
+import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 import org.json.JSONArray
 import java.util.Locale
 import kotlin.math.sqrt
@@ -45,10 +47,19 @@ object SignalSensorScopeCapabilityScreen : CapabilityScreenSpec {
     override fun Render(context: CapabilityScreenContext, onBack: () -> Unit, onConfirmed: (ExecutionResult) -> Unit, onCancel: () -> Unit) {
         val androidContext = LocalContext.current
         var sensorId by rememberSaveable(context.action.canonicalId) { mutableStateOf(context.action.settings.signalSetting("sensor", "light")) }
-        var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        var hadCommitted by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var committedExecution by rememberRetainedExecutionResult(context.action.canonicalId)
         var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Live sensor values are not stored until Commit.") }
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         val trace = remember(sensorId) { mutableStateListOf<Float>() }
+
+        LaunchedEffect(hadCommitted, committedExecution?.request?.id?.value) {
+            if (hadCommitted && committedExecution == null) {
+                hadCommitted = false
+                exportStatus = ""
+                status = "Captured result unavailable. Commit a new live snapshot to continue."
+            }
+        }
 
         SignalActiveSessionOrientationGuard(true)
         DisposableEffect(androidContext) {
@@ -96,15 +107,19 @@ object SignalSensorScopeCapabilityScreen : CapabilityScreenSpec {
                 SignalSensorScopeFields.STATUS to "captured",
                 SignalSensorScopeFields.ERROR to ""
             )
-            committedJson = fieldsJson(committedValues)
-            status = "Committed. Live values continue to update; recommit to replace the frozen snapshot."
             val result = signalResult(As100SignalSensorScopeMethod, context, committedValues)
+            committedExecution = result
+            hadCommitted = true
+            status = "Committed. Live values continue to update; recommit to replace the frozen snapshot."
+            exportStatus = ""
             if (context.submitsImmediately) onConfirmed(result)
         }
 
-        val committedFields = fieldsFromJson(committedJson)
-        val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(As100SignalSensorScopeMethod, context, it) } }
-        val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+        val committedResult = committedExecution
+        val committedFields = remember(committedResult?.request?.id?.value) {
+            committedResult?.let { OutputFormatter.fields(it, includeProvenance = false) }
+                .orEmpty().mapValues { (_, value) -> value?.toString().orEmpty() }
+        }
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SignalInstrumentPanel(
@@ -171,9 +186,9 @@ object SignalSensorScopeCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share sensor snapshot", committedFields[SignalSensorScopeFields.RESULT].orEmpty()) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "signal_sensor_snapshot", committedFields[SignalSensorScopeFields.RESULT].orEmpty(), committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "signal_sensor_snapshot", committedFields[SignalSensorScopeFields.RESULT].orEmpty(), committedFullJson) } }
+                    context = context,
+                    result = committedResult,
+                    onConfirmed = onConfirmed
                 )
             }
 

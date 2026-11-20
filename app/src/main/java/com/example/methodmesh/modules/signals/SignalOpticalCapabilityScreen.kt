@@ -221,7 +221,7 @@ object SignalOpticalScreenTransmitCapabilityScreen : CapabilityScreenSpec {
         var cycles by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Prepare a message, then start the optical link.") }
         var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val committed = rememberSignalCommit(context.action.canonicalId)
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         val profile = SignalOpticalProfiles.byId(profileId)
         SignalActiveSessionOrientationGuard(active)
@@ -323,9 +323,8 @@ object SignalOpticalScreenTransmitCapabilityScreen : CapabilityScreenSpec {
                 SignalOpticalScreenTransmitFields.STATUS to "sent",
                 SignalOpticalScreenTransmitFields.ERROR to ""
             )
-            committedJson = fieldsJson(values)
             status = "Committed optical transmission record."
-            val result = signalResult(As100SignalOpticalScreenTransmitMethod, context, values)
+            val result = committed.capture(signalResult(As100SignalOpticalScreenTransmitMethod, context, values))
             if (context.submitsImmediately) onConfirmed(result)
         }
 
@@ -355,11 +354,11 @@ object SignalOpticalScreenTransmitCapabilityScreen : CapabilityScreenSpec {
             }
         }
 
-        val committedFields = fieldsFromJson(committedJson)
-        val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(As100SignalOpticalScreenTransmitMethod, context, it) } }
-        val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+        val committedFields = committed.fields
+        val committedResult = committed.result
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SignalCommitRecoveryNotice(committed)
             Button(onClick = { if (active) stop() else start() }, enabled = active || payload.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text(if (active) "Stop optical link" else "Start optical link") }
 
             SignalInstrumentPanel(
@@ -404,9 +403,9 @@ object SignalOpticalScreenTransmitCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share optical transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "screen_optical_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "screen_optical_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) } }
+                    context = context,
+                    result = committedResult,
+                    onConfirmed = onConfirmed
                 )
             }
 
@@ -482,7 +481,7 @@ private fun OpticalScreenReceiveUi(context: CapabilityScreenContext, onConfirmed
     var resetGeneration by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
     var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Aim the camera at the transmitting screen, then start reception.") }
     var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-    var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+    val committed = rememberSignalCommit(context.action.canonicalId)
     var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
     var roiX by rememberSaveable(context.action.canonicalId) { mutableStateOf(0.5f) }
     var roiY by rememberSaveable(context.action.canonicalId) { mutableStateOf(0.5f) }
@@ -587,9 +586,8 @@ private fun OpticalScreenReceiveUi(context: CapabilityScreenContext, onConfirmed
                 SignalOpticalScreenReceiveFields.STATUS to "received",
                 SignalOpticalScreenReceiveFields.ERROR to ""
             )
-            committedJson = fieldsJson(values)
             status = "Committed CRC-verified compact optical reception."
-            val result = signalResult(As100SignalOpticalScreenReceiveMethod, context, values)
+            val result = committed.capture(signalResult(As100SignalOpticalScreenReceiveMethod, context, values))
             if (context.submitsImmediately) onConfirmed(result)
             return
         }
@@ -615,9 +613,8 @@ private fun OpticalScreenReceiveUi(context: CapabilityScreenContext, onConfirmed
             SignalOpticalScreenReceiveFields.STATUS to "received",
             SignalOpticalScreenReceiveFields.ERROR to ""
         )
-        committedJson = fieldsJson(values)
         status = "Committed verified optical reception."
-        val result = signalResult(As100SignalOpticalScreenReceiveMethod, context, values)
+        val result = committed.capture(signalResult(As100SignalOpticalScreenReceiveMethod, context, values))
         if (context.submitsImmediately) onConfirmed(result)
     }
 
@@ -634,15 +631,15 @@ private fun OpticalScreenReceiveUi(context: CapabilityScreenContext, onConfirmed
         )
     }
 
-    val committedFields = fieldsFromJson(committedJson)
-    val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(As100SignalOpticalScreenReceiveMethod, context, it) } }
-    val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+    val committedFields = committed.fields
+    val committedResult = committed.result
     val compactEnvelopeForDisplay = compactText.takeIf { mode == "grid" && it.isNotBlank() }
         ?.let { SignalContentEnvelope.decode(SignalContentEnvelope.encodeText(it)) }
     val envelope = compactEnvelopeForDisplay ?: currentEnvelope
     val compactVerified = mode == "grid" && compactText.isNotBlank()
 
     Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SignalCommitRecoveryNotice(committed)
         Button(onClick = { if (listening) stop() else start() }, modifier = Modifier.fillMaxWidth()) { Text(if (listening) "Pause receiver" else "Start receiver") }
 
         SignalInstrumentPanel(
@@ -743,9 +740,9 @@ private fun OpticalScreenReceiveUi(context: CapabilityScreenContext, onConfirmed
                 ),
                 status = exportStatus,
                 onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                onShare = { exportStatus = shareSignalText(androidContext, "Share optical reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }) ?: "" },
-                onSave = { exportStatus = saveSignalText(androidContext, "screen_optical_reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) },
-                onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "screen_optical_reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) } }
+                context = context,
+                result = committedResult,
+                onConfirmed = onConfirmed
             )
         }
 
@@ -814,7 +811,7 @@ object SignalOpticalTorchTransmitCapabilityScreen : CapabilityScreenSpec {
         var symbolIndex by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Prepare a short message, then start the torch optical link.") }
         var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val committed = rememberSignalCommit(context.action.canonicalId)
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         val profile = SignalOpticalProfiles.byId(profileId)
         val parityStripes = when (profile.id) { "long" -> 6; "balanced" -> 4; else -> 2 }
@@ -922,9 +919,8 @@ object SignalOpticalTorchTransmitCapabilityScreen : CapabilityScreenSpec {
                 SignalOpticalTorchTransmitFields.STATUS to "sent",
                 SignalOpticalTorchTransmitFields.ERROR to ""
             )
-            committedJson = fieldsJson(values)
             status = "Committed torch optical transmission record."
-            val result = signalResult(As100SignalOpticalTorchTransmitMethod, context, values)
+            val result = committed.capture(signalResult(As100SignalOpticalTorchTransmitMethod, context, values))
             if (context.submitsImmediately) onConfirmed(result)
         }
 
@@ -933,11 +929,11 @@ object SignalOpticalTorchTransmitCapabilityScreen : CapabilityScreenSpec {
         }
         DisposableEffect(Unit) { onDispose { torch.off() } }
 
-        val committedFields = fieldsFromJson(committedJson)
-        val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(As100SignalOpticalTorchTransmitMethod, context, it) } }
-        val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+        val committedFields = committed.fields
+        val committedResult = committed.result
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SignalCommitRecoveryNotice(committed)
             Button(onClick = { if (sending) stop() else start() }, enabled = compact != null, modifier = Modifier.fillMaxWidth()) { Text(if (sending) "Stop torch modem" else "Start torch modem") }
             SignalInstrumentPanel(
                 kicker = "COMPACT POINT-SOURCE OPTICAL",
@@ -977,9 +973,9 @@ object SignalOpticalTorchTransmitCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share torch optical transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "torch_optical_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "torch_optical_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) } }
+                    context = context,
+                    result = committedResult,
+                    onConfirmed = onConfirmed
                 )
             }
 
@@ -1030,7 +1026,7 @@ object SignalOpticalTorchReceiveCapabilityScreen : CapabilityScreenSpec {
         var resetGeneration by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Aim at the remote torch, then start reception.") }
         var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val committed = rememberSignalCommit(context.action.canonicalId)
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         var roiX by rememberSaveable(context.action.canonicalId) { mutableStateOf(0.5f) }
         var roiY by rememberSaveable(context.action.canonicalId) { mutableStateOf(0.5f) }
@@ -1122,9 +1118,8 @@ object SignalOpticalTorchReceiveCapabilityScreen : CapabilityScreenSpec {
                 SignalOpticalTorchReceiveFields.STATUS to "received",
                 SignalOpticalTorchReceiveFields.ERROR to ""
             )
-            committedJson = fieldsJson(values)
             status = "Committed CRC-verified torch optical reception."
-            val result = signalResult(As100SignalOpticalTorchReceiveMethod, context, values)
+            val result = committed.capture(signalResult(As100SignalOpticalTorchReceiveMethod, context, values))
             if (context.submitsImmediately) onConfirmed(result)
         }
 
@@ -1133,11 +1128,11 @@ object SignalOpticalTorchReceiveCapabilityScreen : CapabilityScreenSpec {
         }
 
         val envelope = decodedText.takeIf { it.isNotBlank() }?.let { SignalContentEnvelope.decode(SignalContentEnvelope.encodeText(it)) }
-        val committedFields = fieldsFromJson(committedJson)
-        val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(As100SignalOpticalTorchReceiveMethod, context, it) } }
-        val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+        val committedFields = committed.fields
+        val committedResult = committed.result
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SignalCommitRecoveryNotice(committed)
             Button(onClick = { if (listening) stop() else start() }, modifier = Modifier.fillMaxWidth()) { Text(if (listening) "Pause receiver" else "Start receiver") }
             SignalInstrumentPanel(
                 kicker = "COMPACT POINT-SOURCE RECEIVER",
@@ -1215,9 +1210,9 @@ object SignalOpticalTorchReceiveCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share torch optical reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "torch_optical_reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "torch_optical_reception", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) } }
+                    context = context,
+                    result = committedResult,
+                    onConfirmed = onConfirmed
                 )
             }
 

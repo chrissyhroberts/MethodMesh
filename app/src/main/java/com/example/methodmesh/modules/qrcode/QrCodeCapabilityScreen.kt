@@ -30,7 +30,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,18 +50,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ArchitectureId
+import com.example.methodmesh.transport.workflow.ui.CanonicalCommittedResultActions
+import com.example.methodmesh.transport.workflow.ui.CapturedExecutionRecovery
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.TemporalContext
 import com.example.methodmesh.core.methodmesh.runtime.As100ExecutionEngine
 import com.example.methodmesh.core.methodmesh.runtime.As100Method
 import com.example.methodmesh.core.methodmesh.withInvocationContext
-import com.example.methodmesh.core.protocols.PresetResultAction
-import com.example.methodmesh.transport.OutputExportRepository
-import com.example.methodmesh.transport.ResultShare
 import com.example.methodmesh.transport.OutputFormatter
-import com.example.methodmesh.transport.ReturnMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityCompletionMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
@@ -168,13 +165,6 @@ private class CodeScanCapabilityScreen(
     ) {
         val appContext = LocalContext.current
         val automaticReturn = context.completionMode == CapabilityCompletionMode.AutomaticReturn
-        val finishToLauncher = context.request.settings["methodmesh_finish_to_launcher"] == "true" ||
-            context.request.settings["input_methodmesh_finish_to_launcher"] == "true"
-        val presetResultAction = PresetResultAction.normalize(
-            context.request.settings["methodmesh_preset_result_action"]
-                ?: context.request.settings["input_methodmesh_preset_result_action"]
-                ?: PresetResultAction.HOME
-        )
         val formatSettingVisible = context.settingShouldBeShown("barcode_formats")
 
         var barcodeFormatsValue by rememberSaveable(context.action.canonicalId) {
@@ -190,100 +180,19 @@ private class CodeScanCapabilityScreen(
         var workingFormat by rememberSaveable(context.action.canonicalId) { mutableStateOf("UNKNOWN") }
         var workingSource by rememberSaveable(context.action.canonicalId) { mutableStateOf("camera_zxing") }
         var workingScanTime by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var workingExecutionId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var workingObservationId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var workingTransformationId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var workingRelationshipIds by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var workingSystemTimeMs by rememberSaveable(context.action.canonicalId) { mutableStateOf<Long?>(null) }
+        var workingResult by rememberRetainedExecutionResult("barcode-scan-working:${context.action.canonicalId}")
+        var committedResult by rememberRetainedExecutionResult("barcode-scan-committed:${context.action.canonicalId}")
+        var hadCommitted by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
 
-        // Frozen result state. These fields deliberately do not mutate while a
-        // later scan is visible; Edit / new scan explicitly clears commitment.
-        var committedPayload by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedFormat by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedSource by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedScanTime by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedExecutionId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedObservationId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedTransformationId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedRelationshipIds by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedSystemTimeMs by rememberSaveable(context.action.canonicalId) { mutableStateOf<Long?>(null) }
-
-        var includeFullJson by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var actionsBusy by remember { mutableStateOf(false) }
         var showTechnicalDetails by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var showFormatOptions by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
-        var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
 
         val scannerContext = context.copy(
             action = context.action.copy(
                 settings = context.action.settings + mapOf("barcode_formats" to barcodeFormatsValue)
             )
         )
-
-        val workingResult = remember(
-            workingPayload,
-            workingFormat,
-            workingSource,
-            workingScanTime,
-            workingExecutionId,
-            workingObservationId,
-            workingTransformationId,
-            workingRelationshipIds,
-            workingSystemTimeMs,
-            scannerContext.action.settings
-        ) {
-            resultFromSavedState(
-                context = scannerContext,
-                payload = workingPayload,
-                formatName = workingFormat,
-                sourceLabel = workingSource,
-                scanTimeIso = workingScanTime,
-                executionId = workingExecutionId,
-                observationId = workingObservationId,
-                transformationId = workingTransformationId,
-                relationshipIds = workingRelationshipIds,
-                systemTimeEpochMs = workingSystemTimeMs
-            )
-        }
-
-        val committedResult = remember(
-            committedPayload,
-            committedFormat,
-            committedSource,
-            committedScanTime,
-            committedExecutionId,
-            committedObservationId,
-            committedTransformationId,
-            committedRelationshipIds,
-            committedSystemTimeMs,
-            scannerContext.action.settings
-        ) {
-            resultFromSavedState(
-                context = scannerContext,
-                payload = committedPayload,
-                formatName = committedFormat.orEmpty().ifBlank { "UNKNOWN" },
-                sourceLabel = committedSource.orEmpty().ifBlank { "camera_zxing" },
-                scanTimeIso = committedScanTime,
-                executionId = committedExecutionId,
-                observationId = committedObservationId,
-                transformationId = committedTransformationId,
-                relationshipIds = committedRelationshipIds,
-                systemTimeEpochMs = committedSystemTimeMs
-            )
-        }
-
-        val committedFields = remember(committedResult?.request?.id?.value) {
-            committedResult?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty()
-        }
-        val fullJsonText = remember(committedResult?.request?.id?.value) {
-            committedResult?.let {
-                OutputFormatter.format(
-                    result = it,
-                    returnMode = ReturnMode.Json,
-                    includeProvenance = true,
-                    payloadMode = OutputFormatter.PayloadMode.FULL
-                )
-            }.orEmpty()
-        }
 
         LaunchedEffect(barcodeFormatsValue) {
             context.onSettingsChanged(mapOf("barcode_formats" to barcodeFormatsValue))
@@ -294,25 +203,13 @@ private class CodeScanCapabilityScreen(
             workingFormat = "UNKNOWN"
             workingSource = "camera_zxing"
             workingScanTime = null
-            workingExecutionId = null
-            workingObservationId = null
-            workingTransformationId = null
-            workingRelationshipIds = null
-            workingSystemTimeMs = null
+            workingResult = null
         }
 
         fun clearCommitForEdit() {
-            committedPayload = null
-            committedFormat = null
-            committedSource = null
-            committedScanTime = null
-            committedExecutionId = null
-            committedObservationId = null
-            committedTransformationId = null
-            committedRelationshipIds = null
-            committedSystemTimeMs = null
-            includeFullJson = false
-            exportStatus = null
+            committedResult = null
+            hadCommitted = false
+            actionsBusy = false
         }
 
         fun acceptDecodedPayload(payload: String, formatName: String) {
@@ -339,61 +236,24 @@ private class CodeScanCapabilityScreen(
             workingFormat = fields["barcode_format"].orEmpty().ifBlank { "UNKNOWN" }
             workingSource = fields["barcode_source"].orEmpty().ifBlank { "camera_zxing" }
             workingScanTime = fields["barcode_scan_time_iso"].orEmpty().ifBlank { Instant.now().toString() }
-            workingExecutionId = captured.request.id.value
-            workingObservationId = captured.observations.firstOrNull()?.id?.value
-            workingTransformationId = captured.transformations.firstOrNull()?.id?.value
-            workingRelationshipIds = captured.relationships.joinToString("|") { it.id.value }.ifBlank { null }
-            workingSystemTimeMs = captured.request.temporalContext.systemTimeEpochMs
+            workingResult = captured
             status = "Latest code detected."
-            exportStatus = null
         }
 
         fun commitWorkingResult() {
             val result = workingResult ?: return
-            committedPayload = workingPayload
-            committedFormat = workingFormat
-            committedSource = workingSource
-            committedScanTime = workingScanTime
-            committedExecutionId = workingExecutionId
-            committedObservationId = workingObservationId
-            committedTransformationId = workingTransformationId
-            committedRelationshipIds = workingRelationshipIds
-            committedSystemTimeMs = workingSystemTimeMs
+            committedResult = result
+            hadCommitted = true
             status = "Committed."
             if (automaticReturn) onConfirmed(result)
         }
 
-        fun saveCommitted(includeJson: Boolean): Boolean {
-            val payload = committedPayload.orEmpty()
-            if (payload.isBlank()) return false
-            return runCatching {
-                val exported = OutputExportRepository.saveToDownloads(
-                    context = appContext,
-                    label = "barcode_scan",
-                    text = payload,
-                    mediaUris = emptyList(),
-                    jsonText = if (includeJson) fullJsonText else ""
-                )
-                exportStatus = "Saved ${exported.summary}"
-            }.onFailure {
-                exportStatus = "Save failed: ${it.message ?: "storage error"}"
-            }.isSuccess
-        }
-
-        fun finishManualRun() {
-            val result = committedResult ?: return
-            if (context.isNativePresetRun && presetResultAction == PresetResultAction.SAVE) {
-                if (!saveCommitted(includeJson = false)) return
-            }
-            if (context.isNativePresetRun && !finishToLauncher) {
-                appContext.startActivity(
-                    Intent(appContext, MainActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                )
-            } else {
-                onConfirmed(result)
-            }
+        if ((hadCommitted && committedResult == null) || (!hadCommitted && workingPayload != null && workingResult == null)) {
+            CapturedExecutionRecovery(onRestart = {
+                clearCommitForEdit(); clearWorkingForNewScan(); showFormatOptions = false
+                status = "Scanning…"
+            }, onClose = onCancel, restartLabel = "Start new scan")
+            return
         }
 
         val workingFields = workingResult?.observations?.firstOrNull()?.values.orEmpty()
@@ -408,41 +268,22 @@ private class CodeScanCapabilityScreen(
             )
 
             if (committedResult != null && !automaticReturn) {
-                CommittedBarcodeSurface(
-                    fields = committedFields,
-                    includeFullJson = includeFullJson,
+                BarcodeScanCommittedResult(
+                    context = context,
+                    result = requireNotNull(committedResult),
                     showTechnicalDetails = showTechnicalDetails,
-                    exportStatus = exportStatus,
-                    finishLabel = when {
-                        context.isNativePresetRun && presetResultAction == PresetResultAction.SAVE -> "Save and finish"
-                        finishToLauncher -> "Done"
-                        else -> "Home"
-                    },
-                    onIncludeFullJsonChanged = { includeFullJson = it },
                     onToggleTechnicalDetails = { showTechnicalDetails = !showTechnicalDetails },
                     onCopy = { value, label -> copyValue(appContext, value, label) },
                     onOpenLink = { url -> openHttpLink(appContext, url) },
-                    onShare = {
-                        shareText(
-                            appContext,
-                            committedPayload.orEmpty(),
-                            if (includeFullJson) fullJsonText else ""
-                        )
-                    },
-                    onCopyResult = {
-                        val text = ResultShare.buildShareText(
-                            committedPayload.orEmpty(),
-                            if (includeFullJson) fullJsonText else ""
-                        )
-                        copyValue(appContext, text, "Barcode result")
-                    },
-                    onSave = { saveCommitted(includeFullJson) },
-                    onFinish = { finishManualRun() },
+                    onConfirmed = onConfirmed,
+                    onBusyChanged = { actionsBusy = it },
                     onNewScan = {
-                        clearCommitForEdit()
-                        clearWorkingForNewScan()
-                        showFormatOptions = false
-                        status = "Scanning…"
+                        if (!actionsBusy) {
+                            clearCommitForEdit()
+                            clearWorkingForNewScan()
+                            showFormatOptions = false
+                            status = "Scanning…"
+                        }
                     }
                 )
             } else {
@@ -759,22 +600,19 @@ private fun Context.findLifecycleOwner(): LifecycleOwner? {
 }
 
 @Composable
-private fun CommittedBarcodeSurface(
-    fields: Map<String, Any?>,
-    includeFullJson: Boolean,
+internal fun BarcodeScanCommittedResult(
+    context: CapabilityScreenContext,
+    result: ExecutionResult,
     showTechnicalDetails: Boolean,
-    exportStatus: String?,
-    finishLabel: String,
-    onIncludeFullJsonChanged: (Boolean) -> Unit,
     onToggleTechnicalDetails: () -> Unit,
     onCopy: (String, String) -> Unit,
     onOpenLink: (String) -> Unit,
-    onShare: () -> Unit,
-    onCopyResult: () -> Unit,
-    onSave: () -> Unit,
-    onFinish: () -> Unit,
-    onNewScan: () -> Unit
+    onConfirmed: (ExecutionResult) -> Unit,
+    onNewScan: () -> Unit,
+    onBusyChanged: (Boolean) -> Unit = {}
 ) {
+    val fields = remember(result) { OutputFormatter.fields(result, includeProvenance = false) }
+    var busy by remember(result.request.id.value) { mutableStateOf(false) }
     val payload = fields["barcode_payload"]?.toString().orEmpty()
     val format = fields["barcode_format"]?.toString().orEmpty().ifBlank { "UNKNOWN" }
     val url = fields["barcode_payload_url"]?.toString()?.takeIf(String::isNotBlank)
@@ -813,11 +651,12 @@ private fun CommittedBarcodeSurface(
                 }
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(modifier = Modifier.weight(1f), onClick = onShare) { Text("Share") }
-                OutlinedButton(modifier = Modifier.weight(1f), onClick = onCopyResult) { Text("Copy") }
-            }
-            OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onSave) { Text("Save to Downloads") }
+            CanonicalCommittedResultActions(
+                result = result, label = "Barcode scan", screenContext = context,
+                primaryText = payload, attachments = emptyList(),
+                onDone = { onConfirmed(result) },
+                onBusyChanged = { busy = it; onBusyChanged(it) }
+            )
 
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -825,17 +664,6 @@ private fun CommittedBarcodeSurface(
                 color = MaterialTheme.colorScheme.surface
             ) {
                 Column(Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Include full JSON / audit", style = MaterialTheme.typography.titleSmall)
-                            Text("Off by default for ordinary sharing and saving.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(checked = includeFullJson, onCheckedChange = onIncludeFullJsonChanged)
-                    }
                     TextButton(onClick = onToggleTechnicalDetails) {
                         Text(if (showTechnicalDetails) "Hide technical details" else "Technical details")
                     }
@@ -858,12 +686,7 @@ private fun CommittedBarcodeSurface(
                 }
             }
 
-            exportStatus?.let {
-                Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-            }
-
-            Button(modifier = Modifier.fillMaxWidth(), onClick = onFinish) { Text(finishLabel) }
-            OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onNewScan) { Text("New scan") }
+            OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { if (!busy) onNewScan() }) { Text("New scan") }
         }
     }
 }
@@ -983,44 +806,6 @@ private fun openHttpLink(context: Context, url: String) {
     }.onFailure {
         Toast.makeText(context, "No app can open this link.", Toast.LENGTH_SHORT).show()
     }
-}
-
-private fun shareText(context: Context, payload: String, jsonText: String) {
-    if (payload.isBlank() && jsonText.isBlank()) return
-    ResultShare.share(
-        context = context,
-        chooserTitle = "Share code result",
-        text = payload,
-        attachments = emptyList(),
-        jsonText = jsonText
-    )
-}
-
-private fun resultFromSavedState(
-    context: CapabilityScreenContext,
-    payload: String?,
-    formatName: String,
-    sourceLabel: String,
-    scanTimeIso: String?,
-    executionId: String?,
-    observationId: String?,
-    transformationId: String?,
-    relationshipIds: String?,
-    systemTimeEpochMs: Long?
-): ExecutionResult? {
-    if (payload.isNullOrEmpty() || scanTimeIso.isNullOrEmpty()) return null
-    return buildBarcodeScanResult(
-        context = context,
-        payload = payload,
-        sourceLabel = sourceLabel,
-        formatName = formatName,
-        scanTimeIso = scanTimeIso,
-        executionId = executionId,
-        observationId = observationId,
-        transformationId = transformationId,
-        relationshipIds = relationshipIds,
-        systemTimeEpochMs = systemTimeEpochMs
-    )
 }
 
 private fun buildBarcodeScanResult(

@@ -20,7 +20,8 @@ import com.example.methodmesh.settings.SettingsState
 
 object As100CreateAttestationMethod : As100Method {
     const val ID = "attestation.create"
-    private const val VERSION = "1.2.0"
+    const val VERSION = "1.2.0"
+    const val SCHEMA_VERSION = "4"
 
     override val id: String = ID
     override val ref: ArchitectureRef = ArchitectureRef(ArchitectureId(ID), "Method", "Create signed attestation")
@@ -61,6 +62,22 @@ object As100CreateAttestationMethod : As100Method {
 
     override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult {
         val c = request.context
+        val requestedMethodVersion = c["attestation_method_version"]?.trim().orEmpty()
+        if (requestedMethodVersion.isNotBlank() && requestedMethodVersion != VERSION) {
+            return As100ExecutionEngine.complete(
+                request = request,
+                status = TransformationStatus.Failed,
+                diagnostics = mapOf("reason" to "attestation.create requested method version $requestedMethodVersion, but this device provides $VERSION")
+            )
+        }
+        val requestedSchemaVersion = c["attestation_schema_version"]?.trim().orEmpty()
+        if (requestedSchemaVersion.isNotBlank() && requestedSchemaVersion != SCHEMA_VERSION) {
+            return As100ExecutionEngine.complete(
+                request = request,
+                status = TransformationStatus.Failed,
+                diagnostics = mapOf("reason" to "attestation.create requested schema version $requestedSchemaVersion, but this device provides $SCHEMA_VERSION")
+            )
+        }
         val method = c["verification_method"]?.takeIf { it.isNotBlank() }?.let { raw ->
             AttestationVerificationMethod.values().firstOrNull { it.name.equals(raw, ignoreCase = true) }
         } ?: return As100ExecutionEngine.complete(

@@ -177,9 +177,11 @@ object ChanceSelectionEngine {
         )
     }
 
-    fun spin(itemsText: String, rngMode: String, seed: String): Choice {
+    fun spin(itemsText: String, rngMode: String, seed: String, allowSingle: Boolean = false): Choice {
         val items = parseItems(itemsText)
-        require(items.size in 2..60) { "Spinner needs 2 to 60 non-empty labels." }
+        require(items.size in (if (allowSingle) 1 else 2)..60) {
+            if (allowSingle) "Spinner needs 1 to 60 remaining labels." else "Spinner needs 2 to 60 non-empty labels."
+        }
         val source = recordingSource(rngMode, seed)
         val index = source.nextInt(items.size)
         return Choice(index, items[index], source.metadata())

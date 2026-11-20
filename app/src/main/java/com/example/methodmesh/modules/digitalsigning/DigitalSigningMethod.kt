@@ -25,6 +25,10 @@ object DigitalSigningFields {
     const val SIGNED_PDF_URI = "digital_signing_signed_pdf_uri"
     const val SIGNED_PDF_NAME = "digital_signing_signed_pdf_name"
     const val SIGNED_SHA256 = "digital_signing_signed_sha256"
+    const val PROOF_CODE = "digital_signing_proof_code"
+    const val WORKFLOW = "digital_signing_workflow"
+    const val SAVED_SIGNATURE_ID = "digital_signing_saved_signature_id"
+    const val SIGNATURE_AUTHENTICATION = "digital_signing_signature_authentication"
     const val SIGNED_ARTIFACT_REF = "digital_signing_signed_artifact_ref"
     const val VERIFICATION_BUNDLE_URI = "digital_signing_verification_bundle_uri"
     const val VERIFICATION_BUNDLE_NAME = "digital_signing_verification_bundle_name"
@@ -50,6 +54,10 @@ object DigitalSigningFields {
         SIGNED_PDF_URI,
         SIGNED_PDF_NAME,
         SIGNED_SHA256,
+        PROOF_CODE,
+        WORKFLOW,
+        SAVED_SIGNATURE_ID,
+        SIGNATURE_AUTHENTICATION,
         SIGNED_ARTIFACT_REF,
         VERIFICATION_BUNDLE_URI,
         VERIFICATION_BUNDLE_NAME,
@@ -74,7 +82,7 @@ object DigitalSigningFields {
 
 object As100DigitalSigningMethod : As100Method {
     const val ID = "document.sign_pdf"
-    const val VERSION = "1.10.0"
+    const val VERSION = "1.12.0"
 
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "PDF ink signing")

@@ -23,6 +23,9 @@ import java.time.Instant
 
 object SmsFields {
     const val PHONE = "sms_phone"
+    const val RECIPIENTS_JSON = "sms_recipients_json"
+    const val RECIPIENT_COUNT = "sms_recipient_count"
+    const val RECIPIENT_RESULTS_JSON = "sms_recipient_results_json"
     const val MESSAGE = "sms_message"
     const val MESSAGE_SHA256 = "sms_message_sha256"
     const val STATUS = "sms_status"
@@ -30,7 +33,7 @@ object SmsFields {
     const val SENT_TIME_ISO = "sms_sent_time_iso"
     const val ERROR = "sms_error"
 
-    val outputs = listOf(PHONE, MESSAGE, MESSAGE_SHA256, STATUS, PARTS, SENT_TIME_ISO, ERROR)
+    val outputs = listOf(PHONE, RECIPIENTS_JSON, RECIPIENT_COUNT, RECIPIENT_RESULTS_JSON, MESSAGE, MESSAGE_SHA256, STATUS, PARTS, SENT_TIME_ISO, ERROR)
 }
 
 object As100SendSmsMethod : As100Method {
@@ -44,7 +47,7 @@ object As100SendSmsMethod : As100Method {
         methodType = MethodObjectType.Workflow,
         name = "Send SMS",
         version = VERSION,
-        description = "Send a templated SMS message to a phone number.",
+        description = "Send identical SMS messages individually to one or more phone numbers.",
         outputs = SmsFields.outputs,
         graphOutputs = listOf("sms.send")
     )

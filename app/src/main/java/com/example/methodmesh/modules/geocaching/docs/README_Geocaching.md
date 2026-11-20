@@ -256,3 +256,9 @@ See [VALIDATION.md](VALIDATION.md) for the exact checks performed and the limits
 ### v1.1.5 Chosen search centre
 
 Nearby caches can now search around either the device's current location or a user-chosen place. The native **Choose place** flow accepts a place name, postcode or address, shows matching geocoder candidates, and also provides manual latitude/longitude entry as a fallback. The chosen centre remains active when the provider or radius is changed and resolves into the existing canonical latitude/longitude contract, so ODK/protocol integrations remain compatible.
+
+## 24 October 2026 — retained common result boundary
+
+The common MethodSurface used by all 13 capabilities now supplies launch context to canonical result actions. Final native preset Share/Save must succeed before confirmation; common Downloads writes are single-flight and off the UI thread. Equal restored frozen snapshots retain one original execution without replaying the result factory. A lost original is not silently reconstructed: the saved snapshot remains reviewable and requires explicit Commit snapshot as new record.
+
+Persistent field ledgers, maps/GPS, provider accounts, media ownership, sync and all public contracts are unchanged. Three focused frozen-record JVM cases and a controlled real-MethodSurface recreation/share case pass; no claim is made for all 13 working/acquisition sessions, physical navigation, real providers/receivers/Collect or OS process loss. The complete bounded build/test record is docs/handoffs/CANONICAL_ACTIONS_AND_RESULT_RETENTION_2026-10-24.md in the app repository.

@@ -31,6 +31,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -58,6 +60,8 @@ import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputExportRepository
 import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.ReturnMode
+import com.example.methodmesh.transport.ResultShare
+import android.webkit.MimeTypeMap
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import org.json.JSONObject
 
@@ -157,20 +161,18 @@ internal fun copySignalValue(context: Context, label: String, value: String) {
     Toast.makeText(context, "Copied $label", Toast.LENGTH_SHORT).show()
 }
 
-internal fun shareSignalText(context: Context, title: String, text: String): String? = runCatching {
-    context.startActivity(
-        Intent.createChooser(
-            Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, text)
-            },
-            title
-        )
-    )
+internal fun shareSignalText(context: Context, title: String, text: String, jsonText: String = ""): String? = runCatching {
+    ResultShare.share(context, title, text, emptyList(), jsonText = jsonText, fileLabel = title)
     null
 }.getOrElse { it.message ?: "No sharing app is available." }
 
-internal fun saveSignalText(context: Context, label: String, text: String, jsonText: String = ""): String = runCatching {
+internal data class SignalSaveOutcome(val saved: Boolean, val message: String)
+
+internal fun saveSignalText(context: Context, label: String, text: String, jsonText: String = ""): String =
+    saveSignalTextChecked(context, label, text, jsonText).message
+
+/** Save-and-finish must use an explicit outcome, never a human status string or Unit. */
+internal fun saveSignalTextChecked(context: Context, label: String, text: String, jsonText: String = ""): SignalSaveOutcome = runCatching {
     val result = OutputExportRepository.saveToDownloads(
         context = context,
         label = label,
@@ -178,8 +180,8 @@ internal fun saveSignalText(context: Context, label: String, text: String, jsonT
         mediaUris = emptyList(),
         jsonText = jsonText
     )
-    "Saved ${result.summary}"
-}.getOrElse { "Save failed: ${it.message ?: "storage error"}" }
+    SignalSaveOutcome(true, "Saved ${result.summary}")
+}.getOrElse { SignalSaveOutcome(false, "Save failed: ${it.message ?: "storage error"}") }
 
 internal fun saveSignalMedia(
     context: Context,
@@ -187,30 +189,36 @@ internal fun saveSignalMedia(
     mediaUri: String,
     verificationText: String,
     jsonText: String = ""
-): String = runCatching {
+): String = saveSignalMediaChecked(context, label, mediaUri, verificationText, jsonText).message
+
+internal fun saveSignalMediaChecked(
+    context: Context,
+    label: String,
+    mediaUri: String,
+    verificationText: String,
+    jsonText: String = "",
+    mimeType: String = ""
+): SignalSaveOutcome = runCatching {
     val result = OutputExportRepository.saveToDownloads(
         context = context,
         label = label,
         text = verificationText,
         mediaUris = listOf(mediaUri),
-        jsonText = jsonText
+        jsonText = jsonText,
+        mediaMimeTypes = mapOf(mediaUri to mimeType)
     )
-    "Saved ${result.summary}"
-}.getOrElse { "Save failed: ${it.message ?: "storage error"}" }
+    SignalSaveOutcome(true, "Saved ${result.summary}")
+}.getOrElse { SignalSaveOutcome(false, "Save failed: ${it.message ?: "storage error"}") }
 
-internal fun shareSignalMedia(context: Context, title: String, mediaUri: String, mimeType: String): String? = runCatching {
-    val uri = Uri.parse(mediaUri)
-    context.startActivity(
-        Intent.createChooser(
-            Intent(Intent.ACTION_SEND).apply {
-                type = mimeType.ifBlank { "application/octet-stream" }
-                putExtra(Intent.EXTRA_STREAM, uri)
-                clipData = ClipData.newRawUri("MethodMesh received file", uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            },
-            title
-        )
-    )
+internal fun shareSignalMedia(
+    context: Context, title: String, mediaUri: String, mimeType: String,
+    text: String = "", jsonText: String = ""
+): String? = runCatching {
+    val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: "bin"
+    val sourceName = ResultShare.attachmentName("received_file", mediaUri, extension)
+    val name = if (sourceName.endsWith(".bin") && extension != "bin") sourceName.removeSuffix(".bin") + "." + extension else sourceName
+    ResultShare.share(context, title, text, listOf(ResultShare.Attachment(name, Uri.parse(mediaUri))),
+        jsonText = jsonText, fileLabel = title)
     null
 }.getOrElse { it.message ?: "No sharing app is available." }
 
@@ -230,7 +238,8 @@ internal fun finishSignalResult(
     androidContext: Context,
     result: ExecutionResult,
     onConfirmed: (ExecutionResult) -> Unit,
-    onSaveRequested: (() -> Unit)? = null
+    onShareRequested: () -> Boolean = { false },
+    onSaveRequested: () -> SignalSaveOutcome
 ) {
     if (!context.isNativePresetRun || !context.isLastStep) {
         onConfirmed(result)
@@ -245,11 +254,15 @@ internal fun finishSignalResult(
         context.request.settings["input_methodmesh_finish_to_launcher"] == "true"
 
     when {
-        action == PresetResultAction.SAVE -> {
-            onSaveRequested?.invoke()
+        action == PresetResultAction.SHARE -> {
+            if (!onShareRequested()) return
             onConfirmed(result)
         }
-        finishToLauncher -> onConfirmed(result)
+        action == PresetResultAction.SAVE -> {
+            if (!onSaveRequested().saved) return
+            onConfirmed(result)
+        }
+        finishToLauncher || context.hostOwnsNativePresetCloseout -> onConfirmed(result)
         else -> androidContext.startActivity(
             Intent(androidContext, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -513,11 +526,31 @@ internal fun SignalCommittedCard(
     fields: List<Pair<String, String>>,
     status: String?,
     onCopy: (String, String) -> Unit,
-    onShare: () -> Unit,
-    onSave: () -> Unit,
-    onDone: () -> Unit,
-    onOpen: (() -> Unit)? = null
+    context: CapabilityScreenContext,
+    result: ExecutionResult,
+    onConfirmed: (ExecutionResult) -> Unit,
+    onOpen: (() -> Unit)? = null,
+    exportText: String = primaryValue,
+    mediaUri: String = "",
+    mediaMime: String = ""
 ) {
+    val androidContext = LocalContext.current
+    var includeFullJson by rememberSaveable(result.request.id.value) { mutableStateOf(false) }
+    var actionStatus by rememberSaveable(result.request.id.value) { mutableStateOf("") }
+    val json = if (includeFullJson) fullJson(result) else ""
+    val label = context.action.canonicalId.replace('.', ' ')
+    val action = PresetResultAction.normalize(context.request.settings["methodmesh_preset_result_action"]
+        ?: context.request.settings["input_methodmesh_preset_result_action"] ?: PresetResultAction.HOME)
+    fun share(): Boolean {
+        val failure = if (mediaUri.isNotBlank()) shareSignalMedia(androidContext, "Share " + label, mediaUri, mediaMime, exportText, json)
+            else shareSignalText(androidContext, "Share " + label, exportText, json)
+        actionStatus = failure?.let { "Share failed: " + it } ?: "Sharing committed result…"
+        return failure == null
+    }
+    fun save(): SignalSaveOutcome = (if (mediaUri.isNotBlank())
+        saveSignalMediaChecked(androidContext, label, mediaUri, exportText, json, mediaMime)
+        else saveSignalTextChecked(androidContext, label, exportText, json)).also { actionStatus = it.message }
+    fun done() = finishSignalResult(context, androidContext, result, onConfirmed, onShareRequested = ::share, onSaveRequested = ::save)
     SignalInstrumentPanel(
         kicker = "FROZEN RESULT",
         title = title,
@@ -554,7 +587,7 @@ internal fun SignalCommittedCard(
                 if (rowFields.size == 1) Spacer(Modifier.weight(1f))
             }
         }
-        status?.takeIf(String::isNotBlank)?.let {
+        actionStatus.ifBlank { status.orEmpty() }.takeIf(String::isNotBlank)?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = SignalMuted)
         }
         Spacer(Modifier.height(1.dp))
@@ -563,10 +596,21 @@ internal fun SignalCommittedCard(
         if (onOpen != null) {
             OutlinedButton(onClick = onOpen, modifier = Modifier.fillMaxWidth(), colors = buttonColors, border = border) { Text("Open received file") }
         }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = includeFullJson, onCheckedChange = { includeFullJson = it })
+            Text("Include full JSON / audit", color = SignalText, modifier = Modifier.padding(start = 8.dp))
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onShare, modifier = Modifier.weight(1f), colors = buttonColors, border = border) { Text("Share") }
-            OutlinedButton(onClick = onSave, modifier = Modifier.weight(1f), colors = buttonColors, border = border) { Text("Save") }
-            OutlinedButton(onClick = onDone, modifier = Modifier.weight(1f), colors = buttonColors, border = border) { Text("Done") }
+            OutlinedButton(onClick = { copySignalValue(androidContext, title, ResultShare.buildShareText(exportText, json)) }, modifier = Modifier.weight(1f), colors = buttonColors, border = border) { Text("Copy") }
+            OutlinedButton(onClick = { share() }, modifier = Modifier.weight(1f), colors = buttonColors, border = border) { Text("Share") }
+        }
+        OutlinedButton(onClick = { save() }, modifier = Modifier.fillMaxWidth(), colors = buttonColors, border = border) { Text("Save to Downloads") }
+        OutlinedButton(onClick = ::done, modifier = Modifier.fillMaxWidth(), colors = buttonColors, border = border) {
+            Text(when {
+                context.isNativePresetRun && context.isLastStep && action == PresetResultAction.SHARE -> "Share and finish"
+                context.isNativePresetRun && context.isLastStep && action == PresetResultAction.SAVE -> "Save and finish"
+                else -> "Done"
+            })
         }
     }
 }

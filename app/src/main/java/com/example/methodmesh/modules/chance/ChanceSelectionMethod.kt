@@ -70,6 +70,8 @@ object SpinnerFields {
     const val ITEMS_JSON = "spinner_items_json"
     const val SELECTED_INDEX = "spinner_selected_index"
     const val SELECTED_VALUE = "spinner_selected_value"
+    const val REMOVE_AFTER_SPIN = "spinner_remove_after_spin"
+    const val REMAINING_ITEMS_JSON = "spinner_remaining_items_json"
     const val RNG_MODE = "spinner_rng_mode"
     const val SEED = "spinner_seed"
     const val SEED_SHA256 = "spinner_seed_sha256"
@@ -78,7 +80,7 @@ object SpinnerFields {
     const val GENERATED_TIME_ISO = "spinner_generated_time_iso"
     const val AUDIT_JSON = "spinner_audit_json"
     const val ERROR = "spinner_error"
-    val outputs = listOf(STATUS, RESULT, ITEMS_JSON, SELECTED_INDEX, SELECTED_VALUE, RNG_MODE, SEED, SEED_SHA256, ALGORITHM, ALGORITHM_VERSION, GENERATED_TIME_ISO, AUDIT_JSON, ERROR)
+    val outputs = listOf(STATUS, RESULT, ITEMS_JSON, SELECTED_INDEX, SELECTED_VALUE, REMOVE_AFTER_SPIN, REMAINING_ITEMS_JSON, RNG_MODE, SEED, SEED_SHA256, ALGORITHM, ALGORITHM_VERSION, GENERATED_TIME_ISO, AUDIT_JSON, ERROR)
 }
 
 object WeightedChoiceFields {
@@ -237,10 +239,11 @@ object As100PickOneMethod : As100Method {
 
 object As100SpinnerMethod : As100Method {
     const val ID = "chance.spinner.spin"
+    const val VERSION = "0.3.0"
     override val id = ID
     override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Spin spinner")
     override val descriptor = MethodDescriptor(
-        id = ArchitectureId(ID), methodType = MethodObjectType.Calculation, name = "Spinner", version = CHANCE_METHOD_VERSION,
+        id = ArchitectureId(ID), methodType = MethodObjectType.Calculation, name = "Spinner", version = VERSION,
         description = "Choose uniformly from labelled spinner segments.", outputs = SpinnerFields.outputs,
         graphOutputs = listOf(ID), parameters = mapOf("category" to "Development", "status" to "Development")
     )
@@ -249,18 +252,22 @@ object As100SpinnerMethod : As100Method {
     override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult = result(request, generate(request.context), InvocationContext.from(request.context))
 
     fun generate(settings: Map<String, String>): Map<String, String> {
-        val itemsText = settings.chanceValue("items") ?: "Yes\nNo"
+        val itemsText = settings["items"] ?: settings["input_items"] ?: "Yes\nNo"
         val rngMode = settings.chanceValue("rng_mode") ?: "secure_random"
         val seed = settings.chanceValue("seed").orEmpty()
+        val removeAfterSpin = settings.chanceBool("remove_after_spin", false)
         return try {
             val items = ChanceSelectionEngine.parseItems(itemsText)
-            val choice = ChanceSelectionEngine.spin(itemsText, rngMode, seed)
+            val choice = ChanceSelectionEngine.spin(itemsText, rngMode, seed, allowSingle = removeAfterSpin)
+            val remaining = spinnerRemainingItems(items, choice.index, removeAfterSpin)
             val seedHash = choice.metadata.seed?.let(ChanceSelectionEngine::sha256Hex).orEmpty()
-            val audit = baseAudit(ID, choice.metadata).put("items", JSONArray(items)).put("selected_index", choice.index + 1).put("selected_value", choice.label)
+            val audit = baseAudit(ID, choice.metadata).put("method_version", VERSION).put("items", JSONArray(items)).put("selected_index", choice.index + 1).put("selected_value", choice.label)
+                .put("remove_after_spin", removeAfterSpin).put("remaining_items", JSONArray(remaining))
             linkedMapOf(
                 SpinnerFields.STATUS to "succeeded", SpinnerFields.RESULT to choice.label,
                 SpinnerFields.ITEMS_JSON to JSONArray(items).toString(), SpinnerFields.SELECTED_INDEX to (choice.index + 1).toString(),
-                SpinnerFields.SELECTED_VALUE to choice.label, SpinnerFields.RNG_MODE to choice.metadata.rngMode,
+                SpinnerFields.SELECTED_VALUE to choice.label, SpinnerFields.REMOVE_AFTER_SPIN to removeAfterSpin.toString(),
+                SpinnerFields.REMAINING_ITEMS_JSON to JSONArray(remaining).toString(), SpinnerFields.RNG_MODE to choice.metadata.rngMode,
                 SpinnerFields.SEED to choice.metadata.seed.orEmpty(), SpinnerFields.SEED_SHA256 to seedHash,
                 SpinnerFields.ALGORITHM to choice.metadata.algorithm, SpinnerFields.ALGORITHM_VERSION to choice.metadata.algorithmVersion,
                 SpinnerFields.GENERATED_TIME_ISO to choice.metadata.generatedTimeIso, SpinnerFields.AUDIT_JSON to audit.toString(), SpinnerFields.ERROR to ""
@@ -269,7 +276,7 @@ object As100SpinnerMethod : As100Method {
             chanceFailure(SpinnerFields.outputs, SpinnerFields.STATUS, SpinnerFields.ERROR, e.message ?: "Invalid spinner configuration.")
         }
     }
-    fun result(request: ExecutionRequest, values: Map<String, String>, invocation: InvocationContext?) = wrapResult(request, ref, ID, CHANCE_METHOD_VERSION, ID, "SpinnerChoice", values, SpinnerFields.STATUS, SpinnerFields.ERROR, invocation)
+    fun result(request: ExecutionRequest, values: Map<String, String>, invocation: InvocationContext?) = wrapResult(request, ref, ID, VERSION, ID, "SpinnerChoice", values, SpinnerFields.STATUS, SpinnerFields.ERROR, invocation)
 }
 
 object As100WeightedChoiceMethod : As100Method {

@@ -72,6 +72,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ArchitectureId
+import com.example.methodmesh.transport.workflow.ui.CapturedExecutionRecovery
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.TemporalContext
 import com.example.methodmesh.core.methodmesh.runtime.As100ExecutionEngine
@@ -190,18 +192,7 @@ private class CodeCloneCapabilityScreen : CapabilityScreenSpec {
         // Invisible action snapshot cache. It provides stable execution/image IDs
         // for repeated actions on unchanged live state without creating a staged UI.
         var snapshotKey by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var snapshotPayload by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var snapshotSourceFormat by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var snapshotCloneFormat by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var snapshotScanTime by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var snapshotCloneTime by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var snapshotImageUri by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var snapshotReturnTextPayload by rememberSaveable(context.action.canonicalId) { mutableStateOf<Boolean?>(null) }
-        var snapshotExecutionId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var snapshotObservationId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var snapshotTransformationId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var snapshotRelationshipIds by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var snapshotSystemTimeMs by rememberSaveable(context.action.canonicalId) { mutableStateOf<Long?>(null) }
+        var snapshotResult by rememberRetainedExecutionResult("barcode-clone:${context.action.canonicalId}")
 
         val displayPayload = sourcePayload.orEmpty()
         val compatible = remember(displayPayload) { CLONE_ORDER.filter { cloneCanEncode(displayPayload, it) } }
@@ -221,37 +212,7 @@ private class CodeCloneCapabilityScreen : CapabilityScreenSpec {
         }
         val liveKey = sourceScanTime?.let { "$it|${sourceFormat.orEmpty()}|${effectiveFormat.name}|$returnTextPayload" }
 
-        val restoredSnapshot = remember(
-            snapshotKey, snapshotPayload, snapshotSourceFormat, snapshotCloneFormat, snapshotScanTime,
-            snapshotCloneTime, snapshotImageUri, snapshotReturnTextPayload,
-            snapshotExecutionId, snapshotObservationId, snapshotTransformationId,
-            snapshotRelationshipIds, snapshotSystemTimeMs, context.request.invocationContext
-        ) {
-            val payload = snapshotPayload
-            val sf = snapshotSourceFormat
-            val cf = snapshotCloneFormat
-            val st = snapshotScanTime
-            val ct = snapshotCloneTime
-            val imageUri = snapshotImageUri
-            val returnText = snapshotReturnTextPayload
-            if (payload == null || sf == null || cf == null || st == null || ct == null || imageUri == null || returnText == null) null
-            else buildCloneResult(
-                context = context,
-                payload = payload,
-                sourceFormat = sf,
-                cloneFormat = cf,
-                scanTime = st,
-                cloneTime = ct,
-                imageUri = imageUri,
-                returnTextPayload = returnText,
-                executionId = snapshotExecutionId,
-                observationId = snapshotObservationId,
-                transformationId = snapshotTransformationId,
-                relationshipIds = snapshotRelationshipIds,
-                systemTimeEpochMs = snapshotSystemTimeMs
-            )
-        }
-        val currentSnapshot = restoredSnapshot.takeIf { snapshotKey != null && snapshotKey == liveKey }
+        val currentSnapshot = snapshotResult.takeIf { snapshotKey != null && snapshotKey == liveKey }
 
         LaunchedEffect(formatName, cycling, returnTextPayload) {
             context.onSettingsChanged(
@@ -275,18 +236,7 @@ private class CodeCloneCapabilityScreen : CapabilityScreenSpec {
 
         fun clearSnapshotCache() {
             snapshotKey = null
-            snapshotPayload = null
-            snapshotSourceFormat = null
-            snapshotCloneFormat = null
-            snapshotScanTime = null
-            snapshotCloneTime = null
-            snapshotImageUri = null
-            snapshotReturnTextPayload = null
-            snapshotExecutionId = null
-            snapshotObservationId = null
-            snapshotTransformationId = null
-            snapshotRelationshipIds = null
-            snapshotSystemTimeMs = null
+            snapshotResult = null
         }
 
         fun acceptDecodedPayload(payload: String, format: String) {
@@ -328,7 +278,7 @@ private class CodeCloneCapabilityScreen : CapabilityScreenSpec {
             val st = sourceScanTime ?: return null
             val code = rendered ?: return null
             val key = liveKey ?: return null
-            if (snapshotKey == key && restoredSnapshot != null) return restoredSnapshot
+            if (snapshotKey == key && snapshotResult != null) return snapshotResult
 
             cycling = false
             val ct = Instant.now().toString()
@@ -344,18 +294,7 @@ private class CodeCloneCapabilityScreen : CapabilityScreenSpec {
                 returnTextPayload = returnTextPayload
             )
             snapshotKey = key
-            snapshotPayload = payload
-            snapshotSourceFormat = sf
-            snapshotCloneFormat = effectiveFormat.name
-            snapshotScanTime = st
-            snapshotCloneTime = ct
-            snapshotImageUri = imageUri
-            snapshotReturnTextPayload = returnTextPayload
-            snapshotExecutionId = result.request.id.value
-            snapshotObservationId = result.observations.firstOrNull()?.id?.value
-            snapshotTransformationId = result.transformations.firstOrNull()?.id?.value
-            snapshotRelationshipIds = result.relationships.joinToString("|") { it.id.value }.ifBlank { null }
-            snapshotSystemTimeMs = result.request.temporalContext.systemTimeEpochMs
+            snapshotResult = result
             return result
         }
 
@@ -451,7 +390,7 @@ private class CodeCloneCapabilityScreen : CapabilityScreenSpec {
                     onConfirmed(result)
                 }
                 else -> {
-                    if (finishToLauncher) {
+                    if (finishToLauncher || context.hostOwnsNativePresetCloseout) {
                         onConfirmed(result)
                     } else {
                         appContext.startActivity(
@@ -462,6 +401,13 @@ private class CodeCloneCapabilityScreen : CapabilityScreenSpec {
                     }
                 }
             }
+        }
+
+        if (snapshotKey != null && snapshotResult == null) {
+            CapturedExecutionRecovery(onRestart = {
+                startRescan(); presentationMode = false
+            }, onClose = onCancel, restartLabel = "Start new scan")
+            return
         }
 
         DisposableEffect(presentationMode) {

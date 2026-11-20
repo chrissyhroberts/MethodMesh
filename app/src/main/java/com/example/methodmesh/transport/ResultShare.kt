@@ -3,7 +3,6 @@ package com.example.methodmesh.transport
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.core.content.FileProvider
 import org.json.JSONArray
@@ -11,15 +10,16 @@ import java.io.File
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 /**
  * Canonical native Share transport.
  *
- * Share is file-oriented: human-readable payloads are materialised as a text
- * attachment, real media/file artefacts remain typed URI streams, and optional
- * FULL JSON is materialised as a JSON attachment. The UI already supports
- * tap-to-copy for text; native Share should therefore hand receivers the files
- * that form the result bundle instead of sending clipboard-style message text.
+ * Text-only Share carries equivalent human text in EXTRA_TEXT and a text/plain stream.
+ * File-bearing Share is file-first: summary/audit stays in the text stream, not
+ * competing EXTRA_TEXT that some receivers send instead of the selected files.
+ * Real media/domain artefacts remain typed streams. Optional FULL audit JSON
+ * is appended to that text, never added as a separate generic JSON attachment.
  *
  * File-oriented persistence still belongs to OutputExportRepository.saveToDownloads(),
  * which materialises result.txt, media/files and optional metadata.json.
@@ -61,9 +61,13 @@ object ResultShare {
         jsonText: String = "",
         jsonFileName: String = "metadata.json",
         textFileName: String = "",
-        fileLabel: String = chooserTitle
+        fileLabel: String = chooserTitle,
+        recipientHint: String = ""
     ) {
-        val textSidecar = text
+        // Keep jsonFileName in the public signature for source compatibility;
+        // audit text is now part of the communication payload, not a JSON file.
+        val shareText = buildShareText(text, jsonText)
+        val textSidecar = shareText
             .takeIf { it.isNotBlank() }
             ?.let { payload ->
                 val name = textFileName.ifBlank { "${coherentFileStem(fileLabel)}_result.txt" }
@@ -71,16 +75,6 @@ object ResultShare {
                     name = name,
                     uri = temporaryTextShareUri(context, name, payload),
                     mime = "text/plain"
-                )
-            }
-        val jsonSidecar = jsonText
-            .takeIf { it.isNotBlank() }
-            ?.let { payload ->
-                val name = jsonFileName.ifBlank { "metadata.json" }
-                ShareItem(
-                    name = name,
-                    uri = temporaryTextShareUri(context, name, payload),
-                    mime = "application/json"
                 )
             }
         val mediaItems = attachments
@@ -99,9 +93,8 @@ object ResultShare {
                 )
             }
         val items = ArrayList<ShareItem>().apply {
-            textSidecar?.let { add(it) }
             addAll(mediaItems)
-            jsonSidecar?.let { add(it) }
+            textSidecar?.let { add(it) }
         }
         val shareable = ArrayList(items.map { it.uri })
         if (items.isEmpty()) throw IllegalStateException("No shareable result.")
@@ -119,34 +112,30 @@ object ResultShare {
                 putExtra(Intent.EXTRA_MIME_TYPES, items.map { it.mime }.distinct().toTypedArray())
             }
         }.apply {
+            messageTextForShare(shareText, mediaItems.size)?.let { putExtra(Intent.EXTRA_TEXT, it) }
+            recipientHint.trim().takeIf { it.isNotBlank() }?.let { recipient ->
+                putExtra(Intent.EXTRA_EMAIL, arrayOf(recipient))
+            }
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             if (shareable.isNotEmpty()) {
-                clipData = ClipData.newUri(context.contentResolver, "MethodMesh result", shareable.first()).apply {
+                clipData = ClipData("MethodMesh result", items.map { it.mime }.distinct().toTypedArray(), ClipData.Item(shareable.first())).apply {
                     shareable.drop(1).forEach { addItem(ClipData.Item(it)) }
                 }
             }
         }
 
-        if (shareable.isNotEmpty()) {
-            context.packageManager
-                .queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
-                .forEach { info ->
-                    shareable.forEach { uri ->
-                        context.grantUriPermission(
-                            info.activityInfo.packageName,
-                            uri,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION
-                        )
-                    }
-                }
-        }
-
+        // Android grants the selected recipient access through the chooser's
+        // ClipData/read flags. Do not pre-grant every app in the candidate list.
         val chooser = Intent.createChooser(intent, chooserTitle).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
             if (shareable.isNotEmpty()) clipData = intent.clipData
         }
         context.startActivity(chooser)
     }
+
+    /** Real files must not be silently replaced by a receiver's text-message route. */
+    internal fun messageTextForShare(text: String, fileCount: Int): String? =
+        text.takeIf { fileCount == 0 && it.isNotBlank() }
 
     fun buildShareText(text: String, jsonText: String = ""): String = buildString {
         if (text.isNotBlank()) append(text.trimEnd())
@@ -158,6 +147,7 @@ object ResultShare {
     }
 
     fun isShareableMediaField(key: String, value: String): Boolean {
+        if (value.any { it.code < 32 || it.code == 127 }) return false
         if (value.startsWith("content://")) return true
         if (!(value.startsWith("file://") || value.startsWith("/"))) return false
         val lowerValue = value.lowercase()
@@ -172,6 +162,9 @@ object ResultShare {
     fun isLikelyMediaFieldName(key: String): Boolean {
         val lowerKey = key.lowercase()
         return lowerKey.endsWith("_uri") ||
+            lowerKey.endsWith("_uris") ||
+            lowerKey.endsWith("_uris_json") ||
+            lowerKey.endsWith("_clipdata") ||
             lowerKey.endsWith("_image") ||
             lowerKey.endsWith("_photo") ||
             lowerKey.endsWith("_pdf") ||
@@ -211,7 +204,17 @@ object ResultShare {
 
     internal fun shareableMediaAttachmentValues(fields: Map<String, Any?>): List<MediaAttachmentValue> {
         val attachments = mutableListOf<MediaAttachmentValue>()
+        val hasSearchableDocumentPdf = fields["document_scan_searchable_pdf_uri"]
+            ?.toString()
+            ?.trim()
+            ?.isNotBlank() == true
         fields.forEach { (key, value) ->
+            // Page images are audit-side inputs to the generated document, not
+            // an additional delivery version. Likewise, suppress the original
+            // scanner PDF whenever the searchable PDF is present.
+            if (key == "document_scan_page_image_uris_json" ||
+                (key == "document_scan_pdf_uri" && hasSearchableDocumentPdf)
+            ) return@forEach
             val raw = value?.toString()?.trim().orEmpty()
             if (raw.isBlank()) return@forEach
             if (isShareableMediaField(key, raw)) {
@@ -219,7 +222,9 @@ object ResultShare {
                 return@forEach
             }
             if (!isLikelyMediaFieldName(key)) return@forEach
-            parseUriArray(raw).forEachIndexed { index, uri ->
+            val listed = if (key.endsWith("_clipdata", ignoreCase = true)) raw.lineSequence().map(String::trim).filter(String::isNotBlank).toList()
+                else parseUriArray(raw)
+            listed.forEachIndexed { index, uri ->
                 if (isShareableMediaField(key, uri)) {
                     attachments += MediaAttachmentValue(key, attachmentName(key, uri, index = index + 1), uri)
                 }
@@ -248,7 +253,7 @@ object ResultShare {
             .ifBlank { "${coherentFileStem("result")}_result.txt" }
         val folder = File(
             File(context.cacheDir, "methodmesh_share"),
-            System.currentTimeMillis().toString()
+            UUID.randomUUID().toString()
         ).apply { mkdirs() }
         val file = File(folder, safeName)
         file.writeText(text, Charsets.UTF_8)
@@ -269,7 +274,7 @@ object ResultShare {
     }
 
     private fun mimeFor(context: Context, uri: Uri, name: String): String =
-        context.contentResolver.getType(uri)?.takeIf { it.isNotBlank() }
+        context.contentResolver.getType(uri)?.takeIf { it.isNotBlank() && it != "application/octet-stream" }
             ?: when (name.substringAfterLast('.', "").lowercase()) {
                 "jpg", "jpeg" -> "image/jpeg"
                 "png" -> "image/png"

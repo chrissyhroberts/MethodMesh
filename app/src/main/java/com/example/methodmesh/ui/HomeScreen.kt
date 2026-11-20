@@ -59,6 +59,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
@@ -67,6 +68,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.lifecycle.Lifecycle
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.asImageBitmap
@@ -91,6 +95,8 @@ import com.example.methodmesh.core.protocols.ProtocolPayloadMode
 import com.example.methodmesh.core.protocols.ProtocolStep
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.core.protocols.PresetLaunchMode
+import com.example.methodmesh.core.protocols.PresetFavoritesRepository
+import com.example.methodmesh.core.protocols.ProtocolFavoritesRepository
 import com.example.methodmesh.core.ResearchRuntime
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.InvocationContext
@@ -129,6 +135,7 @@ import com.example.methodmesh.ui.components.VersionAndMaturityBadges
 import com.example.methodmesh.ui.timeassurance.HomeTimeRecencyChip
 import com.example.methodmesh.ui.timeassurance.TimeAssuranceWorkbenchPanel
 import com.example.methodmesh.ui.sensors.SensorDashboard
+import com.example.methodmesh.modules.espmesh.EspMeshTransportProvider
 import com.example.methodmesh.ui.odk.OdkTemplateCatalog
 import com.example.methodmesh.ui.odk.OdkTemplateDescriptor
 import com.example.methodmesh.ui.odk.OdkTemplateLibrary
@@ -383,6 +390,8 @@ fun HomeScreen() {
                                 methods = methods,
                                 modules = modules,
                                 revision = protocolLibraryRevision,
+                                favouritesRevision = favouritesRevision,
+                                onFavouriteChanged = { favouritesRevision++ },
                                 onOpenOdkTemplate = { template ->
                                     odkFormsSearchSeed = template.displayName
                                     selectedDestination = DashboardDestination.OdkForms
@@ -390,20 +399,21 @@ fun HomeScreen() {
                             )
                         }
                         item {
-                            FavouriteCapabilitiesCard(
+                            FavouriteShortcutsCard(
                                 methods = methods,
                                 modules = modules,
                                 revision = favouritesRevision,
+                                libraryRevision = protocolLibraryRevision,
                                 onFavouriteChanged = { favouritesRevision++ }
                             )
                         }
                     }
                     DashboardDestination.Outputs -> item { OutputFolderCard(expandedByDefault = true) }
                     DashboardDestination.RunProtocol -> item { RunProtocolCard(protocolLibraryRevision, expandedByDefault = true) }
-                    DashboardDestination.Presets -> item { ProtocolLibraryCard(protocolLibraryRevision, showPresets = true, showProtocols = false, expandedByDefault = true) }
+                    DashboardDestination.Presets -> item { ProtocolLibraryCard(protocolLibraryRevision, showPresets = true, showProtocols = false, expandedByDefault = true, favouritesRevision = favouritesRevision, onFavouriteChanged = { favouritesRevision++ }) }
                     DashboardDestination.OdkForms -> item { OdkTemplateLibrary(initialQuery = odkFormsSearchSeed) }
                     DashboardDestination.Files -> item { FilesScreen() }
-                    DashboardDestination.Protocols -> item { ProtocolLibraryCard(protocolLibraryRevision, showPresets = false, showProtocols = true, expandedByDefault = true) }
+                    DashboardDestination.Protocols -> item { ProtocolLibraryCard(protocolLibraryRevision, showPresets = false, showProtocols = true, expandedByDefault = true, favouritesRevision = favouritesRevision, onFavouriteChanged = { favouritesRevision++ }) }
                     DashboardDestination.Scheduler -> {
                         item {
                             SchedulerCenterCard(
@@ -477,10 +487,11 @@ private fun MinimalDashboardHeader() {
 }
 
 @Composable
-private fun FavouriteCapabilitiesCard(
+private fun FavouriteShortcutsCard(
     methods: List<As100Method>,
     modules: List<MethodMeshModule>,
     revision: Int,
+    libraryRevision: Int,
     onFavouriteChanged: () -> Unit
 ) {
     val context = LocalContext.current
@@ -492,13 +503,58 @@ private fun FavouriteCapabilitiesCard(
     val favouriteIds = remember(revision) { CapabilityFavoritesRepository.all(context) }
     val favourites = methods.filter { it.id in favouriteIds }
         .sortedBy { it.descriptor.name.lowercase() }
+    val presets = remember(libraryRevision) { ProtocolLibraryRepository.presets(context) }
+    val favouritePresetIds = remember(revision) { PresetFavoritesRepository.all(context) }
+    val favouritePresets = presets.filter { it.id in favouritePresetIds }.sortedBy { it.name.lowercase() }
+    val protocols = remember(libraryRevision) { ProtocolLibraryRepository.protocols(context) }
+    val favouriteProtocolIds = remember(revision) { ProtocolFavoritesRepository.all(context) }
+    val favouriteProtocols = protocols.filter { it.id in favouriteProtocolIds }.sortedBy { it.name.lowercase() }
     val selectedMethod = selectedCapabilityId?.let { id -> favourites.firstOrNull { it.id == id } }
 
-    if (favourites.isEmpty()) return
+    if (favourites.isEmpty() && favouritePresets.isEmpty() && favouriteProtocols.isEmpty()) return
 
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)
     ) {
+        favouritePresets.forEach { preset ->
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { runPresetFromDashboard(context, preset) }.padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SavedFavouriteButton(preset.name, true) {
+                    PresetFavoritesRepository.set(context, preset.id, false)
+                    onFavouriteChanged()
+                }
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(preset.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text("Preset · ${moduleByMethod[preset.methodId]?.displayName ?: preset.methodId}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text("Run", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+        }
+        favouriteProtocols.forEach { protocol ->
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable {
+                    launchProtocolRun(context, protocol, saveOutput = true, testMode = false)
+                }.padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SavedFavouriteButton(protocol.name, true) {
+                    ProtocolFavoritesRepository.set(context, protocol.id, false)
+                    onFavouriteChanged()
+                }
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(protocol.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text("Protocol · ${protocol.steps.size} step${if (protocol.steps.size == 1) "" else "s"}",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text("Run", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+        }
         favourites.forEach { method ->
             Row(
                 modifier = Modifier.fillMaxWidth().clickable { selectedCapabilityId = method.id }.padding(vertical = 10.dp),
@@ -543,10 +599,23 @@ private fun FavouriteCapabilitiesCard(
 }
 
 @Composable
+private fun SavedFavouriteButton(name: String, favourite: Boolean, onClick: () -> Unit) {
+    IconButton(onClick = onClick, modifier = Modifier.semantics {
+        contentDescription = if (favourite) "Remove $name from favourites" else "Add $name to favourites"
+        selected = favourite
+    }) {
+        Text(if (favourite) "★" else "☆", color = if (favourite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Composable
 private fun DashboardSearch(
     methods: List<As100Method>,
     modules: List<MethodMeshModule>,
     revision: Int,
+    favouritesRevision: Int,
+    onFavouriteChanged: () -> Unit,
     onOpenOdkTemplate: (OdkTemplateDescriptor) -> Unit
 ) {
     val context = LocalContext.current
@@ -567,7 +636,9 @@ private fun DashboardSearch(
             .sortedBy { it.descriptor.name.lowercase() }
     }
     val presets = remember(revision) { ProtocolLibraryRepository.presets(context) }
+    val favouritePresetIds = remember(favouritesRevision) { PresetFavoritesRepository.all(context) }
     val protocols = remember(revision) { ProtocolLibraryRepository.protocols(context) }
+    val favouriteProtocolIds = remember(favouritesRevision) { ProtocolFavoritesRepository.all(context) }
     val odkTemplates = remember { OdkTemplateCatalog.load(context) }
     val trimmedQuery = query.trim()
     val capabilityMatches = remember(searchableMethods, trimmedQuery) {
@@ -670,7 +741,13 @@ private fun DashboardSearch(
                         title = preset.name,
                         subtitle = moduleByMethod[preset.methodId]?.displayName ?: preset.description.ifBlank { preset.methodId },
                         trailing = "Run",
-                        onClick = { runPresetFromDashboard(context, preset) }
+                        onClick = { runPresetFromDashboard(context, preset) },
+                        leadingAction = {
+                            SavedFavouriteButton(preset.name, preset.id in favouritePresetIds) {
+                                PresetFavoritesRepository.toggle(context, preset.id)
+                                onFavouriteChanged()
+                            }
+                        }
                     )
                 }
             }
@@ -704,7 +781,13 @@ private fun DashboardSearch(
                         title = protocol.name,
                         subtitle = "${protocol.steps.size} step${if (protocol.steps.size == 1) "" else "s"}",
                         trailing = "Run",
-                        onClick = { launchProtocolRun(context, protocol, saveOutput = true, testMode = false) }
+                        onClick = { launchProtocolRun(context, protocol, saveOutput = true, testMode = false) },
+                        leadingAction = {
+                            SavedFavouriteButton(protocol.name, protocol.id in favouriteProtocolIds) {
+                                ProtocolFavoritesRepository.toggle(context, protocol.id)
+                                onFavouriteChanged()
+                            }
+                        }
                     )
                 }
             }
@@ -760,7 +843,8 @@ private fun DashboardSearchRow(
     title: String,
     subtitle: String,
     trailing: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    leadingAction: (@Composable () -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
@@ -769,6 +853,7 @@ private fun DashboardSearchRow(
             .padding(vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        leadingAction?.invoke()
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
             Text(
@@ -1236,11 +1321,13 @@ private fun PresetShortcutsCard(revision: Int) {
 }
 
 @Composable
-private fun ProtocolLibraryCard(
+internal fun ProtocolLibraryCard(
     revision: Int,
     showPresets: Boolean = true,
     showProtocols: Boolean = true,
-    expandedByDefault: Boolean = false
+    expandedByDefault: Boolean = false,
+    favouritesRevision: Int = 0,
+    onFavouriteChanged: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var expanded by rememberSaveable { mutableStateOf(expandedByDefault) }
@@ -1257,6 +1344,8 @@ private fun ProtocolLibraryCard(
     var createProtocolExpanded by rememberSaveable { mutableStateOf(false) }
     var showArchive by rememberSaveable { mutableStateOf(false) }
     var pendingPresetDelete by remember { mutableStateOf<CapabilityPreset?>(null) }
+    var favouritePresetIds by remember(favouritesRevision) { mutableStateOf(PresetFavoritesRepository.all(context)) }
+    var favouriteProtocolIds by remember(favouritesRevision) { mutableStateOf(ProtocolFavoritesRepository.all(context)) }
 
     fun refresh() {
         presets = ProtocolLibraryRepository.presets(context)
@@ -1357,6 +1446,11 @@ private fun ProtocolLibraryCard(
                                                     .padding(start = 12.dp, top = 11.dp, bottom = 11.dp),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
+                                                SavedFavouriteButton(preset.name, preset.id in favouritePresetIds) {
+                                                    PresetFavoritesRepository.toggle(context, preset.id)
+                                                    favouritePresetIds = PresetFavoritesRepository.all(context)
+                                                    onFavouriteChanged()
+                                                }
                                                 Column(
                                                     Modifier
                                                         .weight(1f)
@@ -1548,7 +1642,14 @@ private fun ProtocolLibraryCard(
                             shape = MaterialTheme.shapes.medium
                         ) {
                             Column(Modifier.padding(10.dp)) {
-                                Text(protocol.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    SavedFavouriteButton(protocol.name, protocol.id in favouriteProtocolIds) {
+                                        ProtocolFavoritesRepository.toggle(context, protocol.id)
+                                        favouriteProtocolIds = ProtocolFavoritesRepository.all(context)
+                                        onFavouriteChanged()
+                                    }
+                                    Text(protocol.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                }
                                 Text(
                                     "${ProtocolLibraryRepository.versionLabel(protocol.versionIso)} · updated ${protocol.updatedAtIso}",
                                     style = MaterialTheme.typography.labelSmall
@@ -1684,6 +1785,8 @@ private fun ProtocolLibraryCard(
             onDismiss = { pendingPresetDelete = null },
             onConfirm = {
                 ProtocolLibraryRepository.removePreset(context, preset.id)
+                favouritePresetIds = PresetFavoritesRepository.all(context)
+                onFavouriteChanged()
                 protocolStepDrafts = protocolStepDrafts.filterNot { it.presetId == preset.id }
                 pendingPresetDelete = null
                 refresh()
@@ -2326,7 +2429,7 @@ private fun CapabilityCard(
 
                 CapabilityOutputsSection(method)
 
-                if (isProtocolPrimitive) {
+                run {
                     CollapsibleCapabilitySection(
                         title = "ODK / return contract",
                         subtitle = when (ProtocolPayloadMode.normalize(returnPayloadMode)) {
@@ -3486,6 +3589,9 @@ private fun RuntimeStateCard(expandedByDefault: Boolean = false) {
 
 @Composable
 private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
+    val appContext = LocalContext.current.applicationContext
+    val meshProvider = remember { EspMeshTransportProvider.get(appContext) }
+    val meshSnapshot by meshProvider.snapshot.collectAsState()
     var displayExpanded by rememberSaveable { mutableStateOf(false) }
     var odkCentralExpanded by rememberSaveable { mutableStateOf(false) }
     var koboExpanded by rememberSaveable { mutableStateOf(false) }
@@ -3505,6 +3611,27 @@ private fun DeviceServicesCard(expandedByDefault: Boolean = false) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("ESP mesh communications", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (meshSnapshot.enabled) "Mesh transport and Talk/Listen controls are enabled; a foreground notification may be visible while the service runs."
+                    else "Mesh transport is disabled; no mesh service, notification, or Talk/Listen control will run.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = meshSnapshot.enabled,
+                onCheckedChange = { meshProvider.setPersistentEnabled(it) }
+            )
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
         PageSection(
             title = "Display",

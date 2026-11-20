@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Test-only receiving app; deliberately runs under the test APK UID. -->
+        <activity
+            android:name="com.example.methodmesh.transport.android.AttachmentReceiverActivity"
+            android:exported="true"
+            android:excludeFromRecents="true" />
+        <activity
+            android:name="com.example.methodmesh.transport.android.NativeFileShareReceiverActivity"
+            android:label="File delivery regression receiver"
+            android:exported="true"
+            android:excludeFromRecents="true" />
+    </application>
+</manifest>

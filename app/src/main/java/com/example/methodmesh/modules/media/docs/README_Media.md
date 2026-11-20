@@ -6,7 +6,7 @@
 2. **Personal library** — MethodMesh-owned favourites, watchlist, watched state, tags and notes.
 3. **Capture / discovery** — manual/observed media capture and ambient audio identification.
 
-Target: MethodMesh Master Book v1.07 (2026-09-08).
+Current review authority: MethodMesh Master Book v1.31 FINAL. Earlier versioned notes below are historical.
 
 ## Capability inventory
 
@@ -236,4 +236,11 @@ The Catalogue Sources screen includes direct links to:
 - AudD API/token documentation: https://docs.audd.io/
 
 API credentials remain private operational configuration and are not emitted through ODK, presets, protocols, or method results.
+
+
+## 24 October 2026 — committed result actions
+
+All six result surfaces pass launch context to the shared canonical action controls. Final native preset Share/Save succeeds before confirmation; intermediate Done does not implicitly export. Common Downloads saves are single-flight and run off the UI thread. Completed/committed records use the shared original-record store through recreation. Catalogue/library persistence, audio acquisition and all six public contracts are unchanged. Canonical optional audit remains off by default.
+
+Both builds and the focused shared 27-case JVM selection pass. Actual library-state post-result checks use a synthetic frozen record for rotation/Done and failed final Share; they do not qualify real catalogue/import/audio/provider acquisition or process death. See docs/handoffs/CANONICAL_ACTIONS_AND_RESULT_RETENTION_2026-10-24.md in the app repository for exact multi-run Android coverage.
 

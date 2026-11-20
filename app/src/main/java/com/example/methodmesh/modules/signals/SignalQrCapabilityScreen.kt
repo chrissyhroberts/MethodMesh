@@ -89,7 +89,7 @@ object SignalQrTransmitCapabilityScreen : CapabilityScreenSpec {
         var cycles by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Prepare text or choose a file, then start the burst.") }
         var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val committed = rememberSignalCommit(context.action.canonicalId)
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         SignalActiveSessionOrientationGuard(active)
 
@@ -220,9 +220,8 @@ object SignalQrTransmitCapabilityScreen : CapabilityScreenSpec {
                 SignalQrTransmitFields.STATUS to "sent",
                 SignalQrTransmitFields.ERROR to ""
             )
-            committedJson = fieldsJson(values)
             status = "Committed. Original SHA-256 is frozen with the transmission record."
-            val result = signalResult(As100SignalQrTransmitMethod, context, values)
+            val result = committed.capture(signalResult(As100SignalQrTransmitMethod, context, values))
             if (context.submitsImmediately) onConfirmed(result)
         }
 
@@ -233,11 +232,11 @@ object SignalQrTransmitCapabilityScreen : CapabilityScreenSpec {
             onDispose { if (window != null && previous != null) window.attributes = window.attributes.apply { screenBrightness = previous } }
         }
 
-        val committedFields = fieldsFromJson(committedJson)
-        val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(As100SignalQrTransmitMethod, context, it) } }
-        val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+        val committedFields = committed.fields
+        val committedResult = committed.result
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SignalCommitRecoveryNotice(committed)
             Button(
                 onClick = { if (active) stop() else start() },
                 enabled = frames.isNotEmpty(),
@@ -288,9 +287,9 @@ object SignalQrTransmitCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = { exportStatus = shareSignalText(androidContext, "Share QR blast record", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }) ?: "" },
-                    onSave = { exportStatus = saveSignalText(androidContext, "qr_blast_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) },
-                    onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, "qr_blast_transmission", committedFields.entries.joinToString("\n") { "${it.key}=${it.value}" }, committedFullJson) } }
+                    context = context,
+                    result = committedResult,
+                    onConfirmed = onConfirmed
                 )
             }
 
@@ -392,7 +391,7 @@ object SignalQrReceiveCapabilityScreen : CapabilityScreenSpec {
         var unrelatedFrames by rememberSaveable(context.action.canonicalId) { mutableStateOf(0) }
         var status by rememberSaveable(context.action.canonicalId) { mutableStateOf("Start the camera receiver and point it at a MethodMesh QR blast.") }
         var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+        val committed = rememberSignalCommit(context.action.canonicalId)
         var committedTransferAuditJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         var cameraGranted by remember { mutableStateOf(qrHasPermission(androidContext, Manifest.permission.CAMERA)) }
@@ -416,7 +415,7 @@ object SignalQrReceiveCapabilityScreen : CapabilityScreenSpec {
         fun clearReception(preserveCommitted: Boolean = false) {
             listening = false; frameStoreJson = "[]"; framesSeen = 0; unrelatedFrames = 0
             transferAccumulator.reset(); transferState = transferAccumulator.state()
-            if (!preserveCommitted) { committedJson = null; committedTransferAuditJson = null; exportStatus = "" }
+            if (!preserveCommitted) { committed.clear(); committedTransferAuditJson = null; exportStatus = "" }
             status = if (preserveCommitted) "Receiver filter changed; working shards were cleared. Any committed result remains frozen." else "Receiver reset."
             error = ""
         }
@@ -484,7 +483,6 @@ object SignalQrReceiveCapabilityScreen : CapabilityScreenSpec {
                 SignalQrReceiveFields.STATUS to "received",
                 SignalQrReceiveFields.ERROR to ""
             )
-            committedJson = fieldsJson(values)
             committedTransferAuditJson = fieldsJson(mapOf(
                 "transfer_sha256_expected" to state.transferSha256Expected,
                 "transfer_sha256_reconstructed" to state.transferSha256Reconstructed,
@@ -493,14 +491,13 @@ object SignalQrReceiveCapabilityScreen : CapabilityScreenSpec {
                 "segments_complete" to state.completeSegments.toString()
             ))
             status = "VERIFIED — SHA-256 MATCH. Commit froze the reconstructed object and provenance."
-            val result = signalResult(As100SignalQrReceiveMethod, context, values)
+            val result = committed.capture(signalResult(As100SignalQrReceiveMethod, context, values))
             if (context.submitsImmediately) onConfirmed(result)
         }
 
         LaunchedEffect(messageFilter) { context.onSettingsChanged(mapOf("message_id_filter" to messageFilter)) }
-        val committedFields = fieldsFromJson(committedJson)
-        val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(As100SignalQrReceiveMethod, context, it) } }
-        val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+        val committedFields = committed.fields
+        val committedResult = committed.result
         val committedIsFile = committedFields[SignalQrReceiveFields.CONTENT_TYPE] == "file"
         val committedFileUri = committedFields[SignalQrReceiveFields.RECEIVED_FILE_URI].orEmpty()
         val committedMime = committedFields[SignalQrReceiveFields.FILE_MIME].orEmpty()
@@ -521,6 +518,7 @@ object SignalQrReceiveCapabilityScreen : CapabilityScreenSpec {
         }
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SignalCommitRecoveryNotice(committed)
             Button(
                 onClick = { if (listening) { listening = false; status = "Paused. Collected shards are retained." } else start() },
                 modifier = Modifier.fillMaxWidth()
@@ -586,18 +584,13 @@ object SignalQrReceiveCapabilityScreen : CapabilityScreenSpec {
                     ),
                     status = exportStatus,
                     onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                    onShare = {
-                        exportStatus = if (committedIsFile) shareSignalMedia(androidContext, "Share verified received file", committedFileUri, committedMime) ?: "" else shareSignalText(androidContext, "Share verified message", committedFields[SignalQrReceiveFields.RESULT].orEmpty()) ?: ""
-                    },
-                    onSave = {
-                        exportStatus = if (committedIsFile) saveSignalMedia(androidContext, "qr_verified_file", committedFileUri, verificationText, committedFullJson) else saveSignalText(androidContext, "qr_verified_text", verificationText + "\ntext=${committedFields[SignalQrReceiveFields.RESULT].orEmpty()}", committedFullJson)
-                    },
-                    onDone = {
-                        finishSignalResult(context, androidContext, committedResult, onConfirmed) {
-                            if (committedIsFile) saveSignalMedia(androidContext, "qr_verified_file", committedFileUri, verificationText, committedFullJson) else saveSignalText(androidContext, "qr_verified_text", verificationText, committedFullJson)
-                        }
-                    },
-                    onOpen = if (committedIsFile) ({ exportStatus = openSignalMedia(androidContext, committedFileUri, committedMime) ?: "" }) else null
+                    onOpen = if (committedIsFile) ({ exportStatus = openSignalMedia(androidContext, committedFileUri, committedMime) ?: "" }) else null,
+                    context = context,
+                    result = committedResult,
+                    onConfirmed = onConfirmed,
+                    exportText = if (committedIsFile) verificationText else committedFields[SignalQrReceiveFields.RESULT].orEmpty(),
+                    mediaUri = if (committedIsFile) committedFileUri else "",
+                    mediaMime = committedMime
                 )
             }
 

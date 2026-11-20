@@ -29,7 +29,7 @@ This file records the review state against the MethodMesh Master Book. A checked
 - [x] External/ODK Commit does not write Paper Bridge recent-activity state or a MethodMesh output-folder copy.
 - [x] Caller-supplied source images are not gratuitously duplicated back to the caller; acquired sources and new derivatives can return as attachments.
 - [x] `paper_attachment_metadata_json` is URI-free and carries roles/hashes/registration metadata.
-- [x] Committed payload is saveable/restorable across ordinary Activity recreation.
+- [x] Original committed execution is retained in activity memory across ordinary Activity recreation; process loss is explicit, not reconstructed.
 
 ## AprilTag8 registration
 
@@ -53,18 +53,18 @@ This file records the review state against the MethodMesh Master Book. A checked
 - [x] Destructive schema deletion requires confirmation.
 - [x] Meaningful in-progress designer state is saveable: source identity, ODK schema, mappings, loose regions, controls, registration config and test state.
 - [x] Large bitmap/derived visual state is reloaded/recomputed from the saved source identity after ordinary Activity recreation rather than stored in Bundle state.
-- [x] Committed design payload is separately saveable/restorable.
+- [x] Original committed design execution is retained separately across ordinary Activity recreation; this is not durable process-death restoration.
 - [ ] Exercise rotation/recreation on a target Android build during source loading, mapping, after TEST EMPTY, after TEST DATA and after Commit.
 
 ## Native Share/Save contract
 
 - [x] Commit itself does not imply export persistence for transcription.
 - [x] Share defaults to the useful human result plus relevant media and places every `content://` attachment in `EXTRA_STREAM`/`ClipData` with explicit read grants.
-- [x] Save targets the shared MethodMesh Files/ArtifactStore using persistent artifacts grouped in one collection.
+- [x] Committed Save delegates to shared Save to Downloads with coherent run-specific filenames; reusable schema/workspace persistence is separate.
 - [x] Full structured JSON/audit is optional rather than replacing the human result.
 - [x] Design Share/Save includes generated JSON/YAML/bundle/design-image artefacts.
-- [ ] On a target Android device, confirm a multi-attachment transcription Share delivers exactly one registered form image, each dynamic image field once, and the transcription once as ordinary share text (not a `.txt` attachment) to at least two receiving apps; the raw source page must not be duplicated into native Share/Save.
-- [ ] On a target Android device, confirm Save immediately exposes every collection member in the top-level MethodMesh Files surface and that Files can export/share the collection bundle.
+- [ ] On representative devices and two receiving apps, confirm registered page/ROIs once, equivalent message/text-sidecar content, no duplicate raw native scan, and unchanged media set with audit enabled.
+- [ ] On representative devices/API levels, confirm complete Downloads bundles and legacy storage-permission acquisition, provider/fault UX and domain-file usability.
 
 ## ODK/XLSForm contract
 
@@ -111,7 +111,7 @@ Paper Bridge therefore remains **Development** until the unchecked host/device v
 
 - [ ] Share the built-in example with full JSON off to WhatsApp (or another receiver that previously duplicated captions): confirm beef appears once, the registered form appears once and the cropped image field appears once.
 - [ ] Repeat with **Include full JSON / audit** on: confirm the same beef/media attachment set, with canonical FULL JSON appended once to the textual share payload after the `metadata.json` marker.
-- [ ] Confirm Save to MethodMesh Files writes the same beef/media set and adds `metadata.json` only when **Include full JSON / audit** is on.
+- [ ] Confirm Save to Downloads writes the same beef/media set and adds a run-named metadata JSON file only when **Include full JSON / audit** is on.
 
 
 ## v0.5.5 beef + pictures regression
@@ -122,4 +122,14 @@ Paper Bridge therefore remains **Development** until the unchecked host/device v
 - [ ] Receiving app gets each cropped media/image field once.
 - [ ] No media item contains a second Paper Bridge text payload generated via
       ClipData.
-- [ ] Save to MethodMesh Files remains unchanged.
+- [ ] Save schema/workspace persistence remains distinct from committed Save to Downloads.
+
+## 23 October 2026 committed export verification
+
+- [x] Both debug builds and 30 focused JVM cases pass.
+- [x] Fifteen Android cases verified across an initial 14-pass/one-YAML-expectation-failure run and a successful one-case rerun; not a clean initial whole-app run.
+- [x] Actual committed screens with synthetic canonical records exercise Share/Save audit off/on, final preset success/failure, readable streams/grants, coherent Downloads bytes/names and retained original evidence.
+- [x] Genuine design JSON/YAML/ZIP remain domain attachments. API 37 normalizes stored YAML MIME to octet-stream despite the explicit YAML request; suffix and bytes are preserved.
+- [ ] Real capture/designer gates, actual recipient apps/Collect, physical devices, API 27/28 permission acquisition and other providers remain open.
+
+See repository handoff docs/handoffs/PAPER_COMMITTED_EXPORTS_2026-10-23.md for exact evidence and limits.

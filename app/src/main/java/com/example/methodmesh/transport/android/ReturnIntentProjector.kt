@@ -23,17 +23,14 @@ object ReturnIntentProjector {
         val extras = fields.entries.associate { (key, value) ->
             ReturnNamespaceProjector.key(key, namespace) to value
         }
-        val clipUris = fields.entries.mapNotNull { (key, value) ->
-            val text = value?.trim().orEmpty()
-            if (!isReturnedContentUri(text)) {
-                null
-            } else {
+        val clipUris = fields.entries.flatMap { (key, value) ->
+            ExternalReturnAttachments.contentUris(key, value).map { uri ->
                 ProjectedClipUri(
                     label = ReturnNamespaceProjector.key(key, namespace),
-                    uri = text
+                    uri = uri
                 )
             }
-        }
+        }.distinctBy { it.uri }
         return ProjectedReturnIntent(
             extras = extras,
             clipUris = clipUris,
@@ -55,7 +52,4 @@ object ReturnIntentProjector {
             intent.addFlags(projected.flags)
         }
     }
-
-    private fun isReturnedContentUri(value: String): Boolean =
-        value.startsWith("content://")
 }

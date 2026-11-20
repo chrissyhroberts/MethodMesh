@@ -7,6 +7,14 @@ Maturity: **Development**<br>
 Connectivity: **Online/Offline**<br>
 Icon key: `tool`
 
+## Engineering review continuation — 21 October 2026
+
+Master Book v1.31 remains the project authority. Both dashboard and focused native screens retain the exact committed execution across rotation instead of rebuilding IDs/timing/evidence from saved values. Missing committed memory requires a new explicit diagnostic and Commit; this is not durable process recovery. Commit uses the settings captured with the working diagnostic, not subsequently edited fields.
+
+Composition-owned busy state is not restored after its job has gone away. Unexpected diagnostic failures are visible and release busy state; coroutine cancellation is propagated rather than reported as success. A pending socket/DNS operation may still run until its own timeout; exactly-once network execution and immediate abort are not claimed.
+
+Failed Save/Share keeps the committed screen open. Host-managed native Home/Done confirms and attempts the optional shared log before navigating Home, following the existing non-blocking log-warning policy. Public IDs, nine operation modes, bounded one-host behavior and existing external-result contracts remain unchanged. Working result/settings JSON still enter saved UI state, so large-payload limits remain open. Local CIDR and controlled UI/storage fixtures are not live network, real Wi-Fi permission, ODK or full OS process-kill acceptance.
+
 ## Purpose
 
 Network Tools is a bounded field network-diagnostics capability with a live native dashboard and one stable external contract. It answers practical questions such as:
@@ -243,3 +251,11 @@ Nearby SSID/BSSID display is local Android device information. No credentials or
 See `VALIDATION.md` and `REVIEW_REPORT_v0.3.0.md`.
 
 The module remains **Development** until the current MethodMesh checkout passes Gradle build/tests plus physical-device and ODK Collect checks.
+
+## Committed export continuation — 24 October 2026
+
+Network retains its canonical shared Share/Copy transport. Optional audit defaults off and is a separate metadata file only for Downloads Save. Weather and Network now apply preset Share/Save-and-finish only on the last step; intermediate Done returns the original record without exporting or Home navigation. Failure keeps the committed record available, and actual-host Home/logging order remains intact.
+
+Shared Save on API 27/28 now opens permission-only UI before any file write if access is missing. Granting access does not replay an export: return and explicitly retry Save. Modern Android does not request that legacy permission. The legacy path is policy/source/build checked, not yet accepted on an older device. No network diagnostic/acquisition behavior or public contract changes.
+
+Both builds, 49 focused JVM cases and 40 Android cases verified across two runs are recorded in repository handoff docs/handoffs/NATIVE_EXPORTS_AND_LEGACY_DOWNLOADS_2026-10-24.md. New committed-component cases are synthetic/local; real callers/recipients, other devices and provider/hardware acceptance remain open.

@@ -63,13 +63,13 @@ After Commit, native use remains on the Paper Bridge capability screen and expos
 - every scalar/text result as tap-to-copy;
 - image returns as meaningful attachment cards rather than raw URI text;
 - **Share**;
-- **Save** to the shared MethodMesh **Files** surface;
+- **Save to Downloads** for the committed transcription bundle;
 - optional **Include full JSON / audit**;
 - **Done** / origin-aware closeout;
 - **Edit** to reopen the working result;
 - explicit copy of the full JSON audit payload.
 
-Share and Save default to one human-readable transcription plus the human-facing media products: the registered/canonical completed form and any image/file fields cropped from that form. The raw acquisition/source page remains in the committed audit/ODK contract but is not duplicated into native Share/Save. When media are shared, the transcription remains ordinary Android share text (`EXTRA_TEXT`); only the form image and cropped image/file fields are attachments. Save copies the same frozen set into the shared MethodMesh Files/ArtifactStore as one collection so Files can preview members and export/share the collection as a bundle. Full JSON is optional for native runs: Share appends the canonical FULL JSON to the textual payload for debugging without adding a JSON stream, while Save adds `metadata.json` only when enabled. Commit does not implicitly persist a duplicate output package.
+Share and Save default to one human-readable transcription plus the registered/canonical completed form and its image/file ROIs. The raw acquisition page stays in the committed audit/external contract but is not duplicated into native exports. Share carries equivalent text in scalar `EXTRA_TEXT` and a readable run-specific `text/plain` sidecar, plus real typed media. Full JSON defaults off; when enabled, canonical FULL JSON is appended after the `metadata.json` marker in both text forms, never added as a separate debug JSON attachment. Save writes the text/media bundle to Downloads/MethodMesh with one coherent capability/form/UTC-timestamp filename stem and adds a separate metadata JSON file only when enabled. Commit does not implicitly persist an output package. Explicit schema/workspace saves remain separate and unchanged.
 
 ## Evidence/media semantics
 
@@ -94,7 +94,15 @@ Dynamic image-field names require the generic MethodMesh return transport to rec
 
 ## State and parity
 
-Working acquisition/review state and the committed payload are distinct. The committed payload is serialised into saveable UI state so normal Activity recreation does not silently mutate or lose it. Configuration settings are projected through the normal capability settings contract, so the same canonical method remains available to direct native use, presets, protocols and ODK.
+Working acquisition/review state and the committed payload are distinct. The original execution is retained in activity-scoped memory across ordinary recreation; values/FULL evidence are not rebuilt from saved JSON. A committed marker prevents startup OCR/acquisition replay. A missing original requires an explicit new scan, without stale result actions. Only a small marker/opaque key is saved at this boundary; this is not durable process-death restoration. Configuration settings are projected through the normal capability settings contract, so the same canonical method remains available to direct native use, presets, protocols and ODK.
+
+The 23 October committed-screen check uses a synthetic post-Commit record, not real scanning/OCR. See `docs/handoffs/PAPER_BARCODE_RETENTION_2026-10-23.md`.
+
+### Commit preparation consistency
+
+Commit now freezes reviewed answers, manual/logic/NA audit, registration and media identities together before hashing. A single cancellable operation prepares hashes; the working surface shows progress and **Cancel commit** until ready. Duplicate starts are ignored, cancellation/exit cannot return late evidence, and changed working state is rejected before publication. Hash failure leaves no committed record and requires an explicit retry. Starting a new scan invalidates the old working session. Committed retention and the existing native/external lifecycle remain unchanged.
+
+Eight controller/wiring JVM cases and five Android snapshot/hash cases verify this transaction; two synthetic committed-screen recreation cases also pass. These are not full camera/OCR or actual in-flight captured-page UI acceptance. Committed Downloads conformity was addressed subsequently; actual caller/media acceptance remains open. See `docs/handoffs/PAPER_COMMIT_CONSISTENCY_2026-10-23.md`.
 
 ## Status
 
@@ -111,39 +119,10 @@ Every relevant field can be revisited even after automatic acceptance: scalar/ch
 Every actual operator value change is appended to the standalone `paper_manual_edits_json` event ledger. Each event records timestamp, field, original candidate, previous/new value, previous/new reason, relevance/required/constraint state, logic violation/unknown state, NA state and operator confirmation. Confirming an unchanged candidate is a review action but not a manual edit. The same ledger is embedded under `manual_edits` in `paper_extraction_audit_json`; `paper_logic_checks_json`, violation/unknown counts and `paper_na_fields_json` provide standalone machine-readable audit outputs.
 
 
-### Android share payload
+### Native Share/Save — Master Book v1.31 alignment
 
-For a committed transcription, native Share uses one logical payload:
+Both screens use the shared communication and Downloads transports. Final native preset **Share and finish** dispatches before confirmation; **Save and finish** confirms only after the complete bundle is saved. Failures remain visible on the original committed screen. Intermediate steps and automatic external return do not detour through native exports.
 
-- one human-readable beef value, associated with the first shared item only;
-- the registered form image and each dynamic media field once;
-- `metadata.json` once when **Include full JSON / audit** is enabled.
+Media/domain attachment sets do not change with the audit toggle. ClipData carries the readable streams, including the text sidecar, with read-only grants to the selected recipient; the app does not pre-grant every candidate receiver. Receivers still choose how to display heterogeneous streams. No receiver-specific workaround is used.
 
-For `ACTION_SEND_MULTIPLE`, Paper Bridge uses the Android-supported `EXTRA_TEXT`
-array form rather than one scalar caption. This prevents receivers that apply a
-scalar caption to every stream from duplicating the beef. Mixed media + JSON
-shares use a `*/*` envelope and also advertise the concrete member MIME types.
-Receiving applications that do not support heterogeneous Android shares may
-still choose to reject a member; that is receiver behaviour rather than a
-Paper Bridge persistence change.
-
-
-### Native Share transport — v0.5.5
-
-This revision deliberately concentrates on the reliable **beef + pictures**
-handoff.
-
-The payload follows Magnifier/shared-scaffold semantics:
-
-- the transcription is one scalar `Intent.EXTRA_TEXT`;
-- one media item uses `Intent.EXTRA_STREAM`;
-- several media items use `ACTION_SEND_MULTIPLE` plus an `EXTRA_STREAM` list.
-
-Paper Bridge also supplies the same media URIs in URI-only `ClipData` and grants
-read permission to resolved receiving packages. That extra grant propagation is
-needed because Paper Bridge commonly shares several `content://` media items.
-The beef is never placed in `ClipData`, so Paper Bridge itself supplies it only
-once.
-
-The optional provenance-JSON path is retained but is not the focus of this
-revision.
+Eight new committed-screen tests use synthetic Paper records. Real MediaStore bytes/names/optional audit and shared rollback are checked, but real camera/OCR/forms/recipient apps and API 27/28 storage-permission acquisition remain unverified. On the API 37 emulator, Downloads normalizes YAML's stored type to generic binary despite an explicit application/yaml request; .yaml names and bytes remain intact. See repository handoff docs/handoffs/PAPER_COMMITTED_EXPORTS_2026-10-23.md.

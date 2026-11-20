@@ -34,6 +34,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -41,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,6 +71,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.methodmesh.MainActivity
+import com.example.methodmesh.transport.workflow.ui.CapturedExecutionRecovery
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputFormatter
@@ -104,6 +108,8 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
     ) {
         val appContext = LocalContext.current
         val scope = rememberCoroutineScope()
+        val commitController = remember(context.action.canonicalId) { PaperCommitController() }
+        DisposableEffect(commitController) { onDispose { commitController.cancel() } }
         val automaticReturn = context.completionMode == CapabilityCompletionMode.AutomaticReturn
         val nativeDashboard =
             context.presentationMode == CapabilityPresentationMode.Dashboard && !context.isNativePresetRun
@@ -171,9 +177,8 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
         }
         var sourceMenu by rememberSaveable { mutableStateOf(false) }
         var technicalOpen by rememberSaveable { mutableStateOf(false) }
-        var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
-        var committedStableJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var committedDynamicJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
+        var committedResult by rememberRetainedExecutionResult("paper-transcribe:${context.action.canonicalId}")
+        var hadCommitted by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var includeFullJson by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         var workspaceMode by rememberSaveable(context.action.canonicalId) {
@@ -257,6 +262,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun saveOverride(fieldName: String, value: String) {
+            commitController.cancel()
             val before = results.firstOrNull { it.spec.name == fieldName } ?: return
             val provisional = PaperExtractionEngine.withManualValue(before, value)
 
@@ -277,6 +283,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun setNaOverride(fieldName: String) {
+            commitController.cancel()
             val before = results.firstOrNull { it.spec.name == fieldName } ?: return
             if (before.naOverride) return
             val provisional = PaperExtractionEngine.withNaOverride(before)
@@ -307,9 +314,10 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                 status = templateError ?: "Paper template is invalid."
                 return
             }
+            commitController.cancel()
             lastAcquisitionMode = acquisitionMode
             processing = true
-            committedResult = null
+            committedResult = null; hadCommitted = false
             if (!preserveExistingPreview) {
                 session = null
                 results = emptyList()
@@ -331,6 +339,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         acquisitionMode = acquisitionMode
                     )
                 }
+                commitController.cancel()
                 processing = false
                 outcome.onFailure { error ->
                     status = error.message ?: "Paper extraction failed."
@@ -498,11 +507,12 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                 dashboardMessage = status
                 return
             }
+            commitController.cancel()
+            session = null
+            results = emptyList()
             val source = sourceOverride ?: inputSource
             inputSource = source
-            committedResult = null
-            committedStableJson = ""
-            committedDynamicJson = ""
+            committedResult = null; hadCommitted = false
             includeFullJson = false
             exportStatus = ""
             workspaceMode = "scan"
@@ -514,6 +524,8 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
         }
 
         LaunchedEffect(Unit) {
+            // Committed evidence is not a request to replay OCR or acquisition.
+            if (hadCommitted) return@LaunchedEffect
             if (sourceUriText.isNotBlank() && session == null && !processing) {
                 val stable = runCatching {
                     val uri = Uri.parse(sourceUriText)
@@ -543,146 +555,76 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun commit() {
+            if (commitController.inFlight || processing || scannerActive || hadCommitted) return
             val extracted = session ?: return
-            if (results.any { !it.resolved }) {
-                status = "Resolve every review item before Commit."
+            if (template?.rawJson != extracted.template.rawJson) {
+                status = "The schema changed. Scan the page again before Commit."
                 return
             }
-            val dynamic = results.associate { it.spec.name to it.finalValue }
-            scope.launch {
-                val stable = runCatching {
-                    val sourceHash = withContext(Dispatchers.IO) { PaperBridgeFiles.sha256(appContext, extracted.sourceUri) }
-                    val rectifiedHash = withContext(Dispatchers.IO) { PaperBridgeFiles.sha256(appContext, extracted.rectifiedUri) }
-                    val manualEditCount = runCatching { JSONArray(manualAuditJson).length() }.getOrDefault(0)
-                    val logicChecksJson = PaperXlsLogic.checksJson(results)
-                    val logicViolationCount = results.count { it.logicViolation }
-                    val logicUnknownCount = results.count { it.logicUnknown }
-                    val naFieldsJson = JSONArray(results.filter { it.naOverride }.map { it.spec.name }).toString()
-                    linkedMapOf(
-                        PaperBridgeFields.STATUS to "succeeded",
-                        PaperBridgeFields.TEMPLATE_ID to extracted.template.templateId,
-                        PaperBridgeFields.TEMPLATE_VERSION to extracted.template.version,
-                        PaperBridgeFields.VALUES_JSON to PaperExtractionEngine.valuesJson(results),
-                        PaperBridgeFields.DYNAMIC_FIELDS_JSON to PaperExtractionEngine.dynamicFieldsJson(results),
-                        PaperBridgeFields.FIELD_COUNT to results.size.toString(),
-                        PaperBridgeFields.AUTO_ACCEPTED_COUNT to results.count { it.autoAccepted }.toString(),
-                        PaperBridgeFields.REVIEWED_COUNT to results.count { it.reviewed }.toString(),
-                        PaperBridgeFields.UNRESOLVED_COUNT to "0",
-                        // The caller needs the complete scan bundle: original
-                        // acquisition plus registered analysis page. A caller-
-                        // supplied source is still part of that bundle.
-                        PaperBridgeFields.SOURCE_IMAGE to extracted.sourceUri.toString(),
-                        PaperBridgeFields.RECTIFIED_IMAGE to extracted.rectifiedUri.toString(),
-                        PaperBridgeFields.TEMPLATE_SHA256 to PaperBridgeFiles.sha256Text(extracted.template.rawJson),
-                        PaperBridgeFields.SOURCE_SHA256 to sourceHash,
-                        PaperBridgeFields.RECTIFIED_SHA256 to rectifiedHash,
-                        PaperBridgeFields.EXTRACTION_AUDIT_JSON to PaperExtractionEngine.auditJson(extracted, results, manualAuditJson),
-                        PaperBridgeFields.MANUAL_EDITS_JSON to manualAuditJson,
-                        PaperBridgeFields.MANUAL_EDIT_COUNT to manualEditCount.toString(),
-                        PaperBridgeFields.LOGIC_CHECKS_JSON to logicChecksJson,
-                        PaperBridgeFields.LOGIC_VIOLATION_COUNT to logicViolationCount.toString(),
-                        PaperBridgeFields.LOGIC_UNKNOWN_COUNT to logicUnknownCount.toString(),
-                        PaperBridgeFields.NA_FIELDS_JSON to naFieldsJson,
-                        PaperBridgeFields.ATTACHMENT_METADATA_JSON to JSONObject().apply {
-                            put("schema", "methodmesh.paper.attachments.v1")
-                            put("source", JSONObject().apply {
-                                put("sha256", sourceHash)
-                                put("role", "source_scan")
-                                put("returned_to_caller", !(automaticReturn && extracted.acquisitionMode == "caller_supplied"))
-                            })
-                            put("rectified", JSONObject().apply {
-                                put("sha256", rectifiedHash)
-                                put("role", "registered_analysis_page")
-                                put("width_px", extracted.rectifiedBitmap.width)
-                                put("height_px", extracted.rectifiedBitmap.height)
-                                put("coordinate_frame", if (extracted.template.registration.type == PaperRegistrationType.APRILTAG8) "canonical_page" else "anchor_centres")
-                                put("registration_type", extracted.template.registration.type.name.lowercase())
-                                if (extracted.template.registration.type != PaperRegistrationType.BULLSEYE4 && extracted.template.registration.schemaKey.isNotBlank()) put("registration_schema_key", extracted.template.registration.schemaKey)
-                            })
-                            put("field_attachments", org.json.JSONArray().apply {
-                                results.filter { it.spec.type == PaperFieldType.IMAGE && it.finalValue.startsWith("content://") }.forEach { imageResult ->
-                                    val imageUri = Uri.parse(imageResult.finalValue)
-                                    put(JSONObject().apply {
-                                        put("field", imageResult.spec.name)
-                                        put("label", imageResult.spec.label)
-                                        put("sha256", withContext(Dispatchers.IO) { PaperBridgeFiles.sha256(appContext, imageUri) })
-                                        put("role", "paper_roi_image")
-                                    })
-                                }
-                            })
-                            put("acquisition_mode", extracted.acquisitionMode)
-                            put("registration_mode", extracted.rectification.registrationMode)
-                            put("scan_time_iso", extracted.scanTimeIso)
-                        }.toString(),
-                        PaperBridgeFields.SCAN_TIME_ISO to extracted.scanTimeIso,
-                        PaperBridgeFields.ERROR to ""
-                    )
-                }.getOrElse { error ->
-                    status = "Commit failed: ${error.message ?: "could not construct final audit payload"}"
-                    return@launch
+            val reviewedResults = results
+            val reviewedAudit = manualAuditJson
+            val reviewedTemplateJson = templateJson
+            val reviewedSource = sourceUriText
+            val reviewedMode = workspaceMode
+            val snapshot = runCatching {
+                PaperCommitSnapshot.capture(extracted, reviewedResults, reviewedAudit, automaticReturn)
+            }.getOrElse {
+                status = it.message ?: "Could not freeze the reviewed answers."
+                return
+            }
+            val request = As100PaperFormTranscribeMethod.request(
+                action = As100PaperFormTranscribeMethod.ID,
+                context = context.request.invocationContext.asMap(As100PaperFormTranscribeMethod.ID) + context.action.settings,
+                signals = emptyList(), inputs = emptyList()
+            )
+            status = "Preparing committed record…"
+            commitController.start(scope, prepare = {
+                val stable = snapshot.withHashes { uri ->
+                    withContext(Dispatchers.IO) { PaperBridgeFiles.sha256(appContext, Uri.parse(uri)) }
                 }
-                val request = As100PaperFormTranscribeMethod.request(
-                    action = As100PaperFormTranscribeMethod.ID,
-                    context = context.request.invocationContext.asMap(As100PaperFormTranscribeMethod.ID) + context.action.settings,
-                    signals = emptyList(),
-                    inputs = emptyList()
-                )
-                val execution = As100PaperFormTranscribeMethod.result(request, stable, dynamic, context.request.invocationContext)
+                As100PaperFormTranscribeMethod.result(request, stable, snapshot.dynamicValues, context.request.invocationContext)
+            }, isCurrent = {
+                // Fence late acquisition/import/review callbacks, not just visible controls.
+                session === extracted && results === reviewedResults && manualAuditJson == reviewedAudit &&
+                    templateJson == reviewedTemplateJson && sourceUriText == reviewedSource && workspaceMode == reviewedMode
+            }, onStale = {
+                status = "Commit cancelled because the working scan changed. Review it and Commit again."
+            }, onReady = { execution ->
                 committedResult = execution
-                committedStableJson = JSONObject(stable).toString()
-                committedDynamicJson = JSONObject(dynamic).toString()
+                hadCommitted = true
                 includeFullJson = false
                 exportStatus = ""
-                if (!automaticReturn) {
+                val recentFailure = if (!automaticReturn) runCatching {
                     PaperBridgeWorkspace.recordCommit(
-                        context = appContext,
-                        template = extracted.template,
-                        scanTimeIso = extracted.scanTimeIso,
-                        fieldCount = results.size,
-                        autoAcceptedCount = results.count { it.autoAccepted },
-                        reviewedCount = results.count { it.reviewed }
+                        context = appContext, template = extracted.template, scanTimeIso = extracted.scanTimeIso,
+                        fieldCount = snapshot.fieldCount, autoAcceptedCount = snapshot.autoAcceptedCount,
+                        reviewedCount = snapshot.reviewedCount
                     )
                     workspaceRevision += 1
-                }
-
+                }.exceptionOrNull() else null
                 if (automaticReturn) {
                     status = "Committed · returning to calling workflow."
                     onConfirmed(execution)
                 } else {
                     status = "Committed. Share, Save or Done when ready."
+                    if (recentFailure != null) exportStatus = "Committed record is available, but recent activity could not be updated."
                 }
-            }
+            }, onFailure = { error ->
+                status = "Commit failed: " + (error.message ?: "could not construct final audit payload")
+            })
         }
 
         val unresolved = results.count { !it.resolved }
         val autoAccepted = results.count { it.autoAccepted }
         val reviewed = results.count { it.reviewed }
-        fun mapFromJson(raw: String): Map<String, String> = if (raw.isBlank()) emptyMap() else runCatching {
-            val obj = JSONObject(raw)
-            buildMap { obj.keys().forEach { key -> put(key, obj.optString(key, "")) } }
-        }.getOrDefault(emptyMap())
-
-        val committedStable = remember(committedStableJson) { mapFromJson(committedStableJson) }
-        val committedDynamic = remember(committedDynamicJson) { mapFromJson(committedDynamicJson) }
-        val restoredCommittedResult = remember(committedStableJson, committedDynamicJson) {
-            if (committedStable.isEmpty()) null else {
-                val request = As100PaperFormTranscribeMethod.request(
-                    action = As100PaperFormTranscribeMethod.ID,
-                    context = context.request.invocationContext.asMap(As100PaperFormTranscribeMethod.ID) + context.action.settings,
-                    signals = emptyList(),
-                    inputs = emptyList()
-                )
-                As100PaperFormTranscribeMethod.result(request, committedStable, committedDynamic, context.request.invocationContext)
-            }
-        }
-        val frozenResult = committedResult ?: restoredCommittedResult
-        val committedFields = remember(frozenResult?.request?.id?.value, committedStableJson, committedDynamicJson) {
+        val frozenResult = committedResult
+        val committedStable = remember(frozenResult) { paperCommittedFields(frozenResult).filterKeys { it in PaperBridgeFields.outputs } }
+        val committedDynamic = remember(frozenResult) { paperCommittedDynamicFields(frozenResult) }
+        val committedFields = remember(frozenResult) {
             frozenResult?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty()
         }
-        val fullJson = remember(frozenResult?.request?.id?.value, committedStableJson, committedDynamicJson) {
-            frozenResult?.let {
-                OutputFormatter.format(it, ReturnMode.Json, includeProvenance = true, payloadMode = OutputFormatter.PayloadMode.FULL)
-            }.orEmpty()
+        val fullJson = remember(frozenResult) {
+            frozenResult?.let { OutputFormatter.format(it, ReturnMode.Json, includeProvenance = true, payloadMode = OutputFormatter.PayloadMode.FULL) }.orEmpty()
         }
 
         fun committedBeefText(): String {
@@ -703,9 +645,6 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         ?.let { PaperBridgeShareAttachment("field_${field.name}.jpg", it) }
                 }
             val pageAttachments = listOfNotNull(
-                committedStable[PaperBridgeFields.SOURCE_IMAGE]
-                    ?.takeIf { ResultShare.isShareableMediaField(PaperBridgeFields.SOURCE_IMAGE, it) }
-                    ?.let { PaperBridgeShareAttachment("paper_source.jpg", it) },
                 committedStable[PaperBridgeFields.RECTIFIED_IMAGE]
                     ?.takeIf { ResultShare.isShareableMediaField(PaperBridgeFields.RECTIFIED_IMAGE, it) }
                     ?.let { PaperBridgeShareAttachment("paper_rectified.jpg", it) }
@@ -713,8 +652,8 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
             return (pageAttachments + fieldAttachments).distinctBy { it.uri }
         }
 
-        fun shareCommitted() {
-            runCatching {
+        fun shareCommitted(): Boolean {
+            return runCatching {
                 val attachments = committedAttachments()
                 ResultShare.share(
                     context = appContext,
@@ -724,27 +663,28 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                     jsonText = if (includeFullJson) fullJson else "",
                     fileLabel = "Paper Bridge transcription"
                 )
-                exportStatus = "Sharing transcription text file plus ${attachments.size} media attachment${if (attachments.size == 1) "" else "s"}${if (includeFullJson) " and metadata.json" else ""}."
-            }.onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
+                exportStatus = "Sharing transcription text file plus ${attachments.size} media attachment${if (attachments.size == 1) "" else "s"}${if (includeFullJson) " with audit appended to the text" else ""}."
+            }.onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }.isSuccess
         }
 
-        fun saveCommitted() {
+        fun saveCommitted(): Boolean {
             val text = committedBeefText()
             val attachments = committedAttachments()
-            if (text.isBlank() && attachments.isEmpty()) return
-            runCatching {
-                PaperBridgeResultActions.saveToFiles(
+            if (text.isBlank() && attachments.isEmpty()) {
+                exportStatus = "Save failed: no committed result files are available."
+                return false
+            }
+            return runCatching {
+                PaperBridgeResultActions.saveToDownloads(
                     context = appContext,
-                    collectionLabel = committedStable[PaperBridgeFields.TEMPLATE_ID].orEmpty().ifBlank { "transcription" },
-                    textFileName = "transcription.txt",
+                    label = "Paper Bridge transcription " + committedStable[PaperBridgeFields.TEMPLATE_ID].orEmpty(),
                     text = text,
                     attachments = attachments,
-                    jsonText = if (includeFullJson) fullJson else "",
-                    entryId = frozenResult?.request?.id?.value
+                    jsonText = if (includeFullJson) fullJson else ""
                 )
             }.onSuccess { saved ->
-                exportStatus = "Saved ${saved.fileCount} file${if (saved.fileCount == 1) "" else "s"} to MethodMesh Files."
-            }.onFailure { exportStatus = "Save failed: ${it.message ?: "Files storage error"}" }
+                exportStatus = "Saved ${saved.summary}"
+            }.onFailure { exportStatus = "Save failed: ${it.message ?: "Downloads storage error"}" }.isSuccess
         }
 
         fun finishCommitted(resultValue: ExecutionResult) {
@@ -753,12 +693,37 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                 return
             }
             when {
-                presetResultAction == PresetResultAction.SAVE -> { saveCommitted(); onConfirmed(resultValue) }
-                finishToLauncher -> onConfirmed(resultValue)
+                presetResultAction == PresetResultAction.SHARE -> { if (shareCommitted()) onConfirmed(resultValue) }
+                presetResultAction == PresetResultAction.SAVE -> { if (saveCommitted()) onConfirmed(resultValue) }
+                finishToLauncher || context.hostOwnsNativePresetCloseout -> onConfirmed(resultValue)
                 else -> appContext.startActivity(Intent(appContext, MainActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
                 })
             }
+        }
+
+        if (commitController.inFlight) {
+            Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Preparing committed record…", style = MaterialTheme.typography.titleMedium)
+                Text("Answers and audit are frozen while the scan and attachment hashes are checked.")
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+                OutlinedButton(onClick = {
+                    commitController.cancel()
+                    status = "Commit cancelled. Review the scan and Commit when ready."
+                }) { Text("Cancel commit") }
+            }
+            return
+        }
+
+        if (hadCommitted && frozenResult == null) {
+            CapturedExecutionRecovery(onRestart = {
+                hadCommitted = false; includeFullJson = false; exportStatus = ""
+                session = null; results = emptyList(); sourceUriText = ""; scannerActive = false
+                manualOverridesJson = "{}"; naOverridesJson = "[]"; manualAuditJson = "[]"
+                workspaceMode = if (nativeDashboard) "dashboard" else "scan"
+                status = "Start a new scan to create a new record."
+            }, onClose = onCancel, restartLabel = "Start new scan")
+            return
         }
 
         if (nativeDashboard && workspaceMode == "designer" && frozenResult == null) {
@@ -884,9 +849,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                     Text(
                         "‹  Dashboard",
                         modifier = Modifier.clickable {
-                            committedResult = null
-                            committedStableJson = ""
-                            committedDynamicJson = ""
+                            committedResult = null; hadCommitted = false
                             workspaceMode = "dashboard"
                         }.padding(vertical = 6.dp),
                         style = MaterialTheme.typography.labelLarge,
@@ -936,7 +899,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                     Spacer(Modifier.height(12.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(modifier = Modifier.weight(1f), onClick = ::shareCommitted) { Text("Share") }
-                        Button(modifier = Modifier.weight(1f), onClick = ::saveCommitted) { Text("Save") }
+                        Button(modifier = Modifier.weight(1f), onClick = ::saveCommitted) { Text("Save to Downloads") }
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -944,7 +907,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                         Spacer(Modifier.size(8.dp))
                         Column {
                             Text("Include full JSON / audit", style = MaterialTheme.typography.labelLarge)
-                            Text("Share sends transcription.txt, media and metadata.json; Save writes the same bundle.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Share includes equivalent message/text-file content and media. Audit is appended as text; Save adds a metadata file in Downloads.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     if (exportStatus.isNotBlank()) {
@@ -955,9 +918,7 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                     Button(modifier = Modifier.fillMaxWidth(), onClick = {
                         val resultValue = requireNotNull(frozenResult)
                         if (nativeDashboard) {
-                            committedResult = null
-                            committedStableJson = ""
-                            committedDynamicJson = ""
+                            committedResult = null; hadCommitted = false
                             includeFullJson = false
                             exportStatus = ""
                             session = null
@@ -973,13 +934,16 @@ object PaperFormTranscribeCapabilityScreen : CapabilityScreenSpec {
                             finishCommitted(resultValue)
                         }
                     }) {
-                        Text(if (nativeDashboard) "Back to Paper Bridge" else "Done")
+                        Text(when {
+                            nativeDashboard -> "Back to Paper Bridge"
+                            context.isNativePresetRun && context.isLastStep && presetResultAction == PresetResultAction.SHARE -> "Share and finish"
+                            context.isNativePresetRun && context.isLastStep && presetResultAction == PresetResultAction.SAVE -> "Save and finish"
+                            else -> "Done"
+                        })
                     }
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = {
-                        committedResult = null
-                        committedStableJson = ""
-                        committedDynamicJson = ""
+                        committedResult = null; hadCommitted = false
                         includeFullJson = false
                         exportStatus = ""
                         status = "Committed result reopened for editing."

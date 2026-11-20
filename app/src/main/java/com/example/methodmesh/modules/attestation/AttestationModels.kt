@@ -150,7 +150,7 @@ data class AttestationRecord(
      * derivable internal metadata remains in the MethodMesh graph and detailed selectors.
      */
     fun asOutputMap(): Map<String, String> = linkedMapOf<String, String>().apply {
-        put("attestation_schema_version", "4")
+        put("attestation_schema_version", As100CreateAttestationMethod.SCHEMA_VERSION)
         put("attestation_id", attestationId)
         put("study_id", studyId)
         put("event_type", eventType)
@@ -207,7 +207,7 @@ data class AttestationRecord(
             previousAttestationHash: String,
             publicKeyId: String
         ): String = listOf(
-            "attestation_schema_version=4",
+            "attestation_schema_version=${As100CreateAttestationMethod.SCHEMA_VERSION}",
             "attestation_id=$attestationId",
             "study_id=$studyId",
             "operator_id=$operatorId",

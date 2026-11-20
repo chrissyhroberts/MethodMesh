@@ -15,6 +15,7 @@ object NfcModule : MethodMeshModule {
         As100NfcWipeMethod,
         As100NfcCredentialProvisioningMethod,
         As100NfcCredentialVerificationMethod,
+        As100NfcOdkFormCompilerMethod,
         As100NfcIssuerIdentityMethod,
         As100ProtocolNfcCheckMethod,
         As100ProtocolNfcCompleteMethod,
@@ -44,6 +45,11 @@ object NfcModule : MethodMeshModule {
             "Verify a portable NFC credential and PIN"
         ),
         RilBinding(
+            "compile nfc odk form",
+            As100NfcOdkFormCompilerMethod.ID,
+            "Map and timestamp an ODK XLSX for MethodMesh NFC"
+        ),
+        RilBinding(
             "show nfc issuer identity",
             As100NfcIssuerIdentityMethod.ID,
             "Show this installation's public NFC credential issuer identity"
@@ -66,6 +72,7 @@ object NfcModule : MethodMeshModule {
         NfcWipeCapabilityScreen,
         NfcCredentialProvisioningCapabilityScreen,
         NfcCredentialVerificationCapabilityScreen,
+        NfcOdkFormCompilerCapabilityScreen,
         NfcIssuerIdentityCapabilityScreen,
         ProtocolNfcCheckCapabilityScreen,
         ProtocolNfcCompleteCapabilityScreen,
@@ -96,6 +103,24 @@ object NfcModule : MethodMeshModule {
                 "Legacy/local issuer allow-list",
                 "Optional immediate local enforcement for specialised workflows. This is not the study provisioning-device registry; leave blank for the normal evidence-first workflow.",
                 defaultValue = ""
+            )
+        ),
+        As100NfcOdkFormCompilerMethod.ID to listOf(
+            MethodSetting.ChoiceSetting(
+                id = "nfc_mode",
+                label = "NFC operation",
+                description = "Form mapping operation",
+                group = "Form",
+                defaultValue = "verification",
+                choices = listOf("provisioning", "verification")
+            ),
+            MethodSetting.ChoiceSetting(
+                id = "nfc_form_contract_version",
+                label = "NFC form contract",
+                description = "Immutable NFC form contract version",
+                group = "Form",
+                defaultValue = "v1",
+                choices = listOf("v1")
             )
         ),
         As100ProtocolNfcCheckMethod.id to protocolSettings(),

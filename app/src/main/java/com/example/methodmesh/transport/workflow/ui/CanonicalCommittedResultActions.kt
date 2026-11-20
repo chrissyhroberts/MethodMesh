@@ -1,5 +1,8 @@
 package com.example.methodmesh.transport.workflow.ui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.net.Uri
@@ -14,13 +17,25 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.findViewTreeViewModelStoreOwner
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.util.UUID
+import com.example.methodmesh.core.protocols.PresetResultAction
+import com.example.methodmesh.transport.LegacyDownloadsPermission
 import androidx.compose.ui.unit.dp
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.OutputExportRepository
@@ -37,103 +52,128 @@ import com.example.methodmesh.transport.ReturnMode
 internal fun CanonicalCommittedResultActions(
     result: ExecutionResult,
     label: String,
+    screenContext: CapabilityScreenContext,
     onDone: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    primaryText: String? = null,
+    attachments: List<ResultShare.Attachment>? = null,
+    onBusyChanged: ((Boolean) -> Unit)? = null,
+    completionLabel: String? = null,
+    shareButtonLabel: String = "Share"
 ) {
     val appContext = LocalContext.current
-    val projection = NativeCommittedResultProjection.from(result)
+    // Module-owned primary text/attachment policy is presentation only; FULL stays canonical.
+    val projection = remember(result, primaryText, attachments) {
+        NativeCommittedResultProjection.from(result).let { original ->
+            original.copy(text = primaryText ?: original.text,
+                attachments = attachments?.map { it.name to it.uri } ?: original.attachments)
+        }
+    }
+    val owner = checkNotNull(LocalView.current.findViewTreeViewModelStoreOwner())
+    val store = remember(owner) { ViewModelProvider(owner)[CommittedActionStore::class.java] }
+    val actionKey = rememberSaveable(result.request.id.value) { UUID.randomUUID().toString() }
+    val state = remember(store, actionKey) { store.slot(actionKey) }
+    val activity = appContext.actionHostActivity()
+    DisposableEffect(store, actionKey, activity) {
+        onDispose { if (activity != null && !activity.isChangingConfigurations) store.forget(actionKey) }
+    }
     var includeFullJson by rememberSaveable(result.request.id.value) { mutableStateOf(false) }
-    var status by rememberSaveable(result.request.id.value) { mutableStateOf("") }
+
     val copiedText = ResultShare.buildShareText(
         projection.text,
         if (includeFullJson) projection.fullJson else ""
     )
 
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("Include full JSON / audit", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    if (includeFullJson) {
-                        "Share sends result.txt, media and metadata.json; Copy keeps using text."
-                    } else {
-                        "Off by default for manual runs."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(checked = includeFullJson, onCheckedChange = { includeFullJson = it })
-        }
+    val selectedJson = if (includeFullJson) projection.fullJson else ""
+    val hasPayload = projection.text.isNotBlank() || projection.attachments.isNotEmpty() || selectedJson.isNotBlank()
+    val enabled = !state.busy && !state.finishPending && !state.finished
+    SideEffect { onBusyChanged?.invoke(!enabled) }
+    val presetAction = if (screenContext.isNativePresetRun && screenContext.isLastStep && !screenContext.submitsImmediately) {
+        PresetResultAction.normalize(screenContext.request.settings["methodmesh_preset_result_action"]
+            ?: screenContext.request.settings["input_methodmesh_preset_result_action"] ?: PresetResultAction.HOME)
+    } else PresetResultAction.HOME
+    val doneLabel = completionLabel ?: when (presetAction) {
+        PresetResultAction.SHARE -> "Share and finish"
+        PresetResultAction.SAVE -> "Save and finish"
+        else -> "Done"
+    }
 
-        Button(
-            onClick = {
-                runCatching {
-                    ResultShare.share(
-                        context = appContext,
-                        chooserTitle = "Share $label",
-                        text = projection.text,
-                        attachments = projection.attachments.map { (name, uri) ->
-                            ResultShare.Attachment(name, uri)
-                        },
-                        jsonText = if (includeFullJson) projection.fullJson else "",
-                        fileLabel = label
-                    )
-                }.onSuccess { status = "Sharing committed result…" }
-                    .onFailure { status = "Share failed: ${it.message ?: "no sharing app available"}" }
-            },
-            enabled = projection.text.isNotBlank() || projection.attachments.isNotEmpty() ||
-                (includeFullJson && projection.fullJson.isNotBlank()),
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Share") }
+    LaunchedEffect(state.finishPending, onDone) {
+        if (onDone != null && state.takeFinish()) onDone()
+    }
 
-        OutlinedButton(
-            onClick = {
-                runCatching {
-                    if (copiedText.isBlank()) error("No text result to copy.")
-                    appContext.getSystemService(ClipboardManager::class.java)
-                        .setPrimaryClip(ClipData.newPlainText("MethodMesh result", copiedText))
-                }.onSuccess { status = "Copied committed result." }
-                    .onFailure { status = "Copy failed: ${it.message ?: "no text result"}" }
-            },
-            enabled = copiedText.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Copy") }
+    fun startAction(finishing: Boolean, failureLabel: String, before: () -> Unit = {}, operation: suspend () -> String) {
+        store.start(state, finishing, failureLabel, before, operation)
+        // Fence parent reacquisition immediately, before another queued input event.
+        // The effect above also reports asynchronous completion and recreation state.
+        onBusyChanged?.invoke(state.busy || state.finishPending || state.finished)
+    }
 
-        OutlinedButton(
-            onClick = {
-                runCatching {
-                    OutputExportRepository.saveToDownloads(
-                        context = appContext,
-                        label = label,
-                        text = projection.text,
-                        mediaUris = projection.attachments.map { it.second.toString() },
-                        jsonText = if (includeFullJson) projection.fullJson else ""
-                    )
-                }.onSuccess { status = "Saved ${it.summary}" }
-                    .onFailure { status = "Save failed: ${it.message ?: "storage error"}" }
-            },
-            enabled = projection.text.isNotBlank() || projection.attachments.isNotEmpty() ||
-                (includeFullJson && projection.fullJson.isNotBlank()),
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Save to Downloads") }
+    val recipientHint = screenContext.request.settings["methodmesh_share_recipient"]
+        ?: screenContext.request.settings["input_methodmesh_share_recipient"].orEmpty()
 
-        if (status.isNotBlank()) {
-            Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        if (onDone != null || onEdit != null) Spacer(Modifier.height(2.dp))
-        if (onDone != null) {
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("Done") }
-        }
-        if (onEdit != null) {
-            OutlinedButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) { Text("Edit / new run") }
+    fun share(finishing: Boolean) {
+        startAction(finishing, "Share failed") {
+            ResultShare.share(appContext, "Share $label", projection.text,
+                projection.attachments.map { (name, uri) -> ResultShare.Attachment(name, uri) },
+                jsonText = selectedJson, fileLabel = label, recipientHint = recipientHint)
+            "Sharing committed result…"
         }
     }
+    fun save(finishing: Boolean) {
+        // Permission-only UI must be launched on the UI thread before any write.
+        // The long-lived IO operation uses the application, not a departing Activity.
+        val storageContext = appContext.applicationContext
+        startAction(finishing, "Save failed", before = { LegacyDownloadsPermission.requireAccess(appContext) }) {
+            val saved = withContext(Dispatchers.IO) {
+                OutputExportRepository.saveToDownloads(storageContext, label, projection.text,
+                    projection.attachments.map { it.second.toString() }, selectedJson)
+            }
+            "Saved "+saved.summary
+        }
+    }
+
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column(Modifier.weight(1f)) {
+                Text("Include full JSON / audit", style = MaterialTheme.typography.titleSmall)
+                Text(if (includeFullJson) "Share includes audit in the text payload; Save adds a metadata file. Media stays unchanged."
+                    else "Off by default for manual runs.", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(checked = includeFullJson, onCheckedChange = { includeFullJson = it }, enabled = enabled)
+        }
+        Button(onClick = { share(false) }, enabled = enabled && hasPayload, modifier = Modifier.fillMaxWidth()) { Text(shareButtonLabel) }
+        OutlinedButton(onClick = {
+            startAction(false, "Copy failed") {
+                check(copiedText.isNotBlank()) { "No text result to copy." }
+                appContext.getSystemService(ClipboardManager::class.java)
+                    .setPrimaryClip(ClipData.newPlainText("MethodMesh result", copiedText))
+                "Copied committed result."
+            }
+        }, enabled = enabled && copiedText.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Copy") }
+        OutlinedButton(onClick = { save(false) }, enabled = enabled && hasPayload, modifier = Modifier.fillMaxWidth()) {
+            Text(if (state.busy) "Working…" else "Save to Downloads")
+        }
+        if (state.status.isNotBlank()) Text(state.status, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (onDone != null || onEdit != null) Spacer(Modifier.height(2.dp))
+        if (onDone != null) Button(onClick = {
+            when (presetAction) {
+                PresetResultAction.SHARE -> share(true)
+                PresetResultAction.SAVE -> save(true)
+                else -> startAction(true, "Completion failed") { "" }
+            }
+        }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text(doneLabel) }
+        if (onEdit != null) OutlinedButton(onClick = onEdit, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("Edit / new run") }
+    }
+}
+
+private tailrec fun Context.actionHostActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.actionHostActivity()
+    else -> null
 }
 
 internal data class NativeCommittedResultProjection(

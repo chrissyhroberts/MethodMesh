@@ -1,5 +1,7 @@
 package com.example.methodmesh.modules.imageredaction
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas as AndroidCanvas
@@ -10,18 +12,16 @@ import android.media.ExifInterface
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.drag
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -35,27 +35,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
+import androidx.core.content.ContextCompat
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.settings.MethodSetting
 import com.example.methodmesh.settings.SettingsState
-import com.example.methodmesh.transport.OutputFormatter
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenScaffold
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
 import com.example.methodmesh.transport.workflow.ui.IntentExample
 import com.example.methodmesh.transport.workflow.ui.IntentExampleDropdown
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 import org.json.JSONArray
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -63,8 +57,8 @@ import java.time.Instant
 
 object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
     override val capabilityId = As100ImageRedactionMethod.ID
-    override val title = "Image redaction"
-    override val description = "Mask selected regions and return only the redacted image."
+    override val title = "Redact photo"
+    override val description = "Take a new photo or choose a saved photo, then share only the redacted copy."
 
     @Composable
     override fun Render(
@@ -79,7 +73,7 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                 context.onSettingsChanged(mapOf(key to value.toString()))
             }.also { state ->
                 val definitions = ImageRedactionModule.capabilitySettings()[capabilityId].orEmpty().associateBy { it.id }
-                context.action.settings.forEach { (key, value) ->
+                imageRedactionInputSettings(context.action.settings).forEach { (key, value) ->
                     val canonicalKey = listOf(key, key.removePrefix("input_"))
                         .firstOrNull { it in definitions }
                         ?: key
@@ -91,84 +85,36 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
             }
         }
         var sourceUriString by rememberSaveable { mutableStateOf<String?>(null) }
+        var loadedPhotoSource by rememberSaveable { mutableStateOf("camera") }
         var bitmap by remember { mutableStateOf<Bitmap?>(null) }
         var selectedValue by rememberSaveable { mutableStateOf("") }
         val selected = remember(selectedValue) { selectedValue.split('|').filter(String::isNotBlank).toSet() }
-        var redactedImageUri by rememberSaveable { mutableStateOf<String?>(null) }
-        var redactedImageName by rememberSaveable { mutableStateOf<String?>(null) }
-        var redactionMaskJson by rememberSaveable { mutableStateOf<String?>(null) }
-        var redactionCellCount by rememberSaveable { mutableStateOf<String?>(null) }
-        var redactionRows by rememberSaveable { mutableStateOf<String?>(null) }
-        var redactionColumns by rememberSaveable { mutableStateOf<String?>(null) }
-        var redactionStyle by rememberSaveable { mutableStateOf<String?>(null) }
-        var redactionSource by rememberSaveable { mutableStateOf<String?>(null) }
-        var redactionTimeIso by rememberSaveable { mutableStateOf<String?>(null) }
-        var redactedImageSha256 by rememberSaveable { mutableStateOf<String?>(null) }
+        var result by rememberRetainedExecutionResult("${context.action.canonicalId}:photo")
+        var hadResult by rememberSaveable { mutableStateOf(false) }
         var status by rememberSaveable { mutableStateOf("Choose or capture an image, then mark regions to remove.") }
         var pendingCameraUriString by rememberSaveable { mutableStateOf<String?>(null) }
         var captureStarted by rememberSaveable { mutableStateOf(false) }
+        val viewport = rememberRedactionViewportState(sourceUriString)
+        var expandedPhoto by rememberSaveable(sourceUriString) { mutableStateOf(false) }
         val runtimeSettingsVisible = listOf(
             "input_source",
+            "source",
             "grid_rows",
             "grid_columns",
             "redaction_style"
         ).any(context::settingIsRuntimeInput)
-        val result = remember(
-            redactedImageUri,
-            redactedImageName,
-            redactionMaskJson,
-            redactionCellCount,
-            redactionRows,
-            redactionColumns,
-            redactionStyle,
-            redactionSource,
-            redactionTimeIso,
-            redactedImageSha256
-        ) {
-            val uri = redactedImageUri
-            if (uri.isNullOrBlank()) {
-                null
-            } else {
-                val values = linkedMapOf(
-                    ImageRedactionFields.STATUS to "succeeded",
-                    ImageRedactionFields.REDACTED_IMAGE_URI to uri,
-                    ImageRedactionFields.REDACTED_IMAGE_NAME to redactedImageName.orEmpty(),
-                    ImageRedactionFields.REDACTED_IMAGE_SHA256 to redactedImageSha256.orEmpty(),
-                    ImageRedactionFields.MASK_JSON to redactionMaskJson.orEmpty(),
-                    ImageRedactionFields.SELECTED_CELLS to redactionCellCount.orEmpty(),
-                    ImageRedactionFields.GRID_ROWS to redactionRows.orEmpty(),
-                    ImageRedactionFields.GRID_COLUMNS to redactionColumns.orEmpty(),
-                    ImageRedactionFields.STYLE to redactionStyle.orEmpty(),
-                    ImageRedactionFields.SOURCE to redactionSource.orEmpty(),
-                    ImageRedactionFields.CREATED_TIME_ISO to redactionTimeIso.orEmpty(),
-                    ImageRedactionFields.ERROR to ""
-                )
-                As100ImageRedactionMethod.result(
-                    As100ImageRedactionMethod.request(capabilityId, context.request.invocationContext.asMap(capabilityId) + values),
-                    values,
-                    context.request.invocationContext
-                )
-            }
-        }
 
-        fun load(uri: Uri) {
+        fun load(uri: Uri, source: String) {
             runCatching {
                 decodeOrientedBitmap(appContext, uri)
                     ?: error("Could not decode image")
             }.onSuccess {
                 sourceUriString = uri.toString()
                 bitmap = it
+                loadedPhotoSource = source
                 selectedValue = ""
-                redactedImageUri = null
-                redactedImageName = null
-                redactionMaskJson = null
-                redactionCellCount = null
-                redactionRows = null
-                redactionColumns = null
-                redactionStyle = null
-                redactionSource = null
-                redactionTimeIso = null
-                redactedImageSha256 = null
+                result = null
+                hadResult = false
                 status = "Image loaded. Tap or swipe cells to toggle redaction."
             }.onFailure {
                 status = "Image load failed: ${it.message ?: "unknown error"}"
@@ -176,25 +122,40 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
         }
 
         LaunchedEffect(sourceUriString) {
-            if (bitmap == null && !sourceUriString.isNullOrBlank()) {
+            if (hadResult && result == null) {
+                hadResult = false
+                status = "Committed result unavailable. Review the mask and create a new redacted photo."
+            }
+            if (result == null && bitmap == null && !sourceUriString.isNullOrBlank()) {
                 runCatching { decodeOrientedBitmap(appContext, Uri.parse(sourceUriString)) }
                     .onSuccess { bitmap = it }
             }
         }
 
         val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let(::load)
+            if (uri != null) load(uri, "file_picker") else status = "No saved photo selected."
         }
         val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
             val uri = pendingCameraUriString?.let(Uri::parse)
-            if (ok && uri != null) load(uri) else status = "Camera capture cancelled."
+            if (ok && uri != null) load(uri, "camera") else status = "Camera capture cancelled."
         }
 
+        fun launchCameraCapture() {
+            runCatching {
+                val file = File(appContext.cacheDir, "methodmesh-redaction-source-${System.currentTimeMillis()}.jpg")
+                val uri = FileProvider.getUriForFile(appContext, "${appContext.packageName}.fileprovider", file)
+                pendingCameraUriString = uri.toString()
+                camera.launch(uri)
+            }.onFailure { status = "Camera unavailable: ${it.message ?: "try choosing a saved photo"}" }
+        }
+        val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) launchCameraCapture()
+            else status = "Camera permission denied. Allow camera access and retry, or use a saved photo."
+        }
         fun startCamera() {
-            val file = File(appContext.cacheDir, "methodmesh-redaction-source-${System.currentTimeMillis()}.jpg")
-            val uri = FileProvider.getUriForFile(appContext, "${appContext.packageName}.fileprovider", file)
-            pendingCameraUriString = uri.toString()
-            camera.launch(uri)
+            captureStarted = true
+            if (ContextCompat.checkSelfPermission(appContext, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) launchCameraCapture()
+            else cameraPermission.launch(Manifest.permission.CAMERA)
         }
 
         fun startConfiguredSource() {
@@ -204,10 +165,11 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                     status = "Choose an image to redact."
                     picker.launch("image/*")
                 }
-                else -> {
+                "camera" -> {
                     status = "Opening camera…"
                     startCamera()
                 }
+                else -> status = "Unknown photo source. Choose a new or saved photo."
             }
         }
 
@@ -252,30 +214,15 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                 ImageRedactionFields.GRID_ROWS to rows.toString(),
                 ImageRedactionFields.GRID_COLUMNS to cols.toString(),
                 ImageRedactionFields.STYLE to settings.getString("redaction_style"),
-                ImageRedactionFields.SOURCE to settings.getString("input_source"),
+                ImageRedactionFields.SOURCE to loadedPhotoSource,
                 ImageRedactionFields.CREATED_TIME_ISO to createdAt,
                 ImageRedactionFields.ERROR to ""
             )
-            redactedImageUri = uri
-            redactedImageName = file.name
-            redactionMaskJson = maskJson
-            redactionCellCount = selected.size.toString()
-            redactionRows = rows.toString()
-            redactionColumns = cols.toString()
-            redactionStyle = settings.getString("redaction_style")
-            redactionSource = settings.getString("input_source")
-            redactionTimeIso = createdAt
-            redactedImageSha256 = finalJpegSha256
+            result = As100ImageRedactionMethod.result(
+                As100ImageRedactionMethod.request(capabilityId, context.request.invocationContext.asMap(capabilityId) + values),
+                values, context.request.invocationContext)
+            hadResult = true
             status = "Redacted image created. Original image is not returned."
-            if (context.submitsImmediately) {
-                onConfirmed(
-                    As100ImageRedactionMethod.result(
-                        As100ImageRedactionMethod.request(capabilityId, context.request.invocationContext.asMap(capabilityId) + values),
-                        values,
-                        context.request.invocationContext
-                    )
-                )
-            }
         }
 
         CapabilityScreenScaffold(
@@ -284,22 +231,19 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
             context = context,
             canGoBack = context.stepNumber > 1,
             capturedResult = result,
-            resultPreview = result?.let { OutputFormatter.fields(it, includeProvenance = false) }.orEmpty(),
+            // The photo is the practical result. Passing the hash here makes generic Share
+            // manufacture a hash-only text sidecar and turns a JPEG into a mixed-file share.
+            // Keep complete evidence in the unchanged execution/FULL JSON, not default Share.
+            resultPreview = result?.observations?.singleOrNull()?.values
+                ?.get(ImageRedactionFields.REDACTED_IMAGE_URI)
+                ?.let { mapOf(ImageRedactionFields.REDACTED_IMAGE_URI to it) }.orEmpty(),
             onBack = onBack,
             onRetry = {
                 bitmap = null
                 sourceUriString = null
                 selectedValue = ""
-                redactedImageUri = null
-                redactedImageName = null
-                redactionMaskJson = null
-                redactionCellCount = null
-                redactionRows = null
-                redactionColumns = null
-                redactionStyle = null
-                redactionSource = null
-                redactionTimeIso = null
-                redactedImageSha256 = null
+                result = null
+                hadResult = false
                 captureStarted = false
                 status = "Choose or capture an image, then mark regions to remove."
                 if (context.startsImmediately && !runtimeSettingsVisible) startConfiguredSource()
@@ -309,20 +253,20 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
         ) {
             Text(status, style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
+            if (bitmap == null && result == null && captureStarted) {
+                OutlinedButton(onClick = ::startConfiguredSource, modifier = Modifier.fillMaxWidth()) { Text("Try photo again") }
+            }
             if (!context.startsImmediately || runtimeSettingsVisible) {
-                if (!context.settingIsFixedInNativePreset("input_source")) {
-                Row(Modifier.fillMaxWidth()) {
-                    Button(onClick = { settings.setString("input_source", "camera"); startCamera() }, modifier = Modifier.weight(1f)) { Text("Camera") }
-                    Spacer(Modifier.padding(4.dp))
-                    OutlinedButton(onClick = { settings.setString("input_source", "file_picker"); picker.launch("image/*") }, modifier = Modifier.weight(1f)) { Text("Pick image") }
-                }
+                if (!context.settingIsFixedInNativePreset("input_source") || context.settingIsRuntimeInput("source")) {
+                    Button(onClick = { settings.setString("input_source", "camera"); startCamera() }, modifier = Modifier.fillMaxWidth()) { Text("Take new photo") }
+                    OutlinedButton(onClick = { settings.setString("input_source", "file_picker"); picker.launch("image/*") }, modifier = Modifier.fillMaxWidth()) { Text("Choose saved photo") }
                 }
                 if (!context.settingIsFixedInNativePreset("grid_rows") || !context.settingIsFixedInNativePreset("grid_columns")) {
                 Row(Modifier.fillMaxWidth()) {
                     if (!context.settingIsFixedInNativePreset("grid_rows")) {
                     OutlinedTextField(
                         value = settings.getInt("grid_rows").toString(),
-                        onValueChange = { it.toIntOrNull()?.let { value -> settings.setInt("grid_rows", value.coerceIn(1, 50)) } },
+                        onValueChange = { it.toIntOrNull()?.let { value -> settings.setInt("grid_rows", value.coerceIn(1, 50)); selectedValue = "" } },
                         label = { Text("Rows") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
@@ -334,7 +278,7 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                     if (!context.settingIsFixedInNativePreset("grid_columns")) {
                     OutlinedTextField(
                         value = settings.getInt("grid_columns").toString(),
-                        onValueChange = { it.toIntOrNull()?.let { value -> settings.setInt("grid_columns", value.coerceIn(1, 50)) } },
+                        onValueChange = { it.toIntOrNull()?.let { value -> settings.setInt("grid_columns", value.coerceIn(1, 50)); selectedValue = "" } },
                         label = { Text("Columns") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
@@ -347,7 +291,8 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                     Text("Mask style: ${settings.getString("redaction_style")}")
                 }
                 }
-                if (context.startsImmediately && runtimeSettingsVisible && bitmap == null && context.settingIsFixedInNativePreset("input_source")) {
+                if (context.awaitingRuntimeInputs && runtimeSettingsVisible && bitmap == null &&
+                    context.settingIsFixedInNativePreset("input_source") && !context.settingIsRuntimeInput("source")) {
                     Button(onClick = {
                         captureStarted = true
                         startConfiguredSource()
@@ -355,8 +300,16 @@ object ImageRedactionCapabilityScreen : CapabilityScreenSpec {
                 }
             }
             bitmap?.let { image ->
-                RedactionGrid(image, settings.getInt("grid_rows").coerceIn(1, 50), settings.getInt("grid_columns").coerceIn(1, 50), selected) {
+                val marks = RedactionMarks.Grid(settings.getInt("grid_rows").coerceIn(1, 50), settings.getInt("grid_columns").coerceIn(1, 50), selected) {
                     selectedValue = it.toList().sorted().joinToString("|")
+                }
+                RedactionViewport(image, viewport, "Image to redact", marks, Modifier.fillMaxWidth().height(600.dp))
+                OutlinedButton(onClick = { expandedPhoto = true }, modifier = Modifier.fillMaxWidth()) { Text("Expand photo") }
+                if (expandedPhoto) Dialog(onDismissRequest = { expandedPhoto = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+                    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding().padding(12.dp)) {
+                        RedactionViewport(image, viewport, "Image to redact", marks, Modifier.fillMaxWidth().weight(1f))
+                        Button(onClick = { expandedPhoto = false }, modifier = Modifier.fillMaxWidth()) { Text("Close expanded photo") }
+                    }
                 }
                 Button(onClick = ::finish, enabled = selected.isNotEmpty(), modifier = Modifier.fillMaxWidth()) { Text("Create redacted image") }
             }
@@ -404,64 +357,4 @@ private fun Bitmap.orientedByExif(orientation: Int): Bitmap {
         else -> return this
     }
     return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
-}
-
-@Composable
-private fun RedactionGrid(
-    bitmap: Bitmap,
-    rows: Int,
-    columns: Int,
-    selected: Set<String>,
-    onChanged: (Set<String>) -> Unit
-) {
-    var boxSize by remember { mutableStateOf(IntSize.Zero) }
-    Box(Modifier.fillMaxWidth().height(440.dp)) {
-        Image(bitmap.asImageBitmap(), "Image to redact", Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-        Canvas(Modifier.fillMaxSize()) {
-            val image = fittedImageRect(size.width, size.height, bitmap.width, bitmap.height)
-            val cellWidth = image.width / columns.coerceAtLeast(1)
-            val cellHeight = image.height / rows.coerceAtLeast(1)
-            for (r in 0 until rows) {
-                for (c in 0 until columns) {
-                    val id = "r${r + 1}c${c + 1}"
-                    val topLeft = Offset(image.left + c * cellWidth, image.top + r * cellHeight)
-                    if (id in selected) drawRect(Color(0xAA000000), topLeft = topLeft, size = androidx.compose.ui.geometry.Size(cellWidth, cellHeight))
-                    drawRect(Color.White, topLeft = topLeft, size = androidx.compose.ui.geometry.Size(cellWidth, cellHeight), style = Stroke(1.5f))
-                }
-            }
-        }
-        Box(Modifier.fillMaxSize().onSizeChanged { boxSize = it }.pointerInput(rows, columns, selected, boxSize) {
-            awaitEachGesture {
-                val down = awaitFirstDown(requireUnconsumed = false)
-                var updated = toggleCell(selected, cellAt(down.position, boxSize, rows, columns, bitmap))
-                var dragged = false
-                drag(down.id) { change ->
-                    dragged = true
-                    change.consume()
-                    cellAt(change.position, boxSize, rows, columns, bitmap)?.let { updated = updated + it }
-                }
-                onChanged(updated)
-            }
-        })
-    }
-}
-
-private fun toggleCell(current: Set<String>, cell: String?): Set<String> =
-    if (cell == null) current else if (cell in current) current - cell else current + cell
-
-private fun fittedImageRect(width: Float, height: Float, imageWidth: Int, imageHeight: Int): Rect {
-    if (width <= 0f || height <= 0f || imageWidth <= 0 || imageHeight <= 0) return Rect.Zero
-    val scale = minOf(width / imageWidth.toFloat(), height / imageHeight.toFloat())
-    val fittedWidth = imageWidth * scale
-    val fittedHeight = imageHeight * scale
-    return Rect((width - fittedWidth) / 2f, (height - fittedHeight) / 2f, (width + fittedWidth) / 2f, (height + fittedHeight) / 2f)
-}
-
-private fun cellAt(position: Offset, size: IntSize, rows: Int, columns: Int, bitmap: Bitmap): String? {
-    if (size.width <= 0 || size.height <= 0) return null
-    val image = fittedImageRect(size.width.toFloat(), size.height.toFloat(), bitmap.width, bitmap.height)
-    if (!image.contains(position)) return null
-    val column = ((position.x - image.left) / (image.width / columns.coerceAtLeast(1))).toInt().coerceIn(0, columns - 1)
-    val row = ((position.y - image.top) / (image.height / rows.coerceAtLeast(1))).toInt().coerceIn(0, rows - 1)
-    return "r${row + 1}c${column + 1}"
 }

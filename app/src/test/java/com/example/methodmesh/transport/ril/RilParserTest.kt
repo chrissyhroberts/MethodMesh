@@ -118,6 +118,25 @@ class RilParserTest {
     }
 
     @Test
+    fun `explicit method invocation wins over graph selector substrings`() {
+        listOf("crypto.identity.export", "tabletop.state.manage", "fixture.observation.capture", "fixture.execution.run").forEach { id ->
+            val parsed = RilTransportAdapter.parse(mapOf("method_id" to id), "android_extras")
+            assertEquals(id, listOf(id), parsed.actionIds)
+            assertTrue("$id must not become a return selector", parsed.returnSelectors.isEmpty())
+        }
+    }
+
+    @Test
+    fun `explicit commands retain their inputs and genuine return selectors`() {
+        val parsed = RilRequestParser.parse(
+            "WHAT; execute crypto.identity.export(label='same as before'); RESULT; return execution.id as execution_id; format json"
+        )
+        assertEquals(listOf("crypto.identity.export"), parsed.actionIds)
+        assertEquals("same as before", parsed.settings["label"])
+        assertEquals(listOf(com.example.methodmesh.transport.GraphSelector("execution.id", "execution_id")), parsed.returnSelectors)
+    }
+
+    @Test
     fun `removed method aliases do not resolve`() {
         assertNull(MethodMeshModuleRegistry.canonicalAction("nfc.read"))
         assertNull(MethodMeshModuleRegistry.canonicalAction("identity.verify"))

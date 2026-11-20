@@ -104,7 +104,7 @@ private fun AudioFskTransmitUi(
     var currentProgress by rememberSaveable(context.action.canonicalId) { mutableStateOf("Ready") }
     var status by rememberSaveable(context.action.canonicalId) { mutableStateOf(if (ultrasonic) "Experimental: test the channel on the actual phone pair before relying on it." else "Place the phone speaker near the radio microphone, or use direct acoustic phone-to-phone transfer.") }
     var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-    var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+    val committed = rememberSignalCommit(context.action.canonicalId)
     var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
     var txJob by remember { mutableStateOf<Job?>(null) }
     val continueFlag = remember { AtomicBoolean(false) }
@@ -252,19 +252,17 @@ private fun AudioFskTransmitUi(
                 SignalFskTransmitFields.ERROR to ""
             )
         }
-        committedJson = fieldsJson(values)
         status = "Committed."
         val method = if (ultrasonic) As100SignalUltrasonicTransmitMethod else As100SignalFskTransmitMethod
-        val result = signalResult(method, context, values)
+        val result = committed.capture(signalResult(method, context, values))
         if (context.submitsImmediately) onConfirmed(result)
     }
 
     DisposableEffect(Unit) { onDispose { stop(userRequested = false) } }
 
-    val committedFields = fieldsFromJson(committedJson)
+    val committedFields = committed.fields
     val method = if (ultrasonic) As100SignalUltrasonicTransmitMethod else As100SignalFskTransmitMethod
-    val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(method, context, it) } }
-    val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+    val committedResult = committed.result
     val resultKey = if (ultrasonic) SignalUltrasonicTransmitFields.RESULT else SignalFskTransmitFields.RESULT
     val messageIdKey = if (ultrasonic) SignalUltrasonicTransmitFields.MESSAGE_ID else SignalFskTransmitFields.MESSAGE_ID
     val frameCountKey = if (ultrasonic) SignalUltrasonicTransmitFields.FRAME_COUNT else SignalFskTransmitFields.FRAME_COUNT
@@ -274,6 +272,7 @@ private fun AudioFskTransmitUi(
     val bitKey = if (ultrasonic) SignalUltrasonicTransmitFields.BIT_MS else SignalFskTransmitFields.BIT_MS
 
     Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SignalCommitRecoveryNotice(committed)
         val accent = if (ultrasonic) SignalViolet else SignalCyan
         val railMin = if (ultrasonic) 11000.0 else 200.0
         val railMax = if (ultrasonic) 17000.0 else 8000.0
@@ -348,9 +347,9 @@ private fun AudioFskTransmitUi(
                 ),
                 status = exportStatus,
                 onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                onShare = { exportStatus = shareSignalText(androidContext, "Share signal payload", committedFields[resultKey].orEmpty()) ?: "" },
-                onSave = { exportStatus = saveSignalText(androidContext, if (ultrasonic) "near_ultrasonic_transmission" else "audio_fsk_transmission", committedFields[resultKey].orEmpty(), committedFullJson) },
-                onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, if (ultrasonic) "near_ultrasonic_transmission" else "audio_fsk_transmission", committedFields[resultKey].orEmpty(), committedFullJson) } }
+                context = context,
+                result = committedResult,
+                onConfirmed = onConfirmed
             )
         }
 
@@ -499,7 +498,7 @@ private fun AudioFskReceiveUi(
     var error by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
     var levelText by rememberSaveable(context.action.canonicalId) { mutableStateOf("—") }
     var dominantTone by rememberSaveable(context.action.canonicalId) { mutableStateOf("—") }
-    var committedJson by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
+    val committed = rememberSignalCommit(context.action.canonicalId)
     var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
     var audioGranted by remember { mutableStateOf(fskHasPermission(androidContext, Manifest.permission.RECORD_AUDIO)) }
 
@@ -620,7 +619,7 @@ private fun AudioFskReceiveUi(
         stop(userRequested = false)
         frameStoreJson = "[]"
         physicalRejected = 0
-        committedJson = null
+        committed.clear()
         exportStatus = ""
         status = "Receiver reset."
         lastFrameOutcome = "No complete physical frame yet"
@@ -680,10 +679,9 @@ private fun AudioFskReceiveUi(
                 SignalFskReceiveFields.ERROR to ""
             )
         }
-        committedJson = fieldsJson(values)
         status = "Committed."
         val method = if (ultrasonic) As100SignalUltrasonicReceiveMethod else As100SignalFskReceiveMethod
-        val result = signalResult(method, context, values)
+        val result = committed.capture(signalResult(method, context, values))
         if (context.submitsImmediately) onConfirmed(result)
     }
 
@@ -701,10 +699,9 @@ private fun AudioFskReceiveUi(
 
     DisposableEffect(Unit) { onDispose { engine.stop() } }
 
-    val committedFields = fieldsFromJson(committedJson)
+    val committedFields = committed.fields
     val method = if (ultrasonic) As100SignalUltrasonicReceiveMethod else As100SignalFskReceiveMethod
-    val committedResult = remember(committedJson) { committedFields.takeIf { it.isNotEmpty() }?.let { signalResult(method, context, it) } }
-    val committedFullJson = remember(committedJson) { fullJson(committedResult) }
+    val committedResult = committed.result
     val resultKey = if (ultrasonic) SignalUltrasonicReceiveFields.RESULT else SignalFskReceiveFields.RESULT
     val messageIdKey = if (ultrasonic) SignalUltrasonicReceiveFields.MESSAGE_ID else SignalFskReceiveFields.MESSAGE_ID
     val recoveredKey = if (ultrasonic) SignalUltrasonicReceiveFields.RECOVERED_MISSING else SignalFskReceiveFields.RECOVERED_MISSING
@@ -714,6 +711,7 @@ private fun AudioFskReceiveUi(
     val bitKeyRx = if (ultrasonic) SignalUltrasonicReceiveFields.BIT_MS else SignalFskReceiveFields.BIT_MS
 
     Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SignalCommitRecoveryNotice(committed)
         val accent = if (ultrasonic) SignalViolet else SignalCyan
         val railMin = if (ultrasonic) 11000.0 else 200.0
         val railMax = if (ultrasonic) 17000.0 else 8000.0
@@ -794,9 +792,9 @@ private fun AudioFskReceiveUi(
                 ),
                 status = exportStatus,
                 onCopy = { label, value -> copySignalValue(androidContext, label, value) },
-                onShare = { exportStatus = shareSignalText(androidContext, "Share recovered signal", committedFields[resultKey].orEmpty()) ?: "" },
-                onSave = { exportStatus = saveSignalText(androidContext, if (ultrasonic) "near_ultrasonic_reception" else "audio_fsk_reception", committedFields[resultKey].orEmpty(), committedFullJson) },
-                onDone = { finishSignalResult(context, androidContext, committedResult, onConfirmed) { saveSignalText(androidContext, if (ultrasonic) "near_ultrasonic_reception" else "audio_fsk_reception", committedFields[resultKey].orEmpty(), committedFullJson) } }
+                context = context,
+                result = committedResult,
+                onConfirmed = onConfirmed
             )
         }
 
