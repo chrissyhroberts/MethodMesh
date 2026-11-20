@@ -32,6 +32,14 @@ The current increment keeps those definitions in the process session only;
 encrypted versioned persistence is owned by the upcoming Selection Memory
 capability.
 
+## `screen.selection_memory`
+
+Selection Memory encrypts named normalized regions with an Android Keystore
+key in `noBackupFilesDir`. Each save creates an immutable revision. Loading a
+specific revision is supported, and deletion requires explicit confirmation
+before all revisions for that memory are removed. Screenshots, OCR text, and
+extracted values are intentionally excluded.
+
 ## Integration boundary
 
 The module is discovered from `ScreenToolsModule.kt`. The MediaProjection
