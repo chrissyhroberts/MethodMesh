@@ -958,7 +958,7 @@ private fun TrustedTimestampCommittedPanel(
             Text("Include full JSON / audit", style = MaterialTheme.typography.titleSmall)
             Text(
                 if (includeFullJson) {
-                    "Share appends canonical JSON to the message; Save adds a metadata JSON sidecar."
+                    "Share includes canonical JSON in the summary text file; Save adds a metadata JSON sidecar."
                 } else {
                     "Off by default. The proof ZIP is always included."
                 },

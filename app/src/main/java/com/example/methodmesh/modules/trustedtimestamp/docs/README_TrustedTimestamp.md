@@ -242,3 +242,8 @@ There is no fabricated offline timestamp fallback.
 - TSA certificate rotation requires registry maintenance.
 - Clock anchoring requires the token signer to match the pinned configured signer, a valid configured chain at generation time, and a critical timestamp-only EKU; a proof that does not meet that stronger trust contract remains proof evidence but does not refresh Clock Assurance.
 - The proof concerns exact bytes and certified time, not broader truth or legal meaning.
+
+
+## 28 October 2026 — file-sharing compatibility correction
+
+Native file-bearing Share keeps real files first and does not supply a competing filename/summary message. Summary and opt-in audit remain in a readable text sidecar, with complete MIME metadata and read-only file grants. This shared correction addresses the reported WhatsApp filename-only regression; it does not change scanner/proof processing, public fields or ODK returns. Text-only results retain their message/text-file behavior. The user reported "seems fixed now" after the correction. See docs/handoffs/FILE_SHARE_REGRESSION_2026-10-28.md in the app repository for exact cross-app byte tests and remaining acceptance limits.
