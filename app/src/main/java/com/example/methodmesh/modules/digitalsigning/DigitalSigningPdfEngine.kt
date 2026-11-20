@@ -1,6 +1,7 @@
 package com.example.methodmesh.modules.digitalsigning
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
@@ -123,6 +124,16 @@ object DigitalSigningPdfEngine {
                     canvas.drawLine(x - element.sizePt / 3f, y + element.sizePt, x + element.sizePt, y - element.sizePt, paint)
                 }
                 MarkupElement.Kind.Text -> canvas.drawText(element.text, x, y, paint)
+                MarkupElement.Kind.Signature -> {
+                    val path = element.assetPath ?: return@forEach
+                    val bitmap = runCatching { BitmapFactory.decodeFile(path) }.getOrNull()
+                        ?: return@forEach
+                    val scale = element.sizePt.coerceIn(24f, 360f) / bitmap.width.coerceAtLeast(1)
+                    val right = x + bitmap.width * scale
+                    val bottom = y + bitmap.height * scale
+                    canvas.drawBitmap(bitmap, null, RectF(x, y - bitmap.height * scale, right, bottom), Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
+                    bitmap.recycle()
+                }
             }
         }
     }

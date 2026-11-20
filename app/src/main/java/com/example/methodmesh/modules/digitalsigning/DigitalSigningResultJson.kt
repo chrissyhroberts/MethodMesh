@@ -25,6 +25,9 @@ object DigitalSigningResultJson {
     fun fullJson(result: DigitalSigningCommittedResult): String = JSONObject().apply {
         put("method", As100DigitalSigningMethod.ID)
         put("status", "committed")
+        put("workflow", result.workflow.id)
+        putNullable("saved_signature_id", result.savedSignatureId)
+        putNullable("signature_authentication", result.signatureAuthentication)
         put("source", JSONObject().apply {
             put("origin", result.sourceOrigin.id)
             put("filename", result.sourceFilename)
@@ -34,6 +37,7 @@ object DigitalSigningResultJson {
             put("signed_filename", result.signedFilename)
             put("signed_pdf_uri", result.signedPdfUri)
             put("signed_sha256", result.signedSha256)
+            put("proof_code", result.proofCode)
             put("signed_artifact_ref", "artifact://signing.${result.signedSha256.take(32)}")
             put("page_count", result.pageCount)
             put("ink_present", result.inkPresent)
@@ -88,6 +92,10 @@ object DigitalSigningResultJson {
             DigitalSigningFields.SIGNED_PDF_URI to result.signedPdfUri,
             DigitalSigningFields.SIGNED_PDF_NAME to result.signedFilename,
             DigitalSigningFields.SIGNED_SHA256 to result.signedSha256,
+            DigitalSigningFields.PROOF_CODE to result.proofCode,
+            DigitalSigningFields.WORKFLOW to result.workflow.id,
+            DigitalSigningFields.SAVED_SIGNATURE_ID to result.savedSignatureId.orEmpty(),
+            DigitalSigningFields.SIGNATURE_AUTHENTICATION to result.signatureAuthentication.orEmpty(),
             DigitalSigningFields.SIGNED_ARTIFACT_REF to "artifact://signing.${result.signedSha256.take(32)}",
             DigitalSigningFields.VERIFICATION_BUNDLE_URI to result.verificationBundle.uri.orEmpty(),
             DigitalSigningFields.VERIFICATION_BUNDLE_NAME to result.verificationBundle.filename.orEmpty(),
@@ -118,12 +126,17 @@ object DigitalSigningResultJson {
         val tsa = root.getJSONObject("tsa")
         val bundle = root.optJSONObject("verification_bundle")
         DigitalSigningCommittedResult(
+            workflow = DigitalSigningWorkflow.entries.firstOrNull { it.id == root.optString("workflow") }
+                ?: DigitalSigningWorkflow.ParticipantInk,
             sourceOrigin = PdfInputOrigin.entries.firstOrNull { it.id == source.optString("origin") } ?: PdfInputOrigin.Unknown,
             sourceFilename = source.optString("filename"),
             sourceSha256 = source.optString("sha256"),
             signedFilename = document.optString("signed_filename"),
             signedPdfUri = document.optString("signed_pdf_uri"),
             signedSha256 = document.optString("signed_sha256"),
+            proofCode = document.optString("proof_code").ifBlank { DigitalSigningProofCode.fromSha256(document.optString("signed_sha256")) },
+            savedSignatureId = root.optNullableString("saved_signature_id"),
+            signatureAuthentication = root.optNullableString("signature_authentication"),
             pageCount = document.optInt("page_count", 0),
             inkPresent = document.optBoolean("ink_present", false),
             inkStrokeCount = document.optInt("ink_stroke_count", 0),

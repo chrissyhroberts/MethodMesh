@@ -75,9 +75,12 @@ object DigitalSigningVerificationBundle {
         result: DigitalSigningCommittedResult,
         certificates: CertificateMaterial?
     ): JSONObject = JSONObject().apply {
-        put("schema", "methodmesh.digital_signing.provenance_bundle.v4")
+        put("schema", "methodmesh.digital_signing.provenance_bundle.v5")
         put("deliverable", "B")
         put("role", "provenance_and_verification_bundle")
+        put("workflow", result.workflow.id)
+        put("saved_signature_id", result.savedSignatureId ?: JSONObject.NULL)
+        put("signature_authentication", result.signatureAuthentication ?: JSONObject.NULL)
         put("contains_signed_pdf", false)
         put("method", As100DigitalSigningMethod.ID)
         put("verification_command", "sh verify.sh '${result.signedFilename}'")
@@ -87,6 +90,7 @@ object DigitalSigningVerificationBundle {
             put("role", "signed_document")
             put("filename", result.signedFilename)
             put("sha256", result.signedSha256)
+            put("proof_code", result.proofCode)
             put("page_count", result.pageCount)
             put("committed_at", result.committedAtUtc)
             put("finalised", result.finalised)
