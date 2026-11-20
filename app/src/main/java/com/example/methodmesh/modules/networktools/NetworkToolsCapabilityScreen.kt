@@ -32,6 +32,8 @@ import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.transport.workflow.ui.CapabilityPresentationMode
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -93,17 +95,22 @@ private fun NetworkToolsFocusedSurface(
     var running by remember { mutableStateOf(false) }
     var resultJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
     var resultSettingsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-    var committedResultJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-    var committedSettingsJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
+    var committedExecution by rememberRetainedExecutionResult("${context.action.canonicalId}:committed")
+    var wasCommitted by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+    var diagnosticStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
     var showOdkCard by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
 
     val selectedOperation = NetworkOperation.from(operation) ?: NetworkOperation.INTERFACE_INFO
     val values = remember(resultJson) { resultJson.toStringMap() }
-    val committedValues = remember(committedResultJson) { committedResultJson.toStringMap() }
-    val committedSettings = remember(committedSettingsJson) { committedSettingsJson.toStringMap() }
-    val committedExecution = remember(committedResultJson, committedSettingsJson) {
-        committedValues.takeIf { it.isNotEmpty() }?.let {
-            buildNetworkExecution(context, it, committedSettings)
+    val committedValues = committedExecution?.observations?.singleOrNull()?.values.orEmpty()
+    LaunchedEffect(Unit) {
+        if (wasCommitted && committedExecution == null) {
+            resultJson = ""
+            resultSettingsJson = ""
+            wasCommitted = false
+            diagnosticStatus = "Committed result unavailable. Run the diagnostic and Commit a new result."
+        } else if (!running && diagnosticStatus == "Running diagnostic…") {
+            diagnosticStatus = "Previous diagnostic was interrupted. Run it again to retry."
         }
     }
 
@@ -115,7 +122,9 @@ private fun NetworkToolsFocusedSurface(
         "cidr" to cidr,
         "traceroute_max_hops" to tracerouteMaxHops
     )
-    val currentSettingsJson = currentSettings.toJsonString()
+    val workingChanged = committedExecution?.let { execution ->
+        committedValues != values || currentSettings.any { (key, value) -> execution.request.context[key] != value }
+    } ?: false
 
     LaunchedEffect(operation, host, port, timeoutMs, cidr, tracerouteMaxHops) {
         context.onSettingsChanged(currentSettings)
@@ -134,20 +143,23 @@ private fun NetworkToolsFocusedSurface(
         if (running || !canRun()) return
         running = true
         launched = true
+        diagnosticStatus = "Running diagnostic…"
         val settingsSnapshot = currentSettings.toMap()
         scope.launch {
-            val captured = withContext(Dispatchers.IO) {
-                NetworkToolsRunner.run(settingsSnapshot, androidContext.applicationContext)
-            }
-            val execution = buildNetworkExecution(context, captured, settingsSnapshot)
-            if (context.submitsImmediately) {
-                running = false
-                onConfirmed(execution)
-                return@launch
-            }
-            resultSettingsJson = settingsSnapshot.toJsonString()
-            resultJson = captured.toJsonString()
-            running = false
+            try {
+                val captured = withContext(Dispatchers.IO) { NetworkToolsRunner.run(settingsSnapshot, androidContext.applicationContext) }
+                if (context.submitsImmediately) {
+                    onConfirmed(buildNetworkExecution(context, captured, settingsSnapshot))
+                } else {
+                    resultSettingsJson = settingsSnapshot.toJsonString()
+                    resultJson = captured.toJsonString()
+                }
+                diagnosticStatus = ""
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                diagnosticStatus = "Diagnostic failed: ${failure.message ?: "Unable to complete diagnostic"}"
+            } finally { running = false }
         }
     }
 
@@ -276,6 +288,7 @@ private fun NetworkToolsFocusedSurface(
             else -> Unit
         }
 
+        if (diagnosticStatus.isNotBlank() && !running) Text(diagnosticStatus, color = MaterialTheme.colorScheme.error)
         if (running) {
             CircularProgressIndicator(modifier = Modifier.padding(vertical = 6.dp))
             Text("Running ${selectedOperation.label.lowercase()}…", style = MaterialTheme.typography.bodySmall)
@@ -288,12 +301,11 @@ private fun NetworkToolsFocusedSurface(
         if (values.isNotEmpty()) {
             NetworkWorkingResultCard(
                 values = values,
-                onCommit = {
-                    committedResultJson = resultJson
-                    committedSettingsJson = resultSettingsJson.ifBlank { currentSettingsJson }
-                },
-                committedChanged = committedResultJson.isNotBlank() &&
-                    (committedResultJson != resultJson || committedSettingsJson != currentSettingsJson)
+                onCommit = if (!running && resultSettingsJson.isNotBlank()) ({
+                    committedExecution = buildNetworkExecution(context, values, resultSettingsJson.toStringMap())
+                    wasCommitted = true
+                }) else null,
+                committedChanged = workingChanged
             )
         }
 
@@ -302,7 +314,7 @@ private fun NetworkToolsFocusedSurface(
                 context = context,
                 label = "Network tools",
                 result = execution,
-                workingChanged = committedResultJson != resultJson || committedSettingsJson != currentSettingsJson,
+                workingChanged = workingChanged,
                 onDone = { onConfirmed(execution) }
             )
         }
