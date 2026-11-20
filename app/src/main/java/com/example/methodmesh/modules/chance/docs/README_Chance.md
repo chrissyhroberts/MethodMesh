@@ -39,6 +39,8 @@ Useful displayed scalar/text results are tap-to-copy. Post-Commit Share/Copy/Sav
 
 `coin.toss` also retains the established single-coin **Just toss** convenience mode. It is deliberately ephemeral/non-recording: the user can repeatedly toss and leave without committing a stored/returned run. Recorded coin mode follows the normal Commit lifecycle.
 
+The spinner now has a full-screen, high-contrast presentation and an optional **Remove winner after each spin** setting. Removal is segment-based (duplicate labels remain distinct), a single final label may be drawn, and **Restore all** explicitly resets an exhausted group. See `README_Spinner.md` for the additive remaining-pool outputs and external invocation semantics. This does not alter Weighted choice or the other Chance interfaces.
+
 ## Launch-origin closeout
 
 Chance never navigates to a hard-coded destination. Its screens call the supplied MethodMesh completion/cancel callbacks. The shared host therefore owns v1.05 closeout routing:

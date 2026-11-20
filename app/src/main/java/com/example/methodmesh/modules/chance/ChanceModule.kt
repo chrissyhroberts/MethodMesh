@@ -88,6 +88,7 @@ object ChanceModule : MethodMeshModule {
         ),
         As100SpinnerMethod.ID to listOf(
             MethodSetting.TextSetting("items", "Spinner labels", defaultValue = "Yes\nNo"),
+            MethodSetting.BooleanSetting("remove_after_spin", "Remove winner after each spin", defaultValue = false),
             MethodSetting.ChoiceSetting("rng_mode", "Random source", defaultValue = "secure_random", choices = listOf("secure_random", "fixed_seed")),
             MethodSetting.TextSetting("seed", "Fixed seed", defaultValue = ""),
             MethodSetting.ChoiceSetting("animation_mode", "Animation", defaultValue = "full", choices = listOf("full", "fast", "off"))
