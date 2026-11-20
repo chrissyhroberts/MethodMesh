@@ -83,3 +83,8 @@ The production example requests `preferred` timestamp proof and returns the sear
 ML Kit Document Scanner supplies the capture, crop, alignment and scanner PDF. MethodMesh copies page images into its own FileProvider cache before returning them. When searchable PDF output is enabled and creation succeeds, MethodMesh returns/exports the searchable PDF in preference to the original scanner PDF, so callers receive one PDF rather than duplicate PDF attachments. When OCR is enabled, the searchable PDF includes page images plus embedded OCR text and an OCR appendix.
 
 Native preset/intent runs inherit saved scan settings, open the scanner immediately, and hide the setup controls. The completed payload is restored after Android orientation changes.
+
+
+## 28 October 2026 — file-sharing compatibility correction
+
+Native file-bearing Share keeps real files first and does not supply a competing filename/summary message. Summary and opt-in audit remain in a readable text sidecar, with complete MIME metadata and read-only file grants. This shared correction addresses the reported WhatsApp filename-only regression; it does not change scanner/proof processing, public fields or ODK returns. Text-only results retain their message/text-file behavior. The user reported "seems fixed now" after the correction. See docs/handoffs/FILE_SHARE_REGRESSION_2026-10-28.md in the app repository for exact cross-app byte tests and remaining acceptance limits.
