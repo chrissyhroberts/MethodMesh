@@ -63,6 +63,8 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import com.example.methodmesh.MainActivity
 import com.example.methodmesh.core.methodmesh.ArchitectureId
+import com.example.methodmesh.transport.workflow.ui.CapturedExecutionRecovery
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.methodmesh.TemporalContext
 import com.example.methodmesh.core.methodmesh.runtime.As100ExecutionEngine
@@ -168,14 +170,11 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
 
         // Commit freezes the payload + presentation choice. Editing explicitly
         // clears commitment; automatic-return origins leave immediately.
-        var committedPayload by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedFormatName by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedTime by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedExecutionId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedObservationId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedTransformationId by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedRelationshipIds by rememberSaveable(context.action.canonicalId) { mutableStateOf<String?>(null) }
-        var committedSystemTimeMs by rememberSaveable(context.action.canonicalId) { mutableStateOf<Long?>(null) }
+        var committedResult by rememberRetainedExecutionResult("barcode-generate:${context.action.canonicalId}")
+        var hadCommitted by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        val committedValues = committedResult?.observations?.singleOrNull()?.values.orEmpty()
+        val committedPayload = committedValues["barcode_payload"]
+        val committedFormatName = committedValues["barcode_format"]
 
         val compatible = remember(payload) { GENERATOR_ORDER.filter { canEncode(payload, it) } }
         val selected = parseFormat(formatName)
@@ -196,23 +195,6 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
         val rendered = remember(displayPayload, effectiveFormat.name) {
             if (displayPayload.isEmpty()) null
             else runCatching { renderCode(displayPayload, effectiveFormat) }.getOrNull()
-        }
-
-        val committedResult = remember(
-            committedPayload, committedFormatName, committedTime, committedExecutionId,
-            committedObservationId, committedTransformationId, committedRelationshipIds,
-            committedSystemTimeMs, context.request.invocationContext
-        ) {
-            val p = committedPayload
-            val f = committedFormatName
-            val t = committedTime
-            if (p == null || f == null || t == null) null
-            else buildGenerateResult(
-                context = context, payload = p, formatName = f, generatedTime = t,
-                executionId = committedExecutionId, observationId = committedObservationId,
-                transformationId = committedTransformationId, relationshipIds = committedRelationshipIds,
-                systemTimeEpochMs = committedSystemTimeMs
-            )
         }
 
         val committedFields = remember(committedResult?.request?.id?.value) {
@@ -258,14 +240,8 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
         }
 
         fun editWorkingState() {
-            committedPayload = null
-            committedFormatName = null
-            committedTime = null
-            committedExecutionId = null
-            committedObservationId = null
-            committedTransformationId = null
-            committedRelationshipIds = null
-            committedSystemTimeMs = null
+            committedResult = null
+            hadCommitted = false
             exportStatus = ""
             showTechnicalDetails = false
             includeJsonSidecar = context.isNativePresetRun && presetPayloadMode != OutputFormatter.PayloadMode.CORE
@@ -283,14 +259,8 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
             cycling = false
             val t = Instant.now().toString()
             val result = buildGenerateResult(context, payload, effectiveFormat.name, t)
-            committedPayload = payload
-            committedFormatName = effectiveFormat.name
-            committedTime = t
-            committedExecutionId = result.request.id.value
-            committedObservationId = result.observations.firstOrNull()?.id?.value
-            committedTransformationId = result.transformations.firstOrNull()?.id?.value
-            committedRelationshipIds = result.relationships.joinToString("|") { it.id.value }.ifBlank { null }
-            committedSystemTimeMs = result.request.temporalContext.systemTimeEpochMs
+            committedResult = result
+            hadCommitted = true
             if (automaticReturn) onConfirmed(result)
         }
 
@@ -345,7 +315,7 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
                     onConfirmed(result)
                 }
                 else -> {
-                    if (finishToLauncher) {
+                    if (finishToLauncher || context.hostOwnsNativePresetCloseout) {
                         onConfirmed(result)
                     } else {
                         appContext.startActivity(
@@ -356,6 +326,13 @@ private class CodeGenerateCapabilityScreen : CapabilityScreenSpec {
                     }
                 }
             }
+        }
+
+        if (hadCommitted && committedResult == null) {
+            CapturedExecutionRecovery(onRestart = {
+                editWorkingState(); cycling = false; presentationMode = false
+            }, onClose = onCancel)
+            return
         }
 
         DisposableEffect(presentationMode) {

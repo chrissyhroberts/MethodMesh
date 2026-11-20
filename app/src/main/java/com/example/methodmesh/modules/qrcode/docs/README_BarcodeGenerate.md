@@ -1,6 +1,6 @@
 # Barcode generate
 
-**Canonical MethodMesh authority:** Master Book v1.22 (2026-09-15)  
+**Canonical MethodMesh authority:** Master Book v1.31 (2026-09-25)
 **Module ID:** `barcode`  
 **Method ID:** `barcode.generate`  
 **Method version:** `1.0.8`  
@@ -18,6 +18,12 @@ QR is the default. Generated QR presentation includes the canonical MethodMesh m
 Full-screen presentation raises screen brightness and keeps the screen awake while active, restoring prior window state on exit. **Commit** freezes payload + selected format + generation timestamp. Direct/native runs remain on the capability surface for Share image, Copy image, Save image, Home and Edit; automatic-return origins return on Commit.
 
 The rendered barcode is the primary native artefact. Share sends the PNG first, Copy places the PNG on the Android clipboard, and Save writes the PNG to Downloads. The payload remains tap-to-copy as a secondary scalar result, but native Share/Copy/Save do not create a redundant payload text file. Optional/preset-requested audit metadata is carried in a JSON sidecar. The PNG remains a presentation/export artefact, not a declared canonical ODK output.
+
+## Execution retention — 23 October 2026
+
+Commit retains the actual execution across ordinary Activity recreation; result actions and caller return use that same FULL evidence. Edit/Commit creates a new record. A surviving marker without its original requires **Start new run**, with no stale result actions. This is in-memory retention, not durable process-death restoration.
+
+See repository handoff `docs/handoffs/PAPER_BARCODE_RETENTION_2026-10-23.md` for exact tests and limitations.
 
 ## Cross-surface exposure
 

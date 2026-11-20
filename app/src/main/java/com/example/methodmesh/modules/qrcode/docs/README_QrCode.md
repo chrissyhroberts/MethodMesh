@@ -1,6 +1,6 @@
 # Barcode scan
 
-**Canonical MethodMesh authority:** Master Book v1.22 (2026-09-15)  
+**Canonical MethodMesh authority:** Master Book v1.31 (2026-09-25)
 **Module ID:** `barcode`  
 **Method ID:** `barcode.scan`  
 **Method version:** `1.1.2`  
@@ -14,6 +14,12 @@
 The camera is the primary instrument. Continuous ZXing decoding produces a live working result on the scanner surface. The current payload is tap-to-copy. A safe absolute HTTP/HTTPS payload exposes **Open link** but is never opened automatically. **Commit** freezes the canonical result. Direct/native runs then remain on the capability surface for Share, Copy, Save, optional audit/full JSON, Home/Done and New scan; ODK/protocol/schedule origins return the committed result to their caller.
 
 The scanner has no history repository and does not upload decoded content. Camera permission is required only for scanning/cloning.
+
+## Execution retention — 23 October 2026
+
+The original decoded working execution and committed execution are retained across ordinary Activity recreation, not rebuilt from saved values/IDs. A missing working or committed record requires explicit **Start new scan**; no stale result actions or camera restart occur behind recovery. Real camera/process-death acceptance remains separate from source/build checks.
+
+See repository handoff `docs/handoffs/PAPER_BARCODE_RETENTION_2026-10-23.md` for exact tests and limitations.
 
 ## Cross-surface exposure
 
@@ -74,3 +80,12 @@ Scanning uses JourneyApps ZXing Android Embedded / ZXing locally on-device. See 
 ## Capability-owned presets
 
 The scanner screen exposes **Save current setup as preset** during ordinary native use. The preset editor can keep the accepted-format filter fixed or ask for it each run, and independently selects returned-data scope and completion behaviour. Running the preset reopens this same scanner capability UI; fixed settings are hidden and runtime settings remain editable.
+
+
+## 28 October 2026 — committed action closeout
+
+The scanner keeps its module-owned committed payload/format/link/technical display, while common result actions supply consistent Share/Copy/Save/Done and execution-keyed optional audit. Only a final native preset applies Share-and-finish or Save-and-finish, and the operation must succeed before original-result confirmation. Direct/intermediate Done delegates without final exports or private Home navigation. Manual Share failures remain visible, not uncaught. Downloads runs off the UI thread; New scan is disabled and handler-gated during an active export or pending completion.
+
+Decoded content is explicitly text, not an attachment inferred from its spelling: a content:// payload stays literal text. Native default text remains only barcode_payload; complete canonical evidence remains available through FULL/ODK. Formats, capture/hash algorithms, generator/clone siblings and automatic Commit returns are unchanged. The corrected shared file transport is untouched.
+
+Both builds/37 focused JVM cases pass; exact 44-case multi-run Android coverage is recorded in docs/handoffs/BARCODE_COMPASS_RESULT_ACTIONS_2026-10-28.md. New scanner result-action tests use canonical synthetic decoded records and do not certify physical camera scanning, interruption/permissions, real OS process death or Collect/Sentinel workflows.
