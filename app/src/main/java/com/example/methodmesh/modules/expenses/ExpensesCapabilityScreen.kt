@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.example.methodmesh.transport.ResultShare
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 import com.example.methodmesh.transport.workflow.ui.CanonicalCommittedResultActions
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenContext
 import com.example.methodmesh.transport.workflow.ui.CapabilityScreenSpec
@@ -76,7 +77,7 @@ object ExpensesManagerCapabilityScreen : CapabilityScreenSpec {
         var exportMenuOpen by rememberSaveable { mutableStateOf(false) }
         var shareMenuOpen by rememberSaveable { mutableStateOf(false) }
         var pendingSaveFile by remember { mutableStateOf<File?>(null) }
-        var committedResult by remember { mutableStateOf<com.example.methodmesh.core.methodmesh.ExecutionResult?>(null) }
+        var committedResult by rememberRetainedExecutionResult(context.action.canonicalId)
 
         fun refresh(selectLedgerId: String? = null) {
             ledgers = repository.listLedgers()
@@ -181,6 +182,7 @@ object ExpensesManagerCapabilityScreen : CapabilityScreenSpec {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 CanonicalCommittedResultActions(
+                    screenContext = context,
                     result = frozenResult,
                     label = "expenses result",
                     onDone = { onConfirmed(frozenResult) },
