@@ -103,6 +103,22 @@ object ScreenExtractFields {
     )
 }
 
+object ScreenCropFields {
+    const val STATUS = "screen_crop_status"
+    const val ERROR = "screen_crop_error"
+    const val SOURCE_FRAME_REF = "screen_crop_source_frame_ref"
+    const val CROP_FRAME_REF = "screen_crop_frame_ref"
+    const val ROI_JSON = "screen_crop_roi_json"
+    const val WIDTH_PX = "screen_crop_width_px"
+    const val HEIGHT_PX = "screen_crop_height_px"
+    const val RETENTION = "screen_crop_retention"
+
+    val outputs = listOf(
+        STATUS, ERROR, SOURCE_FRAME_REF, CROP_FRAME_REF,
+        ROI_JSON, WIDTH_PX, HEIGHT_PX, RETENTION
+    )
+}
+
 object ScreenCaptureMethod : As100Method {
     const val ID = "screen.capture"
     private const val VERSION = "0.1.0"
@@ -484,6 +500,82 @@ object ScreenExtractMethod : As100Method {
             transformations = listOf(transformation),
             diagnostics = if (succeeded) emptyMap() else mapOf(
                 ScreenExtractFields.ERROR to values[ScreenExtractFields.ERROR].orEmpty()
+            )
+        ).withInvocationContext(invocation)
+    }
+}
+
+object ScreenCropMethod : As100Method {
+    const val ID = "screen.image_crop"
+    private const val VERSION = "0.1.0"
+
+    override val id = ID
+    override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Image crop")
+    override val descriptor = MethodDescriptor(
+        id = ArchitectureId(ID),
+        methodType = MethodObjectType.SignalInterpreter,
+        name = "Image crop",
+        version = VERSION,
+        description = "Create a volatile crop from a normalized region of a Screen Tools frame.",
+        inputs = listOf("screen_capture_frame_ref", "roi"),
+        outputs = ScreenCropFields.outputs,
+        graphOutputs = listOf(ID),
+        parameters = mapOf(
+            "category" to "Screen Tools",
+            "status" to "Development",
+            "connectivity" to "Offline",
+            "retention" to "volatile_process_memory"
+        )
+    )
+    override val contract = MethodContract(
+        method = ref,
+        requiredContext = emptyList(),
+        producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
+        producedFields = descriptor.outputs,
+        producedGraphOutputs = descriptor.graphOutputs
+    )
+
+    override fun request(action: String, context: Map<String, String>, signals: List<Signal>, inputs: List<ArchitectureRef>) =
+        As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
+
+    override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult =
+        As100ExecutionEngine.complete(
+            request,
+            TransformationStatus.Unsupported,
+            diagnostics = mapOf("reason" to "Image cropping requires the Android bitmap boundary.")
+        )
+
+    fun result(request: ExecutionRequest, values: Map<String, String>, invocation: InvocationContext?): ExecutionResult {
+        val succeeded = values[ScreenCropFields.STATUS] == "succeeded"
+        val entity = Entity(
+            ArchitectureId("screen-crop:${UUID.randomUUID()}"),
+            "ScreenImageCrop",
+            temporalContext = request.temporalContext
+        )
+        val provenance = ProvenanceContext("methodmesh.screen_tools", ID, VERSION)
+        val observation = Observation(
+            phenomenon = ID,
+            subject = ArchitectureRef(entity.id, entity.objectType, ID),
+            values = values,
+            temporalContext = request.temporalContext,
+            provenance = provenance
+        )
+        val transformation = Transformation(
+            action = ID,
+            method = ref,
+            outputs = listOf(ArchitectureRef(observation.id, observation.objectType, observation.phenomenon)),
+            status = if (succeeded) TransformationStatus.Succeeded else TransformationStatus.Failed,
+            temporalContext = request.temporalContext,
+            provenance = provenance
+        )
+        return As100ExecutionEngine.complete(
+            request,
+            if (succeeded) TransformationStatus.Succeeded else TransformationStatus.Failed,
+            entities = listOf(entity),
+            observations = listOf(observation),
+            transformations = listOf(transformation),
+            diagnostics = if (succeeded) emptyMap() else mapOf(
+                ScreenCropFields.ERROR to values[ScreenCropFields.ERROR].orEmpty()
             )
         ).withInvocationContext(invocation)
     }

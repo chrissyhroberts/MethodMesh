@@ -48,6 +48,12 @@ as editable working fields; empty or ambiguous regions cannot be committed.
 The result records the frame reference and pinned memory version and exposes
 validated dynamic field names alongside the stable JSON values object.
 
+## `screen.image_crop`
+
+Image Crop creates a bounded bitmap from a normalized ROI on a volatile frame.
+The source and crop receive in-process `screen-session://` references; no
+gallery, MediaStore, file URI, or durable ODK attachment is created.
+
 ## Integration boundary
 
 The module is discovered from `ScreenToolsModule.kt`. The MediaProjection

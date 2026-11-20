@@ -11,7 +11,7 @@ object ScreenToolsModule : MethodMeshModule {
     override val summary = "Capture a user-authorised screen and read text from volatile frames."
     override val iconKey = "document"
 
-    override fun as100Methods() = listOf(ScreenCaptureMethod, ScreenOcrMethod, ScreenVisualSelectMethod, ScreenMemoryMethod, ScreenExtractMethod)
+    override fun as100Methods() = listOf(ScreenCaptureMethod, ScreenOcrMethod, ScreenVisualSelectMethod, ScreenMemoryMethod, ScreenExtractMethod, ScreenCropMethod)
 
     override fun rilBindings() = listOf(
         RilBinding("capture screen", ScreenCaptureMethod.ID, "Capture the permitted visible screen into volatile memory")
@@ -19,9 +19,10 @@ object ScreenToolsModule : MethodMeshModule {
         ,RilBinding("select screen regions", ScreenVisualSelectMethod.ID, "Name normalized regions on a captured frame")
         ,RilBinding("remember screen regions", ScreenMemoryMethod.ID, "Encrypt and version reusable visual selections")
         ,RilBinding("extract screen values", ScreenExtractMethod.ID, "Review named values resolved from visual selections")
+        ,RilBinding("crop screen image", ScreenCropMethod.ID, "Create a volatile crop from a captured frame")
     )
 
-    override fun capabilityScreens() = listOf(ScreenCaptureCapabilityScreen, ScreenOcrCapabilityScreen, ScreenVisualSelectCapabilityScreen, ScreenMemoryCapabilityScreen, ScreenExtractCapabilityScreen)
+    override fun capabilityScreens() = listOf(ScreenCaptureCapabilityScreen, ScreenOcrCapabilityScreen, ScreenVisualSelectCapabilityScreen, ScreenMemoryCapabilityScreen, ScreenExtractCapabilityScreen, ScreenCropCapabilityScreen)
 
     override fun capabilitySettings() = mapOf(
         ScreenCaptureMethod.ID to listOf(
@@ -56,6 +57,10 @@ object ScreenToolsModule : MethodMeshModule {
             MethodSetting.TextSetting("frame_ref", "Frame reference", defaultValue = ""),
             MethodSetting.TextSetting("memory_id", "Selection memory ID", defaultValue = ""),
             MethodSetting.TextSetting("memory_version", "Selection memory version", defaultValue = "")
+        ),
+        ScreenCropMethod.ID to listOf(
+            MethodSetting.TextSetting("frame_ref", "Frame reference", defaultValue = ""),
+            MethodSetting.TextSetting("roi", "Normalized ROI", defaultValue = "")
         )
     )
 }
