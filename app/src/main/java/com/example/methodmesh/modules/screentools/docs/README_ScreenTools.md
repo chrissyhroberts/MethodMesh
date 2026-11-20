@@ -24,6 +24,14 @@ regions using normalized image coordinates in the range `[0,1]`. The OCR
 result is tied to the exact in-process frame reference; an expired reference
 fails instead of silently selecting a newer frame.
 
+## `screen.visual_select`
+
+`screen.visual_select` lets the operator draw one or more normalized regions
+on a captured frame, assign unique names, and commit the selection definition.
+The current increment keeps those definitions in the process session only;
+encrypted versioned persistence is owned by the upcoming Selection Memory
+capability.
+
 ## Integration boundary
 
 The module is discovered from `ScreenToolsModule.kt`. The MediaProjection

@@ -11,14 +11,15 @@ object ScreenToolsModule : MethodMeshModule {
     override val summary = "Capture a user-authorised screen and read text from volatile frames."
     override val iconKey = "document"
 
-    override fun as100Methods() = listOf(ScreenCaptureMethod, ScreenOcrMethod)
+    override fun as100Methods() = listOf(ScreenCaptureMethod, ScreenOcrMethod, ScreenVisualSelectMethod)
 
     override fun rilBindings() = listOf(
         RilBinding("capture screen", ScreenCaptureMethod.ID, "Capture the permitted visible screen into volatile memory")
         ,RilBinding("read screen text", ScreenOcrMethod.ID, "Recognise text and word regions from a captured frame")
+        ,RilBinding("select screen regions", ScreenVisualSelectMethod.ID, "Name normalized regions on a captured frame")
     )
 
-    override fun capabilityScreens() = listOf(ScreenCaptureCapabilityScreen, ScreenOcrCapabilityScreen)
+    override fun capabilityScreens() = listOf(ScreenCaptureCapabilityScreen, ScreenOcrCapabilityScreen, ScreenVisualSelectCapabilityScreen)
 
     override fun capabilitySettings() = mapOf(
         ScreenCaptureMethod.ID to listOf(
@@ -30,6 +31,14 @@ object ScreenToolsModule : MethodMeshModule {
             )
         ),
         ScreenOcrMethod.ID to listOf(
+            MethodSetting.TextSetting(
+                id = "frame_ref",
+                label = "Frame reference",
+                description = "Optional screen-session reference; blank uses the latest volatile frame.",
+                defaultValue = ""
+            )
+        ),
+        ScreenVisualSelectMethod.ID to listOf(
             MethodSetting.TextSetting(
                 id = "frame_ref",
                 label = "Frame reference",

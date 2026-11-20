@@ -55,6 +55,21 @@ object ScreenOcrFields {
     )
 }
 
+object ScreenVisualSelectFields {
+    const val STATUS = "screen_visual_select_status"
+    const val ERROR = "screen_visual_select_error"
+    const val FRAME_REF = "screen_visual_select_frame_ref"
+    const val CAPTURE_TIME_ISO = "screen_visual_select_capture_time_iso"
+    const val SELECTIONS_JSON = "screen_visual_select_selections_json"
+    const val SELECTION_COUNT = "screen_visual_select_selection_count"
+    const val RETENTION = "screen_visual_select_retention"
+
+    val outputs = listOf(
+        STATUS, ERROR, FRAME_REF, CAPTURE_TIME_ISO,
+        SELECTIONS_JSON, SELECTION_COUNT, RETENTION
+    )
+}
+
 object ScreenCaptureMethod : As100Method {
     const val ID = "screen.capture"
     private const val VERSION = "0.1.0"
@@ -202,6 +217,82 @@ object ScreenOcrMethod : As100Method {
             transformations = listOf(transformation),
             diagnostics = if (succeeded) emptyMap() else mapOf(
                 ScreenOcrFields.ERROR to values[ScreenOcrFields.ERROR].orEmpty()
+            )
+        ).withInvocationContext(invocation)
+    }
+}
+
+object ScreenVisualSelectMethod : As100Method {
+    const val ID = "screen.visual_select"
+    private const val VERSION = "0.1.0"
+
+    override val id = ID
+    override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Visual selection")
+    override val descriptor = MethodDescriptor(
+        id = ArchitectureId(ID),
+        methodType = MethodObjectType.SignalInterpreter,
+        name = "Visual selection",
+        version = VERSION,
+        description = "Name normalized regions on a volatile Screen Tools frame.",
+        inputs = listOf("screen_capture_frame_ref"),
+        outputs = ScreenVisualSelectFields.outputs,
+        graphOutputs = listOf(ID),
+        parameters = mapOf(
+            "category" to "Screen Tools",
+            "status" to "Development",
+            "connectivity" to "Offline",
+            "retention" to "volatile_process_memory"
+        )
+    )
+    override val contract = MethodContract(
+        method = ref,
+        requiredContext = emptyList(),
+        producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
+        producedFields = descriptor.outputs,
+        producedGraphOutputs = descriptor.graphOutputs
+    )
+
+    override fun request(action: String, context: Map<String, String>, signals: List<Signal>, inputs: List<ArchitectureRef>) =
+        As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
+
+    override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult =
+        As100ExecutionEngine.complete(
+            request,
+            TransformationStatus.Unsupported,
+            diagnostics = mapOf("reason" to "Visual selection requires the Android image interaction boundary.")
+        )
+
+    fun result(request: ExecutionRequest, values: Map<String, String>, invocation: InvocationContext?): ExecutionResult {
+        val succeeded = values[ScreenVisualSelectFields.STATUS] == "succeeded"
+        val entity = Entity(
+            ArchitectureId("screen-selection:${UUID.randomUUID()}"),
+            "ScreenVisualSelection",
+            temporalContext = request.temporalContext
+        )
+        val provenance = ProvenanceContext("methodmesh.screen_tools", ID, VERSION)
+        val observation = Observation(
+            phenomenon = ID,
+            subject = ArchitectureRef(entity.id, entity.objectType, ID),
+            values = values,
+            temporalContext = request.temporalContext,
+            provenance = provenance
+        )
+        val transformation = Transformation(
+            action = ID,
+            method = ref,
+            outputs = listOf(ArchitectureRef(observation.id, observation.objectType, observation.phenomenon)),
+            status = if (succeeded) TransformationStatus.Succeeded else TransformationStatus.Failed,
+            temporalContext = request.temporalContext,
+            provenance = provenance
+        )
+        return As100ExecutionEngine.complete(
+            request,
+            if (succeeded) TransformationStatus.Succeeded else TransformationStatus.Failed,
+            entities = listOf(entity),
+            observations = listOf(observation),
+            transformations = listOf(transformation),
+            diagnostics = if (succeeded) emptyMap() else mapOf(
+                ScreenVisualSelectFields.ERROR to values[ScreenVisualSelectFields.ERROR].orEmpty()
             )
         ).withInvocationContext(invocation)
     }

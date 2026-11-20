@@ -19,6 +19,7 @@ data class ScreenFrame(
 
 object ScreenToolsSession {
     val frames: SnapshotStateList<ScreenFrame> = mutableStateListOf()
+    val selections: SnapshotStateList<ScreenSelection> = mutableStateListOf()
     var activeFrameId by mutableStateOf("")
     var failure by mutableStateOf("")
 
@@ -35,6 +36,7 @@ object ScreenToolsSession {
 
     fun clear() {
         frames.clear()
+        selections.clear()
         activeFrameId = ""
         failure = ""
     }
