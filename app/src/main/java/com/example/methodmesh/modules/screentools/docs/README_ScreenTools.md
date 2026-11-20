@@ -16,6 +16,14 @@ The operator explicitly chooses **Use latest frame** before the result can be
 committed. Stopping the service does not persist a screenshot. Process death,
 discard, or a new capture session invalidates the in-memory frame reference.
 
+## `screen.ocr`
+
+`screen.ocr` reads the selected volatile frame with the bundled Latin ML Kit
+recognizer. It returns the recognized text and a stable JSON array of word
+regions using normalized image coordinates in the range `[0,1]`. The OCR
+result is tied to the exact in-process frame reference; an expired reference
+fails instead of silently selecting a newer frame.
+
 ## Integration boundary
 
 The module is discovered from `ScreenToolsModule.kt`. The MediaProjection
@@ -23,6 +31,6 @@ service is declared in the application manifest because Android requires a
 typed foreground service for this operation. No overlay permission is used in
 this first slice; capture is exposed through the foreground notification.
 
-OCR, visual selection, selection memory, web capture, app opening, and image
-cropping will be added as separate methods after this capture contract passes
-device and transport validation.
+Visual selection, selection memory, visual extraction, web capture, app
+opening, and image cropping will be added as separate methods after these
+capture/OCR contracts pass device and transport validation.

@@ -39,6 +39,22 @@ object ScreenCaptureFields {
     )
 }
 
+object ScreenOcrFields {
+    const val STATUS = "screen_ocr_status"
+    const val ERROR = "screen_ocr_error"
+    const val FRAME_REF = "screen_ocr_frame_ref"
+    const val CAPTURE_TIME_ISO = "screen_ocr_capture_time_iso"
+    const val TEXT = "screen_ocr_text"
+    const val ELEMENTS_JSON = "screen_ocr_elements_json"
+    const val WORD_COUNT = "screen_ocr_word_count"
+    const val RETENTION = "screen_ocr_retention"
+
+    val outputs = listOf(
+        STATUS, ERROR, FRAME_REF, CAPTURE_TIME_ISO, TEXT,
+        ELEMENTS_JSON, WORD_COUNT, RETENTION
+    )
+}
+
 object ScreenCaptureMethod : As100Method {
     const val ID = "screen.capture"
     private const val VERSION = "0.1.0"
@@ -110,6 +126,82 @@ object ScreenCaptureMethod : As100Method {
             transformations = listOf(transformation),
             diagnostics = if (succeeded) emptyMap() else mapOf(
                 ScreenCaptureFields.ERROR to values[ScreenCaptureFields.ERROR].orEmpty()
+            )
+        ).withInvocationContext(invocation)
+    }
+}
+
+object ScreenOcrMethod : As100Method {
+    const val ID = "screen.ocr"
+    private const val VERSION = "0.1.0"
+
+    override val id = ID
+    override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Screen OCR")
+    override val descriptor = MethodDescriptor(
+        id = ArchitectureId(ID),
+        methodType = MethodObjectType.SignalInterpreter,
+        name = "Screen OCR",
+        version = VERSION,
+        description = "Recognise text and normalized word regions from a volatile Screen Tools frame.",
+        inputs = listOf("screen_capture_frame_ref"),
+        outputs = ScreenOcrFields.outputs,
+        graphOutputs = listOf(ID),
+        parameters = mapOf(
+            "category" to "Screen Tools",
+            "status" to "Development",
+            "connectivity" to "Offline",
+            "retention" to "volatile_process_memory"
+        )
+    )
+    override val contract = MethodContract(
+        method = ref,
+        requiredContext = emptyList(),
+        producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
+        producedFields = descriptor.outputs,
+        producedGraphOutputs = descriptor.graphOutputs
+    )
+
+    override fun request(action: String, context: Map<String, String>, signals: List<Signal>, inputs: List<ArchitectureRef>) =
+        As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
+
+    override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult =
+        As100ExecutionEngine.complete(
+            request,
+            TransformationStatus.Unsupported,
+            diagnostics = mapOf("reason" to "Screen OCR requires the Android ML Kit boundary.")
+        )
+
+    fun result(request: ExecutionRequest, values: Map<String, String>, invocation: InvocationContext?): ExecutionResult {
+        val succeeded = values[ScreenOcrFields.STATUS] == "succeeded"
+        val entity = Entity(
+            ArchitectureId("screen-ocr:${UUID.randomUUID()}"),
+            "ScreenOcr",
+            temporalContext = request.temporalContext
+        )
+        val provenance = ProvenanceContext("google.mlkit.text_recognition", ID, VERSION)
+        val observation = Observation(
+            phenomenon = ID,
+            subject = ArchitectureRef(entity.id, entity.objectType, ID),
+            values = values,
+            temporalContext = request.temporalContext,
+            provenance = provenance
+        )
+        val transformation = Transformation(
+            action = ID,
+            method = ref,
+            outputs = listOf(ArchitectureRef(observation.id, observation.objectType, observation.phenomenon)),
+            status = if (succeeded) TransformationStatus.Succeeded else TransformationStatus.Failed,
+            temporalContext = request.temporalContext,
+            provenance = provenance
+        )
+        return As100ExecutionEngine.complete(
+            request,
+            if (succeeded) TransformationStatus.Succeeded else TransformationStatus.Failed,
+            entities = listOf(entity),
+            observations = listOf(observation),
+            transformations = listOf(transformation),
+            diagnostics = if (succeeded) emptyMap() else mapOf(
+                ScreenOcrFields.ERROR to values[ScreenOcrFields.ERROR].orEmpty()
             )
         ).withInvocationContext(invocation)
     }
