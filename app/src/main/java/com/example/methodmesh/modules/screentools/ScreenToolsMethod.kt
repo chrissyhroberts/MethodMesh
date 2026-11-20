@@ -119,6 +119,30 @@ object ScreenCropFields {
     )
 }
 
+object ScreenWebCaptureFields {
+    const val STATUS = "screen_web_capture_status"
+    const val ERROR = "screen_web_capture_error"
+    const val URL = "screen_web_capture_url"
+    const val TITLE = "screen_web_capture_title"
+    const val FRAME_REF = "screen_web_capture_frame_ref"
+    const val WIDTH_PX = "screen_web_capture_width_px"
+    const val HEIGHT_PX = "screen_web_capture_height_px"
+    const val RETENTION = "screen_web_capture_retention"
+
+    val outputs = listOf(STATUS, ERROR, URL, TITLE, FRAME_REF, WIDTH_PX, HEIGHT_PX, RETENTION)
+}
+
+object ScreenAppOpenFields {
+    const val STATUS = "screen_app_open_status"
+    const val ERROR = "screen_app_open_error"
+    const val PACKAGE_NAME = "screen_app_open_package_name"
+    const val URL = "screen_app_open_url"
+    const val TARGET = "screen_app_open_target"
+    const val DISPATCHED_TIME_ISO = "screen_app_open_dispatched_time_iso"
+
+    val outputs = listOf(STATUS, ERROR, PACKAGE_NAME, URL, TARGET, DISPATCHED_TIME_ISO)
+}
+
 object ScreenCaptureMethod : As100Method {
     const val ID = "screen.capture"
     private const val VERSION = "0.1.0"
@@ -579,4 +603,99 @@ object ScreenCropMethod : As100Method {
             )
         ).withInvocationContext(invocation)
     }
+}
+
+object ScreenWebCaptureMethod : As100Method {
+    const val ID = "screen.web_capture"
+    private const val VERSION = "0.1.0"
+
+    override val id = ID
+    override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Web capture")
+    override val descriptor = MethodDescriptor(
+        id = ArchitectureId(ID), methodType = MethodObjectType.SignalInterpreter,
+        name = "Web capture", version = VERSION,
+        description = "Render and capture an HTTPS visible WebView viewport into volatile memory.",
+        inputs = listOf("url"), outputs = ScreenWebCaptureFields.outputs, graphOutputs = listOf(ID),
+        parameters = mapOf("category" to "Screen Tools", "status" to "Development", "connectivity" to "Online")
+    )
+    override val contract = MethodContract(
+        method = ref,
+        requiredContext = emptyList(),
+        producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
+        producedFields = descriptor.outputs,
+        producedGraphOutputs = descriptor.graphOutputs
+    )
+    override fun request(action: String, context: Map<String, String>, signals: List<Signal>, inputs: List<ArchitectureRef>) =
+        As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
+    override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult =
+        As100ExecutionEngine.complete(request, TransformationStatus.Unsupported, diagnostics = mapOf("reason" to "Web capture requires the Android WebView boundary."))
+    fun result(request: ExecutionRequest, values: Map<String, String>, invocation: InvocationContext?): ExecutionResult =
+        simpleResult(request, ref, ID, VERSION, "ScreenWebCapture", values, ScreenWebCaptureFields.STATUS, ScreenWebCaptureFields.ERROR, invocation)
+}
+
+object ScreenAppOpenMethod : As100Method {
+    const val ID = "screen.app_open"
+    private const val VERSION = "0.1.0"
+
+    override val id = ID
+    override val ref = ArchitectureRef(ArchitectureId(ID), "Method", "Open application")
+    override val descriptor = MethodDescriptor(
+        id = ArchitectureId(ID), methodType = MethodObjectType.SignalInterpreter,
+        name = "Open application", version = VERSION,
+        description = "Dispatch an installed application launcher or HTTPS deep link through Android.",
+        inputs = listOf("package_name", "url"), outputs = ScreenAppOpenFields.outputs, graphOutputs = listOf(ID),
+        parameters = mapOf("category" to "Screen Tools", "status" to "Development", "connectivity" to "Online or offline")
+    )
+    override val contract = MethodContract(
+        method = ref,
+        requiredContext = emptyList(),
+        producedKnowledgeTypes = listOf(KnowledgeObjectType.Observation),
+        producedFields = descriptor.outputs,
+        producedGraphOutputs = descriptor.graphOutputs
+    )
+    override fun request(action: String, context: Map<String, String>, signals: List<Signal>, inputs: List<ArchitectureRef>) =
+        As100ExecutionEngine.request(action = action, method = ref, context = context, signals = signals, inputs = inputs)
+    override fun execute(request: ExecutionRequest, settingsState: SettingsState?, transport: String?): ExecutionResult =
+        As100ExecutionEngine.complete(request, TransformationStatus.Unsupported, diagnostics = mapOf("reason" to "Opening an application requires the Android activity boundary."))
+    fun result(request: ExecutionRequest, values: Map<String, String>, invocation: InvocationContext?): ExecutionResult =
+        simpleResult(request, ref, ID, VERSION, "ScreenAppOpen", values, ScreenAppOpenFields.STATUS, ScreenAppOpenFields.ERROR, invocation)
+}
+
+private fun simpleResult(
+    request: ExecutionRequest,
+    method: ArchitectureRef,
+    id: String,
+    version: String,
+    entityType: String,
+    values: Map<String, String>,
+    statusField: String,
+    errorField: String,
+    invocation: InvocationContext?
+): ExecutionResult {
+    val succeeded = values[statusField] == "succeeded"
+    val entity = Entity(ArchitectureId("${id.replace('.', '-')}:${UUID.randomUUID()}"), entityType, temporalContext = request.temporalContext)
+    val provenance = ProvenanceContext("methodmesh.screen_tools", id, version)
+    val observation = Observation(
+        id = ArchitectureId("$id-observation:${UUID.randomUUID()}"),
+        phenomenon = id,
+        subject = ArchitectureRef(entity.id, entity.objectType, id),
+        values = values,
+        temporalContext = request.temporalContext,
+        provenance = provenance
+    )
+    val transformation = Transformation(
+        id = ArchitectureId("$id-transformation:${UUID.randomUUID()}"),
+        action = id,
+        method = method,
+        outputs = listOf(ArchitectureRef(observation.id, observation.objectType, observation.phenomenon)),
+        status = if (succeeded) TransformationStatus.Succeeded else TransformationStatus.Failed,
+        temporalContext = request.temporalContext,
+        provenance = provenance
+    )
+    return As100ExecutionEngine.complete(
+        request,
+        if (succeeded) TransformationStatus.Succeeded else TransformationStatus.Failed,
+        entities = listOf(entity), observations = listOf(observation), transformations = listOf(transformation),
+        diagnostics = if (succeeded) emptyMap() else mapOf(errorField to values[errorField].orEmpty())
+    ).withInvocationContext(invocation)
 }

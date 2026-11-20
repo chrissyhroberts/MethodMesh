@@ -54,6 +54,19 @@ Image Crop creates a bounded bitmap from a normalized ROI on a volatile frame.
 The source and crop receive in-process `screen-session://` references; no
 gallery, MediaStore, file URI, or durable ODK attachment is created.
 
+## `screen.web_capture`
+
+Web Capture accepts HTTPS URLs only, refuses main-frame failures and redirects
+away from HTTPS, and captures the visible WebView viewport into a volatile
+frame. JavaScript is opt-in. It does not provide whole-document capture or an
+ODK image attachment.
+
+## `screen.app_open`
+
+App Open dispatches either an installed launcher activity or an HTTPS deep
+link. Its successful result means Android accepted the dispatch; it does not
+claim access to private target-app state or completion inside that app.
+
 ## Integration boundary
 
 The module is discovered from `ScreenToolsModule.kt`. The MediaProjection

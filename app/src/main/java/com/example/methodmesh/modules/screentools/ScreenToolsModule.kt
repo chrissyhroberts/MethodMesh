@@ -11,7 +11,7 @@ object ScreenToolsModule : MethodMeshModule {
     override val summary = "Capture a user-authorised screen and read text from volatile frames."
     override val iconKey = "document"
 
-    override fun as100Methods() = listOf(ScreenCaptureMethod, ScreenOcrMethod, ScreenVisualSelectMethod, ScreenMemoryMethod, ScreenExtractMethod, ScreenCropMethod)
+    override fun as100Methods() = listOf(ScreenCaptureMethod, ScreenOcrMethod, ScreenVisualSelectMethod, ScreenMemoryMethod, ScreenExtractMethod, ScreenCropMethod, ScreenWebCaptureMethod, ScreenAppOpenMethod)
 
     override fun rilBindings() = listOf(
         RilBinding("capture screen", ScreenCaptureMethod.ID, "Capture the permitted visible screen into volatile memory")
@@ -20,9 +20,11 @@ object ScreenToolsModule : MethodMeshModule {
         ,RilBinding("remember screen regions", ScreenMemoryMethod.ID, "Encrypt and version reusable visual selections")
         ,RilBinding("extract screen values", ScreenExtractMethod.ID, "Review named values resolved from visual selections")
         ,RilBinding("crop screen image", ScreenCropMethod.ID, "Create a volatile crop from a captured frame")
+        ,RilBinding("capture webpage", ScreenWebCaptureMethod.ID, "Render and capture an HTTPS webpage viewport")
+        ,RilBinding("open application", ScreenAppOpenMethod.ID, "Dispatch an installed app or HTTPS deep link")
     )
 
-    override fun capabilityScreens() = listOf(ScreenCaptureCapabilityScreen, ScreenOcrCapabilityScreen, ScreenVisualSelectCapabilityScreen, ScreenMemoryCapabilityScreen, ScreenExtractCapabilityScreen, ScreenCropCapabilityScreen)
+    override fun capabilityScreens() = listOf(ScreenCaptureCapabilityScreen, ScreenOcrCapabilityScreen, ScreenVisualSelectCapabilityScreen, ScreenMemoryCapabilityScreen, ScreenExtractCapabilityScreen, ScreenCropCapabilityScreen, ScreenWebCaptureCapabilityScreen, ScreenAppOpenCapabilityScreen)
 
     override fun capabilitySettings() = mapOf(
         ScreenCaptureMethod.ID to listOf(
@@ -61,6 +63,14 @@ object ScreenToolsModule : MethodMeshModule {
         ScreenCropMethod.ID to listOf(
             MethodSetting.TextSetting("frame_ref", "Frame reference", defaultValue = ""),
             MethodSetting.TextSetting("roi", "Normalized ROI", defaultValue = "")
+        ),
+        ScreenWebCaptureMethod.ID to listOf(
+            MethodSetting.TextSetting("url", "HTTPS URL", defaultValue = ""),
+            MethodSetting.BooleanSetting("enable_javascript", "Enable JavaScript", defaultValue = false)
+        ),
+        ScreenAppOpenMethod.ID to listOf(
+            MethodSetting.TextSetting("package_name", "Application package", defaultValue = ""),
+            MethodSetting.TextSetting("url", "HTTPS deep link", defaultValue = "")
         )
     )
 }
