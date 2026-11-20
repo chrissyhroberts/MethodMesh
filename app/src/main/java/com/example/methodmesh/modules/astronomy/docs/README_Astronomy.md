@@ -83,6 +83,18 @@ astronomy_dashboard_json
 
 The upper-atmosphere / planetary rating is deliberately labelled a **planning proxy**, not a seeing measurement. v0.5 uses GFS wind speed at 300, 250 and 200 hPa. Satellite cloud nowcasting is not yet included; that is reserved for a later EUMETSAT-backed card once access/licensing is validated.
 
+### Engineering review continuation — 21 October 2026
+
+Master Book v1.31 remains authoritative. No method, input/output ID, source version or scientific scoring rule changed in this increment.
+
+- The completed dashboard snapshot retains its exact execution object and FULL evidence through configuration recreation. The screen derives displayed values from that snapshot; it does not reconstruct historical evidence from saved values. Missing retained evidence requires an explicit new Refresh.
+- Refresh captures the input map before acquisition. Editing a planning/site input while waiting does not relabel the completed snapshot with the new input. Provider JSON stays in the execution, rather than being copied into saved input state or preset-authoring callbacks.
+- Composition-owned acquisition and light-data jobs release busy state on failure/cancellation. Dashboard GPS is cancellable and fences late callbacks. Interrupted acquisition permits an explicit retry, not an automatic replay. Blocking provider/storage operations may still finish after cancellation; immediate I/O abort and process-death durability are not promised.
+- Native presets wait for declared runtime inputs. Fixed site controls stay hidden, GPS cannot overwrite a partly fixed coordinate pair, and declared planning-hour/threshold runtime inputs have numeric controls. External automatic completion still returns the completed snapshot.
+- Missing provider retrieval time remains blank rather than being replaced with the current refresh time. Execution time and provider retrieval time remain distinct.
+
+Controlled Android cases cover the dashboard and GPS task boundary without live provider/GPS acquisition. Other Astronomy screens still use their existing callback/location and saved-state implementations and require separate review. NASA/SAF failures, live API behavior, actual ODK/preset/protocol callers, real process kill and heatmap visual restoration remain acceptance work. The module remains Development.
+
 ---
 
 ## 1. `astronomy.polar_align`
@@ -789,3 +801,25 @@ Launching the two capabilities separately does not connect them. Standalone dew 
 ## Exposure limit
 
 `astronomy.exposure_limit` remains an optional pure calculation. It is specifically for an **untracked camera/lens on a fixed tripod** and estimates how long an exposure can be before sidereal motion becomes a chosen number of pixels. It is not used by the imaging-window planner and can be omitted when irrelevant.
+
+## Automatic planning workflow audit — 28 October 2026
+
+Conditions, dew risk and imaging window now resolve manual/upstream/supplied data before GPS permission, wait for declared native runtime inputs, hide fixed preset settings and retain the exact completed execution through rotation. Each single-flight request uses frozen inputs; cancelled/interrupted work cannot return late or create a fallback success. Fetched provider JSON stays out of saved preset settings. Missing originals require an explicit new run. Humidity aliases and manual-site precedence are preserved; ordinary hourly failures are visibly astronomy-only in the result/share summary and canonical audit. Public IDs/fields and scientific calculations are unchanged.
+
+Both builds, 38 focused JVM checks and a final clean 32-case Android run pass. Providers/GPS are synthetic; three existing separate-UID PDF/ZIP sharing tests pass. This does not certify live providers, camera/physical sensors, NASA/SAF/session workflows, real caller/process-death acceptance or remaining shared-scaffold preset closeout behavior. See docs/handoffs/ASTRONOMY_AUTO_WORKFLOWS_2026-10-28.md for coverage and limits.
+
+The later shared-screen completion pass on 28 October resolves the shared-scaffold preset Share/synchronous-save caveat above. Final Share/Save now gate confirmation through the existing canonical action handler; failures remain open and Home delegates to its owner. Its final clean 69-case Android run includes all 14 automatic Astronomy screen cases. Other Astronomy physical/provider/caller acceptance remains open. See docs/handoffs/SHARED_SCAFFOLD_CLOSEOUT_2026-10-28.md.
+
+## Measurement lifecycle continuation — 29 October 2026
+
+Relative sky test, telescope focus and mount stability now retain original completed records, require explicit recovery for unavailable evidence and stop interrupted timed samples without replay. Each camera/frame generation and timed sensor source is owned separately; late frames or an old cancelled run cannot contaminate a replacement. Camera cleanup releases only its own use cases, including the polar AR preview. The clear-night reference action is available after a completed sky test and uses the exact retained sample/note without rewriting historical scores. Relevant native runtime/fixed fields and shared result actions are preserved.
+
+Both builds, 75 focused JVM checks (27 NFC) and one clean 53-case Android run pass. The 11 new screen cases use synthetic frames/timers/sensor summaries; camera ownership is tested with controlled callbacks. Physical hardware/CameraX/permissions, polar GPS/results, NASA/SAF, calculator/session and real-caller acceptance remain open. See docs/handoffs/ASTRONOMY_MEASUREMENT_LIFECYCLE_2026-10-29.md.
+
+## Local calculators and session saving — 29 October 2026
+
+Exposure limit/image scale retain exact completed records, respect requested inputs and require explicit recovery instead of reconstruction. Image scale keeps its optics card/sliders for a new run and now uses canonical gated result actions. Finite/range validation protects exact values and sliders. Only declared UI inputs enter saved state; unrelated caller audit remains in the original request.
+
+Sessions now use checked serialized IO transitions. Stop prepares the original record before one history/unfinished-state commit; controlled write failure restores prior session/history state and remains open for retry. Existing metadata is restored before defaults can overwrite it; stale edits cannot change stored timer state or resurrect a completed session. History is off unless requested, and Discard requires confirmation. Completed originals survive recreation. Both builds and 83 focused JVM cases pass; 50 distinct Android cases are verified across a 49/50 combined run and successful final affected 26-case run, with the fixture/infrastructure qualifications in docs/handoffs/ASTRONOMY_LOCAL_WORKFLOWS_2026-10-29.md.
+
+Session wall-clock accounting, manual-date/headless persistence parity, real process/power loss, polar location/results and NASA/SAF remain open. No new physical/real-caller acceptance or all-module completion claim is made.

@@ -7,7 +7,8 @@ import java.time.Instant
 import java.util.UUID
 
 /** Module-owned persistence for astronomy-only state and deliberately cached data. */
-class AstronomyRepository(context: Context) {
+class AstronomyRepository(context: Context, private val nowMs: () -> Long = System::currentTimeMillis) {
+    private companion object { val sessionLock = Any() }
     data class GoodNightCalibration(
         val centroidRmsPx: Double,
         val fwhmPx: Double,
@@ -75,93 +76,122 @@ class AstronomyRepository(context: Context) {
         return mapOf("stability" to stability, "transparency" to transparency, "darkness" to darkness, "focus" to focus, "overall" to overall)
     }
 
-    fun startSession(target: String, equipment: String, notes: String): ActiveSession {
-        val now = System.currentTimeMillis()
-        val session = ActiveSession(
-            id = UUID.randomUUID().toString(),
-            target = target,
-            equipment = equipment,
-            notes = notes,
-            startIso = Instant.ofEpochMilli(now).toString(),
-            runningSinceEpochMs = now,
-            accumulatedMs = 0L,
-            state = "running"
-        )
-        saveActiveSession(session)
-        return session
+    fun startSession(target: String, equipment: String, notes: String): ActiveSession = synchronized(sessionLock) {
+        check(loadActiveSession() == null) { "An unfinished session already exists. Resume or discard it first." }
+        val now = nowMs()
+        val session = ActiveSession(UUID.randomUUID().toString(), target, equipment, notes,
+            Instant.ofEpochMilli(now).toString(), now, 0L, "running")
+        writeSession { putString("active_session", activeSessionToJson(session).toString()) }
+        session
     }
 
-    fun loadActiveSession(): ActiveSession? {
-        val raw = prefs.getString("active_session", null) ?: return null
-        return runCatching { activeSessionFromJson(JSONObject(raw)) }.getOrNull()
+    fun loadActiveSession(): ActiveSession? = synchronized(sessionLock) {
+        val raw = prefs.getString("active_session", null) ?: return@synchronized null
+        try { activeSessionFromJson(JSONObject(raw)) }
+        catch (failure: Exception) { throw IllegalStateException("The unfinished session could not be read; it has not been overwritten.", failure) }
     }
 
-    fun updateActiveSession(session: ActiveSession) = saveActiveSession(session)
-
-    fun pauseSession(session: ActiveSession): ActiveSession {
-        val now = System.currentTimeMillis()
-        val updated = session.copy(
-            accumulatedMs = session.activeDurationMs(now),
-            runningSinceEpochMs = null,
-            state = "paused"
-        )
-        saveActiveSession(updated)
-        return updated
+    fun updateActiveSession(session: ActiveSession) = synchronized(sessionLock) {
+        val current = requireCurrent(session.id)
+        val updated = current.copy(target = session.target, equipment = session.equipment, notes = session.notes)
+        writeSession { putString("active_session", activeSessionToJson(updated).toString()) }
+        updated
     }
 
-    fun resumeSession(session: ActiveSession): ActiveSession {
-        val updated = session.copy(runningSinceEpochMs = System.currentTimeMillis(), state = "running")
-        saveActiveSession(updated)
-        return updated
+    fun pauseSession(session: ActiveSession): ActiveSession = synchronized(sessionLock) {
+        val current = requireCurrent(session.id).copy(target = session.target, equipment = session.equipment, notes = session.notes)
+        val updated = if (current.state == "running")
+            current.copy(accumulatedMs = current.activeDurationMs(nowMs()), runningSinceEpochMs = null, state = "paused")
+        else current
+        writeSession { putString("active_session", activeSessionToJson(updated).toString()) }
+        updated
     }
 
-    fun finishSession(session: ActiveSession, saveHistory: Boolean = true): JSONObject {
-        val now = System.currentTimeMillis()
-        val finalDuration = session.activeDurationMs(now)
-        val json = activeSessionToJson(session.copy(accumulatedMs = finalDuration, runningSinceEpochMs = null, state = "finished")).apply {
+    fun resumeSession(session: ActiveSession): ActiveSession = synchronized(sessionLock) {
+        val current = requireCurrent(session.id).copy(target = session.target, equipment = session.equipment, notes = session.notes)
+        val updated = if (current.state != "running") current.copy(runningSinceEpochMs = nowMs(), state = "running") else current
+        writeSession { putString("active_session", activeSessionToJson(updated).toString()) }
+        updated
+    }
+
+    fun finishSession(session: ActiveSession, saveHistory: Boolean = true): JSONObject =
+        completeSession(session, saveHistory) { it to it }
+
+    /** Prepare the exact return payload before one durable history/active-session transaction. */
+    internal fun <T> completeSession(session: ActiveSession, saveHistory: Boolean,
+        prepare: (JSONObject) -> Pair<JSONObject, T>): T = synchronized(sessionLock) {
+        val current = requireCurrent(session.id).copy(target = session.target, equipment = session.equipment, notes = session.notes)
+        val now = nowMs()
+        val duration = current.activeDurationMs(now)
+        val finished = activeSessionToJson(current.copy(accumulatedMs = duration, runningSinceEpochMs = null, state = "finished")).apply {
             put("end_iso", Instant.ofEpochMilli(now).toString())
-            put("active_duration_seconds", finalDuration / 1000.0)
-            put("created_iso", Instant.now().toString())
+            put("active_duration_seconds", duration / 1000.0)
+            put("created_iso", Instant.ofEpochMilli(now).toString())
         }
-        if (saveHistory) saveSession(json)
-        prefs.edit().remove("active_session").apply()
-        return json
+        val (domainRecord, result) = prepare(finished)
+        val historyRecord = JSONObject(finished.toString()).apply {
+            domainRecord.keys().forEach { key -> put(key, domainRecord.get(key)) }
+            // Keep the existing workspace-history numeric representation.
+            put("active_duration_seconds", finished.getDouble("active_duration_seconds"))
+        }
+        val history = if (saveHistory) historyWith(historyRecord, 100) else null
+        writeSession {
+            if (history != null) putString("sessions", history)
+            remove("active_session")
+        }
+        result
     }
 
-    fun discardActiveSession() = prefs.edit().remove("active_session").apply()
+    fun discardActiveSession(expectedId: String? = null) = synchronized(sessionLock) {
+        if (expectedId != null) requireCurrent(expectedId)
+        writeSession { remove("active_session") }
+    }
 
-    private fun saveActiveSession(session: ActiveSession) {
-        prefs.edit().putString("active_session", activeSessionToJson(session).toString()).apply()
+    private fun requireCurrent(id: String): ActiveSession = checkNotNull(loadActiveSession()?.takeIf { it.id == id }) {
+        "This session is no longer active. Reload before making changes."
+    }
+
+    private fun writeSession(change: android.content.SharedPreferences.Editor.() -> Unit) {
+        val before = listOf("active_session", "sessions").associateWith { prefs.getString(it, null) }
+        val editor = prefs.edit().apply(change)
+        var writeFailure: Exception? = null
+        val committed = try { editor.commit() } catch (failure: Exception) { writeFailure = failure; false }
+        if (!committed) {
+            // A failed SharedPreferences commit may already have changed its memory cache.
+            // Restore this operation's exact prior session/history values, not unrelated preferences.
+            val rollback = prefs.edit()
+            before.forEach { (key, value) -> if (value == null) rollback.remove(key) else rollback.putString(key, value) }
+            runCatching { rollback.commit() }
+            throw IllegalStateException("Session save failed. Keep this screen open and retry.", writeFailure)
+        }
     }
 
     private fun activeSessionToJson(session: ActiveSession): JSONObject = JSONObject().apply {
-        put("session_id", session.id)
-        put("target", session.target)
-        put("equipment", session.equipment)
-        put("notes", session.notes)
-        put("start_iso", session.startIso)
+        put("session_id", session.id); put("target", session.target); put("equipment", session.equipment)
+        put("notes", session.notes); put("start_iso", session.startIso)
         put("running_since_epoch_ms", session.runningSinceEpochMs ?: JSONObject.NULL)
-        put("accumulated_ms", session.accumulatedMs)
-        put("state", session.state)
+        put("accumulated_ms", session.accumulatedMs); put("state", session.state)
     }
 
     private fun activeSessionFromJson(o: JSONObject): ActiveSession = ActiveSession(
-        id = o.getString("session_id"),
-        target = o.optString("target"),
-        equipment = o.optString("equipment"),
-        notes = o.optString("notes"),
-        startIso = o.getString("start_iso"),
-        runningSinceEpochMs = if (o.isNull("running_since_epoch_ms")) null else o.optLong("running_since_epoch_ms"),
-        accumulatedMs = o.optLong("accumulated_ms", 0L),
-        state = o.optString("state", "paused")
-    )
+        o.getString("session_id"), o.optString("target"), o.optString("equipment"), o.optString("notes"),
+        o.getString("start_iso"), if (o.isNull("running_since_epoch_ms")) null else o.optLong("running_since_epoch_ms"),
+        o.optLong("accumulated_ms", 0L), o.optString("state", "paused"))
 
-    fun saveSession(json: JSONObject, maxSessions: Int = 100) {
-        val arr = runCatching { JSONArray(prefs.getString("sessions", "[]")) }.getOrElse { JSONArray() }
+    private fun historyWith(json: JSONObject, maxSessions: Int): String {
+        require(maxSessions > 0)
+        val arr = try { JSONArray(prefs.getString("sessions", "[]")) }
+            catch (failure: Exception) { throw IllegalStateException("Stored session history could not be read; it has not been replaced.", failure) }
+        val id = json.optString("session_id")
+        check(id.isBlank() || (0 until arr.length()).none { arr.optJSONObject(it)?.optString("session_id") == id }) {
+            "This session is already in history; it has not been duplicated."
+        }
         arr.put(json)
-        val trimmed = JSONArray()
-        val start = (arr.length() - maxSessions).coerceAtLeast(0)
-        for (i in start until arr.length()) trimmed.put(arr.get(i))
-        prefs.edit().putString("sessions", trimmed.toString()).apply()
+        return JSONArray().apply { for (i in (arr.length() - maxSessions).coerceAtLeast(0) until arr.length()) put(arr.get(i)) }.toString()
+    }
+
+    fun saveSession(json: JSONObject, maxSessions: Int = 100) = synchronized(sessionLock) {
+        val history = historyWith(json, maxSessions)
+        writeSession { putString("sessions", history) }
     }
 }

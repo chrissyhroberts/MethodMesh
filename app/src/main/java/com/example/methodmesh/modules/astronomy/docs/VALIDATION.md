@@ -68,3 +68,23 @@ Status remains **Development**.
 - Raster lookup tries all cached rectangles covering the selected point newest-first.
 - Standalone and dashboard surfaces use the same `filesDir/astronomy/light_pollution` cache.
 - No `HomeScreen`, Settings, widget or other core UI file is included.
+
+## Repository audit supplement — 28 October 2026
+
+The earlier package-only build limitations above are historical. In the full MethodMesh checkout both debug APK builds now pass. This continuation fixes/tests the automatic conditions, dew-risk and imaging-window screens without changing their science or public contracts. Final verification is 38 focused JVM checks and one clean 32-case API 37 Android run: 14 new screen cases, nine existing dashboard cases, three GPS-task cases and six existing native sharing/file-delivery cases. The earlier 31-case run had two accessibility timing assumptions in new tests; corrected waits and the added error-display case pass in the final run.
+
+This verifies controlled routing, runtime-input gates, original evidence retention, cancellation/late-response rejection, frozen inputs, explicit recovery and honest astronomy-only fallback. It is not live Open-Meteo/NASA/GPS/camera/sensor/permission-dialog or actual preset/protocol/Collect acceptance. Remaining shared-scaffold preset SHARE/synchronous-save behavior is explicitly open. The detailed evidence and protected-sharing checksum are in docs/handoffs/ASTRONOMY_AUTO_WORKFLOWS_2026-10-28.md.
+
+The subsequent shared-scaffold pass (docs/handoffs/SHARED_SCAFFOLD_CLOSEOUT_2026-10-28.md) resolves the preset SHARE/synchronous-save limitation recorded above. Both builds, 69 JVM checks including NFC contracts, and a final clean 69-case Android run including these 14 Astronomy cases pass. This expands controlled closeout coverage; it does not add live provider/physical/real-caller certification.
+
+## Measurement lifecycle verification — 29 October 2026
+
+Both debug APK builds and git diff --check pass. All 75 focused JVM cases pass: ten new frame/camera ownership cases, 19 prior Astronomy routing/controller cases, 19 retained-store/closeout/parity/sharing cases and 27 NFC contract cases. A final clean API 37 run passes all 53 Android cases: 11 measurement-screen cases, 26 prior Astronomy/GPS cases, ten shared-scaffold cases and six sharing/file-delivery cases. The earlier ten new screen cases also passed before adding non-cooperative old-source cancellation coverage.
+
+This verifies exact-original/FULL retention, explicit missing-evidence recovery, no timed replay after interruption, frozen inputs, owned focus reset/camera switching, reference saving after rotation, late-source isolation and automatic return once. Frames/timers/sensor sources are injected; CameraX resource lease tests are controlled callbacks. It does not certify physical cameras/sensors/permissions, actual CameraX binding failures, live providers or real caller/OS process-death behavior. The handoff is docs/handoffs/ASTRONOMY_MEASUREMENT_LIFECYCLE_2026-10-29.md.
+
+## Local workflow verification — 29 October 2026
+
+Both debug APK builds, git diff --check and 83 focused JVM checks pass (37 Astronomy, four retained-store, five closeout, five parity, five sharing, 27 NFC). Fifty distinct Android cases are verified across runs: 16 local workflows, 11 measurements, ten shared result controls, seven Home/log order and six file/share cases. The combined run passed 49/50; a shared fixture label reread was repaired. All affected 26 cases pass on final sources after an emulator UiAutomationService reconnection failure was cleared by reboot. This is not a single clean final 50-case/full-suite claim.
+
+Controlled preference failures verify rollback after memory mutation, atomic Stop publication, no premature completion, original retention/recovery and no stale-session resurrection. Test preferences are isolated and production session/calibration preferences are not cleared. Real disk/power/process-loss and clock-change behavior are not certified; timing remains wall-clock based. The detailed record is docs/handoffs/ASTRONOMY_LOCAL_WORKFLOWS_2026-10-29.md.

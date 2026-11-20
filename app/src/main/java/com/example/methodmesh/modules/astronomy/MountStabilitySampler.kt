@@ -17,17 +17,25 @@ class MountStabilitySampler(context: Context) : SensorEventListener {
     private val gyro = manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
     private val samples = CopyOnWriteArrayList<Sample>()
     @Volatile private var lastGyro: Triple<Double, Double, Double>? = null
+    @Volatile private var running = false
 
     fun start() {
+        stop()
         samples.clear()
+        lastGyro = null
+        running = true
         accel?.let { manager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME) }
         gyro?.let { manager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME) }
     }
 
-    fun stop() = manager.unregisterListener(this)
+    fun stop() {
+        running = false
+        manager.unregisterListener(this)
+    }
     fun clear() = samples.clear()
 
     override fun onSensorChanged(event: SensorEvent) {
+        if (!running) return
         when (event.sensor.type) {
             Sensor.TYPE_GYROSCOPE -> lastGyro = Triple(event.values[0].toDouble(), event.values[1].toDouble(), event.values[2].toDouble())
             Sensor.TYPE_ACCELEROMETER -> {
