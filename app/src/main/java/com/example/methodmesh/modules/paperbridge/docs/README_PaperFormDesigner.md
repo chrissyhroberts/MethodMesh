@@ -52,11 +52,15 @@ After Commit the native designer remains on its committed surface and exposes:
 
 - tap-to-copy scalar identifiers/counts;
 - **Share** of the useful summary plus generated design artefacts;
-- **Save** to the shared MethodMesh **Files** surface;
+- **Save to Downloads** for the committed design bundle;
 - optional **Include full JSON / audit**;
 - **Done** with launch-origin-aware closeout;
 - **Edit design**;
 - **Copy template JSON**.
+
+The useful design JSON/YAML/ZIP and images remain real domain attachments with audit off or on. Share supplies equivalent summary text in the message and a run-specific text file; enabled FULL audit is appended to that text, never a separate debug JSON stream. Save uses one coherent capability/form/UTC-timestamp stem, and adds a separate metadata JSON file only when enabled. **Save schema** remains the distinct durable workspace action. Final native preset Share/Save completes only after dispatch/persistence succeeds; failure keeps the original committed record open.
+
+See `docs/handoffs/PAPER_COMMITTED_EXPORTS_2026-10-23.md` for test coverage and API/platform limits.
 
 ## ODK/external behaviour
 
@@ -70,7 +74,9 @@ Deleting a saved Paper Bridge schema is a destructive action and requires confir
 
 ## Lifecycle restoration
 
-Meaningful in-progress editor state is encoded in saveable state: selected source identity, imported ODK schema, field mappings, loose regions, selection/editing controls, test state and registration configuration. Large bitmaps are reloaded/rederived from the persistent source identity after ordinary Activity recreation rather than serialised into the state bundle. Committed design values are separately frozen and saveable.
+Meaningful in-progress editor state is encoded in saveable state: selected source identity, imported ODK schema, field mappings, loose regions, selection/editing controls, test state and registration configuration. Large bitmaps are reloaded/rederived from the persistent source identity after ordinary Activity recreation rather than serialised into the state bundle. The original committed execution is retained in activity-scoped memory across ordinary recreation; values/FULL evidence are not rebuilt from saved JSON. Only a small marker/opaque key is saved at this boundary. A missing original requires an explicit return to design, with no stale result actions. This is not durable process-death restoration. Save/test/Commit gates are unchanged.
+
+The 23 October screen check uses a synthetic post-Commit record; it does not pass real designer gates or scan a form. See `docs/handoffs/PAPER_BARCODE_RETENTION_2026-10-23.md`.
 
 ## Status
 

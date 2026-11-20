@@ -84,6 +84,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.methodmesh.MainActivity
+import com.example.methodmesh.transport.workflow.ui.CapturedExecutionRecovery
+import com.example.methodmesh.transport.workflow.ui.rememberRetainedExecutionResult
 import com.example.methodmesh.core.methodmesh.ExecutionResult
 import com.example.methodmesh.core.protocols.PresetResultAction
 import com.example.methodmesh.transport.OutputFormatter
@@ -281,8 +283,8 @@ object PaperFormDesignCapabilityScreen : CapabilityScreenSpec {
         var libraryRevision by rememberSaveable { mutableStateOf(0) }
         var editorTemplateJson by rememberSaveable { mutableStateOf("") }
         var editorOpen by rememberSaveable { mutableStateOf(false) }
-        var committedValuesJson by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
-        var committedResult by remember { mutableStateOf<ExecutionResult?>(null) }
+        var hadCommitted by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
+        var committedResult by rememberRetainedExecutionResult("paper-design:${context.action.canonicalId}")
         var includeFullJson by rememberSaveable(context.action.canonicalId) { mutableStateOf(false) }
         var exportStatus by rememberSaveable(context.action.canonicalId) { mutableStateOf("") }
         val schemas = remember(libraryRevision) { PaperBridgeWorkspace.templates(app) }
@@ -290,23 +292,9 @@ object PaperFormDesignCapabilityScreen : CapabilityScreenSpec {
             editorTemplateJson.takeIf { it.isNotBlank() }?.let { runCatching { PaperTemplate.parse(it) }.getOrNull() }
         }
 
-        fun valuesFromJson(raw: String): Map<String, String> = if (raw.isBlank()) emptyMap() else runCatching {
-            val o = JSONObject(raw); buildMap { o.keys().forEach { key -> put(key, o.optString(key, "")) } }
-        }.getOrDefault(emptyMap())
-
-        val committedValues = remember(committedValuesJson) { valuesFromJson(committedValuesJson) }
-        val restoredCommitted = remember(committedValuesJson) {
-            if (committedValues.isEmpty()) null else {
-                val request = As100PaperFormDesignMethod.request(
-                    action = As100PaperFormDesignMethod.ID,
-                    context = context.request.invocationContext.asMap(As100PaperFormDesignMethod.ID),
-                    signals = emptyList(), inputs = emptyList()
-                )
-                As100PaperFormDesignMethod.result(request, committedValues, context.request.invocationContext)
-            }
-        }
-        val frozenResult = committedResult ?: restoredCommitted
-        val fullJson = remember(frozenResult?.request?.id?.value, committedValuesJson) {
+        val frozenResult = committedResult
+        val committedValues = remember(frozenResult) { paperCommittedFields(frozenResult) }
+        val fullJson = remember(frozenResult) {
             frozenResult?.let { OutputFormatter.format(it, ReturnMode.Json, includeProvenance = true, payloadMode = OutputFormatter.PayloadMode.FULL) }.orEmpty()
         }
 
@@ -337,8 +325,8 @@ object PaperFormDesignCapabilityScreen : CapabilityScreenSpec {
                 ?.let { PaperBridgeShareAttachment("mapping.png", it) }
         ).distinctBy { it.uri }
 
-        fun shareCommitted() {
-            runCatching {
+        fun shareCommitted(): Boolean {
+            return runCatching {
                 val attachments = designAttachments()
                 ResultShare.share(
                     context = app,
@@ -348,31 +336,30 @@ object PaperFormDesignCapabilityScreen : CapabilityScreenSpec {
                     jsonText = if (includeFullJson) fullJson else "",
                     fileLabel = "Paper Bridge design"
                 )
-                exportStatus = "Sharing design summary file plus ${attachments.size} attachment${if (attachments.size == 1) "" else "s"}${if (includeFullJson) " and metadata.json" else ""}."
-            }.onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }
+                exportStatus = "Sharing design summary file plus ${attachments.size} attachment${if (attachments.size == 1) "" else "s"}${if (includeFullJson) " with audit appended to the text" else ""}."
+            }.onFailure { exportStatus = "Share failed: ${it.message ?: "no sharing app available"}" }.isSuccess
         }
 
-        fun saveCommitted() {
-            runCatching {
-                PaperBridgeResultActions.saveToFiles(
+        fun saveCommitted(): Boolean {
+            return runCatching {
+                PaperBridgeResultActions.saveToDownloads(
                     context = app,
-                    collectionLabel = committedValues[PaperDesignFields.TEMPLATE_ID].orEmpty().ifBlank { "design" },
-                    textFileName = "design_summary.txt",
+                    label = "Paper Bridge design " + committedValues[PaperDesignFields.TEMPLATE_ID].orEmpty(),
                     text = designSummary(),
                     attachments = designAttachments(),
-                    jsonText = if (includeFullJson) fullJson else "",
-                    entryId = frozenResult?.request?.id?.value
+                    jsonText = if (includeFullJson) fullJson else ""
                 )
             }.onSuccess { saved ->
-                exportStatus = "Saved ${saved.fileCount} file${if (saved.fileCount == 1) "" else "s"} to MethodMesh Files."
-            }.onFailure { exportStatus = "Save failed: ${it.message ?: "Files storage error"}" }
+                exportStatus = "Saved ${saved.summary}"
+            }.onFailure { exportStatus = "Save failed: ${it.message ?: "Downloads storage error"}" }.isSuccess
         }
 
         fun finishCommitted(result: ExecutionResult) {
             if (!context.isNativePresetRun || !context.isLastStep) { onConfirmed(result); return }
             when {
-                presetResultAction == PresetResultAction.SAVE -> { saveCommitted(); onConfirmed(result) }
-                finishToLauncher -> onConfirmed(result)
+                presetResultAction == PresetResultAction.SHARE -> { if (shareCommitted()) onConfirmed(result) }
+                presetResultAction == PresetResultAction.SAVE -> { if (saveCommitted()) onConfirmed(result) }
+                finishToLauncher || context.hostOwnsNativePresetCloseout -> onConfirmed(result)
                 else -> app.startActivity(Intent(app, MainActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
                 })
@@ -411,16 +398,23 @@ object PaperFormDesignCapabilityScreen : CapabilityScreenSpec {
                 PaperDesignFields.ERROR to ""
             )
             val result = As100PaperFormDesignMethod.result(request, values, context.request.invocationContext)
+            committedResult = result
+            hadCommitted = true
             if (automaticReturn) {
                 onConfirmed(result)
             } else {
-                committedResult = result
-                committedValuesJson = JSONObject(values).toString()
                 includeFullJson = false
                 exportStatus = "Committed. Share, Save or Done when ready."
                 editorOpen = false
                 editorTemplateJson = template.rawJson
             }
+        }
+
+        if (hadCommitted && frozenResult == null) {
+            CapturedExecutionRecovery(onRestart = {
+                hadCommitted = false; includeFullJson = false; exportStatus = ""; editorOpen = true
+            }, onClose = onCancel, restartLabel = "Return to design")
+            return
         }
 
         if (frozenResult != null && !automaticReturn) {
@@ -439,22 +433,28 @@ object PaperFormDesignCapabilityScreen : CapabilityScreenSpec {
                     Spacer(Modifier.height(12.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(modifier = Modifier.weight(1f), onClick = ::shareCommitted) { Text("Share") }
-                        Button(modifier = Modifier.weight(1f), onClick = ::saveCommitted) { Text("Save") }
+                        Button(modifier = Modifier.weight(1f), onClick = { saveCommitted() }) { Text("Save to Downloads") }
                     }
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Switch(checked = includeFullJson, onCheckedChange = { includeFullJson = it })
                         Column(Modifier.padding(start = 8.dp)) {
                             Text("Include full JSON / audit", style = MaterialTheme.typography.labelLarge)
-                            Text("Adds structured execution metadata to Share and Save.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Share appends audit to the text; Save adds a separate metadata file.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     if (exportStatus.isNotBlank()) { Spacer(Modifier.height(8.dp)); Text(exportStatus, style = MaterialTheme.typography.bodySmall) }
                     Spacer(Modifier.height(12.dp))
-                    Button(modifier = Modifier.fillMaxWidth(), onClick = { finishCommitted(frozenResult) }) { Text("Done") }
+                    Button(modifier = Modifier.fillMaxWidth(), onClick = { finishCommitted(frozenResult) }) {
+                        Text(when {
+                            context.isNativePresetRun && context.isLastStep && presetResultAction == PresetResultAction.SHARE -> "Share and finish"
+                            context.isNativePresetRun && context.isLastStep && presetResultAction == PresetResultAction.SAVE -> "Save and finish"
+                            else -> "Done"
+                        })
+                    }
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = {
-                        committedResult = null; committedValuesJson = ""; includeFullJson = false; exportStatus = ""; editorOpen = true
+                        committedResult = null; hadCommitted = false; includeFullJson = false; exportStatus = ""; editorOpen = true
                     }) { Text("Edit design") }
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { copy("Paper Bridge template JSON", committedValues[PaperDesignFields.TEMPLATE_JSON].orEmpty()) }) { Text("Copy template JSON") }
